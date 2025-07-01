@@ -53,6 +53,7 @@ interface ChatViewProps {
 const mockConversation = {
   id: "1",
   contactName: "GRUPO ALCON",
+  channel: "whatsapp" as "whatsapp" | "facebook" | "sms",
   tag: "order" as const,
   status: "open",
   messages: [
