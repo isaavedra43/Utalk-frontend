@@ -466,23 +466,27 @@ export function ChatView({ chatId, className }: ChatViewProps) {
                 </Tooltip>
               </TooltipProvider>
             </DialogTrigger>
-            <DialogContent className="bg-gray-800 border-gray-700 text-white">
+            <DialogContent className="bg-gray-900 border border-gray-700/50 text-white rounded-xl shadow-2xl backdrop-blur-sm">
               <DialogHeader>
-                <DialogTitle>Textos Predefinidos</DialogTitle>
+                <DialogTitle className="text-white font-medium">
+                  Textos Predefinidos
+                </DialogTitle>
               </DialogHeader>
-              <ScrollArea className="h-80">
+              <ScrollArea className="h-80 pr-2">
                 <div className="space-y-2">
                   {predefinedTexts.map((text) => (
                     <div
                       key={text.id}
-                      className="p-3 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors"
+                      className="p-3 bg-gray-800/60 border border-gray-600/30 rounded-lg cursor-pointer hover:bg-gray-700/60 hover:border-gray-500/40 transition-all duration-200 backdrop-blur-sm"
                       onClick={() => handlePredefinedTextSelect(text.content)}
                     >
                       <h4 className="font-medium text-white mb-1">
                         {text.title}
                       </h4>
-                      <p className="text-sm text-gray-300">{text.content}</p>
-                      <Badge className="mt-2 bg-blue-600 text-white text-xs">
+                      <p className="text-sm text-gray-300 leading-relaxed">
+                        {text.content}
+                      </p>
+                      <Badge className="mt-2 bg-blue-600/20 border border-blue-500/30 text-blue-300 text-xs rounded-full">
                         {text.category}
                       </Badge>
                     </div>
