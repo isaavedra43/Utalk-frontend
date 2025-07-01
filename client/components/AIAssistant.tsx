@@ -57,15 +57,176 @@ export function AIAssistant({ className }: AIAssistantProps) {
   const [activeTab, setActiveTab] = useState("ai");
   const [showCannedResponses, setShowCannedResponses] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("bienvenida");
+
+  // Advanced AI Assistant States
+  const [isWelcomeMode, setIsWelcomeMode] = useState(true);
+  const [messageCount, setMessageCount] = useState(0);
+  const [aiSuggestions, setAiSuggestions] = useState<
+    Array<{
+      id: string;
+      text: string;
+      confidence: number;
+      category: string;
+    }>
+  >([]);
   const [detectedProducts, setDetectedProducts] = useState([
     {
       id: "1",
       name: "Mármol Blanco Carrara",
       price: "$45.99/m²",
       image: "/placeholder.svg",
-      description: "Mármol natural de alta calidad",
+      description: "Mármol natural de alta calidad premium para interiores",
+      technicalData: "Densidad: 2.7 kg/dm³, Absorción: <0.5%",
+      hasImage: true,
+      hasPDF: true,
+      hasVideo: true,
+    },
+    {
+      id: "2",
+      name: "Travertino Romano",
+      price: "$32.50/m²",
+      image: "/placeholder.svg",
+      description: "Piedra natural con textura única",
+      technicalData: "Densidad: 2.4 kg/dm³, Absorción: 2-5%",
+      hasImage: true,
+      hasPDF: true,
+      hasVideo: false,
     },
   ]);
+  const [editingSuggestion, setEditingSuggestion] = useState<string | null>(
+    null,
+  );
+  const [editedText, setEditedText] = useState("");
+
+  // Generate welcome message automatically
+  const generateWelcomeMessage = () => {
+    const welcomeMessages = [
+      "¡Hola! Soy parte del equipo de GRUPO ALCON. Es un placer atenderte hoy. ¿En qué podemos ayudarte con nuestros productos de mármol y piedra natural?",
+      "¡Bienvenido/a! Gracias por contactar a GRUPO ALCON. Somos especialistas en mármol, travertino y piedras decorativas. ¿Tienes algún proyecto en mente?",
+      "¡Hola! Me da mucho gusto que nos contactes. En GRUPO ALCON tenemos más de 15 años ayudando a crear espacios únicos con piedra natural. ¿Cómo puedo asistirte hoy?",
+    ];
+
+    if (messageCount < 3) {
+      return welcomeMessages[messageCount] || welcomeMessages[0];
+    }
+    return null;
+  };
+
+  // Generate intelligent reply suggestions based on context
+  const generateAISuggestions = () => {
+    setIsGenerating(true);
+
+    setTimeout(() => {
+      const contextualSuggestions = [
+        {
+          id: "1",
+          text: "Perfecto, te puedo ayudar con información detallada sobre nuestros mármoles. ¿Tienes algún color o tipo específico en mente? Contamos con carrara, calacatta, emperador y muchas opciones más.",
+          confidence: 0.95,
+          category: "product_inquiry",
+        },
+        {
+          id: "2",
+          text: "Excelente elección. El mármol carrara es uno de nuestros productos estrella. Te envío la ficha técnica completa con precios actualizados. ¿Para qué tipo de aplicación lo necesitas?",
+          confidence: 0.88,
+          category: "technical_response",
+        },
+        {
+          id: "3",
+          text: "Con gusto te ayudo con la cotización. Para darte el mejor precio, necesito saber: ¿cuántos metros cuadrados aproximadamente? ¿es para interior o exterior? ¿tienes fecha límite para el proyecto?",
+          confidence: 0.92,
+          category: "pricing_inquiry",
+        },
+      ];
+
+      setAiSuggestions(contextualSuggestions);
+      setIsGenerating(false);
+    }, 1500);
+  };
+
+  // Product detection based on conversation
+  const detectProductsInConversation = (message: string) => {
+    const productKeywords = {
+      mármol: ["marmol", "marble", "carrara", "calacatta"],
+      travertino: ["travertino", "travertine", "romano"],
+      granito: ["granito", "granite"],
+      piedra: ["piedra", "stone", "decorativa"],
+    };
+
+    const detected = [];
+    Object.entries(productKeywords).forEach(([product, keywords]) => {
+      if (keywords.some((keyword) => message.toLowerCase().includes(keyword))) {
+        detected.push(product);
+      }
+    });
+
+    return detected;
+  };
+
+  const sendSuggestion = (suggestionId: string) => {
+    const suggestion = aiSuggestions.find((s) => s.id === suggestionId);
+    if (suggestion) {
+      console.log("Sending suggestion:", suggestion.text);
+      // Here you would integrate with the chat component to send the message
+      // Remove suggestion after sending
+      setAiSuggestions((prev) => prev.filter((s) => s.id !== suggestionId));
+    }
+  };
+
+  const editSuggestion = (suggestionId: string) => {
+    const suggestion = aiSuggestions.find((s) => s.id === suggestionId);
+    if (suggestion) {
+      setEditingSuggestion(suggestionId);
+      setEditedText(suggestion.text);
+    }
+  };
+
+  const saveEditedSuggestion = () => {
+    if (editingSuggestion) {
+      setAiSuggestions((prev) =>
+        prev.map((s) =>
+          s.id === editingSuggestion ? { ...s, text: editedText } : s,
+        ),
+      );
+      setEditingSuggestion(null);
+      setEditedText("");
+    }
+  };
+
+  const rewriteSuggestion = (suggestionId: string) => {
+    setIsGenerating(true);
+    setTimeout(() => {
+      const rewrittenTexts = [
+        "Perfecto, me da mucho gusto que estés interesado en nuestros productos de mármol. ¿Podrías contarme un poco más sobre tu proyecto? Así puedo recomendarte la mejor opción.",
+        "¡Excelente! El mármol carrara es realmente excepcional. Te voy a compartir toda la información técnica y algunos ejemplos de proyectos donde lo hemos usado. ¿Te parece bien?",
+        "Claro que sí, con mucho gusto te preparo una cotización personalizada. Solo necesito algunos detalles del proyecto para asegurarme de darte el mejor precio posible.",
+      ];
+
+      setAiSuggestions((prev) =>
+        prev.map((s) =>
+          s.id === suggestionId
+            ? {
+                ...s,
+                text: rewrittenTexts[
+                  Math.floor(Math.random() * rewrittenTexts.length)
+                ],
+              }
+            : s,
+        ),
+      );
+      setIsGenerating(false);
+    }, 1000);
+  };
+
+  const sendProductInfo = (
+    productId: string,
+    type: "image" | "pdf" | "video" | "technical",
+  ) => {
+    const product = detectedProducts.find((p) => p.id === productId);
+    if (product) {
+      console.log(`Sending ${type} for product:`, product.name);
+      // Here you would integrate with the chat component to send the media
+    }
+  };
 
   const generateSuggestion = async (type: string) => {
     setIsGenerating(true);
@@ -177,8 +338,30 @@ export function AIAssistant({ className }: AIAssistantProps) {
         </div>
 
         <p className="text-sm text-gray-400">
-          Suggest replies, summarize conversations, or improve message tone
+          {isWelcomeMode
+            ? "IA enviando bienvenida automática - luego modo asistente"
+            : "Modo asistente activo - sugiere respuestas sin enviar automáticamente"}
         </p>
+
+        {/* Welcome Message Preview */}
+        {isWelcomeMode && messageCount < 3 && (
+          <div className="mt-3 p-2 bg-green-900/30 border border-green-600/30 rounded">
+            <p className="text-xs text-green-400 mb-1">
+              🤖 Próximo mensaje automático:
+            </p>
+            <p className="text-xs text-green-200">
+              "{generateWelcomeMessage()}"
+            </p>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setMessageCount(3)}
+              className="text-green-400 hover:text-green-300 text-xs mt-1 h-5 px-2"
+            >
+              Pasar a modo asistente
+            </Button>
+          </div>
+        )}
       </div>
 
       <ScrollArea className="flex-1">
@@ -296,11 +479,143 @@ export function AIAssistant({ className }: AIAssistantProps) {
                 </Card>
               )}
 
+              {/* AI Assistant Mode Indicator */}
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm text-white flex items-center gap-2">
+                    <Bot className="h-4 w-4" />
+                    Estado del Asistente
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-400">Modo:</span>
+                    <Badge
+                      className={cn(
+                        "text-xs",
+                        isWelcomeMode
+                          ? "bg-green-600 text-white"
+                          : "bg-blue-600 text-white",
+                      )}
+                    >
+                      {isWelcomeMode
+                        ? "Bienvenida Automática"
+                        : "Asistente Silencioso"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-400">Mensajes:</span>
+                    <span className="text-sm text-gray-300">
+                      {messageCount}/3
+                    </span>
+                  </div>
+                  {!isWelcomeMode && (
+                    <Button
+                      size="sm"
+                      onClick={generateAISuggestions}
+                      disabled={isGenerating}
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Generar Sugerencias
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* AI Suggestions (Assistant Mode) */}
+              {aiSuggestions.length > 0 && (
+                <Card className="bg-gray-800 border-gray-700">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm text-white flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      Sugerencias Inteligentes
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {aiSuggestions.map((suggestion, index) => (
+                      <div
+                        key={suggestion.id}
+                        className="bg-gray-700 rounded-lg p-3"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <Badge className="bg-blue-600 text-white text-xs">
+                            Opción {index + 1} •{" "}
+                            {Math.round(suggestion.confidence * 100)}%
+                          </Badge>
+                        </div>
+
+                        {editingSuggestion === suggestion.id ? (
+                          <div className="space-y-2">
+                            <Textarea
+                              value={editedText}
+                              onChange={(e) => setEditedText(e.target.value)}
+                              className="bg-gray-600 border-gray-500 text-white text-sm"
+                              rows={3}
+                            />
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                onClick={saveEditedSuggestion}
+                                className="bg-green-600 hover:bg-green-700 text-xs px-2 py-1 h-6"
+                              >
+                                Guardar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setEditingSuggestion(null)}
+                                className="text-gray-400 hover:text-white text-xs px-2 py-1 h-6"
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-sm text-gray-200 mb-3 leading-relaxed">
+                              {suggestion.text}
+                            </p>
+
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                onClick={() => sendSuggestion(suggestion.id)}
+                                className="bg-green-600 hover:bg-green-700 text-xs px-2 py-1 h-6"
+                              >
+                                ✅ Enviar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => editSuggestion(suggestion.id)}
+                                className="border-gray-600 text-gray-300 hover:text-white text-xs px-2 py-1 h-6"
+                              >
+                                ✏️ Editar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => rewriteSuggestion(suggestion.id)}
+                                disabled={isGenerating}
+                                className="border-gray-600 text-gray-300 hover:text-white text-xs px-2 py-1 h-6"
+                              >
+                                🔄 Reescribir
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Quick Actions */}
               <Card className="bg-gray-800 border-gray-700">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm text-white">
-                    Quick Actions
+                    Acciones Rápidas
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -312,18 +627,7 @@ export function AIAssistant({ className }: AIAssistantProps) {
                     disabled={isGenerating}
                   >
                     <FileText className="h-4 w-4 mr-2" />
-                    Summarize Conversation
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-700"
-                    onClick={() => generateSuggestion("reply")}
-                    disabled={isGenerating}
-                  >
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Suggest a Reply
+                    Resumir Conversación
                   </Button>
 
                   <Button
@@ -334,7 +638,7 @@ export function AIAssistant({ className }: AIAssistantProps) {
                     disabled={isGenerating}
                   >
                     <Edit3 className="h-4 w-4 mr-2" />
-                    Improve Tone
+                    Mejorar Tono
                   </Button>
 
                   <Button
@@ -345,7 +649,7 @@ export function AIAssistant({ className }: AIAssistantProps) {
                     disabled={isGenerating}
                   >
                     <Zap className="h-4 w-4 mr-2" />
-                    Make Professional
+                    Hacer Profesional
                   </Button>
                 </CardContent>
               </Card>
