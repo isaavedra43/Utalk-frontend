@@ -3,6 +3,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { ChatList } from "@/components/ChatList";
 import { ChatView } from "@/components/ChatView";
 import Copilot from "@/components/Copilot";
+import { ClientInfoPanel } from "@/components/ClientInfoPanel";
 import { Button } from "@/components/ui/button";
 import {
   Menu,
@@ -11,6 +12,10 @@ import {
   PanelRightClose,
   LayoutDashboard,
   Users,
+  Bot,
+  UserCheck,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +25,8 @@ export default function Index() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);
   const [rightPanelVisible, setRightPanelVisible] = useState(true);
+  const [aiPanelVisible, setAiPanelVisible] = useState(true);
+  const [clientInfoVisible, setClientInfoVisible] = useState(true);
 
   const handleChatSelect = (chatId: string) => {
     setSelectedChatId(chatId);
@@ -165,17 +172,85 @@ export default function Index() {
           ) : null}
         </div>
 
-        {/* Right Panel - AI Assistant (only visible in messages module) */}
+        {/* Right Panel - Two Sections (only visible in messages module) */}
         {activeModule === "messages" && (
           <div
             className={cn(
-              "transition-all duration-300 ease-in-out",
+              "transition-all duration-300 ease-in-out relative",
               // Mobile - hidden by default, can be toggled if needed
-              "hidden lg:block",
+              "hidden lg:flex lg:flex-col",
               rightPanelVisible ? "lg:w-80" : "lg:w-0 lg:overflow-hidden",
             )}
           >
-            <Copilot />
+            {/* AI Panel Toggle Button */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setAiPanelVisible(!aiPanelVisible)}
+              className="absolute top-2 -left-6 z-20 w-6 h-12 bg-gray-800 border border-gray-700 rounded-l-full p-0 hover:bg-gray-700 flex items-center justify-center"
+            >
+              <Bot className="w-3 h-3 text-gray-400" />
+            </Button>
+
+            {/* Client Info Panel Toggle Button */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setClientInfoVisible(!clientInfoVisible)}
+              className="absolute bottom-2 -left-6 z-20 w-6 h-12 bg-gray-800 border border-gray-700 rounded-l-full p-0 hover:bg-gray-700 flex items-center justify-center"
+            >
+              <UserCheck className="w-3 h-3 text-gray-400" />
+            </Button>
+
+            {/* Top Section - AI Copilot */}
+            <div
+              className={cn(
+                "transition-all duration-300 ease-in-out border-b border-gray-700",
+                aiPanelVisible ? "flex-1" : "h-12 overflow-hidden",
+              )}
+            >
+              {aiPanelVisible ? (
+                <Copilot />
+              ) : (
+                <div className="h-12 bg-gray-900 flex items-center justify-between px-4 border-l border-gray-800">
+                  <span className="text-sm text-gray-400">AI Copilot</span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setAiPanelVisible(true)}
+                    className="text-gray-400 hover:text-white p-1"
+                  >
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Section - Client Info */}
+            <div
+              className={cn(
+                "transition-all duration-300 ease-in-out",
+                clientInfoVisible ? "flex-1" : "h-12 overflow-hidden",
+              )}
+            >
+              {clientInfoVisible ? (
+                <ClientInfoPanel />
+              ) : (
+                <div className="h-12 bg-gray-900 flex items-center justify-between px-4 border-l border-gray-800">
+                  <span className="text-sm text-gray-400">
+                    Información del Cliente
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setClientInfoVisible(true)}
+                    className="text-gray-400 hover:text-white p-1"
+                  >
+                    <ChevronUp className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
