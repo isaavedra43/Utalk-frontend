@@ -87,16 +87,16 @@ export default function Index() {
           />
         </div>
 
-        {/* Left Panel - Chat List */}
+        {/* Left Panel - Chat List - Made more compact */}
         <div
           className={cn(
             "transition-all duration-300 ease-in-out",
             // Mobile
             "lg:relative fixed inset-y-0 left-0 z-40 w-80",
             isMobileMenuOpen ? "translate-x-0" : "-translate-x-full",
-            // Desktop
+            // Desktop - Reduced width from w-80 (320px) to w-64 (256px)
             "lg:translate-x-0",
-            leftPanelVisible ? "lg:w-80" : "lg:w-0 lg:overflow-hidden",
+            leftPanelVisible ? "lg:w-64" : "lg:w-0 lg:overflow-hidden",
           )}
         >
           {/* Mobile Sidebar */}
