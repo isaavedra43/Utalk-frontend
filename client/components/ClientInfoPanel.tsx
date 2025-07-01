@@ -434,17 +434,22 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
           </Card>
 
           {/* 2. Información del Cliente */}
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm text-white flex items-center gap-2">
                 <User className="h-4 w-4 text-blue-400" />
                 Información del Cliente
-                {getSourceIcon()}
+                <div className="flex items-center gap-1">
+                  {getSourceIcon()}
+                  <span className="text-xs text-gray-400">
+                    {clientData.source === "whatsapp" ? "WhatsApp" : "Facebook"}
+                  </span>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center border border-gray-600/30 shadow-lg">
                   <span className="text-sm font-bold text-white">
                     {clientData.name
                       .split(" ")
@@ -453,15 +458,21 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                   </span>
                 </div>
                 <div className="flex-1">
-                  <h4 className="text-sm font-medium text-white">
+                  <h4 className="text-sm font-medium text-white leading-tight">
                     {clientData.name}
                   </h4>
-                  <p className="text-xs text-gray-400">{clientData.company}</p>
-                  <div className="flex items-center gap-2 mt-1">
+                  <p className="text-xs text-gray-400 mb-1">
+                    {clientData.company}
+                  </p>
+                  <div className="flex items-center gap-2">
                     <Badge
                       className={cn(
-                        "text-xs",
-                        getPriorityColor(performanceData.priority),
+                        "text-xs rounded-full",
+                        performanceData.priority === "high"
+                          ? "bg-red-600/20 border border-red-500/30 text-red-300"
+                          : performanceData.priority === "medium"
+                            ? "bg-yellow-600/20 border border-yellow-500/30 text-yellow-300"
+                            : "bg-green-600/20 border border-green-500/30 text-green-300",
                       )}
                     >
                       {performanceData.priority === "high"
