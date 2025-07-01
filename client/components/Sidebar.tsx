@@ -53,168 +53,117 @@ export function Sidebar({
   onModuleChange,
   className,
 }: SidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
-
   const handleModuleClick = (moduleId: string) => {
     onModuleChange?.(moduleId);
-
-    // Toggle expanded state for items with subitems
-    const item = navigationItems.find((item) => item.id === moduleId);
-    if (item?.subItems) {
-      setExpandedItems((prev) =>
-        prev.includes(moduleId)
-          ? prev.filter((id) => id !== moduleId)
-          : [...prev, moduleId],
-      );
-    }
-  };
-
-  const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed);
   };
 
   return (
     <div
       className={cn(
-        "h-full bg-[#1e1e2d] border-r border-gray-700 flex flex-col transition-all duration-300 ease-in-out relative",
-        isCollapsed ? "w-16" : "w-64",
+        "h-full bg-[#1e1e2d] border-r border-gray-700/50 flex flex-col transition-all duration-300 ease-in-out w-16",
         className,
       )}
     >
       {/* Logo Section */}
-      <div className="p-4 border-b border-gray-700">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-white" />
-          </div>
-          {!isCollapsed && (
-            <div>
-              <h1 className="text-white font-bold text-lg">UNIK AI</h1>
-              <p className="text-gray-400 text-xs">Customer Support</p>
-            </div>
-          )}
-        </div>
+      <div className="p-3 border-b border-gray-700/50">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent
+              side="right"
+              className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg"
+            >
+              <div>
+                <div className="font-bold">UNIK AI</div>
+                <div className="text-xs text-gray-400">Customer Support</div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* Navigation Items */}
-      <div className="flex-1 py-4 px-2 space-y-1">
-        {navigationItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeModule === item.id;
-          const isExpanded = expandedItems.includes(item.id);
-          const hasSubItems = item.subItems && item.subItems.length > 0;
+      <div className="flex-1 py-4 px-2 space-y-2">
+        <TooltipProvider>
+          {navigationItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeModule === item.id;
 
-          return (
-            <div key={item.id}>
-              {/* Main Navigation Item */}
-              <Button
-                variant="ghost"
-                onClick={() => handleModuleClick(item.id)}
-                className={cn(
-                  "w-full justify-start gap-3 px-3 py-2.5 h-auto transition-all duration-200 relative group",
-                  isActive
-                    ? "bg-blue-600/20 text-blue-400 border-r-2 border-blue-500"
-                    : "text-gray-300 hover:text-white hover:bg-gray-700/50",
-                  isCollapsed && "justify-center px-2",
-                )}
-              >
-                {/* Active indicator line */}
-                {isActive && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-r-full" />
-                )}
-
-                <Icon
-                  className={cn(
-                    "w-5 h-5 flex-shrink-0",
-                    isActive
-                      ? "text-blue-400"
-                      : "text-gray-400 group-hover:text-white",
-                  )}
-                />
-
-                {!isCollapsed && (
-                  <>
-                    <span className="font-medium text-sm flex-1 text-left">
-                      {item.label}
-                    </span>
-                    {hasSubItems && (
-                      <ChevronRight
-                        className={cn(
-                          "w-4 h-4 transition-transform duration-200",
-                          isExpanded && "rotate-90",
-                        )}
-                      />
+            return (
+              <Tooltip key={item.id}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleModuleClick(item.id)}
+                    className={cn(
+                      "w-full h-12 justify-center p-0 transition-all duration-200 relative group rounded-xl",
+                      isActive
+                        ? "bg-blue-600/20 border border-blue-500/30 text-blue-400"
+                        : "text-gray-400 hover:text-white hover:bg-gray-700/60 border border-transparent hover:border-gray-600/30",
                     )}
-                  </>
-                )}
+                  >
+                    {/* Active indicator dot */}
+                    {isActive && (
+                      <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-l-full" />
+                    )}
 
-                {/* Tooltip for collapsed state */}
-                {isCollapsed && (
-                  <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-gray-800 text-white text-sm rounded opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-50">
-                    {item.label}
-                  </div>
-                )}
-              </Button>
-
-              {/* Sub Items */}
-              {hasSubItems && isExpanded && !isCollapsed && (
-                <div className="ml-6 mt-1 space-y-1">
-                  {item.subItems?.map((subItem) => (
-                    <Button
-                      key={subItem.id}
-                      variant="ghost"
-                      onClick={() => console.log(`Navigate to ${subItem.href}`)}
-                      className="w-full justify-start gap-3 px-3 py-2 h-auto text-gray-400 hover:text-white hover:bg-gray-700/30 text-sm"
-                    >
-                      <div className="w-1.5 h-1.5 bg-gray-500 rounded-full flex-shrink-0" />
-                      <span className="text-left">{subItem.label}</span>
-                    </Button>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
+                    <Icon
+                      className={cn(
+                        "w-5 h-5",
+                        isActive
+                          ? "text-blue-400"
+                          : "text-gray-400 group-hover:text-white",
+                      )}
+                    />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="right"
+                  className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg"
+                >
+                  {item.label}
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </TooltipProvider>
       </div>
 
       {/* Separator */}
-      <div className="border-t border-gray-700 mx-4" />
+      <div className="border-t border-gray-700/50 mx-3" />
 
       {/* Bottom Section - Settings/Profile */}
       <div className="p-2">
-        <Button
-          variant="ghost"
-          className={cn(
-            "w-full justify-start gap-3 px-3 py-2.5 h-auto text-gray-300 hover:text-white hover:bg-gray-700/50",
-            isCollapsed && "justify-center px-2",
-          )}
-        >
-          <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-xs font-medium text-white">IS</span>
-          </div>
-          {!isCollapsed && (
-            <div className="flex-1 text-left">
-              <div className="text-sm font-medium">Israel S.</div>
-              <div className="text-xs text-gray-400">Admin</div>
-            </div>
-          )}
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full h-12 justify-center p-0 text-gray-400 hover:text-white hover:bg-gray-700/60 border border-transparent hover:border-gray-600/30 rounded-xl transition-all duration-200"
+              >
+                <div className="w-6 h-6 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center shadow-sm">
+                  <span className="text-xs font-medium text-white">IS</span>
+                </div>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent
+              side="right"
+              className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg"
+            >
+              <div>
+                <div className="font-medium">Israel S.</div>
+                <div className="text-xs text-gray-400">Admin</div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
-
-      {/* Collapse Toggle */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={toggleCollapse}
-        className="absolute -right-3 top-20 w-6 h-6 bg-[#1e1e2d] border border-gray-700 rounded-full p-0 hover:bg-gray-700 z-10"
-      >
-        {isCollapsed ? (
-          <ChevronRight className="w-3 h-3 text-gray-400" />
-        ) : (
-          <ChevronLeft className="w-3 h-3 text-gray-400" />
-        )}
-      </Button>
     </div>
   );
 }
