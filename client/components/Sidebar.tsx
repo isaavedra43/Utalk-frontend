@@ -1,14 +1,12 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard,
-  MessageSquare,
-  Users,
-  ChevronLeft,
-  ChevronRight,
-  Sparkles,
-} from "lucide-react";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
+import { LayoutDashboard, MessageSquare, Users, Sparkles } from "lucide-react";
 
 interface SidebarProps {
   activeModule?: string;
