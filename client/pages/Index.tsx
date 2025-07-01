@@ -131,17 +131,17 @@ export default function Index() {
           />
         )}
 
-        {/* Center Panel - Module Content */}
+        {/* Center Panel - Module Content - More space for chat */}
         <div
           className={cn(
             "flex-1 transition-all duration-300 ease-in-out",
-            // Adjust margins based on panel visibility and active module
+            // Updated width calculations for narrower chat list (256px) and responsive right panel
             activeModule === "messages" && leftPanelVisible && rightPanelVisible
-              ? "lg:max-w-[calc(100%-640px)]"
+              ? "lg:max-w-[calc(100%-576px)] xl:max-w-[calc(100%-608px)]" // 256px + 320px on lg, 256px + 352px on xl
               : activeModule === "messages" && leftPanelVisible
-                ? "lg:max-w-[calc(100%-320px)]"
+                ? "lg:max-w-[calc(100%-256px)]" // Only chat list width
                 : activeModule === "messages" && rightPanelVisible
-                  ? "lg:max-w-[calc(100%-320px)]"
+                  ? "lg:max-w-[calc(100%-320px)] xl:max-w-[calc(100%-352px)]" // Only right panel width
                   : "lg:max-w-full",
           )}
         >
