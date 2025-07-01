@@ -48,7 +48,7 @@ export function AIAssistantPanel() {
     {
       id: "suggestion-1",
       content:
-        "Perfecto, te puedo ayudar con información detallada sobre nuestros mármoles. ¿Tienes algún color o tipo específico en mente? Contamos con carrara, calacatta, emperador y muchas opciones más.",
+        "Perfecto, te puedo ayudar con información detallada sobre nuestros mármoles. ¿Tienes algún color o tipo específico en mente? Contamos con carrara, calacatta, emperador y muchas opciones más. También tenemos disponibles granitos, cuarzos y otras piedras naturales de alta calidad importadas directamente de Italia.",
       reason: "Cliente preguntó sobre mármoles disponibles",
       confidence: 95,
     },
@@ -58,6 +58,7 @@ export function AIAssistantPanel() {
   const [editedSuggestion, setEditedSuggestion] = useState(
     suggestedResponse.content,
   );
+  const [isResponseExpanded, setIsResponseExpanded] = useState(false);
 
   // Recent AI history (max 3 items)
   const [aiHistory] = useState<ChatMessage[]>([
