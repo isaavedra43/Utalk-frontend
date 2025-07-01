@@ -382,7 +382,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                         variant="ghost"
                         className="text-red-400 hover:text-red-300 hover:bg-red-950 text-xs h-7"
                       >
-                        <FilePdf className="h-3 w-3 mr-1" />
+                        <File className="h-3 w-3 mr-1" />
                         PDF
                       </Button>
                     )}
@@ -742,7 +742,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                     )}
                   >
                     {conversationAnalysis.urgencyLevel === "high"
-                      ? "🔴 Alta"
+                      ? "���� Alta"
                       : conversationAnalysis.urgencyLevel === "medium"
                         ? "🟡 Media"
                         : "🟢 Baja"}
