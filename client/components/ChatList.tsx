@@ -337,7 +337,7 @@ export function ChatList({
           <TabsList className="grid w-full grid-cols-3 bg-gray-800 h-8">
             <TabsTrigger
               value="mine"
-              className="text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white h-6"
+              className="text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white h-6 px-2"
             >
               Míos
               {unreadCount > 0 && (
@@ -351,9 +351,9 @@ export function ChatList({
             </TabsTrigger>
             <TabsTrigger
               value="unassigned"
-              className="text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white h-6"
+              className="text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white h-6 px-1"
             >
-              Sin asignar
+              Libres
               <Badge
                 variant="secondary"
                 className="ml-1 bg-gray-600 text-white text-xs px-1 py-0 h-4"
@@ -363,7 +363,7 @@ export function ChatList({
             </TabsTrigger>
             <TabsTrigger
               value="all"
-              className="text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white h-6"
+              className="text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white h-6 px-2"
             >
               Todos
               <Badge
