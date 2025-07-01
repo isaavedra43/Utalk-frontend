@@ -172,58 +172,21 @@ export default function Index() {
           ) : null}
         </div>
 
-        {/* Right Panel - AI Assistant & Client Info (only visible in messages module) */}
+        {/* Right Panel - Client Info (always visible and fixed in messages module) */}
         {activeModule === "messages" && (
           <div
             className={cn(
-              "transition-all duration-300 ease-in-out relative",
-              // Mobile - hidden by default, can be toggled if needed
-              "hidden lg:flex lg:flex-col",
-              rightPanelVisible ? "lg:w-80" : "lg:w-0 lg:overflow-hidden",
+              "transition-all duration-300 ease-in-out",
+              // Mobile - hidden by default, shows on tablet and up
+              "hidden md:flex md:flex-col",
+              // Responsive width: smaller on tablet, larger on desktop
+              "md:w-64 lg:w-80 xl:w-96",
+              rightPanelVisible ? "flex" : "w-0 overflow-hidden",
             )}
           >
-            {/* Horizontal Toggle Buttons */}
-            <div className="flex bg-gray-900 border-l border-gray-800">
-              <Button
-                size="sm"
-                variant={aiPanelVisible ? "default" : "ghost"}
-                onClick={() => {
-                  setAiPanelVisible(true);
-                  setClientInfoVisible(false);
-                }}
-                className={cn(
-                  "flex-1 rounded-none h-12 text-xs font-medium",
-                  aiPanelVisible
-                    ? "bg-blue-600 text-white border-b-2 border-blue-400"
-                    : "text-gray-400 hover:text-white hover:bg-gray-800",
-                )}
-              >
-                <Bot className="w-4 h-4 mr-2" />
-                Asistente IA
-              </Button>
-              <Button
-                size="sm"
-                variant={clientInfoVisible ? "default" : "ghost"}
-                onClick={() => {
-                  setClientInfoVisible(true);
-                  setAiPanelVisible(false);
-                }}
-                className={cn(
-                  "flex-1 rounded-none h-12 text-xs font-medium",
-                  clientInfoVisible
-                    ? "bg-green-600 text-white border-b-2 border-green-400"
-                    : "text-gray-400 hover:text-white hover:bg-gray-800",
-                )}
-              >
-                <UserCheck className="w-4 h-4 mr-2" />
-                Información del Cliente
-              </Button>
-            </div>
-
-            {/* Content Section */}
+            {/* Content Section - Fixed Client Info */}
             <div className="flex-1 overflow-hidden">
-              {aiPanelVisible && <Copilot />}
-              {clientInfoVisible && <ClientInfoPanel />}
+              <ClientInfoPanel />
             </div>
           </div>
         )}
