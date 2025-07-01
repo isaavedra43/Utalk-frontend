@@ -290,12 +290,12 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
       <ScrollArea className="h-full">
         <div className="p-4 space-y-4">
           {/* 1. Productos Sugeridos */}
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm text-white flex items-center gap-2">
                 <Package className="h-4 w-4 text-green-400" />
                 Productos Sugeridos por IA
-                <Badge className="bg-green-600 text-white text-xs">
+                <Badge className="bg-green-600/20 border border-green-500/30 text-green-300 text-xs rounded-full">
                   {suggestedProducts.length}
                 </Badge>
               </CardTitle>
@@ -304,51 +304,70 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
               {suggestedProducts.map((product) => (
                 <div
                   key={product.id}
-                  className="bg-gray-700 rounded-lg p-3 border border-gray-600 hover:border-gray-500 transition-colors"
+                  className="bg-gray-700/40 border border-gray-600/30 rounded-xl p-4 hover:bg-gray-600/40 hover:border-gray-500/40 transition-all duration-200 backdrop-blur-sm"
                 >
                   <div className="flex gap-3 mb-3">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-16 h-16 rounded-lg object-cover bg-gray-600"
-                    />
+                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-600/50 border border-gray-500/30">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h4 className="text-sm font-medium text-white">
+                        <h4 className="text-sm font-medium text-white leading-tight">
                           {product.name}
                         </h4>
                         {!product.inStock && (
-                          <Badge className="bg-orange-600 text-white text-xs">
+                          <Badge className="bg-red-600/20 border border-red-500/30 text-red-300 text-xs rounded-full">
                             Agotado
                           </Badge>
                         )}
                         {product.inStock && product.stock <= 10 && (
-                          <Badge className="bg-yellow-600 text-black text-xs">
+                          <Badge className="bg-yellow-600/20 border border-yellow-500/30 text-yellow-300 text-xs rounded-full">
                             Pocas unidades
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-gray-400 mb-2">
+                      <p className="text-xs text-gray-400 mb-2 leading-relaxed">
                         {product.type}
                       </p>
-                      <div className="grid grid-cols-2 gap-1 text-xs text-gray-300 mb-2">
-                        <div>
-                          <strong>Densidad:</strong> {product.density}
+                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-300 mb-2">
+                        <div className="bg-gray-800/60 p-2 rounded-lg border border-gray-600/30">
+                          <strong className="text-gray-200">Densidad:</strong>
+                          <br />
+                          <span className="text-gray-300">
+                            {product.density}
+                          </span>
                         </div>
-                        <div>
-                          <strong>Absorción:</strong> {product.absorption}
+                        <div className="bg-gray-800/60 p-2 rounded-lg border border-gray-600/30">
+                          <strong className="text-gray-200">Absorción:</strong>
+                          <br />
+                          <span className="text-gray-300">
+                            {product.absorption}
+                          </span>
                         </div>
-                        <div>
-                          <strong>Dimensiones:</strong> {product.dimensions}
+                        <div className="bg-gray-800/60 p-2 rounded-lg border border-gray-600/30">
+                          <strong className="text-gray-200">
+                            Dimensiones:
+                          </strong>
+                          <br />
+                          <span className="text-gray-300">
+                            {product.dimensions}
+                          </span>
                         </div>
-                        <div>
-                          <strong>Acabado:</strong> {product.finish}
+                        <div className="bg-gray-800/60 p-2 rounded-lg border border-gray-600/30">
+                          <strong className="text-gray-200">Acabado:</strong>
+                          <br />
+                          <span className="text-gray-300">
+                            {product.finish}
+                          </span>
                         </div>
-                        <div>
-                          <strong>Stock:</strong> {product.stock}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-green-400 font-medium">
+                      </div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-400 font-medium text-sm">
                             {product.price}
                           </span>
                           {product.originalPrice && (
@@ -357,9 +376,13 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                             </span>
                           )}
                         </div>
+                        <div className="text-xs text-gray-400">
+                          <strong>Stock:</strong> {product.stock}
+                        </div>
                       </div>
-                      <p className="text-xs text-blue-400 mb-2">
-                        👁️ Visto {product.viewedByClient} veces por este cliente
+                      <p className="text-xs text-blue-400 mb-2 flex items-center gap-1">
+                        <Eye className="h-3 w-3" />
+                        Visto {product.viewedByClient} veces por este cliente
                       </p>
                     </div>
                   </div>
