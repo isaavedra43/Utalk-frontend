@@ -346,16 +346,16 @@ export default function Copilot() {
         </div>
       </ScrollArea>
 
-      {/* Action Buttons - Dark style like image, arranged in grid */}
+      {/* Action Buttons - White style like image, arranged in grid */}
       <div className="p-4 border-t border-gray-700">
         <TooltipProvider>
           <div className="grid grid-cols-2 gap-2 mb-4">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => handleQuickAction("summarize")}
-                  className="h-10 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-600 text-xs justify-start"
+                  className="h-10 bg-white hover:bg-gray-100 text-gray-600 hover:text-gray-800 border border-gray-300 text-xs justify-start"
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Resumir
@@ -369,9 +369,9 @@ export default function Copilot() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => handleQuickAction("suggest")}
-                  className="h-10 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-600 text-xs justify-start"
+                  className="h-10 bg-white hover:bg-gray-100 text-gray-600 hover:text-gray-800 border border-gray-300 text-xs justify-start"
                 >
                   <Lightbulb className="h-4 w-4 mr-2" />
                   Sugerir
@@ -385,9 +385,9 @@ export default function Copilot() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => handleQuickAction("rate")}
-                  className="h-10 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-600 text-xs justify-start"
+                  className="h-10 bg-white hover:bg-gray-100 text-gray-600 hover:text-gray-800 border border-gray-300 text-xs justify-start"
                 >
                   <Star className="h-4 w-4 mr-2" />
                   Evaluar
@@ -401,9 +401,9 @@ export default function Copilot() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => handleQuickAction("products")}
-                  className="h-10 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-600 text-xs justify-start"
+                  className="h-10 bg-white hover:bg-gray-100 text-gray-600 hover:text-gray-800 border border-gray-300 text-xs justify-start"
                 >
                   <Package className="h-4 w-4 mr-2" />
                   Productos
