@@ -201,6 +201,50 @@ export function ChatView({ chatId, className }: ChatViewProps) {
     // Here you would implement audio recording logic
   };
 
+  const handlePredefinedTextSelect = (text: string) => {
+    setMessage(text);
+    setShowPredefinedTexts(false);
+  };
+
+  const handleCampaignSend = (campaign: any) => {
+    console.log(`Sending ${campaign.platform} campaign:`, campaign);
+    setShowCampaigns(false);
+    // Here you would implement campaign sending logic
+  };
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      console.log("Searching for:", searchQuery);
+      // Here you would implement search functionality
+    }
+  };
+
+  const getChannelIcon = () => {
+    switch (mockConversation.channel) {
+      case "whatsapp":
+        return <MessageCircle className="h-4 w-4 text-green-500" />;
+      case "facebook":
+        return <Facebook className="h-4 w-4 text-blue-500" />;
+      case "sms":
+        return <Hash className="h-4 w-4 text-purple-500" />;
+      default:
+        return <MessageCircle className="h-4 w-4 text-gray-400" />;
+    }
+  };
+
+  const getChannelName = () => {
+    switch (mockConversation.channel) {
+      case "whatsapp":
+        return "WhatsApp";
+      case "facebook":
+        return "Facebook";
+      case "sms":
+        return "SMS";
+      default:
+        return "Desconocido";
+    }
+  };
+
   if (!chatId) {
     return (
       <div
