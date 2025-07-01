@@ -488,7 +488,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
           </Card>
 
           {/* 3. Notas del Cliente */}
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm text-white flex items-center gap-2">
                 <StickyNote className="h-4 w-4 text-yellow-400" />
@@ -500,9 +500,9 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                     setIsEditingNotes(!isEditingNotes);
                     if (!isEditingNotes) setNewNote(clientNotes);
                   }}
-                  className="text-xs text-gray-400 hover:text-white"
+                  className="text-xs bg-gray-700/40 hover:bg-gray-600/60 border border-gray-600/30 text-gray-300 hover:text-white px-2 py-1 rounded-lg transition-all duration-200"
                 >
-                  {isEditingNotes ? "Cancelar" : "Editar"}
+                  {isEditingNotes ? "Cancelar" : "Añadir nota"}
                 </Button>
               </CardTitle>
             </CardHeader>
@@ -742,7 +742,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                     )}
                   >
                     {conversationAnalysis.urgencyLevel === "high"
-                      ? "���� Alta"
+                      ? "🔴 Alta"
                       : conversationAnalysis.urgencyLevel === "medium"
                         ? "🟡 Media"
                         : "🟢 Baja"}
