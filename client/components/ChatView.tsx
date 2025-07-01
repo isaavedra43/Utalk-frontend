@@ -420,33 +420,6 @@ export function ChatView({ chatId, className }: ChatViewProps) {
 
       {/* Input Area */}
       <div className="p-4 border-t border-gray-800">
-        {/* Private note toggle */}
-        <div className="flex items-center gap-2 mb-3">
-          <Button
-            variant={isPrivateNote ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setIsPrivateNote(!isPrivateNote)}
-            className={cn(
-              "text-xs",
-              isPrivateNote
-                ? "bg-amber-600 hover:bg-amber-700 text-white"
-                : "text-gray-400 hover:text-white",
-            )}
-          >
-            {isPrivateNote ? (
-              <EyeOff className="h-3 w-3 mr-1" />
-            ) : (
-              <Eye className="h-3 w-3 mr-1" />
-            )}
-            Private Note
-          </Button>
-          {isPrivateNote && (
-            <span className="text-xs text-amber-400">
-              Only visible to agents
-            </span>
-          )}
-        </div>
-
         {/* Action buttons row - 80% size with transparent design */}
         <div className="flex gap-2 mb-3">
           {/* Predefined Texts */}
