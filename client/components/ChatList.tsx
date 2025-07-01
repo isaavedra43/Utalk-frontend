@@ -377,9 +377,20 @@ export function ChatList({
         </Tabs>
       </div>
 
-      {/* Conversation List */}
+      {/* Conversation List - More compact */}
       <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
+        <div className="p-1 space-y-0.5">
+          {/* Show filter results count */}
+          {(unreadFilter !== "all" ||
+            channelFilter !== "all" ||
+            dateFilter !== "all") && (
+            <div className="px-2 py-1 text-xs text-gray-400">
+              {filteredConversations.length} conversación
+              {filteredConversations.length !== 1 ? "es" : ""} encontrada
+              {filteredConversations.length !== 1 ? "s" : ""}
+            </div>
+          )}
+
           {/* Pinned conversations first */}
           {filteredConversations
             .filter((conv) => conv.isPinned)
@@ -405,6 +416,15 @@ export function ChatList({
                 onClick={() => onChatSelect?.(conversation.id)}
               />
             ))}
+
+          {/* Empty state */}
+          {filteredConversations.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+              <MessageCircle className="h-8 w-8 mb-2" />
+              <p className="text-sm">No hay conversaciones</p>
+              <p className="text-xs">que coincidan con los filtros</p>
+            </div>
+          )}
         </div>
       </ScrollArea>
     </div>
