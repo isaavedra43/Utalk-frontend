@@ -417,7 +417,7 @@ export default function Copilot() {
           </div>
         </TooltipProvider>
 
-        {/* Chat Input - Dark style */}
+        {/* Chat Input - Consistent styling with the design */}
         <div className="flex gap-2">
           <Input
             placeholder="Pregunta al asistente IA..."
@@ -429,13 +429,13 @@ export default function Copilot() {
                 handleSendMessage();
               }
             }}
-            className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400 text-sm"
+            className="bg-gray-800/60 border border-gray-600/40 text-white placeholder:text-gray-400 text-sm rounded-lg focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 backdrop-blur-sm"
           />
           <Button
             size="sm"
             onClick={handleSendMessage}
             disabled={!currentMessage.trim()}
-            className="w-10 h-10 p-0 bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-10 h-10 p-0 bg-blue-600/80 hover:bg-blue-600 border border-blue-500/30 text-white rounded-lg disabled:bg-gray-700/50 disabled:border-gray-600/30 disabled:text-gray-400 transition-all duration-200"
           >
             <ArrowUp className="h-4 w-4" />
           </Button>
