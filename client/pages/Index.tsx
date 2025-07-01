@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatList } from "@/components/ChatList";
 import { ChatView } from "@/components/ChatView";
-import { AIAssistant } from "@/components/AIAssistant";
+import Copilot from "@/components/Copilot";
 import { Button } from "@/components/ui/button";
 import {
   Menu,
@@ -175,7 +175,7 @@ export default function Index() {
               rightPanelVisible ? "lg:w-80" : "lg:w-0 lg:overflow-hidden",
             )}
           >
-            <AIAssistant className="h-full" />
+            <Copilot />
           </div>
         )}
       </div>
