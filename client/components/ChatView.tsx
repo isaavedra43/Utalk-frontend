@@ -303,18 +303,28 @@ export function ChatView({ chatId, className }: ChatViewProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Search Toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowSearch(!showSearch)}
-            className={cn(
-              "text-gray-400 hover:text-white",
-              showSearch && "bg-gray-700 text-white",
-            )}
-          >
-            <Search className="h-4 w-4" />
-          </Button>
+          {/* Search Toggle with tooltip */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowSearch(!showSearch)}
+                  className={cn(
+                    "w-8 h-8 p-0 rounded-lg border border-gray-600/30 bg-gray-800/40 text-gray-400 hover:text-white hover:bg-gray-700/60 transition-all duration-200",
+                    showSearch &&
+                      "bg-blue-600/20 border-blue-500/30 text-blue-300",
+                  )}
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="bg-gray-800 border border-gray-600 text-white text-xs rounded-lg">
+                Buscar en esta conversación
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
