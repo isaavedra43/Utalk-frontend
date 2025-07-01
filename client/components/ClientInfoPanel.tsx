@@ -26,7 +26,7 @@ import {
   Send,
   Image as ImageIcon,
   Video,
-  FilePdf,
+  File,
   ChevronDown,
   Facebook,
   MessageCircle,
@@ -193,7 +193,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
     sentiment: "positive" as "positive" | "neutral" | "negative",
     urgencyLevel: "medium" as "high" | "medium" | "low",
     summary:
-      "Cliente VIP interesado en mármol carrara para múltiples proyectos arquitectónicos. Consultó precios por volumen y servicios de instalaci��n. Alta intención de compra confirmada.",
+      "Cliente VIP interesado en mármol carrara para múltiples proyectos arquitectónicos. Consultó precios por volumen y servicios de instalación. Alta intención de compra confirmada.",
     satisfactionScore: 4.5,
     emotionalTone: "Entusiasta y profesional",
     nextSteps: ["Enviar cotización detallada", "Agendar visita showroom"],
