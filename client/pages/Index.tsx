@@ -4,6 +4,7 @@ import { ChatList } from "@/components/ChatList";
 import { ChatView } from "@/components/ChatView";
 import Copilot from "@/components/Copilot";
 import { ClientInfoPanel } from "@/components/ClientInfoPanel";
+import { AIAssistantPanel } from "@/components/AIAssistantPanel";
 import { Button } from "@/components/ui/button";
 import {
   Menu,
