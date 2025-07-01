@@ -178,51 +178,172 @@ export function ChatList({
         className,
       )}
     >
-      {/* Header */}
-      <div className="p-4 border-b border-gray-800">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">Conversations</h2>
-          <div className="flex items-center gap-2">
+      {/* Header - More compact */}
+      <div className="p-3 border-b border-gray-800">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-white">Conversaciones</h2>
+          <div className="flex items-center gap-1">
+            <Popover open={showFilters} onOpenChange={setShowFilters}>
+              <PopoverTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className={cn(
+                    "w-7 h-7 p-0 text-gray-400 hover:text-white",
+                    showFilters && "bg-blue-600/20 text-blue-400",
+                  )}
+                >
+                  <Filter className="h-3 w-3" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 bg-gray-800 border-gray-700 text-white p-4">
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Filtros</h3>
+
+                  {/* Unread Filter */}
+                  <div className="space-y-2">
+                    <label className="text-xs text-gray-400">
+                      Estado de lectura:
+                    </label>
+                    <Select
+                      value={unreadFilter}
+                      onValueChange={setUnreadFilter}
+                    >
+                      <SelectTrigger className="h-8 bg-gray-700 border-gray-600 text-white text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-700 border-gray-600">
+                        <SelectItem value="all" className="text-white text-xs">
+                          Todos
+                        </SelectItem>
+                        <SelectItem
+                          value="unread"
+                          className="text-white text-xs"
+                        >
+                          Sin leer
+                        </SelectItem>
+                        <SelectItem value="read" className="text-white text-xs">
+                          Leídos
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Channel Filter */}
+                  <div className="space-y-2">
+                    <label className="text-xs text-gray-400">Canal:</label>
+                    <Select
+                      value={channelFilter}
+                      onValueChange={setChannelFilter}
+                    >
+                      <SelectTrigger className="h-8 bg-gray-700 border-gray-600 text-white text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-700 border-gray-600">
+                        <SelectItem value="all" className="text-white text-xs">
+                          Todos los canales
+                        </SelectItem>
+                        <SelectItem
+                          value="whatsapp"
+                          className="text-white text-xs"
+                        >
+                          <div className="flex items-center gap-2">
+                            <MessageCircle className="h-3 w-3 text-green-500" />
+                            WhatsApp
+                          </div>
+                        </SelectItem>
+                        <SelectItem
+                          value="facebook"
+                          className="text-white text-xs"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Facebook className="h-3 w-3 text-blue-500" />
+                            Facebook
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Date Filter */}
+                  <div className="space-y-2">
+                    <label className="text-xs text-gray-400">Fecha:</label>
+                    <Select value={dateFilter} onValueChange={setDateFilter}>
+                      <SelectTrigger className="h-8 bg-gray-700 border-gray-600 text-white text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-700 border-gray-600">
+                        <SelectItem value="all" className="text-white text-xs">
+                          Todas las fechas
+                        </SelectItem>
+                        <SelectItem
+                          value="today"
+                          className="text-white text-xs"
+                        >
+                          Hoy
+                        </SelectItem>
+                        <SelectItem value="week" className="text-white text-xs">
+                          Esta semana
+                        </SelectItem>
+                        <SelectItem
+                          value="month"
+                          className="text-white text-xs"
+                        >
+                          Este mes
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Clear filters */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setUnreadFilter("all");
+                      setChannelFilter("all");
+                      setDateFilter("all");
+                    }}
+                    className="w-full h-7 text-xs border-gray-600 text-gray-300 hover:bg-gray-700"
+                  >
+                    Limpiar filtros
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
             <Button
               size="sm"
               variant="ghost"
-              className="text-gray-400 hover:text-white"
+              className="w-7 h-7 p-0 text-gray-400 hover:text-white"
             >
-              <Filter className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-gray-400 hover:text-white"
-            >
-              <MoreHorizontal className="h-4 w-4" />
+              <MoreHorizontal className="h-3 w-3" />
             </Button>
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+        {/* Search - More compact */}
+        <div className="relative mb-3">
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
           <Input
-            placeholder="Search..."
+            placeholder="Buscar conversaciones..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-gray-800 border-gray-700 text-white placeholder:text-gray-400 focus:border-blue-500"
+            className="pl-8 h-8 bg-gray-800 border-gray-700 text-white placeholder:text-gray-400 focus:border-blue-500 text-xs"
           />
         </div>
 
-        {/* Tabs */}
+        {/* Tabs - More compact */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-800">
+          <TabsList className="grid w-full grid-cols-3 bg-gray-800 h-8">
             <TabsTrigger
               value="mine"
-              className="text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+              className="text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white h-6"
             >
-              Mine
+              Míos
               {unreadCount > 0 && (
                 <Badge
                   variant="secondary"
-                  className="ml-1 bg-blue-600 text-white text-xs px-1.5 py-0"
+                  className="ml-1 bg-blue-600 text-white text-xs px-1 py-0 h-4"
                 >
                   {unreadCount}
                 </Badge>
@@ -230,24 +351,24 @@ export function ChatList({
             </TabsTrigger>
             <TabsTrigger
               value="unassigned"
-              className="text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+              className="text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white h-6"
             >
-              Unassigned
+              Sin asignar
               <Badge
                 variant="secondary"
-                className="ml-1 bg-gray-600 text-white text-xs px-1.5 py-0"
+                className="ml-1 bg-gray-600 text-white text-xs px-1 py-0 h-4"
               >
                 {unassignedCount}
               </Badge>
             </TabsTrigger>
             <TabsTrigger
               value="all"
-              className="text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+              className="text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white h-6"
             >
-              All
+              Todos
               <Badge
                 variant="secondary"
-                className="ml-1 bg-gray-600 text-white text-xs px-1.5 py-0"
+                className="ml-1 bg-gray-600 text-white text-xs px-1 py-0 h-4"
               >
                 {mockConversations.length}
               </Badge>
