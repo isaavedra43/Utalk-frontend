@@ -3,7 +3,12 @@ import path from "path";
 
 export default defineConfig({
   build: {
-    ssr: path.resolve(__dirname, "server/node-build.ts"),
+lib: {
+    entry: path.resolve(__dirname, "server/node-build.ts"),
+    name: "server",
+    fileName: "production",
+    formats: ["es"],
+  },
     outDir: "dist/server",
     target: "node22",
     rollupOptions: {
