@@ -495,14 +495,23 @@ export function ChatView({ chatId, className }: ChatViewProps) {
           {/* Campaign Buttons */}
           <Dialog open={showCampaigns} onOpenChange={setShowCampaigns}>
             <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-gray-600 text-gray-300 hover:bg-gray-700 text-xs"
-              >
-                <Megaphone className="h-3 w-3 mr-1" />
-                Enviar Campaña
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 bg-gray-800/40 hover:bg-gray-700/60 border border-gray-600/30 text-gray-300 hover:text-white text-xs px-3 rounded-lg backdrop-blur-sm transition-all duration-200"
+                    >
+                      <Megaphone className="h-3 w-3 mr-1" />
+                      Enviar Campaña
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-gray-800 border border-gray-600 text-white text-xs rounded-lg">
+                    Campañas SMS, WhatsApp y Facebook
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </DialogTrigger>
             <DialogContent className="bg-gray-800 border-gray-700 text-white">
               <DialogHeader>
