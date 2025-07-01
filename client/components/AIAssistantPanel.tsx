@@ -190,126 +190,142 @@ export function AIAssistantPanel() {
     setMessages((prev) => [...prev, sentMessage]);
   };
 
+  const truncateText = (text: string, maxLines: number = 2) => {
+    const words = text.split(" ");
+    const maxWords = maxLines * 10; // Aproximadamente 10 palabras por línea
+    return words.length > maxWords
+      ? words.slice(0, maxWords).join(" ") + "..."
+      : text;
+  };
+
   return (
     <div className="h-full w-full bg-gray-900 flex flex-col">
-      <ScrollArea className="flex-1">
-        <div className="p-3">
-          {/* Extended Chat with AI - All functionality integrated */}
-          <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm h-full">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs text-white flex items-center gap-2">
-                <Bot className="h-3 w-3 text-blue-400" />
-                Chat con IA
-                <Badge className="bg-blue-600/20 border border-blue-500/30 text-blue-300 text-xs rounded-full">
-                  Asistente activo
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 h-full flex flex-col">
-              {/* Suggested response message in chat format */}
-              <div className="mb-3 bg-yellow-950/30 border border-yellow-500/30 rounded-lg p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Lightbulb className="h-3 w-3 text-yellow-400" />
-                  <span className="text-xs text-yellow-400 font-medium">
-                    Respuesta sugerida ({suggestedResponse.confidence}%
-                    confianza)
-                  </span>
-                </div>
-                <p className="text-xs text-gray-400 mb-2">
-                  {suggestedResponse.reason}
-                </p>
-                <p className="text-xs text-white leading-relaxed mb-2">
-                  {suggestedResponse.content}
-                </p>
-              </div>
-
-              {/* Chat messages - extended */}
-              <ScrollArea className="flex-1 mb-3" ref={scrollAreaRef}>
-                <div className="space-y-2">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={cn(
-                        "flex gap-1",
-                        message.sender === "user"
-                          ? "flex-row-reverse"
-                          : "flex-row",
-                      )}
-                    >
-                      <div className="flex-shrink-0">
-                        {message.sender === "ai" ? (
-                          <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
-                            <Bot className="h-2 w-2 text-white" />
-                          </div>
-                        ) : (
-                          <div className="w-5 h-5 bg-gray-600 rounded-full flex items-center justify-center">
-                            <User className="h-2 w-2 text-white" />
-                          </div>
-                        )}
-                      </div>
-                      <div
-                        className={cn(
-                          "flex-1 max-w-[85%]",
-                          message.sender === "user"
-                            ? "text-right"
-                            : "text-left",
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            "rounded p-2 text-xs",
-                            message.sender === "ai"
-                              ? "bg-gray-700/40 text-white border border-gray-600/30"
-                              : "bg-blue-600/80 text-white",
-                          )}
-                        >
-                          <p className="leading-relaxed">{message.content}</p>
-                        </div>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          {message.timestamp}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-
-              {/* Chat input with integrated send suggested response button */}
-              <div className="flex gap-1">
-                <Input
-                  placeholder="Pregunta al asistente IA o solicita modificar el mensaje sugerido..."
-                  value={currentMessage}
-                  onChange={(e) => setCurrentMessage(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                  className="h-7 bg-gray-700 border-gray-600 text-white placeholder:text-gray-400 text-xs"
-                />
-                <Button
-                  size="sm"
-                  onClick={handleSendSuggestionAsIs}
-                  className="h-7 px-2 bg-green-600/80 hover:bg-green-600 border border-green-500/30 text-white rounded text-xs"
-                  title="Enviar respuesta sugerida"
-                >
-                  <CheckCircle className="h-3 w-3" />
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleSendMessage}
-                  disabled={!currentMessage.trim()}
-                  className="h-7 w-7 p-0 bg-blue-600/80 hover:bg-blue-600 border border-blue-500/30 text-white rounded disabled:bg-gray-700/50"
-                  title="Enviar mensaje al AI"
-                >
-                  <ArrowUp className="h-3 w-3" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Fixed Suggested Response at top */}
+      <div className="bg-gray-900 border-b border-gray-700/50 p-3 flex-shrink-0">
+        <div className="bg-yellow-950/30 border border-yellow-500/30 rounded-lg p-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Lightbulb className="h-3 w-3 text-yellow-400" />
+              <span className="text-xs text-yellow-400 font-medium">
+                Respuesta sugerida ({suggestedResponse.confidence}% confianza)
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setIsResponseExpanded(!isResponseExpanded)}
+              className="h-5 w-5 p-0 text-yellow-400 hover:text-yellow-300"
+            >
+              {isResponseExpanded ? "−" : "+"}
+            </Button>
+          </div>
+          <p className="text-xs text-gray-400 mb-2">
+            {suggestedResponse.reason}
+          </p>
+          <p className="text-xs text-white leading-relaxed">
+            {isResponseExpanded
+              ? suggestedResponse.content
+              : truncateText(suggestedResponse.content, 2)}
+          </p>
         </div>
-      </ScrollArea>
+      </div>
+
+      {/* Chat Area - Extended to full height */}
+      <div className="flex-1 flex flex-col bg-gray-800/60 border-l border-gray-800">
+        {/* Chat Header */}
+        <div className="p-3 border-b border-gray-700/50 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <Bot className="h-4 w-4 text-blue-400" />
+            <span className="text-sm text-white font-medium">Chat con IA</span>
+            <Badge className="bg-blue-600/20 border border-blue-500/30 text-blue-300 text-xs rounded-full">
+              Asistente activo
+            </Badge>
+          </div>
+        </div>
+
+        {/* Chat Messages - Scrollable full height */}
+        <ScrollArea className="flex-1 p-3" ref={scrollAreaRef}>
+          <div className="space-y-3">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={cn(
+                  "flex gap-2",
+                  message.sender === "user" ? "flex-row-reverse" : "flex-row",
+                )}
+              >
+                <div className="flex-shrink-0">
+                  {message.sender === "ai" ? (
+                    <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                      <Bot className="h-3 w-3 text-white" />
+                    </div>
+                  ) : (
+                    <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center">
+                      <User className="h-3 w-3 text-white" />
+                    </div>
+                  )}
+                </div>
+                <div
+                  className={cn(
+                    "flex-1 max-w-[80%]",
+                    message.sender === "user" ? "text-right" : "text-left",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "rounded-lg p-3 text-sm",
+                      message.sender === "ai"
+                        ? "bg-gray-700/40 text-white border border-gray-600/30"
+                        : "bg-blue-600/80 text-white",
+                    )}
+                  >
+                    <p className="leading-relaxed">{message.content}</p>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {message.timestamp}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+
+        {/* Chat Input - Fixed at bottom */}
+        <div className="p-3 border-t border-gray-700/50 flex-shrink-0">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Pregunta al asistente IA o solicita modificar el mensaje sugerido..."
+              value={currentMessage}
+              onChange={(e) => setCurrentMessage(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              className="h-8 bg-gray-700 border-gray-600 text-white placeholder:text-gray-400 text-sm"
+            />
+            <Button
+              size="sm"
+              onClick={handleSendSuggestionAsIs}
+              className="h-8 px-3 bg-green-600/80 hover:bg-green-600 border border-green-500/30 text-white rounded text-xs flex items-center gap-1"
+              title="Enviar respuesta sugerida"
+            >
+              <CheckCircle className="h-3 w-3" />
+              Enviar
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSendMessage}
+              disabled={!currentMessage.trim()}
+              className="h-8 w-8 p-0 bg-blue-600/80 hover:bg-blue-600 border border-blue-500/30 text-white rounded disabled:bg-gray-700/50"
+              title="Enviar mensaje al AI"
+            >
+              <ArrowUp className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
