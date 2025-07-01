@@ -192,93 +192,40 @@ export function AIAssistantPanel() {
   return (
     <div className="h-full w-full bg-gray-900 flex flex-col">
       <ScrollArea className="flex-1">
-        <div className="p-3 space-y-3">
-          {/* 1. Respuesta Sugerida IA - Compact like other cards */}
-          <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs text-white flex items-center gap-2">
-                <Lightbulb className="h-3 w-3 text-yellow-400" />
-                Respuesta Sugerida IA
-                <Badge className="bg-blue-600/20 border border-blue-500/30 text-blue-300 text-xs rounded-full">
-                  {suggestedResponse.confidence}% confianza
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 p-3">
-              <p className="text-xs text-gray-400 mb-2">
-                {suggestedResponse.reason}
-              </p>
-
-              <div className="bg-blue-950/30 border border-blue-500/30 rounded-lg p-3">
-                {!isEditingSuggestion ? (
-                  <div className="space-y-2">
-                    <p className="text-xs text-white leading-relaxed">
-                      {suggestedResponse.content}
-                    </p>
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        onClick={handleSendSuggestionAsIs}
-                        className="h-6 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-300 text-xs rounded px-2"
-                      >
-                        <CheckCircle className="h-2 w-2 mr-1" />✅ Enviar tal
-                        cual
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={handleModifySuggestion}
-                        className="h-6 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-xs rounded px-2"
-                      >
-                        <Edit className="h-2 w-2 mr-1" />
-                        ✏️ Modificar
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <textarea
-                      value={editedSuggestion}
-                      onChange={(e) => setEditedSuggestion(e.target.value)}
-                      className="w-full bg-gray-800/80 border border-gray-600/50 rounded p-2 text-white text-xs resize-none"
-                      rows={3}
-                      placeholder="Modifica la respuesta sugerida..."
-                    />
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        onClick={handleSendModifiedSuggestion}
-                        className="h-6 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-300 text-xs rounded px-2"
-                      >
-                        <Send className="h-2 w-2 mr-1" />
-                        Enviar
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => setIsEditingSuggestion(false)}
-                        className="h-6 bg-gray-600/20 hover:bg-gray-600/30 border border-gray-500/30 text-gray-300 text-xs rounded px-2"
-                      >
-                        Cancelar
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 2. Chat con IA - Interactive area */}
-          <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
+        <div className="p-3">
+          {/* Extended Chat with AI - All functionality integrated */}
+          <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm h-full">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs text-white flex items-center gap-2">
                 <Bot className="h-3 w-3 text-blue-400" />
                 Chat con IA
+                <Badge className="bg-blue-600/20 border border-blue-500/30 text-blue-300 text-xs rounded-full">
+                  Asistente activo
+                </Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-3">
-              {/* Chat messages - compact */}
-              <ScrollArea className="h-32 mb-3" ref={scrollAreaRef}>
+            <CardContent className="p-3 h-full flex flex-col">
+              {/* Suggested response message in chat format */}
+              <div className="mb-3 bg-yellow-950/30 border border-yellow-500/30 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Lightbulb className="h-3 w-3 text-yellow-400" />
+                  <span className="text-xs text-yellow-400 font-medium">
+                    Respuesta sugerida ({suggestedResponse.confidence}%
+                    confianza)
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400 mb-2">
+                  {suggestedResponse.reason}
+                </p>
+                <p className="text-xs text-white leading-relaxed mb-2">
+                  {suggestedResponse.content}
+                </p>
+              </div>
+
+              {/* Chat messages - extended */}
+              <ScrollArea className="flex-1 mb-3" ref={scrollAreaRef}>
                 <div className="space-y-2">
-                  {messages.slice(-3).map((message) => (
+                  {messages.map((message) => (
                     <div
                       key={message.id}
                       className={cn(
@@ -326,10 +273,10 @@ export function AIAssistantPanel() {
                 </div>
               </ScrollArea>
 
-              {/* Chat input - compact */}
+              {/* Chat input with integrated send suggested response button */}
               <div className="flex gap-1">
                 <Input
-                  placeholder="Pregunta al asistente IA..."
+                  placeholder="Pregunta al asistente IA o solicita modificar el mensaje sugerido..."
                   value={currentMessage}
                   onChange={(e) => setCurrentMessage(e.target.value)}
                   onKeyPress={(e) => {
@@ -342,60 +289,21 @@ export function AIAssistantPanel() {
                 />
                 <Button
                   size="sm"
+                  onClick={handleSendSuggestionAsIs}
+                  className="h-7 px-2 bg-green-600/80 hover:bg-green-600 border border-green-500/30 text-white rounded text-xs"
+                  title="Enviar respuesta sugerida"
+                >
+                  <CheckCircle className="h-3 w-3" />
+                </Button>
+                <Button
+                  size="sm"
                   onClick={handleSendMessage}
                   disabled={!currentMessage.trim()}
                   className="h-7 w-7 p-0 bg-blue-600/80 hover:bg-blue-600 border border-blue-500/30 text-white rounded disabled:bg-gray-700/50"
+                  title="Enviar mensaje al AI"
                 >
                   <ArrowUp className="h-3 w-3" />
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 3. Historial breve IA - Last 3 responses */}
-          <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs text-white flex items-center gap-2">
-                <Clock className="h-3 w-3 text-purple-400" />
-                Historial Reciente
-                <Badge className="bg-purple-600/20 border border-purple-500/30 text-purple-300 text-xs rounded-full">
-                  {aiHistory.length}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3">
-              <div className="space-y-2">
-                {aiHistory.map((item) => (
-                  <div
-                    key={item.id}
-                    className="bg-gray-700/40 border border-gray-600/30 rounded p-2"
-                  >
-                    <p className="text-xs text-gray-300 leading-relaxed mb-1">
-                      {item.content}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <Badge
-                        className={cn(
-                          "text-xs rounded-full",
-                          item.type === "summary"
-                            ? "bg-cyan-600/20 border border-cyan-500/30 text-cyan-300"
-                            : item.type === "suggestion"
-                              ? "bg-yellow-600/20 border border-yellow-500/30 text-yellow-300"
-                              : "bg-gray-600/20 border border-gray-500/30 text-gray-300",
-                        )}
-                      >
-                        {item.type === "summary"
-                          ? "Resumen"
-                          : item.type === "suggestion"
-                            ? "Sugerencia"
-                            : "Respuesta"}
-                      </Badge>
-                      <span className="text-xs text-gray-400">
-                        {item.timestamp}
-                      </span>
-                    </div>
-                  </div>
-                ))}
               </div>
             </CardContent>
           </Card>
