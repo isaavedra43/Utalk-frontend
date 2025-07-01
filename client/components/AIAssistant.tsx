@@ -430,48 +430,95 @@ export function AIAssistant({ className }: AIAssistantProps) {
                 </CardContent>
               </Card>
 
-              {/* Detected Products */}
+              {/* Detected Products with Advanced Features */}
               {detectedProducts.length > 0 && (
                 <Card className="bg-gray-800 border-gray-700">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm text-white flex items-center gap-2">
                       <Package className="h-4 w-4" />
                       Productos Detectados
+                      <Badge className="bg-amber-600 text-white text-xs">
+                        {detectedProducts.length} encontrados
+                      </Badge>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-3 max-h-80 overflow-y-auto">
                     {detectedProducts.map((product) => (
                       <div
                         key={product.id}
                         className="bg-gray-700 rounded-lg p-3"
                       >
-                        <div className="flex gap-3">
+                        <div className="flex gap-3 mb-3">
                           <img
                             src={product.image}
                             alt={product.name}
-                            className="w-12 h-12 rounded object-cover"
+                            className="w-16 h-16 rounded object-cover"
                           />
                           <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-medium text-white truncate">
+                            <h4 className="text-sm font-medium text-white mb-1">
                               {product.name}
                             </h4>
                             <p className="text-xs text-gray-400 mb-1">
                               {product.description}
                             </p>
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-green-400 font-medium">
-                                {product.price}
-                              </span>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-blue-400 hover:text-blue-300 text-xs h-6 px-2"
-                              >
-                                <Eye className="h-3 w-3 mr-1" />
-                                Ver más
-                              </Button>
-                            </div>
+                            <p className="text-xs text-gray-500 mb-2">
+                              {product.technicalData}
+                            </p>
+                            <span className="text-sm text-green-400 font-medium">
+                              {product.price}
+                            </span>
                           </div>
+                        </div>
+
+                        {/* Action buttons for sending different types of content */}
+                        <div className="grid grid-cols-2 gap-1">
+                          {product.hasImage && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                sendProductInfo(product.id, "image")
+                              }
+                              className="text-blue-400 hover:text-blue-300 text-xs h-7 px-2"
+                            >
+                              📷 Enviar Imagen
+                            </Button>
+                          )}
+
+                          {product.hasPDF && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => sendProductInfo(product.id, "pdf")}
+                              className="text-red-400 hover:text-red-300 text-xs h-7 px-2"
+                            >
+                              📄 Enviar PDF
+                            </Button>
+                          )}
+
+                          {product.hasVideo && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                sendProductInfo(product.id, "video")
+                              }
+                              className="text-purple-400 hover:text-purple-300 text-xs h-7 px-2"
+                            >
+                              🎥 Enviar Video
+                            </Button>
+                          )}
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() =>
+                              sendProductInfo(product.id, "technical")
+                            }
+                            className="text-gray-400 hover:text-white text-xs h-7 px-2"
+                          >
+                            📋 Ficha Técnica
+                          </Button>
                         </div>
                       </div>
                     ))}
