@@ -4,8 +4,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { ConversationItem } from "./ConversationItem";
-import { Search, Filter, MoreHorizontal, Pin } from "lucide-react";
+import {
+  Search,
+  Filter,
+  MoreHorizontal,
+  Pin,
+  MessageCircle,
+  Facebook,
+  Calendar,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ChatListProps {
