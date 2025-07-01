@@ -885,7 +885,7 @@ export default function Copilot() {
                 style={{
                   backgroundColor: "rgb(176, 180, 186)",
                   borderColor: "rgb(237, 238, 240)",
-                  color: "rgb(176, 180, 186)",
+                  color: "rgba(255, 255, 255, 1)",
                   cursor: "pointer",
                   fontSize: "14px",
                   fontStyle: "italic",
