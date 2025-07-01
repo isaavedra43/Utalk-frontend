@@ -283,6 +283,10 @@ export function ChatView({ chatId, className }: ChatViewProps) {
               <h3 className="font-semibold text-white">
                 {mockConversation.contactName}
               </h3>
+              {getChannelIcon()}
+              <Badge className="bg-gray-700 text-gray-300 text-xs">
+                {getChannelName()}
+              </Badge>
               <TagIcon className="h-4 w-4 text-gray-400" />
               <Badge
                 variant="outline"
@@ -292,40 +296,84 @@ export function ChatView({ chatId, className }: ChatViewProps) {
               </Badge>
             </div>
             <p className="text-sm text-gray-400">
-              Customer • Last seen 5 minutes ago
+              Customer • Last seen 5 minutes ago • Via {getChannelName()}
             </p>
           </div>
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-gray-400 hover:text-white"
-            >
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="bg-gray-800 border-gray-700"
+        <div className="flex items-center gap-2">
+          {/* Search Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowSearch(!showSearch)}
+            className={cn(
+              "text-gray-400 hover:text-white",
+              showSearch && "bg-gray-700 text-white",
+            )}
           >
-            <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
-              Resolve
-            </DropdownMenuItem>
-            <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
-              Assign to Agent
-            </DropdownMenuItem>
-            <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
-              Add to Priority
-            </DropdownMenuItem>
-            <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
-              Close Conversation
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <Search className="h-4 w-4" />
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="bg-gray-800 border-gray-700"
+            >
+              <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                Resolve
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                Assign to Agent
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                Add to Priority
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
+                Close Conversation
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
+
+      {/* Search Bar */}
+      {showSearch && (
+        <div className="p-4 border-b border-gray-800 bg-gray-850">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Buscar en esta conversación..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleSearch();
+                }
+              }}
+              className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+            />
+            <Button
+              onClick={handleSearch}
+              disabled={!searchQuery.trim()}
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Messages */}
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
