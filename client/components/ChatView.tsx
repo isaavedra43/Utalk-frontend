@@ -108,7 +108,77 @@ export function ChatView({ chatId, className }: ChatViewProps) {
   const [message, setMessage] = useState("");
   const [isPrivateNote, setIsPrivateNote] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+  const [showPredefinedTexts, setShowPredefinedTexts] = useState(false);
+  const [showCampaigns, setShowCampaigns] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Predefined text templates
+  const predefinedTexts = [
+    {
+      id: "1",
+      title: "Saludo inicial",
+      content: "¡Hola! Gracias por contactarnos. ¿En qué podemos ayudarte hoy?",
+      category: "greetings",
+    },
+    {
+      id: "2",
+      title: "Información de productos",
+      content:
+        "Te puedo ayudar con información detallada sobre nuestros productos. ¿Hay algo específico que te interese?",
+      category: "products",
+    },
+    {
+      id: "3",
+      title: "Tiempo de entrega",
+      content:
+        "El tiempo de entrega estándar es de 3-5 días hábiles. Para entregas urgentes, contamos con servicio express.",
+      category: "delivery",
+    },
+    {
+      id: "4",
+      title: "Cotización",
+      content:
+        "Con gusto te preparo una cotización personalizada. ¿Podrías proporcionarme más detalles sobre tu proyecto?",
+      category: "quotes",
+    },
+    {
+      id: "5",
+      title: "Agradecimiento",
+      content:
+        "Muchas gracias por tu preferencia. Estamos aquí para ayudarte en lo que necesites.",
+      category: "thanks",
+    },
+  ];
+
+  // Campaign templates
+  const campaignTemplates = [
+    {
+      id: "1",
+      name: "Promoción Mármol Carrara",
+      platform: "whatsapp",
+      description: "20% descuento en mármol carrara hasta fin de mes",
+      message:
+        "🎉 ¡Oferta especial! 20% de descuento en mármol carrara hasta fin de mes. ¡No te pierdas esta oportunidad!",
+    },
+    {
+      id: "2",
+      name: "Nueva Colección",
+      platform: "facebook",
+      description: "Anuncio de nueva colección de granitos",
+      message:
+        "✨ ¡Nueva colección de granitos disponible! Descubre las últimas tendencias en diseño.",
+    },
+    {
+      id: "3",
+      name: "Seguimiento Clientes",
+      platform: "sms",
+      description: "Seguimiento post-venta",
+      message:
+        "Hola {nombre}, esperamos que estés satisfecho con tu compra. ¿Necesitas algún soporte adicional?",
+    },
+  ];
 
   const handleSendMessage = () => {
     if (!message.trim()) return;
