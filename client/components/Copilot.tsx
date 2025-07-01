@@ -3,7 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Send,
   Bot,
@@ -14,7 +19,8 @@ import {
   CheckCircle,
   Edit,
   ArrowUp,
-  MessageSquare,
+  Package,
+  Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -119,6 +125,11 @@ export default function Copilot() {
       return "📦 Basándome en la conversación, el cliente está buscando: Mármol Carrara (alta prioridad), posiblemente Calacatta como alternativa. Recomiendo mostrar especificaciones técnicas y casos de uso en baños.";
     }
 
+    if (lowerMessage.includes("modifica") || lowerMessage.includes("cambiar")) {
+      setIsEditingSuggestion(true);
+      return "✏️ Perfecto, he habilitado el modo de edición para que puedas modificar la respuesta sugerida. Ajusta el texto como prefieras y luego envíalo.";
+    }
+
     return "¡Entendido! ¿Te gustaría que analice algo específico de la conversación o necesitas ayuda con otra tarea?";
   };
 
@@ -127,7 +138,6 @@ export default function Copilot() {
       "Enviando respuesta sugerida tal como está:",
       suggestedResponse.content,
     );
-    // Here you would integrate with the main chat to send the message
 
     // Add to chat history
     const newMessage: ChatMessage = {
@@ -146,6 +156,19 @@ export default function Copilot() {
   const handleModifySuggestion = () => {
     setIsEditingSuggestion(true);
     setEditedSuggestion(suggestedResponse.content);
+
+    // Add message to chat
+    const modifyMessage: ChatMessage = {
+      id: `modify-${Date.now()}`,
+      content: "Modifica el mensaje sugerido como prefieras:",
+      sender: "ai",
+      timestamp: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      type: "response",
+    };
+    setMessages((prev) => [...prev, modifyMessage]);
   };
 
   const handleSendModifiedSuggestion = () => {
@@ -185,6 +208,12 @@ export default function Copilot() {
         actionMessage =
           "Analiza qué productos podrían interesar a este cliente.";
         break;
+      case "campaign":
+        actionMessage = "Ayúdame a crear una campaña para este cliente.";
+        break;
+      case "predefined":
+        actionMessage = "Muéstrame textos predefinidos que pueda usar.";
+        break;
     }
 
     if (actionMessage) {
@@ -195,6 +224,80 @@ export default function Copilot() {
 
   return (
     <div className="h-full bg-gray-900 flex flex-col">
+      {/* AI Suggested Response - Integrated at top */}
+      <div className="p-4 border-b border-gray-700">
+        <div className="mb-2">
+          <div className="flex items-center gap-2 mb-1">
+            <Lightbulb className="h-4 w-4 text-yellow-400" />
+            <span className="text-sm font-medium text-yellow-400">
+              Respuesta Sugerida por IA
+            </span>
+            <Badge className="bg-blue-600 text-white text-xs">
+              {suggestedResponse.confidence}% confianza
+            </Badge>
+          </div>
+          <p className="text-xs text-gray-400 mb-3">
+            {suggestedResponse.reason}
+          </p>
+        </div>
+
+        <div className="bg-blue-950/30 border border-blue-500/30 rounded-lg p-3">
+          {!isEditingSuggestion ? (
+            <div className="space-y-3">
+              <p className="text-sm text-white leading-relaxed">
+                {suggestedResponse.content}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleSendSuggestionAsIs}
+                  className="bg-green-600 hover:bg-green-700 text-white text-xs h-8"
+                >
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Enviar tal cual
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleModifySuggestion}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8"
+                >
+                  <Edit className="h-3 w-3 mr-1" />
+                  Modificar
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <textarea
+                value={editedSuggestion}
+                onChange={(e) => setEditedSuggestion(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white text-sm resize-none"
+                rows={4}
+                placeholder="Modifica la respuesta sugerida..."
+              />
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleSendModifiedSuggestion}
+                  className="bg-green-600 hover:bg-green-700 text-white text-xs h-8"
+                >
+                  <Send className="h-3 w-3 mr-1" />
+                  Enviar modificado
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setIsEditingSuggestion(false)}
+                  className="text-gray-400 hover:text-white text-xs h-8"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Chat Messages */}
       <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
         <div className="space-y-4">
@@ -242,46 +345,107 @@ export default function Copilot() {
         </div>
       </ScrollArea>
 
-      {/* Quick Action Buttons */}
+      {/* Action Buttons - Small like audio button */}
       <div className="p-4 border-t border-gray-700">
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleQuickAction("summarize")}
-            className="text-xs border-gray-600 text-gray-300 hover:bg-gray-800"
-          >
-            <FileText className="h-3 w-3 mr-1" />
-            Resumir
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleQuickAction("suggest")}
-            className="text-xs border-gray-600 text-gray-300 hover:bg-gray-800"
-          >
-            <Lightbulb className="h-3 w-3 mr-1" />
-            Sugerir
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleQuickAction("rate")}
-            className="text-xs border-gray-600 text-gray-300 hover:bg-gray-800"
-          >
-            <Star className="h-3 w-3 mr-1" />
-            Evaluar
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleQuickAction("products")}
-            className="text-xs border-gray-600 text-gray-300 hover:bg-gray-800"
-          >
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Productos
-          </Button>
-        </div>
+        <TooltipProvider>
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleQuickAction("summarize")}
+                  className="w-8 h-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
+                >
+                  <FileText className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="bg-gray-800 text-white text-xs">
+                Resumir conversación
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleQuickAction("suggest")}
+                  className="w-8 h-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
+                >
+                  <Lightbulb className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="bg-gray-800 text-white text-xs">
+                Sugerir respuesta
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleQuickAction("rate")}
+                  className="w-8 h-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
+                >
+                  <Star className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="bg-gray-800 text-white text-xs">
+                Evaluar conversación
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleQuickAction("products")}
+                  className="w-8 h-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
+                >
+                  <Package className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="bg-gray-800 text-white text-xs">
+                Analizar productos
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleQuickAction("predefined")}
+                  className="w-8 h-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
+                >
+                  <FileText className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="bg-gray-800 text-white text-xs">
+                Textos predefinidos
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleQuickAction("campaign")}
+                  className="w-8 h-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
+                >
+                  <Megaphone className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="bg-gray-800 text-white text-xs">
+                Enviar campaña
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
 
         {/* Chat Input */}
         <div className="flex gap-2">
@@ -301,7 +465,7 @@ export default function Copilot() {
             size="sm"
             onClick={handleSendMessage}
             disabled={!currentMessage.trim()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-3"
+            className="w-8 h-8 p-0 bg-blue-600 hover:bg-blue-700 text-white"
           >
             <ArrowUp className="h-4 w-4" />
           </Button>
