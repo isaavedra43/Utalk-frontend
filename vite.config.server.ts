@@ -1,18 +1,11 @@
 import { defineConfig } from "vite";
 import path from "path";
 
-// Server build configuration
 export default defineConfig({
   build: {
-    lib: {
-      entry: path.resolve(__dirname, "server/node-build.ts"),
-      name: "server",
-      fileName: "production",
-      formats: ["es"],
-    },
+    ssr: path.resolve(__dirname, "server/node-build.ts"),
     outDir: "dist/server",
     target: "node22",
-    ssr: true,
     rollupOptions: {
       external: [
         // Node.js built-ins
@@ -34,11 +27,11 @@ export default defineConfig({
         "cors",
       ],
       output: {
-        format: "es",
-        entryFileNames: "[name].mjs",
+        format: "esm",
+        entryFileNames: "[name].js", // <-- Cambiado de .mjs a .js para compatibilidad Railway
       },
     },
-    minify: false, // Keep readable for debugging
+    minify: false, 
     sourcemap: true,
   },
   resolve: {
