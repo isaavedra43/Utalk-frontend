@@ -440,7 +440,7 @@ export function ChatView({ chatId, className }: ChatViewProps) {
           )}
         </div>
 
-        {/* Action buttons row */}
+        {/* Action buttons row - 80% size with transparent design */}
         <div className="flex gap-2 mb-3">
           {/* Predefined Texts */}
           <Dialog
@@ -448,14 +448,23 @@ export function ChatView({ chatId, className }: ChatViewProps) {
             onOpenChange={setShowPredefinedTexts}
           >
             <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-gray-600 text-gray-300 hover:bg-gray-700 text-xs"
-              >
-                <FileText className="h-3 w-3 mr-1" />
-                Textos Predefinidos
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 bg-gray-800/40 hover:bg-gray-700/60 border border-gray-600/30 text-gray-300 hover:text-white text-xs px-3 rounded-lg backdrop-blur-sm transition-all duration-200"
+                    >
+                      <FileText className="h-3 w-3 mr-1" />
+                      Textos Predefinidos
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-gray-800 border border-gray-600 text-white text-xs rounded-lg">
+                    Plantillas de respuesta rápida
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </DialogTrigger>
             <DialogContent className="bg-gray-800 border-gray-700 text-white">
               <DialogHeader>
