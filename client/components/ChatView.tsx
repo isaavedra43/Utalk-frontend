@@ -517,16 +517,18 @@ export function ChatView({ chatId, className }: ChatViewProps) {
                 </Tooltip>
               </TooltipProvider>
             </DialogTrigger>
-            <DialogContent className="bg-gray-800 border-gray-700 text-white">
+            <DialogContent className="bg-gray-900 border border-gray-700/50 text-white rounded-xl shadow-2xl backdrop-blur-sm">
               <DialogHeader>
-                <DialogTitle>Enviar Campaña</DialogTitle>
+                <DialogTitle className="text-white font-medium">
+                  Enviar Campaña
+                </DialogTitle>
               </DialogHeader>
-              <ScrollArea className="h-80">
+              <ScrollArea className="h-80 pr-2">
                 <div className="space-y-3">
                   {campaignTemplates.map((campaign) => (
                     <div
                       key={campaign.id}
-                      className="p-4 bg-gray-700 rounded-lg border border-gray-600"
+                      className="p-4 bg-gray-800/60 border border-gray-600/30 rounded-lg hover:bg-gray-700/40 transition-all duration-200 backdrop-blur-sm"
                     >
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="font-medium text-white">
@@ -534,22 +536,22 @@ export function ChatView({ chatId, className }: ChatViewProps) {
                         </h4>
                         <Badge
                           className={cn(
-                            "text-xs",
+                            "text-xs rounded-full",
                             campaign.platform === "whatsapp"
-                              ? "bg-green-600 text-white"
+                              ? "bg-green-600/20 border border-green-500/30 text-green-300"
                               : campaign.platform === "facebook"
-                                ? "bg-blue-600 text-white"
-                                : "bg-purple-600 text-white",
+                                ? "bg-blue-600/20 border border-blue-500/30 text-blue-300"
+                                : "bg-purple-600/20 border border-purple-500/30 text-purple-300",
                           )}
                         >
                           {campaign.platform.toUpperCase()}
                         </Badge>
                       </div>
-                      <p className="text-sm text-gray-300 mb-3">
+                      <p className="text-sm text-gray-300 mb-3 leading-relaxed">
                         {campaign.description}
                       </p>
-                      <div className="bg-gray-800 p-3 rounded mb-3">
-                        <p className="text-sm text-gray-200">
+                      <div className="bg-gray-800/80 border border-gray-600/40 p-3 rounded-lg mb-3">
+                        <p className="text-sm text-gray-200 leading-relaxed">
                           {campaign.message}
                         </p>
                       </div>
@@ -557,12 +559,12 @@ export function ChatView({ chatId, className }: ChatViewProps) {
                         size="sm"
                         onClick={() => handleCampaignSend(campaign)}
                         className={cn(
-                          "w-full",
+                          "w-full h-8 rounded-lg transition-all duration-200",
                           campaign.platform === "whatsapp"
-                            ? "bg-green-600 hover:bg-green-700"
+                            ? "bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-300"
                             : campaign.platform === "facebook"
-                              ? "bg-blue-600 hover:bg-blue-700"
-                              : "bg-purple-600 hover:bg-purple-700",
+                              ? "bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300"
+                              : "bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300",
                         )}
                       >
                         <Send className="h-3 w-3 mr-1" />
