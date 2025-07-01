@@ -621,7 +621,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                     >
                       <div className="flex-shrink-0">
                         {file.type === "PDF" ? (
-                          <FilePdf className="h-6 w-6 text-red-400" />
+                          <File className="h-6 w-6 text-red-400" />
                         ) : file.type === "Video" ? (
                           <Video className="h-6 w-6 text-purple-400" />
                         ) : (
