@@ -387,13 +387,13 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                     </div>
                   </div>
 
-                  {/* Product action buttons */}
-                  <div className="grid grid-cols-2 gap-1">
+                  {/* Product action buttons - Enhanced with transparent design */}
+                  <div className="grid grid-cols-2 gap-2">
                     {product.hasImage && (
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-blue-400 hover:text-blue-300 hover:bg-blue-950 text-xs h-7"
+                        className="h-7 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 hover:text-blue-200 text-xs rounded-lg transition-all duration-200"
                       >
                         <ImageIcon className="h-3 w-3 mr-1" />
                         Imagen
@@ -403,7 +403,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-red-400 hover:text-red-300 hover:bg-red-950 text-xs h-7"
+                        className="h-7 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 hover:text-red-200 text-xs rounded-lg transition-all duration-200"
                       >
                         <File className="h-3 w-3 mr-1" />
                         PDF
@@ -413,7 +413,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-purple-400 hover:text-purple-300 hover:bg-purple-950 text-xs h-7"
+                        className="h-7 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 hover:text-purple-200 text-xs rounded-lg transition-all duration-200"
                       >
                         <Video className="h-3 w-3 mr-1" />
                         Video
@@ -422,7 +422,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-gray-400 hover:text-white hover:bg-gray-600 text-xs h-7"
+                      className="h-7 bg-gray-600/20 hover:bg-gray-600/30 border border-gray-500/30 text-gray-300 hover:text-gray-200 text-xs rounded-lg transition-all duration-200"
                     >
                       <FileText className="h-3 w-3 mr-1" />
                       Ficha Técnica
