@@ -38,6 +38,29 @@ import {
   User,
   Phone,
   Mail,
+  Moon,
+  Sun,
+  Flame,
+  AlertTriangle,
+  DollarSign,
+  Target,
+  CheckCircle,
+  PauseCircle,
+  Bell,
+  Crown,
+  TrendingUp,
+  HelpCircle,
+  Calendar,
+  Users,
+  Receipt,
+  ShoppingBag,
+  MessageSquareReply,
+  Timer,
+  Brain,
+  Lightbulb,
+  Filter,
+  Search,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -61,14 +84,31 @@ export function AIAssistant({ className }: AIAssistantProps) {
   // Advanced AI Assistant States
   const [isWelcomeMode, setIsWelcomeMode] = useState(true);
   const [messageCount, setMessageCount] = useState(0);
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [clientIntent, setClientIntent] = useState<
+    "cotizacion" | "queja" | "venta" | "seguimiento" | "factura" | null
+  >("cotizacion");
+  const [isNewClient, setIsNewClient] = useState(true);
+  const [clientPriority, setClientPriority] = useState<
+    "high" | "medium" | "low"
+  >("high");
+  const [salesClosed, setSalesClosed] = useState(false);
+  const [estimatedAmount, setEstimatedAmount] = useState("");
+  const [responseTimer, setResponseTimer] = useState<number | null>(null);
+  const [pendingResponse, setPendingResponse] = useState(false);
+  const [customInstruction, setCustomInstruction] = useState("");
+
   const [aiSuggestions, setAiSuggestions] = useState<
     Array<{
       id: string;
       text: string;
       confidence: number;
       category: string;
+      tone: "informal" | "tecnico" | "profesional";
+      reason?: string;
     }>
   >([]);
+
   const [detectedProducts, setDetectedProducts] = useState([
     {
       id: "1",
@@ -80,6 +120,9 @@ export function AIAssistant({ className }: AIAssistantProps) {
       hasImage: true,
       hasPDF: true,
       hasVideo: true,
+      stock: 150,
+      consultedTimes: 5,
+      isTrending: true,
     },
     {
       id: "2",
@@ -91,17 +134,81 @@ export function AIAssistant({ className }: AIAssistantProps) {
       hasImage: true,
       hasPDF: true,
       hasVideo: false,
+      stock: 0,
+      consultedTimes: 2,
+      isTrending: false,
     },
   ]);
+
+  const [clientInfo, setClientInfo] = useState({
+    name: "Carlos Martinez",
+    company: "GRUPO ALCON",
+    totalConversations: 3,
+    lastPurchase: "15 Feb 2024",
+    tags: ["Cliente VIP", "Descuento prometido"],
+    riskLevel: "low" as "low" | "medium" | "high",
+  });
+
+  const [zohoData, setZohoData] = useState({
+    quotes: [
+      {
+        id: "Q-2024-001",
+        amount: "$2,450.00",
+        status: "pending",
+        date: "Mar 10",
+      },
+      {
+        id: "Q-2024-002",
+        amount: "$1,890.50",
+        status: "approved",
+        date: "Mar 08",
+      },
+    ],
+    orders: [
+      {
+        id: "O-2024-123",
+        amount: "$2,450.00",
+        status: "processing",
+        date: "Mar 09",
+      },
+    ],
+    invoices: [
+      {
+        id: "INV-2024-456",
+        amount: "$1,200.00",
+        status: "paid",
+        date: "Feb 28",
+      },
+    ],
+  });
+
   const [editingSuggestion, setEditingSuggestion] = useState<string | null>(
     null,
   );
   const [editedText, setEditedText] = useState("");
 
-  // Generate welcome message automatically
+  // Advanced Functions
+  const detectClientIntent = (message: string) => {
+    const intentKeywords = {
+      cotizacion: ["precio", "cotizar", "costo", "cuanto", "presupuesto"],
+      queja: ["problema", "reclamo", "mal", "defecto", "error"],
+      venta: ["comprar", "pedido", "orden", "facturar"],
+      seguimiento: ["estado", "seguimiento", "cuando", "entrega"],
+      factura: ["factura", "pago", "cobro", "invoice"],
+    };
+
+    for (const [intent, keywords] of Object.entries(intentKeywords)) {
+      if (keywords.some((keyword) => message.toLowerCase().includes(keyword))) {
+        setClientIntent(intent as any);
+        return intent;
+      }
+    }
+    return null;
+  };
+
   const generateWelcomeMessage = () => {
     const welcomeMessages = [
-      "¡Hola! Soy parte del equipo de GRUPO ALCON. Es un placer atenderte hoy. ¿En qué podemos ayudarte con nuestros productos de mármol y piedra natural?",
+      `¡Hola ${clientInfo.name}! ${isNewClient ? "Es un placer conocerte" : "Qué gusto volver a atenderte"}. Soy parte del equipo de GRUPO ALCON. ¿En qué podemos ayudarte con nuestros productos de mármol y piedra natural?`,
       "¡Bienvenido/a! Gracias por contactar a GRUPO ALCON. Somos especialistas en mármol, travertino y piedras decorativas. ¿Tienes algún proyecto en mente?",
       "¡Hola! Me da mucho gusto que nos contactes. En GRUPO ALCON tenemos más de 15 años ayudando a crear espacios únicos con piedra natural. ¿Cómo puedo asistirte hoy?",
     ];
@@ -110,6 +217,40 @@ export function AIAssistant({ className }: AIAssistantProps) {
       return welcomeMessages[messageCount] || welcomeMessages[0];
     }
     return null;
+  };
+
+  const setResponseReminder = (minutes: number) => {
+    setResponseTimer(minutes);
+    setPendingResponse(true);
+    setTimeout(
+      () => {
+        alert(`⏰ Recordatorio: Responder a ${clientInfo.name}`);
+        setPendingResponse(false);
+      },
+      minutes * 60 * 1000,
+    );
+  };
+
+  const closeSale = () => {
+    if (!estimatedAmount) return;
+    setSalesClosed(true);
+    console.log(`Venta cerrada: $${estimatedAmount} para ${clientInfo.name}`);
+    // Trigger post-sale follow-up logic
+  };
+
+  const escalateConversation = () => {
+    console.log(
+      `Escalando conversación de ${clientInfo.name} por falta de respuesta`,
+    );
+    // Logic to escalate to another agent
+  };
+
+  const logAgentDecision = (
+    suggestionId: string,
+    action: "accepted" | "modified" | "ignored",
+  ) => {
+    console.log(`Agent decision: ${action} for suggestion ${suggestionId}`);
+    // Log for AI improvement
   };
 
   // Generate intelligent reply suggestions based on context
@@ -1112,7 +1253,161 @@ export function AIAssistant({ className }: AIAssistantProps) {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <TabsContent value="zoho" className="space-y-4 mt-4">
+              {/* Zoho CRM Integration */}
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm text-white flex items-center gap-2">
+                    <Receipt className="h-4 w-4" />
+                    Cotizaciones
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {zohoData.quotes.map((quote) => (
+                    <div key={quote.id} className="bg-gray-700 rounded p-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-white font-medium">
+                          {quote.id}
+                        </span>
+                        <Badge
+                          className={cn(
+                            "text-xs",
+                            quote.status === "approved"
+                              ? "bg-green-600 text-white"
+                              : quote.status === "pending"
+                                ? "bg-yellow-600 text-white"
+                                : "bg-gray-600 text-white",
+                          )}
+                        >
+                          {quote.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-green-400">
+                          {quote.amount}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {quote.date}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm text-white flex items-center gap-2">
+                    <ShoppingBag className="h-4 w-4" />
+                    Órdenes de Venta
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {zohoData.orders.map((order) => (
+                    <div key={order.id} className="bg-gray-700 rounded p-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-white font-medium">
+                          {order.id}
+                        </span>
+                        <Badge className="bg-blue-600 text-white text-xs">
+                          {order.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-green-400">
+                          {order.amount}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {order.date}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm text-white flex items-center gap-2">
+                    <Receipt className="h-4 w-4" />
+                    Facturas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {zohoData.invoices.map((invoice) => (
+                    <div key={invoice.id} className="bg-gray-700 rounded p-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-white font-medium">
+                          {invoice.id}
+                        </span>
+                        <Badge className="bg-green-600 text-white text-xs">
+                          {invoice.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-green-400">
+                          {invoice.amount}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {invoice.date}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Quick Zoho Actions */}
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm text-white">
+                    Acciones Rápidas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-700"
+                  >
+                    <Receipt className="h-4 w-4 mr-2" />
+                    Crear Nueva Cotización
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-700"
+                  >
+                    <ShoppingBag className="h-4 w-4 mr-2" />
+                    Generar Orden de Venta
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-700"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Abrir en Zoho CRM
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
+
+          {/* Response Timer Alert */}
+          {pendingResponse && (
+            <Card className="bg-orange-900/30 border-orange-600/30">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-orange-400" />
+                  <span className="text-orange-400 text-sm">
+                    Recordatorio: Responder en {responseTimer} min
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </ScrollArea>
     </div>
