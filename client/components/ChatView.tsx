@@ -9,7 +9,15 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { MessageBubble } from "./MessageBubble";
 import {
   Send,
@@ -22,6 +30,17 @@ import {
   Settings,
   Eye,
   EyeOff,
+  FileText,
+  MessageCircle,
+  Facebook,
+  Search,
+  Hash,
+  Megaphone,
+  Zap,
+  Clock,
+  CheckCircle,
+  Star,
+  Heart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
