@@ -1,3 +1,4 @@
+{
   "name": "fusion-starter",
   "private": true,
   "type": "module",
@@ -97,4 +98,7 @@
     "vite": "^6.2.2",
     "vitest": "^3.1.4"
   }
+  }
 }
+
+
