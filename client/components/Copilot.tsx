@@ -224,15 +224,15 @@ export default function Copilot() {
 
   return (
     <div className="h-full bg-gray-900 flex flex-col">
-      {/* AI Suggested Response - Integrated at top */}
+      {/* AI Suggested Response - Exactly like in image */}
       <div className="p-4 border-b border-gray-700">
-        <div className="mb-2">
+        <div className="mb-3">
           <div className="flex items-center gap-2 mb-1">
             <Lightbulb className="h-4 w-4 text-yellow-400" />
             <span className="text-sm font-medium text-yellow-400">
               Respuesta Sugerida por IA
             </span>
-            <Badge className="bg-blue-600 text-white text-xs">
+            <Badge className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
               {suggestedResponse.confidence}% confianza
             </Badge>
           </div>
@@ -241,17 +241,18 @@ export default function Copilot() {
           </p>
         </div>
 
-        <div className="bg-blue-950/30 border border-blue-500/30 rounded-lg p-3">
+        <div className="bg-blue-950/40 border border-blue-500/30 rounded-lg p-4">
           {!isEditingSuggestion ? (
-            <div className="space-y-3">
-              <p className="text-sm text-white leading-relaxed">
+            <div className="relative">
+              <p className="text-sm text-white leading-relaxed pr-20">
                 {suggestedResponse.content}
               </p>
-              <div className="flex gap-2">
+              {/* Small buttons on the side like in image */}
+              <div className="absolute top-0 right-0 flex flex-col gap-2">
                 <Button
                   size="sm"
                   onClick={handleSendSuggestionAsIs}
-                  className="bg-green-600 hover:bg-green-700 text-white text-xs h-8"
+                  className="bg-green-600 hover:bg-green-700 text-white text-xs h-8 px-3"
                 >
                   <CheckCircle className="h-3 w-3 mr-1" />
                   Enviar tal cual
@@ -259,7 +260,7 @@ export default function Copilot() {
                 <Button
                   size="sm"
                   onClick={handleModifySuggestion}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8"
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8 px-3"
                 >
                   <Edit className="h-3 w-3 mr-1" />
                   Modificar
@@ -345,19 +346,19 @@ export default function Copilot() {
         </div>
       </ScrollArea>
 
-      {/* Action Buttons - Small like audio button */}
+      {/* Action Buttons - Dark style like image, arranged in grid */}
       <div className="p-4 border-t border-gray-700">
         <TooltipProvider>
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="grid grid-cols-2 gap-2 mb-4">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  size="sm"
                   variant="ghost"
                   onClick={() => handleQuickAction("summarize")}
-                  className="w-8 h-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
+                  className="h-10 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-600 text-xs justify-start"
                 >
-                  <FileText className="h-4 w-4" />
+                  <FileText className="h-4 w-4 mr-2" />
+                  Resumir
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="bg-gray-800 text-white text-xs">
@@ -368,12 +369,12 @@ export default function Copilot() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  size="sm"
                   variant="ghost"
                   onClick={() => handleQuickAction("suggest")}
-                  className="w-8 h-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
+                  className="h-10 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-600 text-xs justify-start"
                 >
-                  <Lightbulb className="h-4 w-4" />
+                  <Lightbulb className="h-4 w-4 mr-2" />
+                  Sugerir
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="bg-gray-800 text-white text-xs">
@@ -384,12 +385,12 @@ export default function Copilot() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  size="sm"
                   variant="ghost"
                   onClick={() => handleQuickAction("rate")}
-                  className="w-8 h-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
+                  className="h-10 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-600 text-xs justify-start"
                 >
-                  <Star className="h-4 w-4" />
+                  <Star className="h-4 w-4 mr-2" />
+                  Evaluar
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="bg-gray-800 text-white text-xs">
@@ -400,54 +401,22 @@ export default function Copilot() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  size="sm"
                   variant="ghost"
                   onClick={() => handleQuickAction("products")}
-                  className="w-8 h-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
+                  className="h-10 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-600 text-xs justify-start"
                 >
-                  <Package className="h-4 w-4" />
+                  <Package className="h-4 w-4 mr-2" />
+                  Productos
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="bg-gray-800 text-white text-xs">
                 Analizar productos
               </TooltipContent>
             </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleQuickAction("predefined")}
-                  className="w-8 h-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
-                >
-                  <FileText className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="bg-gray-800 text-white text-xs">
-                Textos predefinidos
-              </TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleQuickAction("campaign")}
-                  className="w-8 h-8 p-0 text-gray-400 hover:text-white hover:bg-gray-800"
-                >
-                  <Megaphone className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="bg-gray-800 text-white text-xs">
-                Enviar campaña
-              </TooltipContent>
-            </Tooltip>
           </div>
         </TooltipProvider>
 
-        {/* Chat Input */}
+        {/* Chat Input - Dark style */}
         <div className="flex gap-2">
           <Input
             placeholder="Pregunta al asistente IA..."
@@ -465,7 +434,7 @@ export default function Copilot() {
             size="sm"
             onClick={handleSendMessage}
             disabled={!currentMessage.trim()}
-            className="w-8 h-8 p-0 bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-10 h-10 p-0 bg-blue-600 hover:bg-blue-700 text-white"
           >
             <ArrowUp className="h-4 w-4" />
           </Button>
