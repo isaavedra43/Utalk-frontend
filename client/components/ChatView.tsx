@@ -366,10 +366,10 @@ export function ChatView({ chatId, className }: ChatViewProps) {
 
       {/* Search Bar */}
       {showSearch && (
-        <div className="p-4 border-b border-gray-800 bg-gray-850">
+        <div className="p-4 border-b border-gray-700/50 bg-gray-900/60 backdrop-blur-sm">
           <div className="flex gap-2">
             <Input
-              placeholder="Buscar en esta conversación..."
+              placeholder="Buscar mensajes, archivos, enlaces..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={(e) => {
@@ -378,13 +378,13 @@ export function ChatView({ chatId, className }: ChatViewProps) {
                   handleSearch();
                 }
               }}
-              className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+              className="bg-gray-800/60 border border-gray-600/40 text-white placeholder:text-gray-400 rounded-lg focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 backdrop-blur-sm"
             />
             <Button
               onClick={handleSearch}
               disabled={!searchQuery.trim()}
               size="sm"
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600/80 hover:bg-blue-600 border border-blue-500/30 text-white rounded-lg disabled:bg-gray-700/50 disabled:border-gray-600/30 disabled:text-gray-400 transition-all duration-200"
             >
               <Search className="h-4 w-4" />
             </Button>
