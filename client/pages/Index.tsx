@@ -172,7 +172,7 @@ export default function Index() {
           ) : null}
         </div>
 
-        {/* Right Panel - Two Sections (only visible in messages module) */}
+        {/* Right Panel - AI Assistant & Client Info (only visible in messages module) */}
         {activeModule === "messages" && (
           <div
             className={cn(
@@ -182,74 +182,48 @@ export default function Index() {
               rightPanelVisible ? "lg:w-80" : "lg:w-0 lg:overflow-hidden",
             )}
           >
-            {/* AI Panel Toggle Button */}
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setAiPanelVisible(!aiPanelVisible)}
-              className="absolute top-2 -left-6 z-20 w-6 h-12 bg-gray-800 border border-gray-700 rounded-l-full p-0 hover:bg-gray-700 flex items-center justify-center"
-            >
-              <Bot className="w-3 h-3 text-gray-400" />
-            </Button>
-
-            {/* Client Info Panel Toggle Button */}
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setClientInfoVisible(!clientInfoVisible)}
-              className="absolute bottom-2 -left-6 z-20 w-6 h-12 bg-gray-800 border border-gray-700 rounded-l-full p-0 hover:bg-gray-700 flex items-center justify-center"
-            >
-              <UserCheck className="w-3 h-3 text-gray-400" />
-            </Button>
-
-            {/* Top Section - AI Copilot */}
-            <div
-              className={cn(
-                "transition-all duration-300 ease-in-out border-b border-gray-700",
-                aiPanelVisible ? "flex-1" : "h-12 overflow-hidden",
-              )}
-            >
-              {aiPanelVisible ? (
-                <Copilot />
-              ) : (
-                <div className="h-12 bg-gray-900 flex items-center justify-between px-4 border-l border-gray-800">
-                  <span className="text-sm text-gray-400">AI Copilot</span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setAiPanelVisible(true)}
-                    className="text-gray-400 hover:text-white p-1"
-                  >
-                    <ChevronDown className="w-3 h-3" />
-                  </Button>
-                </div>
-              )}
+            {/* Horizontal Toggle Buttons */}
+            <div className="flex bg-gray-900 border-l border-gray-800">
+              <Button
+                size="sm"
+                variant={aiPanelVisible ? "default" : "ghost"}
+                onClick={() => {
+                  setAiPanelVisible(true);
+                  setClientInfoVisible(false);
+                }}
+                className={cn(
+                  "flex-1 rounded-none h-12 text-xs font-medium",
+                  aiPanelVisible
+                    ? "bg-blue-600 text-white border-b-2 border-blue-400"
+                    : "text-gray-400 hover:text-white hover:bg-gray-800",
+                )}
+              >
+                <Bot className="w-4 h-4 mr-2" />
+                Asistente IA
+              </Button>
+              <Button
+                size="sm"
+                variant={clientInfoVisible ? "default" : "ghost"}
+                onClick={() => {
+                  setClientInfoVisible(true);
+                  setAiPanelVisible(false);
+                }}
+                className={cn(
+                  "flex-1 rounded-none h-12 text-xs font-medium",
+                  clientInfoVisible
+                    ? "bg-green-600 text-white border-b-2 border-green-400"
+                    : "text-gray-400 hover:text-white hover:bg-gray-800",
+                )}
+              >
+                <UserCheck className="w-4 h-4 mr-2" />
+                Información del Cliente
+              </Button>
             </div>
 
-            {/* Bottom Section - Client Info */}
-            <div
-              className={cn(
-                "transition-all duration-300 ease-in-out",
-                clientInfoVisible ? "flex-1" : "h-12 overflow-hidden",
-              )}
-            >
-              {clientInfoVisible ? (
-                <ClientInfoPanel />
-              ) : (
-                <div className="h-12 bg-gray-900 flex items-center justify-between px-4 border-l border-gray-800">
-                  <span className="text-sm text-gray-400">
-                    Información del Cliente
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setClientInfoVisible(true)}
-                    className="text-gray-400 hover:text-white p-1"
-                  >
-                    <ChevronUp className="w-3 h-3" />
-                  </Button>
-                </div>
-              )}
+            {/* Content Section */}
+            <div className="flex-1 overflow-hidden">
+              {aiPanelVisible && <Copilot />}
+              {clientInfoVisible && <ClientInfoPanel />}
             </div>
           </div>
         )}
