@@ -224,43 +224,45 @@ export default function Copilot() {
 
   return (
     <div className="h-full bg-gray-900 flex flex-col">
-      {/* AI Suggested Response - Exactly like in image */}
-      <div className="p-4 border-b border-gray-700">
+      {/* AI Suggested Response integrated into chat flow */}
+      <div className="p-4 border-b border-gray-700/50">
         <div className="mb-3">
-          <div className="flex items-center gap-2 mb-1">
-            <Lightbulb className="h-4 w-4 text-yellow-400" />
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-6 h-6 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+              <Bot className="h-3 w-3 text-white" />
+            </div>
             <span className="text-sm font-medium text-yellow-400">
               Respuesta Sugerida por IA
             </span>
-            <Badge className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
+            <Badge className="bg-blue-600/20 border border-blue-500/30 text-blue-300 text-xs px-2 py-0.5 rounded-full">
               {suggestedResponse.confidence}% confianza
             </Badge>
           </div>
-          <p className="text-xs text-gray-400 mb-3">
+          <p className="text-xs text-gray-400 mb-3 pl-8">
             {suggestedResponse.reason}
           </p>
         </div>
 
-        <div className="bg-blue-950/40 border border-blue-500/30 rounded-lg p-4">
+        <div className="bg-gray-800/60 border border-gray-600/40 rounded-xl p-4 backdrop-blur-sm">
           {!isEditingSuggestion ? (
             <div className="relative">
-              <p className="text-sm text-white leading-relaxed pr-20">
+              <p className="text-sm text-gray-100 leading-relaxed mb-3 pr-4">
                 {suggestedResponse.content}
               </p>
-              {/* Small buttons on the side like in image */}
-              <div className="absolute top-0 right-0 flex flex-col gap-2">
+              {/* Compact inline buttons */}
+              <div className="flex gap-2 justify-end">
                 <Button
                   size="sm"
                   onClick={handleSendSuggestionAsIs}
-                  className="bg-green-600 hover:bg-green-700 text-white text-xs h-8 px-3"
+                  className="bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-300 text-xs h-7 px-3 rounded-lg backdrop-blur-sm"
                 >
                   <CheckCircle className="h-3 w-3 mr-1" />
-                  Enviar tal cual
+                  Enviar
                 </Button>
                 <Button
                   size="sm"
                   onClick={handleModifySuggestion}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8 px-3"
+                  className="bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-xs h-7 px-3 rounded-lg backdrop-blur-sm"
                 >
                   <Edit className="h-3 w-3 mr-1" />
                   Modificar
@@ -272,24 +274,23 @@ export default function Copilot() {
               <textarea
                 value={editedSuggestion}
                 onChange={(e) => setEditedSuggestion(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-600 rounded-lg p-3 text-white text-sm resize-none"
+                className="w-full bg-gray-800/80 border border-gray-600/50 rounded-lg p-3 text-white text-sm resize-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20"
                 rows={4}
-                placeholder="Modifica la respuesta sugerida..."
+                placeholder="Escribe instrucciones como: 'Resumir más', 'Añadir información técnica', etc."
               />
-              <div className="flex gap-2">
+              <div className="flex gap-2 justify-end">
                 <Button
                   size="sm"
                   onClick={handleSendModifiedSuggestion}
-                  className="bg-green-600 hover:bg-green-700 text-white text-xs h-8"
+                  className="bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-300 text-xs h-7 px-3 rounded-lg"
                 >
                   <Send className="h-3 w-3 mr-1" />
-                  Enviar modificado
+                  Aplicar
                 </Button>
                 <Button
                   size="sm"
-                  variant="ghost"
                   onClick={() => setIsEditingSuggestion(false)}
-                  className="text-gray-400 hover:text-white text-xs h-8"
+                  className="bg-gray-600/20 hover:bg-gray-600/30 border border-gray-500/30 text-gray-300 text-xs h-7 px-3 rounded-lg"
                 >
                   Cancelar
                 </Button>
