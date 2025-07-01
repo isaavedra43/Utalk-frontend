@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -69,22 +69,14 @@ interface AIAssistantProps {
 }
 
 export function AIAssistant({ className }: AIAssistantProps) {
-  const [customPrompt, setCustomPrompt] = useState("");
-  const [suggestion, setSuggestion] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [sentiment, setSentiment] = useState<
-    "positive" | "neutral" | "negative"
-  >("positive");
-
-  // New states for additional functionality
-  const [activeTab, setActiveTab] = useState("ai");
-  const [showCannedResponses, setShowCannedResponses] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("bienvenida");
-
-  // Advanced AI Assistant States
+  // Core AI States
   const [isWelcomeMode, setIsWelcomeMode] = useState(true);
   const [messageCount, setMessageCount] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [activeTab, setActiveTab] = useState("ai");
+
+  // Client Intelligence
   const [clientIntent, setClientIntent] = useState<
     "cotizacion" | "queja" | "venta" | "seguimiento" | "factura" | null
   >("cotizacion");
@@ -92,12 +84,18 @@ export function AIAssistant({ className }: AIAssistantProps) {
   const [clientPriority, setClientPriority] = useState<
     "high" | "medium" | "low"
   >("high");
+  const [sentiment, setSentiment] = useState<
+    "positive" | "neutral" | "negative"
+  >("positive");
+
+  // Sales & Response Management
   const [salesClosed, setSalesClosed] = useState(false);
   const [estimatedAmount, setEstimatedAmount] = useState("");
   const [responseTimer, setResponseTimer] = useState<number | null>(null);
   const [pendingResponse, setPendingResponse] = useState(false);
-  const [customInstruction, setCustomInstruction] = useState("");
 
+  // AI Customization
+  const [customInstruction, setCustomInstruction] = useState("");
   const [aiSuggestions, setAiSuggestions] = useState<
     Array<{
       id: string;
@@ -108,7 +106,12 @@ export function AIAssistant({ className }: AIAssistantProps) {
       reason?: string;
     }>
   >([]);
+  const [editingSuggestion, setEditingSuggestion] = useState<string | null>(
+    null,
+  );
+  const [editedText, setEditedText] = useState("");
 
+  // Product Detection & Inventory
   const [detectedProducts, setDetectedProducts] = useState([
     {
       id: "1",
@@ -140,6 +143,7 @@ export function AIAssistant({ className }: AIAssistantProps) {
     },
   ]);
 
+  // Client Information
   const [clientInfo, setClientInfo] = useState({
     name: "Carlos Martinez",
     company: "GRUPO ALCON",
@@ -149,6 +153,7 @@ export function AIAssistant({ className }: AIAssistantProps) {
     riskLevel: "low" as "low" | "medium" | "high",
   });
 
+  // Zoho CRM Integration
   const [zohoData, setZohoData] = useState({
     quotes: [
       {
@@ -182,11 +187,6 @@ export function AIAssistant({ className }: AIAssistantProps) {
     ],
   });
 
-  const [editingSuggestion, setEditingSuggestion] = useState<string | null>(
-    null,
-  );
-  const [editedText, setEditedText] = useState("");
-
   // Advanced Functions
   const detectClientIntent = (message: string) => {
     const intentKeywords = {
@@ -219,6 +219,51 @@ export function AIAssistant({ className }: AIAssistantProps) {
     return null;
   };
 
+  const generateAISuggestions = () => {
+    setIsGenerating(true);
+
+    setTimeout(() => {
+      const baseTexts = {
+        informal: [
+          "¡Perfecto! Te puedo ayudar con eso. ¿Qué tipo de mármol tienes en mente? Tenemos opciones increíbles.",
+          "¡Genial! Ese material está súper de moda. Te voy a mandar toda la info que necesitas.",
+          "¡Qué bueno que preguntes! Justo tenemos promociones en esos productos esta semana.",
+        ],
+        profesional: [
+          "Con mucho gusto le asisto con información detallada sobre nuestros productos de mármol y piedra natural.",
+          "Le proporcionaré las especificaciones técnicas completas y opciones de pricing para su proyecto.",
+          "Permítame ofrecerle una cotización personalizada basada en sus requerimientos específicos.",
+        ],
+        tecnico: [
+          "Excelente elección. Las características técnicas de este material incluyen: densidad 2.7 kg/dm³, absorción <0.5%.",
+          "Para aplicaciones estructurales, este material cumple con normas ASTM C615 y ofrece resistencia superior.",
+          "Los parámetros de instalación recomendados para este producto requieren mortero específico tipo...",
+        ],
+      };
+
+      const tones: Array<"informal" | "tecnico" | "profesional"> = [
+        "informal",
+        "profesional",
+        "tecnico",
+      ];
+
+      const suggestions = tones.map((tone, index) => ({
+        id: `${Date.now()}-${index}`,
+        text: customInstruction
+          ? `${baseTexts[tone][0]} ${customInstruction.toLowerCase().includes("corto") ? "" : "Además, " + baseTexts[tone][1]}`
+          : baseTexts[tone][Math.floor(Math.random() * baseTexts[tone].length)],
+        confidence: 0.85 + Math.random() * 0.15,
+        category: clientIntent || "general",
+        tone,
+        reason: `Sugerencia ${tone} basada en: ${clientIntent ? `intención de ${clientIntent}` : "contexto general"}, sentimiento ${sentiment}, cliente ${isNewClient ? "nuevo" : "recurrente"}`,
+      }));
+
+      setAiSuggestions(suggestions);
+      setIsGenerating(false);
+      setCustomInstruction("");
+    }, 1500);
+  };
+
   const setResponseReminder = (minutes: number) => {
     setResponseTimer(minutes);
     setPendingResponse(true);
@@ -235,80 +280,12 @@ export function AIAssistant({ className }: AIAssistantProps) {
     if (!estimatedAmount) return;
     setSalesClosed(true);
     console.log(`Venta cerrada: $${estimatedAmount} para ${clientInfo.name}`);
-    // Trigger post-sale follow-up logic
-  };
-
-  const escalateConversation = () => {
-    console.log(
-      `Escalando conversación de ${clientInfo.name} por falta de respuesta`,
-    );
-    // Logic to escalate to another agent
-  };
-
-  const logAgentDecision = (
-    suggestionId: string,
-    action: "accepted" | "modified" | "ignored",
-  ) => {
-    console.log(`Agent decision: ${action} for suggestion ${suggestionId}`);
-    // Log for AI improvement
-  };
-
-  // Generate intelligent reply suggestions based on context
-  const generateAISuggestions = () => {
-    setIsGenerating(true);
-
-    setTimeout(() => {
-      const contextualSuggestions = [
-        {
-          id: "1",
-          text: "Perfecto, te puedo ayudar con información detallada sobre nuestros mármoles. ¿Tienes algún color o tipo específico en mente? Contamos con carrara, calacatta, emperador y muchas opciones más.",
-          confidence: 0.95,
-          category: "product_inquiry",
-        },
-        {
-          id: "2",
-          text: "Excelente elección. El mármol carrara es uno de nuestros productos estrella. Te envío la ficha técnica completa con precios actualizados. ¿Para qué tipo de aplicación lo necesitas?",
-          confidence: 0.88,
-          category: "technical_response",
-        },
-        {
-          id: "3",
-          text: "Con gusto te ayudo con la cotización. Para darte el mejor precio, necesito saber: ¿cuántos metros cuadrados aproximadamente? ¿es para interior o exterior? ¿tienes fecha límite para el proyecto?",
-          confidence: 0.92,
-          category: "pricing_inquiry",
-        },
-      ];
-
-      setAiSuggestions(contextualSuggestions);
-      setIsGenerating(false);
-    }, 1500);
-  };
-
-  // Product detection based on conversation
-  const detectProductsInConversation = (message: string) => {
-    const productKeywords = {
-      mármol: ["marmol", "marble", "carrara", "calacatta"],
-      travertino: ["travertino", "travertine", "romano"],
-      granito: ["granito", "granite"],
-      piedra: ["piedra", "stone", "decorativa"],
-    };
-
-    const detected = [];
-    Object.entries(productKeywords).forEach(([product, keywords]) => {
-      if (keywords.some((keyword) => message.toLowerCase().includes(keyword))) {
-        detected.push(product);
-      }
-    });
-
-    return detected;
   };
 
   const sendSuggestion = (suggestionId: string) => {
     const suggestion = aiSuggestions.find((s) => s.id === suggestionId);
     if (suggestion) {
       console.log("Sending suggestion:", suggestion.text);
-      // Here you would integrate with the chat component to send the message
-      // Remove suggestion after sending
       setAiSuggestions((prev) => prev.filter((s) => s.id !== suggestionId));
     }
   };
@@ -337,9 +314,9 @@ export function AIAssistant({ className }: AIAssistantProps) {
     setIsGenerating(true);
     setTimeout(() => {
       const rewrittenTexts = [
-        "Perfecto, me da mucho gusto que estés interesado en nuestros productos de mármol. ¿Podrías contarme un poco más sobre tu proyecto? Así puedo recomendarte la mejor opción.",
-        "¡Excelente! El mármol carrara es realmente excepcional. Te voy a compartir toda la información técnica y algunos ejemplos de proyectos donde lo hemos usado. ¿Te parece bien?",
-        "Claro que sí, con mucho gusto te preparo una cotización personalizada. Solo necesito algunos detalles del proyecto para asegurarme de darte el mejor precio posible.",
+        "Perfecto, me da mucho gusto que estés interesado en nuestros productos de mármol. ¿Podrías contarme un poco más sobre tu proyecto?",
+        "¡Excelente! El mármol carrara es realmente excepcional. Te voy a compartir toda la información técnica.",
+        "Claro que sí, con mucho gusto te preparo una cotización personalizada.",
       ];
 
       setAiSuggestions((prev) =>
@@ -365,46 +342,14 @@ export function AIAssistant({ className }: AIAssistantProps) {
     const product = detectedProducts.find((p) => p.id === productId);
     if (product) {
       console.log(`Sending ${type} for product:`, product.name);
-      // Here you would integrate with the chat component to send the media
     }
   };
 
-  const generateSuggestion = async (type: string) => {
-    setIsGenerating(true);
-
-    // Simulate AI response generation
-    setTimeout(() => {
-      const suggestions = {
-        summarize:
-          "Customer inquired about order #AL-2024-0123 delivery status. Agent confirmed March 15th delivery date and offered expedited shipping options. Customer satisfied with response.",
-        reply:
-          "I'd be happy to help you with expedited shipping! For your location, we have 2-day express ($25) and overnight delivery ($45) available. Both include tracking and delivery confirmation. Would you like me to upgrade your order?",
-        improve:
-          "I'd be delighted to assist you with expedited shipping options! For your location, we offer 2-day express shipping ($25) and overnight delivery ($45). Both services include comprehensive tracking and delivery confirmation. Would you prefer to upgrade your current order to one of these premium shipping options?",
-        professional:
-          "Thank you for your inquiry regarding expedited shipping options. We are pleased to offer the following premium delivery services for your location: Express 2-Day Delivery ($25) and Overnight Delivery ($45). Both services include comprehensive tracking and delivery confirmation. Please let me know if you would like to proceed with upgrading your current order.",
-        custom: customPrompt
-          ? `Here's a response based on your request: "${customPrompt}"`
-          : "",
-      };
-
-      setSuggestion(suggestions[type as keyof typeof suggestions] || "");
-      setIsGenerating(false);
-    }, 1500);
-  };
-
-  const copySuggestion = () => {
-    navigator.clipboard.writeText(suggestion);
-  };
-
-  const useSuggestion = () => {
-    // Here you would typically insert the suggestion into the chat input
-    console.log("Using suggestion:", suggestion);
-  };
-
-  const provideFeedback = (positive: boolean) => {
-    // Here you would send feedback to improve AI suggestions
-    console.log("Feedback:", positive ? "positive" : "negative");
+  const logAgentDecision = (
+    suggestionId: string,
+    action: "accepted" | "modified" | "ignored",
+  ) => {
+    console.log(`Agent decision: ${action} for suggestion ${suggestionId}`);
   };
 
   const getSentimentColor = () => {
@@ -418,19 +363,62 @@ export function AIAssistant({ className }: AIAssistantProps) {
     }
   };
 
+  // Auto-switch to assistant mode after 3 messages
+  useEffect(() => {
+    if (messageCount >= 3) {
+      setIsWelcomeMode(false);
+    }
+  }, [messageCount]);
+
   return (
     <div
       className={cn(
-        "h-full flex flex-col bg-gray-900 border-l border-gray-800",
+        "h-full flex flex-col border-l border-gray-800",
+        isDarkMode ? "bg-gray-900 text-white" : "bg-white text-gray-900",
         className,
       )}
     >
-      {/* Header */}
-      <div className="p-4 border-b border-gray-800">
+      {/* Advanced Header with Client Intelligence */}
+      <div
+        className={cn(
+          "p-4 border-b",
+          isDarkMode ? "border-gray-800" : "border-gray-200",
+        )}
+      >
+        {/* Client Priority & Intent Indicators */}
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          {clientPriority === "high" && (
+            <Flame className="h-4 w-4 text-red-500" />
+          )}
+          {isNewClient && (
+            <Badge className="bg-green-600 text-white text-xs">
+              Nuevo Cliente
+            </Badge>
+          )}
+          {clientIntent && (
+            <Badge className="bg-purple-600 text-white text-xs">
+              {clientIntent.charAt(0).toUpperCase() + clientIntent.slice(1)}
+            </Badge>
+          )}
+          {clientInfo.tags.map((tag) => (
+            <Badge key={tag} className="bg-amber-600 text-white text-xs">
+              {tag.includes("VIP") && <Crown className="h-3 w-3 mr-1" />}
+              {tag}
+            </Badge>
+          ))}
+        </div>
+
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-blue-400" />
-            <h3 className="font-semibold text-white">AI Copilot</h3>
+            <h3
+              className={cn(
+                "font-semibold",
+                isDarkMode ? "text-white" : "text-gray-900",
+              )}
+            >
+              AI Copilot
+            </h3>
             <Badge
               variant="outline"
               className="border-blue-500 text-blue-400 text-xs"
@@ -440,45 +428,96 @@ export function AIAssistant({ className }: AIAssistantProps) {
             </Badge>
           </div>
 
-          {/* Transfer Button */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-amber-600 text-amber-400 hover:bg-amber-600/20 text-xs"
-              >
-                <UserPlus className="h-3 w-3 mr-1" />
-                Transferir
-                <ChevronDown className="h-3 w-3 ml-1" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="bg-gray-800 border-gray-700"
+          <div className="flex items-center gap-2">
+            {/* Dark Mode Toggle */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className={cn("text-gray-400 hover:text-white")}
             >
-              <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
-                <User className="h-4 w-4 mr-2" />
-                Sarah Chen - Ventas
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
-                <User className="h-4 w-4 mr-2" />
-                Mike Torres - Soporte
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
-                <User className="h-4 w-4 mr-2" />
-                Ana López - Postventa
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-gray-700" />
-              <DropdownMenuItem className="text-gray-300 hover:bg-gray-700">
-                <Package className="h-4 w-4 mr-2" />
-                Área de Facturación
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              {isDarkMode ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </Button>
+
+            {/* Transfer Button */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-amber-600 text-amber-400 hover:bg-amber-600/20 text-xs"
+                >
+                  <UserPlus className="h-3 w-3 mr-1" />
+                  Transferir
+                  <ChevronDown className="h-3 w-3 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className={cn(
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700"
+                    : "bg-white border-gray-200",
+                )}
+              >
+                <DropdownMenuItem
+                  className={cn(
+                    isDarkMode
+                      ? "text-gray-300 hover:bg-gray-700"
+                      : "text-gray-700 hover:bg-gray-100",
+                  )}
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  Sarah Chen - Ventas
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className={cn(
+                    isDarkMode
+                      ? "text-gray-300 hover:bg-gray-700"
+                      : "text-gray-700 hover:bg-gray-100",
+                  )}
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  Mike Torres - Soporte
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className={cn(
+                    isDarkMode
+                      ? "text-gray-300 hover:bg-gray-700"
+                      : "text-gray-700 hover:bg-gray-100",
+                  )}
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  Ana López - Postventa
+                </DropdownMenuItem>
+                <DropdownMenuSeparator
+                  className={cn(isDarkMode ? "bg-gray-700" : "bg-gray-200")}
+                />
+                <DropdownMenuItem
+                  className={cn(
+                    isDarkMode
+                      ? "text-gray-300 hover:bg-gray-700"
+                      : "text-gray-700 hover:bg-gray-100",
+                  )}
+                >
+                  <Package className="h-4 w-4 mr-2" />
+                  Área de Facturación
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
-        <p className="text-sm text-gray-400">
+        <p
+          className={cn(
+            "text-sm",
+            isDarkMode ? "text-gray-400" : "text-gray-600",
+          )}
+        >
           {isWelcomeMode
             ? "IA enviando bienvenida automática - luego modo asistente"
             : "Modo asistente activo - sugiere respuestas sin enviar automáticamente"}
@@ -507,56 +546,283 @@ export function AIAssistant({ className }: AIAssistantProps) {
 
       <ScrollArea className="flex-1">
         <div className="p-4">
-          {/* Main Tabs */}
+          {/* Advanced Action Buttons */}
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-green-600 text-green-400 hover:bg-green-600/20"
+                >
+                  <Timer className="h-3 w-3 mr-1" />
+                  Responder Después
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className={cn(
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700"
+                    : "bg-white border-gray-200",
+                )}
+              >
+                <DropdownMenuItem
+                  onClick={() => setResponseReminder(5)}
+                  className={cn(
+                    isDarkMode
+                      ? "text-gray-300 hover:bg-gray-700"
+                      : "text-gray-700 hover:bg-gray-100",
+                  )}
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  En 5 minutos
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setResponseReminder(10)}
+                  className={cn(
+                    isDarkMode
+                      ? "text-gray-300 hover:bg-gray-700"
+                      : "text-gray-700 hover:bg-gray-100",
+                  )}
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  En 10 minutos
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setResponseReminder(15)}
+                  className={cn(
+                    isDarkMode
+                      ? "text-gray-300 hover:bg-gray-700"
+                      : "text-gray-700 hover:bg-gray-100",
+                  )}
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  En 15 minutos
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button
+              size="sm"
+              onClick={() => setSalesClosed(!salesClosed)}
+              className={cn(
+                "text-xs",
+                salesClosed
+                  ? "bg-green-600 text-white"
+                  : "bg-gray-700 text-gray-300 hover:bg-gray-600",
+              )}
+            >
+              <Target className="h-3 w-3 mr-1" />
+              {salesClosed ? "Venta Cerrada" : "Cerrar Venta"}
+            </Button>
+          </div>
+
+          {/* Sales Closure Form */}
+          {!salesClosed && (
+            <div
+              className={cn(
+                "mb-4 p-3 rounded-lg border",
+                isDarkMode
+                  ? "bg-gray-800 border-gray-700"
+                  : "bg-gray-50 border-gray-200",
+              )}
+            >
+              <label
+                className={cn(
+                  "text-xs block mb-1",
+                  isDarkMode ? "text-gray-400" : "text-gray-600",
+                )}
+              >
+                Monto Estimado de Venta
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="$0.00"
+                  value={estimatedAmount}
+                  onChange={(e) => setEstimatedAmount(e.target.value)}
+                  className={cn(
+                    "text-sm",
+                    isDarkMode
+                      ? "bg-gray-700 border-gray-600 text-white"
+                      : "bg-white border-gray-300 text-gray-900",
+                  )}
+                />
+                <Button
+                  size="sm"
+                  onClick={closeSale}
+                  disabled={!estimatedAmount}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <DollarSign className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Main Advanced Tabs */}
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
             className="w-full mb-4"
           >
-            <TabsList className="grid w-full grid-cols-2 bg-gray-800">
+            <TabsList
+              className={cn(
+                "grid w-full grid-cols-3",
+                isDarkMode ? "bg-gray-800" : "bg-gray-100",
+              )}
+            >
               <TabsTrigger
                 value="ai"
                 className="text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white"
               >
-                <Bot className="h-3 w-3 mr-1" />
-                Resumen de IA
+                <Brain className="h-3 w-3 mr-1" />
+                Asistente IA
               </TabsTrigger>
               <TabsTrigger
                 value="history"
                 className="text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white"
               >
                 <History className="h-3 w-3 mr-1" />
-                Historial Cliente
+                Historial
+              </TabsTrigger>
+              <TabsTrigger
+                value="zoho"
+                className="text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+              >
+                <Receipt className="h-3 w-3 mr-1" />
+                Zoho CRM
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="ai" className="space-y-4 mt-4">
-              {/* Sentiment Analysis */}
-              <Card className="bg-gray-800 border-gray-700">
+              {/* AI Assistant Status */}
+              <Card
+                className={cn(
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700"
+                    : "bg-white border-gray-200",
+                )}
+              >
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-white flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4" />
-                    Conversation Insights
+                  <CardTitle
+                    className={cn(
+                      "text-sm flex items-center gap-2",
+                      isDarkMode ? "text-white" : "text-gray-900",
+                    )}
+                  >
+                    <Bot className="h-4 w-4" />
+                    Estado del Asistente
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-400">
-                      Customer Sentiment:
+                    <span
+                      className={cn(
+                        "text-sm",
+                        isDarkMode ? "text-gray-400" : "text-gray-600",
+                      )}
+                    >
+                      Modo:
+                    </span>
+                    <Badge
+                      className={cn(
+                        "text-xs",
+                        isWelcomeMode
+                          ? "bg-green-600 text-white"
+                          : "bg-blue-600 text-white",
+                      )}
+                    >
+                      {isWelcomeMode
+                        ? "Bienvenida Automática"
+                        : "Asistente Silencioso"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={cn(
+                        "text-sm",
+                        isDarkMode ? "text-gray-400" : "text-gray-600",
+                      )}
+                    >
+                      Mensajes:
+                    </span>
+                    <span
+                      className={cn(
+                        "text-sm",
+                        isDarkMode ? "text-gray-300" : "text-gray-700",
+                      )}
+                    >
+                      {messageCount}/3
+                    </span>
+                  </div>
+                  {!isWelcomeMode && (
+                    <Button
+                      size="sm"
+                      onClick={generateAISuggestions}
+                      disabled={isGenerating}
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Generar Sugerencias
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Conversation Insights */}
+              <Card
+                className={cn(
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700"
+                    : "bg-white border-gray-200",
+                )}
+              >
+                <CardHeader className="pb-3">
+                  <CardTitle
+                    className={cn(
+                      "text-sm flex items-center gap-2",
+                      isDarkMode ? "text-white" : "text-gray-900",
+                    )}
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                    Insights de Conversación
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={cn(
+                        "text-sm",
+                        isDarkMode ? "text-gray-400" : "text-gray-600",
+                      )}
+                    >
+                      Sentimiento Cliente:
                     </span>
                     <Badge className={cn("text-xs", getSentimentColor())}>
                       {sentiment.charAt(0).toUpperCase() + sentiment.slice(1)}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-400">
-                      Response Time:
+                    <span
+                      className={cn(
+                        "text-sm",
+                        isDarkMode ? "text-gray-400" : "text-gray-600",
+                      )}
+                    >
+                      Tiempo Respuesta:
                     </span>
-                    <span className="text-sm text-green-400">2.3 min avg</span>
+                    <span className="text-sm text-green-400">
+                      2.3 min promedio
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-400">
-                      Resolution Score:
+                    <span
+                      className={cn(
+                        "text-sm",
+                        isDarkMode ? "text-gray-400" : "text-gray-600",
+                      )}
+                    >
+                      Score Resolución:
                     </span>
                     <div className="flex items-center gap-1">
                       {[...Array(4)].map((_, i) => (
@@ -571,11 +837,238 @@ export function AIAssistant({ className }: AIAssistantProps) {
                 </CardContent>
               </Card>
 
-              {/* Detected Products with Advanced Features */}
-              {detectedProducts.length > 0 && (
-                <Card className="bg-gray-800 border-gray-700">
+              {/* Custom AI Instructions */}
+              <Card
+                className={cn(
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700"
+                    : "bg-white border-gray-200",
+                )}
+              >
+                <CardHeader className="pb-3">
+                  <CardTitle
+                    className={cn(
+                      "text-sm flex items-center gap-2",
+                      isDarkMode ? "text-white" : "text-gray-900",
+                    )}
+                  >
+                    <Lightbulb className="h-4 w-4" />
+                    Instrucciones Personalizadas
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Input
+                    placeholder="ej: hazlo más corto, agrega precio..."
+                    value={customInstruction}
+                    onChange={(e) => setCustomInstruction(e.target.value)}
+                    className={cn(
+                      "text-sm",
+                      isDarkMode
+                        ? "bg-gray-700 border-gray-600 text-white"
+                        : "bg-white border-gray-300 text-gray-900",
+                    )}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => generateAISuggestions()}
+                    disabled={isGenerating || !customInstruction}
+                    className="w-full bg-purple-600 hover:bg-purple-700"
+                  >
+                    <Brain className="h-3 w-3 mr-1" />
+                    Aplicar Instrucción
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* AI Suggestions */}
+              {aiSuggestions.length > 0 && (
+                <Card
+                  className={cn(
+                    isDarkMode
+                      ? "bg-gray-800 border-gray-700"
+                      : "bg-white border-gray-200",
+                  )}
+                >
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm text-white flex items-center gap-2">
+                    <CardTitle
+                      className={cn(
+                        "text-sm flex items-center gap-2",
+                        isDarkMode ? "text-white" : "text-gray-900",
+                      )}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      Sugerencias Inteligentes
+                      <Badge className="bg-blue-600 text-white text-xs">
+                        {aiSuggestions.length}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 max-h-80 overflow-y-auto">
+                    {aiSuggestions.map((suggestion, index) => (
+                      <div
+                        key={suggestion.id}
+                        className={cn(
+                          "rounded-lg p-3",
+                          isDarkMode ? "bg-gray-700" : "bg-gray-50",
+                        )}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex gap-1 flex-wrap">
+                            <Badge className="bg-blue-600 text-white text-xs">
+                              Opción {index + 1} •{" "}
+                              {Math.round(suggestion.confidence * 100)}%
+                            </Badge>
+                            <Badge
+                              className={cn(
+                                "text-xs",
+                                suggestion.tone === "informal" &&
+                                  "bg-green-600 text-white",
+                                suggestion.tone === "tecnico" &&
+                                  "bg-purple-600 text-white",
+                                suggestion.tone === "profesional" &&
+                                  "bg-gray-600 text-white",
+                              )}
+                            >
+                              {suggestion.tone}
+                            </Badge>
+                          </div>
+                          {suggestion.reason && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className={cn(
+                                "p-1",
+                                isDarkMode
+                                  ? "text-gray-400 hover:text-white"
+                                  : "text-gray-500 hover:text-gray-700",
+                              )}
+                              title={suggestion.reason}
+                            >
+                              <HelpCircle className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+
+                        {editingSuggestion === suggestion.id ? (
+                          <div className="space-y-2">
+                            <Textarea
+                              value={editedText}
+                              onChange={(e) => setEditedText(e.target.value)}
+                              className={cn(
+                                "text-sm",
+                                isDarkMode
+                                  ? "bg-gray-600 border-gray-500 text-white"
+                                  : "bg-white border-gray-300 text-gray-900",
+                              )}
+                              rows={3}
+                            />
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                onClick={saveEditedSuggestion}
+                                className="bg-green-600 hover:bg-green-700 text-xs px-2 py-1 h-6"
+                              >
+                                Guardar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setEditingSuggestion(null)}
+                                className={cn(
+                                  "text-xs px-2 py-1 h-6",
+                                  isDarkMode
+                                    ? "text-gray-400 hover:text-white"
+                                    : "text-gray-500 hover:text-gray-700",
+                                )}
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p
+                              className={cn(
+                                "text-sm mb-3 leading-relaxed",
+                                isDarkMode ? "text-gray-200" : "text-gray-700",
+                              )}
+                            >
+                              {suggestion.text}
+                            </p>
+
+                            <div className="grid grid-cols-2 gap-1">
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  sendSuggestion(suggestion.id);
+                                  logAgentDecision(suggestion.id, "accepted");
+                                }}
+                                className="bg-green-600 hover:bg-green-700 text-xs px-2 py-1 h-6"
+                              >
+                                ✅ Enviar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => editSuggestion(suggestion.id)}
+                                className={cn(
+                                  "text-xs px-2 py-1 h-6",
+                                  isDarkMode
+                                    ? "border-gray-600 text-gray-300 hover:text-white"
+                                    : "border-gray-300 text-gray-600 hover:text-gray-800",
+                                )}
+                              >
+                                ✏️ Editar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => rewriteSuggestion(suggestion.id)}
+                                disabled={isGenerating}
+                                className={cn(
+                                  "text-xs px-2 py-1 h-6",
+                                  isDarkMode
+                                    ? "border-gray-600 text-gray-300 hover:text-white"
+                                    : "border-gray-300 text-gray-600 hover:text-gray-800",
+                                )}
+                              >
+                                🔄 Reescribir
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                  logAgentDecision(suggestion.id, "ignored")
+                                }
+                                className="border-red-600 text-red-400 hover:text-red-300 text-xs px-2 py-1 h-6"
+                              >
+                                ❌ Ignorar
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Advanced Product Detection */}
+              {detectedProducts.length > 0 && (
+                <Card
+                  className={cn(
+                    isDarkMode
+                      ? "bg-gray-800 border-gray-700"
+                      : "bg-white border-gray-200",
+                  )}
+                >
+                  <CardHeader className="pb-3">
+                    <CardTitle
+                      className={cn(
+                        "text-sm flex items-center gap-2",
+                        isDarkMode ? "text-white" : "text-gray-900",
+                      )}
+                    >
                       <Package className="h-4 w-4" />
                       Productos Detectados
                       <Badge className="bg-amber-600 text-white text-xs">
@@ -587,31 +1080,87 @@ export function AIAssistant({ className }: AIAssistantProps) {
                     {detectedProducts.map((product) => (
                       <div
                         key={product.id}
-                        className="bg-gray-700 rounded-lg p-3"
+                        className={cn(
+                          "rounded-lg p-3",
+                          isDarkMode ? "bg-gray-700" : "bg-gray-50",
+                        )}
                       >
                         <div className="flex gap-3 mb-3">
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="w-16 h-16 rounded object-cover"
-                          />
+                          <div className="relative">
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="w-16 h-16 rounded object-cover"
+                            />
+                            {product.isTrending && (
+                              <TrendingUp className="absolute -top-1 -right-1 h-4 w-4 text-orange-500" />
+                            )}
+                          </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-medium text-white mb-1">
-                              {product.name}
-                            </h4>
-                            <p className="text-xs text-gray-400 mb-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4
+                                className={cn(
+                                  "text-sm font-medium",
+                                  isDarkMode ? "text-white" : "text-gray-900",
+                                )}
+                              >
+                                {product.name}
+                              </h4>
+                              {product.stock === 0 && (
+                                <AlertTriangle className="h-4 w-4 text-red-500" />
+                              )}
+                            </div>
+                            <p
+                              className={cn(
+                                "text-xs mb-1",
+                                isDarkMode ? "text-gray-400" : "text-gray-600",
+                              )}
+                            >
                               {product.description}
                             </p>
-                            <p className="text-xs text-gray-500 mb-2">
+                            <p
+                              className={cn(
+                                "text-xs mb-1",
+                                isDarkMode ? "text-gray-500" : "text-gray-500",
+                              )}
+                            >
                               {product.technicalData}
                             </p>
-                            <span className="text-sm text-green-400 font-medium">
-                              {product.price}
-                            </span>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm text-green-400 font-medium">
+                                {product.price}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  className={cn(
+                                    "text-xs",
+                                    product.stock > 50
+                                      ? "bg-green-600 text-white"
+                                      : product.stock > 0
+                                        ? "bg-yellow-600 text-white"
+                                        : "bg-red-600 text-white",
+                                  )}
+                                >
+                                  Stock: {product.stock}
+                                </Badge>
+                                {product.consultedTimes > 3 && (
+                                  <Badge className="bg-orange-600 text-white text-xs">
+                                    🔥 Tendencia
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </div>
 
-                        {/* Action buttons for sending different types of content */}
+                        {product.stock === 0 && (
+                          <div className="bg-red-900/30 border border-red-600/30 rounded p-2 mb-2">
+                            <p className="text-red-400 text-xs">
+                              ⚠️ Sin stock disponible - Considerar alternativas
+                            </p>
+                          </div>
+                        )}
+
                         <div className="grid grid-cols-2 gap-1">
                           {product.hasImage && (
                             <Button
@@ -620,7 +1169,8 @@ export function AIAssistant({ className }: AIAssistantProps) {
                               onClick={() =>
                                 sendProductInfo(product.id, "image")
                               }
-                              className="text-blue-400 hover:text-blue-300 text-xs h-7 px-2"
+                              disabled={product.stock === 0}
+                              className="text-blue-400 hover:text-blue-300 text-xs h-7 px-2 disabled:opacity-50"
                             >
                               📷 Enviar Imagen
                             </Button>
@@ -656,464 +1206,136 @@ export function AIAssistant({ className }: AIAssistantProps) {
                             onClick={() =>
                               sendProductInfo(product.id, "technical")
                             }
-                            className="text-gray-400 hover:text-white text-xs h-7 px-2"
+                            className={cn(
+                              "text-xs h-7 px-2",
+                              isDarkMode
+                                ? "text-gray-400 hover:text-white"
+                                : "text-gray-600 hover:text-gray-800",
+                            )}
                           >
                             📋 Ficha Técnica
                           </Button>
                         </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
 
-              {/* AI Assistant Mode Indicator */}
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-white flex items-center gap-2">
-                    <Bot className="h-4 w-4" />
-                    Estado del Asistente
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-400">Modo:</span>
-                    <Badge
-                      className={cn(
-                        "text-xs",
-                        isWelcomeMode
-                          ? "bg-green-600 text-white"
-                          : "bg-blue-600 text-white",
-                      )}
-                    >
-                      {isWelcomeMode
-                        ? "Bienvenida Automática"
-                        : "Asistente Silencioso"}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-400">Mensajes:</span>
-                    <span className="text-sm text-gray-300">
-                      {messageCount}/3
-                    </span>
-                  </div>
-                  {!isWelcomeMode && (
-                    <Button
-                      size="sm"
-                      onClick={generateAISuggestions}
-                      disabled={isGenerating}
-                      className="w-full bg-blue-600 hover:bg-blue-700"
-                    >
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      Generar Sugerencias
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* AI Suggestions (Assistant Mode) */}
-              {aiSuggestions.length > 0 && (
-                <Card className="bg-gray-800 border-gray-700">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm text-white flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4" />
-                      Sugerencias Inteligentes
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {aiSuggestions.map((suggestion, index) => (
-                      <div
-                        key={suggestion.id}
-                        className="bg-gray-700 rounded-lg p-3"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <Badge className="bg-blue-600 text-white text-xs">
-                            Opción {index + 1} •{" "}
-                            {Math.round(suggestion.confidence * 100)}%
-                          </Badge>
-                        </div>
-
-                        {editingSuggestion === suggestion.id ? (
-                          <div className="space-y-2">
-                            <Textarea
-                              value={editedText}
-                              onChange={(e) => setEditedText(e.target.value)}
-                              className="bg-gray-600 border-gray-500 text-white text-sm"
-                              rows={3}
-                            />
-                            <div className="flex gap-1">
-                              <Button
-                                size="sm"
-                                onClick={saveEditedSuggestion}
-                                className="bg-green-600 hover:bg-green-700 text-xs px-2 py-1 h-6"
-                              >
-                                Guardar
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setEditingSuggestion(null)}
-                                className="text-gray-400 hover:text-white text-xs px-2 py-1 h-6"
-                              >
-                                Cancelar
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <p className="text-sm text-gray-200 mb-3 leading-relaxed">
-                              {suggestion.text}
-                            </p>
-
-                            <div className="flex gap-1">
-                              <Button
-                                size="sm"
-                                onClick={() => sendSuggestion(suggestion.id)}
-                                className="bg-green-600 hover:bg-green-700 text-xs px-2 py-1 h-6"
-                              >
-                                ✅ Enviar
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => editSuggestion(suggestion.id)}
-                                className="border-gray-600 text-gray-300 hover:text-white text-xs px-2 py-1 h-6"
-                              >
-                                ✏️ Editar
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => rewriteSuggestion(suggestion.id)}
-                                disabled={isGenerating}
-                                className="border-gray-600 text-gray-300 hover:text-white text-xs px-2 py-1 h-6"
-                              >
-                                🔄 Reescribir
-                              </Button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Quick Actions */}
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-white">
-                    Acciones Rápidas
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-700"
-                    onClick={() => generateSuggestion("summarize")}
-                    disabled={isGenerating}
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Resumir Conversación
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-700"
-                    onClick={() => generateSuggestion("improve")}
-                    disabled={isGenerating}
-                  >
-                    <Edit3 className="h-4 w-4 mr-2" />
-                    Mejorar Tono
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-700"
-                    onClick={() => generateSuggestion("professional")}
-                    disabled={isGenerating}
-                  >
-                    <Zap className="h-4 w-4 mr-2" />
-                    Hacer Profesional
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Canned Responses */}
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-white">
-                    Respuestas Predefinidas
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-700"
-                    onClick={() => setShowCannedResponses(!showCannedResponses)}
-                  >
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    Ver Respuestas
-                    <ChevronDown
-                      className={cn(
-                        "h-3 w-3 ml-auto transition-transform",
-                        showCannedResponses && "rotate-180",
-                      )}
-                    />
-                  </Button>
-
-                  {showCannedResponses && (
-                    <div className="space-y-2 mt-2">
-                      {/* Category buttons */}
-                      <div className="grid grid-cols-2 gap-1">
-                        {[
-                          "bienvenida",
-                          "envios",
-                          "precios",
-                          "postventa",
-                          "reclamos",
-                        ].map((category) => (
-                          <Button
-                            key={category}
-                            size="sm"
-                            variant={
-                              selectedCategory === category
-                                ? "default"
-                                : "ghost"
-                            }
-                            className={cn(
-                              "text-xs justify-start",
-                              selectedCategory === category
-                                ? "bg-blue-600 text-white"
-                                : "text-gray-400 hover:text-white",
-                            )}
-                            onClick={() => setSelectedCategory(category)}
-                          >
-                            {category.charAt(0).toUpperCase() +
-                              category.slice(1)}
-                          </Button>
-                        ))}
-                      </div>
-
-                      {/* Sample responses for selected category */}
-                      <div className="space-y-1">
-                        {selectedCategory === "bienvenida" && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="w-full justify-start text-xs text-gray-300 hover:text-white p-2 h-auto"
-                            >
-                              "¡Hola! Gracias por contactarnos. ¿En qué podemos
-                              ayudarte hoy?"
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="w-full justify-start text-xs text-gray-300 hover:text-white p-2 h-auto"
-                            >
-                              "Bienvenido a nuestro servicio de atención al
-                              cliente..."
-                            </Button>
-                          </>
-                        )}
-                        {selectedCategory === "envios" && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="w-full justify-start text-xs text-gray-300 hover:text-white p-2 h-auto"
-                            >
-                              "Los envíos se realizan de lunes a viernes..."
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="w-full justify-start text-xs text-gray-300 hover:text-white p-2 h-auto"
-                            >
-                              "El tiempo de entrega es de 3-5 días hábiles..."
-                            </Button>
-                          </>
-                        )}
-                        {selectedCategory === "precios" && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="w-full justify-start text-xs text-gray-300 hover:text-white p-2 h-auto"
-                            >
-                              "Te envío la lista de precios actualizada..."
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="w-full justify-start text-xs text-gray-300 hover:text-white p-2 h-auto"
-                            >
-                              "Tenemos promociones especiales este mes..."
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Custom AI Request */}
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-white">
-                    Ask AI Assistant
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Textarea
-                    placeholder="Ask AI to help with something specific..."
-                    value={customPrompt}
-                    onChange={(e) => setCustomPrompt(e.target.value)}
-                    className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400 resize-none"
-                    rows={3}
-                  />
-                  <Button
-                    onClick={() => generateSuggestion("custom")}
-                    disabled={!customPrompt.trim() || isGenerating}
-                    size="sm"
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Send className="h-4 w-4 mr-2" />
-                    Ask AI
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* AI Suggestion Output */}
-              {(suggestion || isGenerating) && (
-                <Card className="bg-gray-800 border-gray-700">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm text-white flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-blue-400" />
-                      AI Suggestion
-                      {isGenerating && (
-                        <RefreshCw className="h-3 w-3 animate-spin" />
-                      )}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {isGenerating ? (
-                      <div className="space-y-2">
-                        <div className="h-3 bg-gray-700 rounded animate-pulse"></div>
-                        <div className="h-3 bg-gray-700 rounded animate-pulse w-3/4"></div>
-                        <div className="h-3 bg-gray-700 rounded animate-pulse w-1/2"></div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="bg-gray-700 rounded-lg p-3">
-                          <p className="text-sm text-gray-200 whitespace-pre-wrap">
-                            {suggestion}
-                          </p>
-                        </div>
-
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={copySuggestion}
-                            className="flex-1 border-gray-600 text-gray-300 hover:text-white"
-                          >
-                            <Copy className="h-3 w-3 mr-1" />
-                            Copy
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 border-gray-600 text-gray-300 hover:text-white"
-                          >
-                            <Edit3 className="h-3 w-3 mr-1" />
-                            Edit
-                          </Button>
-                        </div>
-
-                        <Button
-                          onClick={useSuggestion}
-                          size="sm"
-                          className="w-full bg-blue-600 hover:bg-blue-700"
+                        <p
+                          className={cn(
+                            "text-xs mt-2",
+                            isDarkMode ? "text-gray-500" : "text-gray-500",
+                          )}
                         >
-                          Use This Suggestion
-                        </Button>
-
-                        {/* Feedback */}
-                        <div className="flex items-center justify-center gap-4 pt-2 border-t border-gray-700">
-                          <span className="text-xs text-gray-400">
-                            Rate this suggestion:
-                          </span>
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => provideFeedback(true)}
-                              className="text-gray-400 hover:text-green-400 p-1"
-                            >
-                              <ThumbsUp className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => provideFeedback(false)}
-                              className="text-gray-400 hover:text-red-400 p-1"
-                            >
-                              <ThumbsDown className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </>
-                    )}
+                          Consultado {product.consultedTimes} veces por este
+                          cliente
+                        </p>
+                      </div>
+                    ))}
                   </CardContent>
                 </Card>
               )}
             </TabsContent>
 
             <TabsContent value="history" className="space-y-4 mt-4">
-              {/* Customer History */}
-              <Card className="bg-gray-800 border-gray-700">
+              {/* Customer Information */}
+              <Card
+                className={cn(
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700"
+                    : "bg-white border-gray-200",
+                )}
+              >
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-white flex items-center gap-2">
+                  <CardTitle
+                    className={cn(
+                      "text-sm flex items-center gap-2",
+                      isDarkMode ? "text-white" : "text-gray-900",
+                    )}
+                  >
                     <User className="h-4 w-4" />
                     Información del Cliente
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-medium text-white">CA</span>
+                    <div
+                      className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center",
+                        isDarkMode ? "bg-gray-700" : "bg-gray-200",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "text-sm font-medium",
+                          isDarkMode ? "text-white" : "text-gray-700",
+                        )}
+                      >
+                        CA
+                      </span>
                     </div>
                     <div className="flex-1">
-                      <h4 className="text-sm font-medium text-white">
-                        Carlos Martinez
+                      <h4
+                        className={cn(
+                          "text-sm font-medium",
+                          isDarkMode ? "text-white" : "text-gray-900",
+                        )}
+                      >
+                        {clientInfo.name}
                       </h4>
-                      <p className="text-xs text-gray-400">GRUPO ALCON</p>
+                      <p
+                        className={cn(
+                          "text-xs",
+                          isDarkMode ? "text-gray-400" : "text-gray-600",
+                        )}
+                      >
+                        {clientInfo.company}
+                      </p>
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Mail className="h-3 w-3 text-gray-400" />
-                      <span className="text-xs text-gray-300">
+                      <Mail
+                        className={cn(
+                          "h-3 w-3",
+                          isDarkMode ? "text-gray-400" : "text-gray-500",
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "text-xs",
+                          isDarkMode ? "text-gray-300" : "text-gray-700",
+                        )}
+                      >
                         carlos.martinez@grupoalcon.com
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Phone className="h-3 w-3 text-gray-400" />
-                      <span className="text-xs text-gray-300">
+                      <Phone
+                        className={cn(
+                          "h-3 w-3",
+                          isDarkMode ? "text-gray-400" : "text-gray-500",
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "text-xs",
+                          isDarkMode ? "text-gray-300" : "text-gray-700",
+                        )}
+                      >
                         +1 (555) 123-4567
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Clock className="h-3 w-3 text-gray-400" />
-                      <span className="text-xs text-gray-300">
+                      <Clock
+                        className={cn(
+                          "h-3 w-3",
+                          isDarkMode ? "text-gray-400" : "text-gray-500",
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "text-xs",
+                          isDarkMode ? "text-gray-300" : "text-gray-700",
+                        )}
+                      >
                         Cliente desde: Enero 2023
                       </span>
                     </div>
@@ -1122,133 +1344,97 @@ export function AIAssistant({ className }: AIAssistantProps) {
               </Card>
 
               {/* Previous Conversations */}
-              <Card className="bg-gray-800 border-gray-700">
+              <Card
+                className={cn(
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700"
+                    : "bg-white border-gray-200",
+                )}
+              >
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-white flex items-center gap-2">
+                  <CardTitle
+                    className={cn(
+                      "text-sm flex items-center gap-2",
+                      isDarkMode ? "text-white" : "text-gray-900",
+                    )}
+                  >
                     <History className="h-4 w-4" />
                     Conversaciones Anteriores
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <div className="space-y-2">
-                    <div className="bg-gray-700 rounded p-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-gray-300">
-                          15 Feb 2024
-                        </span>
-                        <Badge className="bg-green-600 text-white text-xs">
-                          Resuelto
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-gray-400">
-                        Consulta sobre tiempo de entrega orden #AL-2024-0098
-                      </p>
-                      <span className="text-xs text-gray-500">
-                        Agente: Sarah Chen
+                  <div
+                    className={cn(
+                      "rounded p-2",
+                      isDarkMode ? "bg-gray-700" : "bg-gray-50",
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span
+                        className={cn(
+                          "text-xs",
+                          isDarkMode ? "text-gray-300" : "text-gray-700",
+                        )}
+                      >
+                        15 Feb 2024
                       </span>
+                      <Badge className="bg-green-600 text-white text-xs">
+                        Resuelto
+                      </Badge>
                     </div>
-
-                    <div className="bg-gray-700 rounded p-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-gray-300">
-                          08 Feb 2024
-                        </span>
-                        <Badge className="bg-blue-600 text-white text-xs">
-                          Seguimiento
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-gray-400">
-                        Solicitud de cotización para mármol carrara
-                      </p>
-                      <span className="text-xs text-gray-500">
-                        Agente: Mike Torres
-                      </span>
-                    </div>
-
-                    <div className="bg-gray-700 rounded p-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-gray-300">
-                          28 Ene 2024
-                        </span>
-                        <Badge className="bg-green-600 text-white text-xs">
-                          Resuelto
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-gray-400">
-                        Problema con facturación orden anterior
-                      </p>
-                      <span className="text-xs text-gray-500">
-                        Agente: Ana López
-                      </span>
-                    </div>
+                    <p
+                      className={cn(
+                        "text-xs",
+                        isDarkMode ? "text-gray-400" : "text-gray-600",
+                      )}
+                    >
+                      Consulta sobre tiempo de entrega orden #AL-2024-0098
+                    </p>
+                    <span
+                      className={cn(
+                        "text-xs",
+                        isDarkMode ? "text-gray-500" : "text-gray-500",
+                      )}
+                    >
+                      Agente: Sarah Chen
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
 
-              {/* Products Consulted */}
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-white flex items-center gap-2">
-                    <ShoppingCart className="h-4 w-4" />
-                    Productos Consultados
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 p-2 bg-gray-700 rounded">
-                      <Package className="h-4 w-4 text-gray-400" />
-                      <div className="flex-1">
-                        <p className="text-xs text-gray-300">
-                          Mármol Blanco Carrara
-                        </p>
-                        <span className="text-xs text-gray-500">
-                          Consultado 3 veces
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 p-2 bg-gray-700 rounded">
-                      <Package className="h-4 w-4 text-gray-400" />
-                      <div className="flex-1">
-                        <p className="text-xs text-gray-300">
-                          Travertino Romano
-                        </p>
-                        <span className="text-xs text-gray-500">
-                          Consultado 1 vez
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Internal Notes */}
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-white flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Notas Internas
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="space-y-2">
-                    <div className="bg-amber-950/30 border border-amber-600/30 rounded p-2">
-                      <p className="text-xs text-amber-200 mb-1">
-                        "Cliente VIP - Siempre ofrecer descuentos especiales"
-                      </p>
-                      <span className="text-xs text-amber-400">
-                        Por: Sarah Chen - 15 Feb 2024
+                  <div
+                    className={cn(
+                      "rounded p-2",
+                      isDarkMode ? "bg-gray-700" : "bg-gray-50",
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span
+                        className={cn(
+                          "text-xs",
+                          isDarkMode ? "text-gray-300" : "text-gray-700",
+                        )}
+                      >
+                        08 Feb 2024
                       </span>
+                      <Badge className="bg-blue-600 text-white text-xs">
+                        Seguimiento
+                      </Badge>
                     </div>
-
-                    <div className="bg-blue-950/30 border border-blue-600/30 rounded p-2">
-                      <p className="text-xs text-blue-200 mb-1">
-                        "Prefiere entregas los martes y jueves"
-                      </p>
-                      <span className="text-xs text-blue-400">
-                        Por: Mike Torres - 08 Feb 2024
-                      </span>
-                    </div>
+                    <p
+                      className={cn(
+                        "text-xs",
+                        isDarkMode ? "text-gray-400" : "text-gray-600",
+                      )}
+                    >
+                      Solicitud de cotización para mármol carrara
+                    </p>
+                    <span
+                      className={cn(
+                        "text-xs",
+                        isDarkMode ? "text-gray-500" : "text-gray-500",
+                      )}
+                    >
+                      Agente: Mike Torres
+                    </span>
                   </div>
                 </CardContent>
               </Card>
@@ -1256,18 +1442,40 @@ export function AIAssistant({ className }: AIAssistantProps) {
 
             <TabsContent value="zoho" className="space-y-4 mt-4">
               {/* Zoho CRM Integration */}
-              <Card className="bg-gray-800 border-gray-700">
+              <Card
+                className={cn(
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700"
+                    : "bg-white border-gray-200",
+                )}
+              >
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-white flex items-center gap-2">
+                  <CardTitle
+                    className={cn(
+                      "text-sm flex items-center gap-2",
+                      isDarkMode ? "text-white" : "text-gray-900",
+                    )}
+                  >
                     <Receipt className="h-4 w-4" />
                     Cotizaciones
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {zohoData.quotes.map((quote) => (
-                    <div key={quote.id} className="bg-gray-700 rounded p-2">
+                    <div
+                      key={quote.id}
+                      className={cn(
+                        "rounded p-2",
+                        isDarkMode ? "bg-gray-700" : "bg-gray-50",
+                      )}
+                    >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm text-white font-medium">
+                        <span
+                          className={cn(
+                            "text-sm font-medium",
+                            isDarkMode ? "text-white" : "text-gray-900",
+                          )}
+                        >
                           {quote.id}
                         </span>
                         <Badge
@@ -1287,7 +1495,12 @@ export function AIAssistant({ className }: AIAssistantProps) {
                         <span className="text-sm text-green-400">
                           {quote.amount}
                         </span>
-                        <span className="text-xs text-gray-400">
+                        <span
+                          className={cn(
+                            "text-xs",
+                            isDarkMode ? "text-gray-400" : "text-gray-600",
+                          )}
+                        >
                           {quote.date}
                         </span>
                       </div>
@@ -1296,18 +1509,40 @@ export function AIAssistant({ className }: AIAssistantProps) {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gray-800 border-gray-700">
+              <Card
+                className={cn(
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700"
+                    : "bg-white border-gray-200",
+                )}
+              >
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-white flex items-center gap-2">
+                  <CardTitle
+                    className={cn(
+                      "text-sm flex items-center gap-2",
+                      isDarkMode ? "text-white" : "text-gray-900",
+                    )}
+                  >
                     <ShoppingBag className="h-4 w-4" />
                     Órdenes de Venta
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {zohoData.orders.map((order) => (
-                    <div key={order.id} className="bg-gray-700 rounded p-2">
+                    <div
+                      key={order.id}
+                      className={cn(
+                        "rounded p-2",
+                        isDarkMode ? "bg-gray-700" : "bg-gray-50",
+                      )}
+                    >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm text-white font-medium">
+                        <span
+                          className={cn(
+                            "text-sm font-medium",
+                            isDarkMode ? "text-white" : "text-gray-900",
+                          )}
+                        >
                           {order.id}
                         </span>
                         <Badge className="bg-blue-600 text-white text-xs">
@@ -1318,78 +1553,17 @@ export function AIAssistant({ className }: AIAssistantProps) {
                         <span className="text-sm text-green-400">
                           {order.amount}
                         </span>
-                        <span className="text-xs text-gray-400">
+                        <span
+                          className={cn(
+                            "text-xs",
+                            isDarkMode ? "text-gray-400" : "text-gray-600",
+                          )}
+                        >
                           {order.date}
                         </span>
                       </div>
                     </div>
                   ))}
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-white flex items-center gap-2">
-                    <Receipt className="h-4 w-4" />
-                    Facturas
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {zohoData.invoices.map((invoice) => (
-                    <div key={invoice.id} className="bg-gray-700 rounded p-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm text-white font-medium">
-                          {invoice.id}
-                        </span>
-                        <Badge className="bg-green-600 text-white text-xs">
-                          {invoice.status}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-green-400">
-                          {invoice.amount}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          {invoice.date}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              {/* Quick Zoho Actions */}
-              <Card className="bg-gray-800 border-gray-700">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-white">
-                    Acciones Rápidas
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-700"
-                  >
-                    <Receipt className="h-4 w-4 mr-2" />
-                    Crear Nueva Cotización
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-700"
-                  >
-                    <ShoppingBag className="h-4 w-4 mr-2" />
-                    Generar Orden de Venta
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-700"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Abrir en Zoho CRM
-                  </Button>
                 </CardContent>
               </Card>
             </TabsContent>
