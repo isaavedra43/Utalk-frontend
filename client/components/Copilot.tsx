@@ -347,71 +347,71 @@ export default function Copilot() {
         </div>
       </ScrollArea>
 
-      {/* Action Buttons - White style like image, arranged in grid */}
-      <div className="p-4 border-t border-gray-700">
+      {/* Action Buttons - Transparent design with subtle styling */}
+      <div className="p-4 border-t border-gray-700/50">
         <TooltipProvider>
           <div className="grid grid-cols-2 gap-2 mb-4">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => handleQuickAction("summarize")}
-                  className="h-10 bg-white hover:bg-gray-100 text-gray-600 hover:text-gray-800 border border-gray-300 text-xs justify-start"
+                  className="h-8 bg-gray-800/40 hover:bg-gray-700/60 border border-gray-600/30 text-gray-300 hover:text-white text-xs justify-start rounded-lg backdrop-blur-sm transition-all duration-200"
                 >
-                  <FileText className="h-4 w-4 mr-2" />
+                  <FileText className="h-3.5 w-3.5 mr-2" />
                   Resumir
                 </Button>
               </TooltipTrigger>
-              <TooltipContent className="bg-gray-800 text-white text-xs">
-                Resumir conversación
+              <TooltipContent className="bg-gray-800 border border-gray-600 text-white text-xs rounded-lg">
+                Resumir conversación actual
               </TooltipContent>
             </Tooltip>
 
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => handleQuickAction("suggest")}
-                  className="h-10 bg-white hover:bg-gray-100 text-gray-600 hover:text-gray-800 border border-gray-300 text-xs justify-start"
+                  className="h-8 bg-gray-800/40 hover:bg-gray-700/60 border border-gray-600/30 text-gray-300 hover:text-white text-xs justify-start rounded-lg backdrop-blur-sm transition-all duration-200"
                 >
-                  <Lightbulb className="h-4 w-4 mr-2" />
+                  <Lightbulb className="h-3.5 w-3.5 mr-2" />
                   Sugerir
                 </Button>
               </TooltipTrigger>
-              <TooltipContent className="bg-gray-800 text-white text-xs">
-                Sugerir respuesta
+              <TooltipContent className="bg-gray-800 border border-gray-600 text-white text-xs rounded-lg">
+                Sugerir nueva respuesta
               </TooltipContent>
             </Tooltip>
 
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => handleQuickAction("rate")}
-                  className="h-10 bg-white hover:bg-gray-100 text-gray-600 hover:text-gray-800 border border-gray-300 text-xs justify-start"
+                  className="h-8 bg-gray-800/40 hover:bg-gray-700/60 border border-gray-600/30 text-gray-300 hover:text-white text-xs justify-start rounded-lg backdrop-blur-sm transition-all duration-200"
                 >
-                  <Star className="h-4 w-4 mr-2" />
+                  <Star className="h-3.5 w-3.5 mr-2" />
                   Evaluar
                 </Button>
               </TooltipTrigger>
-              <TooltipContent className="bg-gray-800 text-white text-xs">
-                Evaluar conversación
+              <TooltipContent className="bg-gray-800 border border-gray-600 text-white text-xs rounded-lg">
+                Evaluar tono y calidad
               </TooltipContent>
             </Tooltip>
 
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => handleQuickAction("products")}
-                  className="h-10 bg-white hover:bg-gray-100 text-gray-600 hover:text-gray-800 border border-gray-300 text-xs justify-start"
+                  className="h-8 bg-gray-800/40 hover:bg-gray-700/60 border border-gray-600/30 text-gray-300 hover:text-white text-xs justify-start rounded-lg backdrop-blur-sm transition-all duration-200"
                 >
-                  <Package className="h-4 w-4 mr-2" />
+                  <Package className="h-3.5 w-3.5 mr-2" />
                   Productos
                 </Button>
               </TooltipTrigger>
-              <TooltipContent className="bg-gray-800 text-white text-xs">
-                Analizar productos
+              <TooltipContent className="bg-gray-800 border border-gray-600 text-white text-xs rounded-lg">
+                Analizar productos relevantes
               </TooltipContent>
             </Tooltip>
           </div>
