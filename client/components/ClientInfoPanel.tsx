@@ -63,7 +63,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
 
   // State for notes
   const [clientNotes, setClientNotes] = useState(
-    "Cliente preferencial - Arquitecto con múltiples proyectos. Interesado en mármoles de alta gama. Presupuesto: $50k-$100k por proyecto.",
+    "Cliente preferencial - Arquitecto con múltiples proyectos. Interesado en mármoles de alta gama.",
   );
   const [newNote, setNewNote] = useState("");
   const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -74,7 +74,6 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
     "Arquitecto",
     "Presupuesto Alto",
     "Mármol Carrara",
-    "Proyectos Múltiples",
   ]);
   const [newTag, setNewTag] = useState("");
 
@@ -105,22 +104,6 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
       date: "1 semana",
       direction: "sent",
     },
-    {
-      id: "4",
-      name: "cotizacion_proyecto_A.pdf",
-      type: "PDF",
-      size: "1.8 MB",
-      date: "2 semanas",
-      direction: "sent",
-    },
-    {
-      id: "5",
-      name: "referencia_calacatta.jpg",
-      type: "Imagen",
-      size: "1.2 MB",
-      date: "3 semanas",
-      direction: "received",
-    },
   ]);
 
   // Suggested products
@@ -131,8 +114,6 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
       type: "Mármol Natural Italiano",
       density: "2.7 kg/dm³",
       absorption: "<0.4%",
-      dimensions: "120x60x2cm",
-      finish: "Pulido Brillante",
       stock: 150,
       price: "$65.99/m²",
       originalPrice: "$79.99/m²",
@@ -149,8 +130,6 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
       type: "Piedra Natural",
       density: "2.4 kg/dm³",
       absorption: "2-5%",
-      dimensions: "60x40x3cm",
-      finish: "Antideslizante",
       stock: 8,
       price: "$32.50/m²",
       originalPrice: "$38.99/m²",
@@ -161,24 +140,6 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
       hasVideo: false,
       inStock: false,
     },
-    {
-      id: "3",
-      name: "Granito Negro Galaxy",
-      type: "Granito Natural",
-      density: "2.8 kg/dm³",
-      absorption: "<0.2%",
-      dimensions: "100x50x2cm",
-      finish: "Pulido Espejo",
-      stock: 45,
-      price: "$42.99/m²",
-      originalPrice: "$49.99/m²",
-      viewedByClient: 5,
-      image: "/placeholder.svg",
-      hasImage: true,
-      hasPDF: true,
-      hasVideo: true,
-      inStock: true,
-    },
   ]);
 
   // Conversation analysis
@@ -187,13 +148,11 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
       "Cotización mármol carrara",
       "Tiempo de entrega",
       "Precios por volumen",
-      "Instalación profesional",
-      "Garantía producto",
     ],
     sentiment: "positive" as "positive" | "neutral" | "negative",
     urgencyLevel: "medium" as "high" | "medium" | "low",
     summary:
-      "Cliente VIP interesado en mármol carrara para múltiples proyectos arquitectónicos. Consultó precios por volumen y servicios de instalación. Alta intención de compra confirmada.",
+      "Cliente VIP interesado en mármol carrara para múltiples proyectos arquitectónicos.",
     satisfactionScore: 4.5,
     emotionalTone: "Entusiasta y profesional",
     nextSteps: ["Enviar cotización detallada", "Agendar visita showroom"],
@@ -228,22 +187,22 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
   const getSourceIcon = () => {
     switch (clientData.source) {
       case "whatsapp":
-        return <MessageCircle className="h-4 w-4 text-green-500" />;
+        return <MessageCircle className="h-3 w-3 text-green-500" />;
       case "facebook":
-        return <Facebook className="h-4 w-4 text-blue-500" />;
+        return <Facebook className="h-3 w-3 text-blue-500" />;
       default:
-        return <MessageSquare className="h-4 w-4 text-gray-400" />;
+        return <MessageSquare className="h-3 w-3 text-gray-400" />;
     }
   };
 
   const getSentimentIcon = () => {
     switch (conversationAnalysis.sentiment) {
       case "positive":
-        return <Heart className="h-4 w-4 text-green-500" />;
+        return <Heart className="h-3 w-3 text-green-500" />;
       case "negative":
-        return <Frown className="h-4 w-4 text-red-500" />;
+        return <Frown className="h-3 w-3 text-red-500" />;
       default:
-        return <Meh className="h-4 w-4 text-yellow-500" />;
+        return <Meh className="h-3 w-3 text-yellow-500" />;
     }
   };
 
@@ -261,53 +220,53 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
   const getUrgencyColor = (level: string) => {
     switch (level) {
       case "high":
-        return "bg-red-600 text-white";
+        return "bg-red-600/20 border-red-500/30 text-red-300";
       case "medium":
-        return "bg-yellow-600 text-black";
+        return "bg-yellow-600/20 border-yellow-500/30 text-yellow-300";
       default:
-        return "bg-green-600 text-white";
+        return "bg-green-600/20 border-green-500/30 text-green-300";
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "high":
-        return "text-red-400";
+        return "bg-red-600/20 border-red-500/30 text-red-300";
       case "medium":
-        return "text-yellow-400";
+        return "bg-yellow-600/20 border-yellow-500/30 text-yellow-300";
       default:
-        return "text-green-400";
+        return "bg-green-600/20 border-green-500/30 text-green-300";
     }
   };
 
   return (
     <div
       className={cn(
-        "h-full bg-gray-900 border-l border-gray-800 overflow-hidden",
+        "h-full w-full bg-gray-900 border-l border-gray-800 flex flex-col",
         className,
       )}
     >
-      <ScrollArea className="h-full">
-        <div className="p-4 space-y-4">
-          {/* 1. Productos Sugeridos */}
+      <ScrollArea className="flex-1">
+        <div className="p-3 space-y-3">
+          {/* 1. Productos Sugeridos - Compact */}
           <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-white flex items-center gap-2">
-                <Package className="h-4 w-4 text-green-400" />
-                Productos Sugeridos por IA
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs text-white flex items-center gap-2">
+                <Package className="h-3 w-3 text-green-400" />
+                Productos Sugeridos
                 <Badge className="bg-green-600/20 border border-green-500/30 text-green-300 text-xs rounded-full">
                   {suggestedProducts.length}
                 </Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2 p-3">
               {suggestedProducts.map((product) => (
                 <div
                   key={product.id}
-                  className="bg-gray-700/40 border border-gray-600/30 rounded-xl p-4 hover:bg-gray-600/40 hover:border-gray-500/40 transition-all duration-200 backdrop-blur-sm"
+                  className="bg-gray-700/40 border border-gray-600/30 rounded-lg p-2 hover:bg-gray-600/40 transition-all duration-200"
                 >
-                  <div className="flex gap-3 mb-3">
-                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-600/50 border border-gray-500/30">
+                  <div className="flex gap-2 mb-2">
+                    <div className="w-10 h-10 rounded-md overflow-hidden bg-gray-600/50 border border-gray-500/30 flex-shrink-0">
                       <img
                         src={product.image}
                         alt={product.name}
@@ -315,117 +274,83 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="text-sm font-medium text-white leading-tight">
+                      <div className="flex items-start justify-between gap-1 mb-1">
+                        <h4 className="text-xs font-medium text-white leading-tight line-clamp-2">
                           {product.name}
                         </h4>
                         {!product.inStock && (
-                          <Badge className="bg-red-600/20 border border-red-500/30 text-red-300 text-xs rounded-full">
-                            Agotado
+                          <Badge className="bg-red-600/20 border border-red-500/30 text-red-300 text-xs rounded-full flex-shrink-0">
+                            Sin stock
                           </Badge>
                         )}
                         {product.inStock && product.stock <= 10 && (
-                          <Badge className="bg-yellow-600/20 border border-yellow-500/30 text-yellow-300 text-xs rounded-full">
-                            Pocas unidades
+                          <Badge className="bg-yellow-600/20 border border-yellow-500/30 text-yellow-300 text-xs rounded-full flex-shrink-0">
+                            Poco stock
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-gray-400 mb-2 leading-relaxed">
+                      <p className="text-xs text-gray-400 mb-1 line-clamp-1">
                         {product.type}
                       </p>
-                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-300 mb-2">
-                        <div className="bg-gray-800/60 p-2 rounded-lg border border-gray-600/30">
-                          <strong className="text-gray-200">Densidad:</strong>
-                          <br />
-                          <span className="text-gray-300">
-                            {product.density}
-                          </span>
-                        </div>
-                        <div className="bg-gray-800/60 p-2 rounded-lg border border-gray-600/30">
-                          <strong className="text-gray-200">Absorción:</strong>
-                          <br />
-                          <span className="text-gray-300">
-                            {product.absorption}
-                          </span>
-                        </div>
-                        <div className="bg-gray-800/60 p-2 rounded-lg border border-gray-600/30">
-                          <strong className="text-gray-200">
-                            Dimensiones:
-                          </strong>
-                          <br />
-                          <span className="text-gray-300">
-                            {product.dimensions}
-                          </span>
-                        </div>
-                        <div className="bg-gray-800/60 p-2 rounded-lg border border-gray-600/30">
-                          <strong className="text-gray-200">Acabado:</strong>
-                          <br />
-                          <span className="text-gray-300">
-                            {product.finish}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-400 font-medium text-sm">
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <div className="flex items-center gap-1">
+                          <span className="text-green-400 font-medium">
                             {product.price}
                           </span>
                           {product.originalPrice && (
-                            <span className="text-gray-500 line-through text-xs">
+                            <span className="text-gray-500 line-through">
                               {product.originalPrice}
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-gray-400">
-                          <strong>Stock:</strong> {product.stock}
-                        </div>
+                        <span className="text-gray-400">
+                          Stock: {product.stock}
+                        </span>
                       </div>
-                      <p className="text-xs text-blue-400 mb-2 flex items-center gap-1">
-                        <Eye className="h-3 w-3" />
-                        Visto {product.viewedByClient} veces por este cliente
+                      <p className="text-xs text-blue-400 flex items-center gap-1">
+                        <Eye className="h-2 w-2 flex-shrink-0" />
+                        <span className="truncate">
+                          Visto {product.viewedByClient}x
+                        </span>
                       </p>
                     </div>
                   </div>
 
-                  {/* Product action buttons - Enhanced with transparent design */}
-                  <div className="grid grid-cols-2 gap-2">
+                  {/* Compact action buttons */}
+                  <div className="grid grid-cols-4 gap-1">
                     {product.hasImage && (
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-7 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 hover:text-blue-200 text-xs rounded-lg transition-all duration-200"
+                        className="h-6 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-xs rounded px-1"
                       >
-                        <ImageIcon className="h-3 w-3 mr-1" />
-                        Imagen
+                        <ImageIcon className="h-2 w-2" />
                       </Button>
                     )}
                     {product.hasPDF && (
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-7 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 hover:text-red-200 text-xs rounded-lg transition-all duration-200"
+                        className="h-6 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 text-xs rounded px-1"
                       >
-                        <File className="h-3 w-3 mr-1" />
-                        PDF
+                        <File className="h-2 w-2" />
                       </Button>
                     )}
                     {product.hasVideo && (
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-7 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 hover:text-purple-200 text-xs rounded-lg transition-all duration-200"
+                        className="h-6 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 text-xs rounded px-1"
                       >
-                        <Video className="h-3 w-3 mr-1" />
-                        Video
+                        <Video className="h-2 w-2" />
                       </Button>
                     )}
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-7 bg-gray-600/20 hover:bg-gray-600/30 border border-gray-500/30 text-gray-300 hover:text-gray-200 text-xs rounded-lg transition-all duration-200"
+                      className="h-6 bg-gray-600/20 hover:bg-gray-600/30 border border-gray-500/30 text-gray-300 text-xs rounded px-1"
                     >
-                      <FileText className="h-3 w-3 mr-1" />
-                      Ficha Técnica
+                      <FileText className="h-2 w-2" />
                     </Button>
                   </div>
                 </div>
@@ -433,100 +358,81 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
             </CardContent>
           </Card>
 
-          {/* 2. Información del Cliente */}
+          {/* 2. Información del Cliente - Compact */}
           <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-white flex items-center gap-2">
-                <User className="h-4 w-4 text-blue-400" />
-                Información del Cliente
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs text-white flex items-center gap-2">
+                <User className="h-3 w-3 text-blue-400" />
+                Info del Cliente
                 <div className="flex items-center gap-1">
                   {getSourceIcon()}
                   <span className="text-xs text-gray-400">
-                    {clientData.source === "whatsapp" ? "WhatsApp" : "Facebook"}
+                    {clientData.source === "whatsapp" ? "WA" : "FB"}
                   </span>
                 </div>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center border border-gray-600/30 shadow-lg">
-                  <span className="text-sm font-bold text-white">
+            <CardContent className="space-y-2 p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center border border-gray-600/30 flex-shrink-0">
+                  <span className="text-xs font-bold text-white">
                     {clientData.name
                       .split(" ")
                       .map((n) => n[0])
                       .join("")}
                   </span>
                 </div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-white leading-tight">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-xs font-medium text-white leading-tight truncate">
                     {clientData.name}
                   </h4>
-                  <p className="text-xs text-gray-400 mb-1">
+                  <p className="text-xs text-gray-400 truncate">
                     {clientData.company}
                   </p>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      className={cn(
-                        "text-xs rounded-full",
-                        performanceData.priority === "high"
-                          ? "bg-red-600/20 border border-red-500/30 text-red-300"
-                          : performanceData.priority === "medium"
-                            ? "bg-yellow-600/20 border border-yellow-500/30 text-yellow-300"
-                            : "bg-green-600/20 border border-green-500/30 text-green-300",
-                      )}
-                    >
-                      {performanceData.priority === "high"
-                        ? "🔥 Alta Prioridad"
-                        : performanceData.priority === "medium"
-                          ? "⚡ Media Prioridad"
-                          : "✅ Baja Prioridad"}
-                    </Badge>
-                  </div>
+                  <Badge
+                    className={cn(
+                      "text-xs rounded-full",
+                      getPriorityColor(performanceData.priority),
+                    )}
+                  >
+                    {performanceData.priority === "high"
+                      ? "🔥 Alta"
+                      : performanceData.priority === "medium"
+                        ? "⚡ Media"
+                        : "✅ Baja"}
+                  </Badge>
                 </div>
               </div>
 
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-3 w-3 text-gray-400" />
-                  <span className="text-gray-300">{clientData.location}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="h-3 w-3 text-gray-400" />
-                  <span className="text-gray-300">{clientData.phone}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Building className="h-3 w-3 text-gray-400" />
-                  <span className="text-gray-300">{clientData.email}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-3 w-3 text-gray-400" />
-                  <span className="text-gray-300 text-xs">
-                    {clientData.address}
+              <div className="space-y-1 text-xs">
+                <div className="flex items-center gap-1">
+                  <Phone className="h-2 w-2 text-gray-400 flex-shrink-0" />
+                  <span className="text-gray-300 truncate">
+                    {clientData.phone}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-3 w-3 text-gray-400" />
-                  <span className="text-gray-300">
-                    Cliente desde {clientData.joinedDate} • Última actividad:{" "}
-                    {clientData.lastActive}
+                <div className="flex items-center gap-1">
+                  <Building className="h-2 w-2 text-gray-400 flex-shrink-0" />
+                  <span className="text-gray-300 truncate">
+                    {clientData.email}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="h-3 w-3 text-gray-400" />
-                  <span className="text-gray-300">
-                    {clientData.totalInteractions} interacciones totales
+                <div className="flex items-center gap-1">
+                  <Clock className="h-2 w-2 text-gray-400 flex-shrink-0" />
+                  <span className="text-gray-300 truncate">
+                    Cliente desde {clientData.joinedDate}
                   </span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* 3. Notas del Cliente */}
+          {/* 3. Notas del Cliente - Compact */}
           <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-white flex items-center gap-2">
-                <StickyNote className="h-4 w-4 text-yellow-400" />
-                Notas del Cliente
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs text-white flex items-center gap-2">
+                <StickyNote className="h-3 w-3 text-yellow-400" />
+                Notas
                 <Button
                   size="sm"
                   variant="ghost"
@@ -534,31 +440,31 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                     setIsEditingNotes(!isEditingNotes);
                     if (!isEditingNotes) setNewNote(clientNotes);
                   }}
-                  className="text-xs bg-gray-700/40 hover:bg-gray-600/60 border border-gray-600/30 text-gray-300 hover:text-white px-2 py-1 rounded-lg transition-all duration-200"
+                  className="text-xs bg-gray-700/40 hover:bg-gray-600/60 border border-gray-600/30 text-gray-300 hover:text-white px-2 py-0.5 rounded transition-all duration-200"
                 >
-                  {isEditingNotes ? "Cancelar" : "Añadir nota"}
+                  {isEditingNotes ? "Cancelar" : "Editar"}
                 </Button>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3">
               {!isEditingNotes ? (
-                <p className="text-sm text-gray-300 leading-relaxed">
+                <p className="text-xs text-gray-300 leading-relaxed">
                   {clientNotes || "No hay notas disponibles"}
                 </p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <Textarea
                     value={newNote}
                     onChange={(e) => setNewNote(e.target.value)}
-                    placeholder="Agregar notas sobre el cliente..."
-                    className="bg-gray-700 border-gray-600 text-white text-sm"
-                    rows={4}
+                    placeholder="Agregar notas..."
+                    className="bg-gray-700 border-gray-600 text-white text-xs"
+                    rows={3}
                   />
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
                     <Button
                       size="sm"
                       onClick={saveNotes}
-                      className="bg-green-600 hover:bg-green-700"
+                      className="bg-green-600 hover:bg-green-700 h-6 text-xs"
                     >
                       Guardar
                     </Button>
@@ -566,7 +472,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                       size="sm"
                       variant="ghost"
                       onClick={() => setIsEditingNotes(false)}
-                      className="text-gray-400"
+                      className="text-gray-400 h-6 text-xs"
                     >
                       Cancelar
                     </Button>
@@ -576,24 +482,24 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
             </CardContent>
           </Card>
 
-          {/* 4. Etiquetas del Cliente */}
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-white flex items-center gap-2">
-                <Tag className="h-4 w-4 text-purple-400" />
-                Etiquetas del Cliente
-                <Badge className="bg-purple-600 text-white text-xs">
+          {/* 4. Etiquetas - Compact */}
+          <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs text-white flex items-center gap-2">
+                <Tag className="h-3 w-3 text-purple-400" />
+                Etiquetas
+                <Badge className="bg-purple-600/20 border border-purple-500/30 text-purple-300 text-xs rounded-full">
                   {clientTags.length}
                 </Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="p-3">
+              <div className="space-y-2">
                 <div className="flex flex-wrap gap-1">
                   {clientTags.map((tag, index) => (
                     <Badge
                       key={index}
-                      className="bg-blue-600 text-white text-xs flex items-center gap-1"
+                      className="bg-blue-600/20 border border-blue-500/30 text-blue-300 text-xs flex items-center gap-1"
                     >
                       {tag}
                       <Button
@@ -602,17 +508,17 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                         onClick={() => removeTag(tag)}
                         className="p-0 h-auto text-white hover:text-red-300"
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-2 w-2" />
                       </Button>
                     </Badge>
                   ))}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1">
                   <Input
                     value={newTag}
                     onChange={(e) => setNewTag(e.target.value)}
                     placeholder="Nueva etiqueta..."
-                    className="bg-gray-700 border-gray-600 text-white text-sm"
+                    className="bg-gray-700 border-gray-600 text-white text-xs h-6"
                     onKeyPress={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -624,132 +530,111 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                     size="sm"
                     onClick={addTag}
                     disabled={!newTag.trim()}
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className="bg-purple-600 hover:bg-purple-700 h-6 px-2"
                   >
-                    <Plus className="h-3 w-3" />
+                    <Plus className="h-2 w-2" />
                   </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* 5. Archivos Compartidos */}
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-white flex items-center gap-2">
-                <FileText className="h-4 w-4 text-orange-400" />
-                Archivos Compartidos
-                <Badge className="bg-orange-600 text-white text-xs">
+          {/* 5. Archivos Compartidos - Compact */}
+          <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs text-white flex items-center gap-2">
+                <FileText className="h-3 w-3 text-orange-400" />
+                Archivos
+                <Badge className="bg-orange-600/20 border border-orange-500/30 text-orange-300 text-xs rounded-full">
                   {sharedFiles.length}
                 </Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
+            <CardContent className="p-3">
+              <div className="space-y-1">
                 {sharedFiles
-                  .slice(0, showAllFiles ? sharedFiles.length : 3)
+                  .slice(0, showAllFiles ? sharedFiles.length : 2)
                   .map((file) => (
                     <div
                       key={file.id}
-                      className="flex items-center gap-3 p-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+                      className="flex items-center gap-2 p-1.5 bg-gray-700 rounded border border-gray-600/30 hover:bg-gray-600 transition-colors"
                     >
                       <div className="flex-shrink-0">
                         {file.type === "PDF" ? (
-                          <File className="h-6 w-6 text-red-400" />
+                          <File className="h-4 w-4 text-red-400" />
                         ) : file.type === "Video" ? (
-                          <Video className="h-6 w-6 text-purple-400" />
+                          <Video className="h-4 w-4 text-purple-400" />
                         ) : (
-                          <ImageIcon className="h-6 w-6 text-blue-400" />
+                          <ImageIcon className="h-4 w-4 text-blue-400" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white truncate">
+                        <p className="text-xs text-white truncate">
                           {file.name}
                         </p>
                         <p className="text-xs text-gray-400">
-                          {file.type} • {file.size} • {file.date} •
-                          <span
-                            className={cn(
-                              "ml-1",
-                              file.direction === "sent"
-                                ? "text-blue-400"
-                                : "text-green-400",
-                            )}
-                          >
-                            {file.direction === "sent"
-                              ? "📤 Enviado"
-                              : "📥 Recibido"}
-                          </span>
+                          {file.size} • {file.date}
                         </p>
                       </div>
                       <div className="flex gap-1">
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="text-gray-400 hover:text-white p-1"
+                          className="text-gray-400 hover:text-white p-0.5 h-5 w-5"
                         >
-                          <Eye className="h-3 w-3" />
+                          <Eye className="h-2 w-2" />
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="text-gray-400 hover:text-white p-1"
+                          className="text-gray-400 hover:text-white p-0.5 h-5 w-5"
                         >
-                          <Download className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-gray-400 hover:text-white p-1"
-                        >
-                          <Send className="h-3 w-3" />
+                          <Download className="h-2 w-2" />
                         </Button>
                       </div>
                     </div>
                   ))}
 
-                {sharedFiles.length > 3 && (
+                {sharedFiles.length > 2 && (
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => setShowAllFiles(!showAllFiles)}
-                    className="w-full text-orange-400 border-orange-500 hover:bg-orange-950"
+                    className="w-full text-orange-400 border-orange-500/30 hover:bg-orange-950/30 h-6 text-xs"
                   >
-                    {showAllFiles ? (
-                      <>
-                        Mostrar menos
-                        <ChevronDown className="h-3 w-3 ml-1 rotate-180" />
-                      </>
-                    ) : (
-                      <>
-                        Ver más archivos ({sharedFiles.length - 3})
-                        <ChevronDown className="h-3 w-3 ml-1" />
-                      </>
-                    )}
+                    {showAllFiles
+                      ? "Mostrar menos"
+                      : `Ver más (${sharedFiles.length - 2})`}
+                    <ChevronDown
+                      className={cn(
+                        "h-2 w-2 ml-1",
+                        showAllFiles && "rotate-180",
+                      )}
+                    />
                   </Button>
                 )}
               </div>
             </CardContent>
           </Card>
 
-          {/* 6. Análisis de Conversación */}
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-white flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-cyan-400" />
-                Análisis de Conversación IA
+          {/* 6. Análisis de Conversación - Compact */}
+          <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs text-white flex items-center gap-2">
+                <TrendingUp className="h-3 w-3 text-cyan-400" />
+                Análisis IA
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2 p-3">
               <div>
-                <h5 className="text-xs font-medium text-gray-400 mb-2">
-                  Temas Principales:
+                <h5 className="text-xs font-medium text-gray-400 mb-1">
+                  Temas:
                 </h5>
                 <div className="flex flex-wrap gap-1">
                   {conversationAnalysis.mainTopics.map((topic, index) => (
                     <Badge
                       key={index}
-                      className="bg-cyan-600 text-white text-xs"
+                      className="bg-cyan-600/20 border border-cyan-500/30 text-cyan-300 text-xs rounded-full"
                     >
                       {topic}
                     </Badge>
@@ -757,21 +642,12 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                 </div>
               </div>
 
-              <div>
-                <h5 className="text-xs font-medium text-gray-400 mb-1">
-                  Resumen Inteligente:
-                </h5>
-                <p className="text-xs text-gray-300 leading-relaxed">
-                  {conversationAnalysis.summary}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-400">Urgencia:</span>
                   <Badge
                     className={cn(
-                      "text-xs",
+                      "text-xs rounded-full",
                       getUrgencyColor(conversationAnalysis.urgencyLevel),
                     )}
                   >
@@ -785,60 +661,43 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
 
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-400">Satisfacción:</span>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5">
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
                         className={cn(
-                          "h-3 w-3",
+                          "h-2 w-2",
                           i < Math.floor(conversationAnalysis.satisfactionScore)
                             ? "fill-yellow-400 text-yellow-400"
                             : "text-gray-600",
                         )}
                       />
                     ))}
-                    <span className="text-xs text-gray-300 ml-1">
-                      {conversationAnalysis.satisfactionScore}
-                    </span>
                   </div>
-                </div>
-              </div>
-
-              <div>
-                <h5 className="text-xs font-medium text-gray-400 mb-1">
-                  Próximos Pasos Sugeridos:
-                </h5>
-                <div className="space-y-1">
-                  {conversationAnalysis.nextSteps.map((step, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <CheckCircle className="h-3 w-3 text-green-400" />
-                      <span className="text-xs text-gray-300">{step}</span>
-                    </div>
-                  ))}
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* 7. Sentimiento del Cliente */}
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-white flex items-center gap-2">
+          {/* 7. Sentimiento del Cliente - Compact */}
+          <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs text-white flex items-center gap-2">
                 {getSentimentIcon()}
-                Sentimiento del Cliente
+                Sentimiento
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2 p-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">Estado Emocional:</span>
+                <span className="text-xs text-gray-400">Estado:</span>
                 <Badge
                   className={cn(
-                    "text-xs",
+                    "text-xs rounded-full",
                     conversationAnalysis.sentiment === "positive"
-                      ? "bg-green-600 text-white"
+                      ? "bg-green-600/20 border border-green-500/30 text-green-300"
                       : conversationAnalysis.sentiment === "negative"
-                        ? "bg-red-600 text-white"
-                        : "bg-yellow-600 text-black",
+                        ? "bg-red-600/20 border border-red-500/30 text-red-300"
+                        : "bg-yellow-600/20 border border-yellow-500/30 text-yellow-300",
                   )}
                 >
                   {conversationAnalysis.sentiment === "positive"
@@ -849,60 +708,26 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                 </Badge>
               </div>
 
-              <div>
-                <span className="text-sm text-gray-400">Tono Emocional:</span>
-                <p className="text-sm text-gray-300 mt-1">
-                  {conversationAnalysis.emotionalTone}
-                </p>
-              </div>
-
-              <div className="bg-gray-700 rounded-lg p-3">
+              <div className="bg-gray-700/40 rounded-lg p-2">
                 <p className={cn("text-xs", getSentimentColor())}>
-                  💡{" "}
-                  {conversationAnalysis.sentiment === "positive"
-                    ? "Cliente muestra interés genuino en los productos. Responde rápidamente y hace preguntas específicas sobre especificaciones técnicas."
-                    : conversationAnalysis.sentiment === "negative"
-                      ? "Cliente muestra cierta frustración. Recomienda respuesta empática y soluciones inmediatas."
-                      : "Cliente mantiene tono neutral profesional. Oportunidad para generar mayor engagement."}
+                  💡 Cliente muestra interés genuino en los productos. Responde
+                  rápidamente y hace preguntas específicas.
                 </p>
               </div>
 
               {/* Performance Indicators */}
-              <div className="border-t border-gray-700 pt-3">
-                <h5 className="text-xs font-medium text-gray-400 mb-2">
-                  Indicadores de Rendimiento:
-                </h5>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="flex items-center gap-2">
-                    <Timer className="h-3 w-3 text-blue-400" />
-                    <span className="text-gray-300">
-                      Resp. promedio: {performanceData.avgResponseTime}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Target className="h-3 w-3 text-green-400" />
-                    <span className="text-gray-300">
-                      Resolución: {performanceData.resolutionRate}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Heart className="h-3 w-3 text-pink-400" />
-                    <span className="text-gray-300">
-                      Satisfacción: {performanceData.customerSatisfaction}/5
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {performanceData.followUpNeeded ? (
-                      <AlertCircle className="h-3 w-3 text-orange-400" />
-                    ) : (
-                      <CheckCircle className="h-3 w-3 text-green-400" />
-                    )}
-                    <span className="text-gray-300">
-                      {performanceData.followUpNeeded
-                        ? "Seguimiento requerido"
-                        : "Seguimiento completo"}
-                    </span>
-                  </div>
+              <div className="grid grid-cols-2 gap-1 text-xs">
+                <div className="flex items-center gap-1">
+                  <Timer className="h-2 w-2 text-blue-400" />
+                  <span className="text-gray-300 text-xs">
+                    {performanceData.avgResponseTime}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Target className="h-2 w-2 text-green-400" />
+                  <span className="text-gray-300 text-xs">
+                    {performanceData.resolutionRate}
+                  </span>
                 </div>
               </div>
             </CardContent>
