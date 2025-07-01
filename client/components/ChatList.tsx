@@ -115,6 +115,10 @@ export function ChatList({
 }: ChatListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
+  const [unreadFilter, setUnreadFilter] = useState("all"); // "all", "unread", "read"
+  const [channelFilter, setChannelFilter] = useState("all"); // "all", "whatsapp", "facebook"
+  const [dateFilter, setDateFilter] = useState("all"); // "all", "today", "week", "month"
 
   const filteredConversations = mockConversations.filter((conv) => {
     const matchesSearch =
@@ -126,7 +130,40 @@ export function ChatList({
       (activeTab === "mine" && conv.isUnread) ||
       (activeTab === "unassigned" && !conv.isUnread);
 
-    return matchesSearch && matchesTab;
+    const matchesUnread =
+      unreadFilter === "all" ||
+      (unreadFilter === "unread" && conv.isUnread) ||
+      (unreadFilter === "read" && !conv.isUnread);
+
+    const matchesChannel =
+      channelFilter === "all" || conv.channel === channelFilter;
+
+    const matchesDate = (() => {
+      if (dateFilter === "all") return true;
+      const today = new Date();
+      const convDate = new Date(conv.date);
+
+      switch (dateFilter) {
+        case "today":
+          return convDate.toDateString() === today.toDateString();
+        case "week":
+          const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+          return convDate >= weekAgo;
+        case "month":
+          const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+          return convDate >= monthAgo;
+        default:
+          return true;
+      }
+    })();
+
+    return (
+      matchesSearch &&
+      matchesTab &&
+      matchesUnread &&
+      matchesChannel &&
+      matchesDate
+    );
   });
 
   const unreadCount = mockConversations.filter((conv) => conv.isUnread).length;
