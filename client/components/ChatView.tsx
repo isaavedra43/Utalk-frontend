@@ -302,9 +302,16 @@ export function ChatView({ chatId, className }: ChatViewProps) {
                 {mockConversation.status}
               </Badge>
             </div>
-            <p className="text-sm text-gray-400">
-              Customer • Last seen 5 minutes ago • Via {getChannelName()}
-            </p>
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span>En línea</span>
+              </div>
+              <span>•</span>
+              <span>Customer</span>
+              <span>•</span>
+              <span>Via {getChannelName()}</span>
+            </div>
           </div>
         </div>
 
