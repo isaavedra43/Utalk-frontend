@@ -41,6 +41,7 @@ import {
   CheckCircle,
   Star,
   Heart,
+  File,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
