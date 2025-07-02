@@ -74,8 +74,15 @@ export default function Index() {
       <div className="hidden lg:flex absolute top-4 right-4 z-10 gap-2" />
 
       {/* Main layout */}
-      <div className="h-full flex">
-        {/* Sidebar Navigation */}
+      <div
+        className={cn(
+          "h-full flex",
+          // On mobile, adjust height to account for header
+          "lg:h-full",
+          isMobileMenuOpen ? "overflow-hidden" : "",
+        )}
+      >
+        {/* Sidebar Navigation - Desktop only */}
         <div className="hidden lg:block">
           <Sidebar
             activeModule={activeModule}
@@ -84,39 +91,56 @@ export default function Index() {
           />
         </div>
 
-        {/* Left Panel - Chat List - Made more compact */}
+        {/* Mobile Navigation Panel */}
         <div
           className={cn(
-            "transition-all duration-300 ease-in-out",
-            // Mobile
-            "lg:relative fixed inset-y-0 left-0 z-40 w-80",
+            "lg:hidden fixed inset-0 z-40 bg-gray-900 transform transition-transform duration-300 ease-in-out",
             isMobileMenuOpen ? "translate-x-0" : "-translate-x-full",
-            // Desktop - Reduced width from w-80 (320px) to w-64 (256px)
-            "lg:translate-x-0",
-            leftPanelVisible ? "lg:w-64" : "lg:w-0 lg:overflow-hidden",
           )}
+          style={{ top: "64px" }} // Account for mobile header height
         >
-          {/* Mobile Sidebar */}
-          <div className="lg:hidden">
-            <Sidebar
-              activeModule={activeModule}
-              onModuleChange={handleModuleChange}
-              className="h-full"
-            />
-          </div>
+          <div className="h-full flex">
+            {/* Mobile Sidebar - 1/3 width */}
+            <div className="w-1/3 border-r border-gray-800">
+              <Sidebar
+                activeModule={activeModule}
+                onModuleChange={(module) => {
+                  handleModuleChange(module);
+                  // Don't close menu when switching modules, let user choose
+                }}
+                className="h-full"
+              />
+            </div>
 
-          {/* Chat List - only visible on desktop when in messages module */}
-          <div
-            className={cn(
-              "h-full",
-              activeModule === "messages" ? "block" : "hidden lg:hidden",
+            {/* Mobile Chat List - 2/3 width, only show in messages module */}
+            {activeModule === "messages" && (
+              <div className="flex-1">
+                <ChatList
+                  selectedChatId={selectedChatId}
+                  onChatSelect={(chatId) => {
+                    handleChatSelect(chatId);
+                    setIsMobileMenuOpen(false); // Close menu when chat is selected
+                  }}
+                  className="h-full"
+                />
+              </div>
             )}
-          >
-            <ChatList
-              selectedChatId={selectedChatId}
-              onChatSelect={handleChatSelect}
-              className="h-full"
-            />
+
+            {/* Show module content for non-messages modules */}
+            {activeModule !== "messages" && (
+              <div className="flex-1 p-4">
+                <div className="text-center text-gray-400">
+                  <p className="text-lg font-medium mb-2">
+                    {activeModule === "dashboard" ? "Dashboard" : "CRM"}
+                  </p>
+                  <p className="text-sm">
+                    {activeModule === "dashboard"
+                      ? "Analytics and insights coming soon"
+                      : "Customer relationship management coming soon"}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -124,9 +148,26 @@ export default function Index() {
         {isMobileMenuOpen && (
           <div
             className="lg:hidden fixed inset-0 bg-black/50 z-30"
+            style={{ top: "64px" }}
             onClick={() => setIsMobileMenuOpen(false)}
           />
         )}
+
+        {/* Desktop Left Panel - Chat List */}
+        <div
+          className={cn(
+            "hidden lg:block transition-all duration-300 ease-in-out",
+            leftPanelVisible ? "lg:w-64" : "lg:w-0 lg:overflow-hidden",
+          )}
+        >
+          {activeModule === "messages" && (
+            <ChatList
+              selectedChatId={selectedChatId}
+              onChatSelect={handleChatSelect}
+              className="h-full"
+            />
+          )}
+        </div>
 
         {/* Center Panel - Module Content - More space for chat */}
         <div
