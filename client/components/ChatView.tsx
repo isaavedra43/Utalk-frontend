@@ -114,7 +114,12 @@ const mockConversation = {
   ],
 };
 
-export function ChatView({ chatId, className }: ChatViewProps) {
+export function ChatView({
+  chatId,
+  className,
+  onShowAI,
+  onShowClientInfo,
+}: ChatViewProps) {
   const [message, setMessage] = useState("");
   const [isPrivateNote, setIsPrivateNote] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
