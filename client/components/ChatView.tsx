@@ -48,6 +48,8 @@ import {
   Star,
   Heart,
   File,
+  Bot,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
