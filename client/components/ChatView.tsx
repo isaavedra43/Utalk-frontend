@@ -54,6 +54,8 @@ import { cn } from "@/lib/utils";
 interface ChatViewProps {
   chatId?: string;
   className?: string;
+  onShowAI?: () => void;
+  onShowClientInfo?: () => void;
 }
 
 // Mock conversation data
