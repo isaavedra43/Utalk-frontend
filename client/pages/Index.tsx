@@ -169,25 +169,102 @@ export default function Index() {
           )}
         </div>
 
-        {/* Center Panel - Module Content - More space for chat */}
+        {/* Center Panel - Module Content */}
         <div
           className={cn(
             "flex-1 transition-all duration-300 ease-in-out",
-            // Updated width calculations for narrower chat list (256px) and responsive right panel
+            // Mobile - full width
+            "w-full lg:flex-1",
+            // Desktop - calculated based on visible panels
             activeModule === "messages" && leftPanelVisible && rightPanelVisible
-              ? "lg:max-w-[calc(100%-576px)] xl:max-w-[calc(100%-608px)]" // 256px + 320px on lg, 256px + 352px on xl
+              ? "lg:max-w-[calc(100%-576px)] xl:max-w-[calc(100%-608px)]"
               : activeModule === "messages" && leftPanelVisible
-                ? "lg:max-w-[calc(100%-256px)]" // Only chat list width
+                ? "lg:max-w-[calc(100%-256px)]"
                 : activeModule === "messages" && rightPanelVisible
-                  ? "lg:max-w-[calc(100%-320px)] xl:max-w-[calc(100%-352px)]" // Only right panel width
+                  ? "lg:max-w-[calc(100%-320px)] xl:max-w-[calc(100%-352px)]"
                   : "lg:max-w-full",
           )}
         >
           {activeModule === "messages" ? (
-            <ChatView chatId={selectedChatId} className="h-full" />
+            <div className="h-full flex flex-col">
+              {/* Mobile: Show right panel as modal overlay when needed */}
+              <div className="lg:hidden">
+                {(aiPanelVisible || clientInfoVisible) && (
+                  <div
+                    className="fixed inset-0 z-50 bg-black/50"
+                    style={{ top: "64px" }}
+                  >
+                    <div className="absolute right-0 top-0 bottom-0 w-80 bg-gray-900">
+                      {/* Mobile tabs */}
+                      <div className="flex bg-gray-900 border-l border-gray-800">
+                        <Button
+                          size="sm"
+                          variant={aiPanelVisible ? "default" : "ghost"}
+                          onClick={() => {
+                            setAiPanelVisible(true);
+                            setClientInfoVisible(false);
+                          }}
+                          className={cn(
+                            "flex-1 rounded-none h-12 text-xs font-medium",
+                            aiPanelVisible
+                              ? "bg-blue-600 text-white border-b-2 border-blue-400"
+                              : "text-gray-400 hover:text-white hover:bg-gray-800",
+                          )}
+                        >
+                          <Bot className="w-4 h-4 mr-2" />
+                          IA
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={clientInfoVisible ? "default" : "ghost"}
+                          onClick={() => {
+                            setClientInfoVisible(true);
+                            setAiPanelVisible(false);
+                          }}
+                          className={cn(
+                            "flex-1 rounded-none h-12 text-xs font-medium",
+                            clientInfoVisible
+                              ? "bg-green-600 text-white border-b-2 border-green-400"
+                              : "text-gray-400 hover:text-white hover:bg-gray-800",
+                          )}
+                        >
+                          <UserCheck className="w-4 h-4 mr-2" />
+                          Cliente
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setAiPanelVisible(false);
+                            setClientInfoVisible(false);
+                          }}
+                          className="w-12 h-12 text-gray-400 hover:text-white"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      {/* Mobile panel content */}
+                      <div className="flex-1 overflow-hidden">
+                        {aiPanelVisible && <AIAssistantPanel />}
+                        {clientInfoVisible && <ClientInfoPanel />}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Chat View with mobile controls */}
+              <ChatView
+                chatId={selectedChatId}
+                className="h-full"
+                onShowAI={() => setAiPanelVisible(true)}
+                onShowClientInfo={() => setClientInfoVisible(true)}
+              />
+            </div>
           ) : activeModule === "dashboard" ? (
             <div className="h-full flex items-center justify-center bg-gray-950">
-              <div className="text-center text-gray-400">
+              <div className="text-center text-gray-400 p-4">
                 <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4 mx-auto">
                   <LayoutDashboard className="h-8 w-8" />
                 </div>
@@ -197,7 +274,7 @@ export default function Index() {
             </div>
           ) : activeModule === "crm" ? (
             <div className="h-full flex items-center justify-center bg-gray-950">
-              <div className="text-center text-gray-400">
+              <div className="text-center text-gray-400 p-4">
                 <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4 mx-auto">
                   <Users className="h-8 w-8" />
                 </div>
@@ -210,19 +287,17 @@ export default function Index() {
           ) : null}
         </div>
 
-        {/* Right Panel - AI Assistant & Client Info with horizontal tabs */}
+        {/* Desktop Right Panel - AI Assistant & Client Info */}
         {activeModule === "messages" && (
           <div
             className={cn(
-              "transition-all duration-300 ease-in-out",
-              // Mobile - hidden by default, shows on tablet and up
-              "hidden md:flex md:flex-col",
+              "hidden lg:flex lg:flex-col transition-all duration-300 ease-in-out",
               // Responsive width: smaller on tablet, larger on desktop
-              "md:w-64 lg:w-80 xl:w-96",
+              "lg:w-80 xl:w-96",
               rightPanelVisible ? "flex" : "w-0 overflow-hidden",
             )}
           >
-            {/* Horizontal Toggle Buttons */}
+            {/* Desktop Horizontal Toggle Buttons */}
             <div className="flex bg-gray-900 border-l border-gray-800">
               <Button
                 size="sm"
@@ -260,7 +335,7 @@ export default function Index() {
               </Button>
             </div>
 
-            {/* Content Section */}
+            {/* Desktop Content Section */}
             <div className="flex-1 overflow-hidden">
               {aiPanelVisible && <AIAssistantPanel />}
               {clientInfoVisible && <ClientInfoPanel />}
