@@ -70,9 +70,31 @@ export default function Index() {
       </div>
 
       {/* Desktop panel toggle controls */}
-      <div className="hidden lg:flex absolute top-4 left-4 z-10 gap-2" />
+      <div className="hidden lg:flex absolute top-4 left-4 z-10 gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setLeftPanelVisible(!leftPanelVisible)}
+          className="bg-gray-900/90 border-gray-700 hover:bg-gray-800 text-white"
+        >
+          <PanelLeftClose
+            className={cn("h-4 w-4", !leftPanelVisible && "rotate-180")}
+          />
+        </Button>
+      </div>
 
-      <div className="hidden lg:flex absolute top-4 right-4 z-10 gap-2" />
+      <div className="hidden lg:flex absolute top-4 right-4 z-10 gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setRightPanelVisible(!rightPanelVisible)}
+          className="bg-gray-900/90 border-gray-700 hover:bg-gray-800 text-white"
+        >
+          <PanelRightClose
+            className={cn("h-4 w-4", !rightPanelVisible && "rotate-180")}
+          />
+        </Button>
+      </div>
 
       {/* Main layout */}
       <div
