@@ -45,13 +45,20 @@ export default function Index() {
   return (
     <div className="h-screen bg-gray-950 text-white overflow-hidden">
       {/* Mobile header */}
-      <div className="lg:hidden flex items-center justify-between p-4 border-b border-gray-800 bg-gray-900">
-        <h1 className="text-lg font-semibold">Customer Support</h1>
+      <div className="lg:hidden flex items-center justify-between p-3 border-b border-gray-800 bg-gray-900">
+        <div className="flex items-center gap-2">
+          <h1 className="text-base font-semibold">UNIK AI</h1>
+          {activeModule === "messages" && selectedChatId && (
+            <Badge className="bg-blue-600 text-white text-xs">
+              Chat activo
+            </Badge>
+          )}
+        </div>
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="text-gray-400 hover:text-white"
+          className="text-gray-400 hover:text-white p-2"
         >
           {isMobileMenuOpen ? (
             <X className="h-5 w-5" />
