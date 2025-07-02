@@ -323,6 +323,49 @@ export function ChatView({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Mobile AI and Client Info buttons */}
+          <div className="lg:hidden flex items-center gap-1">
+            {onShowAI && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onShowAI}
+                      className="w-8 h-8 p-0 rounded-lg border border-gray-600/30 bg-gray-800/40 text-gray-400 hover:text-white hover:bg-gray-700/60 transition-all duration-200"
+                    >
+                      <Bot className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-gray-800 border border-gray-600 text-white text-xs rounded-lg">
+                    Asistente IA
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+
+            {onShowClientInfo && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onShowClientInfo}
+                      className="w-8 h-8 p-0 rounded-lg border border-gray-600/30 bg-gray-800/40 text-gray-400 hover:text-white hover:bg-gray-700/60 transition-all duration-200"
+                    >
+                      <UserCheck className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-gray-800 border border-gray-600 text-white text-xs rounded-lg">
+                    Info del Cliente
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+
           {/* Search Toggle with tooltip */}
           <TooltipProvider>
             <Tooltip>
