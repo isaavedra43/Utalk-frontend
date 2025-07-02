@@ -6,6 +6,7 @@ import Copilot from "@/components/Copilot";
 import { ClientInfoPanel } from "@/components/ClientInfoPanel";
 import { AIAssistantPanel } from "@/components/AIAssistantPanel";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Menu,
   X,
