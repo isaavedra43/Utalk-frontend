@@ -6,11 +6,18 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, MessageSquare, Users, Sparkles } from "lucide-react";
+import {
+  LayoutDashboard,
+  MessageSquare,
+  Users,
+  Sparkles,
+  PanelLeftClose,
+} from "lucide-react";
 
 interface SidebarProps {
   activeModule?: string;
   onModuleChange?: (module: string) => void;
+  onTogglePanel?: () => void;
   className?: string;
 }
 
@@ -51,6 +58,7 @@ const navigationItems: NavigationItem[] = [
 export function Sidebar({
   activeModule = "messages",
   onModuleChange,
+  onTogglePanel,
   className,
 }: SidebarProps) {
   const handleModuleClick = (moduleId: string) => {
@@ -87,6 +95,18 @@ export function Sidebar({
           </Tooltip>
         </TooltipProvider>
       </div>
+
+      {/* Toggle Panel Button */}
+      {onTogglePanel && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onTogglePanel}
+          className="bg-gray-900/90 border-gray-700 hover:bg-gray-800 text-white"
+        >
+          <PanelLeftClose className="h-4 w-4" />
+        </Button>
+      )}
 
       {/* Navigation Items */}
       <div className="flex-1 py-4 px-2 space-y-2">
