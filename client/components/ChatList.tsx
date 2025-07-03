@@ -97,6 +97,19 @@ export function ChatList({
   const [selectedSection, setSelectedSection] = useState<string | null>("all");
   const [activeTab, setActiveTab] = useState("chats");
   const [isUnrepliedOnly, setIsUnrepliedOnly] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Handle responsive behavior
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkIsMobile();
+    window.addEventListener("resize", checkIsMobile);
+
+    return () => window.removeEventListener("resize", checkIsMobile);
+  }, []);
 
   // Counters
   const allCount = 1;
