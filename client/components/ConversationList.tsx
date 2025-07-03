@@ -76,10 +76,17 @@ export function ConversationList({
                 <div
                   key={conversation.id}
                   className={cn(
-                    "block w-full p-3 mb-2 bg-[#252535] border border-[#333] rounded-lg cursor-pointer transition-all duration-200",
-                    "hover:bg-[#2E2E42]",
-                    isSelected && "border-2 border-[#3178C6] bg-[#2E2E42]",
+                    "block w-full p-4 mb-3 bg-[#1F1F25] border border-[#333] rounded-lg cursor-pointer transition-all duration-200 relative z-20",
+                    "hover:bg-[#2E2E42] hover:shadow-xl hover:border-[#444]",
+                    "shadow-lg ring-1 ring-gray-800/50",
+                    isSelected &&
+                      "border-2 border-[#3178C6] bg-[#2E2E42] shadow-xl ring-2 ring-blue-500/20",
                   )}
+                  style={{
+                    boxShadow: isSelected
+                      ? "0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(59, 130, 246, 0.3)"
+                      : "0 4px 12px -2px rgba(0, 0, 0, 0.3), 0 2px 6px -1px rgba(0, 0, 0, 0.06)",
+                  }}
                   onClick={() => onSelect?.(conversation.id)}
                 >
                   {/* Top row - Section and timestamp */}
