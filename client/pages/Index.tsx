@@ -148,6 +148,12 @@ export default function Index() {
                 {activeModule === "campaigns" && (
                   <CampaignModule className="h-full" />
                 )}
+                {activeModule === "knowledge" && (
+                  <KnowledgeBase className="h-full" />
+                )}
+                {activeModule === "collaboration" && (
+                  <RealTimeCollaboration className="h-full" />
+                )}
                 {activeModule === "settings" && (
                   <SellerSettings className="h-full" />
                 )}
