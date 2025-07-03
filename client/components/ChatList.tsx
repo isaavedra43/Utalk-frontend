@@ -221,7 +221,7 @@ export function ChatList({
             >
               <div className="flex items-center gap-2">
                 <Archive className="h-4 w-4" />
-                <span className="text-sm">All</span>
+                <span className="text-sm">Todos</span>
               </div>
               <Badge className="bg-gray-600 text-white text-xs px-2 py-0 h-5">
                 {allCount}
