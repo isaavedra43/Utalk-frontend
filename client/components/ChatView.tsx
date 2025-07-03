@@ -213,18 +213,35 @@ export function ChatView({
             <Search className="h-4 w-4" />
           </Button>
 
-          {/* Mobile AI and Client Info buttons */}
-          <div className="lg:hidden flex items-center gap-1">
-            {onShowAI && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onShowAI}
-                className="w-8 h-8 p-0 text-gray-400 hover:text-white"
-              >
-                <Bot className="h-4 w-4" />
-              </Button>
-            )}
+          {/* Panel Toggle Buttons */}
+          <div className="flex items-center gap-1">
+            {/* Mobile AI and Client Info buttons */}
+            <div className="lg:hidden flex items-center gap-1">
+              {onShowAI && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onShowAI}
+                  className="w-8 h-8 p-0 text-gray-400 hover:text-white"
+                >
+                  <Bot className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
+            {/* Desktop Right Panel Toggle */}
+            <div className="hidden lg:flex">
+              {onToggleRightPanel && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onToggleRightPanel}
+                  className="w-8 h-8 p-0 text-gray-400 hover:text-white"
+                >
+                  <PanelRightClose className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
