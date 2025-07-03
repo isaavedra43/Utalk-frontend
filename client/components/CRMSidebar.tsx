@@ -93,7 +93,7 @@ export function CRMSidebar({
     },
     {
       id: "customer",
-      label: "Customer",
+      label: "Cliente",
       emoji: "🙂",
       count: contactCounts.customer,
     },
