@@ -193,7 +193,7 @@ export default function Index() {
         {/* Center Panel - Module Content */}
         <div
           className={cn(
-            "flex-1 transition-all duration-300 ease-in-out overflow-hidden relative z-5",
+            "flex-1 transition-all duration-300 ease-in-out overflow-hidden relative z-0",
             // Mobile - full width without gaps
             "w-full",
             // Desktop - use remaining space without gaps, accounting for chat list
