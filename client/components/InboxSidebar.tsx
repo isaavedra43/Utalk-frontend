@@ -143,21 +143,24 @@ export function InboxSidebar({
           <Button
             variant="ghost"
             onClick={() => handleSectionClick("mine")}
-            className={cn("w-full justify-start transition-colors")}
+            className={cn(
+              "w-full justify-start transition-colors hover:bg-[#2C2C32] rounded-md",
+              selectedSection === "mine"
+                ? "bg-[#2C2C32] text-white"
+                : "text-gray-400 hover:text-white",
+            )}
             style={{
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              height: "48px",
+              height: "36px",
               padding: "0 12px",
-              borderRadius: "8px",
-              background:
-                selectedSection === "mine" ? "#3A3A4D" : "transparent",
-              color: selectedSection === "mine" ? "#FFFFFF" : "#A0A0A0",
+              borderRadius: "6px",
+              marginBottom: "4px",
             }}
           >
             <div className="flex items-center" style={{ gap: "8px" }}>
-              <Users style={{ width: "20px", height: "20px" }} />
+              <Users style={{ width: "18px", height: "18px" }} />
               <span style={{ fontSize: "14px" }}>Míos</span>
             </div>
           </Button>
@@ -166,17 +169,20 @@ export function InboxSidebar({
           <Button
             variant="ghost"
             onClick={() => handleSectionClick("unassigned")}
-            className={cn("w-full justify-between transition-colors")}
+            className={cn(
+              "w-full justify-between transition-colors hover:bg-[#2C2C32] rounded-md",
+              selectedSection === "unassigned"
+                ? "bg-[#2C2C32] text-white"
+                : "text-gray-400 hover:text-white",
+            )}
             style={{
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              height: "48px",
+              height: "36px",
               padding: "0 12px",
-              borderRadius: "8px",
-              background:
-                selectedSection === "unassigned" ? "#3A3A4D" : "transparent",
-              color: selectedSection === "unassigned" ? "#FFFFFF" : "#A0A0A0",
+              borderRadius: "6px",
+              marginBottom: "4px",
             }}
           >
             <div className="flex items-center" style={{ gap: "8px" }}>
