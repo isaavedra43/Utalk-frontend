@@ -226,6 +226,7 @@ export function CustomerHub({ className }: CustomerHubProps) {
               <Button
                 onClick={handleCreateContact}
                 className="bg-blue-600 text-white hover:bg-blue-700"
+                style={{ marginLeft: "13px" }}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Nuevo Contacto
@@ -234,6 +235,7 @@ export function CustomerHub({ className }: CustomerHubProps) {
                 variant="outline"
                 onClick={handleFilter}
                 className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                style={{ marginLeft: "13px" }}
               >
                 <Filter className="h-4 w-4 mr-2" />
                 Filtrar
@@ -242,6 +244,7 @@ export function CustomerHub({ className }: CustomerHubProps) {
                 variant="outline"
                 onClick={handleExportCSV}
                 className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                style={{ marginLeft: "13px" }}
               >
                 <Download className="h-4 w-4 mr-2" />
                 Exportar CSV
