@@ -226,10 +226,10 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
             {/* Refresh Button */}
             <Button
               size="sm"
-              variant="outline"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              className="text-white"
+              style={{ backgroundColor: "#4F8EF7", border: "none" }}
             >
               <RefreshCw
                 className={cn("h-4 w-4 mr-2", isRefreshing && "animate-spin")}
