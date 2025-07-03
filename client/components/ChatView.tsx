@@ -288,7 +288,12 @@ export function ChatView({
   const TagIcon = mockConversation.tag === "order" ? Package : Settings;
 
   return (
-    <div className={cn("h-full flex flex-col bg-gray-950", className)}>
+    <div
+      className={cn(
+        "h-full flex flex-col bg-gray-950 chat-messages-area",
+        className,
+      )}
+    >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-800">
         <div className="flex items-center gap-3">
