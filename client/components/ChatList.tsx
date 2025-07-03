@@ -58,6 +58,9 @@ export function ChatList({
   const [isLifecycleOpen, setIsLifecycleOpen] = useState(true);
   const [isTeamInboxOpen, setIsTeamInboxOpen] = useState(false);
   const [isCustomInboxOpen, setIsCustomInboxOpen] = useState(false);
+  const [selectedSection, setSelectedSection] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("chats");
+  const [isUnrepliedOnly, setIsUnrepliedOnly] = useState(false);
 
   // Counters
   const allCount = 1;
@@ -65,12 +68,9 @@ export function ChatList({
   const newLeadCount = 1;
 
   return (
-    <div
-      className={cn(
-        "h-full flex flex-col bg-gray-900 border-r border-gray-800 w-64 min-w-[256px] max-w-[256px]",
-        className,
-      )}
-    >
+    <div className={cn("h-full flex bg-gray-900", className)}>
+      {/* Inbox Sidebar */}
+      <div className="w-64 min-w-[256px] max-w-[256px] flex flex-col border-r border-gray-800">
       {/* Header */}
       <div className="p-3 border-b border-gray-800">
         <div className="flex items-center justify-between mb-2">
