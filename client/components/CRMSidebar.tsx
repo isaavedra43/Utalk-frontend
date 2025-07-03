@@ -67,7 +67,7 @@ export function CRMSidebar({
     },
     {
       id: "incoming-calls",
-      label: "Incoming Calls",
+      label: "Llamadas Entrantes",
       icon: Phone,
     },
   ];
