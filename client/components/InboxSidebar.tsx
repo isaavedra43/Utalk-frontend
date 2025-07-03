@@ -192,29 +192,6 @@ export function InboxSidebar({
               {unassignedCount}
             </Badge>
           </Button>
-
-          {/* Incoming Calls */}
-          <Button
-            variant="ghost"
-            onClick={() => handleSectionClick("calls")}
-            className={cn("w-full justify-start transition-colors")}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              height: "48px",
-              padding: "0 12px",
-              borderRadius: "8px",
-              background:
-                selectedSection === "calls" ? "#3A3A4D" : "transparent",
-              color: selectedSection === "calls" ? "#FFFFFF" : "#A0A0A0",
-            }}
-          >
-            <div className="flex items-center" style={{ gap: "8px" }}>
-              <Phone style={{ width: "20px", height: "20px" }} />
-              <span style={{ fontSize: "14px" }}>Llamadas Entrantes</span>
-            </div>
-          </Button>
         </div>
 
         {/* Lifecycle Section */}
