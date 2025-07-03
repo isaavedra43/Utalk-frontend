@@ -1,9 +1,6 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { ChatList } from "@/components/ChatList";
-import { InboxSidebar } from "@/components/InboxSidebar";
-import { ChatListColumn } from "@/components/ChatListColumn";
-import { ChatView } from "@/components/ChatView";
 import { CustomerHub } from "@/components/CustomerHub";
 import { ExecutiveDashboard } from "@/components/ExecutiveDashboard";
 import { EquipoPerformance } from "@/components/EquipoPerformance";
