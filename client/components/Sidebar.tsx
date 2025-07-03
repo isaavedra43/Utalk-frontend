@@ -37,7 +37,7 @@ interface NavigationItem {
 const navigationItems: NavigationItem[] = [
   {
     id: "dashboard",
-    label: "Dashboard",
+    label: "Panel de Control",
     icon: LayoutDashboard,
     href: "/dashboard",
   },
