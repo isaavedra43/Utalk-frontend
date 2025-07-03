@@ -54,6 +54,12 @@ const navigationItems: NavigationItem[] = [
       { id: "deals", label: "Oportunidades", href: "/crm/deals" },
     ],
   },
+  {
+    id: "team",
+    label: "Equipo",
+    icon: UserCheck,
+    href: "/team",
+  },
 ];
 
 export function Sidebar({
