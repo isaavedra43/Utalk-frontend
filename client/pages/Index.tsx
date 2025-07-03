@@ -142,6 +142,11 @@ export default function Index() {
                 <CustomerHub className="h-full" />
               </div>
             )}
+            {activeModule === "team" && (
+              <div className="flex-1 overflow-hidden">
+                <EquipoPerformance className="h-full" />
+              </div>
+            )}
           </div>
         </div>
 
