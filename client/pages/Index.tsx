@@ -193,13 +193,17 @@ export default function Index() {
         {/* Center Panel - Module Content */}
         <div
           className={cn(
-            "flex-1 transition-all duration-300 ease-in-out overflow-hidden",
+            "flex-1 transition-all duration-300 ease-in-out overflow-hidden relative z-5",
             // Mobile - full width without gaps
             "w-full",
-            // Desktop - use remaining space without gaps
-            activeModule === "messages" && rightPanelVisible
-              ? "lg:max-w-[calc(100%-320px)] xl:max-w-[calc(100%-352px)]"
-              : "lg:max-w-full",
+            // Desktop - use remaining space without gaps, accounting for chat list
+            activeModule === "messages" && leftPanelVisible && rightPanelVisible
+              ? "lg:max-w-[calc(100%-700px)] xl:max-w-[calc(100%-720px)]"
+              : activeModule === "messages" && leftPanelVisible
+                ? "lg:max-w-[calc(100%-680px)]"
+                : activeModule === "messages" && rightPanelVisible
+                  ? "lg:max-w-[calc(100%-320px)] xl:max-w-[calc(100%-352px)]"
+                  : "lg:max-w-full",
           )}
         >
           {activeModule === "messages" ? (
