@@ -270,28 +270,26 @@ export function ChatThread({
           className="border-t border-gray-800"
           style={{ background: "#1F1F23" }}
         >
-          {/* Top Bar with Channel Selector and AI Assist */}
+          {/* Top Bar with Action Buttons */}
           <div
             className="flex items-center justify-between px-6 py-2 border-b border-gray-800"
             style={{ background: "#222225" }}
           >
-            {/* Channel Selector */}
-            <div className="flex items-center">
-              <button
-                className="flex items-center gap-2 px-3 py-2 bg-transparent border-0 text-gray-400 hover:text-white transition-colors rounded-lg"
-                style={{ fontSize: "14px" }}
-              >
-                <div className="flex items-center gap-2">
-                  <img
-                    src="https://cdn.respond.io/platform/web/assets/static/images/channels/circle/64/facebook.webp"
-                    alt="facebook"
-                    className="w-5 h-5"
-                  />
-                  <span className="text-sm font-medium text-gray-300">
-                    Facebook Messenger
-                  </span>
-                </div>
-                <ChevronDown className="w-4 h-4 text-gray-500" />
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3">
+              <button className="flex items-center gap-2 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors">
+                <Send className="w-4 h-4" />
+                <span>Enviar Campaña</span>
+              </button>
+
+              <button className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors">
+                <span className="text-lg">🤖</span>
+                <span>Resumir (IA)</span>
+              </button>
+
+              <button className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
+                <span className="text-lg">📝</span>
+                <span>Agregar Nota</span>
               </button>
             </div>
 
