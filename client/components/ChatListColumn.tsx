@@ -181,7 +181,7 @@ export function ChatListColumn({
           style={{
             flex: 1,
             overflowY: "auto",
-            padding: "0 16px 16px 16px",
+            padding: "0 12px 16px 12px",
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -189,24 +189,26 @@ export function ChatListColumn({
               <div
                 key={conversation.id}
                 onClick={() => onChatSelect?.(conversation.id)}
-                className={cn("cursor-pointer transition-all duration-200")}
+                className={cn("cursor-pointer transition-all duration-150")}
                 style={{
-                  height: "72px",
+                  height: "60px",
                   borderRadius: "8px",
-                  padding: "12px",
+                  padding: "8px 12px",
                   display: "flex",
                   alignItems: "center",
                   gap: "12px",
-                  background: "#2E2E40",
+                  background: "transparent",
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "#2A2A3C";
-                  (e.currentTarget as HTMLElement).style.boxShadow =
-                    "0 2px 8px rgba(0,0,0,0.2)";
+                  (e.currentTarget as HTMLElement).style.background = "#24242A";
+                  (e.currentTarget as HTMLElement).style.transform =
+                    "translateY(-1px)";
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "#2E2E40";
-                  (e.currentTarget as HTMLElement).style.boxShadow = "none";
+                  (e.currentTarget as HTMLElement).style.background =
+                    "transparent";
+                  (e.currentTarget as HTMLElement).style.transform =
+                    "translateY(0)";
                 }}
               >
                 {/* Avatar */}
