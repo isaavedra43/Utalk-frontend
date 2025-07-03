@@ -159,7 +159,7 @@ export function CRMSidebar({
                   variant="ghost"
                   className="w-full justify-between h-10 hover:bg-gray-700/60 text-gray-400 hover:text-white"
                 >
-                  <span className="text-sm font-medium">Lifecycle</span>
+                  <span className="text-sm font-medium">Ciclo de Vida</span>
                   {isLifecycleOpen ? (
                     <ChevronDown className="h-4 w-4" />
                   ) : (
