@@ -210,7 +210,9 @@ export function CRMSidebar({
                 >
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4" />
-                    <span className="text-sm font-medium">Team Inbox</span>
+                    <span className="text-sm font-medium">
+                      Bandeja de Equipo
+                    </span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Button
