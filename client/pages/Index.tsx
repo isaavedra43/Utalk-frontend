@@ -4,6 +4,7 @@ import { ChatList } from "@/components/ChatList";
 import { ChatView } from "@/components/ChatView";
 import { CustomerHub } from "@/components/CustomerHub";
 import { ExecutiveDashboard } from "@/components/ExecutiveDashboard";
+import { EquipoPerformance } from "@/components/EquipoPerformance";
 import Copilot from "@/components/Copilot";
 import { ClientInfoPanel } from "@/components/ClientInfoPanel";
 import { AIAssistantPanel } from "@/components/AIAssistantPanel";
