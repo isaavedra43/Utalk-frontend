@@ -283,7 +283,9 @@ export default function Index() {
                 className="hidden lg:grid h-full"
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "60px 280px 360px 1fr",
+                  gridTemplateColumns: leftPanelVisible
+                    ? "60px 280px 360px 1fr"
+                    : "60px 1fr",
                   gridGap: "16px",
                   height: "100vh",
                   padding: "16px",
