@@ -126,7 +126,7 @@ export function PerformanceKPIs({ className }: PerformanceKPIsProps) {
 
       {/* KPI Cards */}
       <ScrollArea className="flex-1">
-        <div className="p-4 space-y-4">
+        <div className="px-0 py-4 space-y-4">
           {/* 1. Average Response Time */}
           <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700 hover:bg-gray-800/70 transition-colors">
             <div className="flex items-center justify-between mb-2">
