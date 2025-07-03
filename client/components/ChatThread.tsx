@@ -165,10 +165,12 @@ export function ChatThread({
   }
 
   return (
-    <div
-      className={cn("h-full flex flex-col", className)}
-      style={{ background: "#1F1F23" }}
-    >
+    <>
+      <style dangerouslySetInnerHTML={{ __html: styles }} />
+      <div
+        className={cn("h-full flex flex-col", className)}
+        style={{ background: "#1F1F23" }}
+      >
       {/* Header */}
       <div
         className="flex items-center px-6 border-b border-gray-800"
