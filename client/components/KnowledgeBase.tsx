@@ -385,6 +385,7 @@ export function KnowledgeBase({ className }: KnowledgeBaseProps) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 bg-gray-800 border-gray-700 text-white"
+              style={{ marginLeft: "12px" }}
             />
           </div>
 
