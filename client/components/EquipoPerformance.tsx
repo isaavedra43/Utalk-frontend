@@ -362,6 +362,7 @@ export function EquipoPerformance({ className }: EquipoPerformanceProps) {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 bg-gray-800 border-gray-600 text-white placeholder-gray-400"
+              style={{ marginLeft: "12px" }}
             />
           </div>
 
