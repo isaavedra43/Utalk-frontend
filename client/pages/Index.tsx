@@ -266,15 +266,7 @@ export default function Index() {
               />
             </div>
           ) : activeModule === "dashboard" ? (
-            <div className="h-full flex items-center justify-center bg-gray-950">
-              <div className="text-center text-gray-400 p-4">
-                <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4 mx-auto">
-                  <LayoutDashboard className="h-8 w-8" />
-                </div>
-                <p className="text-lg font-medium mb-2">Dashboard</p>
-                <p className="text-sm">Analytics and insights coming soon</p>
-              </div>
-            </div>
+            <ExecutiveDashboard className="h-full" />
           ) : activeModule === "crm" ? (
             <CustomerHub className="h-full" />
           ) : null}
