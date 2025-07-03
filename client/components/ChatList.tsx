@@ -40,7 +40,7 @@ const mockConversations = [
     id: "1",
     contactName: "Israel Saavedra",
     lastMessage:
-      "Hola, ¿cómo est�� el estado de mi pedido #AL-2024-0123? ¿Cuándo podemos esperar la entrega?",
+      "Hola, ¿cómo está el estado de mi pedido #AL-2024-0123? ¿Cuándo podemos esperar la entrega?",
     timestamp: "12:14 PM",
     date: "2024-01-15",
     section: "Inbox > Chats",
@@ -450,77 +450,12 @@ export function ChatList({
           </div>
 
           {/* Conversations List */}
-          <ScrollArea className="flex-1">
-            <div className="p-2 space-y-1">
-              {mockConversations.map((conversation) => (
-                <div
-                  key={conversation.id}
-                  className={cn(
-                    "p-3 rounded-lg cursor-pointer transition-colors relative",
-                    selectedChatId === conversation.id
-                      ? "bg-gray-700/60"
-                      : "hover:bg-gray-700/40",
-                  )}
-                  onClick={() => onChatSelect?.(conversation.id)}
-                >
-                  <div className="flex items-start gap-3">
-                    {/* Avatar */}
-                    <div className="relative flex-shrink-0">
-                      <img
-                        src={conversation.avatarUrl}
-                        alt={conversation.contactName}
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gray-900 rounded-full flex items-center justify-center border border-gray-700">
-                        <div className="w-3 h-3 bg-blue-600 rounded-full flex items-center justify-center">
-                          <MessageCircle className="w-2 h-2 text-white" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className="text-sm font-semibold text-white truncate">
-                          {conversation.contactName}
-                        </h3>
-                        <span className="text-xs text-gray-400 flex-shrink-0">
-                          {conversation.timestamp}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1 mb-2">
-                        <span className="text-yellow-500 text-xs">✓</span>
-                        <p className="text-sm text-gray-400 truncate">
-                          {conversation.lastMessage}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <Badge className="bg-gray-800 text-gray-300 text-xs px-2 py-0 h-5 flex items-center gap-1">
-                          <span>🆕</span>
-                          New Lead
-                        </Badge>
-                        {conversation.isUnread && (
-                          <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {/* Empty state for sections without conversations */}
-              {selectedSection !== "all" && selectedSection !== "new-lead" && (
-                <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-                  <MessageCircle className="h-8 w-8 mb-2" />
-                  <p className="text-sm text-center">
-                    No conversations in this section
-                  </p>
-                </div>
-              )}
-            </div>
-          </ScrollArea>
+          <ConversationList
+            conversations={mockConversations}
+            selectedConversationId={selectedChatId}
+            onSelect={onChatSelect}
+            className="flex-1"
+          />
         </div>
       )}
     </div>
