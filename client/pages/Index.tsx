@@ -276,17 +276,23 @@ export default function Index() {
                 onShowClientInfo={() => setClientInfoVisible(true)}
               />
             </div>
-          ) : activeModule === "dashboard" ? (
-            <ExecutiveDashboard className="h-full" />
-          ) : activeModule === "crm" ? (
-            <CustomerHub className="h-full" />
-          ) : activeModule === "team" ? (
-            <EquipoPerformance className="h-full" />
-          ) : activeModule === "campaigns" ? (
-            <CampaignModule className="h-full" />
-          ) : activeModule === "settings" ? (
-            <SellerSettings className="h-full" />
-          ) : null}
+          ) : (
+            <div className="h-full overflow-auto">
+              {activeModule === "dashboard" && (
+                <ExecutiveDashboard className="h-full" />
+              )}
+              {activeModule === "crm" && <CustomerHub className="h-full" />}
+              {activeModule === "team" && (
+                <EquipoPerformance className="h-full" />
+              )}
+              {activeModule === "campaigns" && (
+                <CampaignModule className="h-full" />
+              )}
+              {activeModule === "settings" && (
+                <SellerSettings className="h-full" />
+              )}
+            </div>
+          )}
         </div>
 
         {/* Desktop Right Panel - AI Assistant & Client Info */}
