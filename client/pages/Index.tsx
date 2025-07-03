@@ -246,12 +246,12 @@ export default function Index() {
                 )}
               </div>
 
-              {/* Desktop Layout - 3 Column Grid */}
+              {/* Desktop Layout - 4 Column Grid */}
               <div
                 className="hidden lg:block"
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "280px 360px 1fr",
+                  gridTemplateColumns: "280px 360px 1fr 320px",
                   height: "100vh",
                   gridGap: "16px",
                   padding: "16px",
@@ -271,42 +271,33 @@ export default function Index() {
                   selectedSection={selectedSection}
                 />
 
-                {/* Column 3: Chat Area + AI/Cliente Panel */}
+                {/* Column 3: Chat Area (1fr) */}
                 <div
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 320px",
-                    gridGap: "16px",
+                    background: "#1E1E2F",
+                    borderRadius: "12px",
+                    display: "flex",
+                    flexDirection: "column",
+                    overflow: "hidden",
+                  }}
+                >
+                  <ChatView
+                    chatId={selectedChatId}
+                    className="h-full"
+                    onShowAI={() => setAiPanelVisible(true)}
+                    onShowClientInfo={() => setClientInfoVisible(true)}
+                  />
+                </div>
+
+                {/* Column 4: AI/Cliente Panel (320px) */}
+                <div
+                  style={{
+                    width: "320px",
+                    display: "flex",
+                    flexDirection: "column",
                     height: "100%",
                   }}
                 >
-                  {/* Chat Area */}
-                  <div
-                    style={{
-                      background: "#1E1E2F",
-                      borderRadius: "12px",
-                      display: "flex",
-                      flexDirection: "column",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <ChatView
-                      chatId={selectedChatId}
-                      className="h-full"
-                      onShowAI={() => setAiPanelVisible(true)}
-                      onShowClientInfo={() => setClientInfoVisible(true)}
-                    />
-                  </div>
-
-                  {/* AI/Cliente Panel (320px) */}
-                  <div
-                    style={{
-                      width: "320px",
-                      display: "flex",
-                      flexDirection: "column",
-                      height: "100%",
-                    }}
-                  >
                     {/* Tabs */}
                     <div className="flex" style={{ marginBottom: "0" }}>
                       <button
