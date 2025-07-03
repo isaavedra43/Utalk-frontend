@@ -20,12 +20,15 @@ import {
   DollarSign,
   Flame,
   Star,
+  Menu,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface InboxSidebarProps {
   onSectionSelect: (sectionId: string) => void;
   selectedSection: string | null;
+  onTogglePanels?: () => void;
   className?: string;
 }
 
