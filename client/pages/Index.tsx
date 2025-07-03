@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
+import { MessagesSidebar } from "@/components/MessagesSidebar";
 import { InboxSidebar } from "@/components/InboxSidebar";
 import { ChatListColumn } from "@/components/ChatListColumn";
 import { ChatView } from "@/components/ChatView";
