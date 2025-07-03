@@ -130,18 +130,17 @@ export default function Index() {
             )}
 
             {/* Show module content for non-messages modules */}
-            {activeModule !== "messages" && (
+            {activeModule === "dashboard" && (
               <div className="flex-1 p-4">
                 <div className="text-center text-gray-400">
-                  <p className="text-lg font-medium mb-2">
-                    {activeModule === "dashboard" ? "Dashboard" : "CRM"}
-                  </p>
-                  <p className="text-sm">
-                    {activeModule === "dashboard"
-                      ? "Analytics and insights coming soon"
-                      : "Customer relationship management coming soon"}
-                  </p>
+                  <p className="text-lg font-medium mb-2">Dashboard</p>
+                  <p className="text-sm">Analytics and insights coming soon</p>
                 </div>
+              </div>
+            )}
+            {activeModule === "crm" && (
+              <div className="flex-1 overflow-hidden">
+                <CustomerHub className="h-full" />
               </div>
             )}
           </div>
