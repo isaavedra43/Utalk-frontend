@@ -132,11 +132,8 @@ export default function Index() {
 
             {/* Show module content for non-messages modules */}
             {activeModule === "dashboard" && (
-              <div className="flex-1 p-4">
-                <div className="text-center text-gray-400">
-                  <p className="text-lg font-medium mb-2">Dashboard</p>
-                  <p className="text-sm">Analytics and insights coming soon</p>
-                </div>
+              <div className="flex-1 overflow-hidden">
+                <ExecutiveDashboard className="h-full" />
               </div>
             )}
             {activeModule === "crm" && (
