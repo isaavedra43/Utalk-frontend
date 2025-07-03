@@ -290,7 +290,7 @@ export function CRMSidebar({
               </CollapsibleTrigger>
               <CollapsibleContent className="mt-1 px-4">
                 <div className="text-xs text-gray-500 py-3 text-center">
-                  No custom inboxes created
+                  No hay bandejas personalizadas creadas
                   <Button
                     size="sm"
                     variant="outline"
