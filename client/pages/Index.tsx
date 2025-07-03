@@ -284,46 +284,18 @@ export default function Index() {
                 )}
               </div>
 
-              {/* Desktop Layout - 3 Column Grid */}
+              {/* Desktop Layout - Chat View Only */}
               <div
                 className="hidden lg:grid h-full"
                 style={{
                   display: "grid",
-                  gridTemplateColumns: leftPanelVisible
-                    ? "280px 360px 1fr"
-                    : "1fr",
+                  gridTemplateColumns: "1fr",
                   gridGap: "0px",
                   height: "100vh",
                   fontFamily: "Inter, sans-serif",
                 }}
               >
-                {/* Column 1: Inbox (280px) */}
-                {leftPanelVisible && (
-                  <div className="flex-shrink-0">
-                    <InboxSidebar
-                      onSectionSelect={handleSectionSelect}
-                      selectedSection={selectedSection}
-                      onTogglePanels={() =>
-                        setLeftPanelVisible(!leftPanelVisible)
-                      }
-                      className="h-full"
-                    />
-                  </div>
-                )}
-
-                {/* Column 2: Chat List (360px) */}
-                {leftPanelVisible && (
-                  <div className="flex-shrink-0">
-                    <ChatListColumn
-                      selectedChatId={selectedChatId}
-                      onChatSelect={handleChatSelect}
-                      selectedSection={selectedSection}
-                      className="h-full"
-                    />
-                  </div>
-                )}
-
-                {/* Column 3: Chat View + AI/Client Panel */}
+                {/* Chat View + AI/Client Panel */}
                 <div
                   className="min-w-0"
                   style={{
