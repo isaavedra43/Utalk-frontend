@@ -498,7 +498,7 @@ export function ChatList({
                     size="sm"
                     className="h-8 px-3 text-sm text-gray-300 hover:text-white hover:bg-gray-700/60"
                   >
-                    Open, Newest
+                    Abierto, Más Reciente
                     <ChevronDown className="h-3 w-3 ml-1" />
                   </Button>
                 </div>
