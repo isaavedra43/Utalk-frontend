@@ -253,39 +253,33 @@ export default function Index() {
                   maxWidth: "1440px",
                   margin: "0 auto",
                   padding: "24px",
-                  fontFamily: "Montserrat, sans-serif",
+                  fontFamily: "Inter, sans-serif",
                 }}
               >
                 <div
-                  className="grid h-full"
+                  className="flex h-full"
                   style={{
-                    gridTemplateColumns: "280px 1fr 320px",
-                    gridGap: "24px",
+                    gap: "16px",
                     height: "calc(100vh - 48px)",
                   }}
                 >
-                  {/* Column 1: Sidebar de Bandejas */}
-                  <div
-                    style={{
-                      width: "280px",
-                      background: "#1E1E2F",
-                      borderRadius: "12px",
-                      padding: "16px",
-                      overflowY: "auto",
-                      display: "flex",
-                      flexDirection: "column",
-                    }}
-                  >
-                    <ChatList
-                      selectedChatId={selectedChatId}
-                      onChatSelect={handleChatSelect}
-                      className="h-full"
-                    />
-                  </div>
+                  {/* Column 1: Sidebar de Bandejas (280px) */}
+                  <InboxSidebar
+                    onSectionSelect={handleSectionSelect}
+                    selectedSection={selectedSection}
+                  />
 
-                  {/* Column 2: Chat Area */}
+                  {/* Column 2: Chat List (360px) */}
+                  <ChatListColumn
+                    selectedChatId={selectedChatId}
+                    onChatSelect={handleChatSelect}
+                    selectedSection={selectedSection}
+                  />
+
+                  {/* Column 3: Chat Area (flex-1) */}
                   <div
                     style={{
+                      flex: 1,
                       background: "#1E1E2F",
                       borderRadius: "12px",
                       display: "flex",
@@ -301,7 +295,7 @@ export default function Index() {
                     />
                   </div>
 
-                  {/* Column 3: AI/Cliente Panel */}
+                  {/* Column 4: AI/Cliente Panel (320px) */}
                   <div
                     style={{
                       width: "320px",
