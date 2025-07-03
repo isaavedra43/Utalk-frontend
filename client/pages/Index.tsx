@@ -281,6 +281,8 @@ export default function Index() {
             <CustomerHub className="h-full" />
           ) : activeModule === "team" ? (
             <EquipoPerformance className="h-full" />
+          ) : activeModule === "campaigns" ? (
+            <CampaignModule className="h-full" />
           ) : activeModule === "settings" ? (
             <SellerSettings className="h-full" />
           ) : null}
