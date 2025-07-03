@@ -610,68 +610,230 @@ export function ChatView({
           </Dialog>
         </div>
 
-        {/* Input row */}
-        <div className="flex items-end gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-gray-400 hover:text-white p-2"
-          >
-            <Paperclip className="h-4 w-4" />
-          </Button>
+        {/* Enhanced Input Area */}
+        <div className="border border-gray-700 rounded-lg bg-gray-800/60 backdrop-blur-sm">
+          {/* Toolbar */}
+          <div className="flex items-center justify-between p-2 border-b border-gray-700/50">
+            <div className="flex items-center gap-1">
+              {/* File Upload */}
+              <input
+                type="file"
+                multiple
+                accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.mp4,.mp3"
+                className="hidden"
+                id="file-upload"
+                onChange={(e) => {
+                  // Handle file upload
+                  console.log("Files uploaded:", e.target.files);
+                }}
+              />
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-gray-400 hover:text-white hover:bg-gray-700/60"
+                      onClick={() =>
+                        document.getElementById("file-upload")?.click()
+                      }
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-gray-800 border border-gray-600 text-white text-xs">
+                    Adjuntar archivos
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
-          <div className="flex-1 relative">
-            <Input
-              placeholder={
-                isPrivateNote ? "Add a private note..." : "Type a message..."
-              }
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className={cn(
-                "pr-20 resize-none min-h-[40px] border-gray-700 text-white placeholder:text-gray-400 focus:border-blue-500",
-                isPrivateNote
-                  ? "bg-amber-950/30 border-amber-600/30"
-                  : "bg-gray-800",
-              )}
-            />
-            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-gray-400 hover:text-white p-1"
-              >
-                <Smile className="h-4 w-4" />
-              </Button>
+              {/* Image Upload */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-gray-400 hover:text-white hover:bg-gray-700/60"
+                    >
+                      <ImageIcon className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-gray-800 border border-gray-600 text-white text-xs">
+                    Enviar imagen
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* Emoji Picker */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-gray-400 hover:text-white hover:bg-gray-700/60"
+                    >
+                      <Smile className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-gray-800 border border-gray-600 text-white text-xs">
+                    Añadir emoji
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* Voice Recording */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={toggleRecording}
+                      className={cn(
+                        "h-7 w-7 p-0",
+                        isRecording
+                          ? "text-red-400 hover:text-red-300 bg-red-500/10"
+                          : "text-gray-400 hover:text-white hover:bg-gray-700/60",
+                      )}
+                    >
+                      {isRecording ? (
+                        <Square className="h-4 w-4" />
+                      ) : (
+                        <Mic className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-gray-800 border border-gray-600 text-white text-xs">
+                    {isRecording ? "Detener grabación" : "Grabar audio"}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+
+            {/* AI Actions */}
+            <div className="flex items-center gap-1">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 border border-blue-500/20"
+                    >
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Resumir
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-gray-800 border border-gray-600 text-white text-xs">
+                    Resumir conversación con IA
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 border border-purple-500/20"
+                    >
+                      <Bot className="h-3 w-3 mr-1" />
+                      Sugerir
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-gray-800 border border-gray-600 text-white text-xs">
+                    Obtener sugerencias de IA
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleRecording}
-            className={cn(
-              "p-2",
-              isRecording
-                ? "text-red-400 hover:text-red-300"
-                : "text-gray-400 hover:text-white",
-            )}
-          >
-            {isRecording ? (
-              <Square className="h-4 w-4" />
-            ) : (
-              <Mic className="h-4 w-4" />
-            )}
-          </Button>
+          {/* Rich Text Editor */}
+          <div className="relative">
+            <div
+              contentEditable
+              className={cn(
+                "min-h-[80px] max-h-[200px] overflow-y-auto p-3 text-sm text-white placeholder:text-gray-400 focus:outline-none",
+                "prose prose-sm prose-invert max-w-none",
+                isPrivateNote ? "bg-amber-950/20" : "bg-transparent",
+              )}
+              style={{
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+              }}
+              suppressContentEditableWarning={true}
+              onInput={(e) => {
+                const target = e.target as HTMLDivElement;
+                setMessage(target.textContent || "");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              data-placeholder={
+                isPrivateNote
+                  ? "Añadir nota privada..."
+                  : "Escribe un mensaje..."
+              }
+            />
 
-          <Button
-            onClick={handleSendMessage}
-            disabled={!message.trim()}
-            size="sm"
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-400"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
+            {/* Placeholder when empty */}
+            {!message && (
+              <div className="absolute top-3 left-3 text-sm text-gray-400 pointer-events-none">
+                {isPrivateNote
+                  ? "Añadir nota privada..."
+                  : "Escribe un mensaje..."}
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Actions */}
+          <div className="flex items-center justify-between p-2 border-t border-gray-700/50">
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-gray-400 hover:text-white hover:bg-gray-700/60"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Comentario
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-gray-800 border border-gray-600 text-white text-xs">
+                    Añadir comentario interno
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <span className="text-xs text-gray-500">
+                {message.length} caracteres
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">
+                Enter para enviar, Shift+Enter nueva línea
+              </span>
+              <Button
+                onClick={handleSendMessage}
+                disabled={!message.trim()}
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-400 h-7"
+              >
+                <Send className="h-3 w-3 mr-1" />
+                Enviar
+              </Button>
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
