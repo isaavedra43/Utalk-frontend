@@ -87,7 +87,7 @@ export function CRMSidebar({
     },
     {
       id: "payment",
-      label: "Payment",
+      label: "Pago",
       emoji: "💵",
       count: contactCounts.payment,
     },
