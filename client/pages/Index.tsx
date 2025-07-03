@@ -295,42 +295,17 @@ export default function Index() {
                   fontFamily: "Inter, sans-serif",
                 }}
               >
-                {/* Chat View + AI/Client Panel */}
+                {/* Right Panel Only */}
                 <div
                   className="min-w-0"
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: rightPanelVisible
-                      ? "1fr 360px"
-                      : "1fr",
-                    gridGap: "16px",
+                    display: "flex",
+                    justifyContent: "flex-end",
                     height: "100%",
                   }}
                 >
-                  {/* Subcolumn A: Chat View */}
-                  <div className="min-w-0 bg-gray-900 rounded-lg overflow-hidden">
-                    <ChatView
-                      chatId={selectedChatId}
-                      className="h-full"
-                      onShowAI={() => {
-                        setRightPanelVisible(true);
-                        setAiPanelVisible(true);
-                        setClientInfoVisible(false);
-                      }}
-                      onShowClientInfo={() => {
-                        setRightPanelVisible(true);
-                        setClientInfoVisible(true);
-                        setAiPanelVisible(false);
-                      }}
-                      onToggleRightPanel={() =>
-                        setRightPanelVisible(!rightPanelVisible)
-                      }
-                    />
-                  </div>
-
-                  {/* Subcolumn B: AI Assistant / Client Info Panel (360px) */}
-                  {rightPanelVisible && (
-                    <div className="flex-shrink-0" style={{ width: "360px" }}>
+                  {/* AI Assistant / Client Info Panel (320px - made thinner) */}
+                  <div className="flex-shrink-0" style={{ width: "320px" }}>
                       <div className="h-full flex flex-col">
                         {/* Tabs */}
                         <div className="flex" style={{ marginBottom: "0" }}>
