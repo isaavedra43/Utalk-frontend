@@ -77,6 +77,7 @@ export function ChatView({
   className,
   onShowAI,
   onShowClientInfo,
+  onToggleRightPanel,
 }: ChatViewProps) {
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
