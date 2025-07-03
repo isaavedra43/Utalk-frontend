@@ -171,219 +171,222 @@ export function ChatThread({
         className={cn("h-full flex flex-col", className)}
         style={{ background: "#1F1F23" }}
       >
-      {/* Header */}
-      <div
-        className="flex items-center px-6 border-b border-gray-800"
-        style={{ height: "64px", background: "#1F1F23" }}
-      >
-        {onBack && (
-          <button
-            onClick={onBack}
-            className="mr-4 p-1 hover:bg-gray-700 rounded-lg transition-colors"
-          >
-            <ChevronLeft className="w-6 h-6 text-gray-400" />
-          </button>
-        )}
+        {/* Header */}
+        <div
+          className="flex items-center px-6 border-b border-gray-800"
+          style={{ height: "64px", background: "#1F1F23" }}
+        >
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="mr-4 p-1 hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <ChevronLeft className="w-6 h-6 text-gray-400" />
+            </button>
+          )}
 
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <div>
-              <div className="text-xs text-gray-400 mb-1">
-                Inbox &gt; Chats &gt; {conversation.name}
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <div>
+                <div className="text-xs text-gray-400 mb-1">
+                  Inbox &gt; Chats &gt; {conversation.name}
+                </div>
+                <h2 className="text-lg font-bold text-white">
+                  {conversation.name}
+                </h2>
               </div>
-              <h2 className="text-lg font-bold text-white">
-                {conversation.name}
-              </h2>
             </div>
           </div>
+
+          <span
+            className="px-3 py-1 rounded text-sm font-medium text-white"
+            style={{
+              backgroundColor:
+                channelColors[
+                  conversation.channel as keyof typeof channelColors
+                ],
+            }}
+          >
+            {channelLabels[conversation.channel as keyof typeof channelLabels]}
+          </span>
         </div>
 
-        <span
-          className="px-3 py-1 rounded text-sm font-medium text-white"
-          style={{
-            backgroundColor:
-              channelColors[conversation.channel as keyof typeof channelColors],
-          }}
-        >
-          {channelLabels[conversation.channel as keyof typeof channelLabels]}
-        </span>
-      </div>
-
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={cn(
-              "flex",
-              message.isAgent ? "justify-end" : "justify-start",
-            )}
-          >
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {messages.map((message) => (
             <div
+              key={message.id}
               className={cn(
-                "max-w-[70%] rounded-xl px-4 py-3",
-                message.isAgent
-                  ? "bg-[#4A90E2] text-white"
-                  : "bg-[#2C2C32] text-white",
+                "flex",
+                message.isAgent ? "justify-end" : "justify-start",
               )}
-              style={{ fontSize: "15px" }}
             >
-              <p>{message.text}</p>
               <div
                 className={cn(
-                  "text-xs mt-1",
-                  message.isAgent ? "text-blue-100" : "text-[#80808A]",
+                  "max-w-[70%] rounded-xl px-4 py-3",
+                  message.isAgent
+                    ? "bg-[#4A90E2] text-white"
+                    : "bg-[#2C2C32] text-white",
                 )}
-                style={{ fontSize: "12px" }}
+                style={{ fontSize: "15px" }}
               >
-                {message.timestamp}
+                <p>{message.text}</p>
+                <div
+                  className={cn(
+                    "text-xs mt-1",
+                    message.isAgent ? "text-blue-100" : "text-[#80808A]",
+                  )}
+                  style={{ fontSize: "12px" }}
+                >
+                  {message.timestamp}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
 
-        {isTyping && (
-          <div className="flex justify-start">
-            <div className="bg-[#2C2C32] rounded-xl px-4 py-3">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div
-                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.1s" }}
-                ></div>
-                <div
-                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.2s" }}
-                ></div>
+          {isTyping && (
+            <div className="flex justify-start">
+              <div className="bg-[#2C2C32] rounded-xl px-4 py-3">
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div
+                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                    style={{ animationDelay: "0.1s" }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                    style={{ animationDelay: "0.2s" }}
+                  ></div>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div ref={messagesEndRef} />
-      </div>
+          <div ref={messagesEndRef} />
+        </div>
 
-      {/* Enhanced Message Input */}
-      <div
-        className="border-t border-gray-800"
-        style={{ background: "#1F1F23" }}
-      >
-        {/* Top Bar with Channel Selector and AI Assist */}
+        {/* Enhanced Message Input */}
         <div
-          className="flex items-center justify-between px-6 py-2 border-b border-gray-800"
-          style={{ background: "#222225" }}
+          className="border-t border-gray-800"
+          style={{ background: "#1F1F23" }}
         >
-          {/* Channel Selector */}
-          <div className="flex items-center">
+          {/* Top Bar with Channel Selector and AI Assist */}
+          <div
+            className="flex items-center justify-between px-6 py-2 border-b border-gray-800"
+            style={{ background: "#222225" }}
+          >
+            {/* Channel Selector */}
+            <div className="flex items-center">
+              <button
+                className="flex items-center gap-2 px-3 py-2 bg-transparent border-0 text-gray-400 hover:text-white transition-colors rounded-lg"
+                style={{ fontSize: "14px" }}
+              >
+                <div className="flex items-center gap-2">
+                  <img
+                    src="https://cdn.respond.io/platform/web/assets/static/images/channels/circle/64/facebook.webp"
+                    alt="facebook"
+                    className="w-5 h-5"
+                  />
+                  <span className="text-sm font-medium text-gray-300">
+                    Facebook Messenger
+                  </span>
+                </div>
+                <ChevronDown className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+
+            {/* AI Assist Toggle */}
             <button
-              className="flex items-center gap-2 px-3 py-2 bg-transparent border-0 text-gray-400 hover:text-white transition-colors rounded-lg"
-              style={{ fontSize: "14px" }}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                "bg-blue-600 text-white hover:bg-blue-700",
+              )}
             >
-              <div className="flex items-center gap-2">
-                <img
-                  src="https://cdn.respond.io/platform/web/assets/static/images/channels/circle/64/facebook.webp"
-                  alt="facebook"
-                  className="w-5 h-5"
-                />
-                <span className="text-sm font-medium text-gray-300">
-                  Facebook Messenger
-                </span>
-              </div>
-              <ChevronDown className="w-4 h-4 text-gray-500" />
+              <span className="text-lg">✨</span>
+              <span>AI Assist</span>
             </button>
           </div>
 
-          {/* AI Assist Toggle */}
-          <button
-            className={cn(
-              "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-              "bg-blue-600 text-white hover:bg-blue-700",
-            )}
-          >
-            <span className="text-lg">✨</span>
-            <span>AI Assist</span>
-          </button>
-        </div>
-
-        {/* Message Input Area */}
-        <div className="px-6 py-3">
-          <div
-            className="bg-[#2C2C32] border border-[#3A3A40] rounded-lg overflow-hidden"
-            style={{ borderRadius: "8px" }}
-          >
-            {/* Text Input */}
-            <div className="px-4 py-3">
-              <div
-                contentEditable
-                suppressContentEditableWarning={true}
-                className="min-h-8 max-h-40 overflow-y-auto text-white text-sm leading-5 outline-none"
-                style={{
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                }}
-                onInput={(e) => {
-                  const content = e.currentTarget.textContent || "";
-                  setNewMessage(content);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                placeholder="Escribe un mensaje…"
-                data-placeholder="Escribe un mensaje…"
-              />
-            </div>
-
-            {/* Action Bar */}
-            <div className="flex items-center justify-between px-3 py-2 border-t border-[#3A3A40]">
-              <div className="flex items-center gap-1">
-                {/* Attachment Options */}
-                <button
-                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-                  disabled
-                >
-                  <Paperclip className="w-5 h-5" />
-                </button>
-                <button
-                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-                  disabled
-                >
-                  <Image className="w-5 h-5" />
-                </button>
-                <button
-                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-                  disabled
-                >
-                  <Smile className="w-5 h-5" />
-                </button>
-                <button
-                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-                  disabled
-                >
-                  <Mic className="w-5 h-5" />
-                </button>
+          {/* Message Input Area */}
+          <div className="px-6 py-3">
+            <div
+              className="bg-[#2C2C32] border border-[#3A3A40] rounded-lg overflow-hidden"
+              style={{ borderRadius: "8px" }}
+            >
+              {/* Text Input */}
+              <div className="px-4 py-3">
+                <div
+                  contentEditable
+                  suppressContentEditableWarning={true}
+                  className="min-h-8 max-h-40 overflow-y-auto text-white text-sm leading-5 outline-none"
+                  style={{
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                  }}
+                  onInput={(e) => {
+                    const content = e.currentTarget.textContent || "";
+                    setNewMessage(content);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder="Escribe un mensaje…"
+                  data-placeholder="Escribe un mensaje…"
+                />
               </div>
 
-              {/* Send Button */}
-              <button
-                onClick={handleSendMessage}
-                disabled={!newMessage.trim()}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-                  newMessage.trim()
-                    ? "bg-[#4CAF50] text-white hover:bg-green-600"
-                    : "bg-gray-600 text-gray-400 cursor-not-allowed",
-                )}
-              >
-                <Send className="w-4 h-4" />
-                <span>Enviar</span>
-              </button>
+              {/* Action Bar */}
+              <div className="flex items-center justify-between px-3 py-2 border-t border-[#3A3A40]">
+                <div className="flex items-center gap-1">
+                  {/* Attachment Options */}
+                  <button
+                    className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                    disabled
+                  >
+                    <Paperclip className="w-5 h-5" />
+                  </button>
+                  <button
+                    className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                    disabled
+                  >
+                    <Image className="w-5 h-5" />
+                  </button>
+                  <button
+                    className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                    disabled
+                  >
+                    <Smile className="w-5 h-5" />
+                  </button>
+                  <button
+                    className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                    disabled
+                  >
+                    <Mic className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Send Button */}
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!newMessage.trim()}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                    newMessage.trim()
+                      ? "bg-[#4CAF50] text-white hover:bg-green-600"
+                      : "bg-gray-600 text-gray-400 cursor-not-allowed",
+                  )}
+                >
+                  <Send className="w-4 h-4" />
+                  <span>Enviar</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
