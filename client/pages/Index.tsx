@@ -170,14 +170,6 @@ export default function Index() {
             <div className="h-full overflow-hidden">
               {/* Mobile Layout */}
               <div className="lg:hidden h-full flex flex-col">
-                {/* Mobile Chat View */}
-                <ChatView
-                  chatId={selectedChatId}
-                  className="flex-1"
-                  onShowAI={() => setRightPanelVisible(true)}
-                  onShowClientInfo={() => setRightPanelVisible(true)}
-                />
-
                 {/* Mobile AI/Client Panel */}
                 {rightPanelVisible && (
                   <div
