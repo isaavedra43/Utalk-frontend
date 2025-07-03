@@ -292,47 +292,82 @@ export function ChatView({
   return (
     <div
       className={cn(
-        "h-full flex flex-col bg-gray-950 chat-messages-area",
+        "h-full flex flex-col chat-messages-area",
         className,
       )}
+      style={{ background: "transparent" }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-800">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-10 w-10">
-            <AvatarFallback className="bg-gray-700 text-gray-300">
-              CA
+      <div
+        className="flex items-center border-b"
+        style={{
+          height: "64px",
+          padding: "0 16px",
+          borderBottom: "1px solid #2E2E3F",
+        }}
+      >
+        {/* Left - Avatar and Name with Status */}
+        <div className="flex items-center" style={{ gap: "12px" }}>
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="bg-gray-700 text-gray-300 text-sm">
+              {mockConversation.contactName.charAt(0)}
             </AvatarFallback>
           </Avatar>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-white">
-                {mockConversation.contactName}
-              </h3>
-              {getChannelIcon()}
-              <Badge className="bg-gray-700 text-gray-300 text-xs">
-                {getChannelName()}
-              </Badge>
-              <TagIcon className="h-4 w-4 text-gray-400" />
-              <Badge
-                variant="outline"
-                className="border-green-500 text-green-400 text-xs"
+            <h3
+              className="font-semibold text-white"
+              style={{ fontSize: "14px", lineHeight: "20px" }}
+            >
+              {mockConversation.contactName}
+            </h3>
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+              <span
+                className="text-gray-400"
+                style={{ fontSize: "12px" }}
               >
-                {mockConversation.status}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-gray-400">
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span>En línea</span>
-              </div>
-              <span>•</span>
-              <span>Customer</span>
-              <span>•</span>
-              <span>Via {getChannelName()}</span>
+                En línea
+              </span>
             </div>
           </div>
         </div>
+
+        {/* Center - Breadcrumb */}
+        <div className="flex-1 text-center" style={{ marginLeft: "16px" }}>
+          <span
+            className="text-gray-400"
+            style={{ fontSize: "12px", color: "#A0A0A0" }}
+          >
+            Inbox &gt; Chats &gt; {mockConversation.contactName}
+          </span>
+        </div>
+
+        {/* Right - Channel Tags and Actions */}
+        <div className="flex items-center" style={{ gap: "8px" }}>
+          {/* Channel Badge */}
+          <Badge
+            className="text-xs"
+            style={{
+              background:
+                mockConversation.channel === "whatsapp"
+                  ? "#25D366"
+                  : mockConversation.channel === "email"
+                    ? "#4285F4"
+                    : "#1877F2",
+              color: "#FFFFFF",
+            }}
+          >
+            {getChannelName()}
+          </Badge>
+
+          {/* Search Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-8 h-8 p-0 text-gray-400 hover:text-white"
+          >
+            <Search className="h-4 w-4" />
+          </Button>
 
         <div className="flex items-center gap-2">
           {/* Mobile AI and Client Info buttons */}
