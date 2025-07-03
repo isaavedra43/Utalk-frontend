@@ -14,7 +14,7 @@ import {
   AlertTriangle,
   Timer,
   Focus,
-  FileTemplate,
+  Files,
   Brain,
   FileSearch,
   Beaker,
