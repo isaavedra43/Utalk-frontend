@@ -289,7 +289,7 @@ export function ChatList({
                     variant="ghost"
                     className="w-full justify-between h-8 hover:bg-gray-700/60 text-gray-400 hover:text-white"
                   >
-                    <span className="text-xs font-medium">Lifecycle</span>
+                    <span className="text-xs font-medium">Ciclo de Vida</span>
                     {isLifecycleOpen ? (
                       <ChevronDown className="h-4 w-4" />
                     ) : (
@@ -310,7 +310,7 @@ export function ChatList({
                     )}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-sm">��</span>
+                      <span className="text-sm">🆕</span>
                       <span className="text-sm">New Lead</span>
                     </div>
                     <Badge className="bg-blue-600 text-white text-xs px-2 py-0 h-5">
