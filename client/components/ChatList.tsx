@@ -510,7 +510,7 @@ export function ChatList({
                       onCheckedChange={setIsUnrepliedOnly}
                       className="data-[state=checked]:bg-blue-600"
                     />
-                    <span className="text-xs text-gray-400">Unreplied</span>
+                    <span className="text-xs text-gray-400">Sin Responder</span>
                   </div>
                   <Button
                     size="sm"
