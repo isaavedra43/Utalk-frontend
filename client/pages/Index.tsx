@@ -53,6 +53,10 @@ export default function Index() {
     console.log(`Navigating to ${module} module`);
   };
 
+  const handleSectionSelect = (sectionId: string) => {
+    setSelectedSection(sectionId);
+  };
+
   return (
     <div className="h-screen bg-gray-950 text-white overflow-hidden">
       {/* Mobile header */}
