@@ -132,16 +132,6 @@ export function Sidebar({
       </div>
 
       {/* Toggle Panel Button */}
-      {onTogglePanel && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onTogglePanel}
-          className="bg-gray-900/90 border-gray-700 hover:bg-gray-800 text-white"
-        >
-          <PanelLeftClose className="h-4 w-4" />
-        </Button>
-      )}
 
       {/* Navigation Items */}
       <div className="flex-1 py-4 px-2 space-y-2">

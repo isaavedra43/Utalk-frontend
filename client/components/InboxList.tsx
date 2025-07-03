@@ -145,10 +145,6 @@ export function InboxList({
             </button>
           ))}
         </div>
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-sm text-[#E0E0E0]">Etiquetas</span>
-          <ChevronDown className="w-4 h-4 text-[#A0A0A8]" />
-        </div>
       </div>
 
       {/* Conversation List */}

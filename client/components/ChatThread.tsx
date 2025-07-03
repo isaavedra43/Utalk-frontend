@@ -8,6 +8,9 @@ import {
   Mic,
   Send,
   ChevronDown,
+  Mail,
+  FileText,
+  Zap,
 } from "lucide-react";
 
 // CSS for contentEditable placeholder
@@ -276,20 +279,26 @@ export function ChatThread({
             style={{ background: "#222225" }}
           >
             {/* Action Buttons */}
-            <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors">
-                <Send className="w-4 h-4" />
-                <span>Enviar Campaña</span>
+            <div className="flex items-center gap-1">
+              <button
+                title="Enviar Campaña"
+                className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <Mail className="w-5 h-5" />
               </button>
 
-              <button className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors">
-                <span className="text-lg">🤖</span>
-                <span>Resumir (IA)</span>
+              <button
+                title="Resumir (IA)"
+                className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <Zap className="w-5 h-5" />
               </button>
 
-              <button className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
-                <span className="text-lg">📝</span>
-                <span>Agregar Nota</span>
+              <button
+                title="Agregar Nota"
+                className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <FileText className="w-5 h-5" />
               </button>
             </div>
 
