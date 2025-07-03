@@ -39,15 +39,50 @@ const mockConversations = [
   {
     id: "1",
     contactName: "Israel Saavedra",
-    lastMessage: "Hola",
+    lastMessage:
+      "Hola, ¿cómo est�� el estado de mi pedido #AL-2024-0123? ¿Cuándo podemos esperar la entrega?",
     timestamp: "12:14 PM",
-    isUnread: true,
-    isPinned: false,
-    tag: "new-lead" as const,
-    channel: "facebook" as "whatsapp" | "facebook",
     date: "2024-01-15",
+    section: "Inbox > Chats",
+    isUnread: true,
+    channel: "facebook" as const,
     avatarUrl:
       "https://cdn.builder.io/api/v1/image/assets%2F2d1f4aff150c46d2aa10d890d5bc0fca%2Fac493c187ef4459383661e17488cac3a?format=webp&width=800",
+  },
+  {
+    id: "2",
+    contactName: "María González",
+    lastMessage:
+      "Gracias por la información. ¿Podrían enviarme el catálogo completo?",
+    timestamp: "11:45 AM",
+    date: "2024-01-15",
+    section: "Inbox > Chats",
+    isUnread: false,
+    channel: "whatsapp" as const,
+    avatarUrl: undefined,
+  },
+  {
+    id: "3",
+    contactName: "Carlos Rodriguez",
+    lastMessage:
+      "Perfecto, ¡gracias por la respuesta rápida! Una pregunta más - ¿hay alguna forma de acelerar el envío si es necesario?",
+    timestamp: "2:38 PM",
+    date: "2024-01-14",
+    section: "Inbox > Chats",
+    isUnread: true,
+    channel: "email" as const,
+    avatarUrl: undefined,
+  },
+  {
+    id: "4",
+    contactName: "Ana Morales",
+    lastMessage: "Recibido, procedo con el pago",
+    timestamp: "Yesterday",
+    date: "2024-01-14",
+    section: "Inbox > Chats",
+    isUnread: false,
+    channel: "sms" as const,
+    avatarUrl: undefined,
   },
 ];
 
