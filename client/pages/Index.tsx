@@ -269,19 +269,21 @@ export default function Index() {
               />
             </div>
           ) : (
-            <div className="h-full overflow-auto">
+            <div className="h-full w-full overflow-auto">
               {activeModule === "dashboard" && (
-                <ExecutiveDashboard className="h-full" />
+                <ExecutiveDashboard className="h-full w-full" />
               )}
-              {activeModule === "crm" && <CustomerHub className="h-full" />}
+              {activeModule === "crm" && (
+                <CustomerHub className="h-full w-full" />
+              )}
               {activeModule === "team" && (
-                <EquipoPerformance className="h-full" />
+                <EquipoPerformance className="h-full w-full" />
               )}
               {activeModule === "campaigns" && (
-                <CampaignModule className="h-full" />
+                <CampaignModule className="h-full w-full" />
               )}
               {activeModule === "settings" && (
-                <SellerSettings className="h-full" />
+                <SellerSettings className="h-full w-full" />
               )}
             </div>
           )}
