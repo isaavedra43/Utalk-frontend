@@ -246,50 +246,18 @@ export default function Index() {
                 )}
               </div>
 
-              {/* Desktop Layout - 4 Column Grid */}
+              {/* Desktop Layout - Panel derecho pegado al borde */}
               <div
                 className="hidden lg:block"
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "280px 360px 1fr 320px",
+                  display: "flex",
+                  justifyContent: "flex-end",
                   height: "100vh",
-                  gridGap: "16px",
                   padding: "16px",
                   fontFamily: "Inter, sans-serif",
                 }}
               >
-                {/* Column 1: Sidebar de Bandejas (280px) */}
-                <InboxSidebar
-                  onSectionSelect={handleSectionSelect}
-                  selectedSection={selectedSection}
-                />
-
-                {/* Column 2: Chat List (360px) */}
-                <ChatListColumn
-                  selectedChatId={selectedChatId}
-                  onChatSelect={handleChatSelect}
-                  selectedSection={selectedSection}
-                />
-
-                {/* Column 3: Chat Area (1fr) */}
-                <div
-                  style={{
-                    background: "#1E1E2F",
-                    borderRadius: "12px",
-                    display: "flex",
-                    flexDirection: "column",
-                    overflow: "hidden",
-                  }}
-                >
-                  <ChatView
-                    chatId={selectedChatId}
-                    className="h-full"
-                    onShowAI={() => setAiPanelVisible(true)}
-                    onShowClientInfo={() => setClientInfoVisible(true)}
-                  />
-                </div>
-
-                {/* Column 4: AI/Cliente Panel (320px) */}
+                {/* AI/Cliente Panel (320px) pegado al borde derecho */}
                 <div
                   style={{
                     width: "320px",
