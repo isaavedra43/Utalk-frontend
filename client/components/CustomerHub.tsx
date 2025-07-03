@@ -173,8 +173,16 @@ export function CustomerHub({ className }: CustomerHubProps) {
         <div className="border-b border-gray-800 bg-gray-900 px-0 py-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-xl font-semibold text-white">Customer Hub</h1>
-              <p className="text-sm text-gray-400">
+              <h1
+                className="text-xl font-semibold text-white"
+                style={{ marginLeft: "13px" }}
+              >
+                Customer Hub
+              </h1>
+              <p
+                className="text-sm text-gray-400"
+                style={{ marginLeft: "13px" }}
+              >
                 {filteredContacts.length} contacts
               </p>
             </div>

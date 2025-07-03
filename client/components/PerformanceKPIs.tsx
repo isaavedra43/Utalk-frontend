@@ -106,7 +106,12 @@ export function PerformanceKPIs({ className }: PerformanceKPIsProps) {
       {/* Header */}
       <div className="px-0 py-4 border-b border-gray-800">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold text-white">Performance KPIs</h2>
+          <h2
+            className="text-lg font-semibold text-white"
+            style={{ marginLeft: "10px" }}
+          >
+            Performance KPIs
+          </h2>
           <Button
             size="sm"
             variant="ghost"
@@ -120,7 +125,10 @@ export function PerformanceKPIs({ className }: PerformanceKPIsProps) {
           </Button>
         </div>
         <p className="text-xs text-gray-400">
-          Last update: {lastUpdate.toLocaleTimeString()}
+          <span style={{ marginLeft: "10px" }}>Last update: </span>
+          <span style={{ marginLeft: "10px" }}>
+            {lastUpdate.toLocaleTimeString()}
+          </span>
         </p>
       </div>
 
