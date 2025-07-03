@@ -3,6 +3,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { ChatList } from "@/components/ChatList";
 import { ChatView } from "@/components/ChatView";
 import { CustomerHub } from "@/components/CustomerHub";
+import { ExecutiveDashboard } from "@/components/ExecutiveDashboard";
 import Copilot from "@/components/Copilot";
 import { ClientInfoPanel } from "@/components/ClientInfoPanel";
 import { AIAssistantPanel } from "@/components/AIAssistantPanel";
