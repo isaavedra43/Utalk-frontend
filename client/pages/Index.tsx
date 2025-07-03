@@ -191,6 +191,9 @@ export default function Index() {
                           setClientInfoVisible(true);
                           setAiPanelVisible(false);
                         }}
+                        onToggleRightPanel={() =>
+                          setRightPanelVisible(!rightPanelVisible)
+                        }
                       />
                     </div>
 
