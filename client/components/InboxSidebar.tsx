@@ -83,19 +83,20 @@ export function InboxSidebar({
           <Button
             variant="ghost"
             onClick={() => handleSectionClick("all")}
-            className={cn(
-              "w-full justify-between h-auto p-0 rounded-lg transition-colors",
-            )}
+            className={cn("w-full justify-between transition-colors")}
             style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              height: "48px",
+              padding: "0 12px",
+              borderRadius: "8px",
               background: selectedSection === "all" ? "#3A3A4D" : "transparent",
               color: selectedSection === "all" ? "#FFFFFF" : "#A0A0A0",
-              padding: "8px 12px",
-              height: "auto",
-              lineHeight: "24px",
             }}
           >
-            <div className="flex items-center" style={{ gap: "12px" }}>
-              <Archive className="h-4 w-4" />
+            <div className="flex items-center" style={{ gap: "8px" }}>
+              <Archive style={{ width: "20px", height: "20px" }} />
               <span style={{ fontSize: "14px" }}>Todos</span>
             </div>
             <Badge
@@ -116,20 +117,21 @@ export function InboxSidebar({
           <Button
             variant="ghost"
             onClick={() => handleSectionClick("mine")}
-            className={cn(
-              "w-full justify-start h-auto p-0 rounded-lg transition-colors",
-            )}
+            className={cn("w-full justify-start transition-colors")}
             style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              height: "48px",
+              padding: "0 12px",
+              borderRadius: "8px",
               background:
                 selectedSection === "mine" ? "#3A3A4D" : "transparent",
               color: selectedSection === "mine" ? "#FFFFFF" : "#A0A0A0",
-              padding: "8px 12px",
-              height: "auto",
-              lineHeight: "24px",
             }}
           >
-            <div className="flex items-center" style={{ gap: "12px" }}>
-              <Users className="h-4 w-4" />
+            <div className="flex items-center" style={{ gap: "8px" }}>
+              <Users style={{ width: "20px", height: "20px" }} />
               <span style={{ fontSize: "14px" }}>Míos</span>
             </div>
           </Button>
@@ -138,20 +140,21 @@ export function InboxSidebar({
           <Button
             variant="ghost"
             onClick={() => handleSectionClick("unassigned")}
-            className={cn(
-              "w-full justify-between h-auto p-0 rounded-lg transition-colors",
-            )}
+            className={cn("w-full justify-between transition-colors")}
             style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              height: "48px",
+              padding: "0 12px",
+              borderRadius: "8px",
               background:
                 selectedSection === "unassigned" ? "#3A3A4D" : "transparent",
               color: selectedSection === "unassigned" ? "#FFFFFF" : "#A0A0A0",
-              padding: "8px 12px",
-              height: "auto",
-              lineHeight: "24px",
             }}
           >
-            <div className="flex items-center" style={{ gap: "12px" }}>
-              <MessageCircle className="h-4 w-4" />
+            <div className="flex items-center" style={{ gap: "8px" }}>
+              <MessageCircle style={{ width: "20px", height: "20px" }} />
               <span style={{ fontSize: "14px" }}>Sin Asignar</span>
             </div>
             <Badge
@@ -172,20 +175,21 @@ export function InboxSidebar({
           <Button
             variant="ghost"
             onClick={() => handleSectionClick("calls")}
-            className={cn(
-              "w-full justify-start h-auto p-0 rounded-lg transition-colors",
-            )}
+            className={cn("w-full justify-start transition-colors")}
             style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              height: "48px",
+              padding: "0 12px",
+              borderRadius: "8px",
               background:
                 selectedSection === "calls" ? "#3A3A4D" : "transparent",
               color: selectedSection === "calls" ? "#FFFFFF" : "#A0A0A0",
-              padding: "8px 12px",
-              height: "auto",
-              lineHeight: "24px",
             }}
           >
-            <div className="flex items-center" style={{ gap: "12px" }}>
-              <Phone className="h-4 w-4" />
+            <div className="flex items-center" style={{ gap: "8px" }}>
+              <Phone style={{ width: "20px", height: "20px" }} />
               <span style={{ fontSize: "14px" }}>Llamadas Entrantes</span>
             </div>
           </Button>
