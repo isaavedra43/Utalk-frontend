@@ -58,8 +58,104 @@ export function ConversationList({
   className,
   hideSection = false,
 }: ConversationListProps) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkIsMobile();
+    window.addEventListener("resize", checkIsMobile);
+    return () => window.removeEventListener("resize", checkIsMobile);
+  }, []);
+
+  // Mobile carousel layout
+  if (isMobile && conversations.length > 0) {
+    return (
+      <div
+        className={cn("conversation-cards-container bg-[#1F1F25]", className)}
+      >
+        <div className="mobile-conversation-carousel">
+          {conversations.map((conversation) => {
+            const ChannelIcon = channelIcons[conversation.channel];
+            const isSelected = selectedConversationId === conversation.id;
+
+            return (
+              <div
+                key={conversation.id}
+                className={cn(
+                  "mobile-conversation-card conversation-card cursor-pointer transition-all duration-200",
+                  isSelected &&
+                    "border-2 border-[#3178C6] ring-2 ring-blue-500/20",
+                )}
+                onClick={() => onSelect?.(conversation.id)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-shrink-0">
+                    {conversation.avatarUrl ? (
+                      <img
+                        src={conversation.avatarUrl}
+                        alt={conversation.contactName}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center">
+                        <span className="text-white text-sm font-medium">
+                          {conversation.contactName.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#1E1E2D] rounded-full flex items-center justify-center border border-gray-700">
+                      <ChannelIcon
+                        className={cn(
+                          "w-2.5 h-2.5",
+                          channelColors[conversation.channel],
+                        )}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-white text-sm font-medium truncate">
+                      {conversation.contactName}
+                    </h3>
+                    <p className="text-xs text-gray-400 truncate">
+                      {conversation.lastMessage}
+                    </p>
+                    <div className="flex items-center justify-between mt-1">
+                      <span
+                        className={cn(
+                          "text-xs",
+                          channelColors[conversation.channel],
+                        )}
+                      >
+                        {channelNames[conversation.channel]}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {conversation.timestamp}
+                      </span>
+                    </div>
+                  </div>
+                  {conversation.isUnread && (
+                    <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop vertical layout
   return (
-    <div className={cn("h-full bg-[#1F1F25] relative z-10", className)}>
+    <div
+      className={cn(
+        "h-full bg-[#1F1F25] relative conversation-cards-container",
+        className,
+      )}
+    >
       <ScrollArea className="h-full">
         <div className="p-4 space-y-3">
           {conversations.length === 0 ? (
