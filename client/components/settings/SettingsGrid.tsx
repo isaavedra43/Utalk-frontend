@@ -230,14 +230,17 @@ export function SettingsGrid({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {settingsToShow.map((setting) => (
-        <SettingCard
-          key={setting.key}
-          {...setting}
-          value={settings[setting.key]}
-          onChange={(value) => onChange(setting.key, value)}
-        />
-      ))}
+      {settingsToShow.map((setting) => {
+        const { key, ...settingProps } = setting;
+        return (
+          <SettingCard
+            key={key}
+            {...settingProps}
+            value={settings[key]}
+            onChange={(value) => onChange(key, value)}
+          />
+        );
+      })}
     </div>
   );
 }
