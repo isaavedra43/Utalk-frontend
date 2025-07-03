@@ -449,7 +449,7 @@ export function ChatList({
 
       {/* Conversations Panel */}
       {selectedSection && (
-        <div className="w-80 min-w-[320px] max-w-[320px] flex flex-col border-r border-gray-800">
+        <div className="w-80 min-w-[320px] max-w-[320px] flex flex-col border-r border-gray-800 bg-[#1F1F25] z-15 relative shadow-lg ml-4">
           {/* Header with Tabs */}
           <div className="border-b border-gray-800">
             {/* Tab Navigation */}
