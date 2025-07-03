@@ -311,7 +311,7 @@ export function ChatList({
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-sm">🆕</span>
-                      <span className="text-sm">New Lead</span>
+                      <span className="text-sm">Nuevo Prospecto</span>
                     </div>
                     <Badge className="bg-blue-600 text-white text-xs px-2 py-0 h-5">
                       {newLeadCount}
