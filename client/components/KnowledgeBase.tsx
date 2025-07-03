@@ -302,8 +302,14 @@ export function KnowledgeBase({ className }: KnowledgeBaseProps) {
     <div className={cn("h-full bg-gray-950 overflow-hidden", className)}>
       {/* Header */}
       <div className="border-b border-gray-800 bg-gray-900 px-0 py-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
+        <div
+          className="flex items-center justify-between"
+          style={{ margin: "0 0 16px 3px" }}
+        >
+          <div
+            className="flex items-center gap-3"
+            style={{ marginLeft: "13px" }}
+          >
             <div className="p-3 rounded-lg bg-blue-900/30 border border-blue-500/30">
               <BookOpen className="h-6 w-6 text-blue-400" />
             </div>
@@ -320,25 +326,49 @@ export function KnowledgeBase({ className }: KnowledgeBaseProps) {
           <div className="flex items-center gap-3">
             <Button
               onClick={handleCreateFAQ}
-              className="bg-purple-600 text-white hover:bg-purple-700"
+              className="bg-green-600 text-white hover:bg-green-700"
+              style={{
+                gap: "5px",
+                height: "39px",
+                justifyContent: "flex-start",
+                marginLeft: "auto",
+                width: "100%",
+                flexGrow: "0",
+              }}
             >
               <Sparkles className="h-4 w-4 mr-2" />
               Crear FAQ
             </Button>
             <Button
-              onClick={handleUploadDocument}
-              className="bg-blue-600 text-white hover:bg-blue-700"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Subir Documento
-            </Button>
-            <Button
               onClick={handleDownloadZip}
               variant="outline"
               className="border-gray-600 text-gray-300"
+              style={{
+                gap: "5px",
+                height: "39px",
+                justifyContent: "flex-start",
+                marginLeft: "auto",
+                width: "100%",
+                flexGrow: "0",
+              }}
             >
               <Download className="h-4 w-4 mr-2" />
               Descargar ZIP
+            </Button>
+            <Button
+              onClick={handleUploadDocument}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+              style={{
+                gap: "5px",
+                height: "39px",
+                justifyContent: "flex-start",
+                marginLeft: "auto",
+                width: "100%",
+                flexGrow: "0",
+              }}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Subir Documento
             </Button>
           </div>
         </div>
@@ -346,7 +376,10 @@ export function KnowledgeBase({ className }: KnowledgeBaseProps) {
         {/* Search and Filters */}
         <div className="flex items-center gap-4">
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search
+              className="absolute top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
+              style={{ left: "24px" }}
+            />
             <Input
               placeholder="Buscar documentos, contenido o etiquetas..."
               value={searchQuery}
