@@ -50,6 +50,9 @@ import {
   File,
   Bot,
   UserCheck,
+  ImageIcon,
+  Sparkles,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
