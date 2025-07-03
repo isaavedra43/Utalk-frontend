@@ -284,8 +284,8 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
         </div>
 
         {/* Center Column - KPI Cards */}
-        <div className="flex-1 overflow-y-auto">
-          <div style={{ padding: "24px" }}>
+        <div className="w-full lg:flex-1 overflow-y-auto">
+          <div style={{ padding: "24px", marginBottom: "24px" }}>
             {/* KPI Cards with 24px gaps */}
             <div
               className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4"
