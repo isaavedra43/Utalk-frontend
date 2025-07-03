@@ -59,9 +59,9 @@ export function ConversationList({
   hideSection = false,
 }: ConversationListProps) {
   return (
-    <div className={cn("h-full bg-[#1E1E2D]", className)}>
+    <div className={cn("h-full bg-[#1F1F25] relative z-10", className)}>
       <ScrollArea className="h-full">
-        <div className="p-4 space-y-2">
+        <div className="p-4 space-y-3">
           {conversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-400">
               <MessageCircle className="h-12 w-12 mb-4 opacity-50" />
