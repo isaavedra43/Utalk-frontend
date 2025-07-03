@@ -248,38 +248,41 @@ export default function Index() {
 
               {/* Desktop Layout - 3 Column Grid */}
               <div
-                className="hidden lg:block h-full"
+                className="hidden lg:block"
                 style={{
-                  maxWidth: "1440px",
-                  margin: "0 auto",
-                  padding: "24px",
+                  display: "grid",
+                  gridTemplateColumns: "280px 360px 1fr",
+                  height: "100vh",
+                  gridGap: "16px",
+                  padding: "16px",
                   fontFamily: "Inter, sans-serif",
                 }}
               >
+                {/* Column 1: Sidebar de Bandejas (280px) */}
+                <InboxSidebar
+                  onSectionSelect={handleSectionSelect}
+                  selectedSection={selectedSection}
+                />
+
+                {/* Column 2: Chat List (360px) */}
+                <ChatListColumn
+                  selectedChatId={selectedChatId}
+                  onChatSelect={handleChatSelect}
+                  selectedSection={selectedSection}
+                />
+
+                {/* Column 3: Chat Area + AI/Cliente Panel */}
                 <div
-                  className="flex h-full"
                   style={{
-                    gap: "16px",
-                    height: "calc(100vh - 48px)",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 320px",
+                    gridGap: "16px",
+                    height: "100%",
                   }}
                 >
-                  {/* Column 1: Sidebar de Bandejas (280px) */}
-                  <InboxSidebar
-                    onSectionSelect={handleSectionSelect}
-                    selectedSection={selectedSection}
-                  />
-
-                  {/* Column 2: Chat List (360px) */}
-                  <ChatListColumn
-                    selectedChatId={selectedChatId}
-                    onChatSelect={handleChatSelect}
-                    selectedSection={selectedSection}
-                  />
-
-                  {/* Column 3: Chat Area (flex-1) */}
+                  {/* Chat Area */}
                   <div
                     style={{
-                      flex: 1,
                       background: "#1E1E2F",
                       borderRadius: "12px",
                       display: "flex",
@@ -295,7 +298,7 @@ export default function Index() {
                     />
                   </div>
 
-                  {/* Column 4: AI/Cliente Panel (320px) */}
+                  {/* AI/Cliente Panel (320px) */}
                   <div
                     style={{
                       width: "320px",
