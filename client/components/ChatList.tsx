@@ -526,7 +526,7 @@ export function ChatList({
             selectedConversationId={selectedChatId}
             onSelect={onChatSelect}
             className="flex-1"
-            hideSection={window.innerWidth < 768} // Hide section on mobile
+            hideSection={isMobile} // Hide section on mobile
           />
         </div>
       )}
