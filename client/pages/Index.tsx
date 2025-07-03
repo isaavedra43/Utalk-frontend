@@ -35,6 +35,7 @@ export default function Index() {
   const [activeModule, setActiveModule] = useState("messages");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [leftPanelVisible, setLeftPanelVisible] = useState(true);
+  const [inboxVisible, setInboxVisible] = useState(true);
   const [rightPanelVisible, setRightPanelVisible] = useState(true);
   const [aiPanelVisible, setAiPanelVisible] = useState(true);
   const [clientInfoVisible, setClientInfoVisible] = useState(false);
