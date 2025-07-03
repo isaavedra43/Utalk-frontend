@@ -149,6 +149,11 @@ export default function Index() {
                 <EquipoPerformance className="h-full" />
               </div>
             )}
+            {activeModule === "campaigns" && (
+              <div className="flex-1 overflow-hidden">
+                <CampaignModule className="h-full" />
+              </div>
+            )}
             {activeModule === "settings" && (
               <div className="flex-1 overflow-hidden">
                 <SellerSettings className="h-full" />
