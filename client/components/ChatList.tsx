@@ -365,7 +365,7 @@ export function ChatList({
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-sm">🤩</span>
-                      <span className="text-sm">Customer</span>
+                      <span className="text-sm">Cliente</span>
                     </div>
                   </Button>
                 </CollapsibleContent>
