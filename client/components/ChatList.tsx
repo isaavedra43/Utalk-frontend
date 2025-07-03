@@ -509,10 +509,11 @@ export function ChatList({
 
           {/* Conversations List */}
           <ConversationList
-            conversations={mockConversations}
+            conversations={getFilteredConversations()}
             selectedConversationId={selectedChatId}
             onSelect={onChatSelect}
             className="flex-1"
+            hideSection={false} // Set to true for mobile breakpoints
           />
         </div>
       )}
