@@ -124,12 +124,13 @@ export default function Index() {
             {/* Mobile Chat List - 2/3 width, only show in messages module */}
             {activeModule === "messages" && (
               <div className="flex-1">
-                <ChatList
+                <ChatListColumn
                   selectedChatId={selectedChatId}
                   onChatSelect={(chatId) => {
                     handleChatSelect(chatId);
                     setIsMobileMenuOpen(false);
                   }}
+                  selectedSection={selectedSection}
                   className="h-full"
                 />
               </div>
