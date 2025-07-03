@@ -331,7 +331,7 @@ export function ChatList({
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-sm">🔥</span>
-                      <span className="text-sm">Hot Lead</span>
+                      <span className="text-sm">Prospecto Caliente</span>
                     </div>
                   </Button>
 
