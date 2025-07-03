@@ -13,6 +13,7 @@ import {
   Sparkles,
   PanelLeftClose,
   UserCheck,
+  Settings,
 } from "lucide-react";
 
 interface SidebarProps {
