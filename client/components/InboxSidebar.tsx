@@ -1,0 +1,409 @@
+import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  ChevronDown,
+  ChevronRight,
+  Plus,
+  MessageCircle,
+  Phone,
+  Users,
+  Archive,
+  Inbox,
+  UserCheck,
+  Crown,
+  DollarSign,
+  Flame,
+  Star,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface InboxSidebarProps {
+  onSectionSelect: (sectionId: string) => void;
+  selectedSection: string | null;
+  className?: string;
+}
+
+export function InboxSidebar({
+  onSectionSelect,
+  selectedSection,
+  className,
+}: InboxSidebarProps) {
+  const [isLifecycleOpen, setIsLifecycleOpen] = useState(true);
+
+  // Counters
+  const allCount = 3;
+  const unassignedCount = 1;
+  const newLeadCount = 2;
+
+  const handleSectionClick = (sectionId: string) => {
+    onSectionSelect(sectionId);
+  };
+
+  return (
+    <div
+      className={cn("flex flex-col", className)}
+      style={{
+        width: "280px",
+        background: "#1E1E2F",
+        borderRadius: "12px",
+        padding: "16px",
+        fontFamily: "Inter, sans-serif",
+        overflowY: "auto",
+      }}
+    >
+      {/* Header */}
+      <div style={{ marginBottom: "24px" }}>
+        <h2
+          className="text-white font-semibold"
+          style={{
+            fontSize: "14px",
+            fontWeight: "600",
+            lineHeight: "24px",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+          }}
+        >
+          <Inbox className="h-4 w-4" />
+          Inbox
+        </h2>
+      </div>
+
+      {/* Navigation Sections */}
+      <div className="space-y-3">
+        {/* Main Sections */}
+        <div className="space-y-2">
+          {/* All */}
+          <Button
+            variant="ghost"
+            onClick={() => handleSectionClick("all")}
+            className={cn(
+              "w-full justify-between h-auto p-0 rounded-lg transition-colors",
+            )}
+            style={{
+              background: selectedSection === "all" ? "#3A3A4D" : "transparent",
+              color: selectedSection === "all" ? "#FFFFFF" : "#A0A0A0",
+              padding: "8px 12px",
+              height: "auto",
+              lineHeight: "24px",
+            }}
+          >
+            <div className="flex items-center" style={{ gap: "12px" }}>
+              <Archive className="h-4 w-4" />
+              <span style={{ fontSize: "14px" }}>Todos</span>
+            </div>
+            <Badge
+              className="text-xs"
+              style={{
+                background: "#4F8EF7",
+                color: "#FFFFFF",
+                fontSize: "10px",
+                borderRadius: "12px",
+                padding: "2px 6px",
+              }}
+            >
+              {allCount}
+            </Badge>
+          </Button>
+
+          {/* Mine */}
+          <Button
+            variant="ghost"
+            onClick={() => handleSectionClick("mine")}
+            className={cn(
+              "w-full justify-start h-auto p-0 rounded-lg transition-colors",
+            )}
+            style={{
+              background:
+                selectedSection === "mine" ? "#3A3A4D" : "transparent",
+              color: selectedSection === "mine" ? "#FFFFFF" : "#A0A0A0",
+              padding: "8px 12px",
+              height: "auto",
+              lineHeight: "24px",
+            }}
+          >
+            <div className="flex items-center" style={{ gap: "12px" }}>
+              <Users className="h-4 w-4" />
+              <span style={{ fontSize: "14px" }}>Míos</span>
+            </div>
+          </Button>
+
+          {/* Unassigned */}
+          <Button
+            variant="ghost"
+            onClick={() => handleSectionClick("unassigned")}
+            className={cn(
+              "w-full justify-between h-auto p-0 rounded-lg transition-colors",
+            )}
+            style={{
+              background:
+                selectedSection === "unassigned" ? "#3A3A4D" : "transparent",
+              color: selectedSection === "unassigned" ? "#FFFFFF" : "#A0A0A0",
+              padding: "8px 12px",
+              height: "auto",
+              lineHeight: "24px",
+            }}
+          >
+            <div className="flex items-center" style={{ gap: "12px" }}>
+              <MessageCircle className="h-4 w-4" />
+              <span style={{ fontSize: "14px" }}>Sin Asignar</span>
+            </div>
+            <Badge
+              className="text-xs"
+              style={{
+                background: "#EF476F",
+                color: "#FFFFFF",
+                fontSize: "10px",
+                borderRadius: "12px",
+                padding: "2px 6px",
+              }}
+            >
+              {unassignedCount}
+            </Badge>
+          </Button>
+
+          {/* Incoming Calls */}
+          <Button
+            variant="ghost"
+            onClick={() => handleSectionClick("calls")}
+            className={cn(
+              "w-full justify-start h-auto p-0 rounded-lg transition-colors",
+            )}
+            style={{
+              background:
+                selectedSection === "calls" ? "#3A3A4D" : "transparent",
+              color: selectedSection === "calls" ? "#FFFFFF" : "#A0A0A0",
+              padding: "8px 12px",
+              height: "auto",
+              lineHeight: "24px",
+            }}
+          >
+            <div className="flex items-center" style={{ gap: "12px" }}>
+              <Phone className="h-4 w-4" />
+              <span style={{ fontSize: "14px" }}>Llamadas Entrantes</span>
+            </div>
+          </Button>
+        </div>
+
+        {/* Lifecycle Section */}
+        <div style={{ marginBottom: "24px" }}>
+          <Collapsible open={isLifecycleOpen} onOpenChange={setIsLifecycleOpen}>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-between h-auto p-0 rounded-lg"
+                style={{
+                  background: "transparent",
+                  color: "#A0A0A0",
+                  padding: "8px 12px",
+                  height: "auto",
+                  lineHeight: "24px",
+                }}
+              >
+                <span style={{ fontSize: "14px", fontWeight: "600" }}>
+                  Ciclo de Vida
+                </span>
+                {isLifecycleOpen ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="mt-2 space-y-2">
+                {/* New Lead */}
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSectionClick("new-lead")}
+                  className={cn(
+                    "w-full justify-between h-auto p-0 rounded-lg transition-colors",
+                  )}
+                  style={{
+                    background:
+                      selectedSection === "new-lead"
+                        ? "#3A3A4D"
+                        : "transparent",
+                    color:
+                      selectedSection === "new-lead" ? "#FFFFFF" : "#A0A0A0",
+                    padding: "8px 12px",
+                    paddingLeft: "28px", // 16px indentation
+                    height: "auto",
+                    lineHeight: "24px",
+                  }}
+                >
+                  <div className="flex items-center" style={{ gap: "8px" }}>
+                    <span>🆕</span>
+                    <span style={{ fontSize: "14px" }}>Nuevo Prospecto</span>
+                  </div>
+                  <Badge
+                    className="text-xs"
+                    style={{
+                      background: "#3AD29F",
+                      color: "#FFFFFF",
+                      fontSize: "10px",
+                      borderRadius: "12px",
+                      padding: "2px 6px",
+                    }}
+                  >
+                    {newLeadCount}
+                  </Badge>
+                </Button>
+
+                {/* Hot Lead */}
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSectionClick("hot-lead")}
+                  className={cn(
+                    "w-full justify-start h-auto p-0 rounded-lg transition-colors",
+                  )}
+                  style={{
+                    background:
+                      selectedSection === "hot-lead"
+                        ? "#3A3A4D"
+                        : "transparent",
+                    color:
+                      selectedSection === "hot-lead" ? "#FFFFFF" : "#A0A0A0",
+                    padding: "8px 12px",
+                    paddingLeft: "28px", // 16px indentation
+                    height: "auto",
+                    lineHeight: "24px",
+                  }}
+                >
+                  <div className="flex items-center" style={{ gap: "8px" }}>
+                    <span>🔥</span>
+                    <span style={{ fontSize: "14px" }}>Prospecto Caliente</span>
+                  </div>
+                </Button>
+
+                {/* Payment */}
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSectionClick("payment")}
+                  className={cn(
+                    "w-full justify-start h-auto p-0 rounded-lg transition-colors",
+                  )}
+                  style={{
+                    background:
+                      selectedSection === "payment" ? "#3A3A4D" : "transparent",
+                    color:
+                      selectedSection === "payment" ? "#FFFFFF" : "#A0A0A0",
+                    padding: "8px 12px",
+                    paddingLeft: "28px", // 16px indentation
+                    height: "auto",
+                    lineHeight: "24px",
+                  }}
+                >
+                  <div className="flex items-center" style={{ gap: "8px" }}>
+                    <DollarSign className="h-4 w-4" />
+                    <span style={{ fontSize: "14px" }}>Pago</span>
+                  </div>
+                </Button>
+
+                {/* Customer */}
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSectionClick("customer")}
+                  className={cn(
+                    "w-full justify-start h-auto p-0 rounded-lg transition-colors",
+                  )}
+                  style={{
+                    background:
+                      selectedSection === "customer"
+                        ? "#3A3A4D"
+                        : "transparent",
+                    color:
+                      selectedSection === "customer" ? "#FFFFFF" : "#A0A0A0",
+                    padding: "8px 12px",
+                    paddingLeft: "28px", // 16px indentation
+                    height: "auto",
+                    lineHeight: "24px",
+                  }}
+                >
+                  <div className="flex items-center" style={{ gap: "8px" }}>
+                    <Crown className="h-4 w-4" />
+                    <span style={{ fontSize: "14px" }}>Cliente</span>
+                  </div>
+                </Button>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+
+        {/* Team Inbox Section */}
+        <div style={{ marginBottom: "24px" }}>
+          <div className="flex items-center justify-between">
+            <span
+              style={{
+                fontSize: "14px",
+                fontWeight: "600",
+                color: "#A0A0A0",
+                lineHeight: "24px",
+              }}
+            >
+              Bandeja de Equipo
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Custom Inbox Section */}
+        <div style={{ marginBottom: "24px" }}>
+          <div className="flex items-center justify-between">
+            <span
+              style={{
+                fontSize: "14px",
+                fontWeight: "600",
+                color: "#A0A0A0",
+                lineHeight: "24px",
+              }}
+            >
+              Bandeja Personalizada
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Calls Section */}
+        <Button
+          variant="ghost"
+          onClick={() => handleSectionClick("calls-section")}
+          className={cn(
+            "w-full justify-start h-auto p-0 rounded-lg transition-colors",
+          )}
+          style={{
+            background:
+              selectedSection === "calls-section" ? "#3A3A4D" : "transparent",
+            color: selectedSection === "calls-section" ? "#FFFFFF" : "#A0A0A0",
+            padding: "8px 12px",
+            height: "auto",
+            lineHeight: "24px",
+          }}
+        >
+          <div className="flex items-center" style={{ gap: "12px" }}>
+            <Phone className="h-4 w-4" />
+            <span style={{ fontSize: "14px" }}>Llamadas</span>
+          </div>
+        </Button>
+      </div>
+    </div>
+  );
+}
