@@ -66,11 +66,6 @@ export function ChatListColumn({
   const getFilteredConversations = () => {
     let filtered = mockConversations;
 
-    // Filter by tab (chats vs calls)
-    if (activeTab === "calls") {
-      return [];
-    }
-
     // Filter by unreplied only if toggle is on
     if (isUnrepliedOnly) {
       filtered = filtered.filter((conv) => conv.isUnread);
