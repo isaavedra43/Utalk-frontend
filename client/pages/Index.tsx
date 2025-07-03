@@ -182,17 +182,21 @@ export default function Index() {
         {/* Center Panel - Module Content */}
         <div
           className={cn(
-            "flex-1 transition-all duration-300 ease-in-out",
+            "flex-1 transition-all duration-300 ease-in-out overflow-hidden",
             // Mobile - full width
             "w-full lg:flex-1",
-            // Desktop - calculated based on visible panels
-            activeModule === "messages" && leftPanelVisible && rightPanelVisible
-              ? "lg:max-w-[calc(100%-576px)] xl:max-w-[calc(100%-608px)]"
-              : activeModule === "messages" && leftPanelVisible
-                ? "lg:max-w-[calc(100%-256px)]"
-                : activeModule === "messages" && rightPanelVisible
-                  ? "lg:max-w-[calc(100%-320px)] xl:max-w-[calc(100%-352px)]"
-                  : "lg:max-w-full",
+            // Desktop - for non-message modules, use full available space
+            activeModule !== "messages"
+              ? "lg:max-w-full"
+              : activeModule === "messages" &&
+                  leftPanelVisible &&
+                  rightPanelVisible
+                ? "lg:max-w-[calc(100%-576px)] xl:max-w-[calc(100%-608px)]"
+                : activeModule === "messages" && leftPanelVisible
+                  ? "lg:max-w-[calc(100%-256px)]"
+                  : activeModule === "messages" && rightPanelVisible
+                    ? "lg:max-w-[calc(100%-320px)] xl:max-w-[calc(100%-352px)]"
+                    : "lg:max-w-full",
           )}
         >
           {activeModule === "messages" ? (
