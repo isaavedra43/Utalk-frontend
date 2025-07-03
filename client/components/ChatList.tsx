@@ -383,7 +383,9 @@ export function ChatList({
                     variant="ghost"
                     className="w-full justify-between h-8 hover:bg-gray-700/60 text-gray-400 hover:text-white"
                   >
-                    <span className="text-xs font-medium">Team Inbox</span>
+                    <span className="text-xs font-medium">
+                      Bandeja de Equipo
+                    </span>
                     <div className="flex items-center gap-1">
                       <Button
                         size="sm"
