@@ -447,61 +447,7 @@ export default function Index() {
           )}
         </div>
 
-        {/* Desktop Right Panel - AI Assistant & Client Info */}
-        {activeModule === "messages" && (
-          <div
-            className={cn(
-              "hidden lg:flex lg:flex-col transition-all duration-300 ease-in-out",
-              // Responsive width: smaller on tablet, larger on desktop
-              "lg:w-80 xl:w-96",
-              rightPanelVisible ? "flex" : "w-0 overflow-hidden",
-            )}
-          >
-            {/* Desktop Horizontal Toggle Buttons */}
-            <div className="flex bg-gray-900 border-l border-gray-800">
-              <Button
-                size="sm"
-                variant={aiPanelVisible ? "default" : "ghost"}
-                onClick={() => {
-                  setAiPanelVisible(true);
-                  setClientInfoVisible(false);
-                }}
-                className={cn(
-                  "flex-1 rounded-none h-12 text-xs font-medium",
-                  aiPanelVisible
-                    ? "bg-blue-600 text-white border-b-2 border-blue-400"
-                    : "text-gray-400 hover:text-white hover:bg-gray-800",
-                )}
-              >
-                <Bot className="w-4 h-4 mr-2" />
-                Asistente IA
-              </Button>
-              <Button
-                size="sm"
-                variant={clientInfoVisible ? "default" : "ghost"}
-                onClick={() => {
-                  setClientInfoVisible(true);
-                  setAiPanelVisible(false);
-                }}
-                className={cn(
-                  "flex-1 rounded-none h-12 text-xs font-medium",
-                  clientInfoVisible
-                    ? "bg-green-600 text-white border-b-2 border-green-400"
-                    : "text-gray-400 hover:text-white hover:bg-gray-800",
-                )}
-              >
-                <UserCheck className="w-4 h-4 mr-2" />
-                Info del Cliente
-              </Button>
-            </div>
 
-            {/* Desktop Content Section */}
-            <div className="flex-1 overflow-hidden">
-              {aiPanelVisible && <AIAssistantPanel />}
-              {clientInfoVisible && <ClientInfoPanel />}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
