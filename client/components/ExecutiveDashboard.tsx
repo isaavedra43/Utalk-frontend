@@ -238,7 +238,7 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
       <div className="flex h-[calc(100%-89px)] overflow-hidden">
         {/* Left Column (1/3) */}
         <div className="w-1/3 min-w-[400px] border-r border-gray-800 overflow-y-auto">
-          <div className="p-6 space-y-6">
+          <div className="px-0 py-6 space-y-6">
             {/* Summary Card */}
             <SummaryCard
               data={mockDashboardData.summary}
