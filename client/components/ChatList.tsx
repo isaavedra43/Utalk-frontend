@@ -26,6 +26,7 @@ import {
   Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ConversationList } from "./ConversationList";
 
 interface ChatListProps {
   selectedChatId?: string;
