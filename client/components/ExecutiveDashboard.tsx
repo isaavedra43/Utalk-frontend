@@ -179,7 +179,16 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
   };
 
   return (
-    <div className={cn("h-full bg-gray-950 overflow-hidden", className)}>
+    <div
+      className={cn("h-full bg-gray-950 overflow-hidden", className)}
+      style={{
+        "@media (max-width: 768px)": {
+          ".dashboard-mobile": {
+            flexDirection: "column",
+          },
+        },
+      }}
+    >
       {/* Header */}
       <div
         className="border-b border-gray-800 bg-gray-900 py-6"
