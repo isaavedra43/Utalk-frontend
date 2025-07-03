@@ -218,14 +218,14 @@ export function ChatListColumn({
                       src={conversation.avatarUrl}
                       alt={conversation.contactName}
                       className="rounded-full object-cover"
-                      style={{ width: "40px", height: "40px" }}
+                      style={{ width: "32px", height: "32px" }}
                     />
                   ) : (
                     <div
                       className="rounded-full bg-gray-600 flex items-center justify-center"
-                      style={{ width: "40px", height: "40px" }}
+                      style={{ width: "32px", height: "32px" }}
                     >
-                      <span className="text-white text-sm font-medium">
+                      <span className="text-white text-xs font-medium">
                         {conversation.contactName.charAt(0).toUpperCase()}
                       </span>
                     </div>
@@ -233,12 +233,12 @@ export function ChatListColumn({
 
                   {/* Channel indicator */}
                   <div
-                    className="absolute bg-blue-500 rounded-full flex items-center justify-center"
+                    className="absolute bg-green-500 rounded-full flex items-center justify-center"
                     style={{
-                      width: "18px",
-                      height: "18px",
-                      bottom: "-4px",
-                      right: "-4px",
+                      width: "14px",
+                      height: "14px",
+                      bottom: "-2px",
+                      right: "-2px",
                       border: "2px solid #1E1E2F",
                     }}
                   >
@@ -247,8 +247,8 @@ export function ChatListColumn({
                         src="https://cdn.respond.io/platform/web/assets/static/images/channels/circle/64/facebook.webp"
                         alt="Facebook"
                         style={{
-                          width: "13px",
-                          height: "13px",
+                          width: "10px",
+                          height: "10px",
                           borderRadius: "50%",
                         }}
                       />
