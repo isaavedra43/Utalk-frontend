@@ -390,7 +390,10 @@ export function KnowledgeBase({ className }: KnowledgeBaseProps) {
           </div>
 
           <Select>
-            <SelectTrigger className="w-40 bg-gray-800 border-gray-700 text-white">
+            <SelectTrigger
+              className="w-40 bg-gray-800 border-gray-700 text-white"
+              style={{ marginLeft: "13px" }}
+            >
               <Filter className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Filtrar por" />
             </SelectTrigger>
