@@ -260,6 +260,9 @@ export default function Index() {
                       <InboxSidebar
                         onSectionSelect={handleSectionSelect}
                         selectedSection={selectedSection}
+                        onTogglePanels={() =>
+                          setLeftPanelVisible(!leftPanelVisible)
+                        }
                         className="h-full"
                       />
                     </div>
