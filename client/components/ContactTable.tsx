@@ -177,7 +177,7 @@ export function ContactTable({
   return (
     <div className="flex-1 bg-gray-950 overflow-hidden">
       <ScrollArea className="h-full">
-        <div className="p-4">
+        <div className="px-0 py-4">
           <Table>
             <TableHeader>
               <TableRow className="border-gray-800 hover:bg-gray-900/50">
