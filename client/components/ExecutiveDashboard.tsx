@@ -250,7 +250,7 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
       </div>
 
       {/* Main Content */}
-      <div className="flex h-[calc(100%-89px)] overflow-hidden">
+      <div className="flex lg:flex-row flex-col h-[calc(100%-89px)] overflow-hidden dashboard-mobile">
         {/* Left Column (1/3) - Summary Cards */}
         <div className="w-1/3 min-w-[400px] border-r border-gray-800 overflow-y-auto">
           <div style={{ padding: "24px" }} className="space-y-6">
