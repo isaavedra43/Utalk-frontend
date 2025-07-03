@@ -104,7 +104,7 @@ export function PerformanceKPIs({ className }: PerformanceKPIsProps) {
       )}
     >
       {/* Header */}
-      <div className="p-4 border-b border-gray-800">
+      <div className="px-0 py-4 border-b border-gray-800">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-semibold text-white">Performance KPIs</h2>
           <Button
