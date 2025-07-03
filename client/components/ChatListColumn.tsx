@@ -55,7 +55,6 @@ export function ChatListColumn({
   selectedSection,
   className,
 }: ChatListColumnProps) {
-  const [activeTab, setActiveTab] = useState("chats");
   const [isUnrepliedOnly, setIsUnrepliedOnly] = useState(false);
 
   // Don't show if no section is selected
