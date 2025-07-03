@@ -7,6 +7,8 @@ import { ExecutiveDashboard } from "@/components/ExecutiveDashboard";
 import { EquipoPerformance } from "@/components/EquipoPerformance";
 import { CampaignModule } from "@/components/CampaignModule";
 import { SellerSettings } from "@/components/SellerSettings";
+import { KnowledgeBase } from "@/components/KnowledgeBase";
+import { RealTimeCollaboration } from "@/components/RealTimeCollaboration";
 import Copilot from "@/components/Copilot";
 import { ClientInfoPanel } from "@/components/ClientInfoPanel";
 import { AIAssistantPanel } from "@/components/AIAssistantPanel";
