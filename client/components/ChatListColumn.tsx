@@ -87,8 +87,6 @@ export function ChatListColumn({
       className={cn("flex flex-col", className)}
       style={{
         width: "360px",
-        marginLeft: "16px",
-        marginRight: "16px",
         fontFamily: "Inter, sans-serif",
         height: "100%",
       }}
