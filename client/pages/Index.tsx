@@ -35,7 +35,6 @@ export default function Index() {
   const [rightPanelVisible, setRightPanelVisible] = useState(true);
   const [aiPanelVisible, setAiPanelVisible] = useState(true);
   const [clientInfoVisible, setClientInfoVisible] = useState(false);
-  const [selectedSection, setSelectedSection] = useState<string | null>("all");
 
   const handleChatSelect = (chatId: string) => {
     setSelectedChatId(chatId);
