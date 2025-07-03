@@ -71,6 +71,18 @@ const navigationItems: NavigationItem[] = [
     href: "/campaigns",
   },
   {
+    id: "knowledge",
+    label: "Base de Conocimiento",
+    icon: BookOpen,
+    href: "/knowledge",
+  },
+  {
+    id: "collaboration",
+    label: "Colaboración",
+    icon: Video,
+    href: "/collaboration",
+  },
+  {
     id: "settings",
     label: "Configuración",
     icon: Settings,
