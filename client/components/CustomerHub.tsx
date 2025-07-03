@@ -160,17 +160,6 @@ export function CustomerHub({ className }: CustomerHubProps) {
     // TODO: Show confirmation and delete
   };
 
-  const handleAIAction = (action: string, contactId?: string) => {
-    console.log(
-      `AI Action: ${action}${contactId ? ` for contact ${contactId}` : ""}`,
-    );
-    setIsLoading(true);
-    // Simulate AI processing
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 2000);
-  };
-
   const filteredContacts = getFilteredContacts();
 
   return (
