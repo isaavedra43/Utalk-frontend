@@ -17,6 +17,8 @@ import {
   ImageIcon,
   FileText,
   PanelRightClose,
+  MoreHorizontal,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
