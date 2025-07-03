@@ -19,7 +19,7 @@
   }
 
   .chat-messages-area {
-    @apply relative z-5;
+    @apply relative z-0;
   }
 
   /* Mobile Carousel for Conversation Cards */
