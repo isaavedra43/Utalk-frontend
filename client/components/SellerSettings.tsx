@@ -82,7 +82,7 @@ export function SellerSettings({ className }: SellerSettingsProps) {
   return (
     <div className={cn("h-full bg-gray-950 overflow-hidden", className)}>
       {/* Header */}
-      <div className="border-b border-gray-800 bg-gray-900 p-6">
+      <div className="border-b border-gray-800 bg-gray-900 px-0 py-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <Settings className="h-6 w-6 text-blue-400" />
