@@ -181,7 +181,10 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
   return (
     <div className={cn("h-full bg-gray-950 overflow-hidden", className)}>
       {/* Header */}
-      <div className="border-b border-gray-800 bg-gray-900 px-0 py-6">
+      <div
+        className="border-b border-gray-800 bg-gray-900 py-6"
+        style={{ paddingLeft: "24px", paddingRight: "24px" }}
+      >
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white">
@@ -192,7 +195,10 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div
+            className="flex items-center gap-4"
+            style={{ marginTop: "16px" }}
+          >
             {/* Date Range Selector */}
             <div className="flex items-center gap-2 bg-gray-800 rounded-lg p-1">
               {["today", "7days", "custom"].map((range) => (
