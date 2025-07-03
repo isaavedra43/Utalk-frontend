@@ -242,56 +242,78 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
 
       {/* Main Content */}
       <div className="flex h-[calc(100%-89px)] overflow-hidden">
-        {/* Left Column (1/3) */}
+        {/* Left Column (1/3) - Summary Cards */}
         <div className="w-1/3 min-w-[400px] border-r border-gray-800 overflow-y-auto">
-          <div className="px-0 py-6 space-y-6">
+          <div style={{ padding: "24px" }} className="space-y-6">
             {/* Summary Card */}
-            <SummaryCard
-              data={mockDashboardData.summary}
-              onViewDetail={() => console.log("Navigate to CRM")}
-            />
+            <div style={{ padding: "24px" }}>
+              <SummaryCard
+                data={mockDashboardData.summary}
+                onViewDetail={() => console.log("Navigate to CRM")}
+              />
+            </div>
 
             {/* Alerts Card */}
-            <AlertCard
-              alerts={mockDashboardData.alerts}
-              onAlertAction={handleAlertAction}
-            />
+            <div style={{ padding: "24px" }}>
+              <AlertCard
+                alerts={mockDashboardData.alerts}
+                onAlertAction={handleAlertAction}
+              />
+            </div>
 
             {/* Hourly Heatmap */}
-            <HeatmapChart
-              data={mockDashboardData.hourlyHeatmap}
-              title="Densidad de Mensajes (24h)"
-            />
+            <div style={{ padding: "24px" }}>
+              <HeatmapChart
+                data={mockDashboardData.hourlyHeatmap}
+                title="Densidad de Mensajes (24h)"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Right Column (2/3) */}
+        {/* Center Column - KPI Cards */}
         <div className="flex-1 overflow-y-auto">
-          <div className="px-0 py-6 space-y-6">
-            {/* Row 1: KPI Cards */}
-            <div className="grid grid-cols-4 gap-4">
+          <div style={{ padding: "24px" }}>
+            {/* KPI Cards with 24px gaps */}
+            <div
+              className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4"
+              style={{ gap: "24px" }}
+            >
               {mockDashboardData.kpis.map((kpi) => (
-                <KpiCard key={kpi.id} {...kpi} />
+                <div key={kpi.id} style={{ padding: "24px" }}>
+                  <KpiCard {...kpi} />
+                </div>
               ))}
             </div>
+          </div>
+        </div>
 
-            {/* Row 2: Analytics Charts */}
-            <div className="grid grid-cols-2 gap-6">
+        {/* Right Column - Charts Stacked Vertically */}
+        <div className="w-1/3 min-w-[400px] border-l border-gray-800 overflow-y-auto">
+          <div style={{ padding: "24px" }}>
+            {/* Performance por Agente */}
+            <div style={{ padding: "24px", marginBottom: "24px" }}>
               <LineChartAgent
                 data={mockDashboardData.agentPerformance}
                 title="Performance por Agente"
               />
+            </div>
+
+            {/* Ventas vs Mensajes */}
+            <div style={{ padding: "24px", marginBottom: "24px" }}>
               <BarLineChart
                 data={mockDashboardData.salesData}
                 title="Ventas vs Mensajes"
               />
             </div>
 
-            {/* Row 3: Top Clients Table */}
-            <TopClientsTable
-              clients={mockDashboardData.topClients}
-              title="Top 10 Clientes"
-            />
+            {/* Top Clients Table */}
+            <div style={{ padding: "24px" }}>
+              <TopClientsTable
+                clients={mockDashboardData.topClients}
+                title="Top 10 Clientes"
+              />
+            </div>
           </div>
         </div>
       </div>
