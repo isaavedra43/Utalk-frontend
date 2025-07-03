@@ -161,7 +161,9 @@ export function ConversationList({
           {conversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-400">
               <MessageCircle className="h-12 w-12 mb-4 opacity-50" />
-              <p className="text-sm text-center">No conversations available</p>
+              <p className="text-sm text-center">
+                No hay conversaciones disponibles
+              </p>
             </div>
           ) : (
             conversations.map((conversation) => {
