@@ -267,6 +267,8 @@ export default function Index() {
             <ExecutiveDashboard className="h-full" />
           ) : activeModule === "crm" ? (
             <CustomerHub className="h-full" />
+          ) : activeModule === "team" ? (
+            <EquipoPerformance className="h-full" />
           ) : null}
         </div>
 
