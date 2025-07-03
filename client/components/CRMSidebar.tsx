@@ -55,7 +55,7 @@ export function CRMSidebar({
     },
     {
       id: "mine",
-      label: "Mine",
+      label: "Míos",
       icon: User,
     },
     {
