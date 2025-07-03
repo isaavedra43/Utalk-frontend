@@ -164,19 +164,8 @@ export function CustomerHub({ className }: CustomerHubProps) {
 
   return (
     <div className={cn("h-full flex bg-gray-950", className)}>
-      {/* Sidebar */}
-      <CRMSidebar
-        selectedCategory={selectedCategory}
-        onSelectCategory={handleSelectCategory}
-        contactCounts={{
-          all: mockContacts.length,
-          unassigned: 2,
-          newLead: mockContacts.filter((c) => c.status === "new-lead").length,
-          hotLead: mockContacts.filter((c) => c.status === "hot-lead").length,
-          payment: mockContacts.filter((c) => c.status === "payment").length,
-          customer: mockContacts.filter((c) => c.status === "customer").length,
-        }}
-      />
+      {/* Performance KPIs Sidebar */}
+      <PerformanceKPIs />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
@@ -187,7 +176,6 @@ export function CustomerHub({ className }: CustomerHubProps) {
               <h1 className="text-xl font-semibold text-white">Customer Hub</h1>
               <p className="text-sm text-gray-400">
                 {filteredContacts.length} contacts
-                {selectedCategory !== "all" && ` in ${selectedCategory}`}
               </p>
             </div>
 
