@@ -306,91 +306,88 @@ export default function Index() {
                 >
                   {/* AI Assistant / Client Info Panel (320px - made thinner) */}
                   <div className="flex-shrink-0" style={{ width: "320px" }}>
-                      <div className="h-full flex flex-col">
-                        {/* Tabs */}
-                        <div className="flex" style={{ marginBottom: "0" }}>
-                          <button
-                            onClick={() => {
-                              setAiPanelVisible(true);
-                              setClientInfoVisible(false);
-                            }}
-                            className={cn(
-                              "flex-1 h-12 flex items-center justify-center cursor-pointer text-sm font-medium transition-colors",
-                              aiPanelVisible
-                                ? "text-white"
-                                : "text-gray-400 hover:text-white",
-                            )}
-                            style={
-                              aiPanelVisible
-                                ? {
-                                    background: "#4F8EF7",
-                                    color: "#FFFFFF",
-                                    borderTopLeftRadius: "12px",
-                                    borderTopRightRadius: !clientInfoVisible
-                                      ? "12px"
-                                      : "0",
-                                  }
-                                : {
-                                    background: "#1E1E2F",
-                                    color: "#A0A0A0",
-                                    borderTopLeftRadius: "12px",
-                                  }
-                            }
-                          >
-                            <Bot className="w-4 h-4 mr-2" />
-                            Asistente IA
-                          </button>
-                          <button
-                            onClick={() => {
-                              setClientInfoVisible(true);
-                              setAiPanelVisible(false);
-                            }}
-                            className={cn(
-                              "flex-1 h-12 flex items-center justify-center cursor-pointer text-sm font-medium transition-colors",
-                              clientInfoVisible
-                                ? "text-white"
-                                : "text-gray-400 hover:text-white",
-                            )}
-                            style={
-                              clientInfoVisible
-                                ? {
-                                    background: "#3AD29F",
-                                    color: "#FFFFFF",
-                                    borderTopRightRadius: "12px",
-                                    borderTopLeftRadius: !aiPanelVisible
-                                      ? "12px"
-                                      : "0",
-                                  }
-                                : {
-                                    background: "#1E1E2F",
-                                    color: "#A0A0A0",
-                                    borderTopRightRadius: "12px",
-                                  }
-                            }
-                          >
-                            <UserCheck className="w-4 h-4 mr-2" />
-                            Info del Cliente
-                          </button>
-                        </div>
-
-                        {/* Content */}
-                        <div
-                          className="flex-1 overflow-hidden"
-                          style={{
-                            background: "#1E1E2F",
-                            borderRadius: "0 0 12px 12px",
-                            borderTopRightRadius: aiPanelVisible ? "0" : "12px",
-                            borderTopLeftRadius: clientInfoVisible
-                              ? "0"
-                              : "12px",
+                    <div className="h-full flex flex-col">
+                      {/* Tabs */}
+                      <div className="flex" style={{ marginBottom: "0" }}>
+                        <button
+                          onClick={() => {
+                            setAiPanelVisible(true);
+                            setClientInfoVisible(false);
                           }}
+                          className={cn(
+                            "flex-1 h-12 flex items-center justify-center cursor-pointer text-sm font-medium transition-colors",
+                            aiPanelVisible
+                              ? "text-white"
+                              : "text-gray-400 hover:text-white",
+                          )}
+                          style={
+                            aiPanelVisible
+                              ? {
+                                  background: "#4F8EF7",
+                                  color: "#FFFFFF",
+                                  borderTopLeftRadius: "12px",
+                                  borderTopRightRadius: !clientInfoVisible
+                                    ? "12px"
+                                    : "0",
+                                }
+                              : {
+                                  background: "#1E1E2F",
+                                  color: "#A0A0A0",
+                                  borderTopLeftRadius: "12px",
+                                }
+                          }
                         >
-                          {aiPanelVisible && <AIAssistantPanel />}
-                          {clientInfoVisible && <ClientInfoPanel />}
-                        </div>
+                          <Bot className="w-4 h-4 mr-2" />
+                          Asistente IA
+                        </button>
+                        <button
+                          onClick={() => {
+                            setClientInfoVisible(true);
+                            setAiPanelVisible(false);
+                          }}
+                          className={cn(
+                            "flex-1 h-12 flex items-center justify-center cursor-pointer text-sm font-medium transition-colors",
+                            clientInfoVisible
+                              ? "text-white"
+                              : "text-gray-400 hover:text-white",
+                          )}
+                          style={
+                            clientInfoVisible
+                              ? {
+                                  background: "#3AD29F",
+                                  color: "#FFFFFF",
+                                  borderTopRightRadius: "12px",
+                                  borderTopLeftRadius: !aiPanelVisible
+                                    ? "12px"
+                                    : "0",
+                                }
+                              : {
+                                  background: "#1E1E2F",
+                                  color: "#A0A0A0",
+                                  borderTopRightRadius: "12px",
+                                }
+                          }
+                        >
+                          <UserCheck className="w-4 h-4 mr-2" />
+                          Info del Cliente
+                        </button>
+                      </div>
+
+                      {/* Content */}
+                      <div
+                        className="flex-1 overflow-hidden"
+                        style={{
+                          background: "#1E1E2F",
+                          borderRadius: "0 0 12px 12px",
+                          borderTopRightRadius: aiPanelVisible ? "0" : "12px",
+                          borderTopLeftRadius: clientInfoVisible ? "0" : "12px",
+                        }}
+                      >
+                        {aiPanelVisible && <AIAssistantPanel />}
+                        {clientInfoVisible && <ClientInfoPanel />}
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             </div>
