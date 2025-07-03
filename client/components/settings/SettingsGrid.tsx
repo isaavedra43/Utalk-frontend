@@ -164,7 +164,7 @@ const advancedSettings = [
     key: "templates",
     label: "Plantillas Predeterminadas",
     description: "Plantillas favoritas de mensajes",
-    icon: FileTemplate,
+    icon: Files,
     type: "multiselect" as const,
     options: ["template1", "template2", "template3", "template4"],
     placeholder: "{{templates}}",
