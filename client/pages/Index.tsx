@@ -163,40 +163,32 @@ export default function Index() {
           />
         )}
 
-        {/* Desktop Left Panel - Chat List */}
-        <div
-          className={cn(
-            "hidden lg:block transition-all duration-300 ease-in-out",
-            leftPanelVisible ? "lg:w-64" : "lg:w-0 lg:overflow-hidden",
-          )}
-        >
-          {activeModule === "messages" && (
+        {/* Desktop Left Panel - Chat List (only for messages) */}
+        {activeModule === "messages" && (
+          <div
+            className={cn(
+              "hidden lg:block transition-all duration-300 ease-in-out flex-shrink-0",
+              leftPanelVisible ? "lg:w-64" : "lg:w-0 lg:overflow-hidden",
+            )}
+          >
             <ChatList
               selectedChatId={selectedChatId}
               onChatSelect={handleChatSelect}
               className="h-full"
             />
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Center Panel - Module Content */}
         <div
           className={cn(
             "flex-1 transition-all duration-300 ease-in-out overflow-hidden",
-            // Mobile - full width
-            "w-full lg:flex-1",
-            // Desktop - for non-message modules, use full available space
-            activeModule !== "messages"
-              ? "lg:max-w-full"
-              : activeModule === "messages" &&
-                  leftPanelVisible &&
-                  rightPanelVisible
-                ? "lg:max-w-[calc(100%-576px)] xl:max-w-[calc(100%-608px)]"
-                : activeModule === "messages" && leftPanelVisible
-                  ? "lg:max-w-[calc(100%-256px)]"
-                  : activeModule === "messages" && rightPanelVisible
-                    ? "lg:max-w-[calc(100%-320px)] xl:max-w-[calc(100%-352px)]"
-                    : "lg:max-w-full",
+            // Mobile - full width without gaps
+            "w-full",
+            // Desktop - use remaining space without gaps
+            activeModule === "messages" && rightPanelVisible
+              ? "lg:max-w-[calc(100%-320px)] xl:max-w-[calc(100%-352px)]"
+              : "lg:max-w-full",
           )}
         >
           {activeModule === "messages" ? (
