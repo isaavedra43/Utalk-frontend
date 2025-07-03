@@ -172,7 +172,7 @@ export function ConversationList({
                 <div
                   key={conversation.id}
                   className={cn(
-                    "block w-full p-4 mb-3 bg-[#1F1F25] border border-[#333] rounded-lg cursor-pointer transition-all duration-200 relative z-20",
+                    "conversation-card block w-full p-4 mb-3 bg-[#1F1F25] border border-[#333] rounded-lg cursor-pointer transition-all duration-200",
                     "hover:bg-[#2E2E42] hover:shadow-xl hover:border-[#444]",
                     "shadow-lg ring-1 ring-gray-800/50",
                     isSelected &&
