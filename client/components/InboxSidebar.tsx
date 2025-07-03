@@ -204,6 +204,15 @@ export function InboxSidebar({
           </Button>
         </div>
 
+        {/* Separator */}
+        <div
+          style={{
+            height: "1px",
+            background: "rgba(182, 188, 195, 0.16)",
+            margin: "12px 0",
+          }}
+        />
+
         {/* Lifecycle Section */}
         <div style={{ marginBottom: "12px" }}>
           <Collapsible open={isLifecycleOpen} onOpenChange={setIsLifecycleOpen}>
