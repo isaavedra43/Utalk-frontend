@@ -835,11 +835,6 @@ export function ChatView({
             </div>
           </div>
         </div>
-
-        <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
-          <span>Press Enter to send, Shift+Enter for new line</span>
-          <span>{message.length} characters</span>
-        </div>
       </div>
     </div>
   );
