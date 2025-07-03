@@ -348,7 +348,7 @@ export function ChatList({
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-sm">💵</span>
-                      <span className="text-sm">Payment</span>
+                      <span className="text-sm">Pago</span>
                     </div>
                   </Button>
 
