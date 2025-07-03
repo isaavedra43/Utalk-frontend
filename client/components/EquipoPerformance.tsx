@@ -406,8 +406,15 @@ export function EquipoPerformance({ className }: EquipoPerformanceProps) {
         </div>
 
         <div className="mt-2 text-xs text-gray-500">
-          Última actualización: {lastUpdate.toLocaleTimeString()} |{" "}
-          {filteredSellers.length} de {mockSellers.length} vendedores
+          <span style={{ marginLeft: "12px" }}>Última actualización: </span>
+          <span style={{ marginLeft: "12px" }}>
+            {lastUpdate.toLocaleTimeString()}
+          </span>
+          <span> |</span>
+          <span style={{ marginLeft: "12px" }}>{filteredSellers.length}</span>
+          <span style={{ marginLeft: "12px" }}> de </span>
+          <span style={{ marginLeft: "12px" }}>{mockSellers.length}</span>
+          <span style={{ marginLeft: "12px" }}> vendedores</span>
         </div>
       </div>
 
