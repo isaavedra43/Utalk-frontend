@@ -175,14 +175,17 @@ export default function Index() {
         {activeModule === "messages" && (
           <div
             className={cn(
-              "hidden lg:block transition-all duration-300 ease-in-out flex-shrink-0",
-              leftPanelVisible ? "lg:w-64" : "lg:w-0 lg:overflow-hidden",
+              "hidden lg:block transition-all duration-300 ease-in-out flex-shrink-0 relative z-10",
+              leftPanelVisible
+                ? "lg:w-auto lg:min-w-fit"
+                : "lg:w-0 lg:overflow-hidden",
             )}
+            style={{ marginRight: leftPanelVisible ? "16px" : "0" }}
           >
             <ChatList
               selectedChatId={selectedChatId}
               onChatSelect={handleChatSelect}
-              className="h-full"
+              className="h-full shadow-2xl"
             />
           </div>
         )}
