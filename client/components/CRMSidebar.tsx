@@ -75,7 +75,7 @@ export function CRMSidebar({
   const lifecycleStages = [
     {
       id: "new-lead",
-      label: "New Lead",
+      label: "Nuevo Prospecto",
       emoji: "🆕",
       count: contactCounts.newLead,
     },
