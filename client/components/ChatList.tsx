@@ -107,6 +107,64 @@ export function ChatList({
     setSelectedSection(selectedSection === sectionId ? null : sectionId);
   };
 
+  // Filter conversations based on selected section and tab
+  const getFilteredConversations = () => {
+    if (!selectedSection) return [];
+
+    let filtered = mockConversations;
+
+    // Filter by tab (chats vs calls)
+    if (activeTab === "calls") {
+      // For now, return empty for calls tab since we only have chat conversations
+      return [];
+    }
+
+    // Filter by section
+    switch (selectedSection) {
+      case "mine":
+        // Filter conversations assigned to current user
+        filtered = filtered.filter((conv) => conv.section.includes("Mine"));
+        break;
+      case "unassigned":
+        // Filter unassigned conversations
+        filtered = filtered.filter((conv) =>
+          conv.section.includes("Unassigned"),
+        );
+        break;
+      case "new-lead":
+        // Filter new lead conversations
+        filtered = filtered.filter((conv) => conv.section.includes("New Lead"));
+        break;
+      case "hot-lead":
+        // Filter hot lead conversations
+        filtered = filtered.filter((conv) => conv.section.includes("Hot Lead"));
+        break;
+      case "payment":
+        // Filter payment conversations
+        filtered = filtered.filter((conv) => conv.section.includes("Payment"));
+        break;
+      case "customer":
+        // Filter customer conversations
+        filtered = filtered.filter((conv) => conv.section.includes("Customer"));
+        break;
+      case "calls":
+        // Filter call conversations
+        filtered = filtered.filter((conv) => conv.section.includes("Calls"));
+        break;
+      case "all":
+      default:
+        // Return all conversations for "all" section
+        break;
+    }
+
+    // Filter by unreplied only if toggle is on
+    if (isUnrepliedOnly) {
+      filtered = filtered.filter((conv) => conv.isUnread);
+    }
+
+    return filtered;
+  };
+
   return (
     <div className={cn("h-full flex bg-gray-900", className)}>
       {/* Inbox Sidebar */}
