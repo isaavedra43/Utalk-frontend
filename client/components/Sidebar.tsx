@@ -61,6 +61,12 @@ const navigationItems: NavigationItem[] = [
     icon: UserCheck,
     href: "/team",
   },
+  {
+    id: "settings",
+    label: "Configuración",
+    icon: Settings,
+    href: "/settings",
+  },
 ];
 
 export function Sidebar({
