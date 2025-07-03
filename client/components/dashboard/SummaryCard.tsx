@@ -71,11 +71,13 @@ export function SummaryCard({ data, onViewDetail }: SummaryCardProps) {
               key={index}
               className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg hover:bg-gray-900/70 transition-colors"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center" style={{ gap: "8px" }}>
                 <Icon className={`h-5 w-5 ${item.color}`} />
-                <span className="text-sm text-gray-300">{item.label}</span>
+                <span className="text-sm text-gray-300 text-left">
+                  {item.label}
+                </span>
               </div>
-              <span className="text-lg font-semibold text-white">
+              <span className="text-lg font-semibold text-white text-right">
                 {item.value}
               </span>
             </div>
