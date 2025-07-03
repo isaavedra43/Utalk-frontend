@@ -35,6 +35,7 @@ interface InboxSidebarProps {
 export function InboxSidebar({
   onSectionSelect,
   selectedSection,
+  onTogglePanels,
   className,
 }: InboxSidebarProps) {
   const [isLifecycleOpen, setIsLifecycleOpen] = useState(true);
