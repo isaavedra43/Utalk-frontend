@@ -105,16 +105,20 @@ export function InboxSidebar({
           <Button
             variant="ghost"
             onClick={() => handleSectionClick("all")}
-            className={cn("w-full justify-between transition-colors")}
+            className={cn(
+              "w-full justify-between transition-colors hover:bg-[#2C2C32] rounded-md",
+              selectedSection === "all"
+                ? "bg-[#2C2C32] text-white"
+                : "text-gray-400 hover:text-white",
+            )}
             style={{
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              height: "48px",
+              height: "36px",
               padding: "0 12px",
-              borderRadius: "8px",
-              background: selectedSection === "all" ? "#3A3A4D" : "transparent",
-              color: selectedSection === "all" ? "#FFFFFF" : "#A0A0A0",
+              borderRadius: "6px",
+              marginBottom: "4px",
             }}
           >
             <div className="flex items-center" style={{ gap: "8px" }}>
