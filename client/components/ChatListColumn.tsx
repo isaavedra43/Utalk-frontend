@@ -80,7 +80,9 @@ export function ChatListColumn({
     <div
       className={cn("flex flex-col", className)}
       style={{
-        width: "360px",
+        minWidth: "360px",
+        maxWidth: "480px",
+        width: "100%",
         fontFamily: "Inter, sans-serif",
         height: "100%",
         background: "#1E1E2F",
@@ -95,7 +97,7 @@ export function ChatListColumn({
           height: "100%",
         }}
       >
-        {/* Header with Tabs */}
+        {/* Header - Only Chats */}
         <div
           style={{
             height: "48px",
@@ -107,56 +109,26 @@ export function ChatListColumn({
           }}
         >
           <div className="flex w-full">
-            <button
-              onClick={() => setActiveTab("chats")}
-              className={cn(
-                "flex-1 h-12 flex items-center justify-center cursor-pointer transition-colors relative",
-              )}
+            <div
+              className="flex-1 h-12 flex items-center justify-center relative"
               style={{
-                color: activeTab === "chats" ? "#FFFFFF" : "#A0A0A0",
+                color: "#FFFFFF",
                 fontSize: "16px",
                 fontWeight: "600",
               }}
             >
               Chats
-              {activeTab === "chats" && (
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: "0",
-                    left: "0",
-                    right: "0",
-                    height: "3px",
-                    background: "#4F8EF7",
-                  }}
-                />
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab("calls")}
-              className={cn(
-                "flex-1 h-12 flex items-center justify-center cursor-pointer transition-colors relative",
-              )}
-              style={{
-                color: activeTab === "calls" ? "#FFFFFF" : "#A0A0A0",
-                fontSize: "16px",
-                fontWeight: "600",
-              }}
-            >
-              Llamadas
-              {activeTab === "calls" && (
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: "0",
-                    left: "0",
-                    right: "0",
-                    height: "3px",
-                    background: "#4F8EF7",
-                  }}
-                />
-              )}
-            </button>
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: "0",
+                  left: "0",
+                  right: "0",
+                  height: "3px",
+                  background: "#4A90E2",
+                }}
+              />
+            </div>
           </div>
         </div>
 
