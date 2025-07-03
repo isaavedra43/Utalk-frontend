@@ -196,54 +196,59 @@ export function InboxSidebar({
         </div>
 
         {/* Lifecycle Section */}
-        <div style={{ marginBottom: "24px" }}>
+        <div style={{ marginBottom: "12px" }}>
           <Collapsible open={isLifecycleOpen} onOpenChange={setIsLifecycleOpen}>
             <CollapsibleTrigger asChild>
               <Button
                 variant="ghost"
-                className="w-full justify-between h-auto p-0 rounded-lg"
+                className="w-full justify-between transition-colors"
                 style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  height: "48px",
+                  padding: "0 12px",
+                  borderRadius: "8px",
                   background: "transparent",
                   color: "#A0A0A0",
-                  padding: "8px 12px",
-                  height: "auto",
-                  lineHeight: "24px",
                 }}
               >
                 <span style={{ fontSize: "14px", fontWeight: "600" }}>
                   Ciclo de Vida
                 </span>
                 {isLifecycleOpen ? (
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown style={{ width: "20px", height: "20px" }} />
                 ) : (
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight style={{ width: "20px", height: "20px" }} />
                 )}
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="mt-2 space-y-2">
+              <div style={{ marginTop: "4px" }}>
                 {/* New Lead */}
                 <Button
                   variant="ghost"
                   onClick={() => handleSectionClick("new-lead")}
-                  className={cn(
-                    "w-full justify-between h-auto p-0 rounded-lg transition-colors",
-                  )}
+                  className={cn("w-full justify-between transition-colors")}
                   style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    height: "48px",
+                    padding: "0 12px",
+                    paddingLeft: "28px", // 16px indentation
+                    borderRadius: "8px",
                     background:
                       selectedSection === "new-lead"
                         ? "#3A3A4D"
                         : "transparent",
                     color:
                       selectedSection === "new-lead" ? "#FFFFFF" : "#A0A0A0",
-                    padding: "8px 12px",
-                    paddingLeft: "28px", // 16px indentation
-                    height: "auto",
-                    lineHeight: "24px",
+                    marginBottom: "4px",
                   }}
                 >
                   <div className="flex items-center" style={{ gap: "8px" }}>
-                    <span>🆕</span>
+                    <span style={{ fontSize: "16px" }}>🆕</span>
                     <span style={{ fontSize: "14px" }}>Nuevo Prospecto</span>
                   </div>
                   <Badge
@@ -264,24 +269,26 @@ export function InboxSidebar({
                 <Button
                   variant="ghost"
                   onClick={() => handleSectionClick("hot-lead")}
-                  className={cn(
-                    "w-full justify-start h-auto p-0 rounded-lg transition-colors",
-                  )}
+                  className={cn("w-full justify-start transition-colors")}
                   style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    height: "48px",
+                    padding: "0 12px",
+                    paddingLeft: "28px", // 16px indentation
+                    borderRadius: "8px",
                     background:
                       selectedSection === "hot-lead"
                         ? "#3A3A4D"
                         : "transparent",
                     color:
                       selectedSection === "hot-lead" ? "#FFFFFF" : "#A0A0A0",
-                    padding: "8px 12px",
-                    paddingLeft: "28px", // 16px indentation
-                    height: "auto",
-                    lineHeight: "24px",
+                    marginBottom: "4px",
                   }}
                 >
                   <div className="flex items-center" style={{ gap: "8px" }}>
-                    <span>🔥</span>
+                    <span style={{ fontSize: "16px" }}>🔥</span>
                     <span style={{ fontSize: "14px" }}>Prospecto Caliente</span>
                   </div>
                 </Button>
@@ -290,22 +297,24 @@ export function InboxSidebar({
                 <Button
                   variant="ghost"
                   onClick={() => handleSectionClick("payment")}
-                  className={cn(
-                    "w-full justify-start h-auto p-0 rounded-lg transition-colors",
-                  )}
+                  className={cn("w-full justify-start transition-colors")}
                   style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    height: "48px",
+                    padding: "0 12px",
+                    paddingLeft: "28px", // 16px indentation
+                    borderRadius: "8px",
                     background:
                       selectedSection === "payment" ? "#3A3A4D" : "transparent",
                     color:
                       selectedSection === "payment" ? "#FFFFFF" : "#A0A0A0",
-                    padding: "8px 12px",
-                    paddingLeft: "28px", // 16px indentation
-                    height: "auto",
-                    lineHeight: "24px",
+                    marginBottom: "4px",
                   }}
                 >
                   <div className="flex items-center" style={{ gap: "8px" }}>
-                    <DollarSign className="h-4 w-4" />
+                    <DollarSign style={{ width: "20px", height: "20px" }} />
                     <span style={{ fontSize: "14px" }}>Pago</span>
                   </div>
                 </Button>
@@ -314,24 +323,25 @@ export function InboxSidebar({
                 <Button
                   variant="ghost"
                   onClick={() => handleSectionClick("customer")}
-                  className={cn(
-                    "w-full justify-start h-auto p-0 rounded-lg transition-colors",
-                  )}
+                  className={cn("w-full justify-start transition-colors")}
                   style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    height: "48px",
+                    padding: "0 12px",
+                    paddingLeft: "28px", // 16px indentation
+                    borderRadius: "8px",
                     background:
                       selectedSection === "customer"
                         ? "#3A3A4D"
                         : "transparent",
                     color:
                       selectedSection === "customer" ? "#FFFFFF" : "#A0A0A0",
-                    padding: "8px 12px",
-                    paddingLeft: "28px", // 16px indentation
-                    height: "auto",
-                    lineHeight: "24px",
                   }}
                 >
                   <div className="flex items-center" style={{ gap: "8px" }}>
-                    <Crown className="h-4 w-4" />
+                    <Crown style={{ width: "20px", height: "20px" }} />
                     <span style={{ fontSize: "14px" }}>Cliente</span>
                   </div>
                 </Button>
