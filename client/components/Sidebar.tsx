@@ -63,6 +63,12 @@ const navigationItems: NavigationItem[] = [
     href: "/team",
   },
   {
+    id: "campaigns",
+    label: "Campañas",
+    icon: Megaphone,
+    href: "/campaigns",
+  },
+  {
     id: "settings",
     label: "Configuración",
     icon: Settings,
