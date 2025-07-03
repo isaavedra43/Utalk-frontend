@@ -14,6 +14,7 @@ import {
   PanelLeftClose,
   UserCheck,
   Settings,
+  Megaphone,
 } from "lucide-react";
 
 interface SidebarProps {
