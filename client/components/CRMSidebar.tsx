@@ -264,7 +264,9 @@ export function CRMSidebar({
                 >
                   <div className="flex items-center gap-2">
                     <Settings className="h-4 w-4" />
-                    <span className="text-sm font-medium">Custom Inbox</span>
+                    <span className="text-sm font-medium">
+                      Bandeja Personalizada
+                    </span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Button
