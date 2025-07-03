@@ -63,20 +63,70 @@ export function InboxSidebar({
     >
       {/* Header */}
       <div style={{ marginBottom: "24px" }}>
-        <h2
-          className="text-white font-semibold"
+        <div
           style={{
-            fontSize: "14px",
-            fontWeight: "600",
-            lineHeight: "24px",
             display: "flex",
             alignItems: "center",
-            gap: "12px",
+            justifyContent: "space-between",
+            height: "30px",
+            paddingLeft: "8px",
+            width: "100%",
           }}
         >
-          <Inbox className="h-4 w-4" />
-          Inbox
-        </h2>
+          <span
+            className="text-white font-semibold"
+            style={{
+              fontSize: "14px",
+              fontWeight: "600",
+              lineHeight: "20px",
+              color: "#FFFFFF",
+            }}
+          >
+            Inbox
+          </span>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              gap: "8px",
+              width: "100%",
+            }}
+          >
+            {/* Search Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-7 h-7 p-0 text-gray-400 hover:text-white hover:bg-gray-700"
+              style={{
+                background: "rgba(0, 0, 0, 0)",
+                borderRadius: "8px",
+                width: "28px",
+                height: "28px",
+              }}
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+
+            {/* Hamburger Toggle Button */}
+            {onTogglePanels && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onTogglePanels}
+                className="w-7 h-7 p-0 text-gray-400 hover:text-white hover:bg-gray-700"
+                style={{
+                  background: "rgba(0, 0, 0, 0)",
+                  borderRadius: "8px",
+                  width: "28px",
+                  height: "28px",
+                }}
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Navigation Sections */}
