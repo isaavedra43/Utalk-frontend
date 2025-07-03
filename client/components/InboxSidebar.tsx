@@ -351,14 +351,19 @@ export function InboxSidebar({
         </div>
 
         {/* Team Inbox Section */}
-        <div style={{ marginBottom: "24px" }}>
-          <div className="flex items-center justify-between">
+        <div style={{ marginBottom: "12px" }}>
+          <div
+            className="flex items-center justify-between"
+            style={{
+              height: "48px",
+              padding: "0 12px",
+            }}
+          >
             <span
               style={{
                 fontSize: "14px",
                 fontWeight: "600",
                 color: "#A0A0A0",
-                lineHeight: "24px",
               }}
             >
               Bandeja de Equipo
@@ -368,20 +373,25 @@ export function InboxSidebar({
               size="sm"
               className="h-6 w-6 p-0 text-gray-400 hover:text-white"
             >
-              <Plus className="h-4 w-4" />
+              <Plus style={{ width: "16px", height: "16px" }} />
             </Button>
           </div>
         </div>
 
         {/* Custom Inbox Section */}
-        <div style={{ marginBottom: "24px" }}>
-          <div className="flex items-center justify-between">
+        <div style={{ marginBottom: "12px" }}>
+          <div
+            className="flex items-center justify-between"
+            style={{
+              height: "48px",
+              padding: "0 12px",
+            }}
+          >
             <span
               style={{
                 fontSize: "14px",
                 fontWeight: "600",
                 color: "#A0A0A0",
-                lineHeight: "24px",
               }}
             >
               Bandeja Personalizada
@@ -391,7 +401,7 @@ export function InboxSidebar({
               size="sm"
               className="h-6 w-6 p-0 text-gray-400 hover:text-white"
             >
-              <Plus className="h-4 w-4" />
+              <Plus style={{ width: "16px", height: "16px" }} />
             </Button>
           </div>
         </div>
@@ -400,20 +410,21 @@ export function InboxSidebar({
         <Button
           variant="ghost"
           onClick={() => handleSectionClick("calls-section")}
-          className={cn(
-            "w-full justify-start h-auto p-0 rounded-lg transition-colors",
-          )}
+          className={cn("w-full justify-start transition-colors")}
           style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            height: "48px",
+            padding: "0 12px",
+            borderRadius: "8px",
             background:
               selectedSection === "calls-section" ? "#3A3A4D" : "transparent",
             color: selectedSection === "calls-section" ? "#FFFFFF" : "#A0A0A0",
-            padding: "8px 12px",
-            height: "auto",
-            lineHeight: "24px",
           }}
         >
-          <div className="flex items-center" style={{ gap: "12px" }}>
-            <Phone className="h-4 w-4" />
+          <div className="flex items-center" style={{ gap: "8px" }}>
+            <Phone style={{ width: "20px", height: "20px" }} />
             <span style={{ fontSize: "14px" }}>Llamadas</span>
           </div>
         </Button>
