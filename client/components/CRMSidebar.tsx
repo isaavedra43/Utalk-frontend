@@ -49,7 +49,7 @@ export function CRMSidebar({
   const categories = [
     {
       id: "all",
-      label: "All",
+      label: "Todos",
       icon: Archive,
       count: contactCounts.all,
     },
