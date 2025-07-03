@@ -252,8 +252,11 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
       {/* Main Content */}
       <div className="flex lg:flex-row flex-col h-[calc(100%-89px)] overflow-hidden dashboard-mobile">
         {/* Left Column (1/3) - Summary Cards */}
-        <div className="w-1/3 min-w-[400px] border-r border-gray-800 overflow-y-auto">
-          <div style={{ padding: "24px" }} className="space-y-6">
+        <div className="w-full lg:w-1/3 lg:min-w-[400px] lg:border-r border-gray-800 overflow-y-auto">
+          <div
+            style={{ padding: "24px", marginBottom: "24px" }}
+            className="space-y-6"
+          >
             {/* Summary Card */}
             <div style={{ padding: "24px" }}>
               <SummaryCard
