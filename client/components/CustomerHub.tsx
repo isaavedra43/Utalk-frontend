@@ -253,13 +253,6 @@ export function CustomerHub({ className }: CustomerHubProps) {
           </div>
         </div>
 
-        {/* AI Actions Bar */}
-        <AIActions
-          isLoading={isLoading}
-          onAIAction={handleAIAction}
-          selectedContactId={selectedContact}
-        />
-
         {/* Content Area */}
         <div className="flex-1 overflow-hidden">
           {viewMode === "table" ? (
