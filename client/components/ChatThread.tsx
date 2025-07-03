@@ -10,6 +10,18 @@ import {
   ChevronDown,
 } from "lucide-react";
 
+// CSS for contentEditable placeholder
+const styles = `
+  [contenteditable][data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    color: #9CA3AF;
+    pointer-events: none;
+  }
+  [contenteditable]:focus {
+    outline: none;
+  }
+`;
+
 interface Message {
   id: string;
   text: string;
