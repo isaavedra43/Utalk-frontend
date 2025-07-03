@@ -55,10 +55,11 @@ export function InboxSidebar({
       style={{
         width: "280px",
         background: "#1E1E2F",
-        borderRadius: "12px",
+        borderRadius: "0",
         padding: "16px",
         fontFamily: "Inter, sans-serif",
         overflowY: "auto",
+        borderRight: "1px solid rgba(182, 188, 195, 0.16)",
       }}
     >
       {/* Header */}
