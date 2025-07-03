@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { CRMSidebar } from "./CRMSidebar";
+import { PerformanceKPIs } from "./PerformanceKPIs";
 import { ContactTable } from "./ContactTable";
 import { ContactCards } from "./ContactCards";
-import { AIActions } from "./AIActions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
