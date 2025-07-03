@@ -481,7 +481,7 @@ export function ChatList({
                     : "text-gray-400 hover:text-white",
                 )}
               >
-                Calls
+                Llamadas
               </button>
             </div>
 
