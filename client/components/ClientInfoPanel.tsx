@@ -39,6 +39,36 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Minimalist scrollbar styles
+const scrollbarStyles = `
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(75, 85, 99, 0.5) transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(75, 85, 99, 0.5);
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(107, 114, 128, 0.7);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+`;
+
 interface ClientInfoPanelProps {
   className?: string;
 }
@@ -240,14 +270,16 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
   };
 
   return (
-    <div
-      className={cn(
-        "h-full w-full bg-gray-900 border-l border-gray-800 flex flex-col",
-        className,
-      )}
-    >
-      <ScrollArea className="flex-1">
-        <div className="p-3 space-y-3">
+    <>
+      <style dangerouslySetInnerHTML={{ __html: scrollbarStyles }} />
+      <div
+        className={cn(
+          "h-full w-full bg-gray-900 border-l border-gray-800 flex flex-col",
+          className,
+        )}
+      >
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="p-3 space-y-3">
           {/* 1. Productos Sugeridos - Compact */}
           <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
             <CardHeader className="pb-2">
