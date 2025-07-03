@@ -60,7 +60,7 @@ export function CRMSidebar({
     },
     {
       id: "unassigned",
-      label: "Unassigned",
+      label: "Sin Asignar",
       icon: MessageCircle,
       count: contactCounts.unassigned,
       countColor: "bg-blue-600",
