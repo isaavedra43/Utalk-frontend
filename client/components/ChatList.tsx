@@ -239,7 +239,7 @@ export function ChatList({
             >
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                <span className="text-sm">Mine</span>
+                <span className="text-sm">Míos</span>
               </div>
             </Button>
 
