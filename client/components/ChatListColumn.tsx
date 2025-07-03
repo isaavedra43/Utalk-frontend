@@ -89,6 +89,8 @@ export function ChatListColumn({
         width: "360px",
         fontFamily: "Inter, sans-serif",
         height: "100%",
+        background: "#1E1E2F",
+        borderRight: "1px solid rgba(182, 188, 195, 0.16)",
       }}
     >
       {/* Container */}
