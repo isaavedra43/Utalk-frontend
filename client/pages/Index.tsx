@@ -174,171 +174,270 @@ export default function Index() {
         {/* Content Area */}
         <div className="flex-1 overflow-hidden">
           {activeModule === "messages" ? (
-            /* Messaging Module with 3-Column Grid Layout */
+            /* Messaging Module with 4-Column Grid Layout */
             <div className="h-full overflow-hidden">
               {/* Mobile Layout */}
               <div className="lg:hidden h-full flex flex-col">
-                {/* Mobile AI/Client Panel */}
-                {rightPanelVisible && (
-                  <div
-                    className="fixed inset-0 z-50 bg-black/50"
-                    style={{ top: "64px" }}
-                  >
-                    <div className="absolute right-0 top-0 bottom-0 w-80 bg-gray-900">
-                      <div className="flex bg-gray-900 border-l border-gray-800">
-                        <Button
-                          size="sm"
-                          variant={aiPanelVisible ? "default" : "ghost"}
-                          onClick={() => {
-                            setAiPanelVisible(true);
-                            setClientInfoVisible(false);
-                          }}
-                          className={cn(
-                            "flex-1 rounded-none h-12 text-xs font-medium",
-                            aiPanelVisible
-                              ? "bg-blue-600 text-white border-b-2 border-blue-400"
-                              : "text-gray-400 hover:text-white hover:bg-gray-800",
-                          )}
-                        >
-                          <Bot className="w-4 h-4 mr-2" />
-                          IA
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={clientInfoVisible ? "default" : "ghost"}
-                          onClick={() => {
-                            setClientInfoVisible(true);
-                            setAiPanelVisible(false);
-                          }}
-                          className={cn(
-                            "flex-1 rounded-none h-12 text-xs font-medium",
-                            clientInfoVisible
-                              ? "bg-green-600 text-white border-b-2 border-green-400"
-                              : "text-gray-400 hover:text-white hover:bg-gray-800",
-                          )}
-                        >
-                          <UserCheck className="w-4 h-4 mr-2" />
-                          Cliente
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setRightPanelVisible(false)}
-                          className="w-12 h-12 text-gray-400 hover:text-white"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
+                {/* Show Inbox + Chats or Chat + AI based on selection */}
+                {selectedChatId ? (
+                  <div className="h-full flex flex-col">
+                    {/* Mobile Chat View */}
+                    <div className="flex-1">
+                      <ChatView
+                        chatId={selectedChatId}
+                        onShowAI={() => setRightPanelVisible(true)}
+                        onShowClientInfo={() => {
+                          setRightPanelVisible(true);
+                          setClientInfoVisible(true);
+                          setAiPanelVisible(false);
+                        }}
+                      />
+                    </div>
+
+                    {/* Mobile AI/Client Panel Overlay */}
+                    {rightPanelVisible && (
+                      <div
+                        className="fixed inset-0 z-50 bg-black/50"
+                        style={{ top: "64px" }}
+                      >
+                        <div className="absolute right-0 top-0 bottom-0 w-80 bg-gray-900">
+                          <div className="flex bg-gray-900 border-l border-gray-800">
+                            <Button
+                              size="sm"
+                              variant={aiPanelVisible ? "default" : "ghost"}
+                              onClick={() => {
+                                setAiPanelVisible(true);
+                                setClientInfoVisible(false);
+                              }}
+                              className={cn(
+                                "flex-1 rounded-none h-12 text-xs font-medium",
+                                aiPanelVisible
+                                  ? "bg-blue-600 text-white border-b-2 border-blue-400"
+                                  : "text-gray-400 hover:text-white hover:bg-gray-800",
+                              )}
+                            >
+                              <Bot className="w-4 h-4 mr-2" />
+                              IA
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={clientInfoVisible ? "default" : "ghost"}
+                              onClick={() => {
+                                setClientInfoVisible(true);
+                                setAiPanelVisible(false);
+                              }}
+                              className={cn(
+                                "flex-1 rounded-none h-12 text-xs font-medium",
+                                clientInfoVisible
+                                  ? "bg-green-600 text-white border-b-2 border-green-400"
+                                  : "text-gray-400 hover:text-white hover:bg-gray-800",
+                              )}
+                            >
+                              <UserCheck className="w-4 h-4 mr-2" />
+                              Cliente
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setRightPanelVisible(false)}
+                              className="w-12 h-12 text-gray-400 hover:text-white"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          <div className="flex-1 overflow-hidden">
+                            {aiPanelVisible && <AIAssistantPanel />}
+                            {clientInfoVisible && <ClientInfoPanel />}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex-1 overflow-hidden">
-                        {aiPanelVisible && <AIAssistantPanel />}
-                        {clientInfoVisible && <ClientInfoPanel />}
-                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Mobile Inbox + Chat List */
+                  <div className="h-full flex">
+                    <div className="w-1/3">
+                      <InboxSidebar
+                        onSectionSelect={handleSectionSelect}
+                        selectedSection={selectedSection}
+                        className="h-full"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <ChatListColumn
+                        selectedChatId={selectedChatId}
+                        onChatSelect={handleChatSelect}
+                        selectedSection={selectedSection}
+                        className="h-full"
+                      />
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Desktop Layout - Panel derecho pegado al borde */}
+              {/* Desktop Layout - 4 Column Grid */}
               <div
-                className="hidden lg:block"
+                className="hidden lg:grid h-full"
                 style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
+                  display: "grid",
+                  gridTemplateColumns: "60px 280px 360px 1fr",
+                  gridGap: "16px",
                   height: "100vh",
                   padding: "16px",
                   fontFamily: "Inter, sans-serif",
                 }}
               >
-                {/* AI/Cliente Panel (320px) pegado al borde derecho */}
+                {/* Column 0: Icon Sidebar (60px) */}
+                <div className="flex-shrink-0">
+                  <Sidebar
+                    activeModule={activeModule}
+                    onModuleChange={handleModuleChange}
+                    onTogglePanel={() => setLeftPanelVisible(!leftPanelVisible)}
+                    className="h-full"
+                  />
+                </div>
+
+                {/* Column 1: Inbox (280px) */}
+                {leftPanelVisible && (
+                  <div className="flex-shrink-0">
+                    <InboxSidebar
+                      onSectionSelect={handleSectionSelect}
+                      selectedSection={selectedSection}
+                      className="h-full"
+                    />
+                  </div>
+                )}
+
+                {/* Column 2: Chat List (360px) */}
+                {leftPanelVisible && (
+                  <div className="flex-shrink-0">
+                    <ChatListColumn
+                      selectedChatId={selectedChatId}
+                      onChatSelect={handleChatSelect}
+                      selectedSection={selectedSection}
+                      className="h-full"
+                    />
+                  </div>
+                )}
+
+                {/* Column 3: Chat View + AI/Client Panel */}
                 <div
+                  className="min-w-0"
                   style={{
-                    width: "320px",
-                    display: "flex",
-                    flexDirection: "column",
+                    display: "grid",
+                    gridTemplateColumns: rightPanelVisible
+                      ? "1fr 360px"
+                      : "1fr",
+                    gridGap: "16px",
                     height: "100%",
                   }}
                 >
-                  {/* Tabs */}
-                  <div className="flex" style={{ marginBottom: "0" }}>
-                    <button
-                      onClick={() => {
+                  {/* Subcolumn A: Chat View */}
+                  <div className="min-w-0 bg-gray-900 rounded-lg overflow-hidden">
+                    <ChatView
+                      chatId={selectedChatId}
+                      className="h-full"
+                      onShowAI={() => {
+                        setRightPanelVisible(true);
                         setAiPanelVisible(true);
                         setClientInfoVisible(false);
                       }}
-                      className={cn(
-                        "flex-1 h-12 flex items-center justify-center cursor-pointer text-sm font-medium transition-colors",
-                        aiPanelVisible
-                          ? "text-white"
-                          : "text-gray-400 hover:text-white",
-                      )}
-                      style={
-                        aiPanelVisible
-                          ? {
-                              background: "#4F8EF7",
-                              color: "#FFFFFF",
-                              borderTopLeftRadius: "12px",
-                              borderTopRightRadius:
-                                aiPanelVisible && !clientInfoVisible
-                                  ? "12px"
-                                  : "0",
-                            }
-                          : {
-                              background: "#1E1E2F",
-                              color: "#A0A0A0",
-                              borderTopLeftRadius: "12px",
-                            }
-                      }
-                    >
-                      <Bot className="w-4 h-4 mr-2" />
-                      Asistente IA
-                    </button>
-                    <button
-                      onClick={() => {
+                      onShowClientInfo={() => {
+                        setRightPanelVisible(true);
                         setClientInfoVisible(true);
                         setAiPanelVisible(false);
                       }}
-                      className={cn(
-                        "flex-1 h-12 flex items-center justify-center cursor-pointer text-sm font-medium transition-colors",
-                        clientInfoVisible
-                          ? "text-white"
-                          : "text-gray-400 hover:text-white",
-                      )}
-                      style={
-                        clientInfoVisible
-                          ? {
-                              background: "#3AD29F",
-                              color: "#FFFFFF",
-                              borderTopRightRadius: "12px",
-                              borderTopLeftRadius:
-                                clientInfoVisible && !aiPanelVisible
-                                  ? "12px"
-                                  : "0",
-                            }
-                          : {
-                              background: "#1E1E2F",
-                              color: "#A0A0A0",
-                              borderTopRightRadius: "12px",
-                            }
-                      }
-                    >
-                      <UserCheck className="w-4 h-4 mr-2" />
-                      Info del Cliente
-                    </button>
+                    />
                   </div>
 
-                  {/* Content */}
-                  <div
-                    className="flex-1 overflow-hidden"
-                    style={{
-                      background: "#1E1E2F",
-                      borderRadius: "0 0 12px 12px",
-                      borderTopRightRadius: aiPanelVisible ? "0" : "12px",
-                      borderTopLeftRadius: clientInfoVisible ? "0" : "12px",
-                    }}
-                  >
-                    {aiPanelVisible && <AIAssistantPanel />}
-                    {clientInfoVisible && <ClientInfoPanel />}
-                  </div>
+                  {/* Subcolumn B: AI Assistant / Client Info Panel (360px) */}
+                  {rightPanelVisible && (
+                    <div className="flex-shrink-0" style={{ width: "360px" }}>
+                      <div className="h-full flex flex-col">
+                        {/* Tabs */}
+                        <div className="flex" style={{ marginBottom: "0" }}>
+                          <button
+                            onClick={() => {
+                              setAiPanelVisible(true);
+                              setClientInfoVisible(false);
+                            }}
+                            className={cn(
+                              "flex-1 h-12 flex items-center justify-center cursor-pointer text-sm font-medium transition-colors",
+                              aiPanelVisible
+                                ? "text-white"
+                                : "text-gray-400 hover:text-white",
+                            )}
+                            style={
+                              aiPanelVisible
+                                ? {
+                                    background: "#4F8EF7",
+                                    color: "#FFFFFF",
+                                    borderTopLeftRadius: "12px",
+                                    borderTopRightRadius: !clientInfoVisible
+                                      ? "12px"
+                                      : "0",
+                                  }
+                                : {
+                                    background: "#1E1E2F",
+                                    color: "#A0A0A0",
+                                    borderTopLeftRadius: "12px",
+                                  }
+                            }
+                          >
+                            <Bot className="w-4 h-4 mr-2" />
+                            Asistente IA
+                          </button>
+                          <button
+                            onClick={() => {
+                              setClientInfoVisible(true);
+                              setAiPanelVisible(false);
+                            }}
+                            className={cn(
+                              "flex-1 h-12 flex items-center justify-center cursor-pointer text-sm font-medium transition-colors",
+                              clientInfoVisible
+                                ? "text-white"
+                                : "text-gray-400 hover:text-white",
+                            )}
+                            style={
+                              clientInfoVisible
+                                ? {
+                                    background: "#3AD29F",
+                                    color: "#FFFFFF",
+                                    borderTopRightRadius: "12px",
+                                    borderTopLeftRadius: !aiPanelVisible
+                                      ? "12px"
+                                      : "0",
+                                  }
+                                : {
+                                    background: "#1E1E2F",
+                                    color: "#A0A0A0",
+                                    borderTopRightRadius: "12px",
+                                  }
+                            }
+                          >
+                            <UserCheck className="w-4 h-4 mr-2" />
+                            Info del Cliente
+                          </button>
+                        </div>
+
+                        {/* Content */}
+                        <div
+                          className="flex-1 overflow-hidden"
+                          style={{
+                            background: "#1E1E2F",
+                            borderRadius: "0 0 12px 12px",
+                            borderTopRightRadius: aiPanelVisible ? "0" : "12px",
+                            borderTopLeftRadius: clientInfoVisible
+                              ? "0"
+                              : "12px",
+                          }}
+                        >
+                          {aiPanelVisible && <AIAssistantPanel />}
+                          {clientInfoVisible && <ClientInfoPanel />}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
