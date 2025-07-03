@@ -194,7 +194,7 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
         className="border-b border-gray-800 bg-gray-900 py-6"
         style={{ paddingLeft: "24px", paddingRight: "24px" }}
       >
-        <div className="flex items-center justify-between">
+        <div>
           <div>
             <h1 className="text-2xl font-bold text-white">
               Dashboard de Rendimiento
@@ -205,7 +205,7 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
           </div>
 
           <div
-            className="flex items-center gap-4"
+            className="flex items-center justify-end gap-4"
             style={{ marginTop: "16px" }}
           >
             {/* Date Range Selector */}
