@@ -142,8 +142,8 @@ export function SellerSettings({ className }: SellerSettingsProps) {
       </div>
 
       {/* Settings Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-0 py-6 space-y-8">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="px-0 py-6 space-y-8 min-h-full">
           {/* Main Settings Grid */}
           <div>
             <div className="mb-6">
