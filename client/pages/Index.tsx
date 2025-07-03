@@ -89,7 +89,7 @@ export default function Index() {
         )}
       >
         {/* Sidebar Navigation - Desktop only */}
-        <div className="hidden lg:block">
+        <div className="hidden lg:block flex-shrink-0">
           <Sidebar
             activeModule={activeModule}
             onModuleChange={handleModuleChange}
