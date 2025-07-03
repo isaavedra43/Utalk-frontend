@@ -134,29 +134,21 @@ export default function Index() {
             )}
 
             {/* Show module content for non-messages modules */}
-            {activeModule === "dashboard" && (
-              <div className="flex-1 overflow-hidden">
-                <ExecutiveDashboard className="h-full" />
-              </div>
-            )}
-            {activeModule === "crm" && (
-              <div className="flex-1 overflow-hidden">
-                <CustomerHub className="h-full" />
-              </div>
-            )}
-            {activeModule === "team" && (
-              <div className="flex-1 overflow-hidden">
-                <EquipoPerformance className="h-full" />
-              </div>
-            )}
-            {activeModule === "campaigns" && (
-              <div className="flex-1 overflow-hidden">
-                <CampaignModule className="h-full" />
-              </div>
-            )}
-            {activeModule === "settings" && (
-              <div className="flex-1 overflow-hidden">
-                <SellerSettings className="h-full" />
+            {activeModule !== "messages" && (
+              <div className="flex-1 overflow-auto">
+                {activeModule === "dashboard" && (
+                  <ExecutiveDashboard className="h-full" />
+                )}
+                {activeModule === "crm" && <CustomerHub className="h-full" />}
+                {activeModule === "team" && (
+                  <EquipoPerformance className="h-full" />
+                )}
+                {activeModule === "campaigns" && (
+                  <CampaignModule className="h-full" />
+                )}
+                {activeModule === "settings" && (
+                  <SellerSettings className="h-full" />
+                )}
               </div>
             )}
           </div>
