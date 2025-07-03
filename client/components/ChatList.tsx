@@ -442,7 +442,7 @@ export function ChatList({
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-1 px-2">
                   <div className="text-xs text-gray-500 py-2">
-                    No inboxes created
+                    No hay bandejas creadas
                   </div>
                 </CollapsibleContent>
               </Collapsible>
