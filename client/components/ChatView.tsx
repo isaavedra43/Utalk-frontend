@@ -276,9 +276,11 @@ export function ChatView({
           <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4 mx-auto">
             <Package className="h-8 w-8" />
           </div>
-          <p className="text-lg font-medium mb-2">No conversation selected</p>
+          <p className="text-lg font-medium mb-2">
+            Ninguna conversación seleccionada
+          </p>
           <p className="text-sm">
-            Choose a conversation from the sidebar to start messaging
+            Elige una conversación de la barra lateral para comenzar a escribir
           </p>
         </div>
       </div>
