@@ -713,6 +713,141 @@ export function ChatView({
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
+
+              {/* Predefined Texts */}
+              <Dialog
+                open={showPredefinedTexts}
+                onOpenChange={setShowPredefinedTexts}
+              >
+                <DialogTrigger asChild>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-gray-400 hover:text-white hover:bg-gray-700/60"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-gray-800 border border-gray-600 text-white text-xs">
+                        Textos predefinidos
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </DialogTrigger>
+                <DialogContent className="bg-gray-900 border border-gray-700/50 text-white rounded-xl shadow-2xl backdrop-blur-sm">
+                  <DialogHeader>
+                    <DialogTitle className="text-white font-medium">
+                      Textos Predefinidos
+                    </DialogTitle>
+                  </DialogHeader>
+                  <ScrollArea className="h-80 pr-2">
+                    <div className="space-y-2">
+                      {predefinedTexts.map((text) => (
+                        <div
+                          key={text.id}
+                          className="p-3 bg-gray-800/60 border border-gray-600/30 rounded-lg cursor-pointer hover:bg-gray-700/60 hover:border-gray-500/40 transition-all duration-200 backdrop-blur-sm"
+                          onClick={() =>
+                            handlePredefinedTextSelect(text.content)
+                          }
+                        >
+                          <h4 className="font-medium text-white mb-1">
+                            {text.title}
+                          </h4>
+                          <p className="text-sm text-gray-300 leading-relaxed">
+                            {text.content}
+                          </p>
+                          <Badge className="mt-2 bg-blue-600/20 border border-blue-500/30 text-blue-300 text-xs rounded-full">
+                            {text.category}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </DialogContent>
+              </Dialog>
+
+              {/* Campaign Buttons */}
+              <Dialog open={showCampaigns} onOpenChange={setShowCampaigns}>
+                <DialogTrigger asChild>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-gray-400 hover:text-white hover:bg-gray-700/60"
+                        >
+                          <Megaphone className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-gray-800 border border-gray-600 text-white text-xs">
+                        Enviar campaña
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </DialogTrigger>
+                <DialogContent className="bg-gray-900 border border-gray-700/50 text-white rounded-xl shadow-2xl backdrop-blur-sm">
+                  <DialogHeader>
+                    <DialogTitle className="text-white font-medium">
+                      Enviar Campaña
+                    </DialogTitle>
+                  </DialogHeader>
+                  <ScrollArea className="h-80 pr-2">
+                    <div className="space-y-3">
+                      {campaignTemplates.map((campaign) => (
+                        <div
+                          key={campaign.id}
+                          className="p-4 bg-gray-800/60 border border-gray-600/30 rounded-lg hover:bg-gray-700/40 transition-all duration-200 backdrop-blur-sm"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-medium text-white">
+                              {campaign.name}
+                            </h4>
+                            <Badge
+                              className={cn(
+                                "text-xs rounded-full",
+                                campaign.platform === "whatsapp"
+                                  ? "bg-green-600/20 border border-green-500/30 text-green-300"
+                                  : campaign.platform === "facebook"
+                                    ? "bg-blue-600/20 border border-blue-500/30 text-blue-300"
+                                    : "bg-purple-600/20 border border-purple-500/30 text-purple-300",
+                              )}
+                            >
+                              {campaign.platform.toUpperCase()}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-300 mb-3 leading-relaxed">
+                            {campaign.description}
+                          </p>
+                          <div className="bg-gray-800/80 border border-gray-600/40 p-3 rounded-lg mb-3">
+                            <p className="text-sm text-gray-200 leading-relaxed">
+                              {campaign.message}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => handleCampaignSend(campaign)}
+                            className={cn(
+                              "w-full h-8 rounded-lg transition-all duration-200",
+                              campaign.platform === "whatsapp"
+                                ? "bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-300"
+                                : campaign.platform === "facebook"
+                                  ? "bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300"
+                                  : "bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300",
+                            )}
+                          >
+                            <Send className="h-3 w-3 mr-1" />
+                            Enviar {campaign.platform}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </DialogContent>
+              </Dialog>
             </div>
 
             {/* AI Actions */}
