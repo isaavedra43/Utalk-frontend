@@ -241,7 +241,7 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
       </div>
 
       {/* Main Content */}
-      <div className="flex lg:flex-row flex-col h-[calc(100%-89px)] overflow-hidden dashboard-mobile">
+      <div className="flex flex-col lg:flex-row h-[calc(100%-89px)] overflow-hidden">
         {/* Left Column (1/3) - Summary Cards */}
         <div className="w-full lg:w-1/3 lg:min-w-[400px] lg:border-r border-gray-800 overflow-y-auto">
           <div
