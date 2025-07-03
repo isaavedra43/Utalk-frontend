@@ -276,17 +276,7 @@ export default function Index() {
               </div>
             </div>
           ) : activeModule === "crm" ? (
-            <div className="h-full flex items-center justify-center bg-gray-950">
-              <div className="text-center text-gray-400 p-4">
-                <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4 mx-auto">
-                  <Users className="h-8 w-8" />
-                </div>
-                <p className="text-lg font-medium mb-2">CRM</p>
-                <p className="text-sm">
-                  Customer relationship management coming soon
-                </p>
-              </div>
-            </div>
+            <CustomerHub className="h-full" />
           ) : null}
         </div>
 
