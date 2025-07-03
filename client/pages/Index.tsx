@@ -5,6 +5,7 @@ import { ChatView } from "@/components/ChatView";
 import { CustomerHub } from "@/components/CustomerHub";
 import { ExecutiveDashboard } from "@/components/ExecutiveDashboard";
 import { EquipoPerformance } from "@/components/EquipoPerformance";
+import { CampaignModule } from "@/components/CampaignModule";
 import { SellerSettings } from "@/components/SellerSettings";
 import Copilot from "@/components/Copilot";
 import { ClientInfoPanel } from "@/components/ClientInfoPanel";
