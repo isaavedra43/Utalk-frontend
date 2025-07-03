@@ -298,7 +298,7 @@ export function CRMSidebar({
                     onClick={() => console.log("Create first custom inbox")}
                   >
                     <Plus className="h-3 w-3 mr-1" />
-                    Create First
+                    Crear Primera
                   </Button>
                 </div>
               </CollapsibleContent>
