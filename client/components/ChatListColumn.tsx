@@ -285,15 +285,15 @@ export function ChatListColumn({
                   </div>
 
                   {/* Message with direction icon */}
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2">
                     {/* Direction icon */}
                     <div className="flex-shrink-0">
                       {conversation.isOutgoing ? (
                         <svg
                           style={{
-                            width: "16px",
-                            height: "16px",
-                            color: "#4F8EF7",
+                            width: "14px",
+                            height: "14px",
+                            color: "#4A90E2",
                           }}
                           viewBox="0 0 24 24"
                           fill="currentColor"
@@ -303,9 +303,9 @@ export function ChatListColumn({
                       ) : (
                         <svg
                           style={{
-                            width: "16px",
-                            height: "16px",
-                            color: "#FFA024",
+                            width: "14px",
+                            height: "14px",
+                            color: "#9CA3AF",
                           }}
                           viewBox="0 0 24 24"
                           fill="currentColor"
@@ -319,8 +319,9 @@ export function ChatListColumn({
                       className="truncate flex-1"
                       style={{
                         fontSize: "14px",
-                        color: "#C0C0C0",
+                        color: "#9CA3AF",
                         fontFamily: "Inter, sans-serif",
+                        lineHeight: "18px",
                       }}
                     >
                       {conversation.lastMessage}
