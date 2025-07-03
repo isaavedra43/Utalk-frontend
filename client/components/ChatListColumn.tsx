@@ -264,9 +264,10 @@ export function ChatListColumn({
                       className="truncate"
                       style={{
                         fontSize: "16px",
-                        fontWeight: "600",
+                        fontWeight: "700",
                         color: "#FFFFFF",
                         fontFamily: "Inter, sans-serif",
+                        lineHeight: "20px",
                       }}
                     >
                       {conversation.contactName}
@@ -274,8 +275,9 @@ export function ChatListColumn({
                     <span
                       style={{
                         fontSize: "12px",
-                        color: "#A0A0A0",
+                        color: "#9CA3AF",
                         fontFamily: "Inter, sans-serif",
+                        minWidth: "max-content",
                       }}
                     >
                       {conversation.timestamp}
