@@ -101,47 +101,14 @@ interface CustomerHubProps {
 }
 
 export function CustomerHub({ className }: CustomerHubProps) {
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Filter contacts based on category and search
+  // Filter contacts based on search
   const getFilteredContacts = () => {
     let filtered = mockContacts;
-
-    // Filter by category
-    if (selectedCategory !== "all") {
-      switch (selectedCategory) {
-        case "mine":
-          filtered = filtered.filter(
-            (contact) => contact.owner === "María García",
-          );
-          break;
-        case "unassigned":
-          filtered = filtered.filter((contact) => !contact.owner);
-          break;
-        case "new-lead":
-          filtered = filtered.filter(
-            (contact) => contact.status === "new-lead",
-          );
-          break;
-        case "hot-lead":
-          filtered = filtered.filter(
-            (contact) => contact.status === "hot-lead",
-          );
-          break;
-        case "payment":
-          filtered = filtered.filter((contact) => contact.status === "payment");
-          break;
-        case "customer":
-          filtered = filtered.filter(
-            (contact) => contact.status === "customer",
-          );
-          break;
-      }
-    }
 
     // Filter by search term
     if (searchTerm) {
@@ -157,10 +124,6 @@ export function CustomerHub({ className }: CustomerHubProps) {
   };
 
   // Event handlers
-  const handleSelectCategory = (categoryId: string) => {
-    setSelectedCategory(categoryId);
-    setSelectedContact(null);
-  };
 
   const handleCreateContact = () => {
     console.log("Creating new contact...");
