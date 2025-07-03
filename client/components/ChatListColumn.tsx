@@ -218,38 +218,29 @@ export function ChatListColumn({
             padding: "0 16px 16px 16px",
           }}
         >
-          <div className="space-y-2">
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             {conversations.map((conversation) => (
               <div
                 key={conversation.id}
                 onClick={() => onChatSelect?.(conversation.id)}
-                className={cn(
-                  "cursor-pointer transition-all duration-200 hover:shadow-lg",
-                )}
+                className={cn("cursor-pointer transition-all duration-200")}
                 style={{
                   height: "72px",
-                  background:
-                    selectedChatId === conversation.id ? "#4F8EF7" : "#2E2E40",
                   borderRadius: "8px",
                   padding: "12px",
                   display: "flex",
                   alignItems: "center",
                   gap: "12px",
-                  boxShadow:
-                    selectedChatId === conversation.id
-                      ? "0 2px 8px rgba(0,0,0,0.2)"
-                      : "none",
+                  background: "#2E2E40",
                 }}
                 onMouseEnter={(e) => {
-                  if (selectedChatId !== conversation.id) {
-                    (e.currentTarget as HTMLElement).style.boxShadow =
-                      "0 2px 8px rgba(0,0,0,0.2)";
-                  }
+                  (e.currentTarget as HTMLElement).style.background = "#2A2A3C";
+                  (e.currentTarget as HTMLElement).style.boxShadow =
+                    "0 2px 8px rgba(0,0,0,0.2)";
                 }}
                 onMouseLeave={(e) => {
-                  if (selectedChatId !== conversation.id) {
-                    (e.currentTarget as HTMLElement).style.boxShadow = "none";
-                  }
+                  (e.currentTarget as HTMLElement).style.background = "#2E2E40";
+                  (e.currentTarget as HTMLElement).style.boxShadow = "none";
                 }}
               >
                 {/* Avatar */}
@@ -258,13 +249,13 @@ export function ChatListColumn({
                     <img
                       src={conversation.avatarUrl}
                       alt={conversation.contactName}
-                      className="w-8 h-8 rounded-full object-cover"
-                      style={{ width: "32px", height: "32px" }}
+                      className="rounded-full object-cover"
+                      style={{ width: "40px", height: "40px" }}
                     />
                   ) : (
                     <div
                       className="rounded-full bg-gray-600 flex items-center justify-center"
-                      style={{ width: "32px", height: "32px" }}
+                      style={{ width: "40px", height: "40px" }}
                     >
                       <span className="text-white text-sm font-medium">
                         {conversation.contactName.charAt(0).toUpperCase()}
@@ -280,7 +271,7 @@ export function ChatListColumn({
                       height: "18px",
                       bottom: "-4px",
                       right: "-4px",
-                      border: "2px solid #16171B",
+                      border: "2px solid #1E1E2F",
                     }}
                   >
                     {conversation.channel === "facebook" && (
@@ -299,40 +290,55 @@ export function ChatListColumn({
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
+                  {/* Top row: Name and timestamp */}
                   <div className="flex items-center justify-between mb-1">
                     <h3
-                      className="font-semibold text-white truncate"
-                      style={{ fontSize: "16px", fontWeight: "600" }}
+                      className="truncate"
+                      style={{
+                        fontSize: "16px",
+                        fontWeight: "600",
+                        color: "#FFFFFF",
+                        fontFamily: "Inter, sans-serif",
+                      }}
                     >
                       {conversation.contactName}
                     </h3>
                     <span
-                      className="text-gray-400"
-                      style={{ fontSize: "12px", color: "#A0A0A0" }}
+                      style={{
+                        fontSize: "12px",
+                        color: "#A0A0A0",
+                        fontFamily: "Inter, sans-serif",
+                      }}
                     >
                       {conversation.timestamp}
                     </span>
                   </div>
 
-                  {/* Message with icon */}
-                  <div className="flex items-center gap-1">
+                  {/* Message with direction icon */}
+                  <div className="flex items-center gap-2 mb-1">
                     {/* Direction icon */}
                     <div className="flex-shrink-0">
                       {conversation.isOutgoing ? (
                         <svg
-                          className="w-4 h-4"
+                          style={{
+                            width: "16px",
+                            height: "16px",
+                            color: "#4F8EF7",
+                          }}
                           viewBox="0 0 24 24"
                           fill="currentColor"
-                          style={{ color: "#4F8EF7" }}
                         >
                           <path d="M5,17.59L15.59,7H9V5H19V15H17V8.41L6.41,19L5,17.59Z" />
                         </svg>
                       ) : (
                         <svg
-                          className="w-4 h-4"
+                          style={{
+                            width: "16px",
+                            height: "16px",
+                            color: "#FFA024",
+                          }}
                           viewBox="0 0 24 24"
                           fill="currentColor"
-                          style={{ color: "#FFA024" }}
                         >
                           <path d="M19,6.41L17.59,5L7,15.59V9H5V19H15V17H8.41L19,6.41Z" />
                         </svg>
@@ -340,62 +346,83 @@ export function ChatListColumn({
                     </div>
 
                     <p
-                      className="text-gray-400 truncate flex-1"
-                      style={{ fontSize: "14px", color: "#A0A0A0" }}
+                      className="truncate flex-1"
+                      style={{
+                        fontSize: "14px",
+                        color: "#C0C0C0",
+                        fontFamily: "Inter, sans-serif",
+                      }}
                     >
                       {conversation.lastMessage}
                     </p>
                   </div>
 
-                  {/* Bottom row */}
-                  <div className="flex items-center justify-between mt-2">
-                    {/* Lifecycle Badge */}
-                    <Badge
-                      className="text-xs"
+                  {/* Bottom row: Badges and indicators */}
+                  <div className="flex items-center justify-between">
+                    {/* Left side: Lifecycle Badge */}
+                    <div
                       style={{
-                        background: "#16171B",
-                        color: "#FFFFFF",
-                        fontSize: "10px",
-                        borderRadius: "4px",
-                        padding: "2px 6px",
                         display: "flex",
                         alignItems: "center",
-                        gap: "4px",
+                        gap: "6px",
                       }}
                     >
-                      🆕 {conversation.lifecycleStage}
-                    </Badge>
-
-                    {/* User avatar for outgoing messages */}
-                    {conversation.isOutgoing && conversation.userAvatarUrl && (
-                      <div className="flex-shrink-0">
-                        <img
-                          src={conversation.userAvatarUrl}
-                          alt="User Avatar"
-                          className="w-5 h-5 rounded-full object-cover"
-                          style={{ width: "20px", height: "20px" }}
-                        />
-                      </div>
-                    )}
-
-                    {/* Unread indicator or blocked indicator */}
-                    {conversation.isUnread && !conversation.isOutgoing && (
-                      <div
-                        className="rounded-full flex items-center justify-center"
+                      <Badge
                         style={{
-                          width: "20px",
-                          height: "20px",
-                          background: "#EF476F",
+                          background: "#16171B",
+                          color: "#FFFFFF",
+                          fontSize: "10px",
+                          borderRadius: "4px",
+                          padding: "2px 6px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
                         }}
                       >
-                        <span
-                          className="text-white font-bold"
-                          style={{ fontSize: "10px" }}
+                        🆕 {conversation.lifecycleStage}
+                      </Badge>
+
+                      {/* WhatsApp or other channel badge if needed */}
+                    </div>
+
+                    {/* Right side: User avatar or indicators */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      {/* User avatar for outgoing messages */}
+                      {conversation.isOutgoing &&
+                        conversation.userAvatarUrl && (
+                          <img
+                            src={conversation.userAvatarUrl}
+                            alt="User Avatar"
+                            className="rounded-full object-cover"
+                            style={{ width: "20px", height: "20px" }}
+                          />
+                        )}
+
+                      {/* Unread indicator */}
+                      {conversation.isUnread && !conversation.isOutgoing && (
+                        <div
+                          className="rounded-full flex items-center justify-center"
+                          style={{
+                            width: "20px",
+                            height: "20px",
+                            background: "#EF476F",
+                          }}
                         >
-                          !
-                        </span>
-                      </div>
-                    )}
+                          <span
+                            className="text-white font-bold"
+                            style={{ fontSize: "10px" }}
+                          >
+                            !
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
