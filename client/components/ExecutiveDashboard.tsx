@@ -301,8 +301,8 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
         </div>
 
         {/* Right Column - Charts Stacked Vertically */}
-        <div className="w-1/3 min-w-[400px] border-l border-gray-800 overflow-y-auto">
-          <div style={{ padding: "24px" }}>
+        <div className="w-full lg:w-1/3 lg:min-w-[400px] lg:border-l border-gray-800 overflow-y-auto">
+          <div style={{ padding: "24px", marginBottom: "24px" }}>
             {/* Performance por Agente */}
             <div style={{ padding: "24px", marginBottom: "24px" }}>
               <LineChartAgent
