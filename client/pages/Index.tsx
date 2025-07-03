@@ -289,9 +289,8 @@ export default function Index() {
                   gridTemplateColumns: leftPanelVisible
                     ? "60px 280px 360px 1fr"
                     : "60px 1fr",
-                  gridGap: "16px",
+                  gridGap: "0px",
                   height: "100vh",
-                  padding: "16px",
                   fontFamily: "Inter, sans-serif",
                 }}
               >
