@@ -63,70 +63,37 @@ export function InboxSidebar({
       }}
     >
       {/* Header */}
-      <div style={{ marginBottom: "24px" }}>
-        <div
+      <div style={{ paddingTop: "24px", marginBottom: "24px" }}>
+        <h2
+          className="text-white font-bold"
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            height: "30px",
-            paddingLeft: "8px",
-            width: "100%",
+            fontSize: "18px",
+            fontWeight: "700",
+            lineHeight: "24px",
+            color: "#FFFFFF",
+            marginBottom: "16px",
           }}
         >
-          <span
-            className="text-white font-semibold"
-            style={{
-              fontSize: "14px",
-              fontWeight: "600",
-              lineHeight: "20px",
-              color: "#FFFFFF",
-            }}
-          >
-            Inbox
-          </span>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "flex-end",
-              gap: "8px",
-              width: "100%",
-            }}
-          >
-            {/* Search Button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-7 h-7 p-0 text-gray-400 hover:text-white hover:bg-gray-700"
-              style={{
-                background: "rgba(0, 0, 0, 0)",
-                borderRadius: "8px",
-                width: "28px",
-                height: "28px",
-              }}
-            >
-              <Search className="h-5 w-5" />
-            </Button>
+          Inbox
+        </h2>
 
-            {/* Hamburger Toggle Button */}
-            {onTogglePanels && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onTogglePanels}
-                className="w-7 h-7 p-0 text-gray-400 hover:text-white hover:bg-gray-700"
-                style={{
-                  background: "rgba(0, 0, 0, 0)",
-                  borderRadius: "8px",
-                  width: "28px",
-                  height: "28px",
-                }}
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
-            )}
-          </div>
+        {/* Search Bar */}
+        <div style={{ marginBottom: "16px" }}>
+          <input
+            type="text"
+            placeholder="Buscar bandeja…"
+            style={{
+              width: "100%",
+              height: "36px",
+              padding: "8px 12px",
+              background: "#252538",
+              border: "1px solid #333",
+              borderRadius: "6px",
+              color: "#FFFFFF",
+              fontSize: "14px",
+              fontFamily: "Inter, sans-serif",
+            }}
+          />
         </div>
       </div>
 
