@@ -170,7 +170,7 @@ export function CustomerHub({ className }: CustomerHubProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="border-b border-gray-800 bg-gray-900 p-4">
+        <div className="border-b border-gray-800 bg-gray-900 px-0 py-4">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-xl font-semibold text-white">Customer Hub</h1>
