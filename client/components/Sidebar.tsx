@@ -15,6 +15,8 @@ import {
   UserCheck,
   Settings,
   Megaphone,
+  BookOpen,
+  Video,
 } from "lucide-react";
 
 interface SidebarProps {
