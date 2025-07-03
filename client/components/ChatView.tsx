@@ -303,130 +303,244 @@ export function ChatView({
         </ScrollArea>
       </div>
 
-      {/* Footer de entrada de texto */}
+      {/* Enhanced chat input area */}
       <div
-        className="border-t flex items-center"
+        className="border-t"
         style={{
-          height: "80px",
-          borderTop: "1px solid #2E2E3F",
-          padding: "0 16px",
-          gap: "12px",
+          borderTop: "1px solid rgba(182, 188, 195, 0.16)",
+          background: "#22222A",
+          borderRadius: "8px",
         }}
       >
-        {/* Botones de acciones */}
-        <div className="flex items-center" style={{ gap: "8px" }}>
-          {/* Adjuntar */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-8 h-8 p-0 text-gray-400 hover:text-white"
-            style={{
-              background: "#2E2E3F",
-              borderRadius: "8px",
-              padding: "8px",
-            }}
-          >
-            <Paperclip className="h-4 w-4" />
-          </Button>
-
-          {/* Imagen */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-8 h-8 p-0 text-gray-400 hover:text-white"
-            style={{
-              background: "#2E2E3F",
-              borderRadius: "8px",
-              padding: "8px",
-            }}
-          >
-            <ImageIcon className="h-4 w-4" />
-          </Button>
-
-          {/* Audio */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-8 h-8 p-0 text-gray-400 hover:text-white"
-            style={{
-              background: "#2E2E3F",
-              borderRadius: "8px",
-              padding: "8px",
-            }}
-          >
-            <Mic className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {/* Campo de texto */}
-        <Textarea
-          placeholder="Escribe un mensaje..."
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          onKeyPress={handleKeyPress}
-          className="flex-1 resize-none"
+        {/* Header with channel selector and AI assist */}
+        <div
+          className="flex items-center justify-between"
           style={{
-            background: "#252538",
+            padding: "6px 12px",
+            background: "#22222A",
             borderRadius: "8px",
-            padding: "12px",
-            color: "#FFFFFF",
-            fontSize: "14px",
-            border: "1px solid #2E2E3F",
-            minHeight: "44px",
-            maxHeight: "44px",
-          }}
-          rows={1}
-        />
-
-        {/* Botones IA */}
-        <div className="flex items-center" style={{ gap: "8px" }}>
-          {/* Resumir */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs text-gray-400 hover:text-white"
-            style={{
-              background: "#2E2E3F",
-              borderRadius: "8px",
-              padding: "8px 12px",
-              fontSize: "12px",
-            }}
-          >
-            <Bot className="h-3 w-3 mr-1" />
-            Resumir
-          </Button>
-
-          {/* Sugerir */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-xs text-gray-400 hover:text-white"
-            style={{
-              background: "#2E2E3F",
-              borderRadius: "8px",
-              padding: "8px 12px",
-              fontSize: "12px",
-            }}
-          >
-            <Bot className="h-3 w-3 mr-1" />
-            Sugerir
-          </Button>
-        </div>
-
-        {/* Botón Enviar */}
-        <Button
-          onClick={handleSendMessage}
-          disabled={!newMessage.trim()}
-          className="text-white disabled:opacity-50"
-          style={{
-            background: "#3AD29F",
-            borderRadius: "8px",
-            padding: "12px 16px",
-            border: "none",
           }}
         >
-          <Send className="h-4 w-4" />
-        </Button>
+          {/* Channel selector */}
+          <div className="flex items-center cursor-pointer">
+            <div className="flex items-center" style={{ gap: "4px" }}>
+              <img
+                src="https://cdn.respond.io/platform/web/assets/static/images/channels/circle/64/facebook.webp"
+                alt="facebook"
+                style={{
+                  width: "18px",
+                  height: "18px",
+                  borderRadius: "50%",
+                }}
+              />
+              <span
+                style={{
+                  color: "rgb(151, 160, 170)",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  marginLeft: "4px",
+                }}
+              >
+                Facebook Messenger
+              </span>
+            </div>
+          </div>
+
+          {/* AI Assist button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-blue-400 hover:text-blue-300"
+            style={{
+              background: "rgba(0, 0, 0, 0)",
+              border: "1px solid rgb(147, 143, 255)",
+              borderRadius: "8px",
+              padding: "4px 8px",
+              fontSize: "14px",
+              color: "rgb(147, 143, 255)",
+            }}
+          >
+            <Bot className="h-4 w-4 mr-1" />
+            AI Assist
+          </Button>
+        </div>
+
+        {/* Message input area */}
+        <div style={{ padding: "12px" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplate:
+                '"prepend control append" "a messages b" max-content minmax(0px, 1fr) max-content',
+              gridTemplateRows: "auto auto",
+              paddingLeft: "6px",
+              paddingRight: "6px",
+            }}
+          >
+            <div style={{ gridArea: "control", position: "relative" }}>
+              <Textarea
+                placeholder="Escribe un mensaje..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="resize-none"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  outline: "rgba(0, 0, 0, 0) solid 2px",
+                  color: "rgb(207, 211, 216)",
+                  fontSize: "14px",
+                  letterSpacing: "-0.09px",
+                  lineHeight: "20px",
+                  padding: "4px",
+                  minHeight: "32px",
+                  maxHeight: "159.4px",
+                  width: "100%",
+                  whiteSpace: "pre-wrap",
+                }}
+                rows={1}
+              />
+            </div>
+          </div>
+
+          {/* Action buttons toolbar */}
+          <div
+            className="flex justify-between"
+            style={{
+              paddingTop: "4px",
+              paddingLeft: "6px",
+              paddingRight: "6px",
+            }}
+          >
+            {/* Left side buttons */}
+            <div className="flex items-center" style={{ gap: "4px" }}>
+              {/* Attachment button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white"
+                style={{
+                  background: "rgba(0, 0, 0, 0)",
+                  borderRadius: "8px",
+                  padding: "4px",
+                  height: "28px",
+                }}
+              >
+                <Paperclip className="h-5 w-5" />
+              </Button>
+
+              {/* Divider */}
+              <div
+                style={{
+                  width: "1px",
+                  height: "20px",
+                  background: "rgba(182, 188, 195, 0.16)",
+                  margin: "5px 4px",
+                }}
+              />
+
+              {/* Image button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white"
+                style={{
+                  background: "rgba(0, 0, 0, 0)",
+                  borderRadius: "8px",
+                  padding: "4px",
+                  height: "28px",
+                }}
+              >
+                <ImageIcon className="h-5 w-5" />
+              </Button>
+
+              {/* Audio button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white"
+                style={{
+                  background: "rgba(0, 0, 0, 0)",
+                  borderRadius: "8px",
+                  padding: "4px",
+                  height: "28px",
+                }}
+              >
+                <Mic className="h-5 w-5" />
+              </Button>
+
+              {/* More buttons */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white"
+                style={{
+                  background: "rgba(0, 0, 0, 0)",
+                  borderRadius: "8px",
+                  padding: "4px",
+                  height: "28px",
+                }}
+              >
+                <MoreHorizontal className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Right side - Send button */}
+            <div className="flex items-center">
+              <Button
+                onClick={handleSendMessage}
+                disabled={!newMessage.trim()}
+                className="text-white disabled:opacity-50"
+                style={{
+                  background: "#4CAF50",
+                  borderRadius: "8px",
+                  padding: "4px 8px",
+                  height: "28px",
+                  border: "none",
+                }}
+              >
+                <Send className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Bottom action buttons */}
+          <div className="flex" style={{ gap: "8px", marginTop: "8px" }}>
+            <Button
+              variant="ghost"
+              className="flex-1 text-gray-400 hover:text-white"
+              style={{
+                background: "rgba(0, 0, 0, 0)",
+                border: "1px solid rgb(207, 211, 216)",
+                borderRadius: "8px",
+                padding: "8px 12px",
+                height: "32px",
+                fontSize: "14px",
+                justifyContent: "flex-start",
+              }}
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Add comment
+            </Button>
+
+            <Button
+              variant="ghost"
+              className="text-blue-400 hover:text-blue-300"
+              style={{
+                background: "rgba(0, 0, 0, 0)",
+                border: "1px solid rgb(147, 143, 255)",
+                borderRadius: "8px",
+                padding: "8px 12px",
+                height: "32px",
+                fontSize: "14px",
+                color: "rgb(147, 143, 255)",
+              }}
+            >
+              <Bot className="h-4 w-4 mr-2" />
+              Summarize
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
