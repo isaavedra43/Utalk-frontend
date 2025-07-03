@@ -274,7 +274,7 @@ export function ChatList({
             >
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4" />
-                <span className="text-sm">Incoming Calls</span>
+                <span className="text-sm">Llamadas Entrantes</span>
               </div>
             </Button>
 
@@ -310,7 +310,7 @@ export function ChatList({
                     )}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-sm">🆕</span>
+                      <span className="text-sm">��</span>
                       <span className="text-sm">New Lead</span>
                     </div>
                     <Badge className="bg-blue-600 text-white text-xs px-2 py-0 h-5">
