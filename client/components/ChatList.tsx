@@ -256,7 +256,7 @@ export function ChatList({
             >
               <div className="flex items-center gap-2">
                 <MessageCircle className="h-4 w-4" />
-                <span className="text-sm">Unassigned</span>
+                <span className="text-sm">Sin Asignar</span>
               </div>
               <Badge className="bg-blue-600 text-white text-xs px-2 py-0 h-5">
                 {unassignedCount}
