@@ -76,9 +76,9 @@ export function InboxSidebar({
       </div>
 
       {/* Navigation Sections */}
-      <div className="space-y-3">
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         {/* Main Sections */}
-        <div className="space-y-2">
+        <div style={{ display: "flex", flexDirection: "column", gap: "0px" }}>
           {/* All */}
           <Button
             variant="ghost"
