@@ -179,7 +179,7 @@ export function CampaignModule({ className }: CampaignModuleProps) {
   return (
     <div className={cn("h-full bg-gray-950 overflow-hidden", className)}>
       {/* Module Header */}
-      <div className="border-b border-gray-800 bg-gray-900 p-6">
+      <div className="border-b border-gray-800 bg-gray-900 px-0 py-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-lg bg-purple-900/30 border border-purple-500/30">
