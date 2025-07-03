@@ -81,7 +81,7 @@ export function CRMSidebar({
     },
     {
       id: "hot-lead",
-      label: "Hot Lead",
+      label: "Prospecto Caliente",
       emoji: "🔥",
       count: contactCounts.hotLead,
     },
