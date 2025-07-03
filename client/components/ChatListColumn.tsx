@@ -87,6 +87,7 @@ export function ChatListColumn({
       className={cn("flex flex-col", className)}
       style={{
         width: "360px",
+        marginLeft: "16px",
         marginRight: "16px",
         fontFamily: "Inter, sans-serif",
         height: "100%",
@@ -98,9 +99,6 @@ export function ChatListColumn({
           display: "flex",
           flexDirection: "column",
           height: "100%",
-          background: "#1E1E2F",
-          borderRadius: "12px",
-          overflow: "hidden",
         }}
       >
         {/* Header with Tabs */}
@@ -109,16 +107,16 @@ export function ChatListColumn({
             height: "48px",
             background: "#252538",
             display: "flex",
-            paddingLeft: "16px",
-            paddingRight: "16px",
+            padding: "0 16px",
             alignItems: "center",
+            borderBottom: "1px solid #333",
           }}
         >
           <div className="flex w-full">
             <button
               onClick={() => setActiveTab("chats")}
               className={cn(
-                "flex-1 h-12 flex items-center justify-center cursor-pointer text-sm font-medium transition-colors relative",
+                "flex-1 h-12 flex items-center justify-center cursor-pointer transition-colors relative",
               )}
               style={{
                 color: activeTab === "chats" ? "#FFFFFF" : "#A0A0A0",
@@ -143,7 +141,7 @@ export function ChatListColumn({
             <button
               onClick={() => setActiveTab("calls")}
               className={cn(
-                "flex-1 h-12 flex items-center justify-center cursor-pointer text-sm font-medium transition-colors relative",
+                "flex-1 h-12 flex items-center justify-center cursor-pointer transition-colors relative",
               )}
               style={{
                 color: activeTab === "calls" ? "#FFFFFF" : "#A0A0A0",
