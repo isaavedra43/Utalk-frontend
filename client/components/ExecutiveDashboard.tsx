@@ -181,7 +181,7 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
   return (
     <div className={cn("h-full bg-gray-950 overflow-hidden", className)}>
       {/* Header */}
-      <div className="border-b border-gray-800 bg-gray-900 p-6">
+      <div className="border-b border-gray-800 bg-gray-900 px-0 py-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white">
