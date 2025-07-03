@@ -16,6 +16,7 @@ import {
   Mic,
   ImageIcon,
   FileText,
+  PanelRightClose,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,7 @@ interface ChatViewProps {
   className?: string;
   onShowAI?: () => void;
   onShowClientInfo?: () => void;
+  onToggleRightPanel?: () => void;
 }
 
 // Mock conversation data
