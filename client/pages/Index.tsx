@@ -282,29 +282,19 @@ export default function Index() {
                 )}
               </div>
 
-              {/* Desktop Layout - 4 Column Grid */}
+              {/* Desktop Layout - 3 Column Grid */}
               <div
                 className="hidden lg:grid h-full"
                 style={{
                   display: "grid",
                   gridTemplateColumns: leftPanelVisible
-                    ? "60px 280px 360px 1fr"
-                    : "60px 1fr",
+                    ? "280px 360px 1fr"
+                    : "1fr",
                   gridGap: "0px",
                   height: "100vh",
                   fontFamily: "Inter, sans-serif",
                 }}
               >
-                {/* Column 0: Icon Sidebar (60px) */}
-                <div className="flex-shrink-0">
-                  <Sidebar
-                    activeModule={activeModule}
-                    onModuleChange={handleModuleChange}
-                    onTogglePanel={() => setLeftPanelVisible(!leftPanelVisible)}
-                    className="h-full"
-                  />
-                </div>
-
                 {/* Column 1: Inbox (280px) */}
                 {leftPanelVisible && (
                   <div className="flex-shrink-0">
