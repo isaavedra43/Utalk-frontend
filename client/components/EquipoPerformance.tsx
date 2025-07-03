@@ -319,7 +319,10 @@ export function EquipoPerformance({ className }: EquipoPerformanceProps) {
       {/* Module Header */}
       <div className="border-b border-gray-800 bg-gray-900 px-0 py-6">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
+          <div
+            className="flex items-center gap-3"
+            style={{ marginLeft: "12px" }}
+          >
             <Users className="h-6 w-6 text-blue-400" />
             <div>
               <h1 className="text-2xl font-bold text-white">
