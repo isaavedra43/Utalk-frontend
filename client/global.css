@@ -2,6 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  /* Conversation Cards Layer System */
+  .conversation-cards-container {
+    @apply relative z-20;
+  }
+
+  .conversation-card {
+    @apply relative z-20 transform-gpu;
+    backdrop-filter: blur(8px);
+  }
+
+  .conversation-card:hover {
+    @apply scale-[1.02] z-30;
+    transform: translateY(-2px) scale(1.02);
+  }
+
+  .chat-messages-area {
+    @apply relative z-5;
+  }
+
+  /* Mobile Carousel for Conversation Cards */
+  @media (max-width: 768px) {
+    .mobile-conversation-carousel {
+      @apply flex overflow-x-auto space-x-3 p-4;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .mobile-conversation-carousel::-webkit-scrollbar {
+      @apply hidden;
+    }
+
+    .mobile-conversation-card {
+      @apply flex-shrink-0 w-72 bg-[#1F1F25] border border-gray-700 rounded-lg p-3;
+      @apply shadow-lg relative z-20;
+      backdrop-filter: blur(8px);
+    }
+  }
+}
+
 @layer base {
   /**
    * Tailwind CSS theme
