@@ -69,7 +69,7 @@ export default function Index() {
   };
 
   return (
-    <div className="h-screen bg-[#1F1F2E] text-white overflow-hidden">
+    <div className="h-screen bg-[#121214] text-white overflow-hidden">
       {/* Mobile header */}
       <div className="lg:hidden flex items-center justify-between p-3 border-b border-gray-800 bg-gray-900">
         <div className="flex items-center gap-2">
@@ -299,9 +299,10 @@ export default function Index() {
                 style={{
                   display: "grid",
                   gridTemplateColumns: "300px 1fr 320px",
-                  gridGap: "0px",
+                  gridGap: "16px",
                   height: "100vh",
                   fontFamily: "Inter, sans-serif",
+                  padding: "0 24px",
                 }}
               >
                 {/* Column 1: Inbox List */}
@@ -336,16 +337,16 @@ export default function Index() {
                         style={
                           aiPanelVisible
                             ? {
-                                background: "#4F8EF7",
-                                color: "#FFFFFF",
+                                background: "#1E1B2D",
+                                color: "#E4E4E7",
                                 borderTopLeftRadius: "12px",
                                 borderTopRightRadius: !clientInfoVisible
                                   ? "12px"
                                   : "0",
                               }
                             : {
-                                background: "#1E1E2F",
-                                color: "#A0A0A0",
+                                background: "#1E1B2D",
+                                color: "#6B7280",
                                 borderTopLeftRadius: "12px",
                               }
                         }
@@ -367,16 +368,16 @@ export default function Index() {
                         style={
                           clientInfoVisible
                             ? {
-                                background: "#3AD29F",
-                                color: "#FFFFFF",
+                                background: "#1E1B2D",
+                                color: "#E4E4E7",
                                 borderTopRightRadius: "12px",
                                 borderTopLeftRadius: !aiPanelVisible
                                   ? "12px"
                                   : "0",
                               }
                             : {
-                                background: "#1E1E2F",
-                                color: "#A0A0A0",
+                                background: "#1E1B2D",
+                                color: "#6B7280",
                                 borderTopRightRadius: "12px",
                               }
                         }
@@ -390,7 +391,7 @@ export default function Index() {
                     <div
                       className="flex-1 overflow-hidden"
                       style={{
-                        background: "#1E1E2F",
+                        background: "#18181B",
                         borderRadius: "0 0 12px 12px",
                         borderTopRightRadius: aiPanelVisible ? "0" : "12px",
                         borderTopLeftRadius: clientInfoVisible ? "0" : "12px",
