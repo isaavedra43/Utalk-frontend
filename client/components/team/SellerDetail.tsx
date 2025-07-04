@@ -109,8 +109,19 @@ export function SellerDetail({
       </div>
 
       {/* Content Area */}
-      <ScrollArea className="h-[calc(100%-140px)]">
-        <div className="p-6 space-y-6">
+      <div
+        className="overflow-y-auto overflow-x-hidden h-[calc(100%-140px)]"
+        style={{
+          boxSizing: "border-box",
+        }}
+      >
+        <div
+          className="p-6 space-y-6"
+          style={{
+            paddingBottom: "24px",
+            boxSizing: "border-box",
+          }}
+        >
           {/* Permissions Section */}
           <PermissionsCard
             seller={seller}
@@ -159,7 +170,7 @@ export function SellerDetail({
             />
           </div>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
