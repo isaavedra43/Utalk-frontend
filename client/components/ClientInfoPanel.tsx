@@ -290,7 +290,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
               style={{ marginBottom: "12px" }}
             >
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-white flex items-center gap-2">
+                <CardTitle className="text-xs text-[#E4E4E7] flex items-center gap-2">
                   <Package className="h-3 w-3 text-green-400" />
                   Productos Sugeridos
                   <Badge className="bg-green-600/20 border border-green-500/30 text-green-300 text-xs rounded-full">
@@ -403,7 +403,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
               style={{ marginBottom: "12px" }}
             >
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-white flex items-center gap-2">
+                <CardTitle className="text-xs text-[#E4E4E7] flex items-center gap-2">
                   <User className="h-3 w-3 text-blue-400" />
                   Info del Cliente
                   <div className="flex items-center gap-1">
@@ -533,7 +533,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
               style={{ marginBottom: "12px" }}
             >
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-white flex items-center gap-2">
+                <CardTitle className="text-xs text-[#E4E4E7] flex items-center gap-2">
                   <Tag className="h-3 w-3 text-purple-400" />
                   Etiquetas
                   <Badge className="bg-purple-600/20 border border-purple-500/30 text-purple-300 text-xs rounded-full">
@@ -593,7 +593,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
               style={{ marginBottom: "12px" }}
             >
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-white flex items-center gap-2">
+                <CardTitle className="text-xs text-[#E4E4E7] flex items-center gap-2">
                   <FileText className="h-3 w-3 text-orange-400" />
                   Archivos
                   <Badge className="bg-orange-600/20 border border-orange-500/30 text-orange-300 text-xs rounded-full">
@@ -674,7 +674,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
               style={{ marginBottom: "12px" }}
             >
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-white flex items-center gap-2">
+                <CardTitle className="text-xs text-[#E4E4E7] flex items-center gap-2">
                   <TrendingUp className="h-3 w-3 text-cyan-400" />
                   Análisis IA
                 </CardTitle>
@@ -740,7 +740,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
               style={{ marginBottom: "12px" }}
             >
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-white flex items-center gap-2">
+                <CardTitle className="text-xs text-[#E4E4E7] flex items-center gap-2">
                   {getSentimentIcon()}
                   Sentimiento
                 </CardTitle>
