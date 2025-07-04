@@ -395,10 +395,12 @@ export function EquipoPerformance({ className }: EquipoPerformanceProps) {
 
             <Button
               size="sm"
-              variant="outline"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              className={cn(
+                "bg-[#377DFF] text-white hover:bg-[#235ECC] active:bg-[#1A47AA] transition-all duration-200 border-none",
+                isRefreshing && "opacity-70 cursor-not-allowed",
+              )}
             >
               <RefreshCw
                 className={cn("h-4 w-4 mr-2", isRefreshing && "animate-spin")}
