@@ -274,18 +274,32 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
       <style dangerouslySetInnerHTML={{ __html: scrollbarStyles }} />
       <div
         className={cn(
-          "h-full w-full bg-[#18181B] border-l border-gray-800 flex flex-col",
+          "bg-[#18181B] border-l border-gray-800 flex flex-col overflow-hidden",
           className,
         )}
         style={{
           fontSize: "14px",
           lineHeight: "1.4em",
           width: "320px",
-          padding: "24px",
+          height: "100vh",
+          maxHeight: "100vh",
         }}
       >
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="p-0 space-y-3" style={{ gap: "12px" }}>
+        <div
+          className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar"
+          style={{
+            minHeight: 0,
+            maxHeight: "100vh",
+          }}
+        >
+          <div
+            className="space-y-3"
+            style={{
+              padding: "12px",
+              gap: "12px",
+              minHeight: "100%",
+            }}
+          >
             {/* 1. Productos Sugeridos - Compact */}
             <Card
               className="bg-[#27272A]/60 border border-gray-700/50 backdrop-blur-sm"
