@@ -164,8 +164,8 @@ export function CustomerHub({ className }: CustomerHubProps) {
 
   return (
     <div className={cn("h-full flex bg-gray-950", className)}>
-      {/* Performance KPIs Sidebar */}
-      <PerformanceKPIs />
+      {/* Performance KPIs Sidebar - Hidden in CRM view */}
+      {viewMode !== "table" && <PerformanceKPIs />}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
@@ -232,18 +232,16 @@ export function CustomerHub({ className }: CustomerHubProps) {
                 Nuevo Contacto
               </Button>
               <Button
-                variant="outline"
                 onClick={handleFilter}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                className="bg-[#377DFF] text-white border-none hover:bg-[#235ECC] active:bg-[#1A47AA] transition-all duration-200"
                 style={{ marginLeft: "13px" }}
               >
                 <Filter className="h-4 w-4 mr-2" />
                 Filtrar
               </Button>
               <Button
-                variant="outline"
                 onClick={handleExportCSV}
-                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                className="bg-[#377DFF] text-white border-none hover:bg-[#235ECC] active:bg-[#1A47AA] transition-all duration-200"
                 style={{ marginLeft: "13px" }}
               >
                 <Download className="h-4 w-4 mr-2" />
