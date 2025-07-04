@@ -449,23 +449,26 @@ export function ContactTable({
                       </div>
                     </TableCell>
                     <TableCell
-                      style={{ padding: "12px 16px", fontSize: "14px" }}
+                      className="whitespace-nowrap"
+                      style={{ padding: "12px 16px", fontSize: "13px" }}
                     >
                       <Badge
-                        className={cn("border", statusColors[contact.status])}
+                        className={cn(
+                          "border text-xs",
+                          statusColors[contact.status],
+                        )}
                       >
                         {statusLabels[contact.status]}
                       </Badge>
                     </TableCell>
                     <TableCell
-                      className="hidden lg:table-cell"
-                      style={{ padding: "12px 16px", fontSize: "14px" }}
+                      style={{ padding: "12px 16px", fontSize: "13px" }}
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-300 text-sm truncate max-w-[250px]">
+                      <div className="flex items-center gap-2 max-w-[280px]">
+                        <span className="text-gray-300 text-sm truncate">
                           {contact.lastMessage}
                         </span>
-                        <span className="text-sm">
+                        <span className="text-sm flex-shrink-0">
                           {getSentimentEmoji(contact.sentiment)}
                         </span>
                         {contact.isUnread && (
@@ -474,8 +477,8 @@ export function ContactTable({
                       </div>
                     </TableCell>
                     <TableCell
-                      className="hidden lg:table-cell"
-                      style={{ padding: "12px 16px", fontSize: "14px" }}
+                      className="whitespace-nowrap"
+                      style={{ padding: "12px 16px", fontSize: "13px" }}
                     >
                       <div className="text-gray-400 text-sm">
                         <p>{contact.timestamp}</p>
@@ -487,21 +490,23 @@ export function ContactTable({
                       </div>
                     </TableCell>
                     <TableCell
-                      style={{ padding: "12px 16px", fontSize: "14px" }}
+                      className="whitespace-nowrap"
+                      style={{ padding: "12px 16px", fontSize: "13px" }}
                     >
                       <Badge
                         className={cn("text-xs", getIATagStyle(iaTag))}
                         style={{
                           padding: "4px 8px",
                           borderRadius: "4px",
-                          fontSize: "12px",
+                          fontSize: "11px",
                         }}
                       >
                         {iaTag}
                       </Badge>
                     </TableCell>
                     <TableCell
-                      style={{ padding: "12px 16px", fontSize: "14px" }}
+                      className="whitespace-nowrap"
+                      style={{ padding: "12px 16px", fontSize: "13px" }}
                     >
                       <div className="flex items-center gap-1">
                         <Button
