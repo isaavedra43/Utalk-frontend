@@ -105,11 +105,30 @@ export function ContactCards({
   }
 
   return (
-    <div className="flex-1 bg-gray-950 overflow-hidden">
-      <ScrollArea className="h-full">
-        <div className="px-0 py-4">
-          {/* Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+    <div className="flex-1 bg-gray-950 overflow-hidden flex flex-col">
+      {/* Cards Container with Fixed Height and Internal Scroll */}
+      <div
+        className="flex-1 overflow-y-auto overflow-x-hidden"
+        style={{
+          maxHeight: "80vh",
+          minHeight: 0,
+        }}
+      >
+        <div
+          className="p-3"
+          style={{
+            padding: "12px",
+            minHeight: "100%",
+          }}
+        >
+          {/* Cards Grid with Proper Spacing */}
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+            style={{
+              gap: "12px",
+              padding: "0",
+            }}
+          >
             {contacts.map((contact) => {
               const ChannelIcon = channelIcons[contact.channel];
               const isSelected = selectedContactId === contact.id;
@@ -289,13 +308,16 @@ export function ContactCards({
 
           {/* Loading State */}
           {isLoading && (
-            <div className="flex items-center justify-center py-8 mt-4">
+            <div
+              className="flex items-center justify-center py-8 mt-4"
+              style={{ margin: "12px 0" }}
+            >
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
               <span className="ml-2 text-gray-400">Processing...</span>
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
