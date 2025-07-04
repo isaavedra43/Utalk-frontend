@@ -299,7 +299,7 @@ export default function Index() {
                 style={{
                   display: "grid",
                   gridTemplateColumns: "280px 1fr 320px",
-                  gridGap: "16px",
+                  gridGap: "0px",
                   height: "100vh",
                   fontFamily: "Inter, sans-serif",
                   padding: "0",
