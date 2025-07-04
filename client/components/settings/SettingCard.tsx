@@ -304,18 +304,27 @@ export function SettingCard({
   };
 
   return (
-    <Card className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-all duration-300 hover:shadow-lg hover:shadow-gray-900/20">
+    <Card className="bg-[#1E1F23] border-gray-700 hover:bg-gray-800/70 transition-all duration-300 hover:shadow-lg hover:shadow-gray-900/20">
       <CardContent className="p-4">
         {/* Header */}
         <div className="flex items-start gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-gray-700/50">
+          <div
+            className="p-2 rounded-lg bg-gray-700/50"
+            style={{ marginRight: "12px" }}
+          >
             <Icon className="h-4 w-4 text-blue-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-white leading-tight">
+            <h3
+              className="text-sm font-semibold text-white leading-tight"
+              style={{ fontSize: "16px" }}
+            >
               {label}
             </h3>
-            <p className="text-xs text-gray-400 leading-relaxed mt-1">
+            <p
+              className="text-xs text-gray-400 leading-relaxed mt-1"
+              style={{ fontSize: "14px" }}
+            >
               {description}
             </p>
           </div>
