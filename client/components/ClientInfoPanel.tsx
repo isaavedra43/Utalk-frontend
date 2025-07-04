@@ -274,14 +274,21 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
       <style dangerouslySetInnerHTML={{ __html: scrollbarStyles }} />
       <div
         className={cn(
-          "h-full w-full bg-gray-900 border-l border-gray-800 flex flex-col",
+          "h-full w-full bg-[#18181B] border-l border-gray-800 flex flex-col",
           className,
         )}
+        style={{ fontSize: "14px", lineHeight: "1.4em" }}
       >
         <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="p-3 space-y-3">
+          <div
+            className="p-3 space-y-3"
+            style={{ padding: "12px", gap: "12px" }}
+          >
             {/* 1. Productos Sugeridos - Compact */}
-            <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
+            <Card
+              className="bg-[#27272A]/60 border border-gray-700/50 backdrop-blur-sm"
+              style={{ marginBottom: "12px" }}
+            >
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs text-white flex items-center gap-2">
                   <Package className="h-3 w-3 text-green-400" />
@@ -391,7 +398,10 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
             </Card>
 
             {/* 2. Información del Cliente - Compact */}
-            <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
+            <Card
+              className="bg-[#27272A]/60 border border-gray-700/50 backdrop-blur-sm"
+              style={{ marginBottom: "12px" }}
+            >
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs text-white flex items-center gap-2">
                   <User className="h-3 w-3 text-blue-400" />
