@@ -470,9 +470,12 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
             </Card>
 
             {/* 3. Notas del Cliente - Compact */}
-            <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
+            <Card
+              className="bg-[#27272A]/60 border border-gray-700/50 backdrop-blur-sm"
+              style={{ marginBottom: "12px" }}
+            >
               <CardHeader className="pb-2">
-                <CardTitle className="text-xs text-white flex items-center gap-2">
+                <CardTitle className="text-xs text-[#E4E4E7] flex items-center gap-2">
                   <StickyNote className="h-3 w-3 text-yellow-400" />
                   Notas
                   <Button
@@ -482,7 +485,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                       setIsEditingNotes(!isEditingNotes);
                       if (!isEditingNotes) setNewNote(clientNotes);
                     }}
-                    className="text-xs bg-gray-700/40 hover:bg-gray-600/60 border border-gray-600/30 text-gray-300 hover:text-white px-2 py-0.5 rounded transition-all duration-200"
+                    className="text-xs bg-[#7C3AED]/20 hover:bg-[#7C3AED]/30 border border-[#7C3AED]/30 text-[#E4E4E7] hover:text-white px-2 py-0.5 rounded transition-all duration-200"
                   >
                     {isEditingNotes ? "Cancelar" : "Editar"}
                   </Button>
@@ -490,7 +493,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
               </CardHeader>
               <CardContent className="p-3">
                 {!isEditingNotes ? (
-                  <p className="text-xs text-gray-300 leading-relaxed">
+                  <p className="text-xs text-[#E4E4E7] leading-relaxed">
                     {clientNotes || "No hay notas disponibles"}
                   </p>
                 ) : (
