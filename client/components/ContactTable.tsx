@@ -217,14 +217,24 @@ export function ContactTable({
   }
 
   return (
-    <div className="flex-1 bg-gray-950 overflow-hidden flex flex-col">
+    <div className="flex-1 bg-gray-950 flex flex-col h-full">
       {/* Table Container with Fixed Height and Scroll */}
       <div
-        className="flex-1 overflow-auto"
-        style={{ maxHeight: "calc(100vh - 180px)" }}
+        className="flex-1 overflow-y-auto"
+        style={{
+          maxHeight: "calc(100vh - 200px)",
+          minHeight: 0,
+        }}
       >
-        <div className="overflow-x-auto">
-          <Table>
+        {/* Horizontal scroll wrapper */}
+        <div
+          className="overflow-x-auto w-full"
+          style={{
+            overflowX: "auto",
+            width: "100%",
+          }}
+        >
+          <Table className="w-full min-w-max">
             <TableHeader
               className="sticky top-0 z-10"
               style={{ position: "sticky", top: 0, background: "#1E1F23" }}
