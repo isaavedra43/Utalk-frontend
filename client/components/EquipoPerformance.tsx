@@ -356,7 +356,10 @@ export function EquipoPerformance({ className }: EquipoPerformanceProps) {
         {/* Search and Filters */}
         <div className="flex items-center justify-between">
           <div className="relative max-w-md flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search
+              className="absolute top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
+              style={{ left: "27px" }}
+            />
             <Input
               placeholder="Buscar por nombre, rol o email..."
               value={searchTerm}
