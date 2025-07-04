@@ -153,7 +153,7 @@ export function ContactTable({
           break;
         case "timestamp":
           aValue = new Date(a.date).getTime();
-          bValue = b.date.getTime();
+          bValue = new Date(b.date).getTime();
           break;
         default:
           return 0;
