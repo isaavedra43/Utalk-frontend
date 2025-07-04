@@ -90,16 +90,14 @@ export function SellerDetail({
             </Badge>
             <Button
               onClick={onEditProfile}
-              variant="outline"
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              className="bg-[#377DFF] text-white hover:bg-[#235ECC] active:bg-[#1A47AA] transition-all duration-200 border-none"
             >
               <Edit className="h-4 w-4 mr-2" />
               Editar Perfil
             </Button>
             <Button
               onClick={onReassignPermissions}
-              variant="outline"
-              className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              className="bg-[#377DFF] text-white hover:bg-[#235ECC] active:bg-[#1A47AA] transition-all duration-200 border-none"
             >
               <Settings className="h-4 w-4 mr-2" />
               Reasignar Permisos
