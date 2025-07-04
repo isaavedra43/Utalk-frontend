@@ -192,8 +192,7 @@ export function IaActions({
 
             <Button
               onClick={onSendReminder}
-              variant="outline"
-              className="border-gray-600 text-gray-300 hover:bg-gray-700 justify-start h-12"
+              className="bg-[#377DFF] text-white hover:bg-[#235ECC] active:bg-[#1A47AA] transition-all duration-200 border-none justify-start h-12"
             >
               <Bell className="h-4 w-4 mr-3" />
               <div className="text-left">
