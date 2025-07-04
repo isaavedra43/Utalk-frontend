@@ -164,11 +164,19 @@ export function CustomerHub({ className }: CustomerHubProps) {
 
   return (
     <div className={cn("h-full flex bg-gray-950", className)}>
-      {/* Performance KPIs Sidebar - Hidden in CRM view */}
-      {viewMode !== "table" && <PerformanceKPIs />}
+      {/* Performance KPIs Sidebar - Hidden in CRM table view but kept in DOM */}
+      <div
+        className={cn(
+          "transition-all duration-300",
+          viewMode === "table" ? "hidden" : "block",
+        )}
+        aria-hidden={viewMode === "table"}
+      >
+        <PerformanceKPIs />
+      </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="border-b border-gray-800 bg-gray-900 px-0 py-4">
           <div className="flex items-center justify-between mb-4">
