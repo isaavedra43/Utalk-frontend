@@ -528,7 +528,10 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
             </Card>
 
             {/* 4. Etiquetas - Compact */}
-            <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
+            <Card
+              className="bg-[#27272A]/60 border border-gray-700/50 backdrop-blur-sm"
+              style={{ marginBottom: "12px" }}
+            >
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs text-white flex items-center gap-2">
                   <Tag className="h-3 w-3 text-purple-400" />
@@ -585,7 +588,10 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
             </Card>
 
             {/* 5. Archivos Compartidos - Compact */}
-            <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
+            <Card
+              className="bg-[#27272A]/60 border border-gray-700/50 backdrop-blur-sm"
+              style={{ marginBottom: "12px" }}
+            >
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs text-white flex items-center gap-2">
                   <FileText className="h-3 w-3 text-orange-400" />
@@ -663,7 +669,10 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
             </Card>
 
             {/* 6. Análisis de Conversación - Compact */}
-            <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
+            <Card
+              className="bg-[#27272A]/60 border border-gray-700/50 backdrop-blur-sm"
+              style={{ marginBottom: "12px" }}
+            >
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs text-white flex items-center gap-2">
                   <TrendingUp className="h-3 w-3 text-cyan-400" />
@@ -726,7 +735,10 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
             </Card>
 
             {/* 7. Sentimiento del Cliente - Compact */}
-            <Card className="bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
+            <Card
+              className="bg-[#27272A]/60 border border-gray-700/50 backdrop-blur-sm"
+              style={{ marginBottom: "12px" }}
+            >
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs text-white flex items-center gap-2">
                   {getSentimentIcon()}
