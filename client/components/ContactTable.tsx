@@ -237,95 +237,136 @@ export function ContactTable({
           <Table className="w-full min-w-max">
             <TableHeader
               className="sticky top-0 z-10"
-              style={{ position: "sticky", top: 0, background: "#1E1F23" }}
+              style={{
+                position: "sticky",
+                top: 0,
+                background: "#1E1F23",
+                zIndex: 10,
+              }}
             >
               <TableRow className="border-gray-800 hover:bg-gray-900/50">
                 <TableHead
-                  className="text-gray-300 hidden lg:table-cell"
-                  style={{ padding: "12px 16px", fontSize: "16px" }}
+                  className="text-gray-300 whitespace-nowrap"
+                  style={{
+                    padding: "12px 16px",
+                    fontSize: "14px",
+                    minWidth: "140px",
+                  }}
                 >
                   <Button
                     variant="ghost"
                     onClick={() => handleSort("owner")}
-                    className="h-8 px-2 text-gray-300 hover:text-white"
+                    className="h-8 px-2 text-gray-300 hover:text-white text-sm"
                   >
                     Owner
                     <SortIcon field="owner" />
                   </Button>
                 </TableHead>
                 <TableHead
-                  className="text-gray-300"
-                  style={{ padding: "12px 16px", fontSize: "16px" }}
+                  className="text-gray-300 whitespace-nowrap"
+                  style={{
+                    padding: "12px 16px",
+                    fontSize: "14px",
+                    minWidth: "180px",
+                  }}
                 >
                   <Button
                     variant="ghost"
                     onClick={() => handleSort("name")}
-                    className="h-8 px-2 text-gray-300 hover:text-white"
+                    className="h-8 px-2 text-gray-300 hover:text-white text-sm"
                   >
                     Name
                     <SortIcon field="name" />
                   </Button>
                 </TableHead>
                 <TableHead
-                  className="text-gray-300 hidden md:table-cell"
-                  style={{ padding: "12px 16px", fontSize: "16px" }}
+                  className="text-gray-300 whitespace-nowrap"
+                  style={{
+                    padding: "12px 16px",
+                    fontSize: "14px",
+                    minWidth: "200px",
+                  }}
                 >
                   <Button
                     variant="ghost"
                     onClick={() => handleSort("email")}
-                    className="h-8 px-2 text-gray-300 hover:text-white"
+                    className="h-8 px-2 text-gray-300 hover:text-white text-sm"
                   >
                     Email
                     <SortIcon field="email" />
                   </Button>
                 </TableHead>
                 <TableHead
-                  className="text-gray-300 hidden md:table-cell"
-                  style={{ padding: "12px 16px", fontSize: "16px" }}
+                  className="text-gray-300 whitespace-nowrap"
+                  style={{
+                    padding: "12px 16px",
+                    fontSize: "14px",
+                    minWidth: "140px",
+                  }}
                 >
                   Phone
                 </TableHead>
                 <TableHead
-                  className="text-gray-300"
-                  style={{ padding: "12px 16px", fontSize: "16px" }}
+                  className="text-gray-300 whitespace-nowrap"
+                  style={{
+                    padding: "12px 16px",
+                    fontSize: "14px",
+                    minWidth: "120px",
+                  }}
                 >
                   <Button
                     variant="ghost"
                     onClick={() => handleSort("status")}
-                    className="h-8 px-2 text-gray-300 hover:text-white"
+                    className="h-8 px-2 text-gray-300 hover:text-white text-sm"
                   >
                     Status
                     <SortIcon field="status" />
                   </Button>
                 </TableHead>
                 <TableHead
-                  className="text-gray-300 hidden lg:table-cell"
-                  style={{ padding: "12px 16px", fontSize: "16px" }}
+                  className="text-gray-300 whitespace-nowrap"
+                  style={{
+                    padding: "12px 16px",
+                    fontSize: "14px",
+                    minWidth: "300px",
+                  }}
                 >
                   Last Message
                 </TableHead>
                 <TableHead
-                  className="text-gray-300 hidden lg:table-cell"
-                  style={{ padding: "12px 16px", fontSize: "16px" }}
+                  className="text-gray-300 whitespace-nowrap"
+                  style={{
+                    padding: "12px 16px",
+                    fontSize: "14px",
+                    minWidth: "120px",
+                  }}
                 >
                   <Button
                     variant="ghost"
                     onClick={() => handleSort("timestamp")}
-                    className="h-8 px-2 text-gray-300 hover:text-white"
+                    className="h-8 px-2 text-gray-300 hover:text-white text-sm"
                   >
                     Date/Time
                     <SortIcon field="timestamp" />
                   </Button>
                 </TableHead>
                 <TableHead
-                  className="text-gray-300"
-                  style={{ padding: "12px 16px", fontSize: "16px" }}
+                  className="text-gray-300 whitespace-nowrap"
+                  style={{
+                    padding: "12px 16px",
+                    fontSize: "14px",
+                    minWidth: "120px",
+                  }}
                 >
                   IA Tag
                 </TableHead>
                 <TableHead
-                  className="text-gray-300"
-                  style={{ padding: "12px 16px", fontSize: "16px" }}
+                  className="text-gray-300 whitespace-nowrap"
+                  style={{
+                    padding: "12px 16px",
+                    fontSize: "14px",
+                    minWidth: "120px",
+                  }}
                 >
                   Actions
                 </TableHead>
