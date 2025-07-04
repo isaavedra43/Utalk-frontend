@@ -97,11 +97,16 @@ export function InboxList({
   return (
     <div
       className={cn("h-full flex flex-col", className)}
-      style={{ width: "300px", background: "#1F1F23" }}
+      style={{
+        width: "300px",
+        background: "#1E1B29",
+        fontSize: "14px",
+        lineHeight: "1.4em",
+      }}
     >
       {/* Header */}
       <div
-        style={{ height: "64px", padding: "0 16px", background: "#1F1F23" }}
+        style={{ height: "64px", padding: "0 12px", background: "#1E1B29" }}
         className="flex items-center border-b border-gray-800"
       >
         <div className="flex-1 relative">
@@ -111,17 +116,21 @@ export function InboxList({
             placeholder="Buscar conversación…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-10 py-2 bg-[#2C2C32] text-[#E0E0E0] rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            style={{ borderRadius: "8px", padding: "8px 8px 8px 36px" }}
+            className="w-full pl-10 pr-10 py-2 bg-[#1E1B29] text-[#E4E4E7] rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-[#A78BFA]"
+            style={{
+              borderRadius: "6px",
+              padding: "8px 8px 8px 36px",
+              fontSize: "14px",
+            }}
           />
-          <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#A0A0A8] cursor-pointer hover:text-white" />
+          <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#6B7280] cursor-pointer hover:text-white" />
         </div>
       </div>
 
       {/* Quick Filters */}
       <div
-        className="px-4 py-3 border-b border-gray-800"
-        style={{ height: "40px", display: "flex", alignItems: "center" }}
+        className="px-3 py-3 border-b border-gray-800"
+        style={{ height: "48px", display: "flex", alignItems: "center" }}
       >
         <div className="flex gap-2 overflow-x-auto">
           {filters.map((filter) => (
@@ -131,14 +140,14 @@ export function InboxList({
               className={cn(
                 "px-3 py-1 rounded text-sm font-medium whitespace-nowrap transition-colors",
                 selectedFilter === filter
-                  ? "bg-blue-600 text-white"
-                  : "bg-[#2C2C32] text-[#E0E0E0] hover:bg-[#34343A]",
+                  ? "bg-[#7C3AED] text-white"
+                  : "bg-[#1E1B29] text-[#E4E4E7] hover:bg-[#2A2640]",
               )}
               style={{
-                fontSize: "14px",
-                padding: "4px 12px",
+                fontSize: "12px",
+                padding: "6px 12px",
                 borderRadius: "6px",
-                background: selectedFilter === filter ? "#4A90E2" : "#2C2C32",
+                height: "32px",
               }}
             >
               {filter}
@@ -156,12 +165,12 @@ export function InboxList({
             className={cn(
               "p-3 rounded-lg cursor-pointer transition-all duration-150",
               selectedConversationId === conversation.id
-                ? "bg-[#34343A] border-l-4 border-l-[#4A90E2]"
-                : "bg-[#2C2C32] hover:bg-[#34343A]",
+                ? "bg-[#1E1B29] border-l-4 border-l-[#7C3AED]"
+                : "bg-[#1E1B29] hover:bg-[#2A2640]",
             )}
             style={{
               height: "72px",
-              padding: "8px 12px",
+              padding: "12px",
               marginBottom: "8px",
               borderRadius: "8px",
             }}
@@ -172,7 +181,7 @@ export function InboxList({
                 src={conversation.avatar}
                 alt={conversation.name}
                 className="rounded-full"
-                style={{ width: "40px", height: "40px" }}
+                style={{ width: "32px", height: "32px" }}
               />
 
               {/* Content */}
@@ -180,15 +189,15 @@ export function InboxList({
                 {/* First Line: Name + Channel */}
                 <div className="flex items-center gap-2 mb-1">
                   <span
-                    className="font-bold text-white truncate"
-                    style={{ fontSize: "16px" }}
+                    className="font-semibold text-[#E4E4E7] truncate"
+                    style={{ fontSize: "14px" }}
                   >
                     {conversation.name}
                   </span>
                   <span
                     className="px-2 py-0.5 rounded text-xs font-medium text-white"
                     style={{
-                      backgroundColor: channelColors[conversation.channel],
+                      backgroundColor: "#7C3AED",
                       fontSize: "10px",
                     }}
                   >
@@ -198,8 +207,8 @@ export function InboxList({
 
                 {/* Second Line: Last Message */}
                 <p
-                  className="text-[#C0C0C8] truncate"
-                  style={{ fontSize: "14px" }}
+                  className="text-[#9CA3AF] truncate"
+                  style={{ fontSize: "12px" }}
                 >
                   {conversation.lastMessage}
                 </p>
@@ -207,12 +216,12 @@ export function InboxList({
 
               {/* Right Side: Timestamp + Unread Badge */}
               <div className="flex flex-col items-end gap-1">
-                <span className="text-[#80808A]" style={{ fontSize: "12px" }}>
+                <span className="text-[#9CA3AF]" style={{ fontSize: "10px" }}>
                   {conversation.timestamp}
                 </span>
                 {conversation.unreadCount > 0 && (
                   <div
-                    className="bg-red-500 text-white rounded-full flex items-center justify-center font-bold"
+                    className="bg-[#EF4444] text-white rounded-full flex items-center justify-center font-bold"
                     style={{
                       width: "16px",
                       height: "16px",
