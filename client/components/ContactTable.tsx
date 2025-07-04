@@ -195,7 +195,7 @@ export function ContactTable({
     );
   };
 
-  const sortedContacts = getSortedContacts();
+  const paginatedContacts = getPaginatedContacts();
 
   if (contacts.length === 0) {
     return (
