@@ -47,8 +47,19 @@ export function SellerList({
       </div>
 
       {/* Scrollable Seller Cards */}
-      <ScrollArea className="h-[calc(100%-73px)]">
-        <div className="p-3 space-y-3">
+      <div
+        className="overflow-y-auto overflow-x-hidden h-[calc(100%-73px)]"
+        style={{
+          boxSizing: "border-box",
+        }}
+      >
+        <div
+          className="p-3 space-y-3"
+          style={{
+            paddingBottom: "24px",
+            boxSizing: "border-box",
+          }}
+        >
           {sellers.map((seller) => (
             <SellerCard
               key={seller.id}
@@ -60,7 +71,7 @@ export function SellerList({
             />
           ))}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
