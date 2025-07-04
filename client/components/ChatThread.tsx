@@ -191,12 +191,6 @@ export function ChatThread({
           <div className="flex-1">
             <div className="flex items-center gap-3">
               <div>
-                <div
-                  className="text-xs text-[#9CA3AF] mb-1"
-                  style={{ fontSize: "12px" }}
-                >
-                  Inbox &gt; Chats &gt; {conversation.name}
-                </div>
                 <h2
                   className="text-lg font-bold text-[#E4E4E7]"
                   style={{ fontSize: "16px" }}
