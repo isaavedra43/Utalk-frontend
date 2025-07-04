@@ -39,11 +39,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Minimalist scrollbar styles
+// Minimalist scrollbar styles with proper box-sizing
 const scrollbarStyles = `
   .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: rgba(75, 85, 99, 0.5) transparent;
+    box-sizing: border-box;
   }
 
   .custom-scrollbar::-webkit-scrollbar {
@@ -66,6 +67,11 @@ const scrollbarStyles = `
 
   .custom-scrollbar::-webkit-scrollbar-corner {
     background: transparent;
+  }
+
+  /* Ensure proper box-sizing for all child elements */
+  .custom-scrollbar * {
+    box-sizing: border-box;
   }
 `;
 
