@@ -172,11 +172,16 @@ export function ChatThread({
       <style dangerouslySetInnerHTML={{ __html: styles }} />
       <div
         className={cn("h-full flex flex-col", className)}
-        style={{ background: "#18181B", fontSize: "14px", lineHeight: "1.4em" }}
+        style={{
+          background: "#18181B",
+          fontSize: "14px",
+          lineHeight: "1.4em",
+          padding: "24px 24px 0",
+        }}
       >
         {/* Header */}
         <div
-          className="flex items-center px-6 border-b border-gray-800"
+          className="flex items-center px-0 border-b border-gray-800"
           style={{ height: "64px", background: "#18181B" }}
         >
           {onBack && (
@@ -273,7 +278,7 @@ export function ChatThread({
         >
           {/* Action Buttons Row */}
           <div
-            className="flex items-center justify-between px-6 py-2 border-b border-gray-800"
+            className="flex items-center justify-between px-0 py-2 border-b border-gray-800"
             style={{ background: "#18181B" }}
           >
             {/* Minimalist Action Icons */}
@@ -324,7 +329,7 @@ export function ChatThread({
           </div>
 
           {/* Message Input Area */}
-          <div className="px-6 py-3">
+          <div className="px-0 py-3">
             <div
               className="bg-[#27272A] border border-[#3A3A40] rounded-lg overflow-hidden"
               style={{ borderRadius: "8px" }}

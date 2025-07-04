@@ -98,15 +98,16 @@ export function InboxList({
     <div
       className={cn("h-full flex flex-col", className)}
       style={{
-        width: "300px",
+        width: "280px",
         background: "#1E1B29",
         fontSize: "14px",
         lineHeight: "1.4em",
+        padding: "24px",
       }}
     >
       {/* Header */}
       <div
-        style={{ height: "64px", padding: "0 12px", background: "#1E1B29" }}
+        style={{ height: "64px", padding: "0", background: "#1E1B29" }}
         className="flex items-center border-b border-gray-800"
       >
         <div className="flex-1 relative">
@@ -129,7 +130,7 @@ export function InboxList({
 
       {/* Quick Filters */}
       <div
-        className="px-3 py-3 border-b border-gray-800"
+        className="px-0 py-3 border-b border-gray-800"
         style={{ height: "48px", display: "flex", alignItems: "center" }}
       >
         <div className="flex gap-2 overflow-x-auto">
@@ -157,7 +158,10 @@ export function InboxList({
       </div>
 
       {/* Conversation List */}
-      <div className="flex-1 overflow-y-auto p-2" style={{ gap: "8px" }}>
+      <div
+        className="flex-1 overflow-y-auto p-0"
+        style={{ gap: "8px", paddingTop: "8px" }}
+      >
         {filteredConversations.map((conversation) => (
           <div
             key={conversation.id}

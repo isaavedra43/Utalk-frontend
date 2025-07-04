@@ -277,13 +277,15 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
           "h-full w-full bg-[#18181B] border-l border-gray-800 flex flex-col",
           className,
         )}
-        style={{ fontSize: "14px", lineHeight: "1.4em" }}
+        style={{
+          fontSize: "14px",
+          lineHeight: "1.4em",
+          width: "320px",
+          padding: "24px",
+        }}
       >
         <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <div
-            className="p-3 space-y-3"
-            style={{ padding: "12px", gap: "12px" }}
-          >
+          <div className="p-0 space-y-3" style={{ gap: "12px" }}>
             {/* 1. Productos Sugeridos - Compact */}
             <Card
               className="bg-[#27272A]/60 border border-gray-700/50 backdrop-blur-sm"

@@ -298,13 +298,30 @@ export default function Index() {
                 className="hidden lg:grid h-full"
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "300px 1fr 320px",
+                  gridTemplateColumns: "280px 1fr 320px",
                   gridGap: "16px",
                   height: "100vh",
                   fontFamily: "Inter, sans-serif",
-                  padding: "0 24px",
+                  padding: "0",
+                  minWidth: "960px",
                 }}
               >
+                {/* Responsive media queries for smaller screens */}
+                <style jsx>{`
+                  @media (max-width: 1200px) {
+                    .sidebar-collapsed {
+                      width: 64px;
+                    }
+                  }
+                  @media (max-width: 960px) {
+                    .desktop-layout {
+                      display: none !important;
+                    }
+                    .mobile-layout {
+                      display: flex !important;
+                    }
+                  }
+                `}</style>
                 {/* Column 1: Inbox List */}
                 <div className="min-w-0">
                   <InboxList
