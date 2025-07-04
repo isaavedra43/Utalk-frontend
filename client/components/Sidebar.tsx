@@ -103,7 +103,7 @@ export function Sidebar({
   return (
     <div
       className={cn(
-        "h-full bg-[#1e1e2d] border-r border-gray-700/50 flex flex-col transition-all duration-300 ease-in-out w-16",
+        "h-full bg-[#1E1B2D] border-r border-gray-700/50 flex flex-col transition-all duration-300 ease-in-out w-16",
         className,
       )}
     >
@@ -147,23 +147,23 @@ export function Sidebar({
                     variant="ghost"
                     onClick={() => handleModuleClick(item.id)}
                     className={cn(
-                      "w-full h-12 justify-center p-0 transition-all duration-200 relative group rounded-xl",
+                      "w-full h-12 justify-center p-0 transition-all duration-200 relative group rounded-xl text-sm",
                       isActive
-                        ? "bg-blue-600/20 border border-blue-500/30 text-blue-400"
-                        : "text-gray-400 hover:text-white hover:bg-gray-700/60 border border-transparent hover:border-gray-600/30",
+                        ? "bg-[#7C3AED]/20 border border-[#7C3AED]/30 text-[#E4E4E7]"
+                        : "text-[#E4E4E7] hover:text-white hover:bg-[#2A2640] border border-transparent hover:border-gray-600/30",
                     )}
                   >
                     {/* Active indicator dot */}
                     {isActive && (
-                      <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-500 rounded-l-full" />
+                      <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-6 bg-[#7C3AED] rounded-l-full" />
                     )}
 
                     <Icon
                       className={cn(
                         "w-5 h-5",
                         isActive
-                          ? "text-blue-400"
-                          : "text-gray-400 group-hover:text-white",
+                          ? "text-[#E4E4E7]"
+                          : "text-[#E4E4E7] group-hover:text-white",
                       )}
                     />
                   </Button>
@@ -190,7 +190,7 @@ export function Sidebar({
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
-                className="w-full h-12 justify-center p-0 text-gray-400 hover:text-white hover:bg-gray-700/60 border border-transparent hover:border-gray-600/30 rounded-xl transition-all duration-200"
+                className="w-full h-12 justify-center p-0 text-[#E4E4E7] hover:text-white hover:bg-[#2A2640] border border-transparent hover:border-gray-600/30 rounded-xl transition-all duration-200"
               >
                 <div className="w-6 h-6 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center shadow-sm">
                   <span className="text-xs font-medium text-white">IS</span>
