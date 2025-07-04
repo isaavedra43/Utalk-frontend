@@ -99,12 +99,16 @@ export function PerformanceKPIs({ className }: PerformanceKPIsProps) {
   return (
     <div
       className={cn(
-        "w-80 min-w-[320px] max-w-[320px] bg-gray-900 border-r border-gray-800 flex flex-col",
+        "w-80 min-w-[320px] max-w-[320px] bg-gray-900 border-r border-gray-800 flex flex-col overflow-hidden",
         className,
       )}
+      style={{
+        height: "100vh",
+        maxHeight: "100vh",
+      }}
     >
-      {/* Header */}
-      <div className="px-0 py-4 border-b border-gray-800">
+      {/* Header - Fixed */}
+      <div className="flex-shrink-0 px-0 py-4 border-b border-gray-800">
         <div className="flex items-center justify-between mb-2">
           <h2
             className="text-lg font-semibold text-white"
@@ -132,9 +136,22 @@ export function PerformanceKPIs({ className }: PerformanceKPIsProps) {
         </p>
       </div>
 
-      {/* KPI Cards */}
-      <ScrollArea className="flex-1">
-        <div className="px-0 py-4 space-y-4">
+      {/* KPI Cards - Scrollable Container */}
+      <div
+        className="flex-1 overflow-y-auto overflow-x-hidden"
+        style={{
+          maxHeight: "80vh",
+          minHeight: 0,
+        }}
+      >
+        <div
+          className="space-y-4"
+          style={{
+            padding: "12px",
+            paddingTop: "16px",
+            paddingBottom: "16px",
+          }}
+        >
           {/* 1. Average Response Time */}
           <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700 hover:bg-gray-800/70 transition-colors">
             <div className="flex items-center justify-between mb-2">
@@ -367,7 +384,7 @@ export function PerformanceKPIs({ className }: PerformanceKPIsProps) {
             </div>
           </div>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
