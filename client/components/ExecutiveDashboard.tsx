@@ -207,35 +207,39 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
     icon: Icon,
     format = "number",
   }: any) => (
-    <Card className="bg-[#1E1E2F] border-gray-700 hover:border-gray-600 transition-all duration-200">
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-600/20">
+    <Card className="bg-[#1E1E2F] border-gray-700 hover:border-gray-600 transition-all duration-200 overflow-hidden">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between min-w-0">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="p-2 rounded-lg bg-blue-600/20 flex-shrink-0">
               <Icon className="h-5 w-5 text-blue-400" />
             </div>
-            <div>
-              <div className="text-2xl font-bold text-white">
+            <div className="min-w-0 flex-1">
+              <div className="text-xl lg:text-2xl font-bold text-white truncate">
                 {format === "currency"
                   ? `$${value.toLocaleString()}`
                   : value.toLocaleString()}
               </div>
-              <div className="text-sm text-gray-400">{title}</div>
+              <div className="text-xs lg:text-sm text-gray-400 truncate">
+                {title}
+              </div>
             </div>
           </div>
           <div
             className={cn(
-              "flex items-center gap-1 text-sm font-medium",
+              "flex items-center gap-1 text-xs lg:text-sm font-medium flex-shrink-0 ml-2",
               isPositive ? "text-green-400" : "text-red-400",
             )}
           >
             {isPositive ? (
-              <TrendingUp className="h-4 w-4" />
+              <TrendingUp className="h-3 w-3 lg:h-4 lg:w-4" />
             ) : (
-              <TrendingDown className="h-4 w-4" />
+              <TrendingDown className="h-3 w-3 lg:h-4 lg:w-4" />
             )}
-            {change > 0 ? "+" : ""}
-            {change}%
+            <span className="whitespace-nowrap">
+              {change > 0 ? "+" : ""}
+              {change}%
+            </span>
           </div>
         </div>
       </CardContent>
@@ -244,7 +248,7 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
 
   const AlertCard = ({ type, icon: Icon, message, action, color }: any) => (
     <Card
-      className={cn("border-l-4", {
+      className={cn("border-l-4 overflow-hidden", {
         "border-l-red-500 bg-red-900/20": color === "red",
         "border-l-yellow-500 bg-yellow-900/20": color === "yellow",
         "border-l-blue-500 bg-blue-900/20": color === "blue",
@@ -253,21 +257,17 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <Icon
-            className={cn("h-5 w-5 mt-0.5", {
+            className={cn("h-5 w-5 mt-0.5 flex-shrink-0", {
               "text-red-400": color === "red",
               "text-yellow-400": color === "yellow",
               "text-blue-400": color === "blue",
             })}
           />
-          <div className="flex-1">
-            <p className="text-sm text-white mb-2">{message}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-white mb-2 break-words">{message}</p>
             <Button
               size="sm"
-              className={cn("text-xs", {
-                "bg-red-600 hover:bg-red-700": color === "red",
-                "bg-yellow-600 hover:bg-yellow-700": color === "yellow",
-                "bg-blue-600 hover:bg-blue-700": color === "blue",
-              })}
+              className="text-xs bg-blue-600 hover:bg-blue-700 text-white"
             >
               {action}
             </Button>
@@ -304,16 +304,16 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
   );
 
   const HeatmapChart = () => (
-    <div className="bg-[#252538] rounded-lg p-4">
+    <div className="bg-[#252538] rounded-lg p-4 overflow-hidden">
       <h3 className="text-white font-semibold mb-4">
         Densidad de Mensajes (24h)
       </h3>
-      <div className="grid grid-cols-12 gap-1">
+      <div className="grid grid-cols-6 lg:grid-cols-12 gap-1 overflow-hidden">
         {dashboardData.heatmapData.map((item) => (
           <div
             key={item.hour}
             className={cn(
-              "h-8 rounded text-xs flex items-center justify-center text-white font-medium",
+              "h-8 rounded text-xs flex items-center justify-center text-white font-medium min-w-0",
               {
                 "bg-green-900": item.intensity < 30,
                 "bg-green-600": item.intensity >= 30 && item.intensity < 60,
@@ -327,22 +327,22 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
           </div>
         ))}
       </div>
-      <div className="flex justify-between items-center mt-3">
-        <div className="flex items-center gap-4 text-xs text-gray-400">
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-2 mt-3">
+        <div className="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-green-900 rounded"></div>
+            <div className="w-3 h-3 bg-green-900 rounded flex-shrink-0"></div>
             <span>Baja</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-green-600 rounded"></div>
+            <div className="w-3 h-3 bg-green-600 rounded flex-shrink-0"></div>
             <span>Media</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-green-400 rounded"></div>
+            <div className="w-3 h-3 bg-green-400 rounded flex-shrink-0"></div>
             <span>Alta</span>
           </div>
         </div>
-        <div className="text-xs text-gray-400">
+        <div className="text-xs text-gray-400 truncate">
           Pico: 14:00 (95%) | Promedio: 45% | Mínimo: 02:00 (8%)
         </div>
       </div>
@@ -368,28 +368,28 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
           <div className="space-y-2">
             <Button
               variant="ghost"
-              className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+              className="w-full justify-start bg-blue-600 text-white hover:bg-blue-700"
             >
               <BarChart3 className="h-4 w-4 mr-2" />
               Overview
             </Button>
             <Button
               variant="ghost"
-              className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+              className="w-full justify-start bg-blue-500 text-white hover:bg-blue-600"
             >
               <Users className="h-4 w-4 mr-2" />
               Agentes
             </Button>
             <Button
               variant="ghost"
-              className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+              className="w-full justify-start bg-blue-500 text-white hover:bg-blue-600"
             >
               <MessageSquare className="h-4 w-4 mr-2" />
               Conversaciones
             </Button>
             <Button
               variant="ghost"
-              className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+              className="w-full justify-start bg-blue-500 text-white hover:bg-blue-600"
             >
               <DollarSign className="h-4 w-4 mr-2" />
               Ventas
@@ -438,10 +438,10 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
                     variant={selectedRange === range ? "default" : "ghost"}
                     onClick={() => setSelectedRange(range)}
                     className={cn(
-                      "h-8 px-3",
+                      "h-8 px-3 text-nowrap",
                       selectedRange === range
-                        ? "bg-[#346EF1] text-white"
-                        : "text-gray-400 hover:text-white",
+                        ? "bg-[#346EF1] text-white hover:bg-blue-700"
+                        : "bg-blue-500 text-white hover:bg-blue-600",
                     )}
                   >
                     {range}
@@ -474,9 +474,9 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
 
         {/* Content Grid */}
         <div className="flex-1 overflow-hidden">
-          <div className="h-full flex gap-4 p-6">
+          <div className="h-full flex gap-4 p-6 overflow-hidden">
             {/* Filter Panel (Column 2) */}
-            <div className="w-80 space-y-4">
+            <div className="w-80 flex-shrink-0 space-y-4 overflow-y-auto">
               {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -489,7 +489,7 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
               </div>
 
               {/* Quick Filters */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 {["Todas", "Sin asignar", "Etiquetas"].map((filter) => (
                   <Button
                     key={filter}
@@ -497,9 +497,10 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
                     variant={activeFilter === filter ? "default" : "outline"}
                     onClick={() => setActiveFilter(filter)}
                     className={cn(
+                      "text-nowrap",
                       activeFilter === filter
-                        ? "bg-blue-600 text-white"
-                        : "border-gray-600 text-gray-300 hover:bg-gray-700",
+                        ? "bg-blue-600 text-white hover:bg-blue-700"
+                        : "bg-blue-500 text-white border-blue-500 hover:bg-blue-600",
                     )}
                   >
                     {filter}
@@ -554,36 +555,38 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
               </Card>
 
               {/* Top Clients */}
-              <Card className="bg-gray-800 border-gray-700">
+              <Card className="bg-gray-800 border-gray-700 overflow-hidden">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm text-white">
                     Top 10 Clientes
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <ScrollArea className="h-64">
-                    <div className="space-y-2">
+                <CardContent className="p-0">
+                  <ScrollArea className="h-64 px-4">
+                    <div className="space-y-2 py-2">
                       {dashboardData.topClients.map((client) => (
                         <div
                           key={client.pos}
-                          className="flex items-center justify-between p-2 bg-gray-700/50 rounded text-xs"
+                          className="flex items-center justify-between p-2 bg-gray-700/50 rounded text-xs min-w-0"
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
                               {client.pos}
                             </span>
-                            <div>
-                              <div className="text-white font-medium">
+                            <div className="min-w-0 flex-1">
+                              <div className="text-white font-medium truncate">
                                 {client.name}
                               </div>
-                              <div className="text-gray-400">
+                              <div className="text-gray-400 truncate">
                                 {client.channel}
                               </div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="text-white">${client.value}</div>
-                            <div className="text-gray-400">
+                          <div className="text-right flex-shrink-0 ml-2">
+                            <div className="text-white whitespace-nowrap">
+                              ${client.value}
+                            </div>
+                            <div className="text-gray-400 whitespace-nowrap">
                               {client.chats} chats
                             </div>
                           </div>
@@ -813,8 +816,7 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
       <div className="fixed bottom-24 right-6 flex flex-col gap-2">
         <Button
           size="sm"
-          variant="outline"
-          className="border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700"
+          className="bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
           onClick={() => handleExport("csv")}
         >
           <FileText className="h-4 w-4 mr-1" />
@@ -822,8 +824,7 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
         </Button>
         <Button
           size="sm"
-          variant="outline"
-          className="border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700"
+          className="bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
           onClick={handleShare}
         >
           <Share2 className="h-4 w-4 mr-1" />
