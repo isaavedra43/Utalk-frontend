@@ -21,6 +21,8 @@ import {
   MessageCircle,
   Mail,
   Phone,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Contact } from "./CustomerHub";
@@ -82,6 +84,25 @@ const getSentimentEmoji = (sentiment?: string) => {
   }
 };
 
+// AI Tags mock data
+const aiTags: Record<string, string> = {
+  "1": "High Priority",
+  "2": "VIP Cliente",
+  "3": "Quick Convert",
+  "4": "Loyal Customer",
+};
+
+const getIATagStyle = (tag: string) => {
+  const styles: Record<string, string> = {
+    "High Priority": "bg-red-600 text-white",
+    "VIP Cliente": "bg-purple-600 text-white",
+    "Quick Convert": "bg-green-600 text-white",
+    "Loyal Customer": "bg-blue-600 text-white",
+    default: "bg-gray-600 text-white",
+  };
+  return styles[tag] || styles.default;
+};
+
 export function ContactTable({
   contacts,
   selectedContactId,
@@ -94,6 +115,10 @@ export function ContactTable({
   const [sortField, setSortField] = useState<SortField>("timestamp");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -128,7 +153,7 @@ export function ContactTable({
           break;
         case "timestamp":
           aValue = new Date(a.date).getTime();
-          bValue = new Date(b.date).getTime();
+          bValue = b.date.getTime();
           break;
         default:
           return 0;
@@ -140,6 +165,23 @@ export function ContactTable({
         return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
       }
     });
+  };
+
+  const getPaginatedContacts = () => {
+    const sortedContacts = getSortedContacts();
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return sortedContacts.slice(startIndex, endIndex);
+  };
+
+  const totalPages = Math.ceil(contacts.length / itemsPerPage);
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, contacts.length);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
@@ -175,13 +217,23 @@ export function ContactTable({
   }
 
   return (
-    <div className="flex-1 bg-gray-950 overflow-hidden">
-      <ScrollArea className="h-full">
-        <div className="px-0 py-4">
+    <div className="flex-1 bg-gray-950 overflow-hidden flex flex-col">
+      {/* Table Container with Fixed Height and Scroll */}
+      <div
+        className="flex-1 overflow-auto"
+        style={{ maxHeight: "calc(100vh - 180px)" }}
+      >
+        <div className="overflow-x-auto">
           <Table>
-            <TableHeader>
+            <TableHeader
+              className="sticky top-0 z-10"
+              style={{ position: "sticky", top: 0, background: "#1E1F23" }}
+            >
               <TableRow className="border-gray-800 hover:bg-gray-900/50">
-                <TableHead className="w-[140px]">
+                <TableHead
+                  className="text-gray-300 hidden lg:table-cell"
+                  style={{ padding: "12px 16px", fontSize: "16px" }}
+                >
                   <Button
                     variant="ghost"
                     onClick={() => handleSort("owner")}
@@ -191,7 +243,10 @@ export function ContactTable({
                     <SortIcon field="owner" />
                   </Button>
                 </TableHead>
-                <TableHead className="w-[180px]">
+                <TableHead
+                  className="text-gray-300"
+                  style={{ padding: "12px 16px", fontSize: "16px" }}
+                >
                   <Button
                     variant="ghost"
                     onClick={() => handleSort("name")}
@@ -201,7 +256,10 @@ export function ContactTable({
                     <SortIcon field="name" />
                   </Button>
                 </TableHead>
-                <TableHead className="w-[200px]">
+                <TableHead
+                  className="text-gray-300 hidden md:table-cell"
+                  style={{ padding: "12px 16px", fontSize: "16px" }}
+                >
                   <Button
                     variant="ghost"
                     onClick={() => handleSort("email")}
@@ -211,8 +269,16 @@ export function ContactTable({
                     <SortIcon field="email" />
                   </Button>
                 </TableHead>
-                <TableHead className="w-[140px]">Phone</TableHead>
-                <TableHead className="w-[120px]">
+                <TableHead
+                  className="text-gray-300 hidden md:table-cell"
+                  style={{ padding: "12px 16px", fontSize: "16px" }}
+                >
+                  Phone
+                </TableHead>
+                <TableHead
+                  className="text-gray-300"
+                  style={{ padding: "12px 16px", fontSize: "16px" }}
+                >
                   <Button
                     variant="ghost"
                     onClick={() => handleSort("status")}
@@ -222,8 +288,16 @@ export function ContactTable({
                     <SortIcon field="status" />
                   </Button>
                 </TableHead>
-                <TableHead className="w-[300px]">Last Message</TableHead>
-                <TableHead className="w-[120px]">
+                <TableHead
+                  className="text-gray-300 hidden lg:table-cell"
+                  style={{ padding: "12px 16px", fontSize: "16px" }}
+                >
+                  Last Message
+                </TableHead>
+                <TableHead
+                  className="text-gray-300 hidden lg:table-cell"
+                  style={{ padding: "12px 16px", fontSize: "16px" }}
+                >
                   <Button
                     variant="ghost"
                     onClick={() => handleSort("timestamp")}
@@ -233,14 +307,25 @@ export function ContactTable({
                     <SortIcon field="timestamp" />
                   </Button>
                 </TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+                <TableHead
+                  className="text-gray-300"
+                  style={{ padding: "12px 16px", fontSize: "16px" }}
+                >
+                  IA Tag
+                </TableHead>
+                <TableHead
+                  className="text-gray-300"
+                  style={{ padding: "12px 16px", fontSize: "16px" }}
+                >
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedContacts.map((contact) => {
+              {paginatedContacts.map((contact) => {
                 const ChannelIcon = channelIcons[contact.channel];
                 const isSelected = selectedContactId === contact.id;
-                const isExpanded = expandedRow === contact.id;
+                const iaTag = aiTags[contact.id] || "Standard";
 
                 return (
                   <TableRow
@@ -251,10 +336,15 @@ export function ContactTable({
                     )}
                     onClick={() => onSelectContact(contact.id)}
                   >
-                    <TableCell className="text-gray-300">
+                    <TableCell
+                      className="text-gray-300 hidden lg:table-cell"
+                      style={{ padding: "12px 16px", fontSize: "14px" }}
+                    >
                       {contact.owner}
                     </TableCell>
-                    <TableCell>
+                    <TableCell
+                      style={{ padding: "12px 16px", fontSize: "14px" }}
+                    >
                       <div className="flex items-center gap-3">
                         <div className="relative">
                           {contact.avatarUrl ? (
@@ -289,20 +379,38 @@ export function ContactTable({
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-300">
-                      {contact.email}
+                    <TableCell
+                      className="text-gray-300 hidden md:table-cell"
+                      style={{ padding: "12px 16px", fontSize: "14px" }}
+                    >
+                      <div>
+                        <p>{contact.email}</p>
+                      </div>
                     </TableCell>
-                    <TableCell className="text-gray-300">
-                      {contact.phone}
+                    <TableCell
+                      className="text-gray-300 hidden md:table-cell"
+                      style={{ padding: "12px 16px", fontSize: "14px" }}
+                    >
+                      <div>
+                        <p className="text-sm">{contact.phone}</p>
+                        <p className="text-xs text-gray-400 capitalize">
+                          WhatsApp
+                        </p>
+                      </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell
+                      style={{ padding: "12px 16px", fontSize: "14px" }}
+                    >
                       <Badge
                         className={cn("border", statusColors[contact.status])}
                       >
                         {statusLabels[contact.status]}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell
+                      className="hidden lg:table-cell"
+                      style={{ padding: "12px 16px", fontSize: "14px" }}
+                    >
                       <div className="flex items-center gap-2">
                         <span className="text-gray-300 text-sm truncate max-w-[250px]">
                           {contact.lastMessage}
@@ -315,7 +423,10 @@ export function ContactTable({
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell
+                      className="hidden lg:table-cell"
+                      style={{ padding: "12px 16px", fontSize: "14px" }}
+                    >
                       <div className="text-gray-400 text-sm">
                         <p>{contact.timestamp}</p>
                         {contact.aiScore && (
@@ -325,7 +436,23 @@ export function ContactTable({
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell
+                      style={{ padding: "12px 16px", fontSize: "14px" }}
+                    >
+                      <Badge
+                        className={cn("text-xs", getIATagStyle(iaTag))}
+                        style={{
+                          padding: "4px 8px",
+                          borderRadius: "4px",
+                          fontSize: "12px",
+                        }}
+                      >
+                        {iaTag}
+                      </Badge>
+                    </TableCell>
+                    <TableCell
+                      style={{ padding: "12px 16px", fontSize: "14px" }}
+                    >
                       <div className="flex items-center gap-1">
                         <Button
                           size="sm"
@@ -370,15 +497,49 @@ export function ContactTable({
               })}
             </TableBody>
           </Table>
-
-          {isLoading && (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              <span className="ml-2 text-gray-400">Processing...</span>
-            </div>
-          )}
         </div>
-      </ScrollArea>
+
+        {isLoading && (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <span className="ml-2 text-gray-400">Processing...</span>
+          </div>
+        )}
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="border-t border-gray-800 bg-gray-900 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-400">
+            Showing {startItem}–{endItem} of {contacts.length} contacts
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Anterior
+            </Button>
+            <span className="text-sm text-gray-400 px-4">
+              Página {currentPage} de {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="border-gray-600 text-gray-300 hover:bg-gray-700 disabled:opacity-50"
+            >
+              Siguiente
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
