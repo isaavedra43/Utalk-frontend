@@ -81,16 +81,48 @@ export function SellerSettings({ className }: SellerSettingsProps) {
 
   return (
     <div className={cn("h-full bg-gray-950 overflow-hidden", className)}>
+      {/* Custom scrollbar styles */}
+      <style jsx>{`
+        .custom-settings-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: #1e3a8a transparent;
+        }
+        .custom-settings-scroll::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-settings-scroll::-webkit-scrollbar-track {
+          background: rgba(55, 65, 81, 0.3);
+          border-radius: 4px;
+        }
+        .custom-settings-scroll::-webkit-scrollbar-thumb {
+          background-color: #1e3a8a;
+          border-radius: 4px;
+          transition: background-color 0.2s ease;
+        }
+        .custom-settings-scroll::-webkit-scrollbar-thumb:hover {
+          background-color: #1d4ed8;
+        }
+      `}</style>
+
       {/* Header */}
       <div className="border-b border-gray-800 bg-gray-900 px-0 py-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Settings className="h-6 w-6 text-blue-400" />
+            <Settings
+              className="h-6 w-6 text-blue-400"
+              style={{ marginLeft: "14px" }}
+            />
             <div>
-              <h1 className="text-2xl font-bold text-white">
+              <h1
+                className="text-2xl font-bold text-white"
+                style={{ marginLeft: "1px" }}
+              >
                 Configuración del Vendedor
               </h1>
-              <p className="text-sm text-gray-400">
+              <p
+                className="text-sm text-gray-400"
+                style={{ marginLeft: "1px" }}
+              >
                 Ajusta tus preferencias y permisos aquí
               </p>
             </div>
@@ -116,15 +148,20 @@ export function SellerSettings({ className }: SellerSettingsProps) {
             </div>
 
             {/* Restore Defaults Button */}
-            <RestoreDefaultsButton
-              onRestore={handleRestoreDefaults}
-              isResetting={isResetting}
-            />
+            <div style={{ marginLeft: "-4px" }}>
+              <RestoreDefaultsButton
+                onRestore={handleRestoreDefaults}
+                isResetting={isResetting}
+              />
+            </div>
           </div>
         </div>
 
         {/* Help Information */}
-        <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3">
+        <div
+          className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3"
+          style={{ marginLeft: "15px" }}
+        >
           <div className="flex items-start gap-2">
             <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
             <div className="text-sm">
@@ -142,15 +179,27 @@ export function SellerSettings({ className }: SellerSettingsProps) {
       </div>
 
       {/* Settings Content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="px-0 py-6 space-y-8 min-h-full">
+      <div
+        className="flex-1 overflow-y-auto overflow-x-hidden custom-settings-scroll"
+        style={{ maxHeight: "calc(100vh - 180px)" }}
+      >
+        <div
+          className="px-8 py-8 space-y-8 min-h-full"
+          style={{ padding: "32px" }}
+        >
           {/* Main Settings Grid */}
           <div>
             <div className="mb-6">
-              <h2 className="text-xl font-semibold text-white mb-2">
+              <h2
+                className="text-xl font-semibold text-white mb-2"
+                style={{ margin: "0 0 8px 20px", fontSize: "16px" }}
+              >
                 Configuraciones Generales
               </h2>
-              <p className="text-sm text-gray-400">
+              <p
+                className="text-sm text-gray-400"
+                style={{ marginLeft: "20px", fontSize: "14px" }}
+              >
                 Ajustes básicos y preferencias de uso diario
               </p>
             </div>

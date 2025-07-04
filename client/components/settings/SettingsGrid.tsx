@@ -229,16 +229,30 @@ export function SettingsGrid({
     section === "general" ? generalSettings : advancedSettings;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div
+      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+      style={{
+        rowGap: "24px",
+        columnGap: "24px",
+        marginBottom: "24px",
+      }}
+    >
       {settingsToShow.map((setting) => {
         const { key, ...settingProps } = setting;
         return (
-          <SettingCard
+          <div
             key={key}
-            {...settingProps}
-            value={settings[key]}
-            onChange={(value) => onChange(key, value)}
-          />
+            style={{
+              marginBottom: "24px",
+              marginRight: "24px",
+            }}
+          >
+            <SettingCard
+              {...settingProps}
+              value={settings[key]}
+              onChange={(value) => onChange(key, value)}
+            />
+          </div>
         );
       })}
     </div>

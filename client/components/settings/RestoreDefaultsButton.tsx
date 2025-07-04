@@ -36,7 +36,7 @@ export function RestoreDefaultsButton({
         <Button
           variant="outline"
           disabled={isResetting}
-          className="border-red-600/50 text-red-400 hover:bg-red-900/20 hover:border-red-500"
+          className="bg-[#377DFF] border-transparent text-white hover:bg-[#235ECC] active:bg-[#1A47AA] transition-all duration-200"
         >
           {isResetting ? (
             <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
