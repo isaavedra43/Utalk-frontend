@@ -172,12 +172,12 @@ export function ChatThread({
       <style dangerouslySetInnerHTML={{ __html: styles }} />
       <div
         className={cn("h-full flex flex-col", className)}
-        style={{ background: "#1F1F23" }}
+        style={{ background: "#18181B", fontSize: "14px", lineHeight: "1.4em" }}
       >
         {/* Header */}
         <div
           className="flex items-center px-6 border-b border-gray-800"
-          style={{ height: "64px", background: "#1F1F23" }}
+          style={{ height: "64px", background: "#18181B" }}
         >
           {onBack && (
             <button
@@ -191,10 +191,16 @@ export function ChatThread({
           <div className="flex-1">
             <div className="flex items-center gap-3">
               <div>
-                <div className="text-xs text-gray-400 mb-1">
+                <div
+                  className="text-xs text-[#9CA3AF] mb-1"
+                  style={{ fontSize: "12px" }}
+                >
                   Inbox &gt; Chats &gt; {conversation.name}
                 </div>
-                <h2 className="text-lg font-bold text-white">
+                <h2
+                  className="text-lg font-bold text-[#E4E4E7]"
+                  style={{ fontSize: "16px" }}
+                >
                   {conversation.name}
                 </h2>
               </div>
@@ -204,10 +210,8 @@ export function ChatThread({
           <span
             className="px-3 py-1 rounded text-sm font-medium text-white"
             style={{
-              backgroundColor:
-                channelColors[
-                  conversation.channel as keyof typeof channelColors
-                ],
+              backgroundColor: "#7C3AED",
+              fontSize: "12px",
             }}
           >
             {channelLabels[conversation.channel as keyof typeof channelLabels]}
@@ -228,18 +232,18 @@ export function ChatThread({
                 className={cn(
                   "max-w-[70%] rounded-xl px-4 py-3",
                   message.isAgent
-                    ? "bg-[#4A90E2] text-white"
-                    : "bg-[#2C2C32] text-white",
+                    ? "bg-[#7C3AED] text-white"
+                    : "bg-[#27272A] text-[#E4E4E7]",
                 )}
-                style={{ fontSize: "15px" }}
+                style={{ fontSize: "14px" }}
               >
                 <p>{message.text}</p>
                 <div
                   className={cn(
                     "text-xs mt-1",
-                    message.isAgent ? "text-blue-100" : "text-[#80808A]",
+                    message.isAgent ? "text-purple-100" : "text-[#9CA3AF]",
                   )}
-                  style={{ fontSize: "12px" }}
+                  style={{ fontSize: "10px" }}
                 >
                   {message.timestamp}
                 </div>
@@ -249,15 +253,15 @@ export function ChatThread({
 
           {isTyping && (
             <div className="flex justify-start">
-              <div className="bg-[#2C2C32] rounded-xl px-4 py-3">
+              <div className="bg-[#27272A] rounded-xl px-4 py-3">
                 <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-[#9CA3AF] rounded-full animate-bounce"></div>
                   <div
-                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                    className="w-2 h-2 bg-[#9CA3AF] rounded-full animate-bounce"
                     style={{ animationDelay: "0.1s" }}
                   ></div>
                   <div
-                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                    className="w-2 h-2 bg-[#9CA3AF] rounded-full animate-bounce"
                     style={{ animationDelay: "0.2s" }}
                   ></div>
                 </div>
@@ -271,53 +275,64 @@ export function ChatThread({
         {/* Enhanced Message Input */}
         <div
           className="border-t border-gray-800"
-          style={{ background: "#1F1F23" }}
+          style={{ background: "#18181B" }}
         >
-          {/* Top Bar with Action Buttons */}
+          {/* Action Buttons Row */}
           <div
             className="flex items-center justify-between px-6 py-2 border-b border-gray-800"
-            style={{ background: "#222225" }}
+            style={{ background: "#18181B" }}
           >
-            {/* Action Buttons */}
+            {/* Minimalist Action Icons */}
             <div className="flex items-center gap-1">
               <button
                 title="Enviar Campaña"
-                className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
+                style={{ padding: "8px" }}
               >
-                <Mail className="w-5 h-5" />
+                <Mail
+                  className="w-6 h-6"
+                  style={{ width: "24px", height: "24px" }}
+                />
               </button>
 
               <button
                 title="Resumir (IA)"
-                className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
+                style={{ padding: "8px" }}
               >
-                <Zap className="w-5 h-5" />
+                <Zap
+                  className="w-6 h-6"
+                  style={{ width: "24px", height: "24px" }}
+                />
               </button>
 
               <button
                 title="Agregar Nota"
-                className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
+                style={{ padding: "8px" }}
               >
-                <FileText className="w-5 h-5" />
+                <FileText
+                  className="w-6 h-6"
+                  style={{ width: "24px", height: "24px" }}
+                />
               </button>
             </div>
 
-            {/* AI Assist Toggle */}
+            {/* AI Assist Toggle - Square Button */}
             <button
               className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                "bg-blue-600 text-white hover:bg-blue-700",
+                "flex items-center justify-center rounded-lg text-sm font-medium transition-colors bg-[#7C3AED] text-white hover:bg-purple-700",
               )}
+              style={{ width: "32px", height: "32px" }}
             >
-              <span className="text-lg">✨</span>
-              <span>AI Assist</span>
+              <span style={{ fontSize: "16px" }}>✨</span>
             </button>
           </div>
 
           {/* Message Input Area */}
           <div className="px-6 py-3">
             <div
-              className="bg-[#2C2C32] border border-[#3A3A40] rounded-lg overflow-hidden"
+              className="bg-[#27272A] border border-[#3A3A40] rounded-lg overflow-hidden"
               style={{ borderRadius: "8px" }}
             >
               {/* Text Input */}
@@ -325,10 +340,11 @@ export function ChatThread({
                 <div
                   contentEditable
                   suppressContentEditableWarning={true}
-                  className="min-h-8 max-h-40 overflow-y-auto text-white text-sm leading-5 outline-none"
+                  className="min-h-8 max-h-40 overflow-y-auto text-[#E4E4E7] text-sm leading-5 outline-none"
                   style={{
                     whiteSpace: "pre-wrap",
                     wordBreak: "break-word",
+                    fontSize: "14px",
                   }}
                   onInput={(e) => {
                     const content = e.currentTarget.textContent || "";
@@ -350,44 +366,60 @@ export function ChatThread({
                 <div className="flex items-center gap-1">
                   {/* Attachment Options */}
                   <button
-                    className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                    className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
                     disabled
+                    style={{ padding: "8px" }}
                   >
-                    <Paperclip className="w-5 h-5" />
+                    <Paperclip
+                      className="w-6 h-6"
+                      style={{ width: "24px", height: "24px" }}
+                    />
                   </button>
                   <button
-                    className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                    className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
                     disabled
+                    style={{ padding: "8px" }}
                   >
-                    <Image className="w-5 h-5" />
+                    <Image
+                      className="w-6 h-6"
+                      style={{ width: "24px", height: "24px" }}
+                    />
                   </button>
                   <button
-                    className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                    className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
                     disabled
+                    style={{ padding: "8px" }}
                   >
-                    <Smile className="w-5 h-5" />
+                    <Smile
+                      className="w-6 h-6"
+                      style={{ width: "24px", height: "24px" }}
+                    />
                   </button>
                   <button
-                    className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                    className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
                     disabled
+                    style={{ padding: "8px" }}
                   >
-                    <Mic className="w-5 h-5" />
+                    <Mic
+                      className="w-6 h-6"
+                      style={{ width: "24px", height: "24px" }}
+                    />
                   </button>
                 </div>
 
-                {/* Send Button */}
+                {/* Send Button - Square Purple */}
                 <button
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim()}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                    "flex items-center justify-center rounded-lg transition-colors",
                     newMessage.trim()
-                      ? "bg-[#4CAF50] text-white hover:bg-green-600"
+                      ? "bg-[#7C3AED] text-white hover:bg-purple-700"
                       : "bg-gray-600 text-gray-400 cursor-not-allowed",
                   )}
+                  style={{ width: "32px", height: "32px" }}
                 >
                   <Send className="w-4 h-4" />
-                  <span>Enviar</span>
                 </button>
               </div>
             </div>
