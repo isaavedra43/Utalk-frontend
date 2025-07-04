@@ -388,16 +388,17 @@ export function ContactTable({
                     onClick={() => onSelectContact(contact.id)}
                   >
                     <TableCell
-                      className="text-gray-300 hidden lg:table-cell"
-                      style={{ padding: "12px 16px", fontSize: "14px" }}
+                      className="text-gray-300 whitespace-nowrap"
+                      style={{ padding: "12px 16px", fontSize: "13px" }}
                     >
                       {contact.owner}
                     </TableCell>
                     <TableCell
-                      style={{ padding: "12px 16px", fontSize: "14px" }}
+                      className="whitespace-nowrap"
+                      style={{ padding: "12px 16px", fontSize: "13px" }}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="relative">
+                        <div className="relative flex-shrink-0">
                           {contact.avatarUrl ? (
                             <img
                               src={contact.avatarUrl}
@@ -420,8 +421,8 @@ export function ContactTable({
                             />
                           </div>
                         </div>
-                        <div>
-                          <p className="text-white font-medium">
+                        <div className="min-w-0">
+                          <p className="text-white font-medium truncate">
                             {contact.name}
                           </p>
                           <p className="text-xs text-gray-400 capitalize">
@@ -431,22 +432,20 @@ export function ContactTable({
                       </div>
                     </TableCell>
                     <TableCell
-                      className="text-gray-300 hidden md:table-cell"
-                      style={{ padding: "12px 16px", fontSize: "14px" }}
+                      className="text-gray-300"
+                      style={{ padding: "12px 16px", fontSize: "13px" }}
                     >
-                      <div>
-                        <p>{contact.email}</p>
+                      <div className="truncate max-w-[180px]">
+                        <p className="truncate">{contact.email}</p>
                       </div>
                     </TableCell>
                     <TableCell
-                      className="text-gray-300 hidden md:table-cell"
-                      style={{ padding: "12px 16px", fontSize: "14px" }}
+                      className="text-gray-300"
+                      style={{ padding: "12px 16px", fontSize: "13px" }}
                     >
                       <div>
                         <p className="text-sm">{contact.phone}</p>
-                        <p className="text-xs text-gray-400 capitalize">
-                          WhatsApp
-                        </p>
+                        <p className="text-xs text-gray-400">WhatsApp</p>
                       </div>
                     </TableCell>
                     <TableCell
