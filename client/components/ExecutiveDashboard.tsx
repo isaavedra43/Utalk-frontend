@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   MessageSquare,
   Clock,
@@ -15,6 +18,18 @@ import {
   Target,
   BarChart3,
   Eye,
+  Search,
+  Filter,
+  Download,
+  Share2,
+  Menu,
+  X,
+  FileText,
+  Star,
+  ShoppingCart,
+  UserCheck,
+  Zap,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,693 +37,798 @@ interface ExecutiveDashboardProps {
   className?: string;
 }
 
-// Mock data
+// Comprehensive mock data
 const dashboardData = {
   lastUpdate: new Date(),
-  summary: {
-    totalConversationsToday: 147,
-    messagesSent: 523,
-    avgResponseTime: "02:15",
-    salesValue: 15750.25,
-    csatLevel: 4.3,
+  kpis: {
+    totalSales: { value: 89450, change: 15.8, isPositive: true },
+    totalOrders: { value: 234, change: 8.3, isPositive: true },
+    totalClients: { value: 1247, change: -2.1, isPositive: false },
+    totalMessages: { value: 6890, change: 12.5, isPositive: true },
   },
-  kpis: [
+  conversion: {
+    rate: 23.7,
+    change: -2.1,
+    isPositive: false,
+  },
+  csat: {
+    score: 4.3,
+    change: 0.2,
+    isPositive: true,
+  },
+  agentPerformance: [
     {
-      id: "conversations",
-      title: "Conversaciones Abiertas",
-      value: 89,
-      change: 12.5,
-      isPositive: true,
-      icon: MessageSquare,
+      name: "María García",
+      color: "#4F8EF7",
+      chats: [12, 15, 18, 14, 16, 20, 17],
     },
     {
-      id: "closed",
-      title: "Chats Cerrados",
-      value: 234,
-      change: 8.3,
-      isPositive: true,
-      icon: CheckCircle,
+      name: "Carlos López",
+      color: "#3AD29F",
+      chats: [8, 12, 14, 16, 18, 15, 19],
     },
     {
-      id: "conversion",
-      title: "Tasa de Conversión",
-      value: 23.7,
-      change: -2.1,
-      isPositive: false,
-      icon: Target,
-      unit: "%",
+      name: "Ana Rodríguez",
+      color: "#FFD166",
+      chats: [10, 11, 13, 12, 14, 16, 15],
     },
     {
-      id: "revenue",
-      title: "Ingresos Estimados",
-      value: 45230,
-      change: 15.8,
-      isPositive: true,
-      icon: DollarSign,
-      unit: "$",
+      name: "Luis Fernández",
+      color: "#EF476F",
+      chats: [6, 8, 10, 12, 14, 13, 11],
+    },
+    {
+      name: "Sofía Martín",
+      color: "#9333EA",
+      chats: [5, 7, 9, 11, 12, 14, 13],
+    },
+  ],
+  regionData: {
+    Norte: { sales: 25000, messages: 1200 },
+    Sur: { sales: 32000, messages: 1800 },
+    Centro: { sales: 28000, messages: 1500 },
+  },
+  topClients: [
+    {
+      pos: 1,
+      name: "Empresa Tech S.A.",
+      channel: "WhatsApp",
+      chats: 45,
+      value: 15680,
+      avgTime: "02:15",
+    },
+    {
+      pos: 2,
+      name: "Comercial Norte",
+      channel: "Email",
+      chats: 38,
+      value: 12450,
+      avgTime: "01:45",
+    },
+    {
+      pos: 3,
+      name: "Retail Sur",
+      channel: "Facebook",
+      chats: 32,
+      value: 9850,
+      avgTime: "03:20",
+    },
+    {
+      pos: 4,
+      name: "Import Export",
+      channel: "WhatsApp",
+      chats: 28,
+      value: 8900,
+      avgTime: "02:05",
+    },
+    {
+      pos: 5,
+      name: "Distribuidor Centro",
+      channel: "Email",
+      chats: 25,
+      value: 7650,
+      avgTime: "01:50",
     },
   ],
   alerts: [
     {
-      id: "1",
       type: "critical",
+      icon: AlertTriangle,
       message: "Cliente María González sin respuesta > 1h",
       action: "Contactar Ahora",
+      color: "red",
     },
     {
-      id: "2",
       type: "warning",
+      icon: Clock,
       message: "Agente Carlos López tiene 5 chats abiertos sin cerrar",
       action: "Reasignar",
+      color: "yellow",
     },
     {
-      id: "3",
       type: "info",
+      icon: Target,
       message: "Meta mensual alcanzada al 85%",
       action: "Ver Progreso",
+      color: "blue",
     },
   ],
-  agentPerformance: {
-    labels: ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"],
-    agents: [
-      {
-        name: "María García",
-        data: [85, 92, 88, 95, 90, 87, 93],
-        color: "#4F8EF7",
-      },
-      {
-        name: "Carlos López",
-        data: [78, 85, 82, 88, 85, 80, 86],
-        color: "#3AD29F",
-      },
-      {
-        name: "Ana Rodríguez",
-        data: [92, 88, 95, 90, 93, 89, 91],
-        color: "#FFD166",
-      },
-    ],
-  },
-  salesVsMessages: {
-    labels: ["Ene", "Feb", "Mar", "Abr", "May", "Jun"],
-    sales: [12500, 15200, 13800, 16900, 14500, 18200],
-    messages: [890, 1120, 980, 1350, 1100, 1450],
-  },
+  heatmapData: Array.from({ length: 24 }, (_, i) => ({
+    hour: i,
+    intensity: Math.floor(Math.random() * 100),
+  })),
 };
 
 export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
-  const [dateRange, setDateRange] = useState("today");
-  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [selectedRange, setSelectedRange] = useState("Hoy");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState("Todas");
+  const [selectedClient, setSelectedClient] = useState("Todos");
+  const [refreshTimer, setRefreshTimer] = useState(30);
 
+  // Auto-refresh timer
   useEffect(() => {
     const interval = setInterval(() => {
-      setLastUpdate(new Date());
-    }, 60000);
+      setRefreshTimer((prev) => {
+        if (prev <= 1) {
+          handleRefresh();
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
     return () => clearInterval(interval);
   }, []);
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-      setLastUpdate(new Date());
-    }, 1000);
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    setIsRefreshing(false);
+    setRefreshTimer(30);
   };
 
-  const handleDateRangeChange = (range: string) => {
-    setDateRange(range);
+  const handleExport = (format: string) => {
+    console.log(`Exporting dashboard as ${format}`);
   };
 
-  const handleAlertAction = (alertId: string, action: string) => {
-    console.log(`Alert ${alertId} action: ${action}`);
+  const handleShare = () => {
+    console.log("Generating public dashboard link");
   };
 
-  const formatValue = (value: number, unit?: string) => {
-    if (unit === "$") {
-      return `$${value.toLocaleString()}`;
-    }
-    if (unit === "%") {
-      return `${value}%`;
-    }
-    return value.toLocaleString();
-  };
-
-  const getAlertColor = (type: string) => {
-    switch (type) {
-      case "critical":
-        return "bg-red-600";
-      case "warning":
-        return "bg-yellow-600";
-      case "info":
-        return "bg-blue-600";
-      default:
-        return "bg-gray-600";
-    }
-  };
-
-  return (
-    <div className={cn("h-full bg-gray-950 overflow-auto", className)}>
-      {/* Main Container */}
-      <div
-        className="w-full"
-        style={{
-          maxWidth: "1440px",
-          margin: "0 auto",
-          padding: "24px",
-          fontFamily: "Montserrat, sans-serif",
-        }}
-      >
-        {/* Header */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Title Section - Column 1 */}
-          <div className="col-span-1">
-            <h1
-              className="text-white"
-              style={{
-                fontSize: "32px",
-                fontWeight: "bold",
-                color: "#FFFFFF",
-                marginBottom: "4px",
-              }}
-            >
-              Dashboard de Rendimiento
-            </h1>
-            <p
-              style={{
-                fontSize: "14px",
-                color: "#A0A0A0",
-                marginTop: "4px",
-              }}
-            >
-              Última actualización: {lastUpdate.toLocaleTimeString()}
-            </p>
-          </div>
-
-          {/* Empty Column 2 */}
-          <div className="col-span-1"></div>
-
-          {/* Filters and Actions - Column 3 */}
-          <div className="col-span-1 flex items-start justify-end gap-4">
-            {/* Date Range Filters */}
-            <div
-              className="flex items-center"
-              style={{
-                borderRadius: "8px",
-                padding: "8px 16px",
-                background: "#1F1F1F",
-              }}
-            >
-              {["today", "7days", "custom"].map((range) => (
-                <button
-                  key={range}
-                  onClick={() => handleDateRangeChange(range)}
-                  className={cn(
-                    "px-3 py-1 text-sm rounded transition-colors",
-                    dateRange === range
-                      ? "text-white"
-                      : "text-gray-400 hover:text-white",
-                  )}
-                  style={
-                    dateRange === range
-                      ? {
-                          background: "#4F8EF7",
-                          color: "#FFFFFF",
-                        }
-                      : {}
-                  }
-                >
-                  {range === "today"
-                    ? "Hoy"
-                    : range === "7days"
-                      ? "Últimos 7 días"
-                      : "Personalizado"}
-                </button>
-              ))}
+  const KPICard = ({
+    title,
+    value,
+    change,
+    isPositive,
+    icon: Icon,
+    format = "number",
+  }: any) => (
+    <Card className="bg-[#1E1E2F] border-gray-700 hover:border-gray-600 transition-all duration-200">
+      <CardContent className="p-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-600/20">
+              <Icon className="h-5 w-5 text-blue-400" />
             </div>
-
-            {/* Refresh Button */}
-            <button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="flex items-center text-white disabled:opacity-50"
-              style={{
-                background: "#4F8EF7",
-                color: "#FFFFFF",
-                padding: "8px 16px",
-                borderRadius: "8px",
-                fontSize: "14px",
-                border: "none",
-                cursor: "pointer",
-              }}
-            >
-              <RefreshCw
-                className={cn("w-4 h-4 mr-2", isRefreshing && "animate-spin")}
-              />
-              Actualizar
-            </button>
+            <div>
+              <div className="text-2xl font-bold text-white">
+                {format === "currency"
+                  ? `$${value.toLocaleString()}`
+                  : value.toLocaleString()}
+              </div>
+              <div className="text-sm text-gray-400">{title}</div>
+            </div>
+          </div>
+          <div
+            className={cn(
+              "flex items-center gap-1 text-sm font-medium",
+              isPositive ? "text-green-400" : "text-red-400",
+            )}
+          >
+            {isPositive ? (
+              <TrendingUp className="h-4 w-4" />
+            ) : (
+              <TrendingDown className="h-4 w-4" />
+            )}
+            {change > 0 ? "+" : ""}
+            {change}%
           </div>
         </div>
+      </CardContent>
+    </Card>
+  );
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Row 1 - Column 1: Resumen Global */}
-          <div
-            className="lg:row-span-1"
-            style={{
-              background: "#1E1E2F",
-              borderRadius: "12px",
-              padding: "24px",
-              height: "100%",
-            }}
-          >
-            <h3
-              className="text-white mb-6"
-              style={{ fontSize: "18px", fontWeight: "600" }}
-            >
-              📊 Resumen Global
-            </h3>
-
-            {/* Summary Items */}
-            <div className="space-y-4">
-              {[
-                {
-                  icon: MessageSquare,
-                  label: "Total Conversaciones Hoy",
-                  value: dashboardData.summary.totalConversationsToday,
-                  color: "#4F8EF7",
-                },
-                {
-                  icon: Clock,
-                  label: "Mensajes Enviados",
-                  value: dashboardData.summary.messagesSent,
-                  color: "#3AD29F",
-                },
-                {
-                  icon: Clock,
-                  label: "Tiempo Medio de Respuesta",
-                  value: dashboardData.summary.avgResponseTime,
-                  color: "#FFD166",
-                },
-                {
-                  icon: DollarSign,
-                  label: "Valor de Ventas Generado",
-                  value: `$${dashboardData.summary.salesValue.toLocaleString()}`,
-                  color: "#EF476F",
-                },
-                {
-                  icon: Users,
-                  label: "Nivel CSAT Promedio",
-                  value: `${dashboardData.summary.csatLevel}/5.0`,
-                  color: "#9333EA",
-                },
-              ].map((item, index) => {
-                const Icon = item.icon;
-                return (
-                  <div
-                    key={index}
-                    className="grid grid-cols-12 items-center gap-3"
-                  >
-                    {/* Icon Column - 24px width */}
-                    <div className="col-span-1">
-                      <Icon className="w-6 h-6" style={{ color: item.color }} />
-                    </div>
-                    {/* Text Column - calc(100% - 100px) */}
-                    <div className="col-span-8">
-                      <span
-                        className="text-gray-300"
-                        style={{ fontSize: "14px" }}
-                      >
-                        {item.label}
-                      </span>
-                    </div>
-                    {/* Value Column - 80px width, right aligned */}
-                    <div className="col-span-3 text-right">
-                      <span
-                        className="text-white"
-                        style={{ fontWeight: "600", fontSize: "14px" }}
-                      >
-                        {item.value}
-                      </span>
-                    </div>
-                  </div>
-                );
+  const AlertCard = ({ type, icon: Icon, message, action, color }: any) => (
+    <Card
+      className={cn("border-l-4", {
+        "border-l-red-500 bg-red-900/20": color === "red",
+        "border-l-yellow-500 bg-yellow-900/20": color === "yellow",
+        "border-l-blue-500 bg-blue-900/20": color === "blue",
+      })}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <Icon
+            className={cn("h-5 w-5 mt-0.5", {
+              "text-red-400": color === "red",
+              "text-yellow-400": color === "yellow",
+              "text-blue-400": color === "blue",
+            })}
+          />
+          <div className="flex-1">
+            <p className="text-sm text-white mb-2">{message}</p>
+            <Button
+              size="sm"
+              className={cn("text-xs", {
+                "bg-red-600 hover:bg-red-700": color === "red",
+                "bg-yellow-600 hover:bg-yellow-700": color === "yellow",
+                "bg-blue-600 hover:bg-blue-700": color === "blue",
               })}
-            </div>
-
-            {/* Ver Detalle Button */}
-            <button
-              onClick={() => console.log("Ver detalle")}
-              className="w-full text-white mt-6"
-              style={{
-                background: "#4F8EF7",
-                color: "#FFFFFF",
-                borderRadius: "8px",
-                padding: "12px",
-                border: "none",
-                fontSize: "14px",
-                cursor: "pointer",
-              }}
             >
-              <Eye className="w-4 h-4 inline mr-2" />
-              Ver Detalle
-            </button>
+              {action}
+            </Button>
           </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
-          {/* Row 1 - Columns 2-3: KPI Cards */}
-          {dashboardData.kpis.slice(0, 3).map((kpi, index) => {
-            const Icon = kpi.icon;
-            return (
-              <div
-                key={kpi.id}
-                style={{
-                  background: "#1E1E2F",
-                  borderRadius: "12px",
-                  padding: "24px",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                }}
-              >
-                {/* Top Section - Icon + Change */}
-                <div className="flex items-center justify-between mb-4">
-                  <Icon className="w-6 h-6 text-blue-400" />
-                  <div className="flex items-center">
-                    {kpi.isPositive ? (
-                      <TrendingUp
-                        className="w-4 h-4 mr-1"
-                        style={{ color: "#3AD29F" }}
-                      />
-                    ) : (
-                      <TrendingDown
-                        className="w-4 h-4 mr-1"
-                        style={{ color: "#EF476F" }}
-                      />
-                    )}
-                    <span
-                      style={{
-                        color: kpi.isPositive ? "#3AD29F" : "#EF476F",
-                        fontSize: "14px",
-                        fontWeight: "600",
-                      }}
-                    >
-                      {kpi.change > 0 ? "+" : ""}
-                      {kpi.change}%
-                    </span>
-                  </div>
-                </div>
+  const PerformanceChart = () => (
+    <div className="h-64 bg-[#252538] rounded-lg p-4 flex items-center justify-center">
+      <div className="text-center">
+        <BarChart3 className="h-12 w-12 text-gray-500 mx-auto mb-2" />
+        <p className="text-gray-400 text-sm">
+          Gráfico de Performance por Agente
+        </p>
+        <p className="text-gray-600 text-xs mt-1">
+          Integrar librería de gráficas
+        </p>
+      </div>
+    </div>
+  );
 
-                {/* Center - Main Value */}
-                <div className="text-center mb-4">
-                  <div
-                    className="text-white"
-                    style={{ fontSize: "32px", fontWeight: "bold" }}
-                  >
-                    {formatValue(kpi.value, kpi.unit)}
-                  </div>
-                </div>
+  const RegionChart = () => (
+    <div className="h-64 bg-[#252538] rounded-lg p-4 flex items-center justify-center">
+      <div className="text-center">
+        <BarChart3 className="h-12 w-12 text-gray-500 mx-auto mb-2" />
+        <p className="text-gray-400 text-sm">Ventas vs Mensajes por Región</p>
+        <p className="text-gray-600 text-xs mt-1">
+          Gráfico combinado: barras + línea
+        </p>
+      </div>
+    </div>
+  );
 
-                {/* Bottom - Description */}
-                <div className="text-center">
-                  <span className="text-gray-400" style={{ fontSize: "14px" }}>
-                    {kpi.title}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Row 2 - Column 1: Alertas y Recomendaciones */}
+  const HeatmapChart = () => (
+    <div className="bg-[#252538] rounded-lg p-4">
+      <h3 className="text-white font-semibold mb-4">
+        Densidad de Mensajes (24h)
+      </h3>
+      <div className="grid grid-cols-12 gap-1">
+        {dashboardData.heatmapData.map((item) => (
           <div
-            style={{
-              background: "#1E1E2F",
-              borderRadius: "12px",
-              padding: "24px",
-              height: "300px",
-              overflowY: "auto",
-            }}
+            key={item.hour}
+            className={cn(
+              "h-8 rounded text-xs flex items-center justify-center text-white font-medium",
+              {
+                "bg-green-900": item.intensity < 30,
+                "bg-green-600": item.intensity >= 30 && item.intensity < 60,
+                "bg-green-400": item.intensity >= 60 && item.intensity < 80,
+                "bg-green-200 text-gray-900": item.intensity >= 80,
+              },
+            )}
+            title={`${item.hour}:00 - ${item.intensity}% intensidad`}
           >
-            <h3
-              className="text-white mb-4"
-              style={{ fontSize: "18px", fontWeight: "600" }}
-            >
-              🚨 Alertas y Recomendaciones
-            </h3>
+            {item.hour}
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-between items-center mt-3">
+        <div className="flex items-center gap-4 text-xs text-gray-400">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-green-900 rounded"></div>
+            <span>Baja</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-green-600 rounded"></div>
+            <span>Media</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-green-400 rounded"></div>
+            <span>Alta</span>
+          </div>
+        </div>
+        <div className="text-xs text-gray-400">
+          Pico: 14:00 (95%) | Promedio: 45% | Mínimo: 02:00 (8%)
+        </div>
+      </div>
+    </div>
+  );
 
-            <div className="space-y-4">
-              {dashboardData.alerts.map((alert) => (
-                <div
-                  key={alert.id}
-                  className="p-3 rounded-lg"
-                  style={{
-                    background: "#252538",
-                    marginBottom: "16px",
-                  }}
+  return (
+    <div className={cn("h-full bg-gray-950 overflow-hidden flex", className)}>
+      {/* Sidebar Toggle */}
+      {sidebarVisible && (
+        <div className="w-64 bg-gray-900 border-r border-gray-800 p-4">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-white font-semibold">Navegación</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSidebarVisible(false)}
+              className="text-gray-400 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="space-y-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Overview
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Agentes
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Conversaciones
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+            >
+              <DollarSign className="h-4 w-4 mr-2" />
+              Ventas
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="bg-gray-900 border-b border-gray-800 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              {!sidebarVisible && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSidebarVisible(true)}
+                  className="text-gray-400 hover:text-white"
                 >
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle
-                      className="w-5 h-5 mt-0.5"
-                      style={{
-                        color:
-                          alert.type === "critical"
-                            ? "#EF476F"
-                            : alert.type === "warning"
-                              ? "#FFD166"
-                              : "#4F8EF7",
-                      }}
-                    />
-                    <div className="flex-1">
-                      <p
-                        className="text-white text-sm mb-2"
-                        style={{ fontSize: "14px" }}
-                      >
-                        {alert.message}
-                      </p>
-                      <button
-                        onClick={() =>
-                          handleAlertAction(alert.id, alert.action)
-                        }
-                        className={cn(
-                          "px-3 py-1 rounded text-white text-xs",
-                          getAlertColor(alert.type),
-                        )}
-                        style={{ fontSize: "12px" }}
-                      >
-                        {alert.action}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Row 2 - Column 2: Performance por Agente */}
-          <div
-            style={{
-              background: "#1E1E2F",
-              borderRadius: "12px",
-              padding: "24px",
-            }}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3
-                className="text-white"
-                style={{ fontSize: "18px", fontWeight: "600" }}
-              >
-                📈 Performance por Agente
-              </h3>
-              <Badge
-                className="text-xs"
-                style={{ background: "#4F8EF7", color: "#FFFFFF" }}
-              >
-                Últimos 7 días
-              </Badge>
-            </div>
-
-            {/* Chart Container */}
-            <div
-              className="relative"
-              style={{
-                height: "280px",
-                width: "100%",
-                background: "#252538",
-                borderRadius: "8px",
-                padding: "16px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <div className="text-center">
-                <BarChart3 className="w-16 h-16 text-gray-500 mx-auto mb-2" />
-                <p className="text-gray-500 text-sm">Gráfica de Performance</p>
-                <p className="text-gray-600 text-xs mt-1">
-                  Integrar librería de gráficas
+                  <Menu className="h-4 w-4" />
+                </Button>
+              )}
+              <div>
+                <h1
+                  className="text-2xl font-bold text-white"
+                  style={{ fontFamily: "Montserrat, sans-serif" }}
+                >
+                  Dashboard de Rendimiento
+                </h1>
+                <p className="text-sm text-gray-400">
+                  Última actualización:{" "}
+                  {dashboardData.lastUpdate.toLocaleTimeString()}
                 </p>
               </div>
             </div>
 
-            {/* Legend */}
-            <div className="flex justify-center gap-4 mt-4">
-              {dashboardData.agentPerformance.agents.map((agent) => (
-                <div key={agent.name} className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: agent.color }}
-                  ></div>
-                  <span
-                    className="text-gray-400 text-xs"
-                    style={{ fontSize: "12px" }}
+            <div className="flex items-center gap-4">
+              {/* Range Selector */}
+              <div className="flex items-center bg-gray-800 rounded-lg p-1">
+                {["Hoy", "Últimos 7 días", "Personalizado"].map((range) => (
+                  <Button
+                    key={range}
+                    size="sm"
+                    variant={selectedRange === range ? "default" : "ghost"}
+                    onClick={() => setSelectedRange(range)}
+                    className={cn(
+                      "h-8 px-3",
+                      selectedRange === range
+                        ? "bg-[#346EF1] text-white"
+                        : "text-gray-400 hover:text-white",
+                    )}
                   >
-                    {agent.name}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Row 2 - Column 3: Ventas vs Mensajes + Fourth KPI */}
-          <div className="space-y-6">
-            {/* Fourth KPI Card */}
-            {(() => {
-              const kpi = dashboardData.kpis[3];
-              const Icon = kpi.icon;
-              return (
-                <div
-                  style={{
-                    background: "#1E1E2F",
-                    borderRadius: "12px",
-                    padding: "24px",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  {/* Top Section - Icon + Change */}
-                  <div className="flex items-center justify-between mb-4">
-                    <Icon className="w-6 h-6 text-green-400" />
-                    <div className="flex items-center">
-                      {kpi.isPositive ? (
-                        <TrendingUp
-                          className="w-4 h-4 mr-1"
-                          style={{ color: "#3AD29F" }}
-                        />
-                      ) : (
-                        <TrendingDown
-                          className="w-4 h-4 mr-1"
-                          style={{ color: "#EF476F" }}
-                        />
-                      )}
-                      <span
-                        style={{
-                          color: kpi.isPositive ? "#3AD29F" : "#EF476F",
-                          fontSize: "14px",
-                          fontWeight: "600",
-                        }}
-                      >
-                        {kpi.change > 0 ? "+" : ""}
-                        {kpi.change}%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Center - Main Value */}
-                  <div className="text-center mb-4">
-                    <div
-                      className="text-white"
-                      style={{ fontSize: "32px", fontWeight: "bold" }}
-                    >
-                      {formatValue(kpi.value, kpi.unit)}
-                    </div>
-                  </div>
-
-                  {/* Bottom - Description */}
-                  <div className="text-center">
-                    <span
-                      className="text-gray-400"
-                      style={{ fontSize: "14px" }}
-                    >
-                      {kpi.title}
-                    </span>
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* Ventas vs Mensajes Chart */}
-            <div
-              style={{
-                background: "#1E1E2F",
-                borderRadius: "12px",
-                padding: "24px",
-              }}
-            >
-              <h3
-                className="text-white mb-4"
-                style={{ fontSize: "18px", fontWeight: "600" }}
-              >
-                💰 Ventas vs Mensajes
-              </h3>
-
-              {/* Chart Container */}
-              <div
-                className="relative"
-                style={{
-                  height: "280px",
-                  width: "100%",
-                  background: "#252538",
-                  borderRadius: "8px",
-                  padding: "16px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <div className="text-center">
-                  <BarChart3 className="w-12 h-12 text-gray-500 mx-auto mb-2" />
-                  <p className="text-gray-500 text-sm">Gráfica Mixta</p>
-                  <p className="text-gray-600 text-xs">Barras + Líneas</p>
-                </div>
+                    {range}
+                  </Button>
+                ))}
               </div>
 
-              {/* Mini Cards */}
-              <div className="flex gap-4 mt-4">
-                <div
-                  className="flex-1 p-3 rounded-lg"
-                  style={{ background: "#252538" }}
+              {/* Refresh Button with Timer */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">
+                  Refrescando en: 00:{refreshTimer.toString().padStart(2, "0")}
+                </span>
+                <Button
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="bg-[#346EF1] hover:bg-blue-700 text-white"
                 >
-                  <div className="text-center">
-                    <div
-                      className="text-white font-bold"
-                      style={{ fontSize: "20px" }}
-                    >
-                      $89,450
-                    </div>
-                    <div className="text-gray-400" style={{ fontSize: "12px" }}>
-                      Total Ventas
-                    </div>
-                  </div>
-                </div>
-                <div
-                  className="flex-1 p-3 rounded-lg"
-                  style={{ background: "#252538" }}
-                >
-                  <div className="text-center">
-                    <div
-                      className="text-white font-bold"
-                      style={{ fontSize: "20px" }}
-                    >
-                      6,890
-                    </div>
-                    <div className="text-gray-400" style={{ fontSize: "12px" }}>
-                      Total Mensajes
-                    </div>
-                  </div>
-                </div>
+                  <RefreshCw
+                    className={cn(
+                      "h-4 w-4 mr-2",
+                      isRefreshing && "animate-spin",
+                    )}
+                  />
+                  Actualizar
+                </Button>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Content Grid */}
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full flex gap-4 p-6">
+            {/* Filter Panel (Column 2) */}
+            <div className="w-80 space-y-4">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar conversación…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-gray-800 border-gray-700 text-white placeholder-gray-400"
+                />
+              </div>
+
+              {/* Quick Filters */}
+              <div className="flex gap-2">
+                {["Todas", "Sin asignar", "Etiquetas"].map((filter) => (
+                  <Button
+                    key={filter}
+                    size="sm"
+                    variant={activeFilter === filter ? "default" : "outline"}
+                    onClick={() => setActiveFilter(filter)}
+                    className={cn(
+                      activeFilter === filter
+                        ? "bg-blue-600 text-white"
+                        : "border-gray-600 text-gray-300 hover:bg-gray-700",
+                    )}
+                  >
+                    {filter}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Advanced Filters */}
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm text-white flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    Filtros Avanzados
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">
+                      Canal
+                    </label>
+                    <div className="flex gap-1 flex-wrap">
+                      {["WhatsApp", "Email", "Facebook"].map((channel) => (
+                        <Badge
+                          key={channel}
+                          variant="outline"
+                          className="text-xs"
+                        >
+                          {channel}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">
+                      Estado
+                    </label>
+                    <div className="flex gap-1 flex-wrap">
+                      {["Respondidos", "Pendientes", "Cerrados"].map(
+                        (status) => (
+                          <Badge
+                            key={status}
+                            variant="outline"
+                            className="text-xs"
+                          >
+                            {status}
+                          </Badge>
+                        ),
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Top Clients */}
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm text-white">
+                    Top 10 Clientes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-64">
+                    <div className="space-y-2">
+                      {dashboardData.topClients.map((client) => (
+                        <div
+                          key={client.pos}
+                          className="flex items-center justify-between p-2 bg-gray-700/50 rounded text-xs"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                              {client.pos}
+                            </span>
+                            <div>
+                              <div className="text-white font-medium">
+                                {client.name}
+                              </div>
+                              <div className="text-gray-400">
+                                {client.channel}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-white">${client.value}</div>
+                            <div className="text-gray-400">
+                              {client.chats} chats
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Main Dashboard Content (Column 3) */}
+            <div className="flex-1 space-y-8 overflow-y-auto">
+              {/* KPIs Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <KPICard
+                  title="Total Ventas"
+                  value={dashboardData.kpis.totalSales.value}
+                  change={dashboardData.kpis.totalSales.change}
+                  isPositive={dashboardData.kpis.totalSales.isPositive}
+                  icon={DollarSign}
+                  format="currency"
+                />
+                <KPICard
+                  title="Total Órdenes"
+                  value={dashboardData.kpis.totalOrders.value}
+                  change={dashboardData.kpis.totalOrders.change}
+                  isPositive={dashboardData.kpis.totalOrders.isPositive}
+                  icon={ShoppingCart}
+                />
+                <KPICard
+                  title="Total Clientes"
+                  value={dashboardData.kpis.totalClients.value}
+                  change={dashboardData.kpis.totalClients.change}
+                  isPositive={dashboardData.kpis.totalClients.isPositive}
+                  icon={Users}
+                />
+                <KPICard
+                  title="Total Mensajes"
+                  value={dashboardData.kpis.totalMessages.value}
+                  change={dashboardData.kpis.totalMessages.change}
+                  isPositive={dashboardData.kpis.totalMessages.isPositive}
+                  icon={MessageSquare}
+                />
+              </div>
+
+              {/* Conversion & CSAT */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <Card className="bg-[#1E1E2F] border-gray-700">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Target className="h-5 w-5 text-blue-400" />
+                        <span className="text-white font-medium">
+                          Tasa de Conversión
+                        </span>
+                      </div>
+                      <div
+                        className={cn(
+                          "flex items-center gap-1 text-sm",
+                          dashboardData.conversion.isPositive
+                            ? "text-green-400"
+                            : "text-red-400",
+                        )}
+                      >
+                        {dashboardData.conversion.isPositive ? (
+                          <TrendingUp className="h-4 w-4" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4" />
+                        )}
+                        {dashboardData.conversion.change}%
+                      </div>
+                    </div>
+                    <div className="text-3xl font-bold text-white mb-2">
+                      {dashboardData.conversion.rate}%
+                    </div>
+                    <div className="h-16 bg-[#252538] rounded flex items-center justify-center">
+                      <BarChart3 className="h-8 w-8 text-gray-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-[#1E1E2F] border-gray-700">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Star className="h-5 w-5 text-yellow-400" />
+                        <span className="text-white font-medium">
+                          Nivel CSAT Promedio
+                        </span>
+                      </div>
+                      <div
+                        className={cn(
+                          "flex items-center gap-1 text-sm",
+                          dashboardData.csat.isPositive
+                            ? "text-green-400"
+                            : "text-red-400",
+                        )}
+                      >
+                        {dashboardData.csat.isPositive ? (
+                          <TrendingUp className="h-4 w-4" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4" />
+                        )}
+                        +{dashboardData.csat.change}
+                      </div>
+                    </div>
+                    <div className="text-3xl font-bold text-white mb-2">
+                      {dashboardData.csat.score}/5.0
+                    </div>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={cn(
+                            "h-4 w-4",
+                            star <= Math.floor(dashboardData.csat.score)
+                              ? "text-yellow-400 fill-current"
+                              : "text-gray-600",
+                          )}
+                        />
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Charts Row */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Performance by Agent */}
+                <Card className="bg-[#1E1E2F] border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Performance por Agente
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <PerformanceChart />
+                    <div className="flex justify-center gap-4 mt-4">
+                      {dashboardData.agentPerformance
+                        .slice(0, 3)
+                        .map((agent) => (
+                          <div
+                            key={agent.name}
+                            className="flex items-center gap-2"
+                          >
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: agent.color }}
+                            ></div>
+                            <span className="text-xs text-gray-400">
+                              {agent.name}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Sales vs Messages by Region */}
+                <Card className="bg-[#1E1E2F] border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Ventas vs Mensajes por Región
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <RegionChart />
+                    <div className="grid grid-cols-3 gap-4 mt-4">
+                      {Object.entries(dashboardData.regionData).map(
+                        ([region, data]) => (
+                          <div key={region} className="text-center">
+                            <div className="text-sm font-medium text-white">
+                              {region}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              ${data.sales} / {data.messages}msg
+                            </div>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Alerts and Heatmap */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Alerts */}
+                <Card className="bg-[#1E1E2F] border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5" />
+                      Alertas y Recomendaciones
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {dashboardData.alerts.map((alert, index) => (
+                      <AlertCard key={index} {...alert} />
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* Heatmap */}
+                <Card className="bg-[#1E1E2F] border-gray-700">
+                  <CardContent className="p-6">
+                    <HeatmapChart />
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* FAB */}
+      <Button
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-[#346EF1] hover:bg-blue-700 shadow-lg"
+        onClick={() => handleExport("pdf")}
+      >
+        <Download className="h-6 w-6" />
+      </Button>
+
+      {/* Export/Share Actions */}
+      <div className="fixed bottom-24 right-6 flex flex-col gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700"
+          onClick={() => handleExport("csv")}
+        >
+          <FileText className="h-4 w-4 mr-1" />
+          CSV
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700"
+          onClick={handleShare}
+        >
+          <Share2 className="h-4 w-4 mr-1" />
+          Compartir
+        </Button>
       </div>
     </div>
   );
