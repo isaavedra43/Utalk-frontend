@@ -290,14 +290,16 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
           style={{
             minHeight: 0,
             maxHeight: "100vh",
+            boxSizing: "border-box",
           }}
         >
           <div
             className="space-y-3"
             style={{
-              padding: "12px",
+              padding: "12px 12px 24px 12px",
               gap: "12px",
               minHeight: "100%",
+              boxSizing: "border-box",
             }}
           >
             {/* 1. Productos Sugeridos - Compact */}
