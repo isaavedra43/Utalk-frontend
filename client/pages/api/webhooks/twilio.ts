@@ -4,7 +4,7 @@
 // Guarda el mensaje en Firestore y responde XML vacío para evitar reintentos.
 
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { admin, db } from '@lib/firebaseAdmin'
+import { db, admin } from '@lib/firebaseAdmin'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -18,11 +18,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // Buscar o crear la conversación con ID = número del remitente
-  const convRef = db.collection('conversations').doc(From)
+  const convRef = db.collection('conversations').doc(From);
   const convSnap = await convRef.get()
+
+  const dataToSet = {
+    phoneNumber: From,
+    channel: 'twilio',
+    lastText: Body,
+    lastMessageTimestamp: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
   if (!convSnap.exists) {
-    await convRef.set({ phoneNumber: From })
+    dataToSet['createdAt'] = admin.firestore.FieldValue.serverTimestamp();
   }
+
+  // Usar set con merge para crear o actualizar la conversación
+  await convRef.set(dataToSet, { merge: true });
 
   // Guardar el mensaje en la subcolección 'messages' de la conversación
   await convRef.collection('messages').add({

@@ -4,7 +4,7 @@
 
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { withAuth } from '@lib/withAuth'
-import { db, admin } from '@lib/firebaseAdmin'
+import { db } from '@lib/firebaseAdmin'
 import Twilio from 'twilio'
 
 const client = new Twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
