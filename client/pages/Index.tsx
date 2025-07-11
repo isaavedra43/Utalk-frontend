@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { withAuth } from "@/lib/auth";
 import { Sidebar } from "@/components/Sidebar";
 import { MessagesSidebar } from "@/components/MessagesSidebar";
 import { InboxSidebar } from "@/components/InboxSidebar";
@@ -32,7 +33,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export default function Index() {
+function Index() {
   const [selectedChatId, setSelectedChatId] = useState<string | undefined>("1");
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | undefined
@@ -452,3 +453,5 @@ export default function Index() {
     </div>
   );
 }
+
+export default withAuth(Index);
