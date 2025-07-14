@@ -274,7 +274,14 @@ export const withAuth = <P extends object>(
     if (!isAuthenticated) {
       // SAFE REDIRECT - Protegido contra crashes en SSR
       safeWindow.redirect('/login');
-      return null;
+      return (
+        <div className="h-screen flex items-center justify-center bg-gray-950">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-400">Redirigiendo al login...</p>
+          </div>
+        </div>
+      );
     }
 
     return <Component {...props} />;
@@ -347,7 +354,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (!isAuthenticated) {
-    return null; // Will redirect in withAuth
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-950">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Verificando autenticación...</p>
+        </div>
+      </div>
+    );
   }
 
   // Check role requirement

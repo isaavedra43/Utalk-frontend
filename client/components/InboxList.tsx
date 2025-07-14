@@ -46,7 +46,7 @@ export function InboxList({
       case "Resueltas":
         return "resolved";
       default:
-        return undefined;
+        return null; // Cambiar undefined por null para ser explícito
     }
   };
 
