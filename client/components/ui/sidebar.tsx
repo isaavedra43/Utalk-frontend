@@ -5,6 +5,7 @@ import { PanelLeft } from "lucide-react";
 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { safeWindow, safeDocument } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -106,8 +107,9 @@ const SidebarProvider = React.forwardRef<
         }
       };
 
-      window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
+      // SAFE WINDOW - Event listener protegido
+      const cleanup = safeWindow.addEventListener("keydown", handleKeyDown);
+      return cleanup;
     }, [toggleSidebar]);
 
     // We add a state so that we can do data-state="expanded" or "collapsed".

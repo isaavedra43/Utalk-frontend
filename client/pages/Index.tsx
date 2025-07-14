@@ -32,6 +32,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { safeWindow } from "@/lib/utils";
 
 function Index() {
   const [selectedChatId, setSelectedChatId] = useState<string | undefined>("1");

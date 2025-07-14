@@ -4,8 +4,9 @@
  * ENTERPRISE: Logging condicional sin console.log en producción
  */
 
-import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode, useMemo } from 'react';
 import { apiClient, User, LoginRequest, ApiError } from './api';
+import { safeLocalStorage, safeWindow } from './utils';
 
 // Logging condicional
 const isDev = import.meta.env.DEV;
@@ -47,14 +48,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [error, setError] = useState<string | null>(null);
 
   // SAFE AUTHENTICATION CHECK - Evita crashes en producción
-  const isAuthenticated = (() => {
+  const isAuthenticated = useMemo(() => {
+    console.log("[AuthProvider] Calculando isAuthenticated...", { user: !!user });
+    
+    if (!user) {
+      console.log("[AuthProvider] No hay usuario, no autenticado");
+      return false;
+    }
+    
+    // SAFE WINDOW CHECK - Previene crashes en SSR/producción
+    if (!safeWindow.isAvailable()) {
+      console.log("[AuthProvider] Window no disponible, asumiendo no autenticado");
+      return false;
+    }
+    
     try {
-      return user !== null && apiClient.isAuthenticated();
+      const result = apiClient.isAuthenticated();
+      console.log("[AuthProvider] Resultado autenticación:", result);
+      return result;
     } catch (err) {
       devWarn('AuthProvider: Error checking authentication:', err);
       return false;
     }
-  })();
+  }, [user]);
 
   // Clear error
   const clearError = useCallback(() => {
@@ -70,8 +86,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await apiClient.login(credentials);
       setUser(response.user);
       
-      // Store user data in localStorage for persistence
-      localStorage.setItem('user', JSON.stringify(response.user));
+      // SAFE STORAGE - Store user data in localStorage for persistence
+      const stored = safeLocalStorage.setItem('user', JSON.stringify(response.user));
+      if (!stored) {
+        devWarn('AuthProvider: Failed to store user data in localStorage');
+      }
       
     } catch (err) {
       const error = err as ApiError;
@@ -108,41 +127,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch (authErr) {
         devWarn('AuthProvider: Error checking authentication in refreshUser:', authErr);
         setUser(null);
-        try {
-          localStorage.removeItem('user');
-        } catch (storageErr) {
-          devWarn('AuthProvider: Error removing user from localStorage:', storageErr);
-        }
+        // SAFE STORAGE - Remove user from localStorage
+        safeLocalStorage.removeItem('user');
         return;
       }
 
       if (!isAuth) {
         setUser(null);
-        try {
-          localStorage.removeItem('user');
-        } catch (storageErr) {
-          devWarn('AuthProvider: Error removing user from localStorage:', storageErr);
-        }
+        // SAFE STORAGE - Remove user from localStorage
+        safeLocalStorage.removeItem('user');
         return;
       }
 
       const userData = await apiClient.getCurrentUser();
       setUser(userData);
-      try {
-        localStorage.setItem('user', JSON.stringify(userData));
-      } catch (storageErr) {
-        devWarn('AuthProvider: Error saving user to localStorage:', storageErr);
+      // SAFE STORAGE - Save user to localStorage
+      const stored = safeLocalStorage.setItem('user', JSON.stringify(userData));
+      if (!stored) {
+        devWarn('AuthProvider: Failed to save user to localStorage');
       }
     } catch (err) {
       const error = err as ApiError;
       if (error.status === 401) {
         // Token expired or invalid
         setUser(null);
-        try {
-          localStorage.removeItem('user');
-        } catch (storageErr) {
-          devWarn('AuthProvider: Error removing user from localStorage:', storageErr);
-        }
+        // SAFE STORAGE - Remove user from localStorage
+        safeLocalStorage.removeItem('user');
       } else {
         setError(error.message || 'Failed to refresh user data');
       }
@@ -158,7 +168,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // SAFE CHECK - Check if user data exists in localStorage
         let storedUser = null;
         try {
-          storedUser = localStorage.getItem('user');
+          storedUser = safeLocalStorage.getItem('user');
         } catch (storageErr) {
           devWarn('AuthProvider: Error accessing localStorage:', storageErr);
         }
@@ -170,7 +180,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           } catch (err) {
             devWarn('Failed to parse stored user data:', err);
             try {
-              localStorage.removeItem('user');
+              safeLocalStorage.removeItem('user');
             } catch (storageErr) {
               devWarn('AuthProvider: Error removing invalid user data:', storageErr);
             }
@@ -211,8 +221,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    // SAFE WINDOW - Event listener protegido
+    const cleanup = safeWindow.addEventListener('storage', handleStorageChange);
+    return cleanup;
   }, []);
 
   const authValue: AuthContextType = {
@@ -261,7 +272,8 @@ export const withAuth = <P extends object>(
     }
 
     if (!isAuthenticated) {
-      window.location.href = '/login';
+      // SAFE REDIRECT - Protegido contra crashes en SSR
+      safeWindow.redirect('/login');
       return null;
     }
 

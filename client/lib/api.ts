@@ -6,6 +6,7 @@
  */
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { safeLocalStorage, safeWindow } from './utils';
 
 // API Configuration - FULLSTACK OPTIMIZADO
 // En producción/build: rutas relativas (mismo dominio)
@@ -218,31 +219,50 @@ class TokenManager {
   }
 
   constructor() {
-    this.loadTokensFromStorage();
+    // SAFE INITIALIZATION - Solo cargar tokens si window está disponible
+    if (safeWindow.isAvailable()) {
+      this.loadTokensFromStorage();
+    }
   }
 
   private loadTokensFromStorage() {
     try {
-      this.accessToken = localStorage.getItem('accessToken');
-      this.refreshToken = localStorage.getItem('refreshToken');
-      const expiry = localStorage.getItem('tokenExpiry');
+      console.log("[TokenManager] Cargando tokens desde localStorage...");
+      
+      // SAFE LOCALSTORAGE ACCESS - Protegido contra crashes
+      this.accessToken = safeLocalStorage.getItem('accessToken');
+      this.refreshToken = safeLocalStorage.getItem('refreshToken');
+      const expiry = safeLocalStorage.getItem('tokenExpiry');
       this.tokenExpiry = expiry ? parseInt(expiry) : null;
+      
+      console.log("[TokenManager] Tokens cargados:", {
+        hasAccessToken: !!this.accessToken,
+        hasRefreshToken: !!this.refreshToken,
+        tokenExpiry: this.tokenExpiry
+      });
     } catch (error) {
-      devWarn('Failed to load tokens from storage:', error);
+      devWarn('[TokenManager] Error loading tokens from storage:', error);
+      // Reset tokens en caso de error
+      this.accessToken = null;
+      this.refreshToken = null;
+      this.tokenExpiry = null;
     }
   }
 
   setTokens(accessToken: string, refreshToken: string, expiresIn: number) {
+    console.log("[TokenManager] Guardando nuevos tokens...");
+    
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
     this.tokenExpiry = Date.now() + (expiresIn * 1000);
 
-    try {
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
-      localStorage.setItem('tokenExpiry', this.tokenExpiry.toString());
-    } catch (error) {
-      devWarn('Failed to save tokens to storage:', error);
+    // SAFE LOCALSTORAGE ACCESS - Protegido contra crashes
+    const success = safeLocalStorage.setItem('accessToken', accessToken) &&
+                   safeLocalStorage.setItem('refreshToken', refreshToken) &&
+                   safeLocalStorage.setItem('tokenExpiry', this.tokenExpiry.toString());
+    
+    if (!success) {
+      devWarn('[TokenManager] Warning: Failed to save tokens to localStorage');
     }
   }
 
@@ -260,17 +280,16 @@ class TokenManager {
   }
 
   clearTokens() {
+    console.log("[TokenManager] Limpiando tokens...");
+    
     this.accessToken = null;
     this.refreshToken = null;
     this.tokenExpiry = null;
 
-    try {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('tokenExpiry');
-    } catch (error) {
-      devWarn('Failed to clear tokens from storage:', error);
-    }
+    // SAFE LOCALSTORAGE ACCESS - Protegido contra crashes
+    safeLocalStorage.removeItem('accessToken');
+    safeLocalStorage.removeItem('refreshToken');
+    safeLocalStorage.removeItem('tokenExpiry');
   }
 }
 
@@ -335,7 +354,8 @@ class ApiClient {
           } catch (refreshError) {
             // Refresh failed, logout user
             this.logout();
-            window.location.href = '/login';
+            // SAFE REDIRECT - Protegido contra crashes en SSR
+            safeWindow.redirect('/login');
             return Promise.reject(refreshError);
           }
         }
@@ -686,8 +706,21 @@ class ApiClient {
 
   // Utility Methods
   isAuthenticated(): boolean {
-    const token = this.tokenManager.getAccessToken();
-    return token !== null && !this.tokenManager.isTokenExpired();
+    // SAFE AUTHENTICATION CHECK - Previene crashes en SSR/producción
+    if (!safeWindow.isAvailable()) {
+      console.log("[ApiClient] Window no disponible, asumiendo no autenticado");
+      return false;
+    }
+    
+    try {
+      const token = this.tokenManager.getAccessToken();
+      const isValid = token !== null && !this.tokenManager.isTokenExpired();
+      console.log("[ApiClient] Check autenticación:", { hasToken: !!token, isValid });
+      return isValid;
+    } catch (error) {
+      console.warn("[ApiClient] Error checking authentication:", error);
+      return false;
+    }
   }
 
   getAuthToken(): string | null {

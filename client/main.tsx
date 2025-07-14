@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/lib/auth";
+import { safeDocument } from "@/lib/utils";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
@@ -154,7 +155,13 @@ const App = () => {
 
 console.log('🔍 15. Sobre a ejecutar createRoot render...');
 try {
-  const root = createRoot(document.getElementById("root")!);
+  // SAFE DOCUMENT ACCESS - Previene crashes en SSR
+  const rootElement = safeDocument.getElementById("root");
+  if (!rootElement) {
+    throw new Error("Root element not found");
+  }
+  
+  const root = createRoot(rootElement);
   console.log('🔍 16. createRoot exitoso, ejecutando render...');
   root.render(
     <ErrorBoundary>
@@ -164,9 +171,12 @@ try {
   console.log('🔍 17. ✅ RENDER EJECUTADO SIN ERRORES');
 } catch (error) {
   console.error('🚨 ERROR EN CREATEROOT/RENDER:', error);
-  document.body.innerHTML = `<div style="color: red; padding: 20px; font-family: monospace;">
-    <h1>🚨 ERROR EN CREATEROOT/RENDER</h1>
-    <p>${error.message}</p>
-    <pre>${error.stack}</pre>
-  </div>`;
+  // SAFE DOCUMENT - Error display protegido
+  if (safeDocument.isAvailable()) {
+    document.body.innerHTML = `<div style="color: red; padding: 20px; font-family: monospace;">
+      <h1>🚨 ERROR EN CREATEROOT/RENDER</h1>
+      <p>${error.message}</p>
+      <pre>${error.stack}</pre>
+    </div>`;
+  }
 }

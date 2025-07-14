@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient, Message, ApiError } from '@/lib/api';
+import { safeDocument } from '@/lib/utils';
 
 export interface MessagesFilter {
   page?: number;
@@ -262,17 +263,19 @@ export const useMessages = (conversationId: string | null, filters: MessagesFilt
     }
   }, [messagesData?.messages.length, scrollToBottom]);
 
-  // Auto-refresh when window becomes visible
+  // Polling visibility management
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && isPolling) {
-        refresh();
+      // SAFE DOCUMENT ACCESS - Previene crashes en SSR
+      if (safeDocument.getVisibilityState() === 'visible' && isPolling) {
+        refetch();
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [refresh, isPolling]);
+    // SAFE DOCUMENT - Event listener protegido
+    const cleanup = safeDocument.addEventListener('visibilitychange', handleVisibilityChange);
+    return cleanup;
+  }, [isPolling, refetch]);
 
   // Cleanup typing timeout on unmount
   useEffect(() => {
