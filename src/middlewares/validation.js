@@ -404,24 +404,31 @@ const paramSchemas = {
 };
 
 /**
+ * CORRECCIÓN CRÍTICA: Esquema de paginación definido por separado para evitar referencia circular
+ * Este esquema se reutiliza en userFilters y messageFilters sin causar error de inicialización
+ */
+const paginationSchema = Joi.object({
+  page: Joi.number().integer().min(1).default(1)
+    .messages({
+      'number.integer': 'Page must be an integer',
+      'number.min': 'Page must be at least 1'
+    }),
+  limit: Joi.number().integer().min(1).max(100).default(20)
+    .messages({
+      'number.integer': 'Limit must be an integer',
+      'number.min': 'Limit must be at least 1',
+      'number.max': 'Limit must not exceed 100'
+    }),
+  sort: Joi.string().valid('name', 'email', 'createdAt', 'updatedAt').optional(),
+  order: Joi.string().valid('asc', 'desc').default('desc')
+});
+
+/**
  * Esquemas de validación para query parameters
+ * CORRECCIÓN CRÍTICA: Se define después del paginationSchema para evitar referencia circular
  */
 const querySchemas = {
-  pagination: Joi.object({
-    page: Joi.number().integer().min(1).default(1)
-      .messages({
-        'number.integer': 'Page must be an integer',
-        'number.min': 'Page must be at least 1'
-      }),
-    limit: Joi.number().integer().min(1).max(100).default(20)
-      .messages({
-        'number.integer': 'Limit must be an integer',
-        'number.min': 'Limit must be at least 1',
-        'number.max': 'Limit must not exceed 100'
-      }),
-    sort: Joi.string().valid('name', 'email', 'createdAt', 'updatedAt').optional(),
-    order: Joi.string().valid('asc', 'desc').default('desc')
-  }),
+  pagination: paginationSchema,
 
   userFilters: Joi.object({
     role: Joi.string().valid('admin', 'agent').optional(),
@@ -431,7 +438,7 @@ const querySchemas = {
       .messages({
         'string.max': 'Search term must not exceed 100 characters'
       })
-  }).concat(querySchemas.pagination),
+  }).concat(paginationSchema), // CORREGIDO: Usar paginationSchema en lugar de querySchemas.pagination
 
   messageFilters: Joi.object({
     channel: Joi.string().valid('twilio', 'facebook', 'email', 'webchat').optional(),
@@ -442,7 +449,7 @@ const querySchemas = {
       .messages({
         'date.min': 'Date to must be after date from'
       })
-  }).concat(querySchemas.pagination)
+  }).concat(paginationSchema) // CORREGIDO: Usar paginationSchema en lugar de querySchemas.pagination
 };
 
 /**
