@@ -29,23 +29,11 @@ export default defineConfig(({ mode }) => ({
     outDir: path.resolve(__dirname, "dist"),
     emptyOutDir: true,
     
-    // OPTIMIZACIÓN: Mejores chunks para producción
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          router: ['react-router-dom'],
-          query: ['@tanstack/react-query'],
-          axios: ['axios']
-        }
-      }
-    },
-    
     // SOURCE MAPS: Solo en desarrollo
     sourcemap: mode === 'development',
     
-    // MINIFICACIÓN: Agresiva en producción
-    minify: mode === 'production' ? 'terser' : false,
+    // MINIFICACIÓN: Configuración básica
+    minify: mode === 'production',
     
     // TARGET: Navegadores modernos
     target: 'es2020'
@@ -65,13 +53,6 @@ export default defineConfig(({ mode }) => ({
   
   // ENV: Prefijo para variables de entorno del frontend
   envPrefix: 'VITE_',
-  
-  // CSS: Configuración de preprocessor
-  css: {
-    postcss: {
-      plugins: []
-    }
-  },
   
   // OPTIMIZACIÓN: Pre-bundling de dependencias
   optimizeDeps: {
