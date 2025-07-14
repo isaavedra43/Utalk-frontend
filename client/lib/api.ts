@@ -2,7 +2,7 @@
  * Centralized API Client
  * Handles all communication with the backend
  * Includes authentication, error handling, and request/response interceptors
- * FULLSTACK MONOREPO: Configuración para rutas relativas en producción
+ * ENTERPRISE: Sin console.log en producción, logging condicional
  */
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
@@ -23,9 +23,23 @@ const getApiBaseUrl = (): string => {
 const API_BASE_URL = getApiBaseUrl();
 const API_TIMEOUT = 30000; // 30 seconds
 
+// Logging condicional solo en desarrollo
+const isDev = import.meta.env.DEV;
+const devLog = (...args: any[]) => {
+  if (isDev) {
+    console.info(...args);
+  }
+};
+
+const devWarn = (...args: any[]) => {
+  if (isDev) {
+    console.warn(...args);
+  }
+};
+
 // Solo log en desarrollo
-if (import.meta.env.DEV) {
-  console.info(`🔗 API Base URL: ${API_BASE_URL || 'rutas relativas (mismo dominio)'}`);
+if (isDev) {
+  devLog(`🔗 API Base URL: ${API_BASE_URL || 'rutas relativas (mismo dominio)'}`);
 }
 
 // Types
@@ -214,7 +228,7 @@ class TokenManager {
       const expiry = localStorage.getItem('tokenExpiry');
       this.tokenExpiry = expiry ? parseInt(expiry) : null;
     } catch (error) {
-      console.warn('Failed to load tokens from storage:', error);
+      devWarn('Failed to load tokens from storage:', error);
     }
   }
 
@@ -228,7 +242,7 @@ class TokenManager {
       localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('tokenExpiry', this.tokenExpiry.toString());
     } catch (error) {
-      console.warn('Failed to save tokens to storage:', error);
+      devWarn('Failed to save tokens to storage:', error);
     }
   }
 
@@ -255,7 +269,7 @@ class TokenManager {
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('tokenExpiry');
     } catch (error) {
-      console.warn('Failed to clear tokens from storage:', error);
+      devWarn('Failed to clear tokens from storage:', error);
     }
   }
 }
@@ -401,7 +415,7 @@ class ApiClient {
       await this.client.post('/api/users/auth/logout');
     } catch (error) {
       // Continue with logout even if API call fails
-      console.warn('Logout API call failed:', error);
+      devWarn('Logout API call failed:', error);
     } finally {
       this.tokenManager.clearTokens();
     }

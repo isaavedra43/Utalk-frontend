@@ -1,10 +1,25 @@
 /**
  * Authentication Context and Hooks
  * Manages user authentication state and provides authentication utilities
+ * ENTERPRISE: Logging condicional sin console.log en producción
  */
 
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { apiClient, User, LoginRequest, ApiError } from './api';
+
+// Logging condicional
+const isDev = import.meta.env.DEV;
+const devWarn = (...args: any[]) => {
+  if (isDev) {
+    console.warn(...args);
+  }
+};
+
+const devError = (...args: any[]) => {
+  if (isDev) {
+    console.error(...args);
+  }
+};
 
 // Types
 interface AuthContextType {
@@ -64,12 +79,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       await apiClient.logout();
-    } catch (err) {
-      console.warn('Logout API call failed:', err);
-    } finally {
       setUser(null);
       setError(null);
-      localStorage.removeItem('user');
+    } catch (err) {
+      devWarn('Logout API call failed:', err);
+      // Continue with logout even if API call fails
+      setUser(null);
+    } finally {
       setIsLoading(false);
     }
   }, []);
@@ -104,25 +120,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         setIsLoading(true);
         
-        // Check if user is stored in localStorage
+        // Check if user data exists in localStorage
         const storedUser = localStorage.getItem('user');
-        if (storedUser && apiClient.isAuthenticated()) {
+        if (storedUser) {
           try {
             const userData = JSON.parse(storedUser);
             setUser(userData);
-            // Refresh user data in background
-            refreshUser();
           } catch (err) {
-            console.warn('Failed to parse stored user data:', err);
+            devWarn('Failed to parse stored user data:', err);
             localStorage.removeItem('user');
           }
-        } else {
-          // Clear any stale data
-          localStorage.removeItem('user');
         }
+        
+        // Validate token and refresh user data if needed
+        await refreshUser();
       } catch (err) {
-        console.error('Auth initialization error:', err);
-        setError('Failed to initialize authentication');
+        devError('Auth initialization error:', err);
       } finally {
         setIsLoading(false);
       }

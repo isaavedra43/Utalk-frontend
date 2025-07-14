@@ -1,271 +1,73 @@
 /**
- * Middleware de Rate Limiting
- * Protege endpoints críticos contra ataques de fuerza bruta, DoS y abuso
- * ACTUALIZADO: Configuraciones compatibles con express-slow-down v2 y express-rate-limit v7
+ * Rate Limiting Middleware
+ * Configuración diferenciada por tipo de endpoint
+ * Protección contra ataques de denegación de servicio
  */
 
 const rateLimit = require('express-rate-limit');
-const slowDown = require('express-slow-down');
+const RedisStore = require('rate-limit-redis');
 const logger = require('../utils/logger');
 
-/**
- * Rate limiter estricto para login y autenticación
- * Previene ataques de fuerza bruta
- */
-const authRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5, // máximo 5 intentos por IP por ventana
-  skipSuccessfulRequests: true, // no contar requests exitosos
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    error: 'TOO_MANY_AUTH_ATTEMPTS',
-    message: 'Too many authentication attempts. Try again in 15 minutes.',
-    retryAfter: 15 * 60
-  },
-  handler: (req, res) => {
-    logger.warn('Auth rate limit exceeded', {
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      url: req.originalUrl,
-      method: req.method
-    });
-    
-    res.status(429).json({
-      success: false,
-      error: 'TOO_MANY_AUTH_ATTEMPTS',
-      message: 'Too many authentication attempts. Try again in 15 minutes.',
-      retryAfter: 15 * 60
-    });
-  }
-});
-
-/**
- * Rate limiter para envío de mensajes
- * Previene spam y abuso del sistema de mensajería
- */
-const messageRateLimit = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minuto
-  max: 30, // máximo 30 mensajes por minuto por usuario
-  skipSuccessfulRequests: false,
-  keyGenerator: (req) => {
-    // Rate limit por usuario autenticado, no por IP
-    return req.user ? req.user.id : req.ip;
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    error: 'MESSAGE_RATE_LIMIT_EXCEEDED',
-    message: 'Too many messages sent. Please wait before sending more.',
-    retryAfter: 60
-  },
-  handler: (req, res) => {
-    logger.warn('Message rate limit exceeded', {
-      userId: req.user?.id,
-      username: req.user?.username,
-      ip: req.ip,
-      url: req.originalUrl
-    });
-    
-    res.status(429).json({
-      success: false,
-      error: 'MESSAGE_RATE_LIMIT_EXCEEDED',
-      message: 'Too many messages sent. Please wait before sending more.',
-      retryAfter: 60
-    });
-  }
-});
-
-/**
- * Rate limiter general para API
- * Protección básica contra abuso general
- */
-const generalRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 1000, // máximo 1000 requests por IP por ventana
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    error: 'RATE_LIMIT_EXCEEDED',
-    message: 'Too many requests. Please try again later.',
-    retryAfter: 15 * 60
-  },
-  handler: (req, res) => {
-    logger.warn('General rate limit exceeded', {
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      url: req.originalUrl,
-      method: req.method
-    });
-    
-    res.status(429).json({
-      success: false,
-      error: 'RATE_LIMIT_EXCEEDED',
-      message: 'Too many requests. Please try again later.',
-      retryAfter: 15 * 60
-    });
-  }
-});
-
-/**
- * Rate limiter para webhooks
- * Protege contra spam de webhooks maliciosos
- */
-const webhookRateLimit = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minuto
-  max: 100, // máximo 100 webhooks por minuto por IP
-  standardHeaders: false, // no revelar límites en webhooks
-  legacyHeaders: false,
-  message: {
-    success: false,
-    error: 'WEBHOOK_RATE_LIMIT_EXCEEDED',
-    message: 'Too many webhook requests'
-  },
-  handler: (req, res) => {
-    logger.warn('Webhook rate limit exceeded', {
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      url: req.originalUrl
-    });
-    
-    res.status(429).json({
-      success: false,
-      error: 'WEBHOOK_RATE_LIMIT_EXCEEDED',
-      message: 'Too many webhook requests'
-    });
-  }
-});
-
-/**
- * CORRECCIÓN DE WARNINGS: Slow down middleware para login
- * Ralentiza requests después de cierto número de intentos
- * Actualizado para express-slow-down v2 y express-rate-limit v7
- */
-const authSlowDown = slowDown({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  delayAfter: 2, // después de 2 requests, empezar a ralentizar
-  delayMs: () => 500, // CORREGIDO: Nueva sintaxis para express-slow-down v2
-  maxDelayMs: 20000, // máximo delay de 20 segundos
-  skipSuccessfulRequests: true,
-  // CORREGIDO: Removido onLimitReached (deprecated en express-rate-limit v7)
-  // NOTA: El logging se puede monitorear a través de métricas de respuesta y logs de rate limit
-  validate: {
-    delayMs: false // CORREGIDO: Silencia el warning de delayMs como recomienda la documentación
-  }
-});
-
-/**
- * Rate limiter para registro de usuarios
- * Previene creación masiva de cuentas
- */
-const registrationRateLimit = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hora
-  max: 3, // máximo 3 registros por IP por hora
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    error: 'REGISTRATION_RATE_LIMIT_EXCEEDED',
-    message: 'Too many registration attempts. Try again in 1 hour.',
-    retryAfter: 60 * 60
-  },
-  handler: (req, res) => {
-    logger.warn('Registration rate limit exceeded', {
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      requestedUsername: req.body?.username,
-      requestedEmail: req.body?.email
-    });
-    
-    res.status(429).json({
-      success: false,
-      error: 'REGISTRATION_RATE_LIMIT_EXCEEDED',
-      message: 'Too many registration attempts. Try again in 1 hour.',
-      retryAfter: 60 * 60
-    });
-  }
-});
-
-/**
- * Rate limiter para endpoints de administración
- * Protección extra para operaciones sensibles
- */
-const adminRateLimit = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutos
-  max: 50, // máximo 50 operaciones admin por ventana
-  keyGenerator: (req) => {
-    return req.user ? req.user.id : req.ip;
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    success: false,
-    error: 'ADMIN_RATE_LIMIT_EXCEEDED',
-    message: 'Too many administrative operations. Please wait.',
-    retryAfter: 5 * 60
-  },
-  handler: (req, res) => {
-    logger.warn('Admin rate limit exceeded', {
-      userId: req.user?.id,
-      username: req.user?.username,
-      ip: req.ip,
-      url: req.originalUrl,
-      method: req.method
-    });
-    
-    res.status(429).json({
-      success: false,
-      error: 'ADMIN_RATE_LIMIT_EXCEEDED',
-      message: 'Too many administrative operations. Please wait.',
-      retryAfter: 5 * 60
-    });
-  }
-});
-
-/**
- * Crear rate limiter personalizado
- */
-const createCustomRateLimit = (options) => {
-  return rateLimit({
-    windowMs: options.windowMs || 15 * 60 * 1000,
-    max: options.max || 100,
+// Configuración base de rate limiting
+const createRateLimit = (options = {}) => {
+  const defaultOptions = {
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutos
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: options.keyGenerator || ((req) => req.ip),
-    message: {
-      success: false,
-      error: options.errorCode || 'RATE_LIMIT_EXCEEDED',
-      message: options.message || 'Too many requests',
-      retryAfter: Math.floor(options.windowMs / 1000)
-    },
     handler: (req, res) => {
-      logger.warn(`Custom rate limit exceeded: ${options.name}`, {
-        ip: req.ip,
-        userId: req.user?.id,
-        url: req.originalUrl,
-        method: req.method
-      });
-      
+      logger.warn(`Rate limit exceeded for IP: ${req.ip}, URL: ${req.originalUrl}`);
       res.status(429).json({
         success: false,
-        error: options.errorCode || 'RATE_LIMIT_EXCEEDED',
-        message: options.message || 'Too many requests',
-        retryAfter: Math.floor(options.windowMs / 1000)
+        error: {
+          type: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many requests, please try again later',
+          retryAfter: Math.ceil(options.windowMs / 1000),
+          timestamp: new Date().toISOString()
+        }
       });
+    },
+    skip: (req) => {
+      // Skip rate limiting para health checks en desarrollo
+      if (process.env.NODE_ENV === 'development' && req.path === '/health') {
+        return true;
+      }
+      return false;
     }
-  });
+  };
+
+  return rateLimit({ ...defaultOptions, ...options });
 };
 
+// Rate limiting general para frontend y assets
+const generalRateLimit = createRateLimit({
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 1000, // Más permisivo para frontend
+  message: 'Too many requests from this IP for frontend resources'
+});
+
+// Rate limiting estricto para APIs
+const apiRateLimit = createRateLimit({
+  max: parseInt(process.env.API_RATE_LIMIT_MAX_REQUESTS) || 100, // Más restrictivo para APIs
+  windowMs: parseInt(process.env.API_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  message: 'Too many API requests from this IP'
+});
+
+// Rate limiting muy estricto para autenticación
+const authRateLimit = createRateLimit({
+  max: parseInt(process.env.AUTH_RATE_LIMIT_MAX_REQUESTS) || 10,
+  windowMs: parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  message: 'Too many authentication attempts from this IP'
+});
+
+// Rate limiting para uploads
+const uploadRateLimit = createRateLimit({
+  max: parseInt(process.env.UPLOAD_RATE_LIMIT_MAX_REQUESTS) || 20,
+  windowMs: parseInt(process.env.UPLOAD_RATE_LIMIT_WINDOW_MS) || 60 * 60 * 1000, // 1 hora
+  message: 'Too many upload attempts from this IP'
+});
+
 module.exports = {
-  authRateLimit,
-  authSlowDown,
-  messageRateLimit,
   generalRateLimit,
-  webhookRateLimit,
-  registrationRateLimit,
-  adminRateLimit,
-  createCustomRateLimit
+  apiRateLimit,
+  authRateLimit,
+  uploadRateLimit
 }; 
