@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from '@/lib/auth.tsx';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Eye, EyeOff, UserPlus, LogIn } from "lucide-react";
+import { Loader2, Eye, EyeOff, UserPlus, LogIn, AlertCircle } from "lucide-react";
 import { config } from '@/lib/config';
 import { cn } from '@/lib/utils';
 

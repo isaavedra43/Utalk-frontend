@@ -308,7 +308,7 @@ function Index() {
                 }}
               >
                 {/* Responsive media queries for smaller screens */}
-                <style jsx>{`
+                <style>{`
                   @media (max-width: 1200px) {
                     .sidebar-collapsed {
                       width: 64px;
