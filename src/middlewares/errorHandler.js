@@ -47,6 +47,41 @@ const sanitizeError = (error, isProduction) => {
 };
 
 /**
+ * CORRECCIÓN CRÍTICA: Middleware para manejar errores de parsing JSON
+ * Este middleware faltaba y causaba el crash "app.use() requires a middleware function"
+ * @param {Error} err - Error object
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ * @param {Function} next - Next middleware function
+ */
+const jsonErrorHandler = (err, req, res, next) => {
+  // Solo manejar errores de parsing JSON
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    const errorId = generateErrorId();
+    
+    logger.warn('JSON parsing error', {
+      errorId,
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      url: req.originalUrl,
+      method: req.method,
+      contentType: req.get('Content-Type'),
+      error: err.message
+    });
+
+    return res.status(400).json({
+      success: false,
+      error: 'INVALID_JSON',
+      message: 'Invalid JSON format in request body',
+      errorId
+    });
+  }
+  
+  // Si no es error de JSON, pasar al siguiente middleware
+  next(err);
+};
+
+/**
  * Middleware principal de manejo de errores
  * @param {Error} err - Error capturado
  * @param {Object} req - Request object
@@ -265,6 +300,7 @@ const createError = (message, statusCode = 500, type = 'CUSTOM_ERROR') => {
 module.exports = {
   errorHandler,
   notFoundHandler,
+  jsonErrorHandler, // CORRECCIÓN CRÍTICA: Agregado para resolver el crash del backend
   asyncHandler,
   createError
 }; 

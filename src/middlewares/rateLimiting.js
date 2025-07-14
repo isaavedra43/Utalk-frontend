@@ -1,6 +1,7 @@
 /**
  * Middleware de Rate Limiting
  * Protege endpoints críticos contra ataques de fuerza bruta, DoS y abuso
+ * ACTUALIZADO: Configuraciones compatibles con express-slow-down v2 y express-rate-limit v7
  */
 
 const rateLimit = require('express-rate-limit');
@@ -139,21 +140,20 @@ const webhookRateLimit = rateLimit({
 });
 
 /**
- * Slow down middleware para login
+ * CORRECCIÓN DE WARNINGS: Slow down middleware para login
  * Ralentiza requests después de cierto número de intentos
+ * Actualizado para express-slow-down v2 y express-rate-limit v7
  */
 const authSlowDown = slowDown({
   windowMs: 15 * 60 * 1000, // 15 minutos
   delayAfter: 2, // después de 2 requests, empezar a ralentizar
-  delayMs: 500, // incrementar delay en 500ms por request
+  delayMs: () => 500, // CORREGIDO: Nueva sintaxis para express-slow-down v2
   maxDelayMs: 20000, // máximo delay de 20 segundos
   skipSuccessfulRequests: true,
-  onLimitReached: (req, res, options) => {
-    logger.warn('Auth slow down activated', {
-      ip: req.ip,
-      userAgent: req.get('User-Agent'),
-      delayMs: options.delay
-    });
+  // CORREGIDO: Removido onLimitReached (deprecated en express-rate-limit v7)
+  // NOTA: El logging se puede monitorear a través de métricas de respuesta y logs de rate limit
+  validate: {
+    delayMs: false // CORREGIDO: Silencia el warning de delayMs como recomienda la documentación
   }
 });
 
