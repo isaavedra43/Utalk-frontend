@@ -1,30 +1,23 @@
 /**
  * Frontend Configuration
  * Centralized configuration for the React application
- * ACTUALIZADO: Configuración fullstack con rutas relativas
+ * FULLSTACK MONOREPO: Configuración simplificada para rutas relativas
  */
-
-// API Configuration - FULLSTACK OPTIMIZADO
-const getApiBaseUrl = () => {
-  // Si estamos en producción o build, usar rutas relativas
-  if (import.meta.env.PROD || import.meta.env.VITE_USE_RELATIVE_URLS === 'true') {
-    return ''; // Rutas relativas - mismo dominio
-  }
-  
-  // En desarrollo, usar variable de entorno o fallback a localhost
-  return import.meta.env.VITE_API_URL || 'http://localhost:3000';
-};
 
 export const config = {
   api: {
-    BASE_URL: getApiBaseUrl(),
+    // En desarrollo: Vite proxy maneja /api -> localhost:3000
+    // En producción: rutas relativas al mismo dominio
+    BASE_URL: import.meta.env.DEV && import.meta.env.VITE_API_URL 
+      ? import.meta.env.VITE_API_URL 
+      : '',
     TIMEOUT: parseInt(import.meta.env.VITE_API_TIMEOUT || '30000'),
   },
   
   app: {
     NAME: import.meta.env.VITE_APP_NAME || 'UNIK AI',
     VERSION: import.meta.env.VITE_APP_VERSION || '1.0.0',
-    ENVIRONMENT: import.meta.env.VITE_NODE_ENV || import.meta.env.MODE || 'development',
+    ENVIRONMENT: import.meta.env.MODE || 'development',
   },
   
   features: {

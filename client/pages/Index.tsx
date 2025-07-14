@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { withAuth } from "@/lib/auth";
+import { withAuth } from "@/lib/auth.tsx";
 import { Sidebar } from "@/components/Sidebar";
 import { MessagesSidebar } from "@/components/MessagesSidebar";
 import { InboxSidebar } from "@/components/InboxSidebar";

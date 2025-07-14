@@ -228,9 +228,18 @@ function validateCustomRules(env) {
     errors.push('FIREBASE_PRIVATE_KEY must be a valid PEM private key');
   }
   
-  // Validar que Firebase client email tenga formato correcto
-  if (!env.FIREBASE_CLIENT_EMAIL.includes('firebase-adminsdk')) {
-    errors.push('FIREBASE_CLIENT_EMAIL must be a Firebase Admin SDK email');
+  // DESARROLLO: Relajar validación de Firebase para valores dummy
+  if (env.NODE_ENV === 'production') {
+    // En producción, validar formato estricto
+    if (!env.FIREBASE_CLIENT_EMAIL.includes('firebase-adminsdk')) {
+      errors.push('FIREBASE_CLIENT_EMAIL must be a Firebase Admin SDK email');
+    }
+  } else {
+    // En desarrollo, permitir cualquier email con formato válido
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(env.FIREBASE_CLIENT_EMAIL)) {
+      errors.push('FIREBASE_CLIENT_EMAIL must be a valid email format');
+    }
   }
   
   if (errors.length > 0) {

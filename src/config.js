@@ -13,43 +13,63 @@ module.exports = {
     env: process.env.NODE_ENV || 'development',
     cors: {
       origin: function (origin, callback) {
-        // FULLSTACK MODE: Si no hay origin (same-origin), permitir siempre
+        // FULLSTACK MODE: Si no hay origin (same-origin requests), permitir siempre
         if (!origin) {
           return callback(null, true);
         }
 
-        // Lista de orígenes permitidos para APIs externas
-        const allowedOrigins = process.env.CORS_ORIGIN 
-          ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-          : [];
+        // Lista de orígenes permitidos configurables
+        const allowedOrigins = [];
         
-        // En desarrollo, permitir localhost en diferentes puertos
+        // PRODUCCIÓN: Solo dominios explícitamente configurados
+        if (process.env.CORS_ORIGIN) {
+          const configuredOrigins = process.env.CORS_ORIGIN.split(',').map(o => o.trim());
+          allowedOrigins.push(...configuredOrigins);
+        }
+        
+        // DESARROLLO: Permitir localhost en diferentes puertos
         if (process.env.NODE_ENV === 'development') {
-          allowedOrigins.push(
+          const devOrigins = [
             'http://localhost:3000',
-            'http://localhost:5173',
+            'http://localhost:5173', 
             'http://localhost:8080',
             'http://127.0.0.1:3000',
             'http://127.0.0.1:5173',
             'http://127.0.0.1:8080'
-          );
+          ];
+          allowedOrigins.push(...devOrigins);
         }
         
+        // Verificar si el origin está permitido
         if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
           callback(null, true);
         } else {
-          // Solo logear si hay configuración específica de CORS
-          if (process.env.CORS_ORIGIN) {
-            console.warn(`CORS: Origin ${origin} not allowed. Allowed: ${allowedOrigins.join(', ')}`);
+          // Log detallado para debugging en desarrollo
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`🚫 CORS: Origin '${origin}' rechazado. Permitidos: ${allowedOrigins.join(', ')}`);
           }
           callback(new Error('Not allowed by CORS'));
         }
       },
       credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-      exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining'],
-      maxAge: 86400 // 24 horas
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+      allowedHeaders: [
+        'Content-Type', 
+        'Authorization', 
+        'X-Requested-With',
+        'Accept',
+        'Origin',
+        'Cache-Control',
+        'X-File-Name'
+      ],
+      exposedHeaders: [
+        'X-RateLimit-Limit', 
+        'X-RateLimit-Remaining',
+        'X-Total-Count'
+      ],
+      maxAge: 86400, // 24 horas
+      preflightContinue: false,
+      optionsSuccessStatus: 204
     }
   },
 

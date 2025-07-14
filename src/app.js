@@ -2,7 +2,7 @@
  * Aplicación principal Express
  * Configuración de middlewares, rutas y manejo de errores
  * Punto de entrada para el backend omnicanal
- * ACTUALIZADO: Integración completa fullstack con frontend React
+ * FULLSTACK MONOREPO: Integración completa con frontend React
  */
 
 const express = require('express');
@@ -10,6 +10,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
+const fs = require('fs');
 
 const config = require('./config');
 const { errorHandler, notFoundHandler, jsonErrorHandler } = require('./middlewares/errorHandler');
@@ -65,14 +66,7 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }));
 
-// CORS OPTIMIZADO PARA FULLSTACK: Solo para APIs externas si es necesario
-// En modo fullstack (mismo dominio), CORS no es necesario para el frontend
-if (config.server.env === 'development' || process.env.ENABLE_EXTERNAL_API === 'true') {
-  app.use('/api', cors(config.server.cors));
-  logger.info('CORS habilitado solo para rutas /api/*');
-}
-
-// Rate limiting global
+// Rate limiting global (ANTES de CORS y rutas)
 app.use(generalRateLimit);
 
 // Middleware para manejar errores de parsing JSON
@@ -93,18 +87,58 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Logging
 app.use(morgan('combined', { stream: logger.stream }));
 
-// Health check - DEBE ir ANTES de servir archivos estáticos
+// FULLSTACK: Paths del frontend
+const frontendDistPath = path.join(__dirname, '../dist');
+const frontendIndexPath = path.join(frontendDistPath, 'index.html');
+
+// STEP 1: SERVIR ARCHIVOS ESTÁTICOS DEL FRONTEND (ANTES de las rutas API)
+if (fs.existsSync(frontendDistPath)) {
+  logger.info(`✅ Frontend encontrado en: ${frontendDistPath}`);
+  
+  app.use(express.static(frontendDistPath, {
+    maxAge: config.server.env === 'production' ? '31536000000' : '0', // 1 año en prod, 0 en dev
+    etag: true,
+    lastModified: true,
+    index: false, // IMPORTANTE: No servir index.html automáticamente
+    setHeaders: (res, filePath) => {
+      // Cache busting: HTML sin cache, assets con cache largo
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      } else if (filePath.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    }
+  }));
+} else {
+  logger.warn(`⚠️ Frontend no encontrado en: ${frontendDistPath}`);
+  logger.warn(`   Ejecuta 'npm run build' para generar el frontend`);
+}
+
+// STEP 2: CORS APLICADO SOLO A RUTAS API
+app.use('/api', cors(config.server.cors));
+logger.info(`🔒 CORS configurado para rutas /api/*`);
+
+// STEP 3: HEALTH CHECK (ANTES de rutas API)
 app.get('/health', (req, res) => {
+  const frontendExists = fs.existsSync(frontendDistPath);
+  const frontendIndexExists = fs.existsSync(frontendIndexPath);
+  
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
     environment: config.server.env,
-    frontend: 'integrated',
-    backend: 'running'
+    services: {
+      backend: 'running',
+      frontend: frontendExists ? 'available' : 'not_built',
+      frontendIndex: frontendIndexExists ? 'available' : 'missing'
+    },
+    version: '1.0.0'
   });
 });
 
-// Rutas principales de API - ANTES de archivos estáticos
+// STEP 4: RUTAS DE API (DESPUÉS de archivos estáticos)
 app.use('/api/channels/twilio', twilioRoutes);
 app.use('/api/channels/facebook', facebookRoutes);
 app.use('/api/channels/email', emailRoutes);
@@ -116,68 +150,44 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api', healthRoutes);
 
-// INTEGRACIÓN FULLSTACK: Servir archivos estáticos del frontend
-const frontendDistPath = path.join(__dirname, '../dist');
-const frontendIndexPath = path.join(frontendDistPath, 'index.html');
-
-// Verificar si existe el build del frontend
-const fs = require('fs');
-if (fs.existsSync(frontendDistPath)) {
-  logger.info(`Frontend servido desde: ${frontendDistPath}`);
+// STEP 5: FALLBACK SPA UNIVERSAL (MANEJA TODOS LOS MÉTODOS HTTP Y RUTAS NO-API)
+app.use('*', (req, res, next) => {
+  // Si es una ruta API, pasar al notFoundHandler
+  if (req.originalUrl.startsWith('/api/')) {
+    return next();
+  }
   
-  // Servir archivos estáticos del frontend
-  app.use(express.static(frontendDistPath, {
-    maxAge: config.server.env === 'production' ? '1y' : '0',
-    etag: true,
-    lastModified: true,
-    setHeaders: (res, path) => {
-      // Cache específico para diferentes tipos de archivos
-      if (path.endsWith('.html')) {
-        res.setHeader('Cache-Control', 'no-cache');
-      } else if (path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg)$/)) {
-        res.setHeader('Cache-Control', 'public, max-age=31536000');
+  // Si NO es GET, redirigir a la SPA para que React Router maneje
+  if (req.method !== 'GET') {
+    return res.redirect('/');
+  }
+  
+  // Servir index.html para todas las rutas de frontend
+  if (fs.existsSync(frontendIndexPath)) {
+    return res.sendFile(frontendIndexPath, (err) => {
+      if (err) {
+        logger.error(`Error sirviendo index.html: ${err.message}`);
+        res.status(500).json({
+          error: 'Frontend Error',
+          message: 'Unable to serve frontend application'
+        });
       }
-    }
-  }));
-
-  // FALLBACK SPA: Todas las rutas no-API devuelven index.html
-  app.get('*', (req, res, next) => {
-    // Solo para rutas que no son API ni archivos estáticos
-    if (req.path.startsWith('/api/')) {
-      return next(); // Pasar al notFoundHandler para APIs
-    }
-    
-    // Verificar si el archivo existe antes de servir index.html
-    if (fs.existsSync(frontendIndexPath)) {
-      res.sendFile(frontendIndexPath);
-    } else {
-      logger.error(`Frontend index.html no encontrado en: ${frontendIndexPath}`);
-      res.status(500).json({
-        error: 'Frontend not built',
-        message: 'Run npm run build to generate frontend assets'
-      });
-    }
-  });
-} else {
-  logger.warn(`Frontend no encontrado en: ${frontendDistPath}`);
-  logger.warn('Ejecuta "npm run build" para generar archivos del frontend');
-  
-  // Ruta por defecto cuando no hay frontend buildeado
-  app.get('/', (req, res) => {
-    res.json({
-      message: 'Backend Omnicanal - Sistema de Mensajería Empresarial',
-      version: '1.0.0',
-      channels: ['twilio', 'facebook', 'email', 'webchat'],
-      modules: ['crm', 'campaigns', 'dashboard', 'settings', 'users'],
-      warning: 'Frontend not built. Run: npm run build'
     });
-  });
-}
+  } else {
+    // Si no hay frontend buildeado, mostrar mensaje informativo
+    res.status(503).json({
+      error: 'Frontend Not Available',
+      message: 'Frontend not built. Run: npm run build',
+      backend: 'running',
+      suggestion: 'The backend API is available at /api/*'
+    });
+  }
+});
 
-// Manejo de rutas API no encontradas
+// STEP 6: MANEJO DE RUTAS API NO ENCONTRADAS
 app.use('/api/*', notFoundHandler);
 
-// Middleware de manejo de errores
+// STEP 7: MIDDLEWARE DE MANEJO DE ERRORES (AL FINAL)
 app.use(errorHandler);
 
 module.exports = app; 

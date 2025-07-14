@@ -3,14 +3,16 @@
  * Handles user authentication with form validation and error handling
  */
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/lib/auth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, EyeOff, LogIn, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Navigate } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from '@/lib/auth.tsx';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Eye, EyeOff, UserPlus, LogIn } from "lucide-react";
+import { config } from '@/lib/config';
 import { cn } from '@/lib/utils';
 
 interface LoginFormData {
@@ -35,19 +37,15 @@ const Login: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      window.location.href = '/';
-    }
-  }, [isAuthenticated]);
+  if (isAuthenticated) {
+    return <Navigate to="/" />;
+  }
 
   // Clear errors when form data changes
-  useEffect(() => {
-    if (error) {
-      clearError();
-    }
-    setFormErrors({});
-  }, [formData, error, clearError]);
+  if (error) {
+    clearError();
+  }
+  setFormErrors({});
 
   // Validate form data
   const validateForm = (): boolean => {
@@ -124,7 +122,7 @@ const Login: React.FC = () => {
         <div className="text-center">
           <div className="flex justify-center mb-6">
             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-              <Sparkles className="w-7 h-7 text-white" />
+              <UserPlus className="w-7 h-7 text-white" />
             </div>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">

@@ -2,27 +2,31 @@
  * Centralized API Client
  * Handles all communication with the backend
  * Includes authentication, error handling, and request/response interceptors
- * ACTUALIZADO: Configuración fullstack con rutas relativas
+ * FULLSTACK MONOREPO: Configuración para rutas relativas en producción
  */
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // API Configuration - FULLSTACK OPTIMIZADO
-// En producción usa rutas relativas (mismo dominio), en desarrollo localhost
-const getApiBaseUrl = () => {
-  // Si estamos en producción o build, usar rutas relativas
-  if (import.meta.env.PROD || import.meta.env.VITE_USE_RELATIVE_URLS === 'true') {
-    return ''; // Rutas relativas - mismo dominio
+// En producción/build: rutas relativas (mismo dominio)
+// En desarrollo: proxy de Vite o variable de entorno
+const getApiBaseUrl = (): string => {
+  // Si estamos en desarrollo Y hay variable VITE_API_URL configurada
+  if (import.meta.env.DEV && import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
   }
   
-  // En desarrollo, usar variable de entorno o fallback a localhost
-  return import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  // En producción o sin variable: usar rutas relativas (mismo dominio)
+  return '';
 };
 
 const API_BASE_URL = getApiBaseUrl();
 const API_TIMEOUT = 30000; // 30 seconds
 
-console.log(`API configurada para: ${API_BASE_URL || 'rutas relativas (mismo dominio)'}`);
+// Solo log en desarrollo
+if (import.meta.env.DEV) {
+  console.info(`🔗 API Base URL: ${API_BASE_URL || 'rutas relativas (mismo dominio)'}`);
+}
 
 // Types
 export interface ApiResponse<T = any> {
