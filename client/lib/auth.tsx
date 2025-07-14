@@ -46,7 +46,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const isAuthenticated = user !== null && apiClient.isAuthenticated();
+  // SAFE AUTHENTICATION CHECK - Evita crashes en producción
+  const isAuthenticated = (() => {
+    try {
+      return user !== null && apiClient.isAuthenticated();
+    } catch (err) {
+      devWarn('AuthProvider: Error checking authentication:', err);
+      return false;
+    }
+  })();
 
   // Clear error
   const clearError = useCallback(() => {
@@ -93,21 +101,48 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Refresh user data
   const refreshUser = useCallback(async () => {
     try {
-      if (!apiClient.isAuthenticated()) {
+      // SAFE CHECK - Evita crashes si apiClient falla
+      let isAuth = false;
+      try {
+        isAuth = apiClient.isAuthenticated();
+      } catch (authErr) {
+        devWarn('AuthProvider: Error checking authentication in refreshUser:', authErr);
         setUser(null);
-        localStorage.removeItem('user');
+        try {
+          localStorage.removeItem('user');
+        } catch (storageErr) {
+          devWarn('AuthProvider: Error removing user from localStorage:', storageErr);
+        }
+        return;
+      }
+
+      if (!isAuth) {
+        setUser(null);
+        try {
+          localStorage.removeItem('user');
+        } catch (storageErr) {
+          devWarn('AuthProvider: Error removing user from localStorage:', storageErr);
+        }
         return;
       }
 
       const userData = await apiClient.getCurrentUser();
       setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
+      try {
+        localStorage.setItem('user', JSON.stringify(userData));
+      } catch (storageErr) {
+        devWarn('AuthProvider: Error saving user to localStorage:', storageErr);
+      }
     } catch (err) {
       const error = err as ApiError;
       if (error.status === 401) {
         // Token expired or invalid
         setUser(null);
-        localStorage.removeItem('user');
+        try {
+          localStorage.removeItem('user');
+        } catch (storageErr) {
+          devWarn('AuthProvider: Error removing user from localStorage:', storageErr);
+        }
       } else {
         setError(error.message || 'Failed to refresh user data');
       }
@@ -120,22 +155,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         setIsLoading(true);
         
-        // Check if user data exists in localStorage
-        const storedUser = localStorage.getItem('user');
+        // SAFE CHECK - Check if user data exists in localStorage
+        let storedUser = null;
+        try {
+          storedUser = localStorage.getItem('user');
+        } catch (storageErr) {
+          devWarn('AuthProvider: Error accessing localStorage:', storageErr);
+        }
+        
         if (storedUser) {
           try {
             const userData = JSON.parse(storedUser);
             setUser(userData);
           } catch (err) {
             devWarn('Failed to parse stored user data:', err);
-            localStorage.removeItem('user');
+            try {
+              localStorage.removeItem('user');
+            } catch (storageErr) {
+              devWarn('AuthProvider: Error removing invalid user data:', storageErr);
+            }
           }
         }
         
         // Validate token and refresh user data if needed
         await refreshUser();
       } catch (err) {
-        devError('Auth initialization error:', err);
+        devWarn('Auth initialization error:', err);
+        setError('Failed to initialize authentication');
       } finally {
         setIsLoading(false);
       }
