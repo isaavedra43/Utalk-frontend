@@ -2,12 +2,14 @@
  * Aplicación principal Express
  * Configuración de middlewares, rutas y manejo de errores
  * Punto de entrada para el backend omnicanal
+ * ACTUALIZADO: Integración completa fullstack con frontend React
  */
 
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const path = require('path');
 
 const config = require('./config');
 const { errorHandler, notFoundHandler, jsonErrorHandler } = require('./middlewares/errorHandler');
@@ -63,7 +65,12 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }));
 
-app.use(cors(config.server.cors));
+// CORS OPTIMIZADO PARA FULLSTACK: Solo para APIs externas si es necesario
+// En modo fullstack (mismo dominio), CORS no es necesario para el frontend
+if (config.server.env === 'development' || process.env.ENABLE_EXTERNAL_API === 'true') {
+  app.use('/api', cors(config.server.cors));
+  logger.info('CORS habilitado solo para rutas /api/*');
+}
 
 // Rate limiting global
 app.use(generalRateLimit);
@@ -86,16 +93,18 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Logging
 app.use(morgan('combined', { stream: logger.stream }));
 
-// Health check
+// Health check - DEBE ir ANTES de servir archivos estáticos
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    environment: config.server.env
+    environment: config.server.env,
+    frontend: 'integrated',
+    backend: 'running'
   });
 });
 
-// Rutas principales
+// Rutas principales de API - ANTES de archivos estáticos
 app.use('/api/channels/twilio', twilioRoutes);
 app.use('/api/channels/facebook', facebookRoutes);
 app.use('/api/channels/email', emailRoutes);
@@ -107,18 +116,66 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api', healthRoutes);
 
-// Ruta por defecto
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Backend Omnicanal - Sistema de Mensajería Empresarial',
-    version: '1.0.0',
-    channels: ['twilio', 'facebook', 'email', 'webchat'],
-    modules: ['crm', 'campaigns', 'dashboard', 'settings', 'users']
-  });
-});
+// INTEGRACIÓN FULLSTACK: Servir archivos estáticos del frontend
+const frontendDistPath = path.join(__dirname, '../dist');
+const frontendIndexPath = path.join(frontendDistPath, 'index.html');
 
-// Manejo de rutas no encontradas
-app.use('*', notFoundHandler);
+// Verificar si existe el build del frontend
+const fs = require('fs');
+if (fs.existsSync(frontendDistPath)) {
+  logger.info(`Frontend servido desde: ${frontendDistPath}`);
+  
+  // Servir archivos estáticos del frontend
+  app.use(express.static(frontendDistPath, {
+    maxAge: config.server.env === 'production' ? '1y' : '0',
+    etag: true,
+    lastModified: true,
+    setHeaders: (res, path) => {
+      // Cache específico para diferentes tipos de archivos
+      if (path.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache');
+      } else if (path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg)$/)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+      }
+    }
+  }));
+
+  // FALLBACK SPA: Todas las rutas no-API devuelven index.html
+  app.get('*', (req, res, next) => {
+    // Solo para rutas que no son API ni archivos estáticos
+    if (req.path.startsWith('/api/')) {
+      return next(); // Pasar al notFoundHandler para APIs
+    }
+    
+    // Verificar si el archivo existe antes de servir index.html
+    if (fs.existsSync(frontendIndexPath)) {
+      res.sendFile(frontendIndexPath);
+    } else {
+      logger.error(`Frontend index.html no encontrado en: ${frontendIndexPath}`);
+      res.status(500).json({
+        error: 'Frontend not built',
+        message: 'Run npm run build to generate frontend assets'
+      });
+    }
+  });
+} else {
+  logger.warn(`Frontend no encontrado en: ${frontendDistPath}`);
+  logger.warn('Ejecuta "npm run build" para generar archivos del frontend');
+  
+  // Ruta por defecto cuando no hay frontend buildeado
+  app.get('/', (req, res) => {
+    res.json({
+      message: 'Backend Omnicanal - Sistema de Mensajería Empresarial',
+      version: '1.0.0',
+      channels: ['twilio', 'facebook', 'email', 'webchat'],
+      modules: ['crm', 'campaigns', 'dashboard', 'settings', 'users'],
+      warning: 'Frontend not built. Run: npm run build'
+    });
+  });
+}
+
+// Manejo de rutas API no encontradas
+app.use('/api/*', notFoundHandler);
 
 // Middleware de manejo de errores
 app.use(errorHandler);

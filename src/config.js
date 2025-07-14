@@ -13,19 +13,35 @@ module.exports = {
     env: process.env.NODE_ENV || 'development',
     cors: {
       origin: function (origin, callback) {
-        // Lista de orígenes permitidos
-        const allowedOrigins = process.env.CORS_ORIGIN 
-          ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-          : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080'];
-        
-        // Permitir requests sin origin (mobile apps, Postman, etc.) solo en desarrollo
-        if (!origin && process.env.NODE_ENV === 'development') {
+        // FULLSTACK MODE: Si no hay origin (same-origin), permitir siempre
+        if (!origin) {
           return callback(null, true);
         }
+
+        // Lista de orígenes permitidos para APIs externas
+        const allowedOrigins = process.env.CORS_ORIGIN 
+          ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+          : [];
         
-        if (allowedOrigins.includes(origin)) {
+        // En desarrollo, permitir localhost en diferentes puertos
+        if (process.env.NODE_ENV === 'development') {
+          allowedOrigins.push(
+            'http://localhost:3000',
+            'http://localhost:5173',
+            'http://localhost:8080',
+            'http://127.0.0.1:3000',
+            'http://127.0.0.1:5173',
+            'http://127.0.0.1:8080'
+          );
+        }
+        
+        if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
           callback(null, true);
         } else {
+          // Solo logear si hay configuración específica de CORS
+          if (process.env.CORS_ORIGIN) {
+            console.warn(`CORS: Origin ${origin} not allowed. Allowed: ${allowedOrigins.join(', ')}`);
+          }
           callback(new Error('Not allowed by CORS'));
         }
       },

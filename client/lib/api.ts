@@ -2,13 +2,27 @@
  * Centralized API Client
  * Handles all communication with the backend
  * Includes authentication, error handling, and request/response interceptors
+ * ACTUALIZADO: Configuración fullstack con rutas relativas
  */
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-// API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// API Configuration - FULLSTACK OPTIMIZADO
+// En producción usa rutas relativas (mismo dominio), en desarrollo localhost
+const getApiBaseUrl = () => {
+  // Si estamos en producción o build, usar rutas relativas
+  if (import.meta.env.PROD || import.meta.env.VITE_USE_RELATIVE_URLS === 'true') {
+    return ''; // Rutas relativas - mismo dominio
+  }
+  
+  // En desarrollo, usar variable de entorno o fallback a localhost
+  return import.meta.env.VITE_API_URL || 'http://localhost:3000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 const API_TIMEOUT = 30000; // 30 seconds
+
+console.log(`API configurada para: ${API_BASE_URL || 'rutas relativas (mismo dominio)'}`);
 
 // Types
 export interface ApiResponse<T = any> {
