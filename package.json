@@ -48,6 +48,7 @@
   "author": "Tu Empresa",
   "license": "MIT",
   "dependencies": {
+    "@tanstack/react-query": "^5.83.0",
     "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
     "compression": "^1.8.0",
