@@ -59,14 +59,7 @@ export function ChatListColumn({
 
   // Don't show if no section is selected
   if (!selectedSection) {
-    return (
-      <div className="h-full flex items-center justify-center bg-gray-900">
-        <div className="text-center">
-          <p className="text-gray-400 mb-2">Selecciona una sección</p>
-          <p className="text-sm text-gray-500">Elige una categoría del menú lateral</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   // Filter conversations based on section and filters

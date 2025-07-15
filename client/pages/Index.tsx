@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { withAuth } from "@/lib/auth.tsx";
 import { Sidebar } from "@/components/Sidebar";
 import { MessagesSidebar } from "@/components/MessagesSidebar";
 import { InboxSidebar } from "@/components/InboxSidebar";
@@ -32,9 +31,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { safeWindow } from "@/lib/utils";
 
-function Index() {
+export default function Index() {
   const [selectedChatId, setSelectedChatId] = useState<string | undefined>("1");
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | undefined
@@ -309,7 +307,7 @@ function Index() {
                 }}
               >
                 {/* Responsive media queries for smaller screens */}
-                <style>{`
+                <style jsx>{`
                   @media (max-width: 1200px) {
                     .sidebar-collapsed {
                       width: 64px;
@@ -454,5 +452,3 @@ function Index() {
     </div>
   );
 }
-
-export default withAuth(Index);

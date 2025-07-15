@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { MessageCircle, Phone, Mail } from "lucide-react";
-import { safeWindow } from '@/lib/utils';
 
 interface Conversation {
   id: string;
@@ -63,14 +62,12 @@ export function ConversationList({
 
   useEffect(() => {
     const checkIsMobile = () => {
-      setIsMobile(safeWindow.getInnerWidth() < 768);
+      setIsMobile(window.innerWidth < 768);
     };
 
     checkIsMobile();
-    
-    // SAFE WINDOW - Event listener protegido
-    const cleanup = safeWindow.addEventListener("resize", checkIsMobile);
-    return cleanup;
+    window.addEventListener("resize", checkIsMobile);
+    return () => window.removeEventListener("resize", checkIsMobile);
   }, []);
 
   // Mobile carousel layout
