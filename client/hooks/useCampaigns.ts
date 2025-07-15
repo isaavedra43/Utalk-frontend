@@ -3,17 +3,18 @@ import { api } from "@/lib/apiClient";
 import { toast } from "@/hooks/use-toast";
 import type { 
   Campaign, 
-  CampaignFormData, 
+  CampaignFormData,
   ApiResponse, 
   PaginatedResponse 
 } from "@/types/api";
 
-// Hook para obtener campañas
+// Hook para obtener lista de campañas
 export function useCampaigns(params?: {
   page?: number;
   pageSize?: number;
-  status?: string;
   search?: string;
+  status?: Campaign['status'];
+  channels?: string[];
 }) {
   return useQuery({
     queryKey: ['campaigns', params],
@@ -124,49 +125,23 @@ export function useSendCampaign() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (campaignId: string) => {
-      const response = await api.post<ApiResponse<void>>(`/campaigns/${campaignId}/send`);
-      return response;
+    mutationFn: async ({ campaignId, sendNow = true }: { campaignId: string; sendNow?: boolean }) => {
+      const response = await api.post<ApiResponse<Campaign>>(`/campaigns/${campaignId}/send`, { sendNow });
+      return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (sentCampaign) => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['campaigns', sentCampaign.id] });
       
       toast({
         title: "Campaña enviada",
-        description: "La campaña ha sido enviada exitosamente.",
+        description: `La campaña "${sentCampaign.name}" ha sido enviada exitosamente.`,
       });
     },
     onError: (error: any) => {
       toast({
         title: "Error al enviar campaña",
         description: error.response?.data?.message || "No se pudo enviar la campaña.",
-        variant: "destructive",
-      });
-    },
-  });
-}
-
-// Hook para cancelar una campaña programada
-export function useCancelCampaign() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (campaignId: string) => {
-      const response = await api.post<ApiResponse<void>>(`/campaigns/${campaignId}/cancel`);
-      return response;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      
-      toast({
-        title: "Campaña cancelada",
-        description: "La campaña ha sido cancelada exitosamente.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error al cancelar campaña",
-        description: error.response?.data?.message || "No se pudo cancelar la campaña.",
         variant: "destructive",
       });
     },
@@ -201,14 +176,68 @@ export function useDuplicateCampaign() {
 }
 
 // Hook para obtener estadísticas de campañas
-export function useCampaignStats(campaignId?: string) {
+export function useCampaignStats(campaignId?: string, params?: {
+  startDate?: string;
+  endDate?: string;
+}) {
   return useQuery({
-    queryKey: ['campaigns', 'stats', campaignId],
+    queryKey: ['campaign-stats', campaignId, params],
     queryFn: async () => {
-      const url = campaignId ? `/campaigns/${campaignId}/stats` : '/campaigns/stats';
-      const response = await api.get<ApiResponse<any>>(url);
+      const endpoint = campaignId ? `/campaigns/${campaignId}/stats` : '/campaigns/stats';
+      const response = await api.get<ApiResponse<{
+        totalCampaigns: number;
+        activeCampaigns: number;
+        sentCampaigns: number;
+        totalSent: number;
+        totalDelivered: number;
+        totalOpened: number;
+        totalClicked: number;
+        totalReplied: number;
+        averageOpenRate: number;
+        averageClickRate: number;
+        averageConversionRate: number;
+      }>>(endpoint, params);
       return response.data;
     },
-    staleTime: 30 * 1000, // 30 segundos para stats más frescas
+    staleTime: 5 * 60 * 1000, // 5 minutos
+  });
+}
+
+// Hook para obtener análisis de campaña
+export function useCampaignAnalytics(campaignId: string) {
+  return useQuery({
+    queryKey: ['campaign-analytics', campaignId],
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<{
+        sent: number;
+        delivered: number;
+        opened: number;
+        clicked: number;
+        replied: number;
+        bounced: number;
+        unsubscribed: number;
+        deliveryRate: number;
+        openRate: number;
+        clickRate: number;
+        replyRate: number;
+        conversionRate: number;
+        timelineData: Array<{
+          date: string;
+          sent: number;
+          opened: number;
+          clicked: number;
+        }>;
+        channelPerformance: Array<{
+          channel: string;
+          sent: number;
+          delivered: number;
+          opened: number;
+          clicked: number;
+        }>;
+      }>>(`/campaigns/${campaignId}/analytics`);
+      return response.data;
+    },
+    enabled: !!campaignId,
+    staleTime: 2 * 60 * 1000, // 2 minutos
   });
 } 

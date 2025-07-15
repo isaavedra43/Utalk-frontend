@@ -58,7 +58,7 @@ export default function Login() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setIsSubmitting(true);
-      await login(data);
+      await login(data.email!, data.password!);
       navigate("/", { replace: true });
     } catch (error) {
       // El error ya se maneja en el AuthContext

@@ -320,7 +320,7 @@ export function CampaignForm({
                     </label>
                     <div className="bg-gray-900 border border-gray-600 rounded-lg p-3 min-h-[100px]">
                       <p className="text-gray-400 text-sm">
-                        Contactos específicos a incluir ({{ includeList }})
+                        Contactos específicos a incluir ({formData.includeList.length})
                       </p>
                       <Button
                         size="sm"
@@ -342,7 +342,7 @@ export function CampaignForm({
                     </label>
                     <div className="bg-gray-900 border border-gray-600 rounded-lg p-3 min-h-[100px]">
                       <p className="text-gray-400 text-sm">
-                        Contactos a excluir de la campaña ({{ excludeList }})
+                        Contactos a excluir de la campaña ({formData.excludeList.length})
                       </p>
                       <Button
                         size="sm"
@@ -365,19 +365,19 @@ export function CampaignForm({
                     <div className="grid grid-cols-3 gap-4 text-center text-sm">
                       <div>
                         <p className="text-white font-bold text-lg">
-                          {{ total }}
+                          {formData.includeList.length + formData.excludeList.length}
                         </p>
                         <p className="text-gray-400">Total</p>
                       </div>
                       <div>
                         <p className="text-green-400 font-bold text-lg">
-                          {{ included }}
+                          {formData.includeList.length}
                         </p>
                         <p className="text-gray-400">Incluidos</p>
                       </div>
                       <div>
                         <p className="text-red-400 font-bold text-lg">
-                          {{ excluded }}
+                          {formData.excludeList.length}
                         </p>
                         <p className="text-gray-400">Excluidos</p>
                       </div>
@@ -444,7 +444,7 @@ export function CampaignForm({
                         Arrastra archivos aquí o haz clic para seleccionar
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        Soportado: Imagen, Vídeo, Audio, PDF ({{ attachments }})
+                        Soportado: Imagen, Vídeo, Audio, PDF ({formData.attachments.length})
                       </p>
                     </div>
                   </div>

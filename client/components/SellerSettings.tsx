@@ -81,28 +81,7 @@ export function SellerSettings({ className }: SellerSettingsProps) {
 
   return (
     <div className={cn("h-full bg-gray-950 overflow-hidden", className)}>
-      {/* Custom scrollbar styles */}
-      <style jsx>{`
-        .custom-settings-scroll {
-          scrollbar-width: thin;
-          scrollbar-color: #1e3a8a transparent;
-        }
-        .custom-settings-scroll::-webkit-scrollbar {
-          width: 8px;
-        }
-        .custom-settings-scroll::-webkit-scrollbar-track {
-          background: rgba(55, 65, 81, 0.3);
-          border-radius: 4px;
-        }
-        .custom-settings-scroll::-webkit-scrollbar-thumb {
-          background-color: #1e3a8a;
-          border-radius: 4px;
-          transition: background-color 0.2s ease;
-        }
-        .custom-settings-scroll::-webkit-scrollbar-thumb:hover {
-          background-color: #1d4ed8;
-        }
-      `}</style>
+
 
       {/* Header */}
       <div className="border-b border-gray-800 bg-gray-900 px-0 py-6">

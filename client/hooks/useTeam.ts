@@ -2,359 +2,232 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/apiClient";
 import { toast } from "@/hooks/use-toast";
 import type { 
-  Seller, 
+  User, 
   ApiResponse, 
   PaginatedResponse 
 } from "@/types/api";
 
-// Tipos específicos para el equipo
-interface SellerFormData {
+// Interface para vendedor/miembro del equipo
+export interface TeamMember {
+  id: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  role: 'admin' | 'manager' | 'agent' | 'viewer';
+  permissions: string[];
+  status: 'active' | 'inactive' | 'suspended';
+  lastActivity: string;
+  performance: {
+    totalChats: number;
+    totalSales: number;
+    averageResponseTime: number;
+    conversionRate: number;
+    customerSatisfaction: number;
+  };
+  channelAssignments: string[];
+}
+
+export interface TeamFormData {
   name: string;
   email: string;
-  role: string;
-  permissions: {
-    read: boolean;
-    write: boolean;
-    approve: boolean;
-    admin: boolean;
-  };
+  role: TeamMember['role'];
+  permissions: string[];
+  channelAssignments: string[];
+  status?: TeamMember['status'];
 }
 
-interface PerformanceUpdate {
-  sellerId: string;
-  metrics: Partial<Seller['kpis']>;
-}
-
-// Hook para obtener lista de vendedores/equipo
-export function useTeam(params?: {
+// Hook para obtener lista de miembros del equipo
+export function useTeamMembers(params?: {
   page?: number;
   pageSize?: number;
   search?: string;
-  status?: 'active' | 'inactive' | 'all';
   role?: string;
+  status?: string;
 }) {
   return useQuery({
-    queryKey: ['team', params],
+    queryKey: ['team-members', params],
     queryFn: async () => {
-      const response = await api.get<PaginatedResponse<Seller>>('/team', params);
+      const response = await api.get<PaginatedResponse<TeamMember>>('/team/members', params);
       return response;
     },
     staleTime: 2 * 60 * 1000, // 2 minutos
   });
 }
 
-// Hook para obtener un vendedor específico
-export function useSeller(sellerId: string) {
+// Hook para obtener un miembro específico del equipo
+export function useTeamMember(memberId: string) {
   return useQuery({
-    queryKey: ['team', sellerId],
+    queryKey: ['team-members', memberId],
     queryFn: async () => {
-      const response = await api.get<ApiResponse<Seller>>(`/team/${sellerId}`);
+      const response = await api.get<ApiResponse<TeamMember>>(`/team/members/${memberId}`);
       return response.data;
     },
-    enabled: !!sellerId,
+    enabled: !!memberId,
   });
 }
 
-// Hook para crear un nuevo vendedor
-export function useCreateSeller() {
+// Hook para crear un nuevo miembro del equipo
+export function useCreateTeamMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (sellerData: SellerFormData) => {
-      const response = await api.post<ApiResponse<Seller>>('/team', sellerData);
+    mutationFn: async (memberData: TeamFormData) => {
+      const response = await api.post<ApiResponse<TeamMember>>('/team/members', memberData);
       return response.data;
     },
-    onSuccess: (newSeller) => {
-      queryClient.invalidateQueries({ queryKey: ['team'] });
+    onSuccess: (newMember) => {
+      queryClient.invalidateQueries({ queryKey: ['team-members'] });
       
       toast({
-        title: "Vendedor creado",
-        description: `${newSeller.name} ha sido añadido al equipo exitosamente.`,
+        title: "Miembro agregado",
+        description: `${newMember.name} ha sido agregado al equipo exitosamente.`,
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error al crear vendedor",
-        description: error.response?.data?.message || "No se pudo crear el vendedor.",
+        title: "Error al agregar miembro",
+        description: error.response?.data?.message || "No se pudo agregar el miembro al equipo.",
         variant: "destructive",
       });
     },
   });
 }
 
-// Hook para actualizar un vendedor
-export function useUpdateSeller() {
+// Hook para actualizar un miembro del equipo
+export function useUpdateTeamMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ sellerId, data }: { sellerId: string; data: Partial<SellerFormData> }) => {
-      const response = await api.put<ApiResponse<Seller>>(`/team/${sellerId}`, data);
+    mutationFn: async ({ memberId, data }: { memberId: string; data: Partial<TeamFormData> }) => {
+      const response = await api.put<ApiResponse<TeamMember>>(`/team/members/${memberId}`, data);
       return response.data;
     },
-    onSuccess: (updatedSeller) => {
-      queryClient.invalidateQueries({ queryKey: ['team'] });
-      queryClient.invalidateQueries({ queryKey: ['team', updatedSeller.id] });
+    onSuccess: (updatedMember) => {
+      queryClient.invalidateQueries({ queryKey: ['team-members'] });
+      queryClient.invalidateQueries({ queryKey: ['team-members', updatedMember.id] });
       
       toast({
-        title: "Vendedor actualizado",
-        description: `Los datos de ${updatedSeller.name} han sido actualizados.`,
+        title: "Miembro actualizado",
+        description: `Los datos de ${updatedMember.name} han sido actualizados.`,
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error al actualizar vendedor",
-        description: error.response?.data?.message || "No se pudo actualizar el vendedor.",
+        title: "Error al actualizar miembro",
+        description: error.response?.data?.message || "No se pudo actualizar el miembro.",
         variant: "destructive",
       });
     },
   });
 }
 
-// Hook para actualizar permisos de un vendedor
-export function useUpdateSellerPermissions() {
+// Hook para eliminar/desactivar un miembro del equipo
+export function useDeleteTeamMember() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ sellerId, permissions }: { 
-      sellerId: string; 
-      permissions: Seller['permissions'] 
-    }) => {
-      const response = await api.patch<ApiResponse<Seller>>(
-        `/team/${sellerId}/permissions`, 
-        { permissions }
-      );
-      return response.data;
-    },
-    onSuccess: (updatedSeller) => {
-      queryClient.invalidateQueries({ queryKey: ['team'] });
-      queryClient.invalidateQueries({ queryKey: ['team', updatedSeller.id] });
-      
-      toast({
-        title: "Permisos actualizados",
-        description: `Los permisos de ${updatedSeller.name} han sido actualizados.`,
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error al actualizar permisos",
-        description: error.response?.data?.message || "No se pudieron actualizar los permisos.",
-        variant: "destructive",
-      });
-    },
-  });
-}
-
-// Hook para activar/desactivar un vendedor
-export function useToggleSellerStatus() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ sellerId, status }: { sellerId: string; status: 'active' | 'inactive' }) => {
-      const response = await api.patch<ApiResponse<Seller>>(
-        `/team/${sellerId}/status`, 
-        { status }
-      );
-      return response.data;
-    },
-    onSuccess: (updatedSeller) => {
-      queryClient.invalidateQueries({ queryKey: ['team'] });
-      queryClient.invalidateQueries({ queryKey: ['team', updatedSeller.id] });
-      
-      const action = updatedSeller.status === 'active' ? 'activado' : 'desactivado';
-      toast({
-        title: `Vendedor ${action}`,
-        description: `${updatedSeller.name} ha sido ${action} exitosamente.`,
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error al cambiar estado",
-        description: error.response?.data?.message || "No se pudo cambiar el estado del vendedor.",
-        variant: "destructive",
-      });
-    },
-  });
-}
-
-// Hook para eliminar un vendedor
-export function useDeleteSeller() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (sellerId: string) => {
-      const response = await api.delete<ApiResponse<void>>(`/team/${sellerId}`);
+    mutationFn: async (memberId: string) => {
+      const response = await api.delete<ApiResponse<void>>(`/team/members/${memberId}`);
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team'] });
+      queryClient.invalidateQueries({ queryKey: ['team-members'] });
       
       toast({
-        title: "Vendedor eliminado",
-        description: "El vendedor ha sido eliminado del equipo.",
+        title: "Miembro eliminado",
+        description: "El miembro ha sido eliminado del equipo exitosamente.",
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error al eliminar vendedor",
-        description: error.response?.data?.message || "No se pudo eliminar el vendedor.",
+        title: "Error al eliminar miembro",
+        description: error.response?.data?.message || "No se pudo eliminar el miembro.",
         variant: "destructive",
       });
     },
   });
 }
 
-// Hook para obtener métricas de performance del equipo
+// Hook para obtener performance del equipo
 export function useTeamPerformance(params?: {
-  period?: string;
-  teamId?: string;
+  startDate?: string;
+  endDate?: string;
+  memberId?: string;
 }) {
   return useQuery({
-    queryKey: ['team', 'performance', params],
+    queryKey: ['team-performance', params],
     queryFn: async () => {
-      const response = await api.get<ApiResponse<any>>('/team/performance', params);
+      const response = await api.get<ApiResponse<{
+        totalMembers: number;
+        activeMembers: number;
+        totalChats: number;
+        totalSales: number;
+        averageResponseTime: number;
+        teamConversionRate: number;
+        teamSatisfactionScore: number;
+        topPerformers: Array<{
+          memberId: string;
+          name: string;
+          chats: number;
+          sales: number;
+          conversionRate: number;
+        }>;
+        performanceByChannel: Array<{
+          channel: string;
+          totalChats: number;
+          averageResponseTime: number;
+          conversionRate: number;
+        }>;
+        dailyMetrics: Array<{
+          date: string;
+          totalChats: number;
+          totalSales: number;
+          averageResponseTime: number;
+        }>;
+      }>>('/team/performance', params);
       return response.data;
     },
+    staleTime: 5 * 60 * 1000, // 5 minutos
+  });
+}
+
+// Hook para obtener performance individual
+export function useMemberPerformance(memberId: string, params?: {
+  startDate?: string;
+  endDate?: string;
+}) {
+  return useQuery({
+    queryKey: ['member-performance', memberId, params],
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<{
+        totalChats: number;
+        activeChats: number;
+        closedChats: number;
+        totalSales: number;
+        averageResponseTime: number;
+        conversionRate: number;
+        customerSatisfaction: number;
+        dailyActivity: Array<{
+          date: string;
+          chats: number;
+          sales: number;
+          averageResponseTime: number;
+        }>;
+        channelActivity: Array<{
+          channel: string;
+          chats: number;
+          sales: number;
+          averageResponseTime: number;
+        }>;
+        recentActivities: Array<{
+          type: string;
+          description: string;
+          timestamp: string;
+        }>;
+      }>>(`/team/members/${memberId}/performance`, params);
+      return response.data;
+    },
+    enabled: !!memberId,
     staleTime: 2 * 60 * 1000, // 2 minutos
-  });
-}
-
-// Hook para obtener KPIs individuales de un vendedor
-export function useSellerKPIs(sellerId: string, params?: {
-  period?: string;
-}) {
-  return useQuery({
-    queryKey: ['team', sellerId, 'kpis', params],
-    queryFn: async () => {
-      const response = await api.get<ApiResponse<Seller['kpis']>>(
-        `/team/${sellerId}/kpis`, 
-        params
-      );
-      return response.data;
-    },
-    enabled: !!sellerId,
-    staleTime: 30 * 1000, // 30 segundos para KPIs más frescos
-    refetchInterval: 60 * 1000, // Refetch cada minuto
-  });
-}
-
-// Hook para obtener tendencias de performance
-export function useSellerTrends(sellerId: string, params?: {
-  period?: string;
-  metrics?: string[];
-}) {
-  return useQuery({
-    queryKey: ['team', sellerId, 'trends', params],
-    queryFn: async () => {
-      const response = await api.get<ApiResponse<any>>(
-        `/team/${sellerId}/trends`, 
-        params
-      );
-      return response.data;
-    },
-    enabled: !!sellerId,
-    staleTime: 5 * 60 * 1000, // 5 minutos
-  });
-}
-
-// Hook para enviar sugerencia de mejora a un vendedor
-export function useSendImprovementSuggestion() {
-  return useMutation({
-    mutationFn: async ({ 
-      sellerId, 
-      suggestion, 
-      category,
-      priority = 'medium'
-    }: {
-      sellerId: string;
-      suggestion: string;
-      category: string;
-      priority?: 'low' | 'medium' | 'high';
-    }) => {
-      const response = await api.post<ApiResponse<void>>(
-        `/team/${sellerId}/suggestions`,
-        { suggestion, category, priority }
-      );
-      return response;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Sugerencia enviada",
-        description: "La sugerencia de mejora ha sido enviada al vendedor.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error al enviar sugerencia",
-        description: error.response?.data?.message || "No se pudo enviar la sugerencia.",
-        variant: "destructive",
-      });
-    },
-  });
-}
-
-// Hook para enviar recordatorio a un vendedor
-export function useSendReminder() {
-  return useMutation({
-    mutationFn: async ({ 
-      sellerId, 
-      message, 
-      type = 'general',
-      priority = 'medium'
-    }: {
-      sellerId: string;
-      message: string;
-      type?: 'task' | 'meeting' | 'followup' | 'general';
-      priority?: 'low' | 'medium' | 'high';
-    }) => {
-      const response = await api.post<ApiResponse<void>>(
-        `/team/${sellerId}/reminders`,
-        { message, type, priority }
-      );
-      return response;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Recordatorio enviado",
-        description: "El recordatorio ha sido enviado al vendedor.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error al enviar recordatorio",
-        description: error.response?.data?.message || "No se pudo enviar el recordatorio.",
-        variant: "destructive",
-      });
-    },
-  });
-}
-
-// Hook para obtener roles disponibles
-export function useAvailableRoles() {
-  return useQuery({
-    queryKey: ['team', 'roles'],
-    queryFn: async () => {
-      const response = await api.get<ApiResponse<string[]>>('/team/roles');
-      return response.data;
-    },
-    staleTime: 30 * 60 * 1000, // 30 minutos (los roles no cambian frecuentemente)
-  });
-}
-
-// Hook para comparar performance entre vendedores
-export function useSellerComparison(sellerIds: string[], params?: {
-  period?: string;
-  metrics?: string[];
-}) {
-  return useQuery({
-    queryKey: ['team', 'comparison', sellerIds, params],
-    queryFn: async () => {
-      const response = await api.post<ApiResponse<any>>('/team/compare', {
-        sellerIds,
-        ...params
-      });
-      return response.data;
-    },
-    enabled: sellerIds.length > 1,
-    staleTime: 5 * 60 * 1000, // 5 minutos
   });
 } 

@@ -1,24 +1,38 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, apiClient } from "@/lib/apiClient";
+import { api } from "@/lib/apiClient";
 import { toast } from "@/hooks/use-toast";
 import type { 
   KBDocument, 
   FAQ, 
-  FAQFormData, 
+  FAQFormData,
   ApiResponse, 
   PaginatedResponse 
 } from "@/types/api";
 
-// Hook para obtener documentos de la base de conocimiento
-export function useKnowledgeBaseDocs(params?: {
+export interface DocumentFormData {
+  title: string;
+  description: string;
+  category: string;
+  tags: string[];
+  file?: File;
+  isPublic: boolean;
+  permissions: {
+    read: string[];
+    write: string[];
+  };
+}
+
+// Hook para obtener documentos
+export function useDocuments(params?: {
   page?: number;
   pageSize?: number;
   search?: string;
-  folder?: string;
+  category?: string;
   tags?: string[];
+  isPublic?: boolean;
 }) {
   return useQuery({
-    queryKey: ['knowledge', 'documents', params],
+    queryKey: ['documents', params],
     queryFn: async () => {
       const response = await api.get<PaginatedResponse<KBDocument>>('/knowledge/documents', params);
       return response;
@@ -28,59 +42,50 @@ export function useKnowledgeBaseDocs(params?: {
 }
 
 // Hook para obtener un documento específico
-export function useKnowledgeBaseDoc(docId: string) {
+export function useDocument(documentId: string) {
   return useQuery({
-    queryKey: ['knowledge', 'documents', docId],
+    queryKey: ['documents', documentId],
     queryFn: async () => {
-      const response = await api.get<ApiResponse<KBDocument>>(`/knowledge/documents/${docId}`);
+      const response = await api.get<ApiResponse<KBDocument>>(`/knowledge/documents/${documentId}`);
       return response.data;
     },
-    enabled: !!docId,
+    enabled: !!documentId,
   });
 }
 
-// Hook para subir un documento
-export function useUploadDocument() {
+// Hook para subir/crear un documento
+export function useCreateDocument() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      file, 
-      title, 
-      description, 
-      folder, 
-      tags = [] 
-    }: {
-      file: File;
-      title: string;
-      description: string;
-      folder: string;
-      tags?: string[];
-    }) => {
+    mutationFn: async (documentData: DocumentFormData) => {
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('title', title);
-      formData.append('description', description);
-      formData.append('folder', folder);
-      tags.forEach(tag => formData.append('tags[]', tag));
+      formData.append('title', documentData.title);
+      formData.append('description', documentData.description);
+      formData.append('category', documentData.category);
+      formData.append('tags', JSON.stringify(documentData.tags));
+      formData.append('isPublic', String(documentData.isPublic));
+      formData.append('permissions', JSON.stringify(documentData.permissions));
+      
+      if (documentData.file) {
+        formData.append('file', documentData.file);
+      }
 
-      const response = await apiClient.post<ApiResponse<KBDocument>>(
-        '/knowledge/documents/upload',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
+      // Usar apiClient directamente para manejar FormData
+      const { apiClient } = await import('@/lib/apiClient');
+      const response = await apiClient.post<ApiResponse<KBDocument>>('/knowledge/documents', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       return response.data.data;
     },
-    onSuccess: (newDoc) => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge', 'documents'] });
+    onSuccess: (newDocument) => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
       
       toast({
         title: "Documento subido",
-        description: `El documento "${newDoc.name}" ha sido subido exitosamente.`,
+        description: `El documento "${newDocument.name}" ha sido subido exitosamente.`,
       });
     },
     onError: (error: any) => {
@@ -93,17 +98,48 @@ export function useUploadDocument() {
   });
 }
 
+// Hook para actualizar un documento
+export function useUpdateDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ documentId, data }: { 
+      documentId: string; 
+      data: Partial<DocumentFormData> 
+    }) => {
+      const response = await api.put<ApiResponse<KBDocument>>(`/knowledge/documents/${documentId}`, data);
+      return response.data;
+    },
+    onSuccess: (updatedDocument) => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      queryClient.invalidateQueries({ queryKey: ['documents', updatedDocument.id] });
+      
+      toast({
+        title: "Documento actualizado",
+        description: `El documento "${updatedDocument.name}" ha sido actualizado.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error al actualizar documento",
+        description: error.response?.data?.message || "No se pudo actualizar el documento.",
+        variant: "destructive",
+      });
+    },
+  });
+}
+
 // Hook para eliminar un documento
 export function useDeleteDocument() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (docId: string) => {
-      const response = await api.delete<ApiResponse<void>>(`/knowledge/documents/${docId}`);
+    mutationFn: async (documentId: string) => {
+      const response = await api.delete<ApiResponse<void>>(`/knowledge/documents/${documentId}`);
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge', 'documents'] });
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
       
       toast({
         title: "Documento eliminado",
@@ -120,119 +156,33 @@ export function useDeleteDocument() {
   });
 }
 
-// Hook para marcar/desmarcar como favorito
-export function useToggleFavoriteDocument() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ docId, isFavorite }: { docId: string; isFavorite: boolean }) => {
-      const response = await api.patch<ApiResponse<KBDocument>>(
-        `/knowledge/documents/${docId}/favorite`,
-        { isFavorite }
-      );
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge', 'documents'] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "No se pudo actualizar el favorito.",
-        variant: "destructive",
-      });
-    },
-  });
-}
-
-// Hook para descargar documentos como ZIP
-export function useDownloadDocumentsZip() {
-  return useMutation({
-    mutationFn: async (docIds: string[]) => {
-      const response = await apiClient.get('/knowledge/documents/download-zip', {
-        params: { ids: docIds.join(',') },
-        responseType: 'blob',
-      });
-      
-      // Crear URL para descarga
-      const blob = new Blob([response.data], { type: 'application/zip' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'documentos.zip';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      return response;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Descarga iniciada",
-        description: "Los documentos se están descargando como ZIP.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error en la descarga",
-        description: error.response?.data?.message || "No se pudo descargar los documentos.",
-        variant: "destructive",
-      });
-    },
-  });
-}
-
-// Hook para generar enlace de compartición
-export function useShareDocument() {
-  return useMutation({
-    mutationFn: async (docId: string) => {
-      const response = await api.post<ApiResponse<{ shareLink: string }>>(
-        `/knowledge/documents/${docId}/share`
-      );
-      return response.data;
-    },
-    onSuccess: (result) => {
-      // Copiar al portapapeles
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(result.shareLink);
-        toast({
-          title: "Enlace copiado",
-          description: "El enlace de compartición ha sido copiado al portapapeles.",
-        });
-      } else {
-        toast({
-          title: "Enlace generado",
-          description: `Enlace: ${result.shareLink}`,
-        });
-      }
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error al compartir",
-        description: error.response?.data?.message || "No se pudo generar el enlace.",
-        variant: "destructive",
-      });
-    },
-  });
-}
-
-// ========================= FAQs =========================
-
 // Hook para obtener FAQs
 export function useFAQs(params?: {
   page?: number;
   pageSize?: number;
   search?: string;
   category?: string;
+  priority?: FAQ['priority'];
 }) {
   return useQuery({
-    queryKey: ['knowledge', 'faqs', params],
+    queryKey: ['faqs', params],
     queryFn: async () => {
       const response = await api.get<PaginatedResponse<FAQ>>('/knowledge/faqs', params);
       return response;
     },
     staleTime: 5 * 60 * 1000, // 5 minutos
+  });
+}
+
+// Hook para obtener una FAQ específica
+export function useFAQ(faqId: string) {
+  return useQuery({
+    queryKey: ['faqs', faqId],
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<FAQ>>(`/knowledge/faqs/${faqId}`);
+      return response.data;
+    },
+    enabled: !!faqId,
   });
 }
 
@@ -245,12 +195,12 @@ export function useCreateFAQ() {
       const response = await api.post<ApiResponse<FAQ>>('/knowledge/faqs', faqData);
       return response.data;
     },
-    onSuccess: (newFaq) => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge', 'faqs'] });
+    onSuccess: (newFAQ) => {
+      queryClient.invalidateQueries({ queryKey: ['faqs'] });
       
       toast({
         title: "FAQ creada",
-        description: `La FAQ "${newFaq.question}" ha sido creada exitosamente.`,
+        description: "La pregunta frecuente ha sido creada exitosamente.",
       });
     },
     onError: (error: any) => {
@@ -272,12 +222,13 @@ export function useUpdateFAQ() {
       const response = await api.put<ApiResponse<FAQ>>(`/knowledge/faqs/${faqId}`, data);
       return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge', 'faqs'] });
+    onSuccess: (updatedFAQ) => {
+      queryClient.invalidateQueries({ queryKey: ['faqs'] });
+      queryClient.invalidateQueries({ queryKey: ['faqs', updatedFAQ.id] });
       
       toast({
         title: "FAQ actualizada",
-        description: "La FAQ ha sido actualizada exitosamente.",
+        description: "La pregunta frecuente ha sido actualizada exitosamente.",
       });
     },
     onError: (error: any) => {
@@ -300,11 +251,11 @@ export function useDeleteFAQ() {
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['knowledge', 'faqs'] });
+      queryClient.invalidateQueries({ queryKey: ['faqs'] });
       
       toast({
         title: "FAQ eliminada",
-        description: "La FAQ ha sido eliminada exitosamente.",
+        description: "La pregunta frecuente ha sido eliminada exitosamente.",
       });
     },
     onError: (error: any) => {
@@ -318,21 +269,127 @@ export function useDeleteFAQ() {
 }
 
 // Hook para buscar en la base de conocimiento
-export function useSearchKnowledgeBase(query: string, type?: 'documents' | 'faqs' | 'all') {
+export function useSearchKnowledge(query: string) {
   return useQuery({
-    queryKey: ['knowledge', 'search', query, type],
+    queryKey: ['search-knowledge', query],
     queryFn: async () => {
-      const params = { 
-        q: query,
-        ...(type && { type })
-      };
-      const response = await api.get<ApiResponse<{ documents: KBDocument[]; faqs: FAQ[] }>>(
-        '/knowledge/search', 
-        params
-      );
+      const response = await api.get<ApiResponse<{
+        documents: KBDocument[];
+        faqs: FAQ[];
+        totalResults: number;
+      }>>('/knowledge/search', { q: query });
       return response.data;
     },
     enabled: query.length > 2, // Solo buscar si hay al menos 3 caracteres
-    staleTime: 30 * 1000,
+    staleTime: 30 * 1000, // 30 segundos
+  });
+}
+
+// Hook para obtener categorías disponibles
+export function useKnowledgeCategories() {
+  return useQuery({
+    queryKey: ['knowledge-categories'],
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<{
+        documentCategories: string[];
+        faqCategories: string[];
+      }>>('/knowledge/categories');
+      return response.data;
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutos
+  });
+}
+
+// Hook para obtener estadísticas de la base de conocimiento
+export function useKnowledgeStats() {
+  return useQuery({
+    queryKey: ['knowledge-stats'],
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<{
+        totalDocuments: number;
+        totalFAQs: number;
+        totalViews: number;
+        totalDownloads: number;
+        popularDocuments: Array<{
+          id: string;
+          title: string;
+          views: number;
+          downloads: number;
+        }>;
+        recentActivity: Array<{
+          type: 'document' | 'faq';
+          action: 'created' | 'updated' | 'viewed' | 'downloaded';
+          title: string;
+          timestamp: string;
+          user: string;
+        }>;
+      }>>('/knowledge/stats');
+      return response.data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutos
+  });
+}
+
+// Hook para marcar un documento como favorito
+export function useToggleDocumentFavorite() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ documentId, isFavorite }: { documentId: string; isFavorite: boolean }) => {
+      const response = await api.post<ApiResponse<void>>(`/knowledge/documents/${documentId}/favorite`, {
+        favorite: isFavorite,
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+    },
+  });
+}
+
+// Hook para descargar un documento
+export function useDownloadDocument() {
+  return useMutation({
+    mutationFn: async (documentId: string) => {
+      const { apiClient } = await import('@/lib/apiClient');
+      const response = await apiClient.get(`/knowledge/documents/${documentId}/download`, {
+        responseType: 'blob',
+      });
+      
+      // Crear URL para descarga
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Extraer nombre del archivo de los headers si está disponible
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = 'documento';
+      if (contentDisposition) {
+        const matches = /filename="([^"]+)"/.exec(contentDisposition);
+        if (matches) filename = matches[1];
+      }
+      
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Descarga iniciada",
+        description: "El documento se está descargando.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error en la descarga",
+        description: error.response?.data?.message || "No se pudo descargar el documento.",
+        variant: "destructive",
+      });
+    },
   });
 } 

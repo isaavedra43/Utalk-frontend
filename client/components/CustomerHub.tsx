@@ -14,7 +14,11 @@ import type { Contact as ApiContact } from "@/types/api";
 // Usar el tipo de la API
 export type Contact = ApiContact;
 
-export default function CustomerHub() {
+interface CustomerHubProps {
+  className?: string;
+}
+
+export default function CustomerHub({ className }: CustomerHubProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [currentView, setCurrentView] = useState<"table" | "cards">("table");
@@ -130,7 +134,7 @@ export default function CustomerHub() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-950 text-white overflow-hidden">
+    <div className={cn("flex flex-col h-full bg-gray-950 text-white overflow-hidden", className)}>
       {/* Header */}
       <div className="flex-shrink-0 border-b border-gray-800 p-6">
         <div className="flex items-center justify-between mb-6">

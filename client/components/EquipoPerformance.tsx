@@ -4,456 +4,263 @@ import { SellerDetail } from "./team/SellerDetail";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Users, RefreshCw } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Search, Plus, Users, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTeamMembers, useCreateTeamMember, type TeamMember } from "@/hooks/useTeam";
+import { toast } from "@/hooks/use-toast";
 
-export interface Seller {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  status: "active" | "inactive";
-  avatar?: string;
-  permissions: {
-    read: boolean;
-    write: boolean;
-    approve: boolean;
-    admin: boolean;
-  };
-  kpis: {
-    chatsAttended: number;
-    messagesResponded: number;
-    avgResponseTime: string;
-    chatsClosedWithoutEscalation: number;
-    conversionRate: number;
-    attributableRevenue: number;
-    avgTicketValue: number;
-    customerRetentionRate: number;
-    csatScore: number;
-    npsScore: number;
-    campaignsSent: number;
-    messageOpenRate: number;
-    linkClickRate: number;
-    positiveResponses: number;
-    complaints: number;
-    continuityPercentage: number;
-    totalChatTime: string;
-    firstTimeResolution: number;
-    upsellCrosssellRate: number;
-    aiQualityScore: number;
-  };
-  trends: {
-    chatsVsSales: number[];
-    responseTime: number[];
-    channelDistribution: { channel: string; percentage: number }[];
-  };
-}
-
-// Mock data for sellers
-const mockSellers: Seller[] = [
-  {
-    id: "1",
-    name: "María García López",
-    email: "maria.garcia@company.com",
-    role: "Ejecutivo WhatsApp Senior",
-    status: "active",
-    avatar:
-      "https://cdn.builder.io/api/v1/image/assets%2F2d1f4aff150c46d2aa10d890d5bc0fca%2Fac493c187ef4459383661e17488cac3a?format=webp&width=800",
-    permissions: {
-      read: true,
-      write: true,
-      approve: false,
-      admin: false,
-    },
-    kpis: {
-      chatsAttended: 145,
-      messagesResponded: 892,
-      avgResponseTime: "02:15",
-      chatsClosedWithoutEscalation: 134,
-      conversionRate: 23.5,
-      attributableRevenue: 45600,
-      avgTicketValue: 1250,
-      customerRetentionRate: 87.3,
-      csatScore: 4.6,
-      npsScore: 72,
-      campaignsSent: 28,
-      messageOpenRate: 94.2,
-      linkClickRate: 18.7,
-      positiveResponses: 156,
-      complaints: 3,
-      continuityPercentage: 91.4,
-      totalChatTime: "34:25",
-      firstTimeResolution: 78.9,
-      upsellCrosssellRate: 15.2,
-      aiQualityScore: 4.5,
-    },
-    trends: {
-      chatsVsSales: [12, 15, 18, 22, 19, 25, 20],
-      responseTime: [125, 135, 120, 140, 130, 145, 135],
-      channelDistribution: [
-        { channel: "WhatsApp", percentage: 65 },
-        { channel: "SMS", percentage: 20 },
-        { channel: "Email", percentage: 15 },
-      ],
-    },
-  },
-  {
-    id: "2",
-    name: "Carlos López Hernández",
-    email: "carlos.lopez@company.com",
-    role: "Supervisor de Ventas",
-    status: "active",
-    permissions: {
-      read: true,
-      write: true,
-      approve: true,
-      admin: false,
-    },
-    kpis: {
-      chatsAttended: 98,
-      messagesResponded: 567,
-      avgResponseTime: "01:45",
-      chatsClosedWithoutEscalation: 89,
-      conversionRate: 28.1,
-      attributableRevenue: 52300,
-      avgTicketValue: 1580,
-      customerRetentionRate: 92.1,
-      csatScore: 4.8,
-      npsScore: 78,
-      campaignsSent: 22,
-      messageOpenRate: 96.5,
-      linkClickRate: 22.3,
-      positiveResponses: 134,
-      complaints: 1,
-      continuityPercentage: 94.7,
-      totalChatTime: "28:15",
-      firstTimeResolution: 85.6,
-      upsellCrosssellRate: 19.8,
-      aiQualityScore: 4.7,
-    },
-    trends: {
-      chatsVsSales: [8, 12, 14, 16, 15, 18, 16],
-      responseTime: [95, 105, 100, 110, 105, 115, 105],
-      channelDistribution: [
-        { channel: "WhatsApp", percentage: 45 },
-        { channel: "SMS", percentage: 30 },
-        { channel: "Email", percentage: 25 },
-      ],
-    },
-  },
-  {
-    id: "3",
-    name: "Ana Morales Ruiz",
-    email: "ana.morales@company.com",
-    role: "Ejecutivo Email Marketing",
-    status: "active",
-    permissions: {
-      read: true,
-      write: true,
-      approve: false,
-      admin: false,
-    },
-    kpis: {
-      chatsAttended: 87,
-      messagesResponded: 445,
-      avgResponseTime: "03:20",
-      chatsClosedWithoutEscalation: 78,
-      conversionRate: 19.7,
-      attributableRevenue: 32100,
-      avgTicketValue: 890,
-      customerRetentionRate: 82.5,
-      csatScore: 4.3,
-      npsScore: 65,
-      campaignsSent: 35,
-      messageOpenRate: 88.9,
-      linkClickRate: 15.4,
-      positiveResponses: 98,
-      complaints: 5,
-      continuityPercentage: 86.2,
-      totalChatTime: "22:40",
-      firstTimeResolution: 71.3,
-      upsellCrosssellRate: 12.4,
-      aiQualityScore: 4.2,
-    },
-    trends: {
-      chatsVsSales: [6, 9, 11, 13, 12, 14, 13],
-      responseTime: [180, 200, 190, 210, 200, 220, 200],
-      channelDistribution: [
-        { channel: "Email", percentage: 70 },
-        { channel: "WhatsApp", percentage: 20 },
-        { channel: "SMS", percentage: 10 },
-      ],
-    },
-  },
-  {
-    id: "4",
-    name: "Luis Hernández Torres",
-    email: "luis.hernandez@company.com",
-    role: "Ejecutivo SMS",
-    status: "inactive",
-    permissions: {
-      read: true,
-      write: false,
-      approve: false,
-      admin: false,
-    },
-    kpis: {
-      chatsAttended: 45,
-      messagesResponded: 234,
-      avgResponseTime: "04:15",
-      chatsClosedWithoutEscalation: 38,
-      conversionRate: 14.2,
-      attributableRevenue: 18900,
-      avgTicketValue: 720,
-      customerRetentionRate: 75.8,
-      csatScore: 3.9,
-      npsScore: 58,
-      campaignsSent: 15,
-      messageOpenRate: 82.1,
-      linkClickRate: 11.2,
-      positiveResponses: 52,
-      complaints: 8,
-      continuityPercentage: 78.9,
-      totalChatTime: "15:30",
-      firstTimeResolution: 65.4,
-      upsellCrosssellRate: 8.7,
-      aiQualityScore: 3.8,
-    },
-    trends: {
-      chatsVsSales: [3, 5, 6, 7, 6, 8, 7],
-      responseTime: [230, 255, 240, 270, 250, 285, 255],
-      channelDistribution: [
-        { channel: "SMS", percentage: 80 },
-        { channel: "WhatsApp", percentage: 15 },
-        { channel: "Email", percentage: 5 },
-      ],
-    },
-  },
-];
+export interface Seller extends TeamMember {} // Compatibilidad hacia atrás
 
 interface EquipoPerformanceProps {
   className?: string;
 }
 
 export function EquipoPerformance({ className }: EquipoPerformanceProps) {
-  const [selectedSeller, setSelectedSeller] = useState<Seller | null>(
-    mockSellers[0],
-  );
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "active" | "inactive"
-  >("all");
-  const [lastUpdate, setLastUpdate] = useState(new Date());
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedSeller, setSelectedSeller] = useState<TeamMember | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Auto-refresh KPIs every 2 minutes
+  // Hooks para datos reales
+  const { 
+    data: teamResponse, 
+    isLoading, 
+    error,
+    refetch 
+  } = useTeamMembers({
+    page: currentPage,
+    search: searchTerm,
+    status: 'active'
+  });
+
+  const createMemberMutation = useCreateTeamMember();
+
+  const teamMembers = teamResponse?.data || [];
+  const totalMembers = teamResponse?.pagination?.total || 0;
+
+  // Seleccionar primer miembro por defecto
   useEffect(() => {
-    const interval = setInterval(
-      () => {
-        setLastUpdate(new Date());
-      },
-      2 * 60 * 1000,
-    ); // 2 minutes
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Filter sellers based on search and status
-  const getFilteredSellers = () => {
-    let filtered = mockSellers;
-
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (seller) =>
-          seller.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          seller.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          seller.email.toLowerCase().includes(searchTerm.toLowerCase()),
-      );
+    if (!selectedSeller && teamMembers.length > 0) {
+      setSelectedSeller(teamMembers[0]);
     }
+  }, [teamMembers, selectedSeller]);
 
-    // Apply status filter
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((seller) => seller.status === statusFilter);
-    }
+  // Filtrado local (opcional, ya que el backend puede manejar búsqueda)
+  const filteredMembers = teamMembers.filter(member =>
+    member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    member.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-    return filtered;
-  };
+  const activeCount = teamMembers.filter(m => m.status === "active").length;
+  const inactiveCount = teamMembers.filter(m => m.status === "inactive").length;
 
-  const handleSellerSelect = (seller: Seller) => {
-    setSelectedSeller(seller);
-    console.log(`Selected seller: ${seller.name}`);
-  };
-
-  const handleCreateSeller = () => {
-    console.log("Creating new seller...");
-    // TODO: Open modal for creating seller
-  };
-
-  const handleEditSeller = (sellerId: string) => {
-    console.log(`Editing seller: ${sellerId}`);
-    // TODO: Open edit modal
-  };
-
-  const handleDeactivateSeller = (sellerId: string) => {
-    console.log(`Deactivating seller: ${sellerId}`);
-    // TODO: Show confirmation and deactivate
+  const handleAddMember = () => {
+    toast({
+      title: "Agregar miembro",
+      description: "La funcionalidad de agregar miembro estará disponible pronto.",
+    });
+    // TODO: Abrir modal de creación de miembro
   };
 
   const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-      setLastUpdate(new Date());
-    }, 1500);
+    refetch();
+    toast({
+      title: "Datos actualizados",
+      description: "La información del equipo ha sido refrescada.",
+    });
   };
 
-  const filteredSellers = getFilteredSellers();
-  const activeCount = mockSellers.filter((s) => s.status === "active").length;
-  const inactiveCount = mockSellers.filter(
-    (s) => s.status === "inactive",
-  ).length;
+  // Loading state
+  if (isLoading && teamMembers.length === 0) {
+    return (
+      <div className={cn("h-full bg-gray-950 text-white p-6", className)}>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+          <div className="grid grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-20" />
+            ))}
+          </div>
+          <div className="flex gap-6 h-[600px]">
+            <Skeleton className="w-1/3 h-full" />
+            <Skeleton className="w-2/3 h-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className={cn("h-full bg-gray-950 text-white p-6 flex items-center justify-center", className)}>
+        <div className="text-center">
+          <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Error al cargar el equipo</h3>
+          <p className="text-gray-400 mb-4">No se pudieron obtener los datos del equipo</p>
+          <Button onClick={handleRefresh} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Reintentar
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className={cn("h-full bg-gray-950 overflow-hidden", className)}>
-      {/* Module Header */}
-      <div className="border-b border-gray-800 bg-gray-900 px-0 py-6">
-        <div className="flex items-center justify-between mb-4">
-          <div
-            className="flex items-center gap-3"
-            style={{ marginLeft: "12px" }}
-          >
-            <Users className="h-6 w-6 text-blue-400" />
-            <div>
-              <h1 className="text-2xl font-bold text-white">
-                Equipo & Performance
-              </h1>
-              <p className="text-sm text-gray-400">
-                Gestiona tu equipo de ventas y analiza su rendimiento
-              </p>
-            </div>
+    <div className={cn("h-full bg-gray-950 text-white overflow-hidden", className)}>
+      {/* Header */}
+      <div className="border-b border-gray-800 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Gestión de Equipo</h1>
+            <p className="text-gray-400 text-sm mt-1">
+              {totalMembers} miembros en total • {activeCount} activos • {inactiveCount} inactivos
+            </p>
           </div>
-
+          
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Badge className="bg-green-600 text-white text-xs">
-                {activeCount} activos
-              </Badge>
-              <Badge className="bg-red-600 text-white text-xs">
-                {inactiveCount} inactivos
-              </Badge>
-            </div>
             <Button
-              onClick={handleCreateSeller}
-              className="bg-blue-600 text-white hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Vendedor
-            </Button>
-          </div>
-        </div>
-
-        {/* Search and Filters */}
-        <div className="flex items-center justify-between">
-          <div className="relative max-w-md flex-1">
-            <Search
-              className="absolute top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
-              style={{ left: "27px" }}
-            />
-            <Input
-              placeholder="Buscar por nombre, rol o email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-gray-800 border-gray-600 text-white placeholder-gray-400"
-              style={{ marginLeft: "12px" }}
-            />
-          </div>
-
-          <div className="flex items-center gap-3 ml-4">
-            <div className="flex items-center gap-1 bg-gray-800 rounded-lg p-1">
-              {["all", "active", "inactive"].map((status) => (
-                <Button
-                  key={status}
-                  size="sm"
-                  variant={statusFilter === status ? "default" : "ghost"}
-                  onClick={() => setStatusFilter(status as any)}
-                  className={cn(
-                    "h-8 px-3",
-                    statusFilter === status
-                      ? "bg-blue-600 text-white"
-                      : "text-gray-400 hover:text-white",
-                  )}
-                >
-                  {status === "all"
-                    ? "Todos"
-                    : status === "active"
-                      ? "Activos"
-                      : "Inactivos"}
-                </Button>
-              ))}
-            </div>
-
-            <Button
-              size="sm"
               onClick={handleRefresh}
-              disabled={isRefreshing}
-              className={cn(
-                "bg-[#377DFF] text-white hover:bg-[#235ECC] active:bg-[#1A47AA] transition-all duration-200 border-none",
-                isRefreshing && "opacity-70 cursor-not-allowed",
-              )}
+              variant="outline"
+              size="sm"
+              disabled={isLoading}
+              className="h-10"
             >
-              <RefreshCw
-                className={cn("h-4 w-4 mr-2", isRefreshing && "animate-spin")}
-              />
+              <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
               Actualizar
             </Button>
+            
+            <Button
+              onClick={handleAddMember}
+              size="sm"
+              disabled={createMemberMutation.isPending}
+              className="h-10"
+            >
+              {createMemberMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
+              Agregar Miembro
+            </Button>
           </div>
         </div>
 
-        <div className="mt-2 text-xs text-gray-500">
-          <span style={{ marginLeft: "12px" }}>Última actualización: </span>
-          <span style={{ marginLeft: "12px" }}>
-            {lastUpdate.toLocaleTimeString()}
-          </span>
-          <span> |</span>
-          <span style={{ marginLeft: "12px" }}>{filteredSellers.length}</span>
-          <span style={{ marginLeft: "12px" }}> de </span>
-          <span style={{ marginLeft: "12px" }}>{mockSellers.length}</span>
-          <span style={{ marginLeft: "12px" }}> vendedores</span>
+        {/* Search */}
+        <div className="relative">
+          <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Input
+            type="text"
+            placeholder="Buscar por nombre o email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500"
+          />
         </div>
       </div>
 
-      {/* Main Content - 2 Columns */}
-      <div className="flex h-[calc(100%-140px)] overflow-hidden">
-        {/* Left Column (1/3) - Sellers List */}
-        <div className="w-1/3 min-w-[350px] border-r border-gray-800">
-          <SellerList
-            sellers={filteredSellers}
-            selectedSeller={selectedSeller}
-            onSellerSelect={handleSellerSelect}
-            onEditSeller={handleEditSeller}
-            onDeactivateSeller={handleDeactivateSeller}
-          />
+      {/* Stats Cards */}
+      <div className="p-6 border-b border-gray-800">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-gray-900 p-4 rounded-lg border border-gray-800">
+            <div className="flex items-center gap-3">
+              <Users className="h-8 w-8 text-blue-400" />
+              <div>
+                <p className="text-gray-400 text-sm">Total Miembros</p>
+                <p className="text-white text-xl font-bold">{totalMembers}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gray-900 p-4 rounded-lg border border-gray-800">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold">✓</span>
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Activos</p>
+                <p className="text-white text-xl font-bold">{activeCount}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gray-900 p-4 rounded-lg border border-gray-800">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gray-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold">○</span>
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Inactivos</p>
+                <p className="text-white text-xl font-bold">{inactiveCount}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gray-900 p-4 rounded-lg border border-gray-800">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold">%</span>
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Performance Avg</p>
+                <p className="text-white text-xl font-bold">
+                  {teamMembers.length > 0 
+                    ? Math.round(teamMembers.reduce((acc, m) => acc + (m.performance?.conversionRate || 0), 0) / teamMembers.length)
+                    : 0}%
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Panel - Team List */}
+        <div className="w-1/3 border-r border-gray-800 flex flex-col">
+          <div className="p-4 border-b border-gray-800">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">Miembros del Equipo</h2>
+              <Badge variant="secondary" className="bg-gray-700 text-gray-300">
+                {filteredMembers.length}
+              </Badge>
+            </div>
+          </div>
+          
+          <div className="flex-1 overflow-hidden">
+            {isLoading ? (
+              <div className="p-4 space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16" />
+                ))}
+              </div>
+            ) : (
+              <SellerList
+                sellers={filteredMembers}
+                selectedSeller={selectedSeller}
+                onSelectSeller={setSelectedSeller}
+              />
+            )}
+          </div>
         </div>
 
-        {/* Right Column (2/3) - Seller Detail */}
-        <div className="flex-1">
+        {/* Right Panel - Selected Member Details */}
+        <div className="flex-1 flex flex-col">
           {selectedSeller ? (
-            <SellerDetail
-              seller={selectedSeller}
-              onEditProfile={() => handleEditSeller(selectedSeller.id)}
-              onReassignPermissions={() => console.log("Reassign permissions")}
-            />
+            <SellerDetail seller={selectedSeller} />
           ) : (
-            <div className="h-full flex items-center justify-center bg-gray-950">
-              <div className="text-center text-gray-400 p-8">
-                <Users className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-medium mb-2">
-                  Selecciona un vendedor
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  Selecciona un miembro del equipo
                 </h3>
-                <p className="text-sm">
-                  Elige un vendedor de la lista para ver su información
-                  detallada y KPIs
+                <p className="text-gray-400">
+                  Elige un miembro de la lista para ver sus detalles y performance
                 </p>
               </div>
             </div>

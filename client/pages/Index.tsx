@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Sidebar } from "@/components/Sidebar";
 import { MessagesSidebar } from "@/components/MessagesSidebar";
 import { InboxSidebar } from "@/components/InboxSidebar";
@@ -33,6 +34,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function Index() {
+  const isMobile = useIsMobile();
   const [selectedChatId, setSelectedChatId] = useState<string | undefined>("1");
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | undefined
@@ -49,7 +51,7 @@ export default function Index() {
   const handleChatSelect = (chatId: string) => {
     setSelectedChatId(chatId);
     // Close mobile menu when chat is selected
-    if (window.innerWidth < 1024) {
+    if (isMobile) {
       setIsMobileMenuOpen(false);
     }
   };
@@ -306,22 +308,7 @@ export default function Index() {
                   minWidth: "960px",
                 }}
               >
-                {/* Responsive media queries for smaller screens */}
-                <style jsx>{`
-                  @media (max-width: 1200px) {
-                    .sidebar-collapsed {
-                      width: 64px;
-                    }
-                  }
-                  @media (max-width: 960px) {
-                    .desktop-layout {
-                      display: none !important;
-                    }
-                    .mobile-layout {
-                      display: flex !important;
-                    }
-                  }
-                `}</style>
+
                 {/* Column 1: Inbox List */}
                 <div className="min-w-0">
                   <InboxList

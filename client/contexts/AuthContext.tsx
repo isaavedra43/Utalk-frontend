@@ -1,30 +1,68 @@
-import { createContext, useState, useContext, ReactNode, useEffect } from "react";
-import { api } from "@/lib/apiClient";
-import { toast } from "@/hooks/use-toast";
-import type { User, LoginCredentials, ApiResponse } from "@/types/api";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { api } from '@/lib/apiClient';
+import { toast } from '@/hooks/use-toast';
+import type { User, LoginCredentials, ApiResponse } from '@/types/api';
 
 interface AuthContextType {
   user: User | null;
-  isLoading: boolean;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
-  logout: () => void;
-  checkAuth: () => Promise<void>;
+  refreshAuth: () => Promise<void>;
 }
 
-export const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const isAuthenticated = !!user;
+  // Verificar autenticación al cargar
+  useEffect(() => {
+    refreshAuth();
+  }, []);
 
-  const login = async ({ email, password }: LoginCredentials) => {
+  const refreshAuth = async (): Promise<void> => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       
-      const response = await api.post<ApiResponse<{ user: User; token?: string }>>('/auth/login', {
+      // Verificar si hay token guardado
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      // Verificar con el backend si el token es válido
+      const response = await api.get<ApiResponse<User>>('/auth/me');
+      
+      if (response.success && response.data) {
+        setUser(response.data);
+      } else {
+        // Token inválido, limpiar
+        localStorage.removeItem('authToken');
+        setUser(null);
+      }
+    } catch (error) {
+      // Error al verificar autenticación, limpiar estado
+      localStorage.removeItem('authToken');
+      setUser(null);
+      console.error('Auth verification failed:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const login = async (email: string, password: string): Promise<void> => {
+    try {
+      setLoading(true);
+      
+      const response = await api.post<ApiResponse<{ user: User; token: string }>>('/auth/login', {
         email,
         password,
       });
@@ -32,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.success && response.data) {
         setUser(response.data.user);
         
-        // Si el backend devuelve un token, guardarlo
+        // Guardar token de autenticación
         if (response.data.token) {
           localStorage.setItem('authToken', response.data.token);
         }
@@ -46,18 +84,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || 'Error al iniciar sesión';
+      
       toast({
-        title: "Error de autenticación",
-        description: errorMessage,
         variant: "destructive",
+        title: "Error de inicio de sesión",
+        description: errorMessage,
       });
       throw error;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const logout = async () => {
+  const logout = async (): Promise<void> => {
     try {
       // Llamar al endpoint de logout si existe
       await api.post('/auth/logout').catch(() => {
@@ -77,48 +116,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const checkAuth = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Verificar si hay token guardado
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-
-      // Verificar con el backend si el token es válido
-      const response = await api.get<ApiResponse<User>>('/auth/me');
-      
-      if (response.success && response.data) {
-        setUser(response.data);
-      } else {
-        // Token inválido, limpiar
-        localStorage.removeItem('authToken');
-        setUser(null);
-      }
-    } catch (error) {
-      // Error al verificar autenticación, limpiar estado
-      localStorage.removeItem('authToken');
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Verificar autenticación al montar el componente
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
   const value: AuthContextType = {
     user,
-    isLoading,
-    isAuthenticated,
+    loading,
     login,
     logout,
-    checkAuth,
+    isAuthenticated: !!user,
+    refreshAuth,
   };
 
   return (
@@ -130,8 +134,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within AuthProvider");
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 } 

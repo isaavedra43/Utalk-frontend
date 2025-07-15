@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Clock,
   CheckCircle,
@@ -14,6 +15,7 @@ import {
   Phone,
   RefreshCw,
   Info,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,24 +30,41 @@ interface PerformanceKPIsProps {
   isLoading?: boolean;
 }
 
-// Mock data - replace with real endpoints
+// Mock data fallback - will be replaced with real data
 const mockKPIs = {
   avgResponseTime: "02:15", // mm:ss
   responseTimeStatus: "warning", // green, warning, danger
   closedChatsPercentage: 87,
   conversionRate: 23.5,
   inactiveClients: 12,
-  avgTicketValue: 1250.75,
-  csatScore: 4.2,
-  aiSuggestions: [
-    "Priorizar cliente María González - 92% conversión",
-    "Reasignar chat #1234 a Carlos López",
-    "Enviar seguimiento a 3 clientes inactivos",
-  ],
-  hourlyHeatmap: [
-    // 24 hours data (0-23), values 0-100
-    10, 8, 5, 3, 2, 4, 8, 15, 25, 35, 45, 55, 60, 58, 62, 65, 70, 68, 55, 45,
-    35, 25, 18, 12,
+  ticketValue: 2850,
+  satisfactionScore: 4.6,
+  urgentNotifications: 3,
+  notifications: [
+    {
+      id: "1",
+      type: "warning" as const,
+      title: "Chat sin respuesta",
+      description: "Cliente esperando > 15 min",
+      timestamp: "hace 5 min",
+      isUnread: true,
+    },
+    {
+      id: "2", 
+      type: "info" as const,
+      title: "Nuevo lead calificado",
+      description: "Score IA: 92/100",
+      timestamp: "hace 12 min",
+      isUnread: true,
+    },
+    {
+      id: "3",
+      type: "success" as const,
+      title: "Venta cerrada",
+      description: "$4,200 - Lead convertido",
+      timestamp: "hace 25 min",
+      isUnread: false,
+    },
   ],
 };
 
@@ -75,323 +94,310 @@ const getStatusEmoji = (status: string) => {
   }
 };
 
-export function PerformanceKPIs({ className }: PerformanceKPIsProps) {
-  const [lastUpdate, setLastUpdate] = useState(new Date());
+export function PerformanceKPIs({ className, data, isLoading }: PerformanceKPIsProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [countdown, setCountdown] = useState(30);
 
-  // Auto-refresh every 5 minutes
+  // Auto-refresh countdown
   useEffect(() => {
-    const interval = setInterval(
-      () => {
-        setLastUpdate(new Date());
-      },
-      5 * 60 * 1000,
-    ); // 5 minutes
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          // Auto refresh trigger - replace with real data fetch
+          setIsRefreshing(true);
+          setTimeout(() => {
+            setIsRefreshing(false);
+          }, 1500);
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(timer);
   }, []);
 
-  const handleRefresh = () => {
+  const handleManualRefresh = () => {
     setIsRefreshing(true);
     setTimeout(() => {
       setIsRefreshing(false);
-      setLastUpdate(new Date());
+      setCountdown(30);
     }, 1000);
   };
 
-  const handleContactInactive = () => {
-    console.log("Contacting inactive clients...");
-  };
+  if (isLoading) {
+    return (
+      <div className={cn("flex items-center justify-center p-6", className)}>
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+          <p className="text-gray-400">Cargando KPIs...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div
-      className={cn(
-        "w-80 min-w-[320px] max-w-[320px] bg-gray-900 border-r border-gray-800 flex flex-col overflow-hidden",
-        className,
-      )}
-      style={{
-        height: "100vh",
-        maxHeight: "100vh",
-      }}
-    >
-      {/* Header - Fixed */}
-      <div className="flex-shrink-0 px-0 py-4 border-b border-gray-800">
-        <div className="flex items-center justify-between mb-2">
-          <h2
-            className="text-lg font-semibold text-white"
-            style={{ marginLeft: "10px" }}
-          >
-            Performance KPIs
-          </h2>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="h-8 w-8 p-0 text-gray-400 hover:text-white"
-          >
-            <RefreshCw
-              className={cn("h-4 w-4", isRefreshing && "animate-spin")}
-            />
-          </Button>
-        </div>
-        <p className="text-xs text-gray-400">
-          <span style={{ marginLeft: "10px" }}>Last update: </span>
-          <span style={{ marginLeft: "10px" }}>
-            {lastUpdate.toLocaleTimeString()}
-          </span>
-        </p>
-      </div>
-
-      {/* KPI Cards - Scrollable Container */}
-      <div
-        className="flex-1 overflow-y-auto overflow-x-hidden"
-        style={{
-          maxHeight: "80vh",
-          minHeight: 0,
-        }}
-      >
-        <div
-          className="space-y-4"
-          style={{
-            padding: "12px",
-            paddingTop: "16px",
-            paddingBottom: "16px",
-          }}
-        >
-          {/* 1. Average Response Time */}
-          <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700 hover:bg-gray-800/70 transition-colors">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-blue-400" />
-                <span className="text-sm font-medium text-white">
-                  Tiempo Promedio de Respuesta
-                </span>
-                <Info className="h-3 w-3 text-gray-500" title="Últimas 24h" />
-              </div>
-              <span className="text-lg">
-                {getStatusEmoji(mockKPIs.responseTimeStatus)}
-              </span>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span
-                className={cn(
-                  "text-2xl font-bold",
-                  getStatusColor(mockKPIs.responseTimeStatus),
-                )}
-              >
-                {mockKPIs.avgResponseTime}
-              </span>
-              <span className="text-xs text-gray-400">mm:ss</span>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              🟢 &lt; 1 min | 🟡 1-3 min | 🔴 &gt; 3 min
-            </p>
+    <TooltipProvider>
+      <div className={cn("w-80 bg-gray-900 border-r border-gray-800 flex flex-col", className)}>
+        {/* Header */}
+        <div className="p-4 border-b border-gray-800">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-white">Performance KPIs</h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
+              className="h-8 w-8 p-0 text-gray-400 hover:text-white"
+            >
+              <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+            </Button>
           </div>
+          
+          {/* Contact Stats from props */}
+          {data && (
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="bg-gray-800 p-3 rounded-lg">
+                <div className="text-gray-400">Total</div>
+                <div className="text-white font-semibold">{data.totalContacts}</div>
+              </div>
+              <div className="bg-blue-900/30 p-3 rounded-lg">
+                <div className="text-blue-400">New Leads</div>
+                <div className="text-white font-semibold">{data.newLeads}</div>
+              </div>
+              <div className="bg-red-900/30 p-3 rounded-lg">
+                <div className="text-red-400">Hot Leads</div>
+                <div className="text-white font-semibold">{data.hotLeads}</div>
+              </div>
+              <div className="bg-green-900/30 p-3 rounded-lg">
+                <div className="text-green-400">Customers</div>
+                <div className="text-white font-semibold">{data.customers}</div>
+              </div>
+            </div>
+          )}
+          
+          <div className="text-xs text-gray-500 mt-2">
+            Auto-refresh en {countdown}s
+          </div>
+        </div>
 
-          {/* 2. Closed Chats Percentage */}
-          <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700 hover:bg-gray-800/70 transition-colors">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
+        {/* KPI Metrics */}
+        <ScrollArea className="flex-1">
+          <div className="p-4 space-y-4">
+            {/* Response Time */}
+            <div className="bg-gray-800 p-3 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-blue-400" />
+                  <span className="text-sm font-medium text-white">
+                    Tiempo Promedio de Respuesta
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-3 w-3 text-gray-500" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Últimas 24h</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <span className="text-lg">
+                  {getStatusEmoji(mockKPIs.responseTimeStatus)}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className={cn("text-2xl font-bold", getStatusColor(mockKPIs.responseTimeStatus))}>
+                  {mockKPIs.avgResponseTime}
+                </span>
+                <span className="text-xs text-gray-400">min:seg</span>
+              </div>
+            </div>
+
+            {/* Closed Chats */}
+            <div className="bg-gray-800 p-3 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
                 <CheckCircle className="h-4 w-4 text-green-400" />
-                <span className="text-sm font-medium text-white">
-                  Chats Cerrados
+                <span className="text-sm font-medium text-white">Chats Cerrados</span>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-3 w-3 text-gray-500" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>% de conversaciones resueltas vs iniciadas</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-green-400">
+                  {mockKPIs.closedChatsPercentage}%
                 </span>
-                <Info
-                  className="h-3 w-3 text-gray-500"
-                  title="% de conversaciones resueltas vs iniciadas"
-                />
               </div>
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-green-400">
-                {mockKPIs.closedChatsPercentage}%
-              </span>
+
+            {/* Conversion Rate */}
+            <div className="bg-gray-800 p-3 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="h-4 w-4 text-blue-400" />
+                <span className="text-sm font-medium text-white">Tasa de Conversión</span>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-3 w-3 text-gray-500" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>% de leads convertidos en ventas (última semana)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-blue-400">
+                  {mockKPIs.conversionRate}%
+                </span>
+              </div>
             </div>
-            <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
+
+            {/* Inactive Clients */}
+            <div className="bg-gray-800 p-3 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="h-4 w-4 text-yellow-400" />
+                <span className="text-sm font-medium text-white">Clientes Inactivos</span>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-3 w-3 text-gray-500" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Sin respuesta en &gt; 48h</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-yellow-400">
+                  {mockKPIs.inactiveClients}
+                </span>
+              </div>
+            </div>
+
+            {/* Ticket Value */}
+            <div className="bg-gray-800 p-3 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="h-4 w-4 text-green-400" />
+                <span className="text-sm font-medium text-white">Ticket Promedio</span>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-3 w-3 text-gray-500" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Ticket medio mensual</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-green-400">
+                  ${mockKPIs.ticketValue.toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            {/* Satisfaction */}
+            <div className="bg-gray-800 p-3 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Star className="h-4 w-4 text-yellow-400" />
+                <span className="text-sm font-medium text-white">Satisfacción</span>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-3 w-3 text-gray-500" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>★ promedio tras cierre de chat</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-yellow-400">
+                  {mockKPIs.satisfactionScore}
+                </span>
+                <span className="text-xs text-gray-400">/5.0</span>
+              </div>
+            </div>
+          </div>
+        </ScrollArea>
+
+        {/* Notifications */}
+        <div className="border-t border-gray-800 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-white">Notificaciones</h3>
+            <Badge variant="secondary" className="bg-red-900 text-red-300">
+              {mockKPIs.urgentNotifications}
+            </Badge>
+          </div>
+          
+          <div className="space-y-2">
+            {mockKPIs.notifications.slice(0, 3).map((notification) => (
               <div
-                className="bg-green-400 h-2 rounded-full transition-all"
-                style={{ width: `${mockKPIs.closedChatsPercentage}%` }}
-              ></div>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">Meta: &gt; 80%</p>
-          </div>
-
-          {/* 3. Conversion Rate */}
-          <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700 hover:bg-gray-800/70 transition-colors">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-purple-400" />
-                <span className="text-sm font-medium text-white">
-                  Conversión a Venta
-                </span>
-                <Info
-                  className="h-3 w-3 text-gray-500"
-                  title="% de leads convertidos en ventas (última semana)"
-                />
-              </div>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-purple-400">
-                {mockKPIs.conversionRate}%
-              </span>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">Última semana</p>
-          </div>
-
-          {/* 4. Inactive Clients Alert */}
-          <div className="bg-red-900/20 rounded-lg p-4 border border-red-500/30 hover:bg-red-900/30 transition-colors">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-red-400" />
-                <span className="text-sm font-medium text-white">
-                  Clientes Inactivos
-                </span>
-                <Info
-                  className="h-3 w-3 text-gray-500"
-                  title="Sin respuesta en > 48h"
-                />
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-2xl font-bold text-red-400">
-                {mockKPIs.inactiveClients}
-              </span>
-              <Button
-                size="sm"
-                className="bg-red-600 text-white hover:bg-red-700 h-8"
-                onClick={handleContactInactive}
+                key={notification.id}
+                className="bg-gray-800 p-2 rounded text-xs border-l-2 border-l-blue-500"
               >
-                <Phone className="h-3 w-3 mr-1" />
-                Contactar Ahora
-              </Button>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">Requieren seguimiento</p>
-          </div>
-
-          {/* 5. Average Ticket Value */}
-          <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700 hover:bg-gray-800/70 transition-colors">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-yellow-400" />
-                <span className="text-sm font-medium text-white">
-                  Valor Promedio por Cliente
-                </span>
-                <Info
-                  className="h-3 w-3 text-gray-500"
-                  title="Ticket medio mensual"
-                />
-              </div>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-yellow-400">
-                ${mockKPIs.avgTicketValue.toLocaleString()}
-              </span>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">Este mes</p>
-          </div>
-
-          {/* 6. CSAT Score */}
-          <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700 hover:bg-gray-800/70 transition-colors">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Star className="h-4 w-4 text-orange-400" />
-                <span className="text-sm font-medium text-white">
-                  Satisfacción (CSAT)
-                </span>
-                <Info
-                  className="h-3 w-3 text-gray-500"
-                  title="★ promedio tras cierre de chat"
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold text-orange-400">
-                {mockKPIs.csatScore}
-              </span>
-              <div className="flex">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className={cn(
-                      "h-4 w-4",
-                      star <= Math.floor(mockKPIs.csatScore)
-                        ? "text-orange-400 fill-orange-400"
-                        : "text-gray-600",
-                    )}
-                  />
-                ))}
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">De 5.0 estrellas</p>
-          </div>
-
-          {/* 7. AI Suggestions */}
-          <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-500/30 hover:bg-blue-900/30 transition-colors">
-            <div className="flex items-center gap-2 mb-3">
-              <Brain className="h-4 w-4 text-blue-400" />
-              <span className="text-sm font-medium text-white">
-                Sugerencias de IA
-              </span>
-              <Badge className="bg-blue-600 text-white text-xs">
-                {mockKPIs.aiSuggestions.length}
-              </Badge>
-            </div>
-            <div className="space-y-2">
-              {mockKPIs.aiSuggestions.map((suggestion, index) => (
-                <div
-                  key={index}
-                  className="text-xs text-gray-300 bg-gray-800/50 rounded p-2 cursor-pointer hover:bg-gray-800"
-                  onClick={() => console.log(`AI Suggestion: ${suggestion}`)}
-                >
-                  • {suggestion}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 8. Hourly Heatmap */}
-          <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700 hover:bg-gray-800/70 transition-colors">
-            <div className="flex items-center gap-2 mb-3">
-              <Calendar className="h-4 w-4 text-cyan-400" />
-              <span className="text-sm font-medium text-white">
-                Heatmap Horario
-              </span>
-              <Info
-                className="h-3 w-3 text-gray-500"
-                title="Picos de tráfico por hora (0-23h)"
-              />
-            </div>
-            <div className="grid grid-cols-12 gap-1">
-              {mockKPIs.hourlyHeatmap.map((value, hour) => (
-                <div
-                  key={hour}
-                  className={cn(
-                    "h-6 rounded text-xs flex items-center justify-center font-medium transition-all cursor-pointer",
-                    value >= 60
-                      ? "bg-red-500 text-white"
-                      : value >= 40
-                        ? "bg-orange-500 text-white"
-                        : value >= 20
-                          ? "bg-yellow-500 text-black"
-                          : value >= 10
-                            ? "bg-green-500 text-white"
-                            : "bg-gray-700 text-gray-400",
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-medium truncate">
+                      {notification.title}
+                    </p>
+                    <p className="text-gray-400 mt-1">
+                      {notification.description}
+                    </p>
+                    <p className="text-gray-500 text-xs mt-1">
+                      {notification.timestamp}
+                    </p>
+                  </div>
+                  {notification.isUnread && (
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-1 flex-shrink-0" />
                   )}
-                  title={`${hour}:00 - ${value}% traffic`}
-                >
-                  {hour}
                 </div>
-              ))}
-            </div>
-            <div className="flex justify-between text-xs text-gray-500 mt-2">
-              <span>00:00</span>
-              <span>12:00</span>
-              <span>23:00</span>
-            </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-3 text-center">
+            <Button variant="ghost" size="sm" className="text-xs text-gray-400 hover:text-white">
+              Ver todas las notificaciones
+            </Button>
+          </div>
+        </div>
+
+        {/* Traffic Pattern */}
+        <div className="border-t border-gray-800 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Brain className="h-4 w-4 text-purple-400" />
+            <span className="text-sm font-medium text-white">Patrón de Tráfico</span>
+            <Tooltip>
+              <TooltipTrigger>
+                <Info className="h-3 w-3 text-gray-500" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Picos de tráfico por hora (0-23h)</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          
+          <div className="flex items-end gap-1 h-12">
+            {Array.from({ length: 24 }, (_, i) => {
+              const height = Math.random() * 100;
+              return (
+                <div
+                  key={i}
+                  className="bg-purple-500 opacity-70 flex-1 rounded-sm"
+                  style={{ height: `${height}%` }}
+                />
+              );
+            })}
+          </div>
+          
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>00h</span>
+            <span>12h</span>
+            <span>23h</span>
           </div>
         </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }

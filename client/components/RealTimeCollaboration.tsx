@@ -36,6 +36,7 @@ import {
   Mic,
   Image,
   FileText,
+  FileSpreadsheet,
   Smile,
   MoreVertical,
   Pin,

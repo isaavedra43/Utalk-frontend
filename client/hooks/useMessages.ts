@@ -1,19 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, apiClient } from "@/lib/apiClient";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/apiClient";
 import { toast } from "@/hooks/use-toast";
 import type { 
   Conversation, 
   Message, 
+  MessageFormData,
   ApiResponse, 
   PaginatedResponse 
 } from "@/types/api";
 
 // Hook para obtener conversaciones
 export function useConversations(params?: {
-  section?: string;
-  unreplied?: boolean;
   page?: number;
   pageSize?: number;
+  search?: string;
+  channel?: string;
+  status?: string;
 }) {
   return useQuery({
     queryKey: ['conversations', params],
@@ -21,7 +24,8 @@ export function useConversations(params?: {
       const response = await api.get<PaginatedResponse<Conversation>>('/conversations', params);
       return response;
     },
-    staleTime: 1 * 60 * 1000, // 1 minuto (para chat más fresco)
+    staleTime: 30 * 1000, // 30 segundos
+    refetchInterval: 10 * 1000, // Refresco cada 10 segundos para nuevos mensajes
   });
 }
 
@@ -34,6 +38,7 @@ export function useConversation(conversationId: string) {
       return response.data;
     },
     enabled: !!conversationId,
+    staleTime: 30 * 1000,
   });
 }
 
@@ -45,15 +50,12 @@ export function useMessages(conversationId: string, params?: {
   return useQuery({
     queryKey: ['messages', conversationId, params],
     queryFn: async () => {
-      const response = await api.get<PaginatedResponse<Message>>(
-        `/conversations/${conversationId}/messages`, 
-        params
-      );
+      const response = await api.get<PaginatedResponse<Message>>(`/conversations/${conversationId}/messages`, params);
       return response;
     },
     enabled: !!conversationId,
-    staleTime: 30 * 1000, // 30 segundos (para tiempo real)
-    refetchInterval: 5 * 1000, // Refetch cada 5 segundos para simular tiempo real
+    staleTime: 10 * 1000, // 10 segundos
+    refetchInterval: 5 * 1000, // Refresco cada 5 segundos para nuevos mensajes
   });
 }
 
@@ -62,50 +64,17 @@ export function useSendMessage() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      conversationId, 
-      content, 
-      type = 'text',
-      attachments = [] 
-    }: {
-      conversationId: string;
-      content: string;
-      type?: 'text' | 'image' | 'file' | 'audio';
-      attachments?: File[];
+    mutationFn: async ({ conversationId, messageData }: { 
+      conversationId: string; 
+      messageData: MessageFormData 
     }) => {
-      const formData = new FormData();
-      formData.append('content', content);
-      formData.append('type', type);
-      
-      attachments.forEach((file, index) => {
-        formData.append(`attachments[${index}]`, file);
-      });
-
-      const response = await apiClient.post<ApiResponse<Message>>(
-        `/conversations/${conversationId}/messages`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
-      return response.data.data;
+      const response = await api.post<ApiResponse<Message>>(`/conversations/${conversationId}/messages`, messageData);
+      return response.data;
     },
-    onSuccess: (newMessage, variables) => {
-      // Agregar el mensaje optimistamente a la lista
-      queryClient.setQueryData(
-        ['messages', variables.conversationId],
-        (oldData: PaginatedResponse<Message> | undefined) => {
-          if (!oldData) return oldData;
-          return {
-            ...oldData,
-            data: [...oldData.data, newMessage],
-          };
-        }
-      );
-
-      // Invalidar las conversaciones para actualizar el último mensaje
+    onSuccess: (newMessage, { conversationId }) => {
+      // Invalidar mensajes de la conversación
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      // Invalidar lista de conversaciones para actualizar último mensaje
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
     onError: (error: any) => {
@@ -118,68 +87,123 @@ export function useSendMessage() {
   });
 }
 
-// Hook para marcar conversación como leída
+// Hook para marcar mensajes como leídos
 export function useMarkAsRead() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (conversationId: string) => {
-      const response = await api.patch<ApiResponse<void>>(
-        `/conversations/${conversationId}/mark-read`
-      );
+      const response = await api.post<ApiResponse<void>>(`/conversations/${conversationId}/mark-read`);
       return response;
     },
     onSuccess: (_, conversationId) => {
-      // Actualizar el estado de la conversación
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      // Invalidar conversación y mensajes
       queryClient.invalidateQueries({ queryKey: ['conversations', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
   });
 }
 
-// Hook para archivar/desarchivar conversación
-export function useArchiveConversation() {
+// Hook para asignar conversación a un agente
+export function useAssignConversation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ conversationId, archive }: { conversationId: string; archive: boolean }) => {
-      const response = await api.patch<ApiResponse<void>>(
-        `/conversations/${conversationId}/archive`,
-        { archive }
-      );
-      return response;
+    mutationFn: async ({ conversationId, agentId }: { conversationId: string; agentId: string }) => {
+      const response = await api.post<ApiResponse<Conversation>>(`/conversations/${conversationId}/assign`, {
+        agentId,
+      });
+      return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (updatedConversation) => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', updatedConversation.id] });
       
       toast({
-        title: "Conversación actualizada",
-        description: "El estado de la conversación ha sido actualizado.",
+        title: "Conversación asignada",
+        description: "La conversación ha sido asignada exitosamente.",
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error al actualizar conversación",
-        description: error.response?.data?.message || "No se pudo actualizar la conversación.",
+        title: "Error al asignar conversación",
+        description: error.response?.data?.message || "No se pudo asignar la conversación.",
         variant: "destructive",
       });
     },
   });
 }
 
-// Hook para buscar en mensajes
-export function useSearchMessages(query: string, conversationId?: string) {
-  return useQuery({
-    queryKey: ['messages', 'search', query, conversationId],
-    queryFn: async () => {
-      const params = { 
-        q: query,
-        ...(conversationId && { conversationId })
-      };
-      const response = await api.get<PaginatedResponse<Message>>('/messages/search', params);
-      return response;
+// Hook para cerrar una conversación
+export function useCloseConversation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (conversationId: string) => {
+      const response = await api.post<ApiResponse<Conversation>>(`/conversations/${conversationId}/close`);
+      return response.data;
     },
-    enabled: query.length > 2, // Solo buscar si hay al menos 3 caracteres
-    staleTime: 30 * 1000,
+    onSuccess: (closedConversation) => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations', closedConversation.id] });
+      
+      toast({
+        title: "Conversación cerrada",
+        description: "La conversación ha sido cerrada exitosamente.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error al cerrar conversación",
+        description: error.response?.data?.message || "No se pudo cerrar la conversación.",
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+// Hook para polling en tiempo real (alternativa a WebSockets)
+export function useRealTimeMessages(conversationId: string) {
+  const [isPolling, setIsPolling] = useState(false);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!conversationId || !isPolling) return;
+
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+    }, 3000); // Cada 3 segundos
+
+    return () => clearInterval(interval);
+  }, [conversationId, isPolling, queryClient]);
+
+  return {
+    startPolling: () => setIsPolling(true),
+    stopPolling: () => setIsPolling(false),
+    isPolling,
+  };
+}
+
+// Hook para estadísticas de mensajería
+export function useMessagingStats(params?: {
+  startDate?: string;
+  endDate?: string;
+  agentId?: string;
+}) {
+  return useQuery({
+    queryKey: ['messaging-stats', params],
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<{
+        totalConversations: number;
+        activeConversations: number;
+        closedConversations: number;
+        averageResponseTime: number;
+        messagesPerDay: number;
+        conversionRate: number;
+      }>>('/conversations/stats', params);
+      return response.data;
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutos
   });
 } 

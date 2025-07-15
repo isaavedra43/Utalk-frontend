@@ -211,6 +211,12 @@ export interface ContactFormData {
   section: string;
 }
 
+export interface MessageFormData {
+  content: string;
+  type?: 'text' | 'image' | 'file' | 'audio';
+  attachments?: string[]; // URLs o IDs de archivos subidos
+}
+
 export interface CampaignFormData {
   name: string;
   description: string;

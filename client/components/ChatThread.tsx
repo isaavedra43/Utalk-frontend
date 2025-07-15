@@ -333,24 +333,15 @@ export function ChatThread({
               <div className="px-4 py-3">
                 <div
                   contentEditable
-                  suppressContentEditableWarning={true}
-                  className="min-h-8 max-h-40 overflow-y-auto text-[#E4E4E7] text-sm leading-5 outline-none"
+                  suppressContentEditableWarning
+                  className="flex-1 min-h-[20px] max-h-[120px] px-3 py-2 text-sm text-white bg-transparent resize-none outline-none placeholder-gray-500 overflow-y-auto"
                   style={{
                     whiteSpace: "pre-wrap",
                     wordBreak: "break-word",
                     fontSize: "14px",
                   }}
-                  onInput={(e) => {
-                    const content = e.currentTarget.textContent || "";
-                    setNewMessage(content);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                  placeholder="Escribe un mensaje…"
+                  onInput={handleInput}
+                  onKeyDown={handleKeyDown}
                   data-placeholder="Escribe un mensaje…"
                 />
               </div>
