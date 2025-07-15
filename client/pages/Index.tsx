@@ -6,7 +6,7 @@ import { ChatListColumn } from "@/components/ChatListColumn";
 import { ChatView } from "@/components/ChatView";
 import { InboxList } from "@/components/InboxList";
 import { ChatThread } from "@/components/ChatThread";
-import { CustomerHub } from "@/components/CustomerHub";
+import CustomerHub from "@/components/CustomerHub";
 import { ExecutiveDashboard } from "@/components/ExecutiveDashboard";
 import { EquipoPerformance } from "@/components/EquipoPerformance";
 import { CampaignModule } from "@/components/CampaignModule";

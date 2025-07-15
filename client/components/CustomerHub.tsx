@@ -5,295 +5,297 @@ import { ContactCards } from "./ContactCards";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Table, Grid3X3, Plus, Filter, Download, Search } from "lucide-react";
+import { Table, Grid3X3, Plus, Filter, Download, Search, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useContacts, useCreateContact, useDeleteContact, useExportContacts } from "@/hooks/useContacts";
+import { toast } from "@/hooks/use-toast";
+import type { Contact as ApiContact } from "@/types/api";
 
-export interface Contact {
-  id: string;
-  owner: string;
-  name: string;
-  email: string;
-  phone: string;
-  status: "new-lead" | "hot-lead" | "payment" | "customer";
-  lastMessage: string;
-  timestamp: string;
-  date: string;
-  channel: "whatsapp" | "email" | "sms" | "facebook" | "instagram";
-  section: string;
-  isUnread: boolean;
-  avatarUrl?: string;
-  sentiment?: "positive" | "negative" | "neutral";
-  aiScore?: number;
-}
+// Usar el tipo de la API
+export type Contact = ApiContact;
 
-// Mock data
-const mockContacts: Contact[] = [
-  {
-    id: "1",
-    owner: "María García",
-    name: "Israel Saavedra",
-    email: "israel@example.com",
-    phone: "+52 555 123 4567",
-    status: "new-lead",
-    lastMessage: "Hola, ¿cómo está el estado de mi pedido #AL-2024-0123?",
-    timestamp: "12:14 PM",
-    date: "2024-01-15",
-    channel: "facebook",
-    section: "New Lead",
-    isUnread: true,
-    sentiment: "neutral",
-    aiScore: 75,
-    avatarUrl:
-      "https://cdn.builder.io/api/v1/image/assets%2F2d1f4aff150c46d2aa10d890d5bc0fca%2Fac493c187ef4459383661e17488cac3a?format=webp&width=800",
-  },
-  {
-    id: "2",
-    owner: "Carlos López",
-    name: "Ana Morales",
-    email: "ana.morales@company.com",
-    phone: "+52 555 987 6543",
-    status: "hot-lead",
-    lastMessage: "Me interesa mucho el producto, ¿cuándo podemos hablar?",
-    timestamp: "11:30 AM",
-    date: "2024-01-15",
-    channel: "whatsapp",
-    section: "Hot Lead",
-    isUnread: true,
-    sentiment: "positive",
-    aiScore: 92,
-  },
-  {
-    id: "3",
-    owner: "Luis Hernández",
-    name: "Roberto Silva",
-    email: "roberto@email.com",
-    phone: "+52 555 456 7890",
-    status: "payment",
-    lastMessage: "Ya realicé el pago, envío confirmación por email",
-    timestamp: "Yesterday",
-    date: "2024-01-14",
-    channel: "email",
-    section: "Payment",
-    isUnread: false,
-    sentiment: "positive",
-    aiScore: 95,
-  },
-  {
-    id: "4",
-    owner: "Sofia Martinez",
-    name: "Carmen González",
-    email: "carmen@example.com",
-    phone: "+52 555 321 6547",
-    status: "customer",
-    lastMessage: "Gracias por el excelente servicio",
-    timestamp: "2 days ago",
-    date: "2024-01-13",
-    channel: "sms",
-    section: "Customer",
-    isUnread: false,
-    sentiment: "positive",
-    aiScore: 88,
-  },
-];
-
-interface CustomerHubProps {
-  className?: string;
-}
-
-export function CustomerHub({ className }: CustomerHubProps) {
-  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+export default function CustomerHub() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedContact, setSelectedContact] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [currentView, setCurrentView] = useState<"table" | "cards">("table");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showFilter, setShowFilter] = useState(false);
 
-  // Filter contacts based on search
-  const getFilteredContacts = () => {
-    let filtered = mockContacts;
+  // Hooks de React Query
+  const { 
+    data: contactsResponse, 
+    isLoading, 
+    error 
+  } = useContacts({
+    page: currentPage,
+    pageSize: 50,
+    search: searchTerm || undefined,
+    status: selectedStatus !== "all" ? selectedStatus : undefined,
+  });
 
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (contact) =>
-          contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          contact.phone.includes(searchTerm),
-      );
-    }
+  const createContactMutation = useCreateContact();
+  const deleteContactMutation = useDeleteContact();
+  const exportContactsMutation = useExportContacts();
 
-    return filtered;
+  const contacts = contactsResponse?.data || [];
+  const totalContacts = contactsResponse?.pagination?.total || 0;
+
+  // KPIs calculados de los datos reales
+  const kpiData = {
+    totalContacts,
+    newLeads: contacts.filter(c => c.status === "new-lead").length,
+    hotLeads: contacts.filter(c => c.status === "hot-lead").length,
+    customers: contacts.filter(c => c.status === "customer").length,
   };
 
-  // Event handlers
-
+  // Handlers para acciones
   const handleCreateContact = () => {
-    console.log("Creating new contact...");
-    // TODO: Open modal for creating contact
+    toast({
+      title: "Crear contacto",
+      description: "Funcionalidad de creación de contacto estará disponible pronto.",
+    });
+    // TODO: Abrir modal de creación de contacto
   };
 
   const handleFilter = () => {
-    console.log("Opening filter panel...");
-    // TODO: Open advanced filter modal
+    setShowFilter(!showFilter);
+    if (!showFilter) {
+      toast({
+        title: "Filtros avanzados",
+        description: "Panel de filtros avanzados estará disponible pronto.",
+      });
+    }
   };
 
-  const handleExportCSV = () => {
-    console.log("Exporting contacts to CSV...");
-    // TODO: Generate and download CSV
-  };
-
-  const handleSelectContact = (contactId: string) => {
-    setSelectedContact(contactId);
-    console.log(`Selected contact: ${contactId}`);
+  const handleExportCSV = async () => {
+    try {
+      await exportContactsMutation.mutateAsync('csv');
+    } catch (error) {
+      // Error ya manejado en el hook
+    }
   };
 
   const handleEditContact = (contactId: string) => {
-    console.log(`Editing contact: ${contactId}`);
-    // TODO: Open edit modal
+    toast({
+      title: "Editar contacto",
+      description: `Abriendo editor para contacto ID: ${contactId}`,
+    });
+    // TODO: Abrir modal de edición con datos del contacto
   };
 
   const handleSendCampaign = (contactId: string) => {
-    console.log(`Sending campaign to contact: ${contactId}`);
-    // TODO: Open campaign modal
+    toast({
+      title: "Enviar campaña",
+      description: `Preparando campaña para contacto ID: ${contactId}`,
+    });
+    // TODO: Navegar al módulo de campañas con el contacto preseleccionado
   };
 
-  const handleDeleteContact = (contactId: string) => {
-    console.log(`Deleting contact: ${contactId}`);
-    // TODO: Show confirmation and delete
+  const handleDeleteContact = async (contactId: string) => {
+    const confirmed = window.confirm("¿Estás seguro de que quieres eliminar este contacto?");
+    if (confirmed) {
+      try {
+        await deleteContactMutation.mutateAsync(contactId);
+      } catch (error) {
+        // Error ya manejado en el hook
+      }
+    }
   };
 
-  const filteredContacts = getFilteredContacts();
+  const clearFilters = () => {
+    setSearchTerm("");
+    setSelectedStatus("all");
+    setCurrentPage(1);
+  };
+
+  // Filtrado local adicional si es necesario
+  const filteredContacts = contacts.filter(contact => {
+    const matchesSearch = !searchTerm || 
+      contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contact.phone.includes(searchTerm);
+    
+    return matchesSearch;
+  });
+
+  if (error) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-red-400 mb-4">Error al cargar los contactos</p>
+        <Button onClick={() => window.location.reload()}>
+          Reintentar
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <div className={cn("h-full flex bg-gray-950", className)}>
-      {/* Performance KPIs Sidebar - Hidden in CRM table view but kept in DOM */}
-      <div
-        className={cn(
-          "transition-all duration-300",
-          viewMode === "table" ? "hidden" : "block",
-        )}
-        aria-hidden={viewMode === "table"}
-      >
-        <PerformanceKPIs />
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="border-b border-gray-800 bg-gray-900 px-0 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1
-                className="text-xl font-semibold text-white"
-                style={{ marginLeft: "13px" }}
-              >
-                Customer Hub
-              </h1>
-              <p
-                className="text-sm text-gray-400"
-                style={{ marginLeft: "13px" }}
-              >
-                {filteredContacts.length} contacts
-              </p>
-            </div>
-
-            {/* View Toggle */}
-            <div className="flex items-center gap-2 bg-gray-800 rounded-lg p-1">
-              <Button
-                size="sm"
-                variant={viewMode === "table" ? "default" : "ghost"}
-                onClick={() => setViewMode("table")}
-                className={cn(
-                  "h-8 px-3",
-                  viewMode === "table"
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-400 hover:text-white",
-                )}
-              >
-                <Table className="h-4 w-4 mr-1" />
-                Tabla
-              </Button>
-              <Button
-                size="sm"
-                variant={viewMode === "cards" ? "default" : "ghost"}
-                onClick={() => setViewMode("cards")}
-                className={cn(
-                  "h-8 px-3",
-                  viewMode === "cards"
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-400 hover:text-white",
-                )}
-              >
-                <Grid3X3 className="h-4 w-4 mr-1" />
-                Tarjetas
-              </Button>
-            </div>
+    <div className="flex flex-col h-full bg-gray-950 text-white overflow-hidden">
+      {/* Header */}
+      <div className="flex-shrink-0 border-b border-gray-800 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Customer Hub</h1>
+            <p className="text-gray-400 text-sm mt-1">
+              {isLoading ? "Cargando..." : `${totalContacts} contactos en total`}
+            </p>
           </div>
-
-          {/* Action Bar */}
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={handleCreateContact}
-                className="bg-blue-600 text-white hover:bg-blue-700"
-                style={{ marginLeft: "13px" }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Nuevo Contacto
-              </Button>
-              <Button
-                onClick={handleFilter}
-                className="bg-[#377DFF] text-white border-none hover:bg-[#235ECC] active:bg-[#1A47AA] transition-all duration-200"
-                style={{ marginLeft: "13px" }}
-              >
-                <Filter className="h-4 w-4 mr-2" />
-                Filtrar
-              </Button>
-              <Button
-                onClick={handleExportCSV}
-                className="bg-[#377DFF] text-white border-none hover:bg-[#235ECC] active:bg-[#1A47AA] transition-all duration-200"
-                style={{ marginLeft: "13px" }}
-              >
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleCreateContact}
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={createContactMutation.isPending}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Crear Contacto
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleFilter}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Filtros
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleExportCSV}
+              disabled={exportContactsMutation.isPending}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+            >
+              {exportContactsMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
                 <Download className="h-4 w-4 mr-2" />
-                Exportar CSV
-              </Button>
-            </div>
+              )}
+              Exportar CSV
+            </Button>
+          </div>
+        </div>
 
-            {/* Search */}
-            <div className="relative max-w-md">
+        {/* KPIs */}
+        <PerformanceKPIs 
+          data={kpiData}
+          isLoading={isLoading}
+        />
+
+        {/* Search and View Toggle */}
+        <div className="flex items-center justify-between mt-6">
+          <div className="flex items-center gap-4">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Buscar contactos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-gray-800 border-gray-600 text-white placeholder-gray-400"
+                className="pl-10 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500 w-80"
               />
             </div>
+            
+            {/* Status Filter */}
+            <div className="flex gap-2">
+              {[
+                { value: "all", label: "Todos" },
+                { value: "new-lead", label: "New Lead" },
+                { value: "hot-lead", label: "Hot Lead" },
+                { value: "payment", label: "Payment" },
+                { value: "customer", label: "Customer" },
+              ].map((status) => (
+                <Badge
+                  key={status.value}
+                  variant={selectedStatus === status.value ? "default" : "outline"}
+                  className={cn(
+                    "cursor-pointer transition-colors",
+                    selectedStatus === status.value
+                      ? "bg-blue-600 text-white"
+                      : "border-gray-600 text-gray-300 hover:bg-gray-800"
+                  )}
+                  onClick={() => setSelectedStatus(status.value)}
+                >
+                  {status.label}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          {/* View Toggle */}
+          <div className="flex items-center bg-gray-800 rounded-lg p-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCurrentView("table")}
+              className={cn(
+                "px-3 py-2",
+                currentView === "table"
+                  ? "bg-gray-700 text-white"
+                  : "text-gray-400 hover:text-white hover:bg-gray-700"
+              )}
+            >
+              <Table className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCurrentView("cards")}
+              className={cn(
+                "px-3 py-2",
+                currentView === "cards"
+                  ? "bg-gray-700 text-white"
+                  : "text-gray-400 hover:text-white hover:bg-gray-700"
+              )}
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
           </div>
         </div>
+      </div>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-hidden">
-          {viewMode === "table" ? (
-            <ContactTable
-              contacts={filteredContacts}
-              selectedContactId={selectedContact}
-              onSelectContact={handleSelectContact}
-              onEditContact={handleEditContact}
-              onDeleteContact={handleDeleteContact}
-              onSendCampaign={handleSendCampaign}
-              isLoading={isLoading}
-            />
-          ) : (
-            <ContactCards
-              contacts={filteredContacts}
-              selectedContactId={selectedContact}
-              onSelectContact={handleSelectContact}
-              onEditContact={handleEditContact}
-              onDeleteContact={handleDeleteContact}
-              onSendCampaign={handleSendCampaign}
-              isLoading={isLoading}
-            />
-          )}
-        </div>
+      {/* Content */}
+      <div className="flex-1 overflow-hidden">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="flex flex-col items-center gap-4">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+              <p className="text-gray-400">Cargando contactos...</p>
+            </div>
+          </div>
+        ) : filteredContacts.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <p className="text-gray-400 mb-4">
+                {searchTerm || selectedStatus !== "all" 
+                  ? "No se encontraron contactos con los filtros aplicados"
+                  : "No hay contactos disponibles"
+                }
+              </p>
+              {(searchTerm || selectedStatus !== "all") && (
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                >
+                  Limpiar filtros
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : currentView === "table" ? (
+          <ContactTable
+            contacts={filteredContacts}
+            isLoading={isLoading}
+            onEditContact={handleEditContact}
+            onSendCampaign={handleSendCampaign}
+            onDeleteContact={handleDeleteContact}
+          />
+        ) : (
+          <ContactCards
+            contacts={filteredContacts}
+            isLoading={isLoading}
+            onEditContact={handleEditContact}
+            onSendCampaign={handleSendCampaign}
+            onDeleteContact={handleDeleteContact}
+          />
+        )}
       </div>
     </div>
   );

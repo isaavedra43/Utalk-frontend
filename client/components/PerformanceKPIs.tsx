@@ -19,6 +19,13 @@ import { cn } from "@/lib/utils";
 
 interface PerformanceKPIsProps {
   className?: string;
+  data?: {
+    totalContacts: number;
+    newLeads: number;
+    hotLeads: number;
+    customers: number;
+  };
+  isLoading?: boolean;
 }
 
 // Mock data - replace with real endpoints

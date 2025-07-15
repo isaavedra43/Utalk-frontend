@@ -29,8 +29,8 @@ import type { Contact } from "./CustomerHub";
 
 interface ContactTableProps {
   contacts: Contact[];
-  selectedContactId: string | null;
-  onSelectContact: (contactId: string) => void;
+  selectedContactId?: string | null;
+  onSelectContact?: (contactId: string) => void;
   onEditContact: (contactId: string) => void;
   onDeleteContact: (contactId: string) => void;
   onSendCampaign: (contactId: string) => void;
