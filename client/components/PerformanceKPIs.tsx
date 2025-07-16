@@ -18,6 +18,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useMessagingMetrics, useDashboardAlerts } from "@/hooks/useDashboard";
 
 interface PerformanceKPIsProps {
   className?: string;
@@ -29,44 +30,6 @@ interface PerformanceKPIsProps {
   };
   isLoading?: boolean;
 }
-
-// Mock data fallback - will be replaced with real data
-const mockKPIs = {
-  avgResponseTime: "02:15", // mm:ss
-  responseTimeStatus: "warning", // green, warning, danger
-  closedChatsPercentage: 87,
-  conversionRate: 23.5,
-  inactiveClients: 12,
-  ticketValue: 2850,
-  satisfactionScore: 4.6,
-  urgentNotifications: 3,
-  notifications: [
-    {
-      id: "1",
-      type: "warning" as const,
-      title: "Chat sin respuesta",
-      description: "Cliente esperando > 15 min",
-      timestamp: "hace 5 min",
-      isUnread: true,
-    },
-    {
-      id: "2", 
-      type: "info" as const,
-      title: "Nuevo lead calificado",
-      description: "Score IA: 92/100",
-      timestamp: "hace 12 min",
-      isUnread: true,
-    },
-    {
-      id: "3",
-      type: "success" as const,
-      title: "Venta cerrada",
-      description: "$4,200 - Lead convertido",
-      timestamp: "hace 25 min",
-      isUnread: false,
-    },
-  ],
-};
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -81,56 +44,72 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const getStatusEmoji = (status: string) => {
-  switch (status) {
-    case "green":
-      return "🟢";
-    case "warning":
-      return "🟡";
-    case "danger":
-      return "🔴";
-    default:
-      return "⚪";
-  }
+const getMetricStatus = (value: number, target: number) => {
+  const percentage = (value / target) * 100;
+  if (percentage >= 90) return "green";
+  if (percentage >= 70) return "warning";
+  return "danger";
 };
 
-export function PerformanceKPIs({ className, data, isLoading }: PerformanceKPIsProps) {
+export function PerformanceKPIs({ 
+  className, 
+  data, 
+  isLoading = false 
+}: PerformanceKPIsProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [countdown, setCountdown] = useState(30);
 
-  // Auto-refresh countdown
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          // Auto refresh trigger - replace with real data fetch
-          setIsRefreshing(true);
-          setTimeout(() => {
-            setIsRefreshing(false);
-          }, 1500);
-          return 30;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+  // Hooks para datos reales
+  const { 
+    data: messagingMetrics, 
+    isLoading: isLoadingMetrics,
+    refetch: refetchMetrics 
+  } = useMessagingMetrics();
 
-    return () => clearInterval(timer);
-  }, []);
+  const { 
+    data: alerts, 
+    isLoading: isLoadingAlerts 
+  } = useDashboardAlerts();
 
-  const handleManualRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-      setCountdown(30);
-    }, 1000);
+  // Calcular métricas reales
+  const realKPIs = messagingMetrics ? {
+    avgResponseTime: `${Math.floor(messagingMetrics.averageResponseTime / 60)}:${(messagingMetrics.averageResponseTime % 60).toString().padStart(2, '0')}`,
+    responseTimeStatus: getMetricStatus(messagingMetrics.averageResponseTime, 300), // 5 min target
+    closedChatsPercentage: Math.round(messagingMetrics.resolutionRate * 100),
+    conversionRate: Math.round((messagingMetrics.totalMessages / Math.max(messagingMetrics.totalConversations, 1)) * 100) / 100,
+    inactiveClients: messagingMetrics.pendingChats,
+    ticketValue: 2850, // Esto vendría de sales metrics
+    satisfactionScore: 4.6, // Esto vendría de customer metrics
+    urgentNotifications: alerts?.filter(a => a.priority === 'high').length || 0,
+    notifications: alerts?.slice(0, 3) || [],
+  } : {
+    avgResponseTime: "--:--",
+    responseTimeStatus: "green",
+    closedChatsPercentage: 0,
+    conversionRate: 0,
+    inactiveClients: 0,
+    ticketValue: 0,
+    satisfactionScore: 0,
+    urgentNotifications: 0,
+    notifications: [],
   };
 
-  if (isLoading) {
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    refetchMetrics().finally(() => {
+      setIsRefreshing(false);
+    });
+  };
+
+  const isLoadingData = isLoading || isLoadingMetrics || isLoadingAlerts;
+
+  if (isLoadingData) {
     return (
-      <div className={cn("flex items-center justify-center p-6", className)}>
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-          <p className="text-gray-400">Cargando KPIs...</p>
+      <div className={cn("bg-gray-800 rounded-lg p-6", className)}>
+        <div className="flex items-center justify-center h-40">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <p className="text-gray-400">Cargando métricas...</p>
+          </div>
         </div>
       </div>
     );
@@ -146,7 +125,7 @@ export function PerformanceKPIs({ className, data, isLoading }: PerformanceKPIsP
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleManualRefresh}
+              onClick={handleRefresh}
               disabled={isRefreshing}
               className="h-8 w-8 p-0 text-gray-400 hover:text-white"
             >
@@ -177,7 +156,7 @@ export function PerformanceKPIs({ className, data, isLoading }: PerformanceKPIsP
           )}
           
           <div className="text-xs text-gray-500 mt-2">
-            Auto-refresh en {countdown}s
+            Auto-refresh en {30}s
           </div>
         </div>
 
@@ -202,12 +181,12 @@ export function PerformanceKPIs({ className, data, isLoading }: PerformanceKPIsP
                   </Tooltip>
                 </div>
                 <span className="text-lg">
-                  {getStatusEmoji(mockKPIs.responseTimeStatus)}
+                  {realKPIs.responseTimeStatus === "green" ? "🟢" : realKPIs.responseTimeStatus === "warning" ? "🟡" : "🔴"}
                 </span>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className={cn("text-2xl font-bold", getStatusColor(mockKPIs.responseTimeStatus))}>
-                  {mockKPIs.avgResponseTime}
+                <span className={cn("text-2xl font-bold", getStatusColor(realKPIs.responseTimeStatus))}>
+                  {realKPIs.avgResponseTime}
                 </span>
                 <span className="text-xs text-gray-400">min:seg</span>
               </div>
@@ -229,7 +208,7 @@ export function PerformanceKPIs({ className, data, isLoading }: PerformanceKPIsP
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-green-400">
-                  {mockKPIs.closedChatsPercentage}%
+                  {realKPIs.closedChatsPercentage}%
                 </span>
               </div>
             </div>
@@ -250,7 +229,7 @@ export function PerformanceKPIs({ className, data, isLoading }: PerformanceKPIsP
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-blue-400">
-                  {mockKPIs.conversionRate}%
+                  {realKPIs.conversionRate}%
                 </span>
               </div>
             </div>
@@ -271,7 +250,7 @@ export function PerformanceKPIs({ className, data, isLoading }: PerformanceKPIsP
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-yellow-400">
-                  {mockKPIs.inactiveClients}
+                  {realKPIs.inactiveClients}
                 </span>
               </div>
             </div>
@@ -292,7 +271,7 @@ export function PerformanceKPIs({ className, data, isLoading }: PerformanceKPIsP
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-green-400">
-                  ${mockKPIs.ticketValue.toLocaleString()}
+                  ${realKPIs.ticketValue.toLocaleString()}
                 </span>
               </div>
             </div>
@@ -313,7 +292,7 @@ export function PerformanceKPIs({ className, data, isLoading }: PerformanceKPIsP
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-yellow-400">
-                  {mockKPIs.satisfactionScore}
+                  {realKPIs.satisfactionScore}
                 </span>
                 <span className="text-xs text-gray-400">/5.0</span>
               </div>
@@ -326,12 +305,12 @@ export function PerformanceKPIs({ className, data, isLoading }: PerformanceKPIsP
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-white">Notificaciones</h3>
             <Badge variant="secondary" className="bg-red-900 text-red-300">
-              {mockKPIs.urgentNotifications}
+              {realKPIs.urgentNotifications}
             </Badge>
           </div>
           
           <div className="space-y-2">
-            {mockKPIs.notifications.slice(0, 3).map((notification) => (
+            {realKPIs.notifications.map((notification) => (
               <div
                 key={notification.id}
                 className="bg-gray-800 p-2 rounded text-xs border-l-2 border-l-blue-500"
@@ -348,7 +327,7 @@ export function PerformanceKPIs({ className, data, isLoading }: PerformanceKPIsP
                       {notification.timestamp}
                     </p>
                   </div>
-                  {notification.isUnread && (
+                  {!notification.isRead && (
                     <div className="w-2 h-2 bg-blue-500 rounded-full mt-1 flex-shrink-0" />
                   )}
                 </div>

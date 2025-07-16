@@ -1,78 +1,34 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  Search,
-  Filter,
-  MoreHorizontal,
+  Archive,
   ChevronDown,
   ChevronRight,
-  Plus,
+  Facebook,
+  Filter,
+  MailOpen,
   MessageCircle,
+  MoreHorizontal,
+  Search,
+  User,
   Phone,
-  Users,
-  Settings,
-  Archive,
-  Star,
-  Flame,
-  DollarSign,
-  Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ConversationList } from "./ConversationList";
+import { useConversations } from "@/hooks/useMessages";
+import { useConversationStore } from "@/hooks/useConversationStore";
+import { Loader2 } from "lucide-react";
 
 interface ChatListProps {
   selectedChatId?: string;
-  onChatSelect?: (chatId: string) => void;
+  onChatSelect: (chatId: string) => void;
   className?: string;
 }
-
-// Mock data for conversations
-const mockConversations = [
-  {
-    id: "1",
-    contactName: "Israel Saavedra",
-    lastMessage:
-      "Hola, ¿cómo está el estado de mi pedido #AL-2024-0123? ¿Cuándo podemos esperar la entrega?",
-    timestamp: "12:14 PM",
-    date: "2024-01-15",
-    section: "Inbox > Chats",
-    isUnread: true,
-    channel: "facebook" as const,
-    avatarUrl:
-      "https://cdn.builder.io/api/v1/image/assets%2F2d1f4aff150c46d2aa10d890d5bc0fca%2Fac493c187ef4459383661e17488cac3a?format=webp&width=800",
-  },
-  {
-    id: "2",
-    contactName: "María López",
-    lastMessage: "Perfecto, muchas gracias por la información detallada.",
-    timestamp: "11:30 AM",
-    date: "2024-01-15",
-    section: "Inbox > Chats",
-    isUnread: false,
-    channel: "whatsapp" as const,
-    avatarUrl: undefined,
-  },
-  {
-    id: "3",
-    contactName: "Carlos Rodriguez",
-    lastMessage:
-      "¿Podrían enviarme el catálogo de productos actualizado? Necesito revisar las especificaciones.",
-    timestamp: "10:45 AM",
-    date: "2024-01-15",
-    section: "Inbox > Chats",
-    isUnread: true,
-    channel: "email" as const,
-    avatarUrl: undefined,
-  },
-];
 
 export function ChatList({
   selectedChatId,
@@ -85,63 +41,35 @@ export function ChatList({
   const [isLifecycleOpen, setIsLifecycleOpen] = useState(true);
   const [isTeamInboxOpen, setIsTeamInboxOpen] = useState(false);
   const [isCustomInboxOpen, setIsCustomInboxOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Counters
-  const allCount = 1;
-  const unassignedCount = 1;
-  const newLeadCount = 1;
+  // Hook para obtener conversaciones reales
+  const { data: conversationsResponse, isLoading: isLoadingConversations } = useConversations({
+    search: searchQuery,
+  });
+
+  // Store global para conversaciones
+  const { conversations } = useConversationStore();
+  
+  // Usar datos del store (que se sincronizan con el hook) o del response
+  const allConversations = conversations.length > 0 ? conversations : (conversationsResponse?.data || []);
+
+  // Filter conversations based on section and unreplied toggle
+  const filteredConversations = allConversations.filter((conv) => {
+    if (isUnrepliedOnly && !conv.isUnread) {
+      return false;
+    }
+    
+    // Additional filtering based on selectedSection could go here
+    return true;
+  });
+
+  // Counters based on real data
+  const allCount = allConversations.length;
+  const unrepliedCount = allConversations.filter(conv => conv.isUnread).length;
 
   const handleSectionClick = (sectionId: string) => {
     setSelectedSection(selectedSection === sectionId ? null : sectionId);
-  };
-
-  // Filter conversations based on selected section and tab
-  const getFilteredConversations = () => {
-    if (!selectedSection) return [];
-
-    let filtered = mockConversations;
-
-    // Filter by tab (chats vs calls)
-    if (activeTab === "calls") {
-      return [];
-    }
-
-    // Filter by section
-    switch (selectedSection) {
-      case "mine":
-        filtered = filtered.filter((conv) => conv.section.includes("Mine"));
-        break;
-      case "unassigned":
-        filtered = filtered.filter((conv) =>
-          conv.section.includes("Unassigned"),
-        );
-        break;
-      case "new-lead":
-        filtered = filtered.filter((conv) => conv.section.includes("New Lead"));
-        break;
-      case "hot-lead":
-        filtered = filtered.filter((conv) => conv.section.includes("Hot Lead"));
-        break;
-      case "payment":
-        filtered = filtered.filter((conv) => conv.section.includes("Payment"));
-        break;
-      case "customer":
-        filtered = filtered.filter((conv) => conv.section.includes("Customer"));
-        break;
-      case "calls":
-        filtered = filtered.filter((conv) => conv.section.includes("Calls"));
-        break;
-      case "all":
-      default:
-        break;
-    }
-
-    // Filter by unreplied only if toggle is on
-    if (isUnrepliedOnly) {
-      filtered = filtered.filter((conv) => conv.isUnread);
-    }
-
-    return filtered;
   };
 
   return (
@@ -199,7 +127,7 @@ export function ChatList({
               style={{ lineHeight: "24px" }}
             >
               <div className="flex items-center" style={{ gap: "12px" }}>
-                <Users className="h-4 w-4" />
+                <User className="h-4 w-4" />
                 <span style={{ fontSize: "14px" }}>Míos</span>
               </div>
             </Button>
@@ -221,7 +149,7 @@ export function ChatList({
                 <span style={{ fontSize: "14px" }}>Sin Asignar</span>
               </div>
               <Badge className="bg-red-600 text-white text-xs">
-                {unassignedCount}
+                {unrepliedCount}
               </Badge>
             </Button>
 
@@ -283,7 +211,7 @@ export function ChatList({
                     <span style={{ fontSize: "14px" }}>Nuevo Prospecto</span>
                   </div>
                   <Badge className="bg-green-600 text-white text-xs">
-                    {newLeadCount}
+                    {unrepliedCount}
                   </Badge>
                 </Button>
 
@@ -399,11 +327,6 @@ export function ChatList({
 
               <div className="flex items-center" style={{ gap: "12px" }}>
                 <div className="flex items-center gap-2">
-                  <Switch
-                    checked={isUnrepliedOnly}
-                    onCheckedChange={setIsUnrepliedOnly}
-                    className="data-[state=checked]:bg-blue-600"
-                  />
                   <span className="text-xs text-gray-400">Sin Responder</span>
                 </div>
                 <Button
@@ -419,81 +342,89 @@ export function ChatList({
 
           {/* Conversations List */}
           <div className="space-y-3">
-            {getFilteredConversations().map((conversation) => (
-              <div
-                key={conversation.id}
-                onClick={() => onChatSelect?.(conversation.id)}
-                className={cn(
-                  "p-3 rounded-lg cursor-pointer transition-all duration-200",
-                  "flex items-center gap-3",
-                  selectedChatId === conversation.id
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-700 hover:bg-gray-600 text-gray-100",
-                )}
-                style={{
-                  background:
-                    selectedChatId === conversation.id ? "#4F8EF7" : "#2E2E40",
-                  borderRadius: "8px",
-                  padding: "12px 16px",
-                }}
-              >
-                {/* Avatar */}
-                <div className="relative flex-shrink-0">
-                  {conversation.avatarUrl ? (
-                    <img
-                      src={conversation.avatarUrl}
-                      alt={conversation.contactName}
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center">
-                      <span className="text-white text-sm font-medium">
-                        {conversation.contactName.charAt(0).toUpperCase()}
+            {isLoadingConversations ? (
+              <div className="flex justify-center items-center h-full">
+                <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
+              </div>
+            ) : filteredConversations.length === 0 ? (
+              <p className="text-center text-gray-400">No hay conversaciones.</p>
+            ) : (
+              filteredConversations.map((conversation) => (
+                <div
+                  key={conversation.id}
+                  onClick={() => onChatSelect(conversation.id)}
+                  className={cn(
+                    "p-3 rounded-lg cursor-pointer transition-all duration-200",
+                    "flex items-center gap-3",
+                    selectedChatId === conversation.id
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-700 hover:bg-gray-600 text-gray-100",
+                  )}
+                  style={{
+                    background:
+                      selectedChatId === conversation.id ? "#4F8EF7" : "#2E2E40",
+                    borderRadius: "8px",
+                    padding: "12px 16px",
+                  }}
+                >
+                  {/* Avatar */}
+                  <div className="relative flex-shrink-0">
+                    {conversation.avatar ? (
+                      <img
+                        src={conversation.avatar}
+                        alt={conversation.name || 'Contact'}
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center">
+                        <span className="text-white text-sm font-medium">
+                          {(conversation.name || 'U').charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Channel indicator */}
+                    <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
+                      <MessageCircle className="w-2 h-2 text-white" />
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-medium text-sm truncate">
+                        {conversation.name || 'Unknown Contact'}
+                      </h3>
+                      <span className="text-xs opacity-70">
+                        {conversation.timestamp}
                       </span>
                     </div>
+                    <p className="text-xs opacity-70 truncate">
+                      {conversation.lastMessage || 'No messages'}
+                    </p>
+                  </div>
+
+                  {/* Lifecycle Badge */}
+                  <div className="flex-shrink-0">
+                    <Badge
+                      className="text-xs"
+                      style={{
+                        background: "#3AD29F",
+                        color: "#FFFFFF",
+                        fontSize: "10px",
+                      }}
+                    >
+                      Lead
+                    </Badge>
+                  </div>
+
+                  {/* Unread indicator */}
+                  {conversation.isUnread && (
+                    <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
                   )}
-
-                  {/* Channel indicator */}
-                  <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
-                    <MessageCircle className="w-2 h-2 text-white" />
-                  </div>
                 </div>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-medium text-sm truncate">
-                      {conversation.contactName}
-                    </h3>
-                    <span className="text-xs opacity-70">
-                      {conversation.timestamp}
-                    </span>
-                  </div>
-                  <p className="text-xs opacity-70 truncate">
-                    {conversation.lastMessage}
-                  </p>
-                </div>
-
-                {/* Lifecycle Badge */}
-                <div className="flex-shrink-0">
-                  <Badge
-                    className="text-xs"
-                    style={{
-                      background: "#3AD29F",
-                      color: "#FFFFFF",
-                      fontSize: "10px",
-                    }}
-                  >
-                    Lead
-                  </Badge>
-                </div>
-
-                {/* Unread indicator */}
-                {conversation.isUnread && (
-                  <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
-                )}
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       )}

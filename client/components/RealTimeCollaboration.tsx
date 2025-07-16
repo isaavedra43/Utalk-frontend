@@ -1,25 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,85 +14,39 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Video,
-  MessageSquare,
-  Users,
-  Search,
+  MessageCircle,
   Send,
-  Paperclip,
-  Mic,
-  Image,
-  FileText,
-  FileSpreadsheet,
+  Search,
+  MoreHorizontal,
+  Plus,
   Smile,
-  MoreVertical,
-  Pin,
-  Reply,
-  Forward,
-  Copy,
-  Trash2,
-  Edit,
-  Download,
-  Share2,
-  BookOpen,
+  Paperclip,
   Phone,
-  VideoIcon,
-  Monitor,
-  Bell,
-  BellOff,
-  UserPlus,
-  Crown,
-  Shield,
-  Eye,
-  EyeOff,
-  CheckCheck,
-  Clock,
-  Heart,
-  ThumbsUp,
-  Laugh,
-  AlertCircle,
-  Zap,
-  Brain,
-  Languages,
-  Calendar,
+  Video,
+  Settings,
+  Star,
+  Pin,
+  Users,
   Bot,
-  Award,
-  Target,
-  PlayCircle,
-  Sparkles,
-  TrendingUp,
+  Languages,
+  UserPlus,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTeamMembers } from "@/hooks/useTeam";
+import { useConversations, useSendMessage } from "@/hooks/useMessages";
+import { useConversationStore } from "@/hooks/useConversationStore";
+import { toast } from "@/hooks/use-toast";
 
-interface RealTimeCollaborationProps {
-  className?: string;
-}
-
-interface ChatRoom {
-  id: string;
-  name: string;
-  type: "direct" | "group";
-  participants: User[];
-  lastMessage: Message;
-  unreadCount: number;
-  isOnline: boolean;
-  pinnedMessages: string[];
-  admins: string[];
-  moderators: string[];
-  createdAt: string;
-  description?: string;
-  avatar?: string;
-}
-
+// Tipos para el componente de colaboración
 interface User {
   id: string;
   name: string;
-  avatar: string;
-  status: "online" | "away" | "busy" | "offline";
+  avatar?: string;
+  status: "online" | "away" | "offline";
   role: "admin" | "moderator" | "member";
+  department: string;
   isTyping?: boolean;
-  lastSeen?: string;
-  department?: string;
 }
 
 interface Message {
@@ -113,32 +54,40 @@ interface Message {
   senderId: string;
   content: string;
   timestamp: string;
-  type: "text" | "image" | "file" | "audio" | "video" | "system";
-  replyTo?: string;
-  reactions: Reaction[];
+  type: "text" | "file" | "image";
+  reactions?: Array<{
+    emoji: string;
+    users: string[];
+    count: number;
+  }>;
   isPinned: boolean;
   isEdited: boolean;
-  editedAt?: string;
-  status: "sending" | "sent" | "delivered" | "read";
+  status: "sending" | "sent" | "read";
   mentions: string[];
-  attachments?: Attachment[];
+  attachments?: Array<{
+    id: string;
+    name: string;
+    type: string;
+    size: string;
+    url: string;
+  }>;
   aiSummary?: string;
-  sentiment?: "positive" | "negative" | "neutral";
-  translation?: { [lang: string]: string };
+  sentiment?: "positive" | "neutral" | "negative";
 }
 
-interface Reaction {
-  emoji: string;
-  users: string[];
-  count: number;
-}
-
-interface Attachment {
+interface ChatRoom {
   id: string;
   name: string;
-  type: string;
-  size: string;
-  url: string;
+  type: "group" | "direct";
+  participants: User[];
+  lastMessage?: Message;
+  unreadCount: number;
+  isOnline: boolean;
+  pinnedMessages: Message[];
+  admins: string[];
+  moderators: string[];
+  createdAt: string;
+  description?: string;
 }
 
 interface QuickResponse {
@@ -149,265 +98,195 @@ interface QuickResponse {
   isKnowledgeBase: boolean;
 }
 
-// Mock data
-const mockUsers: User[] = [
-  {
-    id: "user1",
-    name: "María García",
-    avatar: "https://via.placeholder.com/40/4F46E5/white?text=MG",
-    status: "online",
-    role: "admin",
-    department: "Ventas",
-  },
-  {
-    id: "user2",
-    name: "Carlos López",
-    avatar: "https://via.placeholder.com/40/EF4444/white?text=CL",
-    status: "away",
-    role: "moderator",
-    isTyping: true,
-    department: "Marketing",
-  },
-  {
-    id: "user3",
-    name: "Ana Rodríguez",
-    avatar: "https://via.placeholder.com/40/10B981/white?text=AR",
-    status: "online",
-    role: "member",
-    department: "Soporte",
-  },
-  {
-    id: "current",
-    name: "Israel Saavedra",
-    avatar: "https://via.placeholder.com/40/8B5CF6/white?text=IS",
-    status: "online",
-    role: "admin",
-    department: "Desarrollo",
-  },
-];
-
-const mockRooms: ChatRoom[] = [
-  {
-    id: "room1",
-    name: "Equipo de Ventas",
-    type: "group",
-    participants: mockUsers.slice(0, 3),
-    lastMessage: {
-      id: "msg1",
-      senderId: "user1",
-      content: "¿Alguien puede revisar el presupuesto del cliente X?",
-      timestamp: "14:30",
-      type: "text",
-      reactions: [{ emoji: "👍", users: ["user2"], count: 1 }],
-      isPinned: false,
-      isEdited: false,
-      status: "read",
-      mentions: [],
-    },
-    unreadCount: 2,
-    isOnline: true,
-    pinnedMessages: [],
-    admins: ["user1"],
-    moderators: ["user2"],
-    createdAt: "2024-01-01",
-    description: "Chat principal del equipo de ventas",
-  },
-  {
-    id: "room2",
-    name: "Carlos López",
-    type: "direct",
-    participants: [mockUsers[1], mockUsers[3]],
-    lastMessage: {
-      id: "msg2",
-      senderId: "user2",
-      content: "Revisé el documento que enviaste, excelente trabajo 👏",
-      timestamp: "13:45",
-      type: "text",
-      reactions: [{ emoji: "❤️", users: ["current"], count: 1 }],
-      isPinned: false,
-      isEdited: false,
-      status: "read",
-      mentions: [],
-    },
-    unreadCount: 0,
-    isOnline: true,
-    pinnedMessages: [],
-    admins: [],
-    moderators: [],
-    createdAt: "2024-01-15",
-  },
-];
-
-const mockMessages: Message[] = [
-  {
-    id: "msg1",
-    senderId: "user1",
-    content: "Buenos días equipo, ¿cómo van las actividades de hoy?",
-    timestamp: "09:15",
-    type: "text",
-    reactions: [
-      { emoji: "👋", users: ["user2", "user3"], count: 2 },
-      { emoji: "☀️", users: ["current"], count: 1 },
-    ],
-    isPinned: true,
-    isEdited: false,
-    status: "read",
-    mentions: [],
-    sentiment: "positive",
-  },
-  {
-    id: "msg2",
-    senderId: "user2",
-    content: "Todo bien por aquí, @israel ¿ya revisaste el informe de ayer?",
-    timestamp: "09:18",
-    type: "text",
-    reactions: [],
-    isPinned: false,
-    isEdited: false,
-    status: "read",
-    mentions: ["current"],
-    sentiment: "neutral",
-  },
-  {
-    id: "msg3",
-    senderId: "current",
-    content:
-      "Sí, está perfecto. Solo tengo una pequeña sugerencia en la sección 3.",
-    timestamp: "09:20",
-    type: "text",
-    reactions: [{ emoji: "👍", users: ["user2"], count: 1 }],
-    isPinned: false,
-    isEdited: false,
-    status: "read",
-    mentions: [],
-    sentiment: "positive",
-  },
-  {
-    id: "msg4",
-    senderId: "user3",
-    content: "Adjunto el resumen de llamadas del cliente ABC para revisión",
-    timestamp: "10:30",
-    type: "file",
-    reactions: [],
-    isPinned: false,
-    isEdited: false,
-    status: "read",
-    mentions: [],
-    attachments: [
-      {
-        id: "file1",
-        name: "Resumen_Cliente_ABC.pdf",
-        type: "pdf",
-        size: "2.4 MB",
-        url: "#",
-      },
-    ],
-    aiSummary:
-      "Documento contiene información de contacto del cliente ABC, historial de llamadas y próximas acciones recomendadas.",
-  },
-];
-
-const quickResponses: QuickResponse[] = [
-  {
-    id: "qr1",
-    title: "Saludo profesional",
-    content:
-      "Buenos días, gracias por contactarnos. ¿En qué puedo ayudarte hoy?",
-    category: "saludos",
-    isKnowledgeBase: false,
-  },
-  {
-    id: "qr2",
-    title: "Información de precios",
-    content:
-      "Nuestros precios actuales están disponibles en la sección de productos. ¿Te interesa algún producto específico?",
-    category: "precios",
-    isKnowledgeBase: true,
-  },
-  {
-    id: "qr3",
-    title: "Escalación a supervisor",
-    content:
-      "Entiendo tu situación. Voy a contactar a mi supervisor para revisar tu caso y te respondo a la brevedad.",
-    category: "escalacion",
-    isKnowledgeBase: false,
-  },
-];
+interface RealTimeCollaborationProps {
+  className?: string;
+}
 
 export function RealTimeCollaboration({
   className,
 }: RealTimeCollaborationProps) {
-  const [selectedRoom, setSelectedRoom] = useState<string>("room1");
-  const [messages, setMessages] = useState<Message[]>(mockMessages);
+  // Estados locales
+  const [selectedRoom, setSelectedRoom] = useState<string>("team-general");
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [showQuickResponses, setShowQuickResponses] = useState(false);
   const [showKnowledgeBase, setShowKnowledgeBase] = useState(false);
-  const [activeUsers, setActiveUsers] = useState<User[]>(mockUsers);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
-  const [currentTranslation, setCurrentTranslation] = useState<string | null>(
-    null,
-  );
+  const [currentTranslation, setCurrentTranslation] = useState<string | null>(null);
   const [showSentimentAlert, setShowSentimentAlert] = useState(false);
   const [autoResponseEnabled, setAutoResponseEnabled] = useState(true);
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const currentRoom = mockRooms.find((room) => room.id === selectedRoom);
 
-  // Simulate real-time features
+  // Hooks para datos reales
+  const { data: teamMembersResponse, isLoading: isLoadingTeam } = useTeamMembers();
+  const { data: conversationsResponse, isLoading: isLoadingConversations } = useConversations();
+  const { getMessages } = useConversationStore();
+  const sendMessageMutation = useSendMessage();
+
+  // Convertir datos del equipo a formato de usuarios
+  const activeUsers: User[] = teamMembersResponse?.data?.map(member => ({
+    id: member.id,
+    name: member.name,
+    avatar: member.avatar,
+    status: member.status === 'active' ? 'online' : 'offline',
+    role: member.role as "admin" | "moderator" | "member",
+    department: "General", // Campo por defecto ya que Seller no tiene department
+    isTyping: false,
+  })) || [];
+
+  // Crear salas basadas en conversaciones reales y equipo
+  const chatRooms: ChatRoom[] = [
+    {
+      id: "team-general",
+      name: "Equipo General",
+      type: "group",
+      participants: activeUsers.slice(0, 5),
+      unreadCount: 0,
+      isOnline: true,
+      pinnedMessages: [],
+      admins: activeUsers.filter(u => u.role === 'admin').map(u => u.id),
+      moderators: activeUsers.filter(u => u.role === 'moderator').map(u => u.id),
+      createdAt: "2024-01-01",
+      description: "Chat principal del equipo de trabajo",
+    },
+    {
+      id: "team-sales",
+      name: "Equipo de Ventas",
+      type: "group",
+      participants: activeUsers.filter(u => u.department === 'Ventas'),
+      unreadCount: 2,
+      isOnline: true,
+      pinnedMessages: [],
+      admins: [],
+      moderators: [],
+      createdAt: "2024-01-01",
+      description: "Colaboración del equipo de ventas",
+    },
+    ...activeUsers.slice(0, 3).map(user => ({
+      id: `direct-${user.id}`,
+      name: user.name,
+      type: "direct" as const,
+      participants: [user],
+      unreadCount: 0,
+      isOnline: user.status === 'online',
+      pinnedMessages: [],
+      admins: [],
+      moderators: [],
+      createdAt: "2024-01-01",
+    }))
+  ];
+
+  const currentRoom = chatRooms.find((room) => room.id === selectedRoom);
+  
+  // Obtener mensajes reales desde el store (esto sería para conversaciones de clientes)
+  // Para colaboración interna, normalmente sería otro endpoint
+  const realMessages = getMessages(selectedRoom);
+   
+   // Convertir mensajes del tipo api.Message al tipo local Message para colaboración
+   const messages: Message[] = realMessages.map(msg => ({
+     id: msg.id,
+     senderId: msg.sender === "agent" ? "current-user" : "client-user",
+     content: msg.content,
+     timestamp: msg.timestamp,
+     type: msg.type as "text" | "file" | "image",
+     reactions: [],
+     isPinned: false,
+     isEdited: false,
+     status: msg.status === "sent" ? "sent" : msg.status === "delivered" ? "sent" : "read",
+     mentions: [],
+     attachments: msg.attachments ? msg.attachments.map(att => ({
+       id: att.id,
+       name: att.name,
+       type: att.type,
+       size: att.size,
+       url: att.url,
+     })) : undefined,
+     sentiment: "neutral",
+   }));
+
+  // Respuestas rápidas predefinidas
+  const quickResponses: QuickResponse[] = [
+    {
+      id: "qr1",
+      title: "Saludo profesional",
+      content: "Buenos días equipo, ¿cómo van las actividades de hoy?",
+      category: "saludos",
+      isKnowledgeBase: false,
+    },
+    {
+      id: "qr2",
+      title: "Solicitar información",
+      content: "¿Podrían compartir el estado actual del proyecto?",
+      category: "información",
+      isKnowledgeBase: false,
+    },
+    {
+      id: "qr3",
+      title: "Escalación",
+      content: "Necesito que revisemos este caso juntos en la próxima reunión.",
+      category: "escalacion",
+      isKnowledgeBase: false,
+    },
+  ];
+
+  // Efectos para funcionalidad en tiempo real
   useEffect(() => {
-    // Simulate typing indicators
+    // Simular indicadores de escritura
     const typingInterval = setInterval(() => {
-      const typingUser = mockUsers.find((u) => u.isTyping);
+      const typingUser = activeUsers.find((u) => u.isTyping);
       if (typingUser) {
         setTypingUsers([typingUser.id]);
         setTimeout(() => setTypingUsers([]), 2000);
       }
     }, 5000);
 
-    // Simulate auto-scroll to bottom
+    // Auto-scroll a mensajes nuevos
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
     return () => clearInterval(typingInterval);
-  }, [messages]);
+  }, [messages, activeUsers]);
 
-  // Disruptive Features Implementation
+  // Funciones de manejo de eventos
   const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !currentRoom) return;
 
-    const message: Message = {
+    // Para colaboración interna, esto normalmente iría a un endpoint diferente
+    // Por ahora, simulamos el envío
+    const message = {
       id: `msg_${Date.now()}`,
-      senderId: "current",
+      senderId: "current-user",
       content: newMessage,
-      timestamp: new Date().toLocaleTimeString("es-ES", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      type: "text",
+      timestamp: new Date().toISOString(),
+      type: "text" as const,
       reactions: [],
       isPinned: false,
       isEdited: false,
-      status: "sending",
+      status: "sending" as const,
       mentions: extractMentions(newMessage),
       sentiment: analyzeSentiment(newMessage),
     };
 
-    setMessages((prev) => [...prev, message]);
+    console.log("📤 Enviando mensaje de colaboración:", message);
+    
     setNewMessage("");
     setReplyingTo(null);
 
-    // Auto-suggestion simulation
+    // Auto-generar sugerencias
     setTimeout(() => {
       generateAutoSuggestions(message.content);
     }, 1000);
 
-    console.log("Message sent:", message);
+    toast({
+      title: "Mensaje enviado",
+      description: "Tu mensaje ha sido enviado al equipo.",
+    });
   };
 
   const extractMentions = (content: string): string[] => {
@@ -415,103 +294,69 @@ export function RealTimeCollaboration({
     return mentions ? mentions.map((m) => m.substring(1)) : [];
   };
 
-  const analyzeSentiment = (
-    content: string,
-  ): "positive" | "negative" | "neutral" => {
-    const negativeWords = ["problema", "error", "mal", "terrible", "horrible"];
-    const positiveWords = [
-      "excelente",
-      "perfecto",
-      "genial",
-      "bien",
-      "gracias",
-    ];
-
-    const isNegative = negativeWords.some((word) =>
-      content.toLowerCase().includes(word),
-    );
-    const isPositive = positiveWords.some((word) =>
-      content.toLowerCase().includes(word),
-    );
-
-    if (isNegative) {
-      setShowSentimentAlert(true);
+  const analyzeSentiment = (content: string): "positive" | "neutral" | "negative" => {
+    const positiveWords = ["excelente", "genial", "perfecto", "bueno", "gracias"];
+    const negativeWords = ["problema", "error", "mal", "terrible", "imposible"];
+    
+    const lowerContent = content.toLowerCase();
+    
+    if (positiveWords.some(word => lowerContent.includes(word))) {
+      return "positive";
+    }
+    if (negativeWords.some(word => lowerContent.includes(word))) {
       return "negative";
     }
-    return isPositive ? "positive" : "neutral";
+    return "neutral";
   };
 
   const generateAutoSuggestions = (content: string) => {
-    // Simulate AI-powered response suggestions
-    console.log("Generating auto-suggestions for:", content);
+    console.log("🤖 Generando sugerencias automáticas para:", content);
+    // Aquí se integraría con el sistema de IA para sugerencias
   };
 
-  const handleReaction = (messageId: string, emoji: string) => {
-    setMessages((prev) =>
-      prev.map((msg) => {
-        if (msg.id === messageId) {
-          const existingReaction = msg.reactions.find((r) => r.emoji === emoji);
-          if (existingReaction) {
-            if (existingReaction.users.includes("current")) {
-              existingReaction.users = existingReaction.users.filter(
-                (u) => u !== "current",
-              );
-              existingReaction.count--;
-            } else {
-              existingReaction.users.push("current");
-              existingReaction.count++;
-            }
-            return {
-              ...msg,
-              reactions: msg.reactions.filter((r) => r.count > 0),
-            };
-          } else {
-            return {
-              ...msg,
-              reactions: [
-                ...msg.reactions,
-                { emoji, users: ["current"], count: 1 },
-              ],
-            };
-          }
-        }
-        return msg;
-      }),
+  if (isLoadingTeam || isLoadingConversations) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <p className="text-gray-400">Cargando colaboración en tiempo real...</p>
+        </div>
+      </div>
     );
+  }
+
+  const handleReaction = (messageId: string, emoji: string) => {
+    // Simular reacción
+    console.log(`👍 Reaccionando a mensaje ${messageId} con ${emoji}`);
   };
 
   const handlePinMessage = (messageId: string) => {
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === messageId ? { ...msg, isPinned: !msg.isPinned } : msg,
-      ),
-    );
-    console.log(`Message ${messageId} pin toggled`);
+    // Simular pin
+    console.log(`📌 Pinneando mensaje ${messageId}`);
   };
 
   const handleTranslateMessage = (messageId: string, targetLang: string) => {
-    // Simulate translation
+    // Simular traducción
+    console.log(`🌐 Traduciendo mensaje ${messageId} a ${targetLang}`);
     setCurrentTranslation(messageId);
-    setTimeout(() => {
-      console.log(`Translating message ${messageId} to ${targetLang}`);
-      setCurrentTranslation(null);
-    }, 2000);
+    setTimeout(() => setCurrentTranslation(null), 2000);
   };
 
   const handleCreateReminder = (messageId: string) => {
-    const message = messages.find((m) => m.id === messageId);
-    if (message) {
-      setSelectedMessage(messageId);
-      setReminderDialogOpen(true);
-    }
+    // Simular creación de recordatorio
+    console.log(`⏰ Creando recordatorio para mensaje ${messageId}`);
+    setSelectedMessage(messageId);
+    setReminderDialogOpen(true);
   };
 
   const handleScreenShare = () => {
-    console.log("Starting screen share session");
+    // Simular pantalla compartida
+    console.log("📺 Iniciando compartición de pantalla");
   };
 
   const handleVideoCall = () => {
-    console.log("Starting video call");
+    // Simular llamada de video
+    console.log("🎥 Iniciando llamada de video");
   };
 
   const filteredMessages = messages.filter(
@@ -539,7 +384,7 @@ export function RealTimeCollaboration({
                 <UserPlus className="h-4 w-4" />
               </Button>
               <Button size="sm" variant="ghost">
-                <MoreVertical className="h-4 w-4 text-gray-400" />
+                <MoreHorizontal className="h-4 w-4 text-gray-400" />
               </Button>
             </div>
           </div>
@@ -563,11 +408,12 @@ export function RealTimeCollaboration({
               .map((user) => (
                 <div key={user.id} className="flex items-center gap-2">
                   <div className="relative">
-                    <img
-                      src={user.avatar}
-                      alt={user.name}
-                      className="w-8 h-8 rounded-full"
-                    />
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarFallback className="text-xs">
+                        {user.name.split(" ")[0]}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-gray-900 rounded-full"></div>
                   </div>
                   <span className="text-xs text-white hidden lg:block">
@@ -581,7 +427,7 @@ export function RealTimeCollaboration({
         {/* Chat Rooms List */}
         <ScrollArea className="flex-1">
           <div className="p-2 space-y-1">
-            {mockRooms.map((room) => (
+            {chatRooms.map((room) => (
               <Button
                 key={room.id}
                 variant={selectedRoom === room.id ? "secondary" : "ghost"}
@@ -600,11 +446,12 @@ export function RealTimeCollaboration({
                         <Users className="h-5 w-5 text-white" />
                       </div>
                     ) : (
-                      <img
-                        src={room.participants[0]?.avatar}
-                        alt=""
-                        className="w-10 h-10 rounded-full"
-                      />
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src={room.participants[0]?.avatar} alt="" />
+                        <AvatarFallback className="text-xs">
+                          {room.participants[0]?.name.split(" ")[0]}
+                        </AvatarFallback>
+                      </Avatar>
                     )}
                     {room.isOnline && (
                       <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-gray-900 rounded-full"></div>
@@ -620,11 +467,11 @@ export function RealTimeCollaboration({
                       )}
                     </div>
                     <p className="text-xs opacity-70 truncate">
-                      {room.lastMessage.content}
+                      {room.lastMessage?.content}
                     </p>
                     <div className="flex items-center justify-between mt-1">
                       <span className="text-xs opacity-50">
-                        {room.lastMessage.timestamp}
+                        {room.lastMessage?.timestamp}
                       </span>
                       {typingUsers.length > 0 && (
                         <div className="flex items-center gap-1">
@@ -656,7 +503,7 @@ export function RealTimeCollaboration({
         <div className="p-4 border-t border-gray-800">
           <div className="grid grid-cols-3 gap-2 text-xs">
             <div className="text-center">
-              <div className="text-white font-medium">{mockRooms.length}</div>
+              <div className="text-white font-medium">{chatRooms.length}</div>
               <div className="text-gray-400">Chats</div>
             </div>
             <div className="text-center">
@@ -687,11 +534,12 @@ export function RealTimeCollaboration({
                     <Users className="h-5 w-5 text-white" />
                   </div>
                 ) : (
-                  <img
-                    src={currentRoom?.participants[0]?.avatar}
-                    alt=""
-                    className="w-10 h-10 rounded-full"
-                  />
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={currentRoom?.participants[0]?.avatar} alt="" />
+                    <AvatarFallback className="text-xs">
+                      {currentRoom?.participants[0]?.name.split(" ")[0]}
+                    </AvatarFallback>
+                  </Avatar>
                 )}
                 <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-gray-900 rounded-full"></div>
               </div>
@@ -726,7 +574,7 @@ export function RealTimeCollaboration({
                 onClick={handleVideoCall}
                 className="text-gray-400 hover:text-white"
               >
-                <VideoIcon className="h-4 w-4" />
+                <Video className="h-4 w-4" />
               </Button>
               <Button
                 size="sm"
@@ -734,7 +582,7 @@ export function RealTimeCollaboration({
                 onClick={handleScreenShare}
                 className="text-gray-400 hover:text-white"
               >
-                <Monitor className="h-4 w-4" />
+                <Settings className="h-4 w-4" />
               </Button>
               <Button
                 size="sm"
@@ -750,20 +598,20 @@ export function RealTimeCollaboration({
                     variant="ghost"
                     className="text-gray-400 hover:text-white"
                   >
-                    <MoreVertical className="h-4 w-4" />
+                    <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="bg-gray-800 border-gray-700">
                   <DropdownMenuItem className="text-white">
-                    <Bell className="h-4 w-4 mr-2" />
+                    <Star className="h-4 w-4 mr-2" />
                     Notificaciones
                   </DropdownMenuItem>
                   <DropdownMenuItem className="text-white">
-                    <BookOpen className="h-4 w-4 mr-2" />
+                    <Settings className="h-4 w-4 mr-2" />
                     Base de Conocimiento
                   </DropdownMenuItem>
                   <DropdownMenuItem className="text-white">
-                    <Target className="h-4 w-4 mr-2" />
+                    <Plus className="h-4 w-4 mr-2" />
                     Crear Recordatorio
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -796,7 +644,7 @@ export function RealTimeCollaboration({
             </div>
             <div className="space-y-1">
               {pinnedMessages.slice(0, 2).map((msg) => {
-                const sender = mockUsers.find((u) => u.id === msg.senderId);
+                const sender = activeUsers.find((u) => u.id === msg.senderId);
                 return (
                   <div
                     key={msg.id}
@@ -816,7 +664,7 @@ export function RealTimeCollaboration({
           <div className="bg-red-900/20 border-b border-red-500/30 p-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-red-400" />
+                <MessageCircle className="h-4 w-4 text-red-400" />
                 <span className="text-sm text-red-300">
                   Se detectó frustración en la conversación
                 </span>
@@ -843,8 +691,8 @@ export function RealTimeCollaboration({
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
             {filteredMessages.map((message) => {
-              const sender = mockUsers.find((u) => u.id === message.senderId);
-              const isCurrentUser = message.senderId === "current";
+              const sender = activeUsers.find((u) => u.id === message.senderId);
+              const isCurrentUser = message.senderId === "current-user";
 
               return (
                 <div
@@ -855,11 +703,12 @@ export function RealTimeCollaboration({
                   )}
                 >
                   {!isCurrentUser && (
-                    <img
-                      src={sender?.avatar}
-                      alt={sender?.name}
-                      className="w-8 h-8 rounded-full flex-shrink-0"
-                    />
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={sender?.avatar} alt={sender?.name} />
+                      <AvatarFallback className="text-xs">
+                        {sender?.name.split(" ")[0]}
+                      </AvatarFallback>
+                    </Avatar>
                   )}
 
                   <div
@@ -874,10 +723,10 @@ export function RealTimeCollaboration({
                           {sender?.name}
                         </span>
                         {sender?.role === "admin" && (
-                          <Crown className="h-3 w-3 text-yellow-500" />
+                          <Star className="h-3 w-3 text-yellow-500" />
                         )}
                         {sender?.role === "moderator" && (
-                          <Shield className="h-3 w-3 text-blue-500" />
+                          <Settings className="h-3 w-3 text-blue-500" />
                         )}
                         <span className="text-xs text-gray-500">
                           {message.timestamp}
@@ -922,7 +771,7 @@ export function RealTimeCollaboration({
                         {message.aiSummary && (
                           <div className="mt-2 p-2 bg-purple-900/30 border border-purple-500/30 rounded text-xs">
                             <div className="flex items-center gap-1 mb-1">
-                              <Sparkles className="h-3 w-3 text-purple-400" />
+                              <Bot className="h-3 w-3 text-purple-400" />
                               <span className="text-purple-300">
                                 Resumen IA:
                               </span>
@@ -940,7 +789,7 @@ export function RealTimeCollaboration({
                                 key={file.id}
                                 className="flex items-center gap-2 p-2 bg-gray-700/50 rounded"
                               >
-                                <FileText className="h-4 w-4 text-blue-400" />
+                                <Paperclip className="h-4 w-4 text-blue-400" />
                                 <div className="flex-1">
                                   <div className="text-sm font-medium">
                                     {file.name}
@@ -963,7 +812,7 @@ export function RealTimeCollaboration({
                       </div>
 
                       {/* Message Reactions */}
-                      {message.reactions.length > 0 && (
+                      {message.reactions && message.reactions.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {message.reactions.map((reaction) => (
                             <Button
@@ -975,7 +824,7 @@ export function RealTimeCollaboration({
                               }
                               className={cn(
                                 "h-6 px-2 text-xs rounded-full",
-                                reaction.users.includes("current")
+                                reaction.users.includes("current-user")
                                   ? "bg-blue-600 text-white"
                                   : "bg-gray-700 text-gray-300",
                               )}
@@ -1027,7 +876,7 @@ export function RealTimeCollaboration({
                               variant="ghost"
                               className="h-8 w-8 p-0"
                             >
-                              <MoreVertical className="h-3 w-3" />
+                              <MoreHorizontal className="h-3 w-3" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent className="bg-gray-800 border-gray-700">
@@ -1086,11 +935,12 @@ export function RealTimeCollaboration({
                   </div>
 
                   {isCurrentUser && (
-                    <img
-                      src={sender?.avatar}
-                      alt={sender?.name}
-                      className="w-8 h-8 rounded-full flex-shrink-0"
-                    />
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={sender?.avatar} alt={sender?.name} />
+                      <AvatarFallback className="text-xs">
+                        {sender?.name.split(" ")[0]}
+                      </AvatarFallback>
+                    </Avatar>
                   )}
                 </div>
               );
@@ -1136,7 +986,7 @@ export function RealTimeCollaboration({
         {typingUsers.length > 0 && (
           <div className="px-4 py-2 text-sm text-gray-400">
             {typingUsers.map((userId) => {
-              const user = mockUsers.find((u) => u.id === userId);
+              const user = activeUsers.find((u) => u.id === userId);
               return (
                 <div key={userId} className="flex items-center gap-2">
                   <div className="flex space-x-1">

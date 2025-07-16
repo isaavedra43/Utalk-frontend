@@ -13,107 +13,40 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-export interface Campaign {
-  id: string;
-  name: string;
-  description: string;
-  status: "draft" | "scheduled" | "sent" | "cancelled";
-  channels: ("whatsapp" | "facebook" | "sms" | "email")[];
-  recipients: {
-    total: number;
-    sent: number;
-    delivered: number;
-    failed: number;
-  };
-  scheduledDate?: string;
-  createdDate: string;
-  updatedDate: string;
-  createdBy: string;
-  assignees: string[];
-  tags: string[];
-  stats?: {
-    sent: number;
-    delivered: number;
-    opened: number;
-    clicked: number;
-    replied: number;
-    errors: number;
-    conversionRate: number;
-    csat: number;
-    incomingMessages: number;
-    estimatedROI: number;
-  };
-}
-
-// Mock data for campaigns
-const mockCampaigns: Campaign[] = [
-  {
-    id: "1",
-    name: "Oferta Black Friday 2024",
-    description: "Campaña promocional de descuentos especiales",
-    status: "scheduled",
-    channels: ["whatsapp", "email"],
-    recipients: { total: 1500, sent: 0, delivered: 0, failed: 0 },
-    scheduledDate: "2024-11-29T09:00:00Z",
-    createdDate: "2024-01-15T10:30:00Z",
-    updatedDate: "2024-01-15T14:20:00Z",
-    createdBy: "María García",
-    assignees: ["María García", "Carlos López"],
-    tags: ["promocional", "descuentos", "blackfriday"],
-  },
-  {
-    id: "2",
-    name: "Seguimiento Post-Venta",
-    description: "Encuesta de satisfacción automática",
-    status: "sent",
-    channels: ["whatsapp", "sms"],
-    recipients: { total: 800, sent: 800, delivered: 756, failed: 44 },
-    createdDate: "2024-01-10T08:15:00Z",
-    updatedDate: "2024-01-12T16:45:00Z",
-    createdBy: "Ana Morales",
-    assignees: ["Ana Morales"],
-    tags: ["seguimiento", "satisfaction"],
-    stats: {
-      sent: 800,
-      delivered: 756,
-      opened: 680,
-      clicked: 142,
-      replied: 89,
-      errors: 44,
-      conversionRate: 17.8,
-      csat: 4.2,
-      incomingMessages: 34,
-      estimatedROI: 2450,
-    },
-  },
-  {
-    id: "3",
-    name: "Recordatorio de Cita",
-    description: "Recordatorios automáticos 24h antes",
-    status: "draft",
-    channels: ["sms"],
-    recipients: { total: 0, sent: 0, delivered: 0, failed: 0 },
-    createdDate: "2024-01-14T11:20:00Z",
-    updatedDate: "2024-01-15T09:10:00Z",
-    createdBy: "Luis Hernández",
-    assignees: ["Luis Hernández", "Sofia Martinez"],
-    tags: ["recordatorio", "citas"],
-  },
-];
+import { useCampaigns, useCreateCampaign, useUpdateCampaign, useDeleteCampaign, useSendCampaign, useDuplicateCampaign } from "@/hooks/useCampaigns";
+import { Loader2 } from "lucide-react";
+import type { Campaign } from "@/types/api";
 
 interface CampaignModuleProps {
   className?: string;
 }
 
 export function CampaignModule({ className }: CampaignModuleProps) {
+  // Hooks para datos reales
+  const { data: campaignsResponse, isLoading: isLoadingCampaigns, refetch: refetchCampaigns } = useCampaigns();
+  const createCampaignMutation = useCreateCampaign();
+  const updateCampaignMutation = useUpdateCampaign();
+  const deleteCampaignMutation = useDeleteCampaign();
+  const sendCampaignMutation = useSendCampaign();
+  const duplicateCampaignMutation = useDuplicateCampaign();
+
+  // Datos reales desde el hook
+  const campaigns = campaignsResponse?.data || [];
+  
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(
-    mockCampaigns[0],
+    campaigns.length > 0 ? campaigns[0] : null,
   );
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [viewMode, setViewMode] = useState<"list" | "cards">("list");
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Actualizar selectedCampaign cuando lleguen los datos
+  useState(() => {
+    if (campaigns.length > 0 && !selectedCampaign) {
+      setSelectedCampaign(campaigns[0]);
+    }
+  });
 
   // Event handlers
   const handleCreateCampaign = () => {
@@ -132,10 +65,12 @@ export function CampaignModule({ className }: CampaignModuleProps) {
 
   const handleDuplicateCampaign = (campaignId: string) => {
     console.log("{{duplicateCampaign}} - Duplicating campaign:", campaignId);
+    duplicateCampaignMutation.mutate(campaignId);
   };
 
   const handleDeleteCampaign = (campaignId: string) => {
     console.log("{{deleteCampaign}} - Deleting campaign:", campaignId);
+    deleteCampaignMutation.mutate(campaignId);
   };
 
   const handleImportCampaigns = () => {
@@ -149,30 +84,53 @@ export function CampaignModule({ className }: CampaignModuleProps) {
   const handleRefresh = () => {
     setIsRefreshing(true);
     console.log("{{refreshCampaigns}} - Refreshing campaign data");
-    setTimeout(() => {
+    refetchCampaigns().finally(() => {
       setIsRefreshing(false);
-    }, 1500);
+    });
   };
 
   const handleSaveCampaign = (campaignData: any) => {
     console.log("{{saveCampaign}} - Saving campaign:", campaignData);
+    
+    if (formMode === "create") {
+      createCampaignMutation.mutate(campaignData);
+    } else if (selectedCampaign) {
+      updateCampaignMutation.mutate({
+        campaignId: selectedCampaign.id,
+        data: campaignData
+      });
+    }
+    
     setIsFormOpen(false);
   };
 
   const handleSendCampaign = (campaignId: string) => {
     console.log("{{sendCampaign}} - Sending campaign:", campaignId);
+    sendCampaignMutation.mutate({ campaignId });
   };
 
   const handleCancelCampaign = (campaignId: string) => {
     console.log("{{cancelCampaign}} - Cancelling campaign:", campaignId);
   };
 
+  // Loading state
+  if (isLoadingCampaigns) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <p className="text-gray-400">Cargando campañas...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Calculate summary stats
-  const totalCampaigns = mockCampaigns.length;
-  const activeCampaigns = mockCampaigns.filter(
+  const totalCampaigns = campaigns.length;
+  const activeCampaigns = campaigns.filter(
     (c) => c.status === "scheduled" || c.status === "sent",
   ).length;
-  const draftCampaigns = mockCampaigns.filter(
+  const draftCampaigns = campaigns.filter(
     (c) => c.status === "draft",
   ).length;
 
@@ -252,7 +210,7 @@ export function CampaignModule({ className }: CampaignModuleProps) {
         <div className="grid grid-cols-4 gap-4">
           <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3 text-center">
             <p className="text-blue-400 text-lg font-bold">
-              {mockCampaigns
+              {campaigns
                 .filter((c) => c.stats)
                 .reduce((sum, c) => sum + (c.stats?.sent || 0), 0)
                 .toLocaleString()}
@@ -261,7 +219,7 @@ export function CampaignModule({ className }: CampaignModuleProps) {
           </div>
           <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-3 text-center">
             <p className="text-green-400 text-lg font-bold">
-              {mockCampaigns
+              {campaigns
                 .filter((c) => c.stats)
                 .reduce((sum, c) => sum + (c.stats?.delivered || 0), 0)
                 .toLocaleString()}
@@ -270,7 +228,7 @@ export function CampaignModule({ className }: CampaignModuleProps) {
           </div>
           <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-3 text-center">
             <p className="text-purple-400 text-lg font-bold">
-              {mockCampaigns
+              {campaigns
                 .filter((c) => c.stats)
                 .reduce((sum, c) => sum + (c.stats?.clicked || 0), 0)
                 .toLocaleString()}
@@ -280,10 +238,10 @@ export function CampaignModule({ className }: CampaignModuleProps) {
           <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-3 text-center">
             <p className="text-yellow-400 text-lg font-bold">
               {(
-                mockCampaigns
+                campaigns
                   .filter((c) => c.stats)
                   .reduce((sum, c) => sum + (c.stats?.conversionRate || 0), 0) /
-                mockCampaigns.filter((c) => c.stats).length
+                campaigns.filter((c) => c.stats).length
               ).toFixed(1)}
               %
             </p>
@@ -296,7 +254,7 @@ export function CampaignModule({ className }: CampaignModuleProps) {
       <div className="flex h-[calc(100%-180px)] overflow-hidden">
         {/* Sidebar (1/3) */}
         <CampaignSidebar
-          campaigns={mockCampaigns}
+          campaigns={campaigns}
           selectedCampaign={selectedCampaign}
           onSelectCampaign={setSelectedCampaign}
           onEditCampaign={handleEditCampaign}
@@ -306,7 +264,7 @@ export function CampaignModule({ className }: CampaignModuleProps) {
 
         {/* Main Panel (2/3) */}
         <CampaignMainPanel
-          campaigns={mockCampaigns}
+          campaigns={campaigns}
           selectedCampaign={selectedCampaign}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
