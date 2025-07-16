@@ -1,77 +1,42 @@
-import { ScrollArea } from "@/components/ui/scroll-area";
+import type { Seller } from "@/types/api";
 import { SellerCard } from "./SellerCard";
-import { Users } from "lucide-react";
-import type { Seller } from "../EquipoPerformance";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface SellerListProps {
   sellers: Seller[];
   selectedSeller: Seller | null;
-  onSellerSelect: (seller: Seller) => void;
-  onEditSeller: (sellerId: string) => void;
-  onDeactivateSeller: (sellerId: string) => void;
+  onSelectSeller: (seller: Seller) => void;
 }
 
 export function SellerList({
   sellers,
   selectedSeller,
-  onSellerSelect,
-  onEditSeller,
-  onDeactivateSeller,
+  onSelectSeller,
 }: SellerListProps) {
-  if (sellers.length === 0) {
-    return (
-      <div className="h-full flex items-center justify-center bg-gray-950 p-8">
-        <div className="text-center text-gray-400">
-          <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <h3 className="text-lg font-medium mb-2">No hay vendedores</h3>
-          <p className="text-sm">
-            No se encontraron vendedores que coincidan con los filtros
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const handleEditSeller = (sellerId: string) => {
+    console.log("Editing seller:", sellerId);
+    // Lógica para abrir modal de edición
+  };
+
+  const handleDeactivateSeller = (sellerId: string) => {
+    console.log("Deactivating seller:", sellerId);
+    // Lógica para desactivar/activar vendedor
+  };
 
   return (
-    <div className="h-full bg-gray-950">
-      {/* List Header */}
-      <div className="p-4 border-b border-gray-800 bg-gray-900/50">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">
-            Lista de Vendedores
-          </h2>
-          <span className="text-sm text-gray-400 bg-gray-800 px-2 py-1 rounded">
-            {sellers.length}
-          </span>
+    <ScrollArea className="flex-1 -mx-4">
+        <div className="px-4 space-y-2">
+            {sellers.map((seller) => (
+                <SellerCard
+                    key={seller.id}
+                    seller={seller}
+                    isSelected={selectedSeller?.id === seller.id}
+                    onSelect={() => onSelectSeller(seller)}
+                    onEdit={() => handleEditSeller(seller.id)}
+                    onDeactivate={() => handleDeactivateSeller(seller.id)}
+                />
+            ))}
         </div>
-      </div>
-
-      {/* Scrollable Seller Cards */}
-      <div
-        className="overflow-y-auto overflow-x-hidden h-[calc(100%-73px)]"
-        style={{
-          boxSizing: "border-box",
-        }}
-      >
-        <div
-          className="p-3 space-y-3"
-          style={{
-            paddingBottom: "24px",
-            boxSizing: "border-box",
-          }}
-        >
-          {sellers.map((seller) => (
-            <SellerCard
-              key={seller.id}
-              seller={seller}
-              isSelected={selectedSeller?.id === seller.id}
-              onSelect={() => onSellerSelect(seller)}
-              onEdit={() => onEditSeller(seller.id)}
-              onDeactivate={() => onDeactivateSeller(seller.id)}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
+    </ScrollArea>
   );
 }

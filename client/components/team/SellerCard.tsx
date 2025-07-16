@@ -17,7 +17,7 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Seller } from "../EquipoPerformance";
+import type { Seller } from "@/types/api";
 
 interface SellerCardProps {
   seller: Seller;
@@ -43,13 +43,21 @@ export function SellerCard({
       .slice(0, 2);
   };
 
-  const getPermissionsSummary = () => {
-    const permissions = [];
-    if (seller.permissions.read) permissions.push("📋 Leer");
-    if (seller.permissions.write) permissions.push("✏️ Escribir");
-    if (seller.permissions.approve) permissions.push("✅ Aprobar");
-    if (seller.permissions.admin) permissions.push("⚙️ Admin");
-    return permissions;
+  const permissions = [];
+  if (seller.permissions.read) permissions.push("📋 Leer");
+  if (seller.permissions.write) permissions.push("✏️ Escribir");
+  if (seller.permissions.approve) permissions.push("✅ Aprobar");
+  if (seller.permissions.admin) permissions.push("⚙️ Admin");
+
+  const getStatusColor = () => {
+    switch (seller.status) {
+      case "active":
+        return "bg-green-900/20 text-green-400 border-green-500/30";
+      case "inactive":
+        return "bg-red-900/20 text-red-400 border-red-500/30";
+      default:
+        return "bg-gray-900/20 text-gray-400 border-gray-500/30";
+    }
   };
 
   return (
@@ -148,9 +156,7 @@ export function SellerCard({
         <Badge
           className={cn(
             "border text-xs",
-            seller.status === "active"
-              ? "bg-green-900/20 text-green-400 border-green-500/30"
-              : "bg-red-900/20 text-red-400 border-red-500/30",
+            getStatusColor(),
           )}
         >
           {seller.status === "active" ? "Activo" : "Inactivo"}
@@ -163,7 +169,7 @@ export function SellerCard({
           Permisos
         </p>
         <div className="flex flex-wrap gap-1">
-          {getPermissionsSummary().map((permission, index) => (
+          {permissions.map((permission, index) => (
             <span
               key={index}
               className="text-xs bg-gray-700/50 text-gray-300 px-2 py-1 rounded"

@@ -112,7 +112,7 @@ export function CampaignForm({
     setFormData((prev) => ({
       ...prev,
       [parent]: {
-        ...prev[parent as keyof typeof prev],
+        ...(prev[parent as keyof typeof prev] as object),
         [key]: value,
       },
     }));
@@ -429,8 +429,7 @@ export function CampaignForm({
                       className="bg-gray-900 border-gray-600 text-white min-h-[150px]"
                     />
                     <p className="text-xs text-gray-400 mt-1">
-                      Variables disponibles: {{ firstName }}, {{ lastName }},
-                      {{ company }}, {{ lastOrder }}
+                      Usa variables para personalizar. {"Variables disponibles: {{firstName}}, {{lastName}}, {{company}}, {{lastOrder}}"}
                     </p>
                   </div>
 
@@ -503,7 +502,7 @@ export function CampaignForm({
 
                     <div className="flex items-center space-x-3">
                       <Switch
-                        checked={formData.sendImmediate}
+                        checked={!!formData.sendImmediate}
                         onCheckedChange={(checked) =>
                           handleInputChange("sendImmediate", checked)
                         }
@@ -662,7 +661,7 @@ export function CampaignForm({
                             </div>
                             <Switch
                               checked={
-                                formData[setting.key as keyof typeof formData]
+                                !!formData[setting.key as keyof typeof formData]
                               }
                               onCheckedChange={(checked) =>
                                 handleInputChange(setting.key, checked)

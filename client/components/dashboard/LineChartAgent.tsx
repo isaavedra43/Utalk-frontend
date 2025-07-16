@@ -1,7 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Users, Info } from "lucide-react";
+import { TrendingUp, Users, Info, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface AgentData {
   agent: string;
@@ -53,6 +59,8 @@ export function LineChartAgent({ data, title }: LineChartAgentProps) {
     return `M ${points.join(" L ")}`;
   };
 
+  const tooltipContent = "Número de chats resueltos por día";
+
   return (
     <Card className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-all duration-300">
       <CardHeader className="pb-3">
@@ -60,10 +68,19 @@ export function LineChartAgent({ data, title }: LineChartAgentProps) {
           <CardTitle className="text-white text-lg font-semibold flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-blue-400" />
             {title}
-            <Info
-              className="h-4 w-4 text-gray-500 cursor-help"
-              title="Número de chats resueltos por día"
-            />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle
+                    className="h-4 w-4 text-gray-400 cursor-help"
+                    aria-label={tooltipContent}
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{tooltipContent}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </CardTitle>
           <Badge className="bg-gray-700 text-gray-300 text-xs">
             Últimos 7 días

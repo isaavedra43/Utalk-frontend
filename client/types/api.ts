@@ -177,6 +177,25 @@ export interface Seller {
     customerRetentionRate: number;
     csatScore: number;
     npsScore: number;
+    complaints?: number;
+    upsellCrosssellRate?: number;
+    aiQualityScore?: number;
+    campaignsSent?: number;
+    messageOpenRate?: number;
+    linkClickRate?: number;
+    positiveResponses?: number;
+    continuityPercentage?: number;
+    totalChatTime?: string;
+    firstTimeResolution?: number;
+  };
+  trends?: {
+    chatsVsSales: number[];
+    responseTime: number[];
+    channelDistribution: {
+      name: string;
+      value: number;
+      color: string;
+    }[];
   };
 }
 

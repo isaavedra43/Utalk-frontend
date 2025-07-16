@@ -12,7 +12,7 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Seller } from "../EquipoPerformance";
+import type { Seller } from "@/types/api";
 
 interface PermissionsCardProps {
   seller: Seller;
@@ -27,38 +27,30 @@ export function PermissionsCard({
 }: PermissionsCardProps) {
   const [isEnabled, setIsEnabled] = useState(seller.status === "active");
 
-  const permissions = [
+  const allPermissions = [
     {
-      id: "read",
-      label: "Lectura",
-      description: "Ver conversaciones y datos de clientes",
-      icon: FileText,
+      key: "read",
+      label: "Leer",
+      description: "Ver conversaciones, contactos y reportes",
       value: seller.permissions.read,
-      color: "text-blue-400",
     },
     {
-      id: "write",
-      label: "Escritura",
-      description: "Enviar mensajes y responder a clientes",
-      icon: Edit3,
+      key: "write",
+      label: "Escribir",
+      description: "Enviar mensajes, crear contactos y editar campañas",
       value: seller.permissions.write,
-      color: "text-green-400",
     },
     {
-      id: "approve",
-      label: "Aprobación",
-      description: "Aprobar campañas y decisiones importantes",
-      icon: CheckCircle,
+      key: "approve",
+      label: "Aprobar",
+      description: "Aprobar campañas y acciones masivas",
       value: seller.permissions.approve,
-      color: "text-yellow-400",
     },
     {
-      id: "admin",
-      label: "Configuración",
-      description: "Acceso a configuración del sistema",
-      icon: Settings,
+      key: "admin",
+      label: "Administrar",
+      description: "Gestionar equipo, configuraciones y facturación",
       value: seller.permissions.admin,
-      color: "text-red-400",
     },
   ];
 
@@ -67,12 +59,12 @@ export function PermissionsCard({
     onToggleEnabled(enabled);
   };
 
-  const handlePermissionChange = (permissionId: string, checked: boolean) => {
-    onPermissionChange(permissionId, checked);
+  const handlePermissionChange = (key: string, value: boolean) => {
+    onPermissionChange(key, value);
   };
 
   const getPermissionLevel = () => {
-    const enabledPermissions = permissions.filter((p) => p.value).length;
+    const enabledPermissions = allPermissions.filter((p) => p.value).length;
     if (enabledPermissions === 0)
       return { level: "Sin acceso", color: "text-gray-400" };
     if (enabledPermissions === 1)
@@ -113,73 +105,26 @@ export function PermissionsCard({
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 gap-4">
-          {permissions.map((permission) => {
-            const Icon = permission.icon;
-
-            return (
-              <div
-                key={permission.id}
-                className={cn(
-                  "p-3 rounded-lg border transition-all duration-200",
-                  permission.value && isEnabled
-                    ? "bg-gray-700/30 border-gray-600"
-                    : "bg-gray-900/30 border-gray-700",
-                  !isEnabled && "opacity-50",
-                )}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={cn(
-                      "flex-shrink-0 p-2 rounded-lg",
-                      permission.value && isEnabled
-                        ? "bg-gray-700"
-                        : "bg-gray-800/50",
-                    )}
-                  >
-                    <Icon
-                      className={cn(
-                        "h-4 w-4",
-                        permission.value && isEnabled
-                          ? permission.color
-                          : "text-gray-500",
-                      )}
-                    />
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Checkbox
-                        id={permission.id}
-                        checked={permission.value}
-                        disabled={!isEnabled}
-                        onCheckedChange={(checked) =>
-                          handlePermissionChange(
-                            permission.id,
-                            checked as boolean,
-                          )
-                        }
-                        className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                      />
-                      <label
-                        htmlFor={permission.id}
-                        className={cn(
-                          "text-sm font-medium cursor-pointer",
-                          permission.value && isEnabled
-                            ? "text-white"
-                            : "text-gray-400",
-                        )}
-                      >
-                        {permission.label}
-                      </label>
-                    </div>
-                    <p className="text-xs text-gray-500 leading-relaxed">
-                      {permission.description}
-                    </p>
-                  </div>
-                </div>
+          {allPermissions.map((permission) => (
+            <div
+              key={permission.key}
+              className="flex items-start justify-between"
+            >
+              <div className="flex-1 mr-4">
+                <p className="font-semibold text-white">{permission.label}</p>
+                <p className="text-sm text-gray-400">
+                  {permission.description}
+                </p>
               </div>
-            );
-          })}
+              <Switch
+                checked={permission.value}
+                onCheckedChange={(checked) =>
+                  handlePermissionChange(permission.key, checked)
+                }
+                className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-gray-600"
+              />
+            </div>
+          ))}
         </div>
 
         {/* Permission Summary */}
@@ -188,8 +133,8 @@ export function PermissionsCard({
             <div className="flex items-center gap-2">
               <Lock className="h-4 w-4 text-gray-500" />
               <span className="text-gray-400">
-                {permissions.filter((p) => p.value).length} de{" "}
-                {permissions.length} permisos activos
+                {allPermissions.filter((p) => p.value).length} de{" "}
+                {allPermissions.length} permisos activos
               </span>
             </div>
             <span className="text-xs text-gray-500">

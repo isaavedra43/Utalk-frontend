@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, MessageSquare, DollarSign, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
 
 interface SalesData {
   teams: string[];
@@ -42,6 +44,8 @@ export function BarLineChart({ data, title }: BarLineChartProps) {
     return `M ${points.join(" L ")}`;
   };
 
+  const tooltipContent = "Barras: número de ventas, Línea: número de mensajes";
+
   return (
     <Card className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-all duration-300">
       <CardHeader className="pb-3">
@@ -49,10 +53,19 @@ export function BarLineChart({ data, title }: BarLineChartProps) {
           <CardTitle className="text-white text-lg font-semibold flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-purple-400" />
             {title}
-            <Info
-              className="h-4 w-4 text-gray-500 cursor-help"
-              title="Barras: número de ventas, Línea: número de mensajes"
-            />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle
+                    className="h-4 w-4 text-gray-400 cursor-help"
+                    aria-label={tooltipContent}
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{tooltipContent}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </CardTitle>
           <div className="flex items-center gap-2">
             <Badge className="bg-blue-600 text-white text-xs flex items-center gap-1">

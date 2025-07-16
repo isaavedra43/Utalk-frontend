@@ -27,7 +27,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const {
@@ -41,18 +41,6 @@ export default function Login() {
   // Si ya está autenticado, redirigir al dashboard
   if (isAuthenticated) {
     return <Navigate to="/" replace />;
-  }
-
-  // Mostrar loader mientras verifica autenticación
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <p className="text-gray-400">Verificando sesión...</p>
-        </div>
-      </div>
-    );
   }
 
   const onSubmit = async (data: LoginFormData) => {

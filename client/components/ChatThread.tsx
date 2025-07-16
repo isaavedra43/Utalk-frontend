@@ -142,7 +142,12 @@ export function ChatThread({
     setTimeout(() => setIsTyping(false), 2000);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const content = e.currentTarget.textContent || "";
+    setNewMessage(content);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();

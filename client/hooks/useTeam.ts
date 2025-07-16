@@ -2,38 +2,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/apiClient";
 import { toast } from "@/hooks/use-toast";
 import type { 
-  User, 
+  Seller, 
   ApiResponse, 
   PaginatedResponse 
 } from "@/types/api";
 
-// Interface para vendedor/miembro del equipo
-export interface TeamMember {
-  id: string;
-  email: string;
-  name: string;
-  avatar?: string;
-  role: 'admin' | 'manager' | 'agent' | 'viewer';
-  permissions: string[];
-  status: 'active' | 'inactive' | 'suspended';
-  lastActivity: string;
-  performance: {
-    totalChats: number;
-    totalSales: number;
-    averageResponseTime: number;
-    conversionRate: number;
-    customerSatisfaction: number;
-  };
-  channelAssignments: string[];
-}
-
 export interface TeamFormData {
   name: string;
   email: string;
-  role: TeamMember['role'];
-  permissions: string[];
+  role: Seller['role'];
+  permissions: Seller['permissions'];
   channelAssignments: string[];
-  status?: TeamMember['status'];
+  status?: Seller['status'];
 }
 
 // Hook para obtener lista de miembros del equipo
@@ -47,7 +27,7 @@ export function useTeamMembers(params?: {
   return useQuery({
     queryKey: ['team-members', params],
     queryFn: async () => {
-      const response = await api.get<PaginatedResponse<TeamMember>>('/team/members', params);
+      const response = await api.get<PaginatedResponse<Seller>>('/team/members', params);
       return response;
     },
     staleTime: 2 * 60 * 1000, // 2 minutos
@@ -59,7 +39,7 @@ export function useTeamMember(memberId: string) {
   return useQuery({
     queryKey: ['team-members', memberId],
     queryFn: async () => {
-      const response = await api.get<ApiResponse<TeamMember>>(`/team/members/${memberId}`);
+      const response = await api.get<ApiResponse<Seller>>(`/team/members/${memberId}`);
       return response.data;
     },
     enabled: !!memberId,
@@ -72,7 +52,7 @@ export function useCreateTeamMember() {
 
   return useMutation({
     mutationFn: async (memberData: TeamFormData) => {
-      const response = await api.post<ApiResponse<TeamMember>>('/team/members', memberData);
+      const response = await api.post<ApiResponse<Seller>>('/team/members', memberData);
       return response.data;
     },
     onSuccess: (newMember) => {
@@ -99,7 +79,7 @@ export function useUpdateTeamMember() {
 
   return useMutation({
     mutationFn: async ({ memberId, data }: { memberId: string; data: Partial<TeamFormData> }) => {
-      const response = await api.put<ApiResponse<TeamMember>>(`/team/members/${memberId}`, data);
+      const response = await api.put<ApiResponse<Seller>>(`/team/members/${memberId}`, data);
       return response.data;
     },
     onSuccess: (updatedMember) => {
