@@ -1,9 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '@/lib/apiClient';
 import { toast } from '@/hooks/use-toast';
-import type { User, LoginCredentials, ApiResponse } from '@/types/api';
-import { initSocket, disconnectSocket, getSocket } from '@/lib/socket';
-import { useConversationStore } from '@/hooks/useConversationStore';
+import type { User, ApiResponse } from '@/types/api';
 
 interface AuthContextType {
   user: User | null;
@@ -20,150 +18,156 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Función helper para logs consistentes
+const logAuth = (action: string, data?: any, isError = false) => {
+  const timestamp = new Date().toISOString();
+  const logLevel = isError ? 'ERROR' : 'INFO';
+  const message = `[AUTH ${logLevel}] ${action}`;
+  
+  if (isError) {
+    console.error(message, data);
+  } else {
+    console.log(message, data || '');
+  }
+  
+  // Solo en desarrollo, mostrar logs más detallados
+  if (import.meta.env.DEV) {
+    console.log(`[AUTH DEBUG] ${timestamp} - ${action}`, data);
+  }
+};
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const { addMessage, updateConversation } = useConversationStore();
 
-  // Configurar listeners de Socket.IO cuando hay usuario autenticado
+  // Verificar autenticación al cargar la aplicación
   useEffect(() => {
-    if (!user) return;
-
-    const handleNewMessage = (message: any) => {
-      console.log("📩 Nuevo mensaje recibido por socket:", message);
-      addMessage(message);
-      
-      // Mostrar notificación
-      toast({
-        title: "Nuevo mensaje",
-        description: `De: ${message.senderName || 'Desconocido'}`,
-      });
-    };
-
-    const handleConversationUpdate = (conversation: any) => {
-      console.log("🔄 Actualización de conversación:", conversation);
-      updateConversation(conversation);
-    };
-
-    const handleMessageRead = (data: { conversationId: string; messageId: string }) => {
-      console.log("👁️ Mensaje marcado como leído:", data);
-      // Aquí podrías actualizar el estado de lectura si fuera necesario
-    };
-
-    const handleUserTyping = (data: { conversationId: string; userId: string; isTyping: boolean }) => {
-      console.log("⌨️ Usuario escribiendo:", data);
-      // Aquí podrías mostrar indicador de "escribiendo..."
-    };
-
-    const socket = getSocket();
-    if (socket && socket.connected) {
-      console.log("🎧 Configurando listeners de eventos socket...");
-      
-      socket.on("message:new", handleNewMessage);
-      socket.on("conversation:status", handleConversationUpdate);
-      socket.on("message:read", handleMessageRead);
-      socket.on("user:typing", handleUserTyping);
-
-      return () => {
-        console.log("🔇 Removiendo listeners de eventos socket...");
-        socket.off("message:new", handleNewMessage);
-        socket.off("conversation:status", handleConversationUpdate);
-        socket.off("message:read", handleMessageRead);
-        socket.off("user:typing", handleUserTyping);
-      };
-    } else {
-      console.warn("⚠️ Socket no disponible para configurar listeners");
-    }
-  }, [user, addMessage, updateConversation]);
-
-  // Verificar autenticación al cargar
-  useEffect(() => {
+    logAuth('Iniciando verificación de autenticación al cargar app');
     refreshAuth();
   }, []);
 
   const refreshAuth = async (): Promise<void> => {
     try {
       setLoading(true);
+      logAuth('Verificando token guardado...');
       
       // Verificar si hay token guardado
       const token = localStorage.getItem('authToken');
       if (!token) {
-        console.log("🔐 No hay token de autenticación guardado");
+        logAuth('No se encontró token en localStorage');
         setLoading(false);
         return;
       }
 
-      console.log("🔐 Verificando token de autenticación...");
-      
+      logAuth('Token encontrado, verificando validez con backend...', { tokenLength: token.length });
+
       // Verificar con el backend si el token es válido
       const response = await api.get<ApiResponse<User>>('/auth/me');
       
       if (response.success && response.data) {
-        console.log("✅ Token válido, usuario autenticado:", response.data.name);
+        logAuth('Token válido - Usuario autenticado exitosamente', { 
+          userId: response.data.id, 
+          userEmail: response.data.email,
+          userRole: response.data.role 
+        });
         setUser(response.data);
-        
-        // Inicializar socket si no está conectado
-        const socket = getSocket();
-        if (!socket || !socket.connected) {
-          console.log("🔌 Inicializando socket con token existente...");
-          initSocket(token);
-        }
       } else {
-        console.log("❌ Token inválido, limpiando sesión");
+        logAuth('Respuesta del servidor indica token inválido', response, true);
+        // Token inválido, limpiar
         localStorage.removeItem('authToken');
         setUser(null);
       }
     } catch (error: any) {
-      console.error('❌ Error al verificar autenticación:', error);
+      // Error al verificar autenticación, limpiar estado
+      logAuth('Error al verificar autenticación', {
+        error: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText
+      }, true);
       
-      if (error.response?.status === 401) {
-        console.log("🔐 Token expirado, limpiando sesión");
-        localStorage.removeItem('authToken');
-        setUser(null);
-      }
+      localStorage.removeItem('authToken');
+      setUser(null);
     } finally {
       setLoading(false);
+      logAuth('Verificación de autenticación completada');
     }
   };
 
   const login = async (email: string, password: string): Promise<void> => {
     try {
       setLoading(true);
+      logAuth('Iniciando proceso de login', { email });
       
-      console.log("🔐 Intentando iniciar sesión para:", email);
+      // Validación básica antes de enviar
+      if (!email || !password) {
+        throw new Error('Email y contraseña son requeridos');
+      }
+      
+      logAuth('Enviando credenciales al servidor...');
       
       const response = await api.post<ApiResponse<{ user: User; token: string }>>('/auth/login', {
         email,
         password,
       });
 
+      logAuth('Respuesta recibida del servidor', { 
+        success: response.success,
+        hasUser: !!response.data?.user,
+        hasToken: !!response.data?.token
+      });
+
       if (response.success && response.data) {
-        console.log("✅ Login exitoso:", response.data.user.name);
-        setUser(response.data.user);
+        const { user: userData, token } = response.data;
         
-        if (response.data.token) {
-          localStorage.setItem('authToken', response.data.token);
-          console.log("🔌 Inicializando socket con nuevo token...");
-          initSocket(response.data.token);
+        logAuth('Login exitoso - Guardando datos de sesión', {
+          userId: userData.id,
+          userEmail: userData.email,
+          userRole: userData.role,
+          tokenLength: token?.length
+        });
+        
+        // Actualizar estado
+        setUser(userData);
+        
+        // Guardar token de autenticación
+        if (token) {
+          localStorage.setItem('authToken', token);
+          logAuth('Token guardado en localStorage exitosamente');
+        } else {
+          logAuth('ADVERTENCIA: No se recibió token del servidor', null, true);
         }
 
+        // Mostrar mensaje de éxito
         toast({
-          title: "Bienvenido",
-          description: `Hola ${response.data.user.name}, sesión iniciada correctamente.`,
+          title: "¡Bienvenido!",
+          description: `Hola ${userData.name}, sesión iniciada correctamente.`,
         });
+        
+        logAuth('Login completado exitosamente - Usuario redirigido');
       } else {
-        throw new Error(response.message || 'Error al iniciar sesión');
+        const errorMsg = response.message || 'Error desconocido en el login';
+        logAuth('Login fallido - Respuesta del servidor inválida', { 
+          message: response.message,
+          success: response.success 
+        }, true);
+        throw new Error(errorMsg);
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || 'Error al iniciar sesión';
       
-      console.error("❌ Error de login:", errorMessage);
+      logAuth('Login fallido - Error capturado', {
+        error: errorMessage,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        email
+      }, true);
       
       toast({
         variant: "destructive",
         title: "Error de inicio de sesión",
         description: errorMessage,
       });
+      
       throw error;
     } finally {
       setLoading(false);
@@ -172,26 +176,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = async (): Promise<void> => {
     try {
-      console.log("🚪 Cerrando sesión...");
+      logAuth('Iniciando proceso de logout');
       
       // Llamar al endpoint de logout si existe
-      await api.post('/auth/logout').catch(() => {
-        console.log("⚠️ Error en logout del servidor, continuando con logout local");
-      });
+      try {
+        await api.post('/auth/logout');
+        logAuth('Logout exitoso en el servidor');
+      } catch (error) {
+        logAuth('Error en logout del servidor (continuando con logout local)', error, true);
+        // Si falla el logout en el servidor, continuar con el logout local
+      }
     } catch (error) {
-      console.error('❌ Error durante logout:', error);
+      logAuth('Error durante logout', error, true);
     } finally {
-      // Limpiar estado local
+      // Limpiar estado local siempre
+      logAuth('Limpiando estado local de autenticación');
       setUser(null);
       localStorage.removeItem('authToken');
-      disconnectSocket();
-      
-      console.log("✅ Sesión cerrada exitosamente");
       
       toast({
         title: "Sesión cerrada",
         description: "Has cerrado sesión correctamente.",
       });
+      
+      logAuth('Logout completado - Usuario desconectado');
     }
   };
 
@@ -203,6 +211,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isAuthenticated: !!user,
     refreshAuth,
   };
+
+  // Log del estado actual de autenticación
+  useEffect(() => {
+    logAuth('Estado de autenticación actualizado', {
+      isAuthenticated: !!user,
+      loading,
+      userId: user?.id,
+      userEmail: user?.email
+    });
+  }, [user, loading]);
 
   return (
     <AuthContext.Provider value={value}>

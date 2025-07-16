@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { logger } from "@/lib/utils";
 import { Sidebar } from "@/components/Sidebar";
 import { MessagesSidebar } from "@/components/MessagesSidebar";
 import { InboxSidebar } from "@/components/InboxSidebar";
@@ -48,27 +49,136 @@ export default function Index() {
   const [clientInfoVisible, setClientInfoVisible] = useState(false);
   const [selectedSection, setSelectedSection] = useState<string | null>("all");
 
+  // Log de inicialización del componente principal
+  useEffect(() => {
+    logger.navigation('Página principal inicializada', {
+      isMobile,
+      activeModule,
+      selectedChatId,
+      selectedConversationId,
+      timestamp: new Date().toISOString()
+    });
+  }, []);
+
+  // Log de cambios en el dispositivo móvil
+  useEffect(() => {
+    logger.navigation('Dispositivo móvil detectado', { isMobile });
+  }, [isMobile]);
+
+  // Log de cambios en el módulo activo
+  useEffect(() => {
+    logger.router('Módulo activo cambiado', {
+      previousModule: activeModule,
+      newModule: activeModule,
+      isMobile,
+      timestamp: new Date().toISOString()
+    });
+  }, [activeModule]);
+
   const handleChatSelect = (chatId: string) => {
+    logger.messages('Chat seleccionado', {
+      chatId,
+      previousChatId: selectedChatId,
+      isMobile
+    });
+    
     setSelectedChatId(chatId);
+    
     // Close mobile menu when chat is selected
     if (isMobile) {
       setIsMobileMenuOpen(false);
+      logger.navigation('Menú móvil cerrado automáticamente tras selección de chat');
     }
   };
 
   const handleConversationSelect = (conversationId: string) => {
+    logger.messages('Conversación seleccionada', {
+      conversationId,
+      previousConversationId: selectedConversationId
+    });
+    
     setSelectedConversationId(conversationId);
   };
 
   const handleModuleChange = (module: string) => {
+    logger.router('Navegando a módulo', {
+      fromModule: activeModule,
+      toModule: module,
+      isMobile,
+      timestamp: new Date().toISOString()
+    });
+    
     setActiveModule(module);
-    console.log(`Navigating to ${module} module`);
+    
+    // Log específico del módulo al que se navega
+    switch (module) {
+      case 'messages':
+        logger.messages('Accediendo al módulo de mensajería');
+        break;
+      case 'dashboard':
+        logger.navigation('Accediendo al dashboard ejecutivo');
+        break;
+      case 'crm':
+        logger.navigation('Accediendo al hub de clientes');
+        break;
+      case 'team':
+        logger.navigation('Accediendo a rendimiento del equipo');
+        break;
+      case 'campaigns':
+        logger.navigation('Accediendo al módulo de campañas');
+        break;
+      case 'knowledge':
+        logger.navigation('Accediendo a la base de conocimiento');
+        break;
+      case 'collaboration':
+        logger.navigation('Accediendo a colaboración en tiempo real');
+        break;
+      case 'settings':
+        logger.navigation('Accediendo a configuración');
+        break;
+      default:
+        logger.navigation('Navegando a módulo desconocido', { module }, true);
+    }
   };
 
   const handleSectionSelect = (sectionId: string) => {
+    logger.navigation('Sección seleccionada', {
+      sectionId,
+      previousSection: selectedSection,
+      activeModule
+    });
+    
     setSelectedSection(sectionId);
-    console.log(`Selected section: ${sectionId}`);
   };
+
+  const handleMobileMenuToggle = () => {
+    const newState = !isMobileMenuOpen;
+    logger.navigation('Toggle menú móvil', {
+      isOpen: newState,
+      activeModule
+    });
+    
+    setIsMobileMenuOpen(newState);
+  };
+
+  const handlePanelToggle = (panelType: string, newState: boolean) => {
+    logger.navigation('Toggle panel', {
+      panelType,
+      newState,
+      activeModule
+    });
+  };
+
+  // Log de cambios en el estado de los paneles
+  useEffect(() => {
+    logger.navigation('Estado de paneles actualizado', {
+      leftPanelVisible,
+      rightPanelVisible,
+      aiPanelVisible,
+      clientInfoVisible,
+      inboxVisible
+    });
+  }, [leftPanelVisible, rightPanelVisible, aiPanelVisible, clientInfoVisible, inboxVisible]);
 
   return (
     <div className="h-screen bg-[#121214] text-white overflow-hidden">
@@ -85,7 +195,7 @@ export default function Index() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          onClick={handleMobileMenuToggle}
           className="text-gray-400 hover:text-white p-2"
         >
           {isMobileMenuOpen ? (
@@ -109,7 +219,11 @@ export default function Index() {
           <Sidebar
             activeModule={activeModule}
             onModuleChange={handleModuleChange}
-            onTogglePanel={() => setLeftPanelVisible(!leftPanelVisible)}
+            onTogglePanel={() => {
+              const newState = !leftPanelVisible;
+              setLeftPanelVisible(newState);
+              handlePanelToggle('left', newState);
+            }}
             className="h-full"
           />
         </div>
@@ -181,7 +295,10 @@ export default function Index() {
           <div
             className="lg:hidden fixed inset-0 bg-black/50 z-30"
             style={{ top: "64px" }}
-            onClick={() => setIsMobileMenuOpen(false)}
+            onClick={() => {
+              logger.navigation('Overlay clickeado - cerrando menú móvil');
+              setIsMobileMenuOpen(false);
+            }}
           />
         )}
 
@@ -200,15 +317,21 @@ export default function Index() {
                       <ChatView
                         chatId={selectedChatId}
                         isMobile={isMobile}
-                        onShowAI={() => setRightPanelVisible(true)}
+                        onShowAI={() => {
+                          logger.navigation('Mostrando panel de IA desde chat móvil');
+                          setRightPanelVisible(true);
+                        }}
                         onShowClientInfo={() => {
+                          logger.navigation('Mostrando información de cliente desde chat móvil');
                           setRightPanelVisible(true);
                           setClientInfoVisible(true);
                           setAiPanelVisible(false);
                         }}
-                        onToggleRightPanel={() =>
-                          setRightPanelVisible(!rightPanelVisible)
-                        }
+                        onToggleRightPanel={() => {
+                          const newState = !rightPanelVisible;
+                          logger.navigation('Toggle panel derecho desde chat móvil', { newState });
+                          setRightPanelVisible(newState);
+                        }}
                       />
                     </div>
 
@@ -224,6 +347,7 @@ export default function Index() {
                               size="sm"
                               variant={aiPanelVisible ? "default" : "ghost"}
                               onClick={() => {
+                                logger.navigation('Cambiando a panel de IA en móvil');
                                 setAiPanelVisible(true);
                                 setClientInfoVisible(false);
                               }}
@@ -241,6 +365,7 @@ export default function Index() {
                               size="sm"
                               variant={clientInfoVisible ? "default" : "ghost"}
                               onClick={() => {
+                                logger.navigation('Cambiando a panel de cliente en móvil');
                                 setClientInfoVisible(true);
                                 setAiPanelVisible(false);
                               }}
@@ -257,7 +382,10 @@ export default function Index() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => setRightPanelVisible(false)}
+                              onClick={() => {
+                                logger.navigation('Cerrando panel lateral en móvil');
+                                setRightPanelVisible(false);
+                              }}
                               className="w-12 h-12 text-gray-400 hover:text-white"
                             >
                               <X className="w-4 h-4" />
@@ -278,9 +406,11 @@ export default function Index() {
                       <InboxSidebar
                         onSectionSelect={handleSectionSelect}
                         selectedSection={selectedSection}
-                        onTogglePanels={() =>
-                          setLeftPanelVisible(!leftPanelVisible)
-                        }
+                        onTogglePanels={() => {
+                          const newState = !leftPanelVisible;
+                          setLeftPanelVisible(newState);
+                          handlePanelToggle('left', newState);
+                        }}
                         className="h-full"
                       />
                     </div>
@@ -330,6 +460,7 @@ export default function Index() {
                     <div className="flex" style={{ marginBottom: "0" }}>
                       <button
                         onClick={() => {
+                          logger.navigation('Cambiando a panel de IA en desktop');
                           setAiPanelVisible(true);
                           setClientInfoVisible(false);
                         }}
@@ -361,6 +492,7 @@ export default function Index() {
                       </button>
                       <button
                         onClick={() => {
+                          logger.navigation('Cambiando a panel de cliente en desktop');
                           setClientInfoVisible(true);
                           setAiPanelVisible(false);
                         }}
