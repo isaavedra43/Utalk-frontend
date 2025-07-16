@@ -104,9 +104,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         hasToken: !!response?.token
       });
 
-      // Manejar respuesta del backend (tanto con wrapper ApiResponse como sin él)
-      const userData = response.user || response.data?.user;
-      const authToken = response.token || response.data?.token;
+      // Manejar respuesta del backend que viene directamente como { user, token }
+      const userData = response.user;
+      const authToken = response.token;
 
       if (userData && authToken) {
         logger.auth('Login exitoso - Guardando datos de sesión', {
