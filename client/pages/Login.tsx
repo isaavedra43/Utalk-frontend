@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Eye, EyeOff, CheckCircle } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
+import { logger } from "@/lib/utils";
 
 // Schema de validación para el formulario
 const loginSchema = z.object({
@@ -24,23 +25,9 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-// Función helper para logs del login
-const logLogin = (action: string, data?: any, isError = false) => {
-  const timestamp = new Date().toISOString();
-  const logLevel = isError ? 'ERROR' : 'INFO';
-  const message = `[LOGIN ${logLevel}] ${action}`;
-  
-  if (isError) {
-    console.error(message, data);
-  } else {
-    console.log(message, data || '');
-  }
-};
-
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loginSuccess, setLoginSuccess] = useState(false);
   const { login, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -48,68 +35,49 @@ export default function Login() {
     register,
     handleSubmit,
     formState: { errors },
-    watch,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
 
-  // Logs de inicialización del componente
+  // Log de inicialización del componente
   useEffect(() => {
-    logLogin('Componente Login inicializado', {
+    logger.auth('Componente Login inicializado', {
       isAuthenticated,
       loading,
       currentUrl: window.location.href
     });
   }, []);
 
-  // Log de cambios en el estado de autenticación
-  useEffect(() => {
-    logLogin('Estado de autenticación actualizado', {
-      isAuthenticated,
-      loading
-    });
-  }, [isAuthenticated, loading]);
-
-  // Redirección si ya está autenticado
+  // NAVEGACIÓN INMEDIATA cuando el usuario está autenticado
   useEffect(() => {
     if (isAuthenticated && !loading) {
-      logLogin('Usuario ya autenticado, redirigiendo a la bandeja principal');
-      // Pequeño delay para mostrar mensaje de éxito si acaba de hacer login
-      const redirectDelay = loginSuccess ? 1500 : 0;
-      
-      setTimeout(() => {
-        logLogin('Ejecutando redirección a /');
-        navigate('/', { replace: true });
-      }, redirectDelay);
+      logger.navigation('Usuario autenticado detectado - Redirigiendo inmediatamente');
+      navigate('/', { replace: true });
     }
-  }, [isAuthenticated, loading, loginSuccess, navigate]);
+  }, [isAuthenticated, loading, navigate]);
 
-  // Si ya está autenticado y no está cargando, mostrar mensaje de redirección
-  if (isAuthenticated && !loading) {
+  // Mostrar loader mientras verifica autenticación inicial
+  if (loading) {
+    logger.auth('Mostrando loader mientras verifica autenticación inicial');
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white p-4">
-        <div className="w-full max-w-md">
-          <Card className="bg-gray-900 border-gray-800">
-            <CardContent className="p-8 text-center">
-              <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-              <h2 className="text-xl font-bold text-white mb-2">
-                ¡Acceso autorizado!
-              </h2>
-              <p className="text-gray-400 mb-4">
-                Redirigiendo a la bandeja principal...
-              </p>
-              <Loader2 className="h-6 w-6 animate-spin text-blue-500 mx-auto" />
-            </CardContent>
-          </Card>
+      <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+          <p className="text-gray-400">Verificando sesión...</p>
         </div>
       </div>
     );
   }
 
+  // Si ya está autenticado, no mostrar el formulario
+  if (isAuthenticated) {
+    return null; // Se redirige en el useEffect
+  }
+
   const onSubmit = async (data: LoginFormData) => {
     try {
       setIsSubmitting(true);
-      logLogin('Iniciando proceso de login desde formulario', { 
+      logger.auth('Iniciando login desde formulario', { 
         email: data.email,
         hasPassword: !!data.password
       });
@@ -120,61 +88,24 @@ export default function Login() {
         description: "Por favor espera mientras validamos tu información.",
       });
 
-      logLogin('Enviando credenciales al AuthContext');
-      await login(data.email!, data.password!);
+      // Llamar al AuthContext login
+      await login(data.email, data.password);
       
-      // Login exitoso
-      logLogin('Login exitoso desde formulario - Preparando redirección');
-      setLoginSuccess(true);
-      
-      // Mostrar mensaje de éxito
-      toast({
-        title: "¡Acceso concedido!",
-        description: "Redirigiendo a la bandeja principal...",
-      });
-
-      // La redirección se manejará en el useEffect
-      logLogin('Login completado - Esperando redirección automática');
+      // El AuthContext actualiza el estado y el useEffect redirige automáticamente
+      logger.auth('Login exitoso - Estado actualizado, navegación automática');
 
     } catch (error: any) {
-      logLogin('Error en el proceso de login desde formulario', {
+      logger.auth('Error en login desde formulario', {
         error: error.message,
         email: data.email
       }, true);
 
-      setLoginSuccess(false);
-      
-      // El error ya se maneja en el AuthContext, pero agregamos log adicional
-      logLogin('Login fallido - Manteniendo usuario en formulario', {
-        errorType: error.name,
-        errorMessage: error.message
-      }, true);
+      // El error ya se maneja en AuthContext con toast
+      // Aquí solo agregamos log adicional si es necesario
     } finally {
       setIsSubmitting(false);
-      logLogin('Finalizando proceso de submit del formulario');
     }
   };
-
-  // Log de cambios en el formulario (solo en desarrollo)
-  const watchedEmail = watch("email");
-  useEffect(() => {
-    if (import.meta.env.DEV && watchedEmail) {
-      logLogin('Email actualizado en formulario', { email: watchedEmail });
-    }
-  }, [watchedEmail]);
-
-  // Mostrar loader mientras verifica autenticación inicial
-  if (loading) {
-    logLogin('Mostrando loader mientras verifica autenticación inicial');
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-          <p className="text-gray-400">Verificando sesión...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white p-4">
@@ -228,10 +159,7 @@ export default function Login() {
                     variant="ghost"
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                    onClick={() => {
-                      setShowPassword(!showPassword);
-                      logLogin('Toggle visibilidad de contraseña', { showPassword: !showPassword });
-                    }}
+                    onClick={() => setShowPassword(!showPassword)}
                     disabled={isSubmitting}
                   >
                     {showPassword ? (
@@ -255,20 +183,17 @@ export default function Login() {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {loginSuccess ? "Entrando..." : "Verificando..."}
+                    Verificando...
                   </>
                 ) : (
                   "Iniciar Sesión"
                 )}
               </Button>
 
-              {/* Indicador de estado */}
+              {/* Estado de loading */}
               {isSubmitting && (
                 <div className="text-center text-sm text-gray-400">
-                  {loginSuccess 
-                    ? "✅ Credenciales válidas - Configurando sesión..." 
-                    : "🔐 Validando credenciales con el servidor..."
-                  }
+                  🔐 Validando credenciales con el servidor...
                 </div>
               )}
             </form>
@@ -281,7 +206,6 @@ export default function Login() {
                   type="button"
                   className="text-blue-400 hover:text-blue-300 underline"
                   onClick={() => {
-                    logLogin('Usuario clickeó en recuperar contraseña');
                     toast({
                       title: "Funcionalidad pendiente",
                       description: "La recuperación de contraseña estará disponible pronto.",

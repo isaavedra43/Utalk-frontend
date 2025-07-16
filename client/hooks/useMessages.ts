@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/apiClient";
 import { toast } from "@/hooks/use-toast";
-import { useConversationStore } from "@/hooks/useConversationStore";
+import { logger } from "@/lib/utils";
 import type { 
   Conversation, 
   Message, 
@@ -11,32 +11,24 @@ import type {
   PaginatedResponse 
 } from "@/types/api";
 
-// Hook para obtener conversaciones - sincroniza con store
+// Hook para obtener conversaciones reales
 export function useConversations(params?: {
+  page?: number;
   pageSize?: number;
   search?: string;
   channel?: string;
   status?: string;
-  cursor?: string;
 }) {
-  const { setConversations } = useConversationStore();
-  
   return useQuery({
     queryKey: ['conversations', params],
     queryFn: async () => {
-      console.log("🔄 Obteniendo conversaciones desde API...");
-      const response = await api.get<PaginatedResponse<Conversation>>('/conversations', params);
-      
-      // Sincronizar con store global
-      if (response.data) {
-        console.log("📦 Sincronizando", response.data.length, "conversaciones con store");
-        setConversations(response.data);
-      }
-      
+      logger.api('Obteniendo lista de conversaciones', { params });
+      const response = await api.get<PaginatedResponse<Conversation>>('/messages', params);
+      logger.api('Conversaciones obtenidas exitosamente', { total: response.pagination?.total });
       return response;
     },
     staleTime: 30 * 1000, // 30 segundos
-    refetchInterval: 30 * 1000, // Refresco cada 30 segundos
+    refetchInterval: 10 * 1000, // Refresco cada 10 segundos para nuevos mensajes
   });
 }
 
@@ -45,96 +37,92 @@ export function useConversation(conversationId: string) {
   return useQuery({
     queryKey: ['conversations', conversationId],
     queryFn: async () => {
-      console.log("🔄 Obteniendo conversación:", conversationId);
-      const response = await api.get<ApiResponse<Conversation>>(`/conversations/${conversationId}`);
-      return response.data;
+      logger.api('Obteniendo conversación específica', { conversationId });
+      const response = await api.get<Conversation>(`/conversations/${conversationId}`);
+      return response;
     },
     enabled: !!conversationId,
     staleTime: 30 * 1000,
   });
 }
 
-// Hook para obtener mensajes de una conversación - sincroniza con store
-export function useMessages(conversationId: string, params?: {
-  pageSize?: number;
-  cursor?: string;
-  enabled?: boolean;
-}) {
-  const { setMessagesForConversation } = useConversationStore();
-  
+// Hook para obtener mensajes de una conversación por teléfono (Twilio)
+export function useConversationByPhone(phone: string) {
   return useQuery({
-    queryKey: ['messages', conversationId, params],
+    queryKey: ['conversations', 'phone', phone],
     queryFn: async () => {
-      console.log("🔄 Obteniendo mensajes para conversación:", conversationId);
-      const response = await api.get<PaginatedResponse<Message>>(`/conversations/${conversationId}/messages`, params);
-      
-      // Sincronizar con store global
-      if (response.data) {
-        console.log("📦 Sincronizando", response.data.length, "mensajes con store para conversación:", conversationId);
-        setMessagesForConversation(conversationId, response.data);
-      }
-      
+      logger.api('Obteniendo conversación por teléfono', { phone });
+      const response = await api.get<Conversation>(`/messages/conversation/${phone}`);
       return response;
     },
-    enabled: !!conversationId && (params?.enabled !== false),
-    staleTime: 10 * 1000, // 10 segundos
-    refetchInterval: 10 * 1000, // Refresco cada 10 segundos para nuevos mensajes
+    enabled: !!phone,
+    staleTime: 30 * 1000,
   });
 }
 
-// Hook para enviar un mensaje - actualiza store optimísticamente
+// Hook para obtener mensajes de una conversación
+export function useMessages(conversationId: string, params?: {
+  page?: number;
+  pageSize?: number;
+}) {
+  return useQuery({
+    queryKey: ['messages', conversationId, params],
+    queryFn: async () => {
+      logger.api('Obteniendo mensajes de conversación', { conversationId, params });
+      const response = await api.get<PaginatedResponse<Message>>(`/conversations/${conversationId}/messages`, params);
+      logger.api('Mensajes obtenidos exitosamente', { messageCount: response.data?.length });
+      return response;
+    },
+    enabled: !!conversationId,
+    staleTime: 10 * 1000, // 10 segundos
+    refetchInterval: 5 * 1000, // Refresco cada 5 segundos para nuevos mensajes
+  });
+}
+
+// Hook para enviar un mensaje real a través de Twilio
 export function useSendMessage() {
   const queryClient = useQueryClient();
-  const { addMessage } = useConversationStore();
 
   return useMutation({
-    mutationFn: async ({ conversationId, messageData }: { 
-      conversationId: string; 
-      messageData: MessageFormData 
+    mutationFn: async ({ to, body, mediaUrl }: { 
+      to: string; 
+      body: string; 
+      mediaUrl?: string;
     }) => {
-      console.log("📤 Enviando mensaje a API:", messageData.content, "conversación:", conversationId);
+      logger.api('Enviando mensaje', { to, hasMedia: !!mediaUrl, bodyLength: body.length });
       
-      // Crear mensaje optimista para el store
-      const optimisticMessage: Message = {
-        id: `temp-${Date.now()}`,
-        conversationId,
-        content: messageData.content,
-        sender: "agent",
-        timestamp: new Date().toISOString(),
-        status: "sent",
-        type: "text",
-      };
-      
-      // Agregar al store inmediatamente (optimistic update)
-      console.log("⚡ Agregando mensaje optimista al store");
-      addMessage(optimisticMessage);
-      
-      const response = await api.post<ApiResponse<Message>>(`/conversations/${conversationId}/messages`, messageData);
-      return response.data;
-    },
-    onSuccess: (newMessage, { conversationId }) => {
-      console.log("✅ Mensaje enviado exitosamente:", newMessage?.id);
-      
-      // Actualizar mensaje en store con ID real del servidor
-      if (newMessage) {
-        addMessage(newMessage);
-      }
-      
-      // Invalidar cache de React Query
-      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-    },
-    onError: (error: any, { conversationId }) => {
-      console.error("❌ Error al enviar mensaje:", error);
-      
-      toast({
-        title: "Error al enviar mensaje",
-        description: error.response?.data?.message || "No se pudo enviar el mensaje.",
-        variant: "destructive",
+      const response = await api.post<Message>('/messages/send', {
+        to,
+        body,
+        mediaUrl
       });
       
-      // Revalidar datos en caso de error
-      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      return response;
+    },
+    onSuccess: (newMessage, variables) => {
+      // Invalidar mensajes relacionados
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      
+      logger.api('Mensaje enviado exitosamente', { 
+        messageId: newMessage.id,
+        to: variables.to 
+      });
+      
+      toast({
+        title: "Mensaje enviado",
+        description: "Tu mensaje ha sido enviado exitosamente.",
+      });
+    },
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.message || "No se pudo enviar el mensaje.";
+      logger.api('Error al enviar mensaje', { error: errorMessage }, true);
+      
+      toast({
+        variant: "destructive",
+        title: "Error al enviar mensaje",
+        description: errorMessage,
+      });
     },
   });
 }
@@ -145,20 +133,20 @@ export function useMarkAsRead() {
 
   return useMutation({
     mutationFn: async (conversationId: string) => {
-      console.log("👁️ Marcando conversación como leída:", conversationId);
-      const response = await api.post<ApiResponse<void>>(`/conversations/${conversationId}/mark-read`);
-      return response;
+      logger.api('Marcando conversación como leída', { conversationId });
+      await api.post(`/conversations/${conversationId}/mark-read`);
+      return conversationId;
     },
-    onSuccess: (_, conversationId) => {
-      console.log("✅ Conversación marcada como leída:", conversationId);
-      
+    onSuccess: (conversationId) => {
       // Invalidar conversación y mensajes
       queryClient.invalidateQueries({ queryKey: ['conversations', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      
+      logger.api('Conversación marcada como leída exitosamente');
     },
     onError: (error: any) => {
-      console.error("❌ Error al marcar como leído:", error);
+      logger.api('Error al marcar como leída', { error: error.message }, true);
     },
   });
 }
@@ -169,17 +157,17 @@ export function useAssignConversation() {
 
   return useMutation({
     mutationFn: async ({ conversationId, agentId }: { conversationId: string; agentId: string }) => {
-      console.log("👤 Asignando conversación:", conversationId, "a agente:", agentId);
-      const response = await api.post<ApiResponse<Conversation>>(`/conversations/${conversationId}/assign`, {
+      logger.api('Asignando conversación a agente', { conversationId, agentId });
+      const response = await api.post<Conversation>(`/conversations/${conversationId}/assign`, {
         agentId,
       });
-      return response.data;
+      return response;
     },
     onSuccess: (updatedConversation) => {
-      console.log("✅ Conversación asignada exitosamente");
-      
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['conversations', updatedConversation.id] });
+      queryClient.setQueryData(['conversations', updatedConversation.id], updatedConversation);
+      
+      logger.api('Conversación asignada exitosamente');
       
       toast({
         title: "Conversación asignada",
@@ -187,12 +175,13 @@ export function useAssignConversation() {
       });
     },
     onError: (error: any) => {
-      console.error("❌ Error al asignar conversación:", error);
+      const errorMessage = error.response?.data?.message || "No se pudo asignar la conversación.";
+      logger.api('Error al asignar conversación', { error: errorMessage }, true);
       
       toast({
-        title: "Error al asignar conversación",
-        description: error.response?.data?.message || "No se pudo asignar la conversación.",
         variant: "destructive",
+        title: "Error al asignar conversación",
+        description: errorMessage,
       });
     },
   });
@@ -204,15 +193,15 @@ export function useCloseConversation() {
 
   return useMutation({
     mutationFn: async (conversationId: string) => {
-      console.log("🔒 Cerrando conversación:", conversationId);
-      const response = await api.post<ApiResponse<Conversation>>(`/conversations/${conversationId}/close`);
-      return response.data;
+      logger.api('Cerrando conversación', { conversationId });
+      const response = await api.post<Conversation>(`/conversations/${conversationId}/close`);
+      return response;
     },
     onSuccess: (closedConversation) => {
-      console.log("✅ Conversación cerrada exitosamente");
-      
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['conversations', closedConversation.id] });
+      queryClient.setQueryData(['conversations', closedConversation.id], closedConversation);
+      
+      logger.api('Conversación cerrada exitosamente');
       
       toast({
         title: "Conversación cerrada",
@@ -220,49 +209,31 @@ export function useCloseConversation() {
       });
     },
     onError: (error: any) => {
-      console.error("❌ Error al cerrar conversación:", error);
+      const errorMessage = error.response?.data?.message || "No se pudo cerrar la conversación.";
+      logger.api('Error al cerrar conversación', { error: errorMessage }, true);
       
       toast({
-        title: "Error al cerrar conversación",
-        description: error.response?.data?.message || "No se pudo cerrar la conversación.",
         variant: "destructive",
+        title: "Error al cerrar conversación",
+        description: errorMessage,
       });
     },
   });
 }
 
-// Hook para polling en tiempo real (backup de WebSockets)
-export function useRealTimeMessages(conversationId: string) {
-  const [isPolling, setIsPolling] = useState(false);
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    if (!conversationId || !isPolling) return;
-
-    console.log("🔄 Iniciando polling para conversación:", conversationId);
-
-    const interval = setInterval(() => {
-      console.log("🔄 Polling: refrescando mensajes...");
-      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-    }, 3000); // Cada 3 segundos
-
-    return () => {
-      console.log("🛑 Deteniendo polling para conversación:", conversationId);
-      clearInterval(interval);
-    };
-  }, [conversationId, isPolling, queryClient]);
-
-  return {
-    startPolling: () => {
-      console.log("▶️ Iniciando polling");
-      setIsPolling(true);
+// Hook para búsqueda de mensajes
+export function useSearchMessages(query: string) {
+  return useQuery({
+    queryKey: ['messages', 'search', query],
+    queryFn: async () => {
+      logger.api('Buscando mensajes', { query });
+      const response = await api.get<Message[]>('/messages/search', { q: query });
+      logger.api('Búsqueda de mensajes completada', { resultCount: response.length });
+      return response;
     },
-    stopPolling: () => {
-      console.log("⏹️ Deteniendo polling");
-      setIsPolling(false);
-    },
-    isPolling,
-  };
+    enabled: query.length >= 3, // Solo buscar con al menos 3 caracteres
+    staleTime: 30 * 1000,
+  });
 }
 
 // Hook para estadísticas de mensajería
@@ -274,17 +245,94 @@ export function useMessagingStats(params?: {
   return useQuery({
     queryKey: ['messaging-stats', params],
     queryFn: async () => {
-      console.log("📊 Obteniendo estadísticas de mensajería...");
-      const response = await api.get<ApiResponse<{
+      logger.api('Obteniendo estadísticas de mensajería', { params });
+      const response = await api.get<{
         totalConversations: number;
         activeConversations: number;
         closedConversations: number;
         averageResponseTime: number;
         messagesPerDay: number;
         conversionRate: number;
-      }>>('/conversations/stats', params);
-      return response.data;
+      }>('/messages/stats', params);
+      return response;
     },
     staleTime: 2 * 60 * 1000, // 2 minutos
+  });
+}
+
+// Hook para tiempo real con Firestore listeners (alternativa a WebSocket)
+export function useRealTimeMessages(conversationId: string) {
+  const [newMessages, setNewMessages] = useState<Message[]>([]);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!conversationId) return;
+
+    logger.socket('Configurando listener de tiempo real para conversación', { conversationId });
+
+    // Aquí se implementaría el listener de Firestore para tiempo real
+    // Ejemplo con Firestore:
+    /*
+    const unsubscribe = onSnapshot(
+      collection(db, 'conversations', conversationId, 'messages'),
+      (snapshot) => {
+        const newMessages = snapshot.docChanges()
+          .filter(change => change.type === 'added')
+          .map(change => ({ id: change.doc.id, ...change.doc.data() } as Message));
+        
+        if (newMessages.length > 0) {
+          logger.socket('Nuevos mensajes recibidos en tiempo real', { count: newMessages.length });
+          setNewMessages(prev => [...prev, ...newMessages]);
+          
+          // Invalidar queries para actualizar UI
+          queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+        }
+      }
+    );
+
+    return () => {
+      logger.socket('Desconectando listener de tiempo real');
+      unsubscribe();
+    };
+    */
+
+    // Por ahora, usar polling como fallback
+    const interval = setInterval(() => {
+      logger.socket('Polling para nuevos mensajes');
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+    }, 3000);
+
+    return () => {
+      logger.socket('Deteniendo polling de mensajes');
+      clearInterval(interval);
+    };
+  }, [conversationId, queryClient]);
+
+  return {
+    newMessages,
+    clearNewMessages: () => setNewMessages([]),
+  };
+}
+
+// Hook para actualizar estado de mensaje
+export function useUpdateMessageStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ messageId, status }: { messageId: string; status: string }) => {
+      logger.api('Actualizando estado de mensaje', { messageId, status });
+      const response = await api.put<Message>(`/messages/${messageId}/status`, { status });
+      return response;
+    },
+    onSuccess: (updatedMessage) => {
+      // Actualizar mensaje en el cache
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
+      
+      logger.api('Estado de mensaje actualizado exitosamente');
+    },
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.message || "No se pudo actualizar el estado del mensaje.";
+      logger.api('Error al actualizar estado de mensaje', { error: errorMessage }, true);
+    },
   });
 } 

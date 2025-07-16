@@ -2,64 +2,25 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
-
-// Función helper para logs de navegación
-const logNavigation = (action: string, data?: any, isError = false) => {
-  const timestamp = new Date().toISOString();
-  const logLevel = isError ? 'ERROR' : 'INFO';
-  const message = `[NAVIGATION ${logLevel}] ${action}`;
-  
-  if (isError) {
-    console.error(message, data);
-  } else {
-    console.log(message, data || '');
-  }
-  
-  // Solo en desarrollo, mostrar logs más detallados
-  if (import.meta.env.DEV) {
-    console.log(`[NAVIGATION DEBUG] ${timestamp} - ${action}`, data);
-  }
-};
+import { logger } from "@/lib/utils";
 
 export function RequireAuth() {
   const { isAuthenticated, loading, user } = useAuth();
   const location = useLocation();
 
-  // Log de inicialización del componente
+  // Log de inicialización y cambios de estado
   useEffect(() => {
-    logNavigation('RequireAuth inicializado', {
+    logger.navigation('RequireAuth - Verificando acceso', {
       pathname: location.pathname,
-      search: location.search,
       isAuthenticated,
       loading,
       userId: user?.id
     });
-  }, []);
-
-  // Log de cambios en el estado de autenticación
-  useEffect(() => {
-    logNavigation('Estado de autenticación actualizado en RequireAuth', {
-      isAuthenticated,
-      loading,
-      pathname: location.pathname,
-      userId: user?.id,
-      userEmail: user?.email
-    });
   }, [isAuthenticated, loading, user, location.pathname]);
-
-  // Log cuando se está verificando autenticación
-  useEffect(() => {
-    if (loading) {
-      logNavigation('Verificando autenticación para ruta protegida', {
-        pathname: location.pathname,
-        search: location.search
-      });
-    }
-  }, [loading, location]);
 
   // Mostrar loader mientras verifica autenticación
   if (loading) {
-    logNavigation('Mostrando loader de verificación de autenticación');
+    logger.navigation('RequireAuth - Verificando autenticación...');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white">
         <div className="flex flex-col items-center gap-4">
@@ -77,17 +38,16 @@ export function RequireAuth() {
 
   // Si no está autenticado, redirigir al login
   if (!isAuthenticated) {
-    logNavigation('Usuario no autenticado - Redirigiendo a login', {
+    logger.navigation('RequireAuth - Usuario no autenticado, redirigiendo a login', {
       attemptedPath: location.pathname,
-      search: location.search,
-      userWasLoggedIn: !!user
+      search: location.search
     });
     
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  // Si está autenticado, log de acceso concedido y renderizar rutas protegidas
-  logNavigation('Acceso autorizado a ruta protegida', {
+  // Si está autenticado, permitir acceso
+  logger.navigation('RequireAuth - Acceso autorizado', {
     pathname: location.pathname,
     userId: user?.id,
     userEmail: user?.email,
