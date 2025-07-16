@@ -8,10 +8,12 @@ import {
   Mic,
   Send,
   ChevronDown,
-  Mail,
   FileText,
   Zap,
 } from "lucide-react";
+import { useConversationStore } from "@/hooks/useConversationStore";
+import { getSocket } from "@/lib/socket";
+import { useMessages, useSendMessage } from "@/hooks/useMessages";
 
 // CSS for contentEditable placeholder
 const styles = `
@@ -25,88 +27,11 @@ const styles = `
   }
 `;
 
-interface Message {
-  id: string;
-  text: string;
-  timestamp: string;
-  isAgent: boolean;
-  avatar?: string;
-}
-
 interface ChatThreadProps {
   conversationId?: string;
   onBack?: () => void;
   className?: string;
 }
-
-const mockMessages: Record<string, Message[]> = {
-  "1": [
-    {
-      id: "m1",
-      text: "Hola, estoy interesada en sus productos. ¿Podrían enviarme más información?",
-      timestamp: "10:25",
-      isAgent: false,
-    },
-    {
-      id: "m2",
-      text: "¡Hola María! Por supuesto, será un placer ayudarte. ¿Te interesa algún producto en particular?",
-      timestamp: "10:26",
-      isAgent: true,
-    },
-    {
-      id: "m3",
-      text: "Sí, he visto sus cámaras de seguridad en la página web y me gustaría saber más sobre el modelo X-200",
-      timestamp: "10:28",
-      isAgent: false,
-    },
-    {
-      id: "m4",
-      text: "Excelente elección! El modelo X-200 es uno de nuestros más populares. Te envío la ficha técnica y precios especiales.",
-      timestamp: "10:30",
-      isAgent: true,
-    },
-  ],
-  "2": [
-    {
-      id: "m5",
-      text: "Muchas gracias por toda la información que me enviaron por email.",
-      timestamp: "09:40",
-      isAgent: false,
-    },
-    {
-      id: "m6",
-      text: "De nada Carlos! ¿Te ayudó a tomar una decisión? ¿Tienes alguna pregunta adicional?",
-      timestamp: "09:42",
-      isAgent: true,
-    },
-    {
-      id: "m7",
-      text: "Sí, me ayudó mucho. Creo que voy a proceder con la compra. ¿Cuál sería el siguiente paso?",
-      timestamp: "09:45",
-      isAgent: false,
-    },
-  ],
-};
-
-const mockConversations = {
-  "1": { name: "María González", channel: "whatsapp" },
-  "2": { name: "Carlos Ruiz", channel: "email" },
-  "3": { name: "Ana Martínez", channel: "facebook" },
-  "4": { name: "Luis Fernández", channel: "whatsapp" },
-  "5": { name: "Carmen López", channel: "email" },
-};
-
-const channelColors = {
-  whatsapp: "#25D366",
-  email: "#4285F4",
-  facebook: "#1877F2",
-};
-
-const channelLabels = {
-  whatsapp: "WhatsApp",
-  email: "Email",
-  facebook: "Facebook",
-};
 
 export function ChatThread({
   conversationId,
@@ -117,10 +42,34 @@ export function ChatThread({
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const conversation = conversationId
-    ? mockConversations[conversationId as keyof typeof mockConversations]
-    : null;
-  const messages = conversationId ? mockMessages[conversationId] || [] : [];
+  // Usar store global en lugar de mock data
+  const { messagesByConversation, conversations } = useConversationStore();
+  const messages = conversationId ? messagesByConversation[conversationId] || [] : [];
+  const conversation = conversations.find(c => c.id === conversationId);
+
+  // Hooks para datos reales
+  const { data: messagesResponse, isLoading } = useMessages(conversationId || "", {
+    enabled: !!conversationId
+  });
+  const sendMessageMutation = useSendMessage();
+
+  // Implementar join/leave conversation con Socket.IO
+  useEffect(() => {
+    if (conversationId) {
+      const socket = getSocket();
+      if (socket && socket.connected) {
+        console.log("🔗 Uniéndose a conversación:", conversationId);
+        socket.emit("join-conversation", conversationId);
+        
+        return () => {
+          console.log("🔗 Saliendo de conversación:", conversationId);
+          socket.emit("leave-conversation", conversationId);
+        };
+      } else {
+        console.warn("⚠️ Socket no conectado al intentar unirse a conversación");
+      }
+    }
+  }, [conversationId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -131,15 +80,16 @@ export function ChatThread({
   }, [messages]);
 
   const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !conversationId) return;
 
-    // Simulate sending message
-    console.log("Sending message:", newMessage);
+    console.log("📤 Enviando mensaje:", newMessage, "a conversación:", conversationId);
+    
+    sendMessageMutation.mutate({ 
+      conversationId, 
+      messageData: { content: newMessage } 
+    });
+    
     setNewMessage("");
-
-    // Simulate typing indicator
-    setIsTyping(true);
-    setTimeout(() => setIsTyping(false), 2000);
   };
 
   const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
@@ -154,7 +104,7 @@ export function ChatThread({
     }
   };
 
-  if (!conversationId || !conversation) {
+  if (!conversationId) {
     return (
       <div
         className={cn(
@@ -172,83 +122,135 @@ export function ChatThread({
     );
   }
 
+  if (!conversation) {
+    return (
+      <div
+        className={cn(
+          "h-full flex items-center justify-center text-gray-400",
+          className,
+        )}
+      >
+        <div className="text-center">
+          <h3 className="text-lg font-medium mb-2">
+            Cargando conversación...
+          </h3>
+          <p>Conectando con el servidor</p>
+        </div>
+      </div>
+    );
+  }
+
+  const getChannelColor = (channel: string) => {
+    switch (channel) {
+      case "whatsapp": return "#25D366";
+      case "email": return "#4285F4";
+      case "facebook": return "#1877F2";
+      default: return "#6B7280";
+    }
+  };
+
+  const getChannelLabel = (channel: string) => {
+    switch (channel) {
+      case "whatsapp": return "WhatsApp";
+      case "email": return "Email";
+      case "facebook": return "Facebook";
+      default: return channel;
+    }
+  };
+
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: styles }} />
-      <div
-        className={cn("h-full flex flex-col", className)}
-        style={{ background: "#18181B", fontSize: "14px", lineHeight: "1.4em" }}
-      >
+      <style>{styles}</style>
+      <div className={cn("h-full flex flex-col bg-[#0A0A0A]", className)}>
         {/* Header */}
-        <div
-          className="flex items-center px-6 border-b border-gray-800"
-          style={{ height: "64px", background: "#18181B" }}
-        >
-          {onBack && (
+        <div className="flex items-center justify-between p-4 border-b border-[#1F1F25] bg-[#0D0D12]">
+          <div className="flex items-center gap-3">
             <button
               onClick={onBack}
-              className="mr-4 p-1 hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-[#1F1F25] rounded-lg transition-colors lg:hidden"
             >
-              <ChevronLeft className="w-6 h-6 text-gray-400" />
+              <ChevronLeft className="h-5 w-5 text-[#9CA3AF]" />
             </button>
-          )}
 
-          <div className="flex-1">
             <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-semibold">
+                {conversation.name.charAt(0).toUpperCase()}
+              </div>
               <div>
-                <h2
-                  className="text-lg font-bold text-[#E4E4E7]"
-                  style={{ fontSize: "16px" }}
-                >
+                <h2 className="text-[#E4E4E7] font-semibold text-base">
                   {conversation.name}
                 </h2>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: getChannelColor(conversation.channel) }}
+                  />
+                  <span className="text-[#9CA3AF] text-sm">
+                    {getChannelLabel(conversation.channel)}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
-          <span
-            className="px-3 py-1 rounded text-sm font-medium text-white"
-            style={{
-              backgroundColor: "#7C3AED",
-              fontSize: "12px",
-            }}
-          >
-            {channelLabels[conversation.channel as keyof typeof channelLabels]}
-          </span>
+          <div className="flex items-center gap-2">
+            <button className="p-2 hover:bg-[#1F1F25] rounded-lg transition-colors">
+              <FileText className="h-4 w-4 text-[#9CA3AF]" />
+            </button>
+            <button className="p-2 hover:bg-[#1F1F25] rounded-lg transition-colors">
+              <Zap className="h-4 w-4 text-[#9CA3AF]" />
+            </button>
+            <button className="p-2 hover:bg-[#1F1F25] rounded-lg transition-colors">
+              <ChevronDown className="h-4 w-4 text-[#9CA3AF]" />
+            </button>
+          </div>
         </div>
 
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                "flex",
-                message.isAgent ? "justify-end" : "justify-start",
-              )}
-            >
+          {isLoading && messages.length === 0 ? (
+            <div className="flex justify-center">
+              <div className="text-gray-400">Cargando mensajes...</div>
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex justify-center">
+              <div className="text-gray-400">No hay mensajes en esta conversación</div>
+            </div>
+          ) : (
+            messages.map((message) => (
               <div
+                key={message.id}
                 className={cn(
-                  "max-w-[70%] rounded-xl px-4 py-3",
-                  message.isAgent
-                    ? "bg-[#7C3AED] text-white"
-                    : "bg-[#27272A] text-[#E4E4E7]",
+                  "flex",
+                  message.sender === "agent" ? "justify-end" : "justify-start",
                 )}
-                style={{ fontSize: "14px" }}
               >
-                <p>{message.text}</p>
                 <div
                   className={cn(
-                    "text-xs mt-1",
-                    message.isAgent ? "text-purple-100" : "text-[#9CA3AF]",
+                    "max-w-[70%] rounded-xl px-4 py-3",
+                    message.sender === "agent"
+                      ? "bg-[#7C3AED] text-white"
+                      : "bg-[#27272A] text-[#E4E4E7]",
                   )}
-                  style={{ fontSize: "10px" }}
+                  style={{ fontSize: "14px" }}
                 >
-                  {message.timestamp}
+                  <p>{message.content}</p>
+                  <div
+                    className={cn(
+                      "text-xs mt-1",
+                      message.sender === "agent" ? "text-purple-100" : "text-[#9CA3AF]",
+                    )}
+                    style={{ fontSize: "10px" }}
+                  >
+                    {new Date(message.timestamp).toLocaleTimeString('es-ES', { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
 
           {isTyping && (
             <div className="flex justify-start">
@@ -272,154 +274,45 @@ export function ChatThread({
         </div>
 
         {/* Enhanced Message Input */}
-        <div
-          className="border-t border-gray-800"
-          style={{ background: "#18181B" }}
-        >
-          {/* Action Buttons Row */}
-          <div
-            className="flex items-center justify-between px-6 py-2 border-b border-gray-800"
-            style={{ background: "#18181B" }}
-          >
-            {/* Minimalist Action Icons */}
-            <div className="flex items-center gap-1">
-              <button
-                title="Enviar Campaña"
-                className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
-                style={{ padding: "8px" }}
-              >
-                <Mail
-                  className="w-6 h-6"
-                  style={{ width: "24px", height: "24px" }}
-                />
+        <div className="p-4 border-t border-[#1F1F25] bg-[#0D0D12]">
+          <div className="flex items-end gap-3">
+            <div className="flex gap-2">
+              <button className="p-2 text-[#9CA3AF] hover:text-white hover:bg-[#1F1F25] rounded-lg transition-colors">
+                <Paperclip className="h-5 w-5" />
               </button>
-
-              <button
-                title="Resumir (IA)"
-                className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
-                style={{ padding: "8px" }}
-              >
-                <Zap
-                  className="w-6 h-6"
-                  style={{ width: "24px", height: "24px" }}
-                />
-              </button>
-
-              <button
-                title="Agregar Nota"
-                className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
-                style={{ padding: "8px" }}
-              >
-                <FileText
-                  className="w-6 h-6"
-                  style={{ width: "24px", height: "24px" }}
-                />
+              <button className="p-2 text-[#9CA3AF] hover:text-white hover:bg-[#1F1F25] rounded-lg transition-colors">
+                <Image className="h-5 w-5" />
               </button>
             </div>
 
-            {/* AI Assist Toggle - Square Button */}
-            <button
-              className={cn(
-                "flex items-center justify-center rounded-lg text-sm font-medium transition-colors bg-[#7C3AED] text-white hover:bg-purple-700",
-              )}
-              style={{ width: "32px", height: "32px" }}
-            >
-              <span style={{ fontSize: "16px" }}>✨</span>
-            </button>
-          </div>
+            <div className="flex-1 relative">
+              <div
+                className="w-full min-h-[42px] max-h-32 px-4 py-3 bg-[#1F1F25] border border-[#3F3F46] rounded-xl text-[#E4E4E7] overflow-y-auto resize-none focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:border-transparent"
+                contentEditable
+                suppressContentEditableWarning
+                style={{
+                  fontSize: "14px",
+                }}
+                onInput={handleInput}
+                onKeyDown={handleKeyDown}
+                data-placeholder="Escribe un mensaje…"
+              />
+            </div>
 
-          {/* Message Input Area */}
-          <div className="px-6 py-3">
-            <div
-              className="bg-[#27272A] border border-[#3A3A40] rounded-lg overflow-hidden"
-              style={{ borderRadius: "8px" }}
-            >
-              {/* Text Input */}
-              <div className="px-4 py-3">
-                <div
-                  contentEditable
-                  suppressContentEditableWarning
-                  className="flex-1 min-h-[20px] max-h-[120px] px-3 py-2 text-sm text-white bg-transparent resize-none outline-none placeholder-gray-500 overflow-y-auto"
-                  style={{
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                    fontSize: "14px",
-                  }}
-                  onInput={(e) => {
-                    const content = e.currentTarget.textContent || "";
-                    setNewMessage(content);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                  data-placeholder="Escribe un mensaje…"
-                />
-              </div>
-
-              {/* Action Bar */}
-              <div className="flex items-center justify-between px-3 py-2 border-t border-[#3A3A40]">
-                <div className="flex items-center gap-1">
-                  {/* Attachment Options */}
-                  <button
-                    className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
-                    disabled
-                    style={{ padding: "8px" }}
-                  >
-                    <Paperclip
-                      className="w-6 h-6"
-                      style={{ width: "24px", height: "24px" }}
-                    />
-                  </button>
-                  <button
-                    className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
-                    disabled
-                    style={{ padding: "8px" }}
-                  >
-                    <Image
-                      className="w-6 h-6"
-                      style={{ width: "24px", height: "24px" }}
-                    />
-                  </button>
-                  <button
-                    className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
-                    disabled
-                    style={{ padding: "8px" }}
-                  >
-                    <Smile
-                      className="w-6 h-6"
-                      style={{ width: "24px", height: "24px" }}
-                    />
-                  </button>
-                  <button
-                    className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
-                    disabled
-                    style={{ padding: "8px" }}
-                  >
-                    <Mic
-                      className="w-6 h-6"
-                      style={{ width: "24px", height: "24px" }}
-                    />
-                  </button>
-                </div>
-
-                {/* Send Button - Square Purple */}
-                <button
-                  onClick={handleSendMessage}
-                  disabled={!newMessage.trim()}
-                  className={cn(
-                    "flex items-center justify-center rounded-lg transition-colors",
-                    newMessage.trim()
-                      ? "bg-[#7C3AED] text-white hover:bg-purple-700"
-                      : "bg-gray-600 text-gray-400 cursor-not-allowed",
-                  )}
-                  style={{ width: "32px", height: "32px" }}
-                >
-                  <Send className="w-4 h-4" />
-                </button>
-              </div>
+            <div className="flex gap-2">
+              <button className="p-2 text-[#9CA3AF] hover:text-white hover:bg-[#1F1F25] rounded-lg transition-colors">
+                <Smile className="h-5 w-5" />
+              </button>
+              <button className="p-2 text-[#9CA3AF] hover:text-white hover:bg-[#1F1F25] rounded-lg transition-colors">
+                <Mic className="h-5 w-5" />
+              </button>
+              <button
+                onClick={handleSendMessage}
+                disabled={!newMessage.trim() || sendMessageMutation.isPending}
+                className="p-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+              >
+                <Send className="h-5 w-5" />
+              </button>
             </div>
           </div>
         </div>

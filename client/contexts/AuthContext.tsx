@@ -25,24 +25,54 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
   const { addMessage, updateConversation } = useConversationStore();
 
+  // Configurar listeners de Socket.IO cuando hay usuario autenticado
   useEffect(() => {
+    if (!user) return;
+
     const handleNewMessage = (message: any) => {
+      console.log("📩 Nuevo mensaje recibido por socket:", message);
       addMessage(message);
+      
+      // Mostrar notificación
+      toast({
+        title: "Nuevo mensaje",
+        description: `De: ${message.senderName || 'Desconocido'}`,
+      });
     };
 
     const handleConversationUpdate = (conversation: any) => {
+      console.log("🔄 Actualización de conversación:", conversation);
       updateConversation(conversation);
     };
 
+    const handleMessageRead = (data: { conversationId: string; messageId: string }) => {
+      console.log("👁️ Mensaje marcado como leído:", data);
+      // Aquí podrías actualizar el estado de lectura si fuera necesario
+    };
+
+    const handleUserTyping = (data: { conversationId: string; userId: string; isTyping: boolean }) => {
+      console.log("⌨️ Usuario escribiendo:", data);
+      // Aquí podrías mostrar indicador de "escribiendo..."
+    };
+
     const socket = getSocket();
-    if (socket) {
+    if (socket && socket.connected) {
+      console.log("🎧 Configurando listeners de eventos socket...");
+      
       socket.on("message:new", handleNewMessage);
       socket.on("conversation:status", handleConversationUpdate);
+      socket.on("message:read", handleMessageRead);
+      socket.on("user:typing", handleUserTyping);
 
       return () => {
+        console.log("🔇 Removiendo listeners de eventos socket...");
         socket.off("message:new", handleNewMessage);
         socket.off("conversation:status", handleConversationUpdate);
+        socket.off("message:read", handleMessageRead);
+        socket.off("user:typing", handleUserTyping);
       };
+    } else {
+      console.warn("⚠️ Socket no disponible para configurar listeners");
     }
   }, [user, addMessage, updateConversation]);
 
@@ -58,25 +88,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Verificar si hay token guardado
       const token = localStorage.getItem('authToken');
       if (!token) {
+        console.log("🔐 No hay token de autenticación guardado");
         setLoading(false);
         return;
       }
 
+      console.log("🔐 Verificando token de autenticación...");
+      
       // Verificar con el backend si el token es válido
       const response = await api.get<ApiResponse<User>>('/auth/me');
       
       if (response.success && response.data) {
+        console.log("✅ Token válido, usuario autenticado:", response.data.name);
         setUser(response.data);
+        
+        // Inicializar socket si no está conectado
+        const socket = getSocket();
+        if (!socket || !socket.connected) {
+          console.log("🔌 Inicializando socket con token existente...");
+          initSocket(token);
+        }
       } else {
-        // Token inválido, limpiar
+        console.log("❌ Token inválido, limpiando sesión");
         localStorage.removeItem('authToken');
         setUser(null);
       }
-    } catch (error) {
-      // Error al verificar autenticación, limpiar estado
-      localStorage.removeItem('authToken');
-      setUser(null);
-      console.error('Auth verification failed:', error);
+    } catch (error: any) {
+      console.error('❌ Error al verificar autenticación:', error);
+      
+      if (error.response?.status === 401) {
+        console.log("🔐 Token expirado, limpiando sesión");
+        localStorage.removeItem('authToken');
+        setUser(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -86,17 +130,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       setLoading(true);
       
+      console.log("🔐 Intentando iniciar sesión para:", email);
+      
       const response = await api.post<ApiResponse<{ user: User; token: string }>>('/auth/login', {
         email,
         password,
       });
 
       if (response.success && response.data) {
+        console.log("✅ Login exitoso:", response.data.user.name);
         setUser(response.data.user);
         
         if (response.data.token) {
           localStorage.setItem('authToken', response.data.token);
-          initSocket(response.data.token); // Inicializar socket
+          console.log("🔌 Inicializando socket con nuevo token...");
+          initSocket(response.data.token);
         }
 
         toast({
@@ -108,6 +156,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || 'Error al iniciar sesión';
+      
+      console.error("❌ Error de login:", errorMessage);
       
       toast({
         variant: "destructive",
@@ -122,17 +172,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = async (): Promise<void> => {
     try {
+      console.log("🚪 Cerrando sesión...");
+      
       // Llamar al endpoint de logout si existe
       await api.post('/auth/logout').catch(() => {
-        // Si falla el logout en el servidor, continuar con el logout local
+        console.log("⚠️ Error en logout del servidor, continuando con logout local");
       });
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error('❌ Error durante logout:', error);
     } finally {
       // Limpiar estado local
       setUser(null);
       localStorage.removeItem('authToken');
-      disconnectSocket(); // Desconectar socket
+      disconnectSocket();
+      
+      console.log("✅ Sesión cerrada exitosamente");
       
       toast({
         title: "Sesión cerrada",
