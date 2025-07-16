@@ -10,11 +10,11 @@ import type {
 
 // Hook para obtener lista de contactos
 export function useContacts(params?: {
-  page?: number;
   pageSize?: number;
   search?: string;
   status?: string;
   section?: string;
+  cursor?: string;
 }) {
   return useQuery({
     queryKey: ['contacts', params],

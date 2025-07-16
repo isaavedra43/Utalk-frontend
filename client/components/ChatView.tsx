@@ -6,7 +6,7 @@ import { MessageSquare, Mail, Facebook, Smartphone, Send, Paperclip, Mic, Chevro
 import { MessageBubble } from "@/components/MessageBubble";
 import { useMessages, useConversation, useSendMessage } from "@/hooks/useMessages";
 import { Loader2 } from "lucide-react";
-import type { Message } from "@/types/api";
+import type { Message, Conversation } from "@/types/api";
 
 interface ChatViewProps {
   chatId: string;
@@ -43,7 +43,7 @@ export function ChatView({ chatId, onBack, onShowAI, onShowClientInfo, onToggleR
     setNewMessage("");
   };
   
-  const getChannelIcon = (channel: Message["channel"] | undefined) => {
+  const getChannelIcon = (channel: Conversation["channel"] | undefined) => {
     switch (channel) {
         case "whatsapp": return <MessageSquare className="h-3 w-3 mr-1" />;
         case "email": return <Mail className="h-3 w-3 mr-1" />;
@@ -89,7 +89,7 @@ export function ChatView({ chatId, onBack, onShowAI, onShowClientInfo, onToggleR
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
+          <MessageBubble key={message.id} id={message.id} content={message.content} sender={message.sender} timestamp={message.timestamp} status={message.status} />
         ))}
         <div ref={messagesEndRef} />
       </div>

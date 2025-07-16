@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { api } from '@/lib/apiClient';
 import { toast } from '@/hooks/use-toast';
 import type { User, LoginCredentials, ApiResponse } from '@/types/api';
+import { initSocket, disconnectSocket, getSocket } from '@/lib/socket';
+import { useConversationStore } from '@/hooks/useConversationStore';
 
 interface AuthContextType {
   user: User | null;
@@ -21,6 +23,28 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const { addMessage, updateConversation } = useConversationStore();
+
+  useEffect(() => {
+    const handleNewMessage = (message: any) => {
+      addMessage(message);
+    };
+
+    const handleConversationUpdate = (conversation: any) => {
+      updateConversation(conversation);
+    };
+
+    const socket = getSocket();
+    if (socket) {
+      socket.on("message:new", handleNewMessage);
+      socket.on("conversation:status", handleConversationUpdate);
+
+      return () => {
+        socket.off("message:new", handleNewMessage);
+        socket.off("conversation:status", handleConversationUpdate);
+      };
+    }
+  }, [user, addMessage, updateConversation]);
 
   // Verificar autenticación al cargar
   useEffect(() => {
@@ -70,9 +94,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (response.success && response.data) {
         setUser(response.data.user);
         
-        // Guardar token de autenticación
         if (response.data.token) {
           localStorage.setItem('authToken', response.data.token);
+          initSocket(response.data.token); // Inicializar socket
         }
 
         toast({
@@ -108,6 +132,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Limpiar estado local
       setUser(null);
       localStorage.removeItem('authToken');
+      disconnectSocket(); // Desconectar socket
       
       toast({
         title: "Sesión cerrada",

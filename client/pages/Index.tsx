@@ -199,6 +199,7 @@ export default function Index() {
                     <div className="flex-1">
                       <ChatView
                         chatId={selectedChatId}
+                        isMobile={isMobile}
                         onShowAI={() => setRightPanelVisible(true)}
                         onShowClientInfo={() => {
                           setRightPanelVisible(true);

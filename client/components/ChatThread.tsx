@@ -345,8 +345,16 @@ export function ChatThread({
                     wordBreak: "break-word",
                     fontSize: "14px",
                   }}
-                  onInput={handleInput}
-                  onKeyDown={handleKeyDown}
+                  onInput={(e) => {
+                    const content = e.currentTarget.textContent || "";
+                    setNewMessage(content);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
                   data-placeholder="Escribe un mensaje…"
                 />
               </div>

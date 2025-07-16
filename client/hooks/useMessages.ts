@@ -12,11 +12,11 @@ import type {
 
 // Hook para obtener conversaciones
 export function useConversations(params?: {
-  page?: number;
   pageSize?: number;
   search?: string;
   channel?: string;
   status?: string;
+  cursor?: string;
 }) {
   return useQuery({
     queryKey: ['conversations', params],
@@ -44,8 +44,9 @@ export function useConversation(conversationId: string) {
 
 // Hook para obtener mensajes de una conversación
 export function useMessages(conversationId: string, params?: {
-  page?: number;
   pageSize?: number;
+  cursor?: string;
+  enabled?: boolean;
 }) {
   return useQuery({
     queryKey: ['messages', conversationId, params],
