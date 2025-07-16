@@ -13,7 +13,7 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCampaigns, useCreateCampaign, useUpdateCampaign, useDeleteCampaign, useSendCampaign, useDuplicateCampaign } from "@/hooks/useCampaigns";
+import { useCampaigns, useCreateCampaign, useUpdateCampaign, useDeleteCampaign, useLaunchCampaign, useDuplicateCampaign } from "@/hooks/useCampaigns";
 import { Loader2 } from "lucide-react";
 import type { Campaign } from "@/types/api";
 
@@ -27,7 +27,7 @@ export function CampaignModule({ className }: CampaignModuleProps) {
   const createCampaignMutation = useCreateCampaign();
   const updateCampaignMutation = useUpdateCampaign();
   const deleteCampaignMutation = useDeleteCampaign();
-  const sendCampaignMutation = useSendCampaign();
+  const launchCampaignMutation = useLaunchCampaign();
   const duplicateCampaignMutation = useDuplicateCampaign();
 
   // Datos reales desde el hook
@@ -65,7 +65,7 @@ export function CampaignModule({ className }: CampaignModuleProps) {
 
   const handleDuplicateCampaign = (campaignId: string) => {
     console.log("{{duplicateCampaign}} - Duplicating campaign:", campaignId);
-    duplicateCampaignMutation.mutate(campaignId);
+    duplicateCampaignMutation.mutate({ campaignId });
   };
 
   const handleDeleteCampaign = (campaignId: string) => {
@@ -106,7 +106,7 @@ export function CampaignModule({ className }: CampaignModuleProps) {
 
   const handleSendCampaign = (campaignId: string) => {
     console.log("{{sendCampaign}} - Sending campaign:", campaignId);
-    sendCampaignMutation.mutate({ campaignId });
+    launchCampaignMutation.mutate(campaignId);
   };
 
   const handleCancelCampaign = (campaignId: string) => {

@@ -14,7 +14,7 @@ import {
   Grip,
   List,
 } from "lucide-react";
-import { useDocuments, useFAQs } from "@/hooks/useKnowledgeBase";
+import { useKnowledgeBase } from "@/hooks/useKnowledgeBase";
 import { Loader2 } from "lucide-react";
 import type { KBDocument, FAQ } from "@/types/api";
 
@@ -22,8 +22,8 @@ export function KnowledgeBase({ className }: { className?: string }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   
-  const { data: documentsResponse, isLoading: isLoadingDocs } = useDocuments({ search: searchQuery });
-  const { data: faqsResponse, isLoading: isLoadingFaqs } = useFAQs({ search: searchQuery });
+  const { data: documentsResponse, isLoading: isLoadingDocs } = useKnowledgeBase({ search: searchQuery, type: 'document' });
+  const { data: faqsResponse, isLoading: isLoadingFaqs } = useKnowledgeBase({ search: searchQuery, type: 'faq' });
 
   const documents = documentsResponse?.data || [];
   const faqs = faqsResponse?.data || [];

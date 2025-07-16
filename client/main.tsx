@@ -13,8 +13,35 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
-// Log de inicio de la aplicación
+// 🚀 LOGS AVANZADOS DE ARRANQUE DEL SISTEMA
+const APP_START_TIME = performance.now();
+const BUILD_INFO = {
+  version: import.meta.env.VITE_APP_VERSION || '1.0.0',
+  environment: import.meta.env.MODE,
+  isDev: import.meta.env.DEV,
+  isProd: import.meta.env.PROD,
+  apiUrl: import.meta.env.VITE_API_URL,
+  buildTime: new Date().toISOString(),
+  userAgent: navigator.userAgent.substring(0, 100) + '...',
+  url: window.location.href,
+  viewport: `${window.innerWidth}x${window.innerHeight}`,
+  platform: navigator.platform
+};
+
+// Log de inicio avanzado con información del sistema
+console.group('🚀 [SISTEMA] Inicio de UTalk Frontend');
+console.info('📱 Información de build:', BUILD_INFO);
+console.info('🌐 Información del navegador:', {
+  language: navigator.language,
+  cookieEnabled: navigator.cookieEnabled,
+  onLine: navigator.onLine,
+  hardwareConcurrency: navigator.hardwareConcurrency,
+  memoryGB: (navigator as any).deviceMemory || 'N/A'
+});
+console.groupEnd();
+
 logger.appStart();
+logger.log('🎯 Sistema UTalk iniciando con logs avanzados');
 
 // Configuración de React Query con logs
 const queryClient = new QueryClient({
@@ -36,17 +63,12 @@ const queryClient = new QueryClient({
       staleTime: 5 * 60 * 1000, // 5 minutos
       gcTime: 10 * 60 * 1000, // 10 minutos
       refetchOnWindowFocus: false,
-      onError: (error: any) => {
-        logger.api('Query error', { error: error?.message }, true);
-      },
+
     },
-    mutations: {
-      retry: 1,
-      retryDelay: 1000,
-      onError: (error: any) => {
-        logger.api('Mutation error', { error: error?.message }, true);
+          mutations: {
+        retry: 1,
+        retryDelay: 1000,
       },
-    },
   },
 });
 
@@ -177,9 +199,35 @@ if (import.meta.env.DEV) {
   `);
 }
 
-// Log final de inicialización completa
-logger.navigation('Inicialización de la aplicación completada', {
+// 🏁 LOGS FINALES DE INICIALIZACIÓN COMPLETA
+const APP_END_TIME = performance.now();
+const TOTAL_INIT_TIME = APP_END_TIME - APP_START_TIME;
+
+console.group('🏁 [SISTEMA] Inicialización de UTalk completada');
+console.info('⏱️ Métricas de rendimiento:', {
+  'Tiempo total de inicialización': `${TOTAL_INIT_TIME.toFixed(2)}ms`,
+  'Estado': 'Completado exitosamente',
+  'Timestamp': new Date().toISOString()
+});
+console.info('📊 Estado del sistema:', {
+  'React Query': 'Configurado',
+  'Auth Provider': 'Activo', 
+  'Router': 'Configurado',
+  'Error Handlers': 'Activos',
+  'Logs': 'Habilitados'
+});
+console.groupEnd();
+
+logger.navigation('🎉 Inicialización de la aplicación UTalk completada exitosamente', {
+  totalInitTime: `${TOTAL_INIT_TIME.toFixed(2)}ms`,
   timestamp: new Date().toISOString(),
   url: window.location.href,
-  userAgent: navigator.userAgent
+  componentsLoaded: ['QueryClient', 'AuthProvider', 'Router', 'Toaster'],
+  developmentMode: import.meta.env.DEV
 });
+
+// Performance mark para métricas adicionales
+if ('performance' in window && 'mark' in performance) {
+  performance.mark('utalk-app-ready');
+  performance.measure('utalk-init-duration', 'navigationStart', 'utalk-app-ready');
+}

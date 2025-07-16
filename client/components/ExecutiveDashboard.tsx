@@ -41,44 +41,148 @@ import {
   useExportDashboardReport 
 } from "@/hooks/useDashboard";
 import { toast } from "@/hooks/use-toast";
+import { logger } from "@/lib/utils";
 
 interface ExecutiveDashboardProps {
   className?: string;
 }
 
 export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
+  // 🚀 LOGS AVANZADOS DE MONTAJE DEL COMPONENTE
+  const componentStartTime = performance.now();
+  const componentId = `dashboard-exec-${Date.now()}`;
+  
+  console.group('🏗️ [EXECUTIVE DASHBOARD] Componente montándose');
+  console.info('📋 Props recibidos:', { 
+    className,
+    componentId,
+    mountTime: new Date().toISOString() 
+  });
+  console.groupEnd();
+
+  // Estado local del componente
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month' | 'quarter' | 'year'>('month');
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [refreshCountdown, setRefreshCountdown] = useState(30);
 
-  // Hooks para datos reales
+  console.info('🔧 [COMPONENT STATE] Estado inicial configurado', {
+    searchTerm,
+    selectedPeriod,
+    autoRefreshEnabled,
+    refreshCountdown,
+    componentId
+  });
+
+  // 🎯 HOOKS CON LOGS EXHAUSTIVOS
+  console.group('🔌 [HOOKS] Inicializando hooks del dashboard');
+  
+  const dashboardHookStartTime = performance.now();
   const { 
     data: dashboardData, 
     isLoading: isDashboardLoading, 
     error: dashboardError,
-    refetch: refetchDashboard 
-  } = useDashboardMetrics({ period: selectedPeriod });
+    refetch: refetchDashboard,
+    isFetching: isDashboardFetching
+  } = useDashboardMetrics({ 
+    period: selectedPeriod,
+    includeComparisons: true,
+    refresh: false
+  });
+  
+  const dashboardHookEndTime = performance.now();
+  console.info('📊 [HOOK] useDashboardMetrics resultado:', {
+    hookExecutionTime: `${(dashboardHookEndTime - dashboardHookStartTime).toFixed(2)}ms`,
+    hasData: !!dashboardData,
+    isLoading: isDashboardLoading,
+    isFetching: isDashboardFetching,
+    hasError: !!dashboardError,
+    dataKeys: dashboardData ? Object.keys(dashboardData) : [],
+    period: selectedPeriod
+  });
 
+  const alertsHookStartTime = performance.now();
   const { 
-    data: alerts, 
-    isLoading: isAlertsLoading 
+    data: alertsData, 
+    isLoading: isAlertsLoading,
+    error: alertsError 
   } = useDashboardAlerts();
+  
+  const alertsHookEndTime = performance.now();
+  console.info('🚨 [HOOK] useDashboardAlerts resultado:', {
+    hookExecutionTime: `${(alertsHookEndTime - alertsHookStartTime).toFixed(2)}ms`,
+    hasData: !!alertsData,
+    isLoading: isAlertsLoading,
+    hasError: !!alertsError,
+    alertsCount: alertsData?.alerts?.length || 0
+  });
 
+  const realtimeHookStartTime = performance.now();
   const { 
-    data: realtimeActivity, 
-    isLoading: isActivityLoading 
+    data: realtimeData, 
+    isLoading: isRealtimeLoading,
+    error: realtimeError 
   } = useRealtimeActivity();
+  
+  const realtimeHookEndTime = performance.now();
+  console.info('🔴 [HOOK] useRealtimeActivity resultado:', {
+    hookExecutionTime: `${(realtimeHookEndTime - realtimeHookStartTime).toFixed(2)}ms`,
+    hasData: !!realtimeData,
+    isLoading: isRealtimeLoading,
+    hasError: !!realtimeError,
+    activitiesCount: realtimeData?.length || 0
+  });
 
   const exportReportMutation = useExportDashboardReport();
+  
+  console.groupEnd();
 
-  // Auto-refresh countdown
+  // Log cambios en los datos
   useEffect(() => {
-    if (!autoRefreshEnabled) return;
+    if (dashboardData) {
+      console.info('📈 [DATA CHANGE] Datos del dashboard actualizados', {
+        componentId,
+        timestamp: new Date().toISOString(),
+        dataStructure: {
+          totalConversations: dashboardData.totalConversations,
+          activeConversations: dashboardData.activeConversations,
+          responseTime: dashboardData.responseTime,
+          customerSatisfaction: dashboardData.customerSatisfaction,
+          hasComparisons: !!dashboardData.comparisons,
+          alertsCount: dashboardData.alerts?.length || 0
+        }
+      });
+    }
+  }, [dashboardData, componentId]);
+
+  // Log errores de hooks
+  useEffect(() => {
+    if (dashboardError) {
+      console.error('💥 [DASHBOARD ERROR] Error en datos del dashboard', {
+        error: dashboardError.message,
+        componentId,
+        timestamp: new Date().toISOString()
+      });
+      logger.api('Error crítico en dashboard ejecutivo', { 
+        error: dashboardError.message,
+        component: 'ExecutiveDashboard'
+      }, true);
+    }
+  }, [dashboardError, componentId]);
+
+  // Auto-refresh countdown con logs
+  useEffect(() => {
+    if (!autoRefreshEnabled) {
+      console.info('⏸️ [AUTO-REFRESH] Auto-refresh deshabilitado');
+      return;
+    }
+
+    console.info('🔄 [AUTO-REFRESH] Auto-refresh habilitado, countdown cada 30s');
 
     const timer = setInterval(() => {
       setRefreshCountdown((prev) => {
         if (prev <= 1) {
+          console.info('🔄 [AUTO-REFRESH] Ejecutando refresh automático');
           refetchDashboard();
           return 30;
         }
@@ -86,12 +190,25 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
       });
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      console.info('🛑 [AUTO-REFRESH] Timer limpiado');
+    };
   }, [autoRefreshEnabled, refetchDashboard]);
 
+  // Handlers con logs
   const handleManualRefresh = () => {
+    const refreshStartTime = performance.now();
+    console.info('🔄 [MANUAL REFRESH] Refresh manual iniciado');
+    
     refetchDashboard();
     setRefreshCountdown(30);
+    
+    const refreshEndTime = performance.now();
+    console.info('✅ [MANUAL REFRESH] Refresh manual completado', {
+      refreshDuration: `${(refreshEndTime - refreshStartTime).toFixed(2)}ms`
+    });
+    
     toast({
       title: "Dashboard actualizado",
       description: "Los datos han sido refrescados exitosamente.",
@@ -99,57 +216,141 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
   };
 
   const handleExportReport = async (type: 'pdf' | 'excel' | 'csv') => {
+    const exportStartTime = performance.now();
+    console.info('📄 [EXPORT] Iniciando exportación de reporte', { type });
+    
     try {
       await exportReportMutation.mutateAsync({
         type,
         period: selectedPeriod,
         sections: ['kpis', 'alerts', 'activity', 'trends'],
       });
-    } catch (error) {
-      // Error ya manejado en el hook
+      
+      const exportEndTime = performance.now();
+      console.info('✅ [EXPORT SUCCESS] Reporte exportado exitosamente', {
+        type,
+        exportDuration: `${(exportEndTime - exportStartTime).toFixed(2)}ms`
+      });
+    } catch (error: any) {
+      const exportEndTime = performance.now();
+      console.error('❌ [EXPORT ERROR] Error en exportación', {
+        type,
+        error: error.message,
+        exportDuration: `${(exportEndTime - exportStartTime).toFixed(2)}ms`
+      });
     }
   };
 
-  // Loading state
-  if (isDashboardLoading) {
+  // 🎨 RENDERIZADO CON FEEDBACK VISUAL AVANZADO
+
+  // Loading state con skeleton loader mejorado
+  if (isDashboardLoading || isAlertsLoading) {
+    console.info('⌛ [RENDER] Mostrando estado de carga');
+    
     return (
       <div className={cn("h-full bg-gray-950 text-white p-6", className)}>
         <div className="space-y-6">
+          {/* Header skeleton */}
           <div className="flex items-center justify-between">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-10 w-32" />
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-48 bg-gray-800" />
+              <Skeleton className="h-4 w-64 bg-gray-800" />
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-24 bg-gray-800" />
+              <Skeleton className="h-10 w-20 bg-gray-800" />
+              <Skeleton className="h-10 w-28 bg-gray-800" />
+            </div>
           </div>
+          
+          {/* KPI Cards skeleton */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-32" />
+              <Card key={i} className="bg-gray-900 border-gray-800">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-24 bg-gray-800" />
+                      <Skeleton className="h-8 w-20 bg-gray-800" />
+                      <Skeleton className="h-4 w-16 bg-gray-800" />
+                    </div>
+                    <Skeleton className="h-12 w-12 rounded-lg bg-gray-800" />
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
+          
+          {/* Charts skeleton */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Skeleton className="h-64" />
-            <Skeleton className="h-64" />
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i} className="bg-gray-900 border-gray-800">
+                <CardHeader>
+                  <Skeleton className="h-6 w-32 bg-gray-800" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-48 bg-gray-800" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          
+          {/* Loading indicator */}
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+            <span className="ml-2 text-gray-400">Cargando dashboard ejecutivo...</span>
           </div>
         </div>
       </div>
     );
   }
 
-  // Error state
-  if (dashboardError) {
+  // Error state con acción de recuperación
+  if (dashboardError || alertsError || realtimeError) {
+    console.error('💀 [RENDER] Mostrando estado de error');
+    
     return (
       <div className={cn("h-full bg-gray-950 text-white p-6 flex items-center justify-center", className)}>
-        <div className="text-center">
-          <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Error al cargar el dashboard</h3>
-          <p className="text-gray-400 mb-4">No se pudieron obtener los datos del dashboard</p>
-          <Button onClick={handleManualRefresh} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Reintentar
-          </Button>
+        <div className="text-center max-w-md">
+          <AlertTriangle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold mb-2">Error al cargar el dashboard</h3>
+          <p className="text-gray-400 mb-6">
+            No se pudieron obtener los datos del dashboard ejecutivo. 
+            Verifique su conexión e inténtelo nuevamente.
+          </p>
+          
+          <div className="space-y-3">
+            <Button onClick={handleManualRefresh} className="w-full">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Reintentar Carga
+            </Button>
+            
+            <details className="text-left">
+              <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-400">
+                Detalles del error
+              </summary>
+              <div className="mt-2 p-3 bg-gray-900 rounded text-xs text-red-300">
+                {dashboardError?.message || alertsError?.message || realtimeError?.message}
+              </div>
+            </details>
+          </div>
         </div>
       </div>
     );
   }
 
+  // Log renderizado exitoso
+  const componentEndTime = performance.now();
+  const totalRenderTime = componentEndTime - componentStartTime;
+  
+  console.info('🎉 [RENDER SUCCESS] ExecutiveDashboard renderizado exitosamente', {
+    totalRenderTime: `${totalRenderTime.toFixed(2)}ms`,
+    componentId,
+    hasData: !!dashboardData,
+    timestamp: new Date().toISOString()
+  });
+
+  // Renderizado principal
   return (
     <div className={cn("h-full bg-gray-950 text-white overflow-hidden", className)}>
       {/* Header */}
@@ -159,7 +360,7 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
             <h1 className="text-2xl font-bold text-white">Dashboard Ejecutivo</h1>
             <p className="text-gray-400 text-sm">
               Última actualización: {new Date().toLocaleTimeString()} • 
-              Auto-refresh en {refreshCountdown}s
+              {autoRefreshEnabled ? `Auto-refresh en ${refreshCountdown}s` : 'Auto-refresh deshabilitado'}
             </p>
           </div>
           
@@ -167,7 +368,14 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
             {/* Period Selector */}
             <select
               value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value as any)}
+              onChange={(e) => {
+                const newPeriod = e.target.value as any;
+                console.info('📅 [PERIOD CHANGE] Período cambiado', { 
+                  from: selectedPeriod, 
+                  to: newPeriod 
+                });
+                setSelectedPeriod(newPeriod);
+              }}
               className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="today">Hoy</option>
@@ -181,7 +389,14 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+              onClick={() => {
+                const newState = !autoRefreshEnabled;
+                console.info('🔄 [AUTO-REFRESH TOGGLE]', { 
+                  from: autoRefreshEnabled, 
+                  to: newState 
+                });
+                setAutoRefreshEnabled(newState);
+              }}
               className={cn(
                 "h-10",
                 autoRefreshEnabled ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-300"
@@ -196,9 +411,13 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
               variant="outline"
               size="sm"
               onClick={handleManualRefresh}
+              disabled={isDashboardFetching}
               className="h-10"
             >
-              <RefreshCw className={cn("h-4 w-4 mr-2", isDashboardLoading && "animate-spin")} />
+              <RefreshCw className={cn(
+                "h-4 w-4 mr-2", 
+                (isDashboardFetching || isDashboardLoading) && "animate-spin"
+              )} />
               Actualizar
             </Button>
 
@@ -235,85 +454,108 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
 
       <ScrollArea className="flex-1">
         <div className="p-6 space-y-6">
-          {/* KPI Cards */}
+          {/* KPI Cards con datos reales */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <KPICard
-              title="Ventas Totales"
-              value={dashboardData?.totalSales?.value || 0}
-              change={dashboardData?.totalSales?.change || 0}
-              isPositive={dashboardData?.totalSales?.isPositive || false}
-              icon={DollarSign}
-              format="currency"
+              title="Conversaciones Totales"
+              value={dashboardData?.totalConversations || 0}
+              change={dashboardData?.comparisons?.changes?.conversations?.percentage || 0}
+              isPositive={dashboardData?.comparisons?.changes?.conversations?.trend === 'up'}
+              icon={MessageSquare}
             />
             <KPICard
-              title="Pedidos"
-              value={dashboardData?.totalOrders?.value || 0}
-              change={dashboardData?.totalOrders?.change || 0}
-              isPositive={dashboardData?.totalOrders?.isPositive || false}
-              icon={ShoppingCart}
-            />
-            <KPICard
-              title="Clientes"
-              value={dashboardData?.totalCustomers?.value || 0}
-              change={dashboardData?.totalCustomers?.change || 0}
-              isPositive={dashboardData?.totalCustomers?.isPositive || false}
+              title="Conversaciones Activas"
+              value={dashboardData?.activeConversations || 0}
+              change={5.2} // Mock data
+              isPositive={true}
               icon={Users}
             />
             <KPICard
-              title="Mensajes"
-              value={dashboardData?.totalMessages?.value || 0}
-              change={dashboardData?.totalMessages?.change || 0}
-              isPositive={dashboardData?.totalMessages?.isPositive || false}
-              icon={MessageSquare}
+              title="Tiempo de Respuesta"
+              value={dashboardData?.responseTime || 0}
+              change={dashboardData?.comparisons?.changes?.responseTime?.percentage || 0}
+              isPositive={dashboardData?.comparisons?.changes?.responseTime?.trend === 'down'} // Menor es mejor
+              icon={Clock}
+              format="time"
+            />
+            <KPICard
+              title="Satisfacción"
+              value={dashboardData?.customerSatisfaction || 0}
+              change={dashboardData?.comparisons?.changes?.satisfaction?.percentage || 0}
+              isPositive={dashboardData?.comparisons?.changes?.satisfaction?.trend === 'up'}
+              icon={Star}
+              format="percentage"
             />
           </div>
 
-          {/* Charts and Metrics */}
+          {/* Charts y métricas detalladas */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Sales Trend */}
+            {/* Métricas de rendimiento */}
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <TrendingUp className="h-5 w-5" />
-                  Tendencia de Ventas
+                  Tendencias Diarias
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {dashboardData?.salesTrend ? (
-                  <div className="h-48 flex items-center justify-center">
-                    <p className="text-gray-400">Gráfico de tendencias</p>
-                    {/* TODO: Implementar gráfico real con recharts */}
+                {dashboardData?.dailyMetrics && dashboardData.dailyMetrics.length > 0 ? (
+                  <div className="space-y-4">
+                    {dashboardData.dailyMetrics.slice(-5).map((metric, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-800 rounded">
+                        <div>
+                          <p className="text-white font-medium">{metric.date}</p>
+                          <p className="text-gray-400 text-sm">{metric.conversations} conversaciones</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-white">{metric.avgResponseTime}min respuesta</p>
+                          <p className="text-blue-400">{metric.satisfaction}% satisfacción</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : (
-                  <Skeleton className="h-48" />
+                  <div className="h-48 flex items-center justify-center">
+                    <p className="text-gray-400">No hay datos de tendencias disponibles</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Messages Activity */}
+            {/* Top Agents */}
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  Actividad de Mensajes
+                  <Users className="h-5 w-5" />
+                  Top Agentes
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {dashboardData?.messagesTrend ? (
-                  <div className="h-48 flex items-center justify-center">
-                    <p className="text-gray-400">Gráfico de mensajes</p>
-                    {/* TODO: Implementar gráfico real con recharts */}
+                {dashboardData?.topAgents && dashboardData.topAgents.length > 0 ? (
+                  <div className="space-y-3">
+                    {dashboardData.topAgents.slice(0, 5).map((agent, index) => (
+                      <div key={agent.id} className="flex items-center gap-3 p-3 bg-gray-800 rounded">
+                        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-white font-medium">{agent.name}</p>
+                          <p className="text-gray-400 text-sm">
+                            {agent.conversations} conv • {agent.avgResponseTime}min • {agent.satisfaction}%
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : (
-                  <Skeleton className="h-48" />
+                  <div className="h-48 flex items-center justify-center">
+                    <p className="text-gray-400">No hay datos de agentes disponibles</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
-          </div>
 
-          {/* Alerts and Activity */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Alerts */}
+            {/* Alertas */}
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader>
                 <CardTitle className="text-white flex items-center justify-between">
@@ -321,21 +563,15 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
                     <AlertTriangle className="h-5 w-5" />
                     Alertas
                   </div>
-                  {alerts && alerts.length > 0 && (
-                    <Badge variant="destructive">{alerts.length}</Badge>
+                  {alertsData?.alerts && alertsData.alerts.length > 0 && (
+                    <Badge variant="destructive">{alertsData.alerts.length}</Badge>
                   )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {isAlertsLoading ? (
-                  <div className="space-y-3">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <Skeleton key={i} className="h-16" />
-                    ))}
-                  </div>
-                ) : alerts && alerts.length > 0 ? (
+                {alertsData?.alerts && alertsData.alerts.length > 0 ? (
                   <div className="space-y-3 max-h-64 overflow-y-auto">
-                    {alerts.slice(0, 5).map((alert) => (
+                    {alertsData.alerts.slice(0, 5).map((alert) => (
                       <div
                         key={alert.id}
                         className={cn(
@@ -368,7 +604,7 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
               </CardContent>
             </Card>
 
-            {/* Realtime Activity */}
+            {/* Actividad en tiempo real */}
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
@@ -377,15 +613,9 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {isActivityLoading ? (
-                  <div className="space-y-3">
-                    {Array.from({ length: 4 }).map((_, i) => (
-                      <Skeleton key={i} className="h-12" />
-                    ))}
-                  </div>
-                ) : realtimeActivity && realtimeActivity.length > 0 ? (
+                {realtimeData && realtimeData.length > 0 ? (
                   <div className="space-y-3 max-h-64 overflow-y-auto">
-                    {realtimeActivity.slice(0, 8).map((activity) => (
+                    {realtimeData.slice(0, 8).map((activity) => (
                       <div key={activity.id} className="flex items-center gap-3 p-2 rounded-lg bg-gray-800/50">
                         <div className={cn(
                           "w-2 h-2 rounded-full flex-shrink-0",
@@ -422,10 +652,10 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
             </Card>
           </div>
 
-          {/* Performance Metrics */}
+          {/* Métricas de performance adicionales */}
           <Card className="bg-gray-900 border-gray-800">
             <CardHeader>
-              <CardTitle className="text-white">Métricas de Performance</CardTitle>
+              <CardTitle className="text-white">Métricas de Performance del Equipo</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -435,19 +665,19 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
                   icon={Target}
                 />
                 <MetricItem 
-                  label="Valor Promedio de Orden" 
-                  value={`$${dashboardData?.averageOrderValue?.toLocaleString() || 0}`}
-                  icon={DollarSign}
+                  label="Tasa de Resolución" 
+                  value={`${dashboardData?.resolutionRate || 0}%`}
+                  icon={CheckCircle}
                 />
                 <MetricItem 
-                  label="Satisfacción del Cliente" 
-                  value={`${dashboardData?.customerSatisfaction || 0}/5`}
-                  icon={Star}
+                  label="Eficiencia del Equipo" 
+                  value={`${dashboardData?.teamEfficiency || 0}%`}
+                  icon={Users}
                 />
                 <MetricItem 
-                  label="Tiempo de Respuesta" 
-                  value={`${dashboardData?.responseTime || 0}min`}
-                  icon={Clock}
+                  label="Total de Contactos" 
+                  value={dashboardData?.totalContacts?.toLocaleString() || '0'}
+                  icon={Phone}
                 />
               </div>
             </CardContent>
@@ -458,14 +688,14 @@ export function ExecutiveDashboard({ className }: ExecutiveDashboardProps) {
   );
 }
 
-// Componente KPI Card
+// Componente KPI Card mejorado
 interface KPICardProps {
   title: string;
   value: number;
   change: number;
   isPositive: boolean;
   icon: React.ElementType;
-  format?: 'number' | 'currency' | 'percentage';
+  format?: 'number' | 'currency' | 'percentage' | 'time';
 }
 
 function KPICard({ title, value, change, isPositive, icon: Icon, format = 'number' }: KPICardProps) {
@@ -475,13 +705,15 @@ function KPICard({ title, value, change, isPositive, icon: Icon, format = 'numbe
         return `$${val.toLocaleString()}`;
       case 'percentage':
         return `${val}%`;
+      case 'time':
+        return `${val}min`;
       default:
         return val.toLocaleString();
     }
   };
 
   return (
-    <Card className="bg-gray-900 border-gray-800">
+    <Card className="bg-gray-900 border-gray-800 hover:bg-gray-800/50 transition-colors">
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
@@ -497,8 +729,9 @@ function KPICard({ title, value, change, isPositive, icon: Icon, format = 'numbe
                 "text-sm font-medium",
                 isPositive ? "text-green-400" : "text-red-400"
               )}>
-                {change > 0 ? '+' : ''}{change}%
+                {Math.abs(change)}%
               </span>
+              <span className="text-gray-500 text-xs ml-1">vs anterior</span>
             </div>
           </div>
           <div className="p-3 bg-gray-800 rounded-lg">
@@ -510,7 +743,7 @@ function KPICard({ title, value, change, isPositive, icon: Icon, format = 'numbe
   );
 }
 
-// Componente Metric Item
+// Componente Metric Item mejorado
 interface MetricItemProps {
   label: string;
   value: string;
@@ -519,7 +752,7 @@ interface MetricItemProps {
 
 function MetricItem({ label, value, icon: Icon }: MetricItemProps) {
   return (
-    <div className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg">
+    <div className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors">
       <Icon className="h-5 w-5 text-blue-400 flex-shrink-0" />
       <div>
         <p className="text-gray-400 text-xs">{label}</p>

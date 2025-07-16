@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { api } from "@/lib/apiClient";
 import { logger } from "@/lib/utils";
 import type { ApiResponse } from "@/types/api";
@@ -203,7 +204,322 @@ export function useComparativeMetrics(params?: {
   });
 }
 
-// Hook para resumen ejecutivo
+// Hook para métricas generales del dashboard (NUEVO - Hook solicitado)
+export function useDashboardMetrics(params?: {
+  startDate?: string;
+  endDate?: string;
+  period?: 'today' | 'week' | 'month' | 'quarter' | 'year';
+  refresh?: boolean;
+  agentId?: string;
+  includeComparisons?: boolean;
+}) {
+  const startTime = performance.now();
+  
+  // Log de inicio del hook
+  console.info('🚀 [DASHBOARD HOOK] useDashboardMetrics iniciado', {
+    params,
+    timestamp: new Date().toISOString(),
+    hookId: `dashboard-metrics-${Date.now()}`
+  });
+
+  const query = useQuery({
+    queryKey: ['dashboard', 'metrics', params],
+    queryFn: async () => {
+      const fetchStartTime = performance.now();
+      
+      logger.api('📊 Obteniendo métricas completas del dashboard', { 
+        params,
+        fetchId: `fetch-${Date.now()}`
+      });
+
+      try {
+        const response = await api.get<{
+          // KPIs principales
+          totalConversations: number;
+          activeConversations: number;
+          responseTime: number;
+          resolutionRate: number;
+          customerSatisfaction: number;
+          conversionRate: number;
+          totalContacts: number;
+          totalMessages: number;
+          teamEfficiency: number;
+          
+          // Métricas de rendimiento
+          dailyMetrics: Array<{
+            date: string;
+            conversations: number;
+            responses: number;
+            avgResponseTime: number;
+            satisfaction: number;
+          }>;
+          
+          // Comparaciones (si se solicitan)
+          comparisons?: {
+            previousPeriod: {
+              totalConversations: number;
+              responseTime: number;
+              satisfaction: number;
+            };
+            changes: {
+              conversations: { value: number; percentage: number; trend: 'up' | 'down' | 'stable' };
+              responseTime: { value: number; percentage: number; trend: 'up' | 'down' | 'stable' };
+              satisfaction: { value: number; percentage: number; trend: 'up' | 'down' | 'stable' };
+            };
+          };
+          
+          // Top performers
+          topAgents: Array<{
+            id: string;
+            name: string;
+            conversations: number;
+            avgResponseTime: number;
+            satisfaction: number;
+          }>;
+          
+          // Alertas críticas
+          alerts: Array<{
+            type: 'warning' | 'error' | 'info';
+            message: string;
+            priority: 'high' | 'medium' | 'low';
+            timestamp: string;
+          }>;
+          
+          // Metadata de respuesta
+          generatedAt: string;
+          dataRange: {
+            from: string;
+            to: string;
+          };
+        }>('/dashboard/metrics', params);
+
+        const fetchEndTime = performance.now();
+        const fetchDuration = fetchEndTime - fetchStartTime;
+
+        // Log detallado de éxito
+        console.info('✅ [DASHBOARD SUCCESS] Métricas obtenidas exitosamente', {
+          fetchDuration: `${fetchDuration.toFixed(2)}ms`,
+          dataTimestamp: response.generatedAt,
+          totalConversations: response.totalConversations,
+          activeConversations: response.activeConversations,
+          responseTime: response.responseTime,
+          satisfaction: response.customerSatisfaction,
+          alertsCount: response.alerts?.length || 0,
+          hasComparisons: !!response.comparisons
+        });
+
+        // Log en tabla para mejor visualización
+        console.table({
+          'Total Conversaciones': response.totalConversations,
+          'Conversaciones Activas': response.activeConversations,
+          'Tiempo de Respuesta (min)': response.responseTime,
+          'Tasa de Resolución (%)': response.resolutionRate,
+          'Satisfacción (%)': response.customerSatisfaction,
+          'Eficiencia del Equipo (%)': response.teamEfficiency
+        });
+
+        logger.api('📈 Métricas del dashboard procesadas exitosamente', {
+          metricsCount: Object.keys(response).length,
+          fetchDuration: `${fetchDuration}ms`,
+          cacheStatus: 'fresh'
+        });
+
+        return response;
+
+      } catch (error: any) {
+        const fetchEndTime = performance.now();
+        const fetchDuration = fetchEndTime - fetchStartTime;
+
+        // Log detallado de error
+        console.error('❌ [DASHBOARD ERROR] Error al obtener métricas', {
+          error: error.message,
+          status: error.response?.status,
+          fetchDuration: `${fetchDuration.toFixed(2)}ms`,
+          params,
+          timestamp: new Date().toISOString()
+        });
+
+        logger.api('💥 Error crítico en obtención de métricas del dashboard', {
+          error: error.message,
+          statusCode: error.response?.status,
+          statusText: error.response?.statusText,
+          fetchDuration: `${fetchDuration}ms`
+        }, true);
+
+        throw error;
+      }
+    },
+    staleTime: params?.refresh ? 0 : 2 * 60 * 1000, // 2 minutos, 0 si se solicita refresh
+    refetchInterval: 30 * 1000, // Actualizar cada 30 segundos
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+
+  // useEffect para manejar logs de success/error
+  useEffect(() => {
+    if (query.isSuccess && query.data) {
+      const totalTime = performance.now() - startTime;
+      console.info('🎯 [DASHBOARD COMPLETE] Hook useDashboardMetrics completado exitosamente', {
+        totalExecutionTime: `${totalTime.toFixed(2)}ms`,
+        dataGenerated: query.data.generatedAt,
+        cacheHit: totalTime < 100 // Probablemente cache si es muy rápido
+      });
+    }
+    
+    if (query.isError && query.error) {
+      const totalTime = performance.now() - startTime;
+      console.error('💀 [DASHBOARD FATAL] Hook useDashboardMetrics falló completamente', {
+        totalExecutionTime: `${totalTime.toFixed(2)}ms`,
+        errorMessage: query.error.message,
+        shouldRetry: (query.error as any).response?.status !== 401
+      });
+    }
+  }, [query.isSuccess, query.isError, query.data, query.error, startTime]);
+
+  return query;
+}
+
+// Hook para actividad en tiempo real (NUEVO - Requerido por ExecutiveDashboard)
+export function useRealtimeActivity() {
+  const [activities, setActivities] = useState<Array<{
+    id: string;
+    type: 'sale' | 'message' | 'customer' | 'order' | 'conversation';
+    description: string;
+    timestamp: string;
+    user?: string;
+    amount?: number;
+  }>>([]);
+
+  const query = useQuery({
+    queryKey: ['dashboard', 'realtime-activity'],
+    queryFn: async () => {
+      const startTime = performance.now();
+      
+      logger.api('🔴 Obteniendo actividad en tiempo real', {
+        timestamp: new Date().toISOString()
+      });
+
+      try {
+        const response = await api.get<{
+          activities: Array<{
+            id: string;
+            type: 'sale' | 'message' | 'customer' | 'order' | 'conversation';
+            description: string;
+            timestamp: string;
+            user?: string;
+            amount?: number;
+          }>;
+        }>('/dashboard/realtime-activity');
+
+        const fetchDuration = performance.now() - startTime;
+
+        console.info('✅ [REALTIME SUCCESS] Actividad en tiempo real obtenida', {
+          fetchDuration: `${fetchDuration.toFixed(2)}ms`,
+          activitiesCount: response.activities.length,
+          latestActivity: response.activities[0]?.timestamp,
+          types: [...new Set(response.activities.map(a => a.type))]
+        });
+
+        logger.api('🔴 Actividad en tiempo real procesada exitosamente', {
+          activitiesCount: response.activities.length,
+          fetchDuration: `${fetchDuration}ms`
+        });
+
+        setActivities(response.activities);
+        return response.activities;
+
+      } catch (error: any) {
+        const fetchDuration = performance.now() - startTime;
+        
+        console.error('❌ [REALTIME ERROR] Error al obtener actividad en tiempo real', {
+          error: error.message,
+          fetchDuration: `${fetchDuration.toFixed(2)}ms`
+        });
+
+        logger.api('💥 Error al obtener actividad en tiempo real', {
+          error: error.message,
+          fetchDuration: `${fetchDuration}ms`
+        }, true);
+
+        throw error;
+      }
+    },
+    refetchInterval: 10 * 1000, // Actualizar cada 10 segundos
+    staleTime: 5 * 1000, // 5 segundos
+  });
+
+  return {
+    ...query,
+    data: activities
+  };
+}
+
+// Hook para exportar reportes del dashboard (NUEVO - Requerido por ExecutiveDashboard)
+export function useExportDashboardReport() {
+  return useMutation({
+    mutationFn: async (params: {
+      type: 'pdf' | 'excel' | 'csv';
+      period: 'today' | 'week' | 'month' | 'quarter' | 'year';
+      sections: string[];
+    }) => {
+      const startTime = performance.now();
+      
+      logger.api('📄 Exportando reporte del dashboard', params);
+
+      try {
+        const response = await api.post<{
+          downloadUrl: string;
+          filename: string;
+          size: number;
+        }>('/dashboard/export-report', params);
+
+        const exportDuration = performance.now() - startTime;
+
+        console.info('✅ [EXPORT SUCCESS] Reporte exportado exitosamente', {
+          exportDuration: `${exportDuration.toFixed(2)}ms`,
+          filename: response.filename,
+          size: `${(response.size / 1024).toFixed(2)} KB`,
+          type: params.type
+        });
+
+        logger.api('📄 Reporte del dashboard exportado exitosamente', {
+          filename: response.filename,
+          type: params.type,
+          exportDuration: `${exportDuration}ms`
+        });
+
+        // Descargar automáticamente
+        const link = document.createElement('a');
+        link.href = response.downloadUrl;
+        link.download = response.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        return response;
+
+      } catch (error: any) {
+        const exportDuration = performance.now() - startTime;
+        
+        console.error('❌ [EXPORT ERROR] Error al exportar reporte', {
+          error: error.message,
+          params,
+          exportDuration: `${exportDuration.toFixed(2)}ms`
+        });
+
+        logger.api('💥 Error al exportar reporte del dashboard', {
+          error: error.message,
+          type: params.type,
+          exportDuration: `${exportDuration}ms`
+        }, true);
+
+        throw error;
+      }
+    },
+  });
+}
+
+// Hook para resumen ejecutivo (mantenido)
 export function useExecutiveSummary(params?: {
   period?: 'today' | 'week' | 'month' | 'quarter';
 }) {
