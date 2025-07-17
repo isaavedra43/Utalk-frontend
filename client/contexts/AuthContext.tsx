@@ -17,6 +17,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// 🔧 EXPORTS: Soportar tanto import nombrado como default
+export { AuthContext };
+export default AuthContext;
+
 interface AuthProviderProps {
   children: ReactNode;
 }

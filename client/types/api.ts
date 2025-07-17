@@ -213,6 +213,19 @@ export interface Seller {
   };
 }
 
+export interface KnowledgeBaseItem {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  tags: string[];
+  author: string;
+  createdAt: string;
+  updatedAt: string;
+  isPublished: boolean;
+  views: number;
+}
+
 // Tipos de respuesta de la API
 export interface ApiResponse<T> {
   data: T;

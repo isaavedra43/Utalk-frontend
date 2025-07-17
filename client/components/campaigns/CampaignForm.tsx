@@ -68,7 +68,7 @@ export function CampaignForm({ campaign, mode, isOpen, onClose, onSave }: Campai
     }
   };
   
-  const isLoading = createCampaignMutation.isLoading || updateCampaignMutation.isLoading;
+  const isLoading = createCampaignMutation.isPending || updateCampaignMutation.isPending;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

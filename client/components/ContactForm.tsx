@@ -47,7 +47,7 @@ export function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
         reset(contact || { name: '', email: '', phone: '', status: 'new-lead' });
     }, [contact, reset]);
 
-    const isLoading = createContact.isLoading || updateContact.isLoading;
+    const isLoading = createContact.isPending || updateContact.isPending;
 
     return (
         <Card>

@@ -45,7 +45,12 @@ export function ContactEditModal({
   onClose,
   onSave
 }: ContactEditModalProps) {
-  const { canEditContacts, canCreateContacts } = usePermissions();
+  const { hasPermission } = usePermissions();
+  
+  // 🔧 CORREGIDO: Usar hasPermission en lugar de propiedades específicas
+  const canEditContacts = hasPermission('edit_contacts');
+  const canCreateContacts = hasPermission('create_contacts');
+
   const queryClient = useQueryClient();
   const isEditing = !!contact;
   const isCreatingFromConversation = !!conversationPhone && !contact;
@@ -124,7 +129,7 @@ export function ContactEditModal({
         return await api.post('/contacts', data);
       }
     },
-    onSuccess: (savedContact) => {
+    onSuccess: (savedContact: Contact) => {
       // Invalidar queries
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });

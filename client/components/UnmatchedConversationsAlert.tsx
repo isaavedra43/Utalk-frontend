@@ -22,7 +22,8 @@ import {
 import { cn } from '@/lib/utils';
 
 export function UnmatchedConversationsAlert() {
-  const { canCreateContacts } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canCreateContacts = hasPermission('create_contacts');
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedConversationPhone, setSelectedConversationPhone] = useState<string | null>(null);
   

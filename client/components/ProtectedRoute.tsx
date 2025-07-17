@@ -1,253 +1,197 @@
 import { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { usePermissions } from '@/hooks/usePermissions';
-import { UserRole } from '@/types/permissions';
+import { usePermissions, Permission } from '@/hooks/usePermissions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, AlertTriangle } from 'lucide-react';
 import { logger } from '@/lib/utils';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requiredRole?: UserRole;
-  requiredPermission?: 'read' | 'write' | 'approve' | 'admin';
-  requiredAction?: string;
+  requiredPermission?: Permission;
+  requiredPermissions?: Permission[];
+  requireAll?: boolean; // true = requiere TODOS los permisos, false = requiere AL MENOS UNO
   fallbackPath?: string;
   showError?: boolean;
 }
 
 /**
- * Componente para proteger rutas basado en permisos de usuario
+ * 🛡️ Componente para proteger rutas basado en permisos de usuario
  * 
  * @param children - Componente a renderizar si tiene permisos
- * @param requiredRole - Rol mínimo requerido
  * @param requiredPermission - Permiso específico requerido
- * @param requiredAction - Acción específica requerida
+ * @param requiredPermissions - Lista de permisos requeridos
+ * @param requireAll - Si true, requiere TODOS los permisos; si false, AL MENOS UNO
  * @param fallbackPath - Ruta a la que redirigir si no tiene permisos
  * @param showError - Mostrar mensaje de error en lugar de redirigir
  */
 export function ProtectedRoute({
   children,
-  requiredRole,
   requiredPermission,
-  requiredAction,
-  fallbackPath = '/',
+  requiredPermissions,
+  requireAll = false,
+  fallbackPath = "/login",
   showError = false
 }: ProtectedRouteProps) {
   const location = useLocation();
-  const {
-    currentRole,
+  const { 
     hasPermission,
-    canPerformAction,
-    canAccessRoute,
-    roleInfo
+    hasAnyPermission,
+    hasAllPermissions,
+    isViewer,
+    isAgent, 
+    isAdmin,
+    role
   } = usePermissions();
 
-  // Verificar acceso basado en la ruta actual
-  const hasRouteAccess = canAccessRoute(location.pathname);
+  // 🔧 VERIFICACIÓN DE PERMISOS CON NUEVO SISTEMA
+  let hasAccess = true;
 
-  // Verificar rol específico si se requiere
-  const hasRequiredRole = requiredRole ? checkRoleHierarchy(currentRole, requiredRole) : true;
-
-  // Verificar permiso específico si se requiere
-  const hasRequiredPermission = requiredPermission ? hasPermission(requiredPermission) : true;
-
-  // Verificar acción específica si se requiere
-  const hasRequiredAction = requiredAction ? canPerformAction(requiredAction) : true;
-
-  // Verificación combinada
-  const hasAccess = hasRouteAccess && hasRequiredRole && hasRequiredPermission && hasRequiredAction;
+  if (requiredPermission) {
+    hasAccess = hasPermission(requiredPermission);
+  } else if (requiredPermissions && requiredPermissions.length > 0) {
+    hasAccess = requireAll 
+      ? hasAllPermissions(requiredPermissions)
+      : hasAnyPermission(requiredPermissions);
+  }
 
   // Logging para debugging
   logger.auth('🛡 Verificación de permisos para ruta protegida', {
     route: location.pathname,
-    currentRole,
-    requiredRole,
+    role,
     requiredPermission,
-    requiredAction,
-    checks: {
-      hasRouteAccess,
-      hasRequiredRole,
-      hasRequiredPermission,
-      hasRequiredAction,
-      finalAccess: hasAccess
-    }
+    requiredPermissions,
+    requireAll,
+    hasAccess,
+    userPermissions: { isViewer, isAgent, isAdmin }
   });
 
   // Si no tiene acceso
   if (!hasAccess) {
     if (showError) {
       return <AccessDeniedError 
-        currentRole={currentRole}
-        roleInfo={roleInfo}
-        requiredRole={requiredRole}
+        route={location.pathname}
+        role={role}
         requiredPermission={requiredPermission}
-        requiredAction={requiredAction}
+        requiredPermissions={requiredPermissions}
       />;
     }
 
-    // Redirigir a la página de fallback
-    logger.auth('🚫 Acceso denegado - Redirigiendo', {
-      from: location.pathname,
+    // Redirigir a la ruta de fallback
+    logger.auth('🚫 Acceso denegado - Redirigiendo', { 
+      from: location.pathname, 
       to: fallbackPath,
-      reason: getAccessDeniedReason({
-        hasRouteAccess,
-        hasRequiredRole,
-        hasRequiredPermission,
-        hasRequiredAction
-      })
+      reason: 'Permisos insuficientes'
     });
 
-    return <Navigate to={fallbackPath} replace />;
+    return <Navigate to={fallbackPath} state={{ from: location }} replace />;
   }
 
-  // Renderizar contenido si tiene acceso
+  // Tiene acceso, renderizar children
   return <>{children}</>;
 }
 
 /**
- * Verifica jerarquía de roles
+ * 🚫 Componente de error para acceso denegado
  */
-function checkRoleHierarchy(currentRole: UserRole, requiredRole: UserRole): boolean {
-  const roleHierarchy: Record<UserRole, number> = {
-    viewer: 1,
-    agent: 2,
-    admin: 3
+interface AccessDeniedErrorProps {
+  route: string;
+  role: string | null;
+  requiredPermission?: Permission;
+  requiredPermissions?: Permission[];
+}
+
+function AccessDeniedError({ 
+  route, 
+  role, 
+  requiredPermission, 
+  requiredPermissions 
+}: AccessDeniedErrorProps) {
+  const getMessage = () => {
+    if (role === 'viewer') {
+      return `Como ${role}, no tienes permisos para acceder a esta funcionalidad. Contacta al administrador si necesitas más permisos.`;
+    }
+    if (role === 'agent') {
+      return `Esta funcionalidad requiere permisos administrativos.`;
+    }
+    return `No tienes permisos suficientes para acceder a esta página.`;
   };
 
-  return roleHierarchy[currentRole] >= roleHierarchy[requiredRole];
-}
+  const getRequiredPermissions = () => {
+    if (requiredPermission) return [requiredPermission];
+    if (requiredPermissions) return requiredPermissions;
+    return [];
+  };
 
-/**
- * Determina la razón del acceso denegado
- */
-function getAccessDeniedReason(checks: {
-  hasRouteAccess: boolean;
-  hasRequiredRole: boolean;
-  hasRequiredPermission: boolean;
-  hasRequiredAction: boolean;
-}): string {
-  if (!checks.hasRouteAccess) return 'Ruta no permitida para este rol';
-  if (!checks.hasRequiredRole) return 'Rol insuficiente';
-  if (!checks.hasRequiredPermission) return 'Permiso específico faltante';
-  if (!checks.hasRequiredAction) return 'Acción no permitida';
-  return 'Acceso denegado - razón desconocida';
-}
-
-/**
- * Componente de error para acceso denegado
- */
-function AccessDeniedError({
-  currentRole,
-  roleInfo,
-  requiredRole,
-  requiredPermission,
-  requiredAction
-}: {
-  currentRole: UserRole;
-  roleInfo: any;
-  requiredRole?: UserRole;
-  requiredPermission?: string;
-  requiredAction?: string;
-}) {
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-950">
-      <div className="max-w-md w-full mx-4">
-        <Alert className="border-red-600 bg-red-950/20">
-          <AlertTriangle className="h-4 w-4 text-red-400" />
-          <AlertDescription className="text-red-200">
-            <div className="space-y-3">
-              <div>
-                <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
-                  Acceso Denegado
-                </h3>
-                <p className="text-sm">
-                  No tienes permisos suficientes para acceder a esta sección.
-                </p>
-              </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <Shield className="mx-auto h-12 w-12 text-red-500" />
+          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+            Acceso Denegado
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Ruta: <code className="bg-gray-100 px-2 py-1 rounded">{route}</code>
+          </p>
+        </div>
 
-              <div className="bg-gray-900/50 p-3 rounded border border-gray-700">
-                <h4 className="font-medium text-gray-300 mb-2">Tu rol actual:</h4>
-                <div className="text-sm text-gray-400">
-                  <p><span className="font-medium">Rol:</span> {roleInfo.name}</p>
-                  <p><span className="font-medium">Nivel:</span> {roleInfo.permissionLevel}</p>
-                  <p><span className="font-medium">Permisos:</span> {roleInfo.activePermissions}/{roleInfo.totalPermissions}</p>
-                </div>
-              </div>
-
-              {(requiredRole || requiredPermission || requiredAction) && (
-                <div className="bg-gray-900/50 p-3 rounded border border-gray-700">
-                  <h4 className="font-medium text-gray-300 mb-2">Requerimientos:</h4>
-                  <div className="text-sm text-gray-400 space-y-1">
-                    {requiredRole && (
-                      <p><span className="font-medium">Rol mínimo:</span> {requiredRole}</p>
-                    )}
-                    {requiredPermission && (
-                      <p><span className="font-medium">Permiso:</span> {requiredPermission}</p>
-                    )}
-                    {requiredAction && (
-                      <p><span className="font-medium">Acción:</span> {requiredAction}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <p className="text-xs text-gray-500">
-                Contacta a tu administrador si necesitas acceso adicional.
-              </p>
-            </div>
+        <Alert className="border-red-200 bg-red-50">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-800">
+            {getMessage()}
           </AlertDescription>
         </Alert>
+
+        {getRequiredPermissions().length > 0 && (
+          <div className="bg-gray-100 p-4 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">
+              Permisos requeridos:
+            </h3>
+            <ul className="text-xs text-gray-600 space-y-1">
+              {getRequiredPermissions().map(permission => (
+                <li key={permission} className="flex items-center">
+                  <code className="bg-white px-2 py-1 rounded mr-2">{permission}</code>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="text-center">
+          <button
+            onClick={() => window.history.back()}
+            className="text-indigo-600 hover:text-indigo-500 text-sm font-medium"
+          >
+            ← Volver atrás
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
 /**
- * HOC para proteger componentes
+ * 🛡️ Hook para verificar permisos en componentes
  */
-export function withPermissions<T extends object>(
-  WrappedComponent: React.ComponentType<T>,
-  permissionConfig: Omit<ProtectedRouteProps, 'children'>
+export function useRouteProtection(
+  requiredPermission?: Permission,
+  requiredPermissions?: Permission[],
+  requireAll: boolean = false
 ) {
-  return function ProtectedComponent(props: T) {
-    return (
-      <ProtectedRoute {...permissionConfig}>
-        <WrappedComponent {...props} />
-      </ProtectedRoute>
-    );
+  const { hasPermission, hasAnyPermission, hasAllPermissions } = usePermissions();
+
+  let hasAccess = true;
+
+  if (requiredPermission) {
+    hasAccess = hasPermission(requiredPermission);
+  } else if (requiredPermissions && requiredPermissions.length > 0) {
+    hasAccess = requireAll 
+      ? hasAllPermissions(requiredPermissions)
+      : hasAnyPermission(requiredPermissions);
+  }
+
+  return {
+    hasAccess,
+    canAccess: hasAccess
   };
-}
-
-/**
- * Componente para mostrar/ocultar elementos basado en permisos
- */
-interface ConditionalRenderProps {
-  children: ReactNode;
-  requiredRole?: UserRole;
-  requiredPermission?: 'read' | 'write' | 'approve' | 'admin';
-  requiredAction?: string;
-  fallback?: ReactNode;
-}
-
-export function ConditionalRender({
-  children,
-  requiredRole,
-  requiredPermission,
-  requiredAction,
-  fallback = null
-}: ConditionalRenderProps) {
-  const {
-    currentRole,
-    hasPermission,
-    canPerformAction
-  } = usePermissions();
-
-  const hasRequiredRole = requiredRole ? checkRoleHierarchy(currentRole, requiredRole) : true;
-  const hasRequiredPermission = requiredPermission ? hasPermission(requiredPermission) : true;
-  const hasRequiredAction = requiredAction ? canPerformAction(requiredAction) : true;
-
-  const hasAccess = hasRequiredRole && hasRequiredPermission && hasRequiredAction;
-
-  return hasAccess ? <>{children}</> : <>{fallback}</>;
 } 

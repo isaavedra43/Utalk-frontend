@@ -17,6 +17,9 @@ import { useCampaigns, useCreateCampaign, useUpdateCampaign, useDeleteCampaign, 
 import { Loader2 } from "lucide-react";
 import type { Campaign } from "@/types/api";
 
+// 🔧 EXPORT: Reexportar Campaign para otros componentes del módulo
+export type { Campaign };
+
 interface CampaignModuleProps {
   className?: string;
 }
