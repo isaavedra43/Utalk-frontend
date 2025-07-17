@@ -1,367 +1,244 @@
 // =============================================
 // InboxList.tsx - Lista de conversaciones desde la API
 // =============================================
-// FIX CRÍTICO: Este componente transforma todos los campos tipo timestamp de Firestore 
-// ({ _seconds, _nanoseconds }) a strings ISO para garantizar que la UI renderice 
-// correctamente las conversaciones. Corregidos TODOS los tipos TypeScript para 
-// evitar errores de propiedades no existentes.
+// FIX CRÍTICO: Este componente usa las nuevas utilidades robustas de normalización
+// para garantizar que todos los campos críticos tengan valores válidos y que la UI 
+// nunca se quede en blanco por datos malformados o incompletos.
 // =============================================
 
 import { useEffect } from "react";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, MessageSquare, Mail, Facebook, Smartphone, Search, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Conversation } from "@/types/api";
 import { useConversations } from "@/hooks/useMessages";
-import { extractData, toISOStringFromFirestore } from "@/lib/apiUtils";
-
-// 🔧 TIPOS CORREGIDOS PARA MANEJAR FECHAS FIRESTORE
-type FirestoreTimestamp = { 
-  _seconds: number; 
-  _nanoseconds: number; 
-};
-
-type DateOrTimestamp = string | FirestoreTimestamp | null | undefined;
-
-// 🔧 TIPOS PARA LA RESPUESTA DE LA API (CORREGIDO PARA BACKEND REAL)
-interface ConversationsApiResponse {
-  data?: Conversation[];
-  conversations?: Conversation[]; // ← ESTRUCTURA REAL DEL BACKEND
-  pagination?: {
-    total?: number;
-    page?: number;
-    pageSize?: number;
-    totalPages?: number;
-  };
-  [key: string]: any;
-}
-
-interface ProcessedConversation {
-  id: string;
-  customerPhone: string;
-  agentPhone: string;
-  lastMessage: string;
-  lastMessageAt: string;
-  createdAt: string;
-  updatedAt: string;
-  channel: string;
-  isUnread: boolean;
-  timestamp: string;
-  lastMessageDetails?: {
-    timestamp: string;
-    createdAt: string;
-    updatedAt: string;
-    [key: string]: any;
-  };
-  [key: string]: any;
-}
+import { safeString } from "@/lib/apiUtils";
 
 interface InboxListProps {
   selectedConversationId?: string;
   onConversationSelect: (id: string) => void;
 }
 
-// 🔄 FUNCIÓN PARA PROCESAR CONVERSACIONES COMPLETAS
-function processConversationsData(rawConversations: Conversation[]): ProcessedConversation[] {
-  console.group("🔄 === PROCESANDO CONVERSACIONES DESDE API ===");
-  console.log("📥 Raw conversations recibidas:", rawConversations);
-  console.log("📊 Cantidad de conversaciones raw:", rawConversations?.length || 0);
+/**
+ * Función defensiva para obtener el ícono del canal
+ * @param channel Canal de comunicación
+ * @returns Componente de ícono válido
+ */
+function getChannelIcon(channel: any) {
+  const safeChannel = safeString(channel, 'whatsapp').toLowerCase();
   
-  if (!Array.isArray(rawConversations)) {
-    console.error("❌ rawConversations no es un array:", rawConversations);
-    console.groupEnd();
-    return [];
+  switch (safeChannel) {
+    case 'email':
+      return <Mail className="w-4 h-4" />;
+    case 'facebook':
+      return <Facebook className="w-4 h-4" />;
+    case 'sms':
+      return <Smartphone className="w-4 h-4" />;
+    case 'whatsapp':
+    default:
+      return <MessageSquare className="w-4 h-4" />;
+  }
+}
+
+/**
+ * Función defensiva para formatear tiempo
+ * @param timestamp Timestamp a formatear
+ * @returns String formateado de forma segura
+ */
+function safeFormatTime(timestamp: any): string {
+  try {
+    const safeTimestamp = safeString(timestamp, new Date().toISOString());
+    const date = new Date(safeTimestamp);
+    
+    if (isNaN(date.getTime())) {
+      console.warn('⚠️ [safeFormatTime] Timestamp inválido, usando fecha actual:', timestamp);
+      return new Date().toLocaleTimeString('es-ES', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    }
+    
+    return date.toLocaleTimeString('es-ES', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  } catch (error) {
+    console.error('❌ [safeFormatTime] Error al formatear tiempo:', { error, timestamp });
+    return new Date().toLocaleTimeString('es-ES', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  }
+}
+
+/**
+ * Función defensiva para truncar texto
+ * @param text Texto a truncar
+ * @param maxLength Longitud máxima
+ * @returns Texto truncado de forma segura
+ */
+function safeTruncate(text: any, maxLength: number = 50): string {
+  const safeText = safeString(text, "Sin mensaje");
+  
+  if (safeText.length <= maxLength) {
+    return safeText;
   }
   
-  const processed = rawConversations.map((conv, index) => {
-    console.group(`🔧 Procesando conversación [${index}]`);
-    console.log("📦 Conversación raw:", conv);
-    
-    // Procesar todos los campos timestamp de forma segura
-    const processedConv: ProcessedConversation = {
-      id: conv.id || `unknown-${index}`,
-      customerPhone: conv.customerPhone || conv.phone || "Cliente sin teléfono",
-      agentPhone: conv.agentPhone || "Sin agente asignado",
-      lastMessage: conv.lastMessage || conv.message || "Sin último mensaje",
-      lastMessageAt: toISOStringFromFirestore(conv.lastMessageAt),
-      createdAt: toISOStringFromFirestore(conv.createdAt),
-      updatedAt: toISOStringFromFirestore(conv.updatedAt),
-      channel: conv.channel || "whatsapp",
-      isUnread: conv.isUnread !== undefined ? conv.isUnread : false,
-      timestamp: toISOStringFromFirestore(
-        conv.timestamp || 
-        conv.lastMessageAt || 
-        conv.updatedAt
-      ),
-    };
-
-    // Procesar lastMessageDetails si existe
-    if (conv.lastMessageDetails) {
-      const details = conv.lastMessageDetails;
-      processedConv.lastMessageDetails = {
-        ...details,
-        timestamp: toISOStringFromFirestore(details.timestamp),
-        createdAt: toISOStringFromFirestore(details.createdAt),
-        updatedAt: toISOStringFromFirestore(details.updatedAt),
-      };
-    }
-
-    // Preservar campos adicionales de forma segura
-    Object.keys(conv).forEach(key => {
-      if (!['id', 'customerPhone', 'agentPhone', 'lastMessage', 'lastMessageAt', 'createdAt', 'updatedAt', 'channel', 'isUnread', 'timestamp'].includes(key)) {
-        (processedConv as any)[key] = conv[key];
-      }
-    });
-    
-    console.log("✅ Conversación procesada:", processedConv);
-    console.groupEnd();
-    
-    return processedConv;
-  });
-  
-  console.log("🎯 RESULTADO FINAL - Conversaciones procesadas:", processed);
-  console.log("📊 Total procesadas:", processed.length);
-  console.groupEnd();
-  
-  return processed;
+  try {
+    return safeText.substring(0, maxLength) + "...";
+  } catch (error) {
+    console.error('❌ [safeTruncate] Error al truncar texto:', { error, text });
+    return "Error al cargar mensaje...";
+  }
 }
 
 export function InboxList({ selectedConversationId, onConversationSelect }: InboxListProps) {
-  const { data: conversationsResponse, isLoading, error, refetch } = useConversations();
+  // 🔧 Hook que ya retorna datos completamente normalizados
+  const { data: conversationsResponse, isLoading, error } = useConversations();
 
-  // 🔍 LOGS EXHAUSTIVOS DE LA RESPUESTA DE LA API
+  // 🛡️ EXTRACCIÓN DEFENSIVA DE DATOS NORMALIZADOS
+  const conversations = conversationsResponse?.conversations || [];
+  
+  console.group('🔍 [InboxList] Estado actual de conversaciones');
+  console.log('📥 Respuesta completa:', conversationsResponse);
+  console.log('📊 Conversaciones extraídas:', conversations.length);
+  console.log('🔄 isLoading:', isLoading);
+  console.log('❌ error:', error);
+  console.groupEnd();
+
+  // Log de cambios en conversaciones para debugging
   useEffect(() => {
-    console.group("🔍 [INBOX DEBUG] === ANÁLISIS COMPLETO DE RESPUESTA API ===");
-    console.log("📡 Estado del hook useConversations:");
-    console.log("  - isLoading:", isLoading);
-    console.log("  - error:", error);
-    console.log("  - conversationsResponse COMPLETO:", conversationsResponse);
-    
-    if (conversationsResponse) {
-      console.log("📦 Estructura detallada de la respuesta:");
-      console.log("  - conversationsResponse.data:", conversationsResponse.data);
-      console.log("  - Tipo de .data:", Array.isArray(conversationsResponse.data) ? 'Array' : typeof conversationsResponse.data);
-      console.log("  - conversationsResponse.pagination:", conversationsResponse.pagination);
-    }
-    console.groupEnd();
-  }, [conversationsResponse, isLoading, error]);
+    console.log('🔄 [InboxList] Conversaciones actualizadas:', {
+      count: conversations.length,
+      firstConv: conversations[0] ? {
+        id: conversations[0].id,
+        phone: conversations[0].customerPhone,
+        lastMessage: conversations[0].lastMessage,
+        channel: conversations[0].channel
+      } : null
+    });
+  }, [conversations]);
 
-  // 🔄 ACCESO UNIFICADO Y SEGURO (YA REALIZADO EN EL HOOK)
-  const processedConversations = conversationsResponse?.conversations || [];
-  console.log("✅ PROCESSED CONVERSATIONS FINAL:", processedConversations);
-
-  // 🎨 FUNCIÓN PARA ICONOS DE CANALES
-  const getChannelIcon = (channel: string) => {
-    const iconClass = "h-4 w-4";
-    
-    switch (channel.toLowerCase()) {
-      case "whatsapp":
-        return <MessageSquare className={`${iconClass} text-green-500`} />;
-      case "email": 
-        return <Mail className={`${iconClass} text-blue-500`} />;
-      case "facebook":
-        return <Facebook className={`${iconClass} text-sky-600`} />;
-      case "sms":
-        return <Smartphone className={`${iconClass} text-purple-500`} />;
-      default:
-        return <MessageSquare className={`${iconClass} text-gray-500`} />;
-    }
-  };
-
-  // ⏰ FUNCIÓN PARA FORMATEAR TIEMPO SEGURA
-  const formatTime = (timestamp: string) => {
-    console.log("⏰ Formateando tiempo:", timestamp);
-    
-    if (!timestamp) {
-      console.warn("⚠️ Timestamp vacío para formatear");
-      return "--:--";
-    }
-    
-    try {
-      const date = new Date(timestamp);
-      if (isNaN(date.getTime())) {
-        console.warn("⚠️ Timestamp inválido para formatear:", timestamp);
-        return "--:--";
-      }
-      
-      const now = new Date();
-      const diff = now.getTime() - date.getTime();
-      const hours = diff / (1000 * 60 * 60);
-      
-      if (hours < 24) {
-        return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
-      } else {
-        return date.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" });
-      }
-    } catch (error) {
-      console.error("❌ Error al formatear timestamp:", error);
-      return "--:--";
-    }
-  };
-
-  // 🔄 ESTADO DE CARGA
+  // 🔄 ESTADOS DE LOADING Y ERROR
   if (isLoading) {
-    console.log("⏳ Estado: CARGANDO conversaciones...");
     return (
-      <div className="h-full flex items-center justify-center bg-gray-950">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500" />
-          <div>
-            <p className="text-gray-300 font-medium">Cargando conversaciones...</p>
-            <p className="text-gray-500 text-sm">Obteniendo datos desde /api/conversations</p>
-          </div>
+      <div className="h-full flex items-center justify-center bg-[#0A0A0A]">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#7C3AED] mx-auto mb-3" />
+          <p className="text-[#E4E4E7] text-sm">Cargando conversaciones...</p>
         </div>
       </div>
     );
   }
 
-  // ❌ ESTADO DE ERROR
   if (error) {
-    console.error("❌ Estado: ERROR al cargar conversaciones");
-    console.error("Detalles del error:", error);
-    
+    console.error('❌ [InboxList] Error al cargar conversaciones:', error);
     return (
-      <div className="h-full flex items-center justify-center bg-gray-950 p-4">
-        <div className="text-center space-y-4 max-w-md">
-          <AlertCircle className="h-12 w-12 mx-auto text-red-500" />
-          <div>
-            <h3 className="text-lg font-semibold text-red-400 mb-2">
-              Error al cargar conversaciones
-            </h3>
-            <p className="text-gray-400 mb-4">
-              No se pudieron obtener las conversaciones del servidor
-            </p>
-            <div className="bg-gray-800 rounded-lg p-3 text-left">
-              <p className="text-sm text-gray-300 font-mono">
-                {error instanceof Error ? error.message : "Error desconocido"}
-              </p>
-            </div>
-            <button 
-              onClick={() => {
-                console.log("🔄 Reintentando cargar conversaciones...");
-                refetch();
-              }}
-              className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              Reintentar
-            </button>
-          </div>
+      <div className="h-full flex items-center justify-center bg-[#0A0A0A]">
+        <div className="text-center">
+          <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-3" />
+          <p className="text-red-400 text-sm mb-2">Error al cargar conversaciones</p>
+          <p className="text-[#9CA3AF] text-xs">
+            {error instanceof Error ? error.message : "Error desconocido"}
+          </p>
         </div>
       </div>
     );
   }
 
-  // 📭 ESTADO SIN CONVERSACIONES
-  if (processedConversations.length === 0) {
-    console.log("📭 Estado: SIN CONVERSACIONES");
-    console.log("📊 Raw conversations length:", processedConversations.length);
-    console.log("📊 Processed conversations length:", processedConversations.length);
-    
+  if (conversations.length === 0) {
     return (
-      <div className="h-full bg-gray-950 border-r border-gray-800 flex flex-col">
-        {/* Header con búsqueda */}
-        <div className="p-4 border-b border-gray-800">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input 
-              placeholder="Buscar conversación..." 
-              className="pl-10 bg-gray-800 border-gray-700 text-white placeholder-gray-400" 
-            />
-          </div>
+      <div className="h-full flex items-center justify-center bg-[#0A0A0A]">
+        <div className="text-center">
+          <MessageSquare className="w-8 h-8 text-[#9CA3AF] mx-auto mb-3" />
+          <p className="text-[#E4E4E7] text-sm mb-1">No hay conversaciones</p>
+          <p className="text-[#9CA3AF] text-xs">Las nuevas conversaciones aparecerán aquí</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 🎯 RENDER PRINCIPAL CON VALIDACIONES DEFENSIVAS
+  return (
+    <div className="h-full bg-[#0A0A0A] border-r border-[#27272A]">
+      {/* Header */}
+      <div className="p-4 border-b border-[#27272A]">
+        <div className="flex items-center gap-3 mb-3">
+          <h2 className="text-[#E4E4E7] font-medium">
+            Conversaciones ({conversations.length})
+          </h2>
         </div>
         
-        {/* Estado vacío */}
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <MessageSquare className="h-16 w-16 mx-auto text-gray-600" />
-            <div>
-              <h3 className="text-lg font-medium text-gray-300 mb-2">
-                No hay conversaciones disponibles
-              </h3>
-              <p className="text-gray-500 text-sm">
-                Las conversaciones aparecerán aquí cuando estén disponibles
-              </p>
-              <p className="text-gray-600 text-xs mt-2">
-                Raw: {processedConversations.length} | Procesadas: {processedConversations.length}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ✅ ESTADO EXITOSO - RENDERIZADO DE CONVERSACIONES
-  console.log(`✅ Estado: ÉXITO - Renderizando ${processedConversations.length} conversaciones`);
-  
-  return (
-    <div className="h-full bg-gray-950 border-r border-gray-800 flex flex-col">
-      {/* Header con búsqueda */}
-      <div className="p-4 border-b border-gray-800">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input 
-            placeholder="Buscar conversación..." 
-            className="pl-10 bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:border-blue-500" 
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#9CA3AF]" />
+          <input
+            type="text"
+            placeholder="Buscar conversaciones..."
+            className="w-full pl-9 pr-3 py-2 bg-[#18181B] border border-[#27272A] rounded-lg text-[#E4E4E7] placeholder-[#9CA3AF] text-sm focus:outline-none focus:border-[#7C3AED]"
           />
         </div>
       </div>
-      
+
       {/* Lista de conversaciones */}
       <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
-          {processedConversations.map((convo, index) => {
-            const isSelected = selectedConversationId === convo.id;
-            
-            console.log(`🎨 Renderizando conversación [${index}]:`, {
-              id: convo.id,
-              isSelected,
-              customerPhone: convo.customerPhone,
-              lastMessage: convo.lastMessage,
-              timestamp: convo.timestamp
-            });
-            
+        <div className="p-2">
+          {conversations.map((conversation) => {
+            // 🛡️ VALIDACIONES DEFENSIVAS PARA CADA CONVERSACIÓN
+            const safeId = safeString(conversation.id, `error_${Date.now()}`);
+            const safePhone = safeString(conversation.customerPhone, "Cliente sin teléfono");
+            const safeLastMessage = safeTruncate(conversation.lastMessage, 60);
+            const safeTime = safeFormatTime(conversation.lastMessageAt);
+            const isSelected = selectedConversationId === safeId;
+            const isUnread = conversation.isUnread === true;
+
             return (
               <div
-                key={convo.id}
-                onClick={() => {
-                  console.log(`🖱️ Conversación seleccionada:`, convo.id);
-                  onConversationSelect(convo.id);
-                }}
+                key={safeId}
+                onClick={() => onConversationSelect(safeId)}
                 className={cn(
-                  "p-3 rounded-lg cursor-pointer transition-all duration-200 border",
-                  isSelected 
-                    ? "bg-blue-600/20 border-blue-500/50 shadow-lg" 
-                    : "bg-gray-800/50 border-gray-700/50 hover:bg-gray-800 hover:border-gray-600"
+                  "p-3 rounded-lg cursor-pointer border transition-colors mb-1",
+                  isSelected
+                    ? "bg-[#7C3AED] border-[#7C3AED] text-white"
+                    : "bg-[#18181B] border-[#27272A] text-[#E4E4E7] hover:bg-[#27272A]"
                 )}
               >
-                {/* Fila superior: teléfono y tiempo */}
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-sm text-white truncate flex-1">
-                    {convo.customerPhone || 'Sin número'}
-                  </h3>
-                  <span className="text-xs text-gray-400 ml-2 flex-shrink-0">
-                    {formatTime(convo.timestamp)}
-                  </span>
-                </div>
-                
-                {/* Último mensaje */}
-                <p className="text-xs text-gray-400 truncate mb-2" title={convo.lastMessage}>
-                  {convo.lastMessage || 'Sin mensaje'}
-                </p>
-                
-                {/* Fila inferior: canal y estado */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    {getChannelIcon(convo.channel)}
-                    <span className="text-xs text-gray-500 capitalize">
-                      {convo.channel}
-                    </span>
+                <div className="flex items-start gap-3">
+                  {/* Channel Icon */}
+                  <div className={cn(
+                    "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center",
+                    isSelected ? "bg-white/20" : "bg-[#27272A]"
+                  )}>
+                    {getChannelIcon(conversation.channel)}
                   </div>
-                  
-                  {convo.isUnread && (
-                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className={cn(
+                        "font-medium text-sm truncate",
+                        isSelected ? "text-white" : "text-[#E4E4E7]"
+                      )}>
+                        {safePhone}
+                      </p>
+                      <span className={cn(
+                        "text-xs",
+                        isSelected ? "text-white/70" : "text-[#9CA3AF]"
+                      )}>
+                        {safeTime}
+                      </span>
+                    </div>
+                    
+                    <p className={cn(
+                      "text-sm truncate",
+                      isSelected ? "text-white/80" : "text-[#9CA3AF]"
+                    )}>
+                      {safeLastMessage}
+                    </p>
+                  </div>
+
+                  {/* Unread Indicator */}
+                  {isUnread && !isSelected && (
+                    <div className="flex-shrink-0 w-2 h-2 bg-[#7C3AED] rounded-full"></div>
                   )}
                 </div>
               </div>
@@ -369,17 +246,10 @@ export function InboxList({ selectedConversationId, onConversationSelect }: Inbo
           })}
         </div>
       </ScrollArea>
-      
-      {/* Footer con información de debug */}
-      <div className="p-2 border-t border-gray-800 bg-gray-900/50">
-        <p className="text-xs text-gray-500 text-center">
-          {processedConversations.length} conversación{processedConversations.length !== 1 ? 'es' : ''} cargada{processedConversations.length !== 1 ? 's' : ''}
-        </p>
-      </div>
     </div>
   );
 }
 
 // =============================================
-// FIN InboxList.tsx - TIPOS CORREGIDOS Y SIN ERRORES
+// FIN InboxList.tsx - Componente completamente robusto
 // =============================================

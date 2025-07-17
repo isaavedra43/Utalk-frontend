@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/apiClient";
 import { toast } from "@/hooks/use-toast";
 import { logger } from "@/lib/utils";
-import { extractData, toISOStringFromFirestore } from "@/lib/apiUtils";
+import { extractData, processConversations, processMessages } from "@/lib/apiUtils";
 import type { 
   Conversation, 
   Message, 
@@ -29,12 +29,8 @@ export function useConversations(params?: {
       // ✅ USA LA FUNCIÓN UTILITARIA PARA EXTRAER DATOS
       const conversations = extractData<Conversation>(response, 'conversations');
       
-      const processedConversations = conversations.map((conv: any) => ({
-        ...conv,
-        lastMessageAt: toISOStringFromFirestore(conv.lastMessageAt),
-        createdAt: toISOStringFromFirestore(conv.createdAt),
-        updatedAt: toISOStringFromFirestore(conv.updatedAt),
-      }));
+      // 🔧 USAR NUEVA FUNCIÓN DE PROCESAMIENTO ROBUSTA
+      const processedConversations = processConversations(conversations);
 
       logger.api('Conversaciones obtenidas exitosamente', { count: processedConversations.length });
       
@@ -87,12 +83,8 @@ export function useMessages(conversationId: string, params?: {
       // ✅ USA LA FUNCIÓN UTILITARIA PARA EXTRAER DATOS
       const messages = extractData<Message>(response, 'messages');
 
-      const processedMessages = messages.map((msg: any) => ({
-        ...msg,
-        timestamp: toISOStringFromFirestore(msg.timestamp),
-        createdAt: toISOStringFromFirestore(msg.createdAt),
-        updatedAt: toISOStringFromFirestore(msg.updatedAt),
-      }));
+      // 🔧 USAR NUEVA FUNCIÓN DE PROCESAMIENTO ROBUSTA
+      const processedMessages = processMessages(messages);
 
       logger.api('Mensajes obtenidos exitosamente', { messageCount: processedMessages.length });
       
