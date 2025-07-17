@@ -12,8 +12,8 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/apiClient';
 import { logger } from '@/lib/utils';
-import { Loader2, User, Phone, Mail, Tag, FileText, Save, X } from 'lucide-react';
-import type { Contact } from '@/types/api';
+import { Loader2, User, Phone, Mail, FileText, Save, X, Tag } from 'lucide-react'; // Añadido Tag
+import type { Contact, ContactFormData } from '@/types/api';
 
 interface ContactEditModalProps {
   contact?: Contact;
@@ -23,20 +23,7 @@ interface ContactEditModalProps {
   onSave?: (contact: Contact) => void;
 }
 
-const statusOptions = [
-  { value: 'new-lead', label: 'Nuevo Lead', color: 'bg-blue-500' },
-  { value: 'hot-lead', label: 'Lead Caliente', color: 'bg-orange-500' },
-  { value: 'payment', label: 'En Pago', color: 'bg-yellow-500' },
-  { value: 'customer', label: 'Cliente', color: 'bg-green-500' }
-] as const;
-
-const channelOptions = [
-  { value: 'whatsapp', label: 'WhatsApp' },
-  { value: 'email', label: 'Email' },
-  { value: 'sms', label: 'SMS' },
-  { value: 'facebook', label: 'Facebook' },
-  { value: 'instagram', label: 'Instagram' }
-] as const;
+// ❌ ELIMINADO: statusOptions y channelOptions ya no existen en el contrato
 
 export function ContactEditModal({
   contact,
@@ -58,16 +45,16 @@ export function ContactEditModal({
   // Verificar permisos
   const canProceed = isEditing ? canEditContacts : canCreateContacts;
 
-  // Estado del formulario
-  const [formData, setFormData] = useState({
+  // 🟢 ESTADO ALINEADO CON CONTRATO: Solo campos válidos
+  const [formData, setFormData] = useState<Partial<ContactFormData> & { notes?: string }>({
     name: '',
     email: '',
     phone: '',
-    status: 'new-lead' as Contact['status'],
-    channel: 'whatsapp' as Contact['channel'],
-    section: 'general',
-    notes: ''
+    tags: [],
+    notes: '' // Campo local, no se envía a la API directamente
   });
+
+  const [tagInput, setTagInput] = useState('');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -80,35 +67,24 @@ export function ContactEditModal({
           name: contact.name || '',
           email: contact.email || '',
           phone: contact.phone || '',
-          status: contact.status || 'new-lead',
-          channel: contact.channel || 'whatsapp',
-          section: contact.section || 'general',
-          notes: ''
+          tags: contact.tags || [],
+          notes: '' // Reseteado
         });
       } else if (conversationPhone) {
         // Crear desde conversación
         setFormData({
-          name: conversationPhone, // Usar teléfono como nombre inicial
+          name: conversationPhone,
           email: '',
           phone: conversationPhone,
-          status: 'new-lead',
-          channel: 'whatsapp',
-          section: 'general',
+          tags: [],
           notes: `Contacto creado desde conversación de ${conversationPhone}`
         });
       } else {
         // Nuevo contacto limpio
-        setFormData({
-          name: '',
-          email: '',
-          phone: '',
-          status: 'new-lead',
-          channel: 'whatsapp',
-          section: 'general',
-          notes: ''
-        });
+        setFormData({ name: '', email: '', phone: '', tags: [], notes: '' });
       }
       setErrors({});
+      setTagInput('');
     }
   }, [isOpen, contact, conversationPhone]);
 
@@ -220,6 +196,19 @@ export function ContactEditModal({
     }
   };
 
+  // 🟢 Lógica para manejar tags
+  const handleAddTag = () => {
+    if (tagInput && !formData.tags?.includes(tagInput)) {
+      setFormData(prev => ({ ...prev, tags: [...(prev.tags || []), tagInput] }));
+      setTagInput('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setFormData(prev => ({ ...prev, tags: prev.tags?.filter(tag => tag !== tagToRemove) }));
+  };
+
+
   if (!canProceed) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -328,61 +317,36 @@ export function ContactEditModal({
             )}
           </div>
 
-          {/* Estado y Canal */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="status" className="flex items-center gap-2">
-                <Tag className="h-4 w-4" />
-                Estado
-              </Label>
-              <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
-                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-600">
-                  {statusOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full ${option.color}`} />
-                        {option.label}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="channel" className="flex items-center gap-2">
-                <Tag className="h-4 w-4" />
-                Canal
-              </Label>
-              <Select value={formData.channel} onValueChange={(value) => handleInputChange('channel', value)}>
-                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-600">
-                  {channelOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Sección */}
+          {/* 🟢 NUEVO: Campo para gestionar Tags */}
           <div>
-            <Label htmlFor="section">Sección</Label>
-            <Input
-              id="section"
-              value={formData.section}
-              onChange={(e) => handleInputChange('section', e.target.value)}
-              placeholder="general, ventas, soporte..."
-              className="bg-gray-800 border-gray-600 text-white"
-            />
+            <Label htmlFor="tags" className="flex items-center gap-2">
+              <Tag className="h-4 w-4" />
+              Etiquetas
+            </Label>
+            <div className="flex items-center gap-2 mt-2">
+              <Input
+                id="tags"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); } }}
+                placeholder="Añadir etiqueta y presionar Enter"
+                className="bg-gray-800 border-gray-600 text-white"
+              />
+              <Button type="button" onClick={handleAddTag}>Añadir</Button>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-3">
+              {formData.tags?.map(tag => (
+                <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                  {tag}
+                  <button type="button" onClick={() => handleRemoveTag(tag)} className="ml-1 font-bold">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
           </div>
+          
+          {/* ❌ ELIMINADO: Selectores de Estado y Canal, y campo de Sección */}
 
           {/* Notas */}
           <div>
