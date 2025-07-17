@@ -31,11 +31,17 @@ export function useConversations(params?: {
       console.group('🔍 [CONVERSATIONS DEBUG] Respuesta de la API:');
       console.log('Response completa:', response);
       console.log('Response.data:', response.data);
+      console.log('Response.conversations:', (response as any).conversations);
       console.log('Response.pagination:', response.pagination);
-      console.log('Cantidad de conversaciones:', response.data?.length);
+      console.log('Cantidad en .data:', response.data?.length);
+      console.log('Cantidad en .conversations:', (response as any).conversations?.length);
+      console.log('Claves disponibles en response:', Object.keys(response));
       
-      if (response.data) {
-        response.data.forEach((conv: any, idx: number) => {
+      // Verificar ambas estructuras posibles
+      const actualConversations = (response as any).conversations || response.data || [];
+      if (actualConversations.length > 0) {
+        console.log('✅ Conversaciones encontradas en:', (response as any).conversations ? '.conversations' : '.data');
+        actualConversations.forEach((conv: any, idx: number) => {
           console.log(`Conversación[${idx}]:`, {
             id: conv.id,
             customerPhone: conv.customerPhone,
@@ -48,12 +54,17 @@ export function useConversations(params?: {
             timestamp: conv.timestamp
           });
         });
+      } else {
+        console.warn('⚠️ No se encontraron conversaciones en ninguna estructura');
       }
       console.groupEnd();
       
-      logger.api('Conversaciones obtenidas exitosamente', { total: response.pagination?.total,
-        count: response.data?.length,
-        hasData: !!response.data
+      const actualCount = (response as any).conversations?.length || response.data?.length || 0;
+      logger.api('Conversaciones obtenidas exitosamente', { 
+        total: response.pagination?.total,
+        count: actualCount,
+        hasData: actualCount > 0,
+        structure: (response as any).conversations ? 'conversations' : 'data'
       });
       
       return response;

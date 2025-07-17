@@ -23,10 +23,10 @@ type FirestoreTimestamp = {
 
 type DateOrTimestamp = string | FirestoreTimestamp | null | undefined;
 
-// 🔧 TIPOS PARA LA RESPUESTA DE LA API (CORREGIDO)
+// 🔧 TIPOS PARA LA RESPUESTA DE LA API (CORREGIDO PARA BACKEND REAL)
 interface ConversationsApiResponse {
   data?: Conversation[];
-  conversations?: Conversation[];
+  conversations?: Conversation[]; // ← ESTRUCTURA REAL DEL BACKEND
   pagination?: {
     total?: number;
     page?: number;
@@ -190,19 +190,33 @@ export function InboxList({ selectedConversationId, onConversationSelect }: Inbo
       return [];
     }
 
-    // Opción 1: .data (más común en APIs REST)
+    // 🚨 LOGS EXHAUSTIVOS DE LA ESTRUCTURA REAL
+    console.log("📦 Estructura completa de conversationsResponse:", conversationsResponse);
+    console.log("📦 conversationsResponse.conversations:", (conversationsResponse as any).conversations);
+    console.log("📦 conversationsResponse.data:", conversationsResponse.data);
+    console.log("📦 Array.isArray(conversationsResponse.conversations):", Array.isArray((conversationsResponse as any).conversations));
+    console.log("📦 Array.isArray(conversationsResponse.data):", Array.isArray(conversationsResponse.data));
+
+    // Opción 1: .conversations (ESTRUCTURA REAL DEL BACKEND)
+    if ((conversationsResponse as any).conversations && Array.isArray((conversationsResponse as any).conversations)) {
+      console.log("✅ Usando conversationsResponse.conversations (BACKEND REAL)");
+      return (conversationsResponse as any).conversations;
+    }
+
+    // Opción 2: .data (API REST estándar)
     if (conversationsResponse.data && Array.isArray(conversationsResponse.data)) {
       console.log("✅ Usando conversationsResponse.data");
       return conversationsResponse.data;
     }
     
-    // Opción 2: La respuesta ES el array
+    // Opción 3: La respuesta ES el array
     if (Array.isArray(conversationsResponse)) {
       console.log("✅ conversationsResponse ES el array");
       return conversationsResponse as Conversation[];
     }
     
     console.log("❌ No se encontró array de conversaciones válido");
+    console.log("📦 Claves disponibles en conversationsResponse:", Object.keys(conversationsResponse));
     return [];
   })();
 
