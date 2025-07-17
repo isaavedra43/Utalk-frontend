@@ -34,13 +34,27 @@ export interface Contact {
 
 export interface Conversation {
   id: string;
-  name: string;
-  channel: "whatsapp" | "email" | "facebook" | "sms";
+  name?: string;
+  phone?: string;
+  customerPhone?: string;
+  agentPhone?: string;
+  channel?: "whatsapp" | "email" | "facebook" | "sms";
   lastMessage?: string;
-  timestamp: string;
-  isUnread: boolean;
+  message?: string;
+  timestamp?: string | any;
+  lastMessageAt?: string | any;
+  createdAt?: string | any;
+  updatedAt?: string | any;
+  isUnread?: boolean;
   avatar?: string;
-  section: string;
+  section?: string;
+  lastMessageDetails?: {
+    timestamp?: string | any;
+    createdAt?: string | any;
+    updatedAt?: string | any;
+    [key: string]: any;
+  };
+  [key: string]: any;
 }
 
 export interface Message {
