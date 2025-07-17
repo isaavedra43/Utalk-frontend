@@ -14,6 +14,7 @@ import { Loader2, MessageSquare, Mail, Facebook, Smartphone, Search, AlertCircle
 import { cn } from "@/lib/utils";
 import type { Conversation } from "@/types/api";
 import { useConversations } from "@/hooks/useMessages";
+import { extractData, toISOStringFromFirestore } from "@/lib/apiUtils";
 
 // 🔧 TIPOS CORREGIDOS PARA MANEJAR FECHAS FIRESTORE
 type FirestoreTimestamp = { 
@@ -59,41 +60,6 @@ interface ProcessedConversation {
 interface InboxListProps {
   selectedConversationId?: string;
   onConversationSelect: (id: string) => void;
-}
-
-// 🛠️ FUNCIÓN PARA TRANSFORMAR FECHAS FIRESTORE A ISO STRING
-function toISOStringFromFirestore(ts: DateOrTimestamp): string {
-  console.log("🔄 Transformando timestamp:", ts, "Tipo:", typeof ts);
-  
-  if (!ts) {
-    console.log("⚠️ Timestamp vacío o null");
-    return '';
-  }
-  
-  if (typeof ts === 'object' && ts !== null && '_seconds' in ts) {
-    console.log("🔥 Timestamp Firestore detectado:", ts);
-    try {
-      const isoString = new Date(ts._seconds * 1000).toISOString();
-      console.log("✅ Firestore convertido a ISO:", isoString);
-      return isoString;
-    } catch (error) {
-      console.error("❌ Error convirtiendo Firestore timestamp:", error);
-      return '';
-    }
-  }
-  
-  if (typeof ts === 'string') {
-    console.log("✅ Timestamp ya es string:", ts);
-    return ts;
-  }
-  
-  if (ts instanceof Date) {
-    console.log("📅 Timestamp es Date object");
-    return ts.toISOString();
-  }
-  
-  console.warn("⚠️ Tipo de timestamp no reconocido:", typeof ts, ts);
-  return '';
 }
 
 // 🔄 FUNCIÓN PARA PROCESAR CONVERSACIONES COMPLETAS
@@ -181,50 +147,8 @@ export function InboxList({ selectedConversationId, onConversationSelect }: Inbo
     console.groupEnd();
   }, [conversationsResponse, isLoading, error]);
 
-  // 🔄 ACCESO UNIFICADO AL ARRAY DE CONVERSACIONES (CORREGIDO)
-  const rawConversations: Conversation[] = (() => {
-    console.log("🔄 Determinando array de conversaciones...");
-    
-    if (!conversationsResponse) {
-      console.log("❌ No hay conversationsResponse");
-      return [];
-    }
-
-    // 🚨 LOGS EXHAUSTIVOS DE LA ESTRUCTURA REAL
-    console.log("📦 Estructura completa de conversationsResponse:", conversationsResponse);
-    console.log("📦 conversationsResponse.conversations:", (conversationsResponse as any).conversations);
-    console.log("📦 conversationsResponse.data:", conversationsResponse.data);
-    console.log("📦 Array.isArray(conversationsResponse.conversations):", Array.isArray((conversationsResponse as any).conversations));
-    console.log("📦 Array.isArray(conversationsResponse.data):", Array.isArray(conversationsResponse.data));
-
-    // Opción 1: .conversations (ESTRUCTURA REAL DEL BACKEND)
-    if ((conversationsResponse as any).conversations && Array.isArray((conversationsResponse as any).conversations)) {
-      console.log("✅ Usando conversationsResponse.conversations (BACKEND REAL)");
-      return (conversationsResponse as any).conversations;
-    }
-
-    // Opción 2: .data (API REST estándar)
-    if (conversationsResponse.data && Array.isArray(conversationsResponse.data)) {
-      console.log("✅ Usando conversationsResponse.data");
-      return conversationsResponse.data;
-    }
-    
-    // Opción 3: La respuesta ES el array
-    if (Array.isArray(conversationsResponse)) {
-      console.log("✅ conversationsResponse ES el array");
-      return conversationsResponse as Conversation[];
-    }
-    
-    console.log("❌ No se encontró array de conversaciones válido");
-    console.log("📦 Claves disponibles en conversationsResponse:", Object.keys(conversationsResponse));
-    return [];
-  })();
-
-  console.log("🎯 Raw conversations final:", rawConversations);
-  console.log("📊 Cantidad de raw conversations:", rawConversations.length);
-  
-  // 🔄 PROCESAMIENTO SEGURO DE CONVERSACIONES
-  const processedConversations = processConversationsData(rawConversations);
+  // 🔄 ACCESO UNIFICADO Y SEGURO (YA REALIZADO EN EL HOOK)
+  const processedConversations = conversationsResponse?.conversations || [];
   console.log("✅ PROCESSED CONVERSATIONS FINAL:", processedConversations);
 
   // 🎨 FUNCIÓN PARA ICONOS DE CANALES
@@ -331,7 +255,7 @@ export function InboxList({ selectedConversationId, onConversationSelect }: Inbo
   // 📭 ESTADO SIN CONVERSACIONES
   if (processedConversations.length === 0) {
     console.log("📭 Estado: SIN CONVERSACIONES");
-    console.log("📊 Raw conversations length:", rawConversations.length);
+    console.log("📊 Raw conversations length:", processedConversations.length);
     console.log("📊 Processed conversations length:", processedConversations.length);
     
     return (
@@ -359,7 +283,7 @@ export function InboxList({ selectedConversationId, onConversationSelect }: Inbo
                 Las conversaciones aparecerán aquí cuando estén disponibles
               </p>
               <p className="text-gray-600 text-xs mt-2">
-                Raw: {rawConversations.length} | Procesadas: {processedConversations.length}
+                Raw: {processedConversations.length} | Procesadas: {processedConversations.length}
               </p>
             </div>
           </div>

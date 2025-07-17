@@ -42,11 +42,8 @@ export function ChatThread({ conversationId, onBack, className }: ChatThreadProp
     console.groupEnd();
   }, [conversationId, messagesResponse, isLoading, error]);
 
-  // Procesar mensajes: usar 'text' o 'content' como fallback
-  const messages = (messagesResponse?.messages || []).map((msg: any) => ({
-    ...msg,
-    text: msg.text || msg.content || "",
-  }));
+  // Mensajes ya procesados por el hook
+  const messages = messagesResponse?.messages || [];
 
   // Scroll automático al final al cambiar mensajes/conversación
   useEffect(() => {

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/apiClient";
 import { toast } from "@/hooks/use-toast";
 import { logger } from "@/lib/utils";
+import { extractData, toISOStringFromFirestore } from "@/lib/apiUtils";
 import type { 
   Conversation, 
   Message, 
@@ -23,54 +24,24 @@ export function useConversations(params?: {
     queryKey: ['conversations', params],
     queryFn: async () => {
       logger.api('Obteniendo lista de conversaciones', { params });
-      
-      // ✅ CORREGIDO: Llamar al endpoint correcto
       const response = await api.get<PaginatedResponse<Conversation>>('/conversations', params);
       
-      // 🚨 LOGS EXHAUSTIVOS PARA DEBUG
-      console.group('🔍 [CONVERSATIONS DEBUG] Respuesta de la API:');
-      console.log('Response completa:', response);
-      console.log('Response.data:', response.data);
-      console.log('Response.conversations:', (response as any).conversations);
-      console.log('Response.pagination:', response.pagination);
-      console.log('Cantidad en .data:', response.data?.length);
-      console.log('Cantidad en .conversations:', (response as any).conversations?.length);
-      console.log('Claves disponibles en response:', Object.keys(response));
+      // ✅ USA LA FUNCIÓN UTILITARIA PARA EXTRAER DATOS
+      const conversations = extractData<Conversation>(response, 'conversations');
       
-      // Verificar ambas estructuras posibles
-      const actualConversations = (response as any).conversations || response.data || [];
-      if (actualConversations.length > 0) {
-        console.log('✅ Conversaciones encontradas en:', (response as any).conversations ? '.conversations' : '.data');
-        actualConversations.forEach((conv: any, idx: number) => {
-          console.log(`Conversación[${idx}]:`, {
-            id: conv.id,
-            customerPhone: conv.customerPhone,
-            agentPhone: conv.agentPhone,
-            lastMessage: conv.lastMessage,
-            lastMessageAt: conv.lastMessageAt,
-            name: conv.name,
-            channel: conv.channel,
-            isUnread: conv.isUnread,
-            timestamp: conv.timestamp
-          });
-        });
-      } else {
-        console.warn('⚠️ No se encontraron conversaciones en ninguna estructura');
-      }
-      console.groupEnd();
+      const processedConversations = conversations.map((conv: any) => ({
+        ...conv,
+        lastMessageAt: toISOStringFromFirestore(conv.lastMessageAt),
+        createdAt: toISOStringFromFirestore(conv.createdAt),
+        updatedAt: toISOStringFromFirestore(conv.updatedAt),
+      }));
+
+      logger.api('Conversaciones obtenidas exitosamente', { count: processedConversations.length });
       
-      const actualCount = (response as any).conversations?.length || response.data?.length || 0;
-      logger.api('Conversaciones obtenidas exitosamente', { 
-        total: response.pagination?.total,
-        count: actualCount,
-        hasData: actualCount > 0,
-        structure: (response as any).conversations ? 'conversations' : 'data'
-      });
-      
-      return response;
+      return { ...response, conversations: processedConversations };
     },
-    staleTime: 30 * 1000, // 30 segundos
-    refetchInterval: 10 * 1000, // Refresco cada 10 segundos para nuevos mensajes
+    staleTime: 30 * 1000,
+    refetchInterval: 10 * 1000,
   });
 }
 
@@ -111,41 +82,26 @@ export function useMessages(conversationId: string, params?: {
     queryKey: ['messages', conversationId, params],
     queryFn: async () => {
       logger.api('Obteniendo mensajes de conversación', { conversationId, params });
-      
       const response = await api.get<any>(`/conversations/${conversationId}/messages`, params);
       
-      console.group('🔍 [MESSAGES DEBUG] Respuesta de la API:');
-      console.log('Response completa:', response);
-      console.log('Response.messages:', response.messages);
-      console.log('Response.pagination:', response.pagination);
-      
-      const messages = (response.messages || []).map((msg: any) => ({
+      // ✅ USA LA FUNCIÓN UTILITARIA PARA EXTRAER DATOS
+      const messages = extractData<Message>(response, 'messages');
+
+      const processedMessages = messages.map((msg: any) => ({
         ...msg,
         timestamp: toISOStringFromFirestore(msg.timestamp),
         createdAt: toISOStringFromFirestore(msg.createdAt),
         updatedAt: toISOStringFromFirestore(msg.updatedAt),
       }));
 
-      console.log('✅ Mensajes procesados:', messages);
-      console.groupEnd();
-
-      logger.api('Mensajes obtenidos exitosamente', { messageCount: messages.length });
+      logger.api('Mensajes obtenidos exitosamente', { messageCount: processedMessages.length });
       
-      return { ...response, messages };
+      return { ...response, messages: processedMessages };
     },
     enabled: !!conversationId,
-    staleTime: 10 * 1000, // 10 segundos
-    refetchInterval: 5 * 1000, // Refresco cada 5 segundos para nuevos mensajes
+    staleTime: 10 * 1000,
+    refetchInterval: 5 * 1000,
   });
-}
-// FIX: Añadida función toISOStringFromFirestore para manejar fechas de Firestore
-function toISOStringFromFirestore(ts: any): string {
-    if (!ts) return '';
-    if (typeof ts === 'object' && ts._seconds) {
-        return new Date(ts._seconds * 1000).toISOString();
-    }
-    if (typeof ts === 'string') return ts;
-    return '';
 }
 
 // Hook para enviar un mensaje real a través de Twilio
