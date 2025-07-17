@@ -35,7 +35,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshAuth = async (): Promise<void> => {
     try {
       setLoading(true);
-      logger.auth('Verificando token guardado...');
+      logger.auth('Iniciando verificación de autenticación al cargar app');
       
       // Verificar si hay token guardado
       const savedToken = localStorage.getItem('authToken');
@@ -49,6 +49,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       // Verificar con el backend si el token es válido
       const response = await api.get<User>('/auth/me');
+      
+      // 🚨 LOGS EXHAUSTIVOS PARA DEBUG - refreshAuth
+      console.group('🔍 [REFRESH AUTH DEBUG] Respuesta del endpoint /auth/me:');
+      console.log('RESPUESTA COMPLETA:', response);
+      console.log('TIPO de respuesta:', typeof response);
+      console.log('Es un objeto?:', typeof response === 'object');
+      console.log('Tiene propiedad id?:', response && typeof response === 'object' && 'id' in response);
+      console.log('Tiene propiedad email?:', response && typeof response === 'object' && 'email' in response);
+      console.log('Todas las propiedades:', response ? Object.keys(response) : 'N/A');
+      console.groupEnd();
       
       if (response) {
         logger.auth('Token válido - Usuario autenticado exitosamente', { 
@@ -70,7 +80,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       logger.auth('Error al verificar autenticación', {
         error: error.message,
         status: error.response?.status,
-        statusText: error.response?.statusText
+        statusText: error.response?.statusText,
+        fullError: error
       }, true);
       
       localStorage.removeItem('authToken');
@@ -99,14 +110,67 @@ export function AuthProvider({ children }: AuthProviderProps) {
         password,
       });
 
-      logger.auth('Respuesta recibida del servidor', { 
-        hasUser: !!response?.user,
-        hasToken: !!response?.token
+      // 🚨 LOGS EXHAUSTIVOS PARA DEBUG - VER RESPUESTA REAL
+      console.group('🔍 [LOGIN DEBUG] Respuesta REAL del backend:');
+      console.log('RESPUESTA COMPLETA:', response);
+      console.log('TIPO de respuesta:', typeof response);
+      console.log('Es un objeto?:', typeof response === 'object');
+      console.log('Tiene propiedad user?:', typeof response === 'object' && 'user' in response);
+      console.log('Tiene propiedad token?:', typeof response === 'object' && 'token' in response);
+      console.log('Valor de response.user:', response.user);
+      console.log('Valor de response.token:', response.token);
+      console.log('Todas las propiedades:', Object.keys(response));
+      console.groupEnd();
+
+      logger.auth('🔍 RESPUESTA REAL LOGIN - ANÁLISIS COMPLETO', { 
+        response: response,
+        responseType: typeof response,
+        responseKeys: Object.keys(response || {}),
+        hasUser: typeof response === 'object' && 'user' in response,
+        hasToken: typeof response === 'object' && 'token' in response,
+        userValue: response?.user,
+        tokenValue: response?.token
       });
 
-      // Manejar respuesta del backend que viene directamente como { user, token }
-      const userData = response.user;
-      const authToken = response.token;
+      // Intentar múltiples estructuras de respuesta para compatibilidad
+      let userData: User | undefined;
+      let authToken: string | undefined;
+
+      // Opción 1: Respuesta directa { user: {...}, token: "..." }
+      if (response && typeof response === 'object' && 'user' in response && 'token' in response) {
+        userData = response.user;
+        authToken = response.token;
+        logger.auth('✅ Estructura detectada: Respuesta directa { user, token }');
+      }
+      // Opción 2: Respuesta envuelta { data: { user: {...}, token: "..." } }
+      else if (response && typeof response === 'object' && 'data' in response) {
+        const data = (response as any).data;
+        if (data && typeof data === 'object' && 'user' in data && 'token' in data) {
+          userData = data.user;
+          authToken = data.token;
+          logger.auth('✅ Estructura detectada: Respuesta envuelta { data: { user, token } }');
+        }
+      }
+             // Opción 3: El backend devuelve el usuario y token de forma no estándar
+       else if (response && typeof response === 'object') {
+         // Buscar token en diferentes propiedades posibles
+         const possibleToken = (response as any).token || (response as any).accessToken || (response as any).authToken;
+         // Buscar datos de usuario en diferentes propiedades posibles
+         const possibleUser = (response as any).user || (response as any).data || response;
+         
+         if (possibleUser && possibleToken) {
+           userData = possibleUser;
+           authToken = possibleToken;
+           logger.auth('✅ Estructura detectada: Formato no estándar');
+         }
+       }
+
+      console.group('🔍 [LOGIN DEBUG] Datos extraídos:');
+      console.log('userData extraído:', userData);
+      console.log('authToken extraído:', authToken);
+      console.log('userData válido?:', !!userData);
+      console.log('authToken válido?:', !!authToken);
+      console.groupEnd();
 
       if (userData && authToken) {
         logger.auth('Login exitoso - Guardando datos de sesión', {
@@ -127,15 +191,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Mostrar mensaje de éxito
         toast({
           title: "¡Bienvenido!",
-          description: `Hola ${userData.name}, sesión iniciada correctamente.`,
+          description: `Hola ${userData.name || userData.email}, sesión iniciada correctamente.`,
         });
         
         logger.auth('Login completado exitosamente - Estado actualizado');
       } else {
         const errorMsg = 'Respuesta del servidor inválida - faltan datos de usuario o token';
         logger.auth('Login fallido - Respuesta del servidor inválida', { 
-          response: response
+          response: response,
+          extractedUserData: userData,
+          extractedAuthToken: authToken,
+          responseStructure: {
+            hasUser: !!userData,
+            hasToken: !!authToken,
+            userType: typeof userData,
+            tokenType: typeof authToken
+          }
         }, true);
+
+        // Agregar toast con información detallada para debugging
+        toast({
+          variant: "destructive",
+          title: "Error de inicio de sesión",
+          description: import.meta.env.DEV 
+            ? `${errorMsg}. Revisa la consola para detalles de la respuesta.` 
+            : errorMsg,
+        });
+
         throw new Error(errorMsg);
       }
     } catch (error: any) {
@@ -145,7 +227,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         error: errorMessage,
         status: error.response?.status,
         statusText: error.response?.statusText,
-        email
+        email,
+        fullError: error
       }, true);
       
       toast({
