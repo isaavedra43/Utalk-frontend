@@ -23,8 +23,39 @@ export function useConversations(params?: {
     queryKey: ['conversations', params],
     queryFn: async () => {
       logger.api('Obteniendo lista de conversaciones', { params });
-      const response = await api.get<PaginatedResponse<Conversation>>('/messages', params);
-      logger.api('Conversaciones obtenidas exitosamente', { total: response.pagination?.total });
+      
+      // ✅ CORREGIDO: Llamar al endpoint correcto
+      const response = await api.get<PaginatedResponse<Conversation>>('/conversations', params);
+      
+      // 🚨 LOGS EXHAUSTIVOS PARA DEBUG
+      console.group('🔍 [CONVERSATIONS DEBUG] Respuesta de la API:');
+      console.log('Response completa:', response);
+      console.log('Response.data:', response.data);
+      console.log('Response.pagination:', response.pagination);
+      console.log('Cantidad de conversaciones:', response.data?.length);
+      
+      if (response.data) {
+        response.data.forEach((conv: any, idx: number) => {
+          console.log(`Conversación[${idx}]:`, {
+            id: conv.id,
+            customerPhone: conv.customerPhone,
+            agentPhone: conv.agentPhone,
+            lastMessage: conv.lastMessage,
+            lastMessageAt: conv.lastMessageAt,
+            name: conv.name,
+            channel: conv.channel,
+            isUnread: conv.isUnread,
+            timestamp: conv.timestamp
+          });
+        });
+      }
+      console.groupEnd();
+      
+      logger.api('Conversaciones obtenidas exitosamente', { total: response.pagination?.total,
+        count: response.data?.length,
+        hasData: !!response.data
+      });
+      
       return response;
     },
     staleTime: 30 * 1000, // 30 segundos
