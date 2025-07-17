@@ -192,19 +192,19 @@ function App() {
 
   return (
     <ErrorBoundary onError={handleGlobalError}>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <AuthProvider>
-            <TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
               <SocketProvider>
                 <AppRoutes />
-                <Toaster />
-                <Sonner />
+          <Toaster />
+          <Sonner />
               </SocketProvider>
-            </TooltipProvider>
-          </AuthProvider>
+        </TooltipProvider>
+      </AuthProvider>
         </BrowserRouter>
-      </QueryClientProvider>
+    </QueryClientProvider>
     </ErrorBoundary>
   );
 }

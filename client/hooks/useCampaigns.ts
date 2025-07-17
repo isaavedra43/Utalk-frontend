@@ -4,8 +4,8 @@ import { toast } from "@/hooks/use-toast";
 import { logger } from "@/lib/utils";
 import type { 
   Campaign, 
-  CampaignFormData, 
-  ApiResponse,
+  CampaignFormData,
+  ApiResponse, 
   PaginatedResponse 
 } from "@/types/api";
 import type { PaginationParams } from "@/types/pagination";
@@ -372,7 +372,7 @@ export function useCampaignStats(campaignId?: string) {
       } else {
         logger.api('Obteniendo estadísticas generales de campañas');
         const response = await api.get<any>('/campaigns/stats');
-        return response;
+      return response;
       }
     },
     staleTime: 1 * 60 * 1000, // 1 minuto
