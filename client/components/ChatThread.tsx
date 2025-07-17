@@ -43,7 +43,7 @@ export function ChatThread({ conversationId, onBack, className }: ChatThreadProp
   }, [conversationId, messagesResponse, isLoading, error]);
 
   // Procesar mensajes: usar 'text' o 'content' como fallback
-  const messages = (messagesResponse?.data || []).map((msg: any) => ({
+  const messages = (messagesResponse?.messages || []).map((msg: any) => ({
     ...msg,
     text: msg.text || msg.content || "",
   }));

@@ -111,14 +111,41 @@ export function useMessages(conversationId: string, params?: {
     queryKey: ['messages', conversationId, params],
     queryFn: async () => {
       logger.api('Obteniendo mensajes de conversación', { conversationId, params });
-      const response = await api.get<PaginatedResponse<Message>>(`/conversations/${conversationId}/messages`, params);
-      logger.api('Mensajes obtenidos exitosamente', { messageCount: response.data?.length });
-      return response;
+      
+      const response = await api.get<any>(`/conversations/${conversationId}/messages`, params);
+      
+      console.group('🔍 [MESSAGES DEBUG] Respuesta de la API:');
+      console.log('Response completa:', response);
+      console.log('Response.messages:', response.messages);
+      console.log('Response.pagination:', response.pagination);
+      
+      const messages = (response.messages || []).map((msg: any) => ({
+        ...msg,
+        timestamp: toISOStringFromFirestore(msg.timestamp),
+        createdAt: toISOStringFromFirestore(msg.createdAt),
+        updatedAt: toISOStringFromFirestore(msg.updatedAt),
+      }));
+
+      console.log('✅ Mensajes procesados:', messages);
+      console.groupEnd();
+
+      logger.api('Mensajes obtenidos exitosamente', { messageCount: messages.length });
+      
+      return { ...response, messages };
     },
     enabled: !!conversationId,
     staleTime: 10 * 1000, // 10 segundos
     refetchInterval: 5 * 1000, // Refresco cada 5 segundos para nuevos mensajes
   });
+}
+// FIX: Añadida función toISOStringFromFirestore para manejar fechas de Firestore
+function toISOStringFromFirestore(ts: any): string {
+    if (!ts) return '';
+    if (typeof ts === 'object' && ts._seconds) {
+        return new Date(ts._seconds * 1000).toISOString();
+    }
+    if (typeof ts === 'string') return ts;
+    return '';
 }
 
 // Hook para enviar un mensaje real a través de Twilio
