@@ -33,6 +33,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ConnectionStatus } from "@/components/ConnectionStatus";
 
 export default function Index() {
   const isMobile = useIsMobile();
@@ -204,6 +205,10 @@ export default function Index() {
                activeModule}
             </Badge>
           </div>
+          
+          {/* 🔌 ESTADO DE CONEXIÓN Socket.io */}
+          <ConnectionStatus className="hidden lg:flex" />
+          
           <Button
             variant="ghost"
             size="sm"

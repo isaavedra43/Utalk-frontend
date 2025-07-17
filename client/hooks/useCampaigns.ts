@@ -117,8 +117,8 @@ export function useCreateCampaign() {
     mutationFn: async (campaignData: CampaignFormData) => {
       logger.api('Creando nueva campaña', { 
         name: campaignData.name, 
-        type: campaignData.type,
-        channel: campaignData.channel 
+        channels: campaignData.channels,
+        description: campaignData.description 
       });
       const response = await api.post<Campaign>('/campaigns', campaignData);
       return response;
@@ -360,19 +360,23 @@ export function useStopCampaign() {
   });
 }
 
-// Hook para obtener estadísticas de una campaña
-export function useCampaignStats(campaignId: string) {
+// Hook para estadísticas de campañas en tiempo real
+export function useCampaignStats(campaignId?: string) {
   return useQuery({
-    queryKey: ['campaigns', campaignId, 'stats'],
+    queryKey: ['campaigns', 'stats', campaignId],
     queryFn: async () => {
-      logger.api('Obteniendo estadísticas de campaña', { campaignId });
-      const response = await api.get<CampaignStats>(`/campaigns/${campaignId}/stats`);
-      logger.api('Estadísticas de campaña obtenidas exitosamente');
-      return response;
+      if (campaignId) {
+        logger.api('Obteniendo estadísticas de campaña específica', { campaignId });
+        const response = await api.get<any>(`/campaigns/${campaignId}/stats`);
+        return response;
+      } else {
+        logger.api('Obteniendo estadísticas generales de campañas');
+        const response = await api.get<any>('/campaigns/stats');
+        return response;
+      }
     },
-    enabled: !!campaignId,
     staleTime: 1 * 60 * 1000, // 1 minuto
-    refetchInterval: 30 * 1000, // Actualizar cada 30 segundos para campañas activas
+    // 🔥 ELIMINADO: refetchInterval - usar Socket.io para estadísticas en tiempo real
   });
 }
 

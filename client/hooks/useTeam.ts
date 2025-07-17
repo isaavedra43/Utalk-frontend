@@ -4,16 +4,30 @@ import { toast } from "@/hooks/use-toast";
 import { logger } from "@/lib/utils";
 import type { 
   User, 
-  Role, 
-  Permission,
   ApiResponse, 
   PaginatedResponse 
 } from "@/types/api";
 
 // Tipos específicos para equipo
+interface Role {
+  id: string;
+  name: string;
+  description: string;
+  permissions: string[];
+}
+
+interface Permission {
+  id: string;
+  name: string;
+  description: string;
+  resource: string;
+  action: string;
+}
+
 interface TeamMember extends User {
   isOnline: boolean;
   lastActivity: string;
+  status?: 'active' | 'inactive' | 'online' | 'offline';
   performance: {
     conversationsHandled: number;
     averageResponseTime: number;
@@ -51,7 +65,6 @@ export function useTeamMembers(params?: {
       return response;
     },
     staleTime: 2 * 60 * 1000, // 2 minutos
-    refetchInterval: 30 * 1000, // Actualizar cada 30 segundos para estado online
   });
 }
 
@@ -371,7 +384,6 @@ export function useTeamActivity() {
       return response;
     },
     staleTime: 10 * 1000, // 10 segundos
-    refetchInterval: 15 * 1000, // Actualizar cada 15 segundos
   });
 }
 

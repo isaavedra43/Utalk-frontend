@@ -63,7 +63,7 @@ export interface Message {
   content: string;
   sender: "agent" | "client";
   timestamp: string;
-  status: "sent" | "delivered" | "read";
+  status: "sent" | "delivered" | "read" | "error";
   type: "text" | "image" | "file" | "audio";
   attachments?: Attachment[];
 }

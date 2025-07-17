@@ -12,6 +12,7 @@ import { Loader2, MessageSquare, Mail, Facebook, Smartphone, Search, AlertCircle
 import { cn } from "@/lib/utils";
 import type { Conversation } from "@/types/api";
 import { useConversations } from "@/hooks/useMessages";
+import { useContactIntegration } from "@/hooks/useContactIntegration";
 import { safeString } from "@/lib/apiUtils";
 
 interface InboxListProps {
@@ -92,12 +93,25 @@ function safeTruncate(text: any, maxLength: number = 50): string {
   }
 }
 
-export function InboxList({ selectedConversationId, onConversationSelect }: InboxListProps) {
-  // 🔧 Hook que ya retorna datos completamente normalizados
+export function InboxList({
+  selectedConversationId,
+  onConversationSelect,
+}: InboxListProps) {
+  // Obtener conversaciones y integrar con contactos
   const { data: conversationsResponse, isLoading, error } = useConversations();
+  const { enrichConversations, getIntegrationStats } = useContactIntegration();
+
+  // 🔧 ENRIQUECER CONVERSACIONES CON DATOS DE CONTACTOS
+  const conversations = conversationsResponse?.conversations || [];
+  const enrichedConversations = enrichConversations(conversations);
+
+  // Obtener estadísticas de integración para mostrar información útil
+  const integrationStats = getIntegrationStats();
+
+  console.log('📊 [InboxList] Estadísticas de integración de contactos:', integrationStats);
 
   // 🛡️ EXTRACCIÓN DEFENSIVA DE DATOS NORMALIZADOS
-  const conversations = conversationsResponse?.conversations || [];
+  // const conversations = conversationsResponse?.conversations || [];
   
   console.group('🔍 [InboxList] Estado actual de conversaciones');
   console.log('📥 Respuesta completa:', conversationsResponse);
@@ -122,37 +136,46 @@ export function InboxList({ selectedConversationId, onConversationSelect }: Inbo
   // 🔄 ESTADOS DE LOADING Y ERROR
   if (isLoading) {
     return (
-      <div className="h-full flex items-center justify-center bg-[#0A0A0A]">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-[#7C3AED] mx-auto mb-3" />
-          <p className="text-[#E4E4E7] text-sm">Cargando conversaciones...</p>
+      <div className="h-full flex flex-col bg-[#0C0C0C]">
+        <div className="p-4 border-b border-[#27272A]">
+          <h2 className="text-white font-medium">Conversaciones</h2>
+          <p className="text-[#9CA3AF] text-sm">Cargando...</p>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-[#9CA3AF]" />
         </div>
       </div>
     );
   }
 
   if (error) {
-    console.error('❌ [InboxList] Error al cargar conversaciones:', error);
     return (
-      <div className="h-full flex items-center justify-center bg-[#0A0A0A]">
-        <div className="text-center">
-          <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-3" />
-          <p className="text-red-400 text-sm mb-2">Error al cargar conversaciones</p>
-          <p className="text-[#9CA3AF] text-xs">
-            {error instanceof Error ? error.message : "Error desconocido"}
-          </p>
+      <div className="h-full flex flex-col bg-[#0C0C0C]">
+        <div className="p-4 border-b border-[#27272A]">
+          <h2 className="text-white font-medium">Conversaciones</h2>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center text-[#9CA3AF]">
+            <AlertCircle className="w-8 h-8 mx-auto mb-2" />
+            <p className="text-sm">Error al cargar conversaciones</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (conversations.length === 0) {
+  if (enrichedConversations.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center bg-[#0A0A0A]">
-        <div className="text-center">
-          <MessageSquare className="w-8 h-8 text-[#9CA3AF] mx-auto mb-3" />
-          <p className="text-[#E4E4E7] text-sm mb-1">No hay conversaciones</p>
-          <p className="text-[#9CA3AF] text-xs">Las nuevas conversaciones aparecerán aquí</p>
+      <div className="h-full flex flex-col bg-[#0C0C0C]">
+        <div className="p-4 border-b border-[#27272A]">
+          <h2 className="text-white font-medium">Conversaciones</h2>
+          <p className="text-[#9CA3AF] text-sm">Sin conversaciones</p>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center text-[#9CA3AF]">
+            <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No hay conversaciones</p>
+          </div>
         </div>
       </div>
     );
@@ -160,92 +183,162 @@ export function InboxList({ selectedConversationId, onConversationSelect }: Inbo
 
   // 🎯 RENDER PRINCIPAL CON VALIDACIONES DEFENSIVAS
   return (
-    <div className="h-full bg-[#0A0A0A] border-r border-[#27272A]">
-      {/* Header */}
+    <div className="h-full flex flex-col bg-[#0C0C0C]">
+      {/* Header con estadísticas de integración */}
       <div className="p-4 border-b border-[#27272A]">
-        <div className="flex items-center gap-3 mb-3">
-          <h2 className="text-[#E4E4E7] font-medium">
-            Conversaciones ({conversations.length})
-          </h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-white font-medium">Conversaciones</h2>
+          <span className="text-[#9CA3AF] text-sm">
+            {enrichedConversations.length}
+          </span>
         </div>
         
-        <div className="relative">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#9CA3AF]" />
-          <input
-            type="text"
-            placeholder="Buscar conversaciones..."
-            className="w-full pl-9 pr-3 py-2 bg-[#18181B] border border-[#27272A] rounded-lg text-[#E4E4E7] placeholder-[#9CA3AF] text-sm focus:outline-none focus:border-[#7C3AED]"
-          />
-        </div>
+        {/* 🔧 ESTADÍSTICAS DE INTEGRACIÓN DE CONTACTOS */}
+        {integrationStats.totalContacts > 0 && (
+          <div className="flex items-center gap-2 text-xs text-[#9CA3AF]">
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>{integrationStats.conversationsWithContacts} con contacto</span>
+            </div>
+            {integrationStats.conversationsWithoutContacts > 0 && (
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                <span>{integrationStats.conversationsWithoutContacts} sin contacto</span>
+              </div>
+            )}
+            <span className="text-[#71717A]">
+              ({integrationStats.integrationRate}% integración)
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Lista de conversaciones */}
-      <ScrollArea className="flex-1">
-        <div className="p-2">
-          {conversations.map((conversation) => {
-            // 🛡️ VALIDACIONES DEFENSIVAS PARA CADA CONVERSACIÓN
-            const safeId = safeString(conversation.id, `error_${Date.now()}`);
-            const safePhone = safeString(conversation.customerPhone, "Cliente sin teléfono");
-            const safeLastMessage = safeTruncate(conversation.lastMessage, 60);
-            const safeTime = safeFormatTime(conversation.lastMessageAt);
-            const isSelected = selectedConversationId === safeId;
-            const isUnread = conversation.isUnread === true;
+      {/* Lista de conversaciones enriquecidas */}
+      <div className="flex-1 overflow-y-auto">
+        {enrichedConversations.map((conversation) => {
+          const isSelected = conversation.id === selectedConversationId;
+          
+          // 🔧 USAR DATOS ENRIQUECIDOS DE CONTACTOS
+          const displayName = (conversation as any).displayName || conversation.name || `Cliente ${conversation.customerPhone}`;
+          const contactInfo = (conversation as any).contactInfo;
+          const contactStatus = (conversation as any).contactStatus;
+          const contactEmail = (conversation as any).contactEmail;
 
-            return (
-              <div
-                key={safeId}
-                onClick={() => onConversationSelect(safeId)}
-                className={cn(
-                  "p-3 rounded-lg cursor-pointer border transition-colors mb-1",
-                  isSelected
-                    ? "bg-[#7C3AED] border-[#7C3AED] text-white"
-                    : "bg-[#18181B] border-[#27272A] text-[#E4E4E7] hover:bg-[#27272A]"
-                )}
-              >
-                <div className="flex items-start gap-3">
-                  {/* Channel Icon */}
-                  <div className={cn(
-                    "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center",
-                    isSelected ? "bg-white/20" : "bg-[#27272A]"
-                  )}>
-                    {getChannelIcon(conversation.channel)}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className={cn(
-                        "font-medium text-sm truncate",
-                        isSelected ? "text-white" : "text-[#E4E4E7]"
-                      )}>
-                        {safePhone}
-                      </p>
-                      <span className={cn(
-                        "text-xs",
-                        isSelected ? "text-white/70" : "text-[#9CA3AF]"
-                      )}>
-                        {safeTime}
+          return (
+            <div
+              key={conversation.id}
+              onClick={() => onConversationSelect(conversation.id)}
+              className={cn(
+                "p-4 cursor-pointer transition-colors hover:bg-[#18181B]",
+                isSelected ? "bg-[#18181B] border-r-2 border-blue-500" : "border-r-2 border-transparent"
+              )}
+            >
+              <div className="flex items-start gap-3">
+                {/* Avatar con estado de contacto */}
+                <div className="relative flex-shrink-0">
+                  <div className="w-10 h-10 bg-[#27272A] rounded-full flex items-center justify-center">
+                    {conversation.avatar ? (
+                      <img 
+                        src={conversation.avatar} 
+                        alt={displayName}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-[#9CA3AF] text-sm font-medium">
+                        {displayName.substring(0, 2).toUpperCase()}
                       </span>
-                    </div>
-                    
-                    <p className={cn(
-                      "text-sm truncate",
-                      isSelected ? "text-white/80" : "text-[#9CA3AF]"
-                    )}>
-                      {safeLastMessage}
-                    </p>
+                    )}
                   </div>
-
-                  {/* Unread Indicator */}
-                  {isUnread && !isSelected && (
-                    <div className="flex-shrink-0 w-2 h-2 bg-[#7C3AED] rounded-full"></div>
+                  
+                  {/* Indicador de contacto */}
+                  {contactInfo && (
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-[#0C0C0C] flex items-center justify-center">
+                      <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                    </div>
                   )}
                 </div>
+
+                <div className="flex-1 min-w-0">
+                  {/* Nombre enriquecido */}
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="text-white text-sm font-medium truncate">
+                      {displayName}
+                    </h3>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {/* Icono de canal */}
+                      <div className="text-[#9CA3AF]">
+                        {getChannelIcon(conversation.channel)}
+                      </div>
+                      <span className="text-[#9CA3AF] text-xs">
+                        {safeFormatTime(conversation.lastMessageAt)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Información de contacto adicional */}
+                  {contactInfo && (
+                    <div className="flex items-center gap-2 mb-1">
+                      {contactEmail && (
+                        <span className="text-[#71717A] text-xs truncate">
+                          {contactEmail}
+                        </span>
+                      )}
+                      {contactStatus && (
+                        <span className={cn(
+                          "text-xs px-1.5 py-0.5 rounded",
+                          contactStatus === 'customer' ? 'bg-green-500/20 text-green-300' :
+                          contactStatus === 'payment' ? 'bg-blue-500/20 text-blue-300' :
+                          contactStatus === 'hot-lead' ? 'bg-orange-500/20 text-orange-300' :
+                          'bg-gray-500/20 text-gray-300'
+                        )}>
+                          {contactStatus}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Último mensaje */}
+                  <p className="text-[#9CA3AF] text-sm truncate">
+                    {safeString(conversation.lastMessage, "Sin mensaje")}
+                  </p>
+
+                  {/* Indicadores de estado */}
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center gap-2">
+                      {/* Teléfono (solo si no hay contacto) */}
+                      {!contactInfo && conversation.customerPhone && (
+                        <span className="text-[#71717A] text-xs">
+                          {conversation.customerPhone}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-1">
+                      {conversation.isUnread && (
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
-            );
-          })}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 🔧 FOOTER CON INFORMACIÓN DE CONTACTOS */}
+      {integrationStats.totalContacts > 0 && integrationStats.conversationsWithoutContacts > 0 && (
+        <div className="p-3 border-t border-[#27272A] bg-[#111111]">
+          <div className="text-center">
+            <p className="text-[#71717A] text-xs">
+              {integrationStats.conversationsWithoutContacts} conversaciones podrían beneficiarse de contactos
+            </p>
+            <button className="text-blue-400 text-xs hover:text-blue-300 mt-1">
+              Crear contactos automáticamente
+            </button>
+          </div>
         </div>
-      </ScrollArea>
+      )}
     </div>
   );
 }

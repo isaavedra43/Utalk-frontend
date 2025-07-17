@@ -57,12 +57,12 @@ export function useDashboardKPIs(params?: {
     queryKey: ['dashboard', 'kpis', params],
     queryFn: async () => {
       logger.api('Obteniendo KPIs del dashboard', { params });
-      const response = await api.get<DashboardKPIs>('/dashboard/kpis', params);
+      const response = await api.get<any>('/dashboard/kpis', params);
       logger.api('KPIs del dashboard obtenidos exitosamente');
       return response;
     },
     staleTime: 2 * 60 * 1000, // 2 minutos
-    refetchInterval: 30 * 1000, // Actualizar cada 30 segundos
+    // 🔥 ELIMINADO: refetchInterval - usar Socket.io para actualizaciones en tiempo real
   });
 }
 
@@ -108,12 +108,12 @@ export function useDashboardAlerts() {
     queryKey: ['dashboard', 'alerts'],
     queryFn: async () => {
       logger.api('Obteniendo alertas del dashboard');
-      const response = await api.get<AlertData>('/dashboard/alerts');
-      logger.api('Alertas del dashboard obtenidas exitosamente');
+      const response = await api.get<any>('/dashboard/alerts');
+      logger.api('Alertas del dashboard obtenidas exitosamente', { alertsCount: response.length });
       return response;
     },
     staleTime: 1 * 60 * 1000, // 1 minuto
-    refetchInterval: 30 * 1000, // Actualizar cada 30 segundos para alertas
+    // 🔥 ELIMINADO: refetchInterval - usar Socket.io para alertas en tiempo real
   });
 }
 
@@ -350,7 +350,7 @@ export function useDashboardMetrics(params?: {
       }
     },
     staleTime: params?.refresh ? 0 : 2 * 60 * 1000, // 2 minutos, 0 si se solicita refresh
-    refetchInterval: 30 * 1000, // Actualizar cada 30 segundos
+    // 🔥 ELIMINADO: refetchInterval - usar Socket.io para actualizaciones en tiempo real
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
@@ -444,7 +444,7 @@ export function useRealtimeActivity() {
         throw error;
       }
     },
-    refetchInterval: 10 * 1000, // Actualizar cada 10 segundos
+    // 🔥 ELIMINADO: refetchInterval - usar Socket.io para actualizaciones en tiempo real
     staleTime: 5 * 1000, // 5 segundos
   });
 

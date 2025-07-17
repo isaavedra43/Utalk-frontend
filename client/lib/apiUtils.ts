@@ -128,7 +128,149 @@ export function safeBoolean(value: any, fallback: boolean = false): boolean {
 }
 
 /**
+ * Normaliza un mensaje para asegurar que todos los campos críticos tengan valores válidos
+ * y estén alineados con el contrato del backend
+ * @param msg El mensaje a normalizar
+ * @returns Mensaje normalizado y seguro
+ */
+export function normalizeMessage(msg: any): Message & { text?: string } {
+  console.groupCollapsed(`🔧 [normalizeMessage] Normalizando mensaje: ${msg?.id || 'SIN_ID'}`);
+  
+  try {
+    // 🔧 NORMALIZACIÓN MEJORADA DE CAMPOS CRÍTICOS SEGÚN BACKEND
+    
+    // 1. SENDER: Normalizar según lo que espera el backend (agent/client)
+    let normalizedSender: 'agent' | 'client' = 'client';
+    if (msg?.sender) {
+      const senderStr = String(msg.sender).toLowerCase();
+      if (senderStr === 'agent' || senderStr === 'admin' || senderStr === 'system') {
+        normalizedSender = 'agent';
+      } else if (senderStr === 'client' || senderStr === 'customer' || senderStr === 'user') {
+        normalizedSender = 'client';
+      }
+    }
+    
+    // 2. DIRECTION: Si el backend usa direction en lugar de sender
+    if (msg?.direction && !msg?.sender) {
+      const directionStr = String(msg.direction).toLowerCase();
+      if (directionStr === 'inbound' || directionStr === 'incoming') {
+        normalizedSender = 'client';
+      } else if (directionStr === 'outbound' || directionStr === 'outgoing') {
+        normalizedSender = 'agent';
+      }
+    }
+    
+    // 3. STATUS: Asegurar valores válidos que acepta el backend
+    let normalizedStatus: 'sent' | 'delivered' | 'read' | 'error' = 'sent';
+    if (msg?.status) {
+      const statusStr = String(msg.status).toLowerCase();
+      if (['delivered', 'delivered_to_device', 'delivered_to_phone'].includes(statusStr)) {
+        normalizedStatus = 'delivered';
+      } else if (['read', 'read_by_recipient', 'opened'].includes(statusStr)) {
+        normalizedStatus = 'read';
+      } else if (['failed', 'error', 'undelivered', 'rejected'].includes(statusStr)) {
+        normalizedStatus = 'error';
+      } else if (['sent', 'queued', 'sending', 'accepted'].includes(statusStr)) {
+        normalizedStatus = 'sent';
+      }
+    }
+    
+    // 4. CONTENIDO: Múltiples campos posibles del backend
+    const content = safeString(
+      msg?.content || 
+      msg?.text || 
+      msg?.body || 
+      msg?.message || 
+      msg?.messageBody,
+      "Mensaje sin contenido"
+    );
+    
+    // 5. TIPO DE MENSAJE: Normalizar tipos conocidos
+    let normalizedType: 'text' | 'image' | 'file' | 'audio' = 'text';
+    if (msg?.type) {
+      const typeStr = String(msg.type).toLowerCase();
+      if (['image', 'photo', 'picture', 'img'].includes(typeStr)) {
+        normalizedType = 'image';
+      } else if (['file', 'document', 'attachment', 'doc'].includes(typeStr)) {
+        normalizedType = 'file';
+      } else if (['audio', 'voice', 'sound', 'recording'].includes(typeStr)) {
+        normalizedType = 'audio';
+      } else {
+        normalizedType = 'text';
+      }
+    }
+    
+    // 6. ATTACHMENTS: Normalizar estructura de archivos adjuntos
+    const normalizedAttachments = [];
+    if (Array.isArray(msg?.attachments)) {
+      normalizedAttachments.push(...msg.attachments.filter(att => att && typeof att === 'object'));
+    } else if (msg?.mediaUrl || msg?.fileUrl) {
+      // Si viene un solo archivo como URL
+      normalizedAttachments.push({
+        id: `attachment_${Date.now()}`,
+        name: msg?.fileName || 'Archivo adjunto',
+        type: normalizedType,
+        url: msg?.mediaUrl || msg?.fileUrl,
+        size: msg?.fileSize || 'Desconocido'
+      });
+    }
+
+    const normalized = {
+      id: safeString(msg?.id, `temp_msg_${Date.now()}`),
+      conversationId: safeString(msg?.conversationId || msg?.chatId || msg?.threadId, ""),
+      content,
+      text: content, // Alias para compatibilidad
+      sender: normalizedSender,
+      timestamp: toISOStringFromFirestore(msg?.timestamp || msg?.createdAt || msg?.sentAt),
+      status: normalizedStatus,
+      type: normalizedType,
+      attachments: normalizedAttachments,
+      
+      // 7. CAMPOS ADICIONALES DEL BACKEND (si existen)
+      ...(msg?.messageId && { messageId: msg.messageId }),
+      ...(msg?.from && { from: safeString(msg.from) }),
+      ...(msg?.to && { to: safeString(msg.to) }),
+      ...(msg?.direction && { direction: msg.direction }),
+      ...(msg?.channel && { channel: msg.channel }),
+      ...(msg?.priority && { priority: msg.priority }),
+      ...(msg?.metadata && { metadata: msg.metadata })
+    };
+    
+    console.log('✅ Mensaje normalizado exitosamente:', {
+      id: normalized.id,
+      hasContent: !!normalized.content,
+      sender: normalized.sender,
+      status: normalized.status,
+      type: normalized.type,
+      hasAttachments: normalized.attachments.length > 0,
+      timestamp: normalized.timestamp
+    });
+    
+    console.groupEnd();
+    return normalized;
+    
+  } catch (error) {
+    console.error('❌ Error al normalizar mensaje, usando fallback mínimo:', { error, originalMsg: msg });
+    console.groupEnd();
+    
+    // Fallback de emergencia
+    return {
+      id: safeString(msg?.id, `emergency_msg_${Date.now()}`),
+      conversationId: "",
+      content: "Error al cargar mensaje",
+      text: "Error al cargar mensaje",
+      sender: 'client' as const,
+      timestamp: new Date().toISOString(),
+      status: 'error' as const,
+      type: 'text' as const,
+      attachments: []
+    };
+  }
+}
+
+/**
  * Normaliza una conversación para asegurar que todos los campos críticos tengan valores válidos
+ * y estén alineados con el contrato del backend
  * @param conv La conversación a normalizar
  * @returns Conversación normalizada y segura
  */
@@ -136,39 +278,135 @@ export function normalizeConversation(conv: any): Conversation {
   console.groupCollapsed(`🔧 [normalizeConversation] Normalizando conversación: ${conv?.id || 'SIN_ID'}`);
   
   try {
+    // 🔧 NORMALIZACIÓN MEJORADA DE CAMPOS CRÍTICOS SEGÚN BACKEND
+    
+    // 1. TELÉFONOS: Múltiples formatos posibles del backend
+    const customerPhone = safeString(
+      conv?.customerPhone || 
+      conv?.phone || 
+      conv?.from || 
+      conv?.clientPhone || 
+      conv?.userPhone,
+      "Sin teléfono"
+    );
+    
+    const agentPhone = safeString(
+      conv?.agentPhone || 
+      conv?.to || 
+      conv?.assignedPhone || 
+      conv?.businessPhone,
+      "Sin agente asignado"
+    );
+    
+    // 2. CANAL: Normalizar canales conocidos del backend
+    let normalizedChannel: 'whatsapp' | 'email' | 'facebook' | 'sms' = 'whatsapp';
+    if (conv?.channel) {
+      const channelStr = String(conv.channel).toLowerCase();
+      if (['email', 'mail', 'gmail', 'outlook'].includes(channelStr)) {
+        normalizedChannel = 'email';
+      } else if (['facebook', 'fb', 'messenger', 'facebook_messenger'].includes(channelStr)) {
+        normalizedChannel = 'facebook';
+      } else if (['sms', 'text', 'twilio_sms'].includes(channelStr)) {
+        normalizedChannel = 'sms';
+      } else if (['whatsapp', 'wa', 'twilio_whatsapp'].includes(channelStr)) {
+        normalizedChannel = 'whatsapp';
+      }
+    }
+    
+    // 3. ÚLTIMO MENSAJE: Múltiples fuentes posibles
+    const lastMessage = safeString(
+      conv?.lastMessage || 
+      conv?.message || 
+      conv?.lastMessageContent || 
+      conv?.recentMessage,
+      "Sin mensaje"
+    );
+    
+    // 4. ESTADO DE LECTURA: Múltiples formatos del backend
+    let isUnread = false;
+    if (conv?.isUnread !== undefined) {
+      isUnread = safeBoolean(conv.isUnread);
+    } else if (conv?.read !== undefined) {
+      isUnread = !safeBoolean(conv.read);
+    } else if (conv?.status) {
+      const statusStr = String(conv.status).toLowerCase();
+      isUnread = statusStr === 'unread' || statusStr === 'new';
+    }
+    
+    // 5. NOMBRE DEL CONTACTO: Múltiples fuentes
+    const name = safeString(
+      conv?.name || 
+      conv?.contactName || 
+      conv?.customerName || 
+      conv?.displayName || 
+      `Cliente ${customerPhone}`,
+      "Cliente sin nombre"
+    );
+    
+    // 6. TIMESTAMPS: Múltiples formatos del backend
+    const createdAt = toISOStringFromFirestore(
+      conv?.createdAt || 
+      conv?.created || 
+      conv?.startedAt
+    );
+    
+    const lastMessageAt = toISOStringFromFirestore(
+      conv?.lastMessageAt || 
+      conv?.lastActivity || 
+      conv?.updatedAt || 
+      conv?.lastMessageTime || 
+      createdAt
+    );
+    
+    const updatedAt = toISOStringFromFirestore(
+      conv?.updatedAt || 
+      conv?.modified || 
+      lastMessageAt || 
+      createdAt
+    );
+
     const normalized: Conversation = {
       id: safeString(conv?.id, `temp_${Date.now()}`),
-      name: safeString(conv?.name, "Cliente sin nombre"),
-      phone: safeString(conv?.phone || conv?.customerPhone, "Sin teléfono"),
-      customerPhone: safeString(conv?.customerPhone || conv?.phone, "Sin teléfono"),
-      agentPhone: safeString(conv?.agentPhone, "Sin agente asignado"),
-      channel: (conv?.channel && ['whatsapp', 'email', 'facebook', 'sms'].includes(conv.channel)) 
-        ? conv.channel 
-        : 'whatsapp',
-      lastMessage: safeString(conv?.lastMessage || conv?.message, "Sin mensaje"),
-      message: safeString(conv?.message || conv?.lastMessage, "Sin mensaje"),
-      timestamp: toISOStringFromFirestore(conv?.timestamp || conv?.lastMessageAt || conv?.createdAt),
-      lastMessageAt: toISOStringFromFirestore(conv?.lastMessageAt || conv?.timestamp || conv?.createdAt),
-      createdAt: toISOStringFromFirestore(conv?.createdAt),
-      updatedAt: toISOStringFromFirestore(conv?.updatedAt || conv?.createdAt),
-      isUnread: safeBoolean(conv?.isUnread, false),
+      name,
+      phone: customerPhone, // Alias para compatibilidad
+      customerPhone,
+      agentPhone,
+      channel: normalizedChannel,
+      lastMessage,
+      message: lastMessage, // Alias para compatibilidad
+      timestamp: lastMessageAt, // Alias para compatibilidad
+      lastMessageAt,
+      createdAt,
+      updatedAt,
+      isUnread,
       avatar: safeString(conv?.avatar, ""),
-      section: safeString(conv?.section, "general"),
+      section: safeString(conv?.section || conv?.category || conv?.department, "general"),
+      
+      // 7. CAMPOS ADICIONALES DEL BACKEND (preservar estructura)
+      ...(conv?.status && { status: conv.status }),
+      ...(conv?.priority && { priority: conv.priority }),
+      ...(conv?.assignedTo && { assignedTo: conv.assignedTo }),
+      ...(conv?.agentId && { agentId: conv.agentId }),
+      ...(conv?.tags && { tags: conv.tags }),
+      ...(conv?.metadata && { metadata: conv.metadata }),
+      ...(conv?.messageCount && { messageCount: conv.messageCount }),
+      ...(conv?.unreadCount && { unreadCount: conv.unreadCount }),
+      
+      // Preservar lastMessageDetails si existe
       lastMessageDetails: conv?.lastMessageDetails ? {
         timestamp: toISOStringFromFirestore(conv.lastMessageDetails.timestamp),
         createdAt: toISOStringFromFirestore(conv.lastMessageDetails.createdAt),
         updatedAt: toISOStringFromFirestore(conv.lastMessageDetails.updatedAt),
         ...conv.lastMessageDetails
-      } : undefined,
-      // Preservar campos adicionales
-      ...conv
+      } : undefined
     };
     
     console.log('✅ Conversación normalizada exitosamente:', {
       id: normalized.id,
-      phone: normalized.phone,
+      phone: normalized.customerPhone,
       channel: normalized.channel,
       hasLastMessage: !!normalized.lastMessage,
+      isUnread: normalized.isUnread,
       timestamps: {
         lastMessageAt: normalized.lastMessageAt,
         createdAt: normalized.createdAt,
@@ -195,60 +433,6 @@ export function normalizeConversation(conv: any): Conversation {
       channel: 'whatsapp',
       isUnread: false,
       section: 'error'
-    };
-  }
-}
-
-/**
- * Normaliza un mensaje para asegurar que todos los campos críticos tengan valores válidos
- * @param msg El mensaje a normalizar
- * @returns Mensaje normalizado y seguro
- */
-export function normalizeMessage(msg: any): Message & { text?: string } {
-  console.groupCollapsed(`🔧 [normalizeMessage] Normalizando mensaje: ${msg?.id || 'SIN_ID'}`);
-  
-  try {
-    const normalized = {
-      id: safeString(msg?.id, `temp_msg_${Date.now()}`),
-      conversationId: safeString(msg?.conversationId, ""),
-      content: safeString(msg?.content || msg?.text || msg?.body || msg?.message, "Mensaje sin contenido"),
-      text: safeString(msg?.text || msg?.content || msg?.body || msg?.message, "Mensaje sin contenido"), // Alias para compatibilidad
-      sender: (msg?.sender === 'agent' || msg?.sender === 'client') ? msg.sender : 'client',
-      timestamp: toISOStringFromFirestore(msg?.timestamp || msg?.createdAt),
-      status: (msg?.status && ['sent', 'delivered', 'read'].includes(msg.status)) 
-        ? msg.status 
-        : 'sent',
-      type: (msg?.type && ['text', 'image', 'file', 'audio'].includes(msg.type))
-        ? msg.type
-        : 'text',
-      attachments: Array.isArray(msg?.attachments) ? msg.attachments : []
-    };
-    
-    console.log('✅ Mensaje normalizado exitosamente:', {
-      id: normalized.id,
-      hasContent: !!normalized.content,
-      sender: normalized.sender,
-      timestamp: normalized.timestamp
-    });
-    
-    console.groupEnd();
-    return normalized;
-    
-  } catch (error) {
-    console.error('❌ Error al normalizar mensaje, usando fallback mínimo:', { error, originalMsg: msg });
-    console.groupEnd();
-    
-    // Fallback de emergencia
-    return {
-      id: safeString(msg?.id, `emergency_msg_${Date.now()}`),
-      conversationId: "",
-      content: "Error al cargar mensaje",
-      text: "Error al cargar mensaje",
-      sender: 'client' as const,
-      timestamp: new Date().toISOString(),
-      status: 'sent' as const,
-      type: 'text' as const,
-      attachments: []
     };
   }
 }

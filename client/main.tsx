@@ -10,6 +10,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { logger } from "@/lib/utils";
 import { AppRoutes } from "@/routes/AppRoutes";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useSocketIntegration, useRealTimeStats } from "@/hooks/useSocketIntegration";
+import { useEffect } from "react";
 
 // 🚀 LOGS AVANZADOS DE ARRANQUE DEL SISTEMA
 const APP_START_TIME = performance.now();
@@ -153,8 +155,24 @@ window.addEventListener('unhandledrejection', (event) => {
   event.preventDefault();
 });
 
-const App = () => {
-  logger.navigation('Componente App renderizado');
+// 🔊 Componente wrapper para integración Socket.io global
+function SocketProvider({ children }: { children: React.ReactNode }) {
+  // Activar integración Socket.io + React Query globalmente
+  useSocketIntegration();
+  
+  // Activar actualización de estadísticas en tiempo real
+  useRealTimeStats();
+
+  return <>{children}</>;
+}
+
+function App() {
+  const appEndTime = performance.now();
+  const totalStartupTime = (appEndTime - APP_START_TIME).toFixed(2);
+
+  useEffect(() => {
+    logger.log(`🚀 UTalk App renderizado completamente en ${totalStartupTime}ms`);
+  }, [totalStartupTime]);
 
   // Callback para manejar errores capturados por ErrorBoundary
   const handleGlobalError = (error: Error, errorInfo: React.ErrorInfo) => {
@@ -175,19 +193,21 @@ const App = () => {
   return (
     <ErrorBoundary onError={handleGlobalError}>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-          </TooltipProvider>
-        </AuthProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <TooltipProvider>
+              <SocketProvider>
+                <AppRoutes />
+                <Toaster />
+                <Sonner />
+              </SocketProvider>
+            </TooltipProvider>
+          </AuthProvider>
+        </BrowserRouter>
       </QueryClientProvider>
     </ErrorBoundary>
   );
-};
+}
 
 // Log antes de renderizar la aplicación
 logger.navigation('Iniciando renderizado de la aplicación');

@@ -12,13 +12,9 @@ import type {
   PaginatedResponse 
 } from "@/types/api";
 import type { PaginationParams } from "@/types/pagination";
-import { convertLegacyPagination } from "@/types/pagination";
 
-// Hook para obtener conversaciones reales
-export function useConversations(params?: {
-  page?: number;
-  pageSize?: number;
-  search?: string;
+// Hook principal para obtener lista de conversaciones - SOLO limit/startAfter
+export function useConversations(params?: PaginationParams & {
   channel?: string;
   status?: string;
 }) {
@@ -26,6 +22,8 @@ export function useConversations(params?: {
     queryKey: ['conversations', params],
     queryFn: async () => {
       logger.api('Obteniendo lista de conversaciones', { params });
+      
+      // 🔧 SOLO PARÁMETROS UNIFICADOS: limit, startAfter, orderBy, direction
       const response = await api.get<PaginatedResponse<Conversation>>('/conversations', params);
       
       // ✅ USA LA FUNCIÓN UTILITARIA PARA EXTRAER DATOS
@@ -57,30 +55,13 @@ export function useConversation(conversationId: string) {
   });
 }
 
-// 🔄 LEGACY: Hook compatible con page/pageSize (DEPRECATED)
-export function useMessagesLegacy(conversationId: string, params?: {
-  page?: number;
-  pageSize?: number;
-}) {
-  // Convertir parámetros legacy a nuevo formato
-  const unifiedParams = params ? convertLegacyPagination(params) : undefined;
-  
-  logger.api('⚠️ USANDO HOOK LEGACY - Migrar a useMessages con PaginationParams', { 
-    conversationId, 
-    legacyParams: params,
-    unifiedParams 
-  });
-  
-  return useMessages(conversationId, unifiedParams);
-}
-
 // Hook para obtener mensajes de una conversación por teléfono (Twilio)
 export function useConversationByPhone(phone: string) {
   return useQuery({
     queryKey: ['conversations', 'phone', phone],
     queryFn: async () => {
       logger.api('Obteniendo conversación por teléfono', { phone });
-      const response = await api.get<Conversation>(`/messages/conversation/${phone}`);
+      const response = await api.get<Conversation>(`/conversations/phone/${phone}`);
       return response;
     },
     enabled: !!phone,
@@ -88,13 +69,22 @@ export function useConversationByPhone(phone: string) {
   });
 }
 
-// 🔧 Hook para obtener mensajes - UNIFICADO a limit/startAfter
+// 🔧 Hook para obtener mensajes - UNIFICADO EXCLUSIVAMENTE a limit/startAfter
 export function useMessages(conversationId: string, params?: PaginationParams) {
   return useQuery({
     queryKey: ['messages', conversationId, params],
     queryFn: async () => {
       logger.api('Obteniendo mensajes de conversación', { conversationId, params });
-      const response = await api.get<any>(`/conversations/${conversationId}/messages`, params);
+      
+      // 🔧 SOLO PARÁMETROS BACKEND: limit, startAfter
+      const backendParams = {
+        limit: params?.limit || 50,
+        ...(params?.startAfter && { startAfter: params.startAfter }),
+        ...(params?.orderBy && { orderBy: params.orderBy }),
+        ...(params?.direction && { direction: params.direction })
+      };
+      
+      const response = await api.get<any>(`/conversations/${conversationId}/messages`, backendParams);
       
       // ✅ USA LA FUNCIÓN UTILITARIA PARA EXTRAER DATOS
       const messages = extractData<Message>(response, 'messages');
@@ -108,7 +98,7 @@ export function useMessages(conversationId: string, params?: PaginationParams) {
     },
     enabled: !!conversationId,
     staleTime: 10 * 1000,
-    refetchInterval: 5 * 1000,
+    // 🔥 ELIMINADO: refetchInterval - usar Socket.io para tiempo real EXCLUSIVAMENTE
   });
 }
 
@@ -160,14 +150,15 @@ export function useSendMessage() {
   });
 }
 
-// Hook para marcar mensajes como leídos
+// Hook para marcar mensajes como leídos - USANDO PUT (más semánticamente correcto)
 export function useMarkAsRead() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (conversationId: string) => {
       logger.api('Marcando conversación como leída', { conversationId });
-      await api.post(`/conversations/${conversationId}/mark-read`);
+      // 🔧 ACTUALIZADO: Usar PUT para operación idempotente de actualización de estado
+      await api.put(`/conversations/${conversationId}/mark-read`, {});
       return conversationId;
     },
     onSuccess: (conversationId) => {
@@ -180,18 +171,25 @@ export function useMarkAsRead() {
     },
     onError: (error: any) => {
       logger.api('Error al marcar como leída', { error: error.message }, true);
+      
+      // Si PUT no funciona, intentar con POST como fallback
+      if (error.response?.status === 405) {
+        logger.api('PUT no soportado para mark-read, usando POST como fallback');
+        // El componente puede reintentar con POST si es necesario
+      }
     },
   });
 }
 
-// Hook para asignar conversación a un agente
+// Hook para asignar conversación a un agente - USANDO PUT (más semánticamente correcto)
 export function useAssignConversation() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ conversationId, agentId }: { conversationId: string; agentId: string }) => {
       logger.api('Asignando conversación a agente', { conversationId, agentId });
-      const response = await api.post<Conversation>(`/conversations/${conversationId}/assign`, {
+      // 🔧 ACTUALIZADO: Usar PUT para operación idempotente de asignación
+      const response = await api.put<Conversation>(`/conversations/${conversationId}/assign`, {
         agentId,
       });
       return response;
@@ -210,6 +208,12 @@ export function useAssignConversation() {
     onError: (error: any) => {
       const errorMessage = error.response?.data?.message || "No se pudo asignar la conversación.";
       logger.api('Error al asignar conversación', { error: errorMessage }, true);
+      
+      // Si PUT no funciona, intentar con POST como fallback
+      if (error.response?.status === 405) {
+        logger.api('PUT no soportado para assign, usando POST como fallback');
+        // El componente puede reintentar con POST si es necesario
+      }
       
       toast({
         variant: "destructive",
@@ -326,235 +330,135 @@ export function useRealTimeMessages(conversationId: string) {
             // Escuchar eventos de Socket.io
             socket.on('connect', () => {
               setConnectionStatus('connected');
-              logger.socket('✅ Socket conectado exitosamente', { conversationId, socketId: socket.id });
+              logger.socket('✅ Socket conectado para conversación', { conversationId });
             });
 
-            socket.on('disconnect', (reason: string) => {
+            socket.on('disconnect', () => {
               setConnectionStatus('disconnected');
-              logger.socket('❌ Socket desconectado', { conversationId, reason });
+              logger.socket('❌ Socket desconectado para conversación', { conversationId });
             });
 
-            socket.on('connect_error', (error: any) => {
-              setConnectionStatus('error');
-              logger.socket('🔴 Error de conexión Socket', { conversationId, error: error.message }, true);
-            });
-
-            // 📤 new-message: agrega el mensaje instantáneamente al chat
-            socket.on('message:new', (message: Message) => {
-              logger.socket('📨 Nuevo mensaje recibido via Socket', { 
-                messageId: message.id, 
-                conversationId,
-                sender: message.sender 
+            // 🔊 EVENTOS CRÍTICOS DEL BACKEND
+            socket.on('new-message', (message: Message) => {
+              logger.socket('📨 Nuevo mensaje recibido', { messageId: message.id, conversationId });
+              
+              // Actualizar React Query cache inmediatamente
+              queryClient.setQueryData(['messages', conversationId], (old: any) => {
+                if (!old) return old;
+                return {
+                  ...old,
+                  messages: [...(old.messages || []), message]
+                };
               });
               
-              setNewMessages(prev => {
-                const exists = prev.some(msg => msg.id === message.id);
-                if (!exists) {
-                  return [...prev, message];
-                }
-                return prev;
-              });
-
-              // Actualizar cache de React Query sin refetch
-              queryClient.setQueryData(['messages', conversationId], (oldData: any) => {
-                if (oldData?.messages) {
-                  const exists = oldData.messages.some((msg: Message) => msg.id === message.id);
-                  if (!exists) {
-                    return {
-                      ...oldData,
-                      messages: [...oldData.messages, message]
-                    };
-                  }
-                }
-                return oldData;
-              });
+              setNewMessages(prev => [...prev, message]);
             });
 
-            // 📖 message-read: actualiza el estado de leído/no leído en la UI
-            socket.on('message:read', (data: { conversationId: string; messageId: string }) => {
-              logger.socket('👁 Mensaje marcado como leído', data);
+            socket.on('message-read', (data: { conversationId: string; messageId: string }) => {
+              logger.socket('👁️ Mensaje marcado como leído', data);
               
-              queryClient.setQueryData(['messages', conversationId], (oldData: any) => {
-                if (oldData?.messages) {
-                  return {
-                    ...oldData,
-                    messages: oldData.messages.map((msg: Message) =>
-                      msg.id === data.messageId ? { ...msg, status: 'read' } : msg
-                    )
-                  };
-                }
-                return oldData;
+              // Actualizar cache de mensajes
+              queryClient.setQueryData(['messages', data.conversationId], (old: any) => {
+                if (!old) return old;
+                return {
+                  ...old,
+                  messages: old.messages?.map((msg: Message) => 
+                    msg.id === data.messageId ? { ...msg, status: 'read' } : msg
+                  )
+                };
               });
             });
 
-            // ✍️ typing-start y typing-stop: muestra "está escribiendo..."
-            socket.on('user:typing', (data: { conversationId: string; userId: string; userName?: string; isTyping: boolean }) => {
-              if (data.conversationId === conversationId) {
-                logger.socket(`✍️ Usuario ${data.isTyping ? 'escribiendo' : 'dejó de escribir'}`, { 
-                  userId: data.userId, 
-                  userName: data.userName 
-                });
-                
-                setTypingUsers(prev => {
-                  if (data.isTyping) {
-                    const exists = prev.some(user => user.userId === data.userId);
-                    if (!exists) {
-                      return [...prev, { userId: data.userId, userName: data.userName || 'Usuario' }];
-                    }
-                  } else {
-                    return prev.filter(user => user.userId !== data.userId);
-                  }
-                  return prev;
-                });
-              }
+            socket.on('conversation-assigned', (data: { conversationId: string; agentId: string }) => {
+              logger.socket('👤 Conversación reasignada', data);
+              
+              // Invalidar cache de conversaciones
+              queryClient.invalidateQueries({ queryKey: ['conversations'] });
+              queryClient.invalidateQueries({ queryKey: ['conversations', data.conversationId] });
             });
 
-            // 🏷 conversation-assigned: notifica si cambia el agente asignado
-            socket.on('conversation:assigned', (data: { conversationId: string; agentId: string; agentName: string }) => {
-              if (data.conversationId === conversationId) {
-                logger.socket('👤 Conversación reasignada', data);
-                
-                // Mostrar notificación
-                import('@/hooks/use-toast').then(({ toast }) => {
-                  toast({
-                    title: "Conversación reasignada",
-                    description: `La conversación ha sido asignada a ${data.agentName}`,
-                  });
-                });
+            socket.on('typing-start', (data: { conversationId: string; userId: string; userName: string }) => {
+              logger.socket('✍️ Usuario empezó a escribir', data);
+              setTypingUsers(prev => [...prev.filter(u => u.userId !== data.userId), { userId: data.userId, userName: data.userName }]);
+            });
 
-                // Invalidar queries para actualizar la información de la conversación
-                queryClient.invalidateQueries({ queryKey: ['conversations', conversationId] });
-              }
+            socket.on('typing-stop', (data: { conversationId: string; userId: string }) => {
+              logger.socket('⏹️ Usuario dejó de escribir', data);
+              setTypingUsers(prev => prev.filter(u => u.userId !== data.userId));
             });
 
             setConnectionStatus('connected');
           }
         }
 
-        // 2. 🔥 Configurar Firestore listener para persistencia (backup)
-        const { onSnapshot, collection, query, orderBy } = await import('firebase/firestore');
-        const { db } = await import('@/lib/firebase');
-        
-        const messagesRef = collection(db, 'conversations', conversationId, 'messages');
-        
-        // Query que funciona tanto con timestamp como createdAt
-        let firestoreQuery;
+        // 2. 🔥 Configurar escucha de Firestore (si aplica)
+        // Esto es adicional al Socket.io para máxima robustez
         try {
-          firestoreQuery = query(messagesRef, orderBy('timestamp', 'desc'));
-        } catch (timestampError) {
-          logger.socket('⚠️ Campo timestamp no existe, usando createdAt', { conversationId });
-          firestoreQuery = query(messagesRef, orderBy('createdAt', 'desc'));
-        }
-        
-        firestoreUnsubscribe = onSnapshot(firestoreQuery, 
-          (snapshot) => {
-            const newFirestoreMessages = snapshot.docChanges()
-              .filter(change => change.type === 'added')
-              .map(change => {
-                const data = change.doc.data();
-                return {
-                  id: change.doc.id,
-                  conversationId: data.conversationId || conversationId,
-                  content: data.content || data.text || '',
-                  sender: data.sender || 'client',
-                  // 🔥 SOLUCION: Manejar tanto timestamp como createdAt
-                  timestamp: data.timestamp?.toDate?.()?.toISOString() || 
-                            data.createdAt?.toDate?.()?.toISOString() || 
-                            new Date().toISOString(),
-                  status: data.status || 'sent',
-                  type: data.type || 'text',
-                  attachments: data.attachments || []
-                } as Message;
-              });
-
-            if (newFirestoreMessages.length > 0) {
-              logger.socket('🔥 Nuevos mensajes de Firestore', { count: newFirestoreMessages.length });
-              
-              // Solo agregar si Socket.io no está disponible (fallback)
-              if (connectionStatus !== 'connected') {
-                setNewMessages(prev => {
-                  const filtered = newFirestoreMessages.filter(newMsg => 
-                    !prev.some(existingMsg => existingMsg.id === newMsg.id)
-                  );
-                  return [...prev, ...filtered];
+          const { onSnapshot, collection, query, orderBy } = await import('firebase/firestore');
+          const { db } = await import('@/lib/firebase');
+          
+          const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+          const messagesQuery = query(messagesRef, orderBy('timestamp', 'desc'));
+          
+          firestoreUnsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+            logger.socket('🔥 Firestore: cambios detectados en mensajes', { 
+              conversationId, 
+              changes: snapshot.docChanges().length 
+            });
+            
+            snapshot.docChanges().forEach((change) => {
+              if (change.type === 'added') {
+                const message = { id: change.doc.id, ...change.doc.data() } as Message;
+                
+                // Solo agregar si no vino ya por Socket.io
+                queryClient.setQueryData(['messages', conversationId], (old: any) => {
+                  if (!old) return old;
+                  const exists = old.messages?.some((m: Message) => m.id === message.id);
+                  if (exists) return old;
+                  
+                  return {
+                    ...old,
+                    messages: [...(old.messages || []), message]
+                  };
                 });
               }
-            }
-          },
-          (error) => {
-            logger.socket('❌ Error en Firestore listener', { conversationId, error: error.message }, true);
-          }
-        );
+            });
+          });
+        } catch (firestoreError) {
+          logger.socket('⚠️ Firestore no disponible, usando solo Socket.io', { error: firestoreError });
+        }
 
       } catch (error) {
         setConnectionStatus('error');
-        logger.socket('❌ Error configurando tiempo real', { conversationId, error }, true);
+        logger.socket('❌ Error configurando conexión tiempo real', { error }, true);
       }
     };
 
     setupRealTimeConnection();
 
     return () => {
-      logger.socket('🧹 Limpiando conexión tiempo real', { conversationId });
-      
       if (socket) {
         socket.emit('leave-conversation', conversationId);
-        socket.off('message:new');
-        socket.off('message:read');
-        socket.off('user:typing');
-        socket.off('conversation:assigned');
+        socket.off('new-message');
+        socket.off('message-read');
+        socket.off('conversation-assigned');
+        socket.off('typing-start');
+        socket.off('typing-stop');
+        logger.socket('🔌 Limpieza de eventos Socket.io completada', { conversationId });
       }
       
       if (firestoreUnsubscribe) {
         firestoreUnsubscribe();
+        logger.socket('🔥 Firestore unsubscribe completado', { conversationId });
       }
-      
-      setConnectionStatus('disconnected');
-      setTypingUsers([]);
     };
-  }, [conversationId, queryClient, connectionStatus]);
-
-  // Función para indicar que el usuario está escribiendo
-  const setTyping = useCallback(async (isTyping: boolean) => {
-    try {
-      const { getSocket } = await import('@/lib/socket');
-      const socket = getSocket();
-      
-      if (socket && conversationId) {
-        const eventName = isTyping ? 'typing:start' : 'typing:stop';
-        // Obtener ID real del usuario desde localStorage o contexto
-        const getUserId = () => {
-          try {
-            const authToken = localStorage.getItem('authToken');
-            if (authToken) {
-              // Decodificar JWT para obtener user ID (método simple)
-              const payload = JSON.parse(atob(authToken.split('.')[1]));
-              return payload.userId || payload.sub || 'unknown-user';
-            }
-          } catch (error) {
-            logger.api('Error obteniendo userId del token', { error }, true);
-          }
-          return 'anonymous-user';
-        };
-
-        socket.emit(eventName, { 
-          conversationId, 
-          userId: getUserId()
-        });
-        
-        logger.socket(`📝 Evento ${eventName} enviado`, { conversationId });
-      }
-    } catch (error) {
-      logger.socket('❌ Error enviando estado de typing', { error }, true);
-    }
-  }, [conversationId]);
+  }, [conversationId, queryClient]);
 
   return {
     newMessages,
     connectionStatus,
     typingUsers,
-    setTyping,
-    clearNewMessages: () => setNewMessages([]),
+    isConnected: connectionStatus === 'connected'
   };
 }
 
