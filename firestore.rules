@@ -1,0 +1,191 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Función para verificar autenticación
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Función para verificar rol de usuario
+    function hasRole(role) {
+      return isAuthenticated() && 
+             request.auth.token.role == role;
+    }
+    
+    // Función para verificar permisos
+    function hasPermission(permission) {
+      return isAuthenticated() && 
+             request.auth.token.get(permission, false) == true;
+    }
+    
+    // Función para verificar si es admin
+    function isAdmin() {
+      return hasRole('admin') || hasPermission('admin');
+    }
+    
+    // Función para verificar si es agente o admin
+    function isAgentOrAdmin() {
+      return hasRole('agent') || hasRole('admin') || 
+             hasPermission('write') || hasPermission('admin');
+    }
+    
+    // Función para verificar si puede leer
+    function canRead() {
+      return hasPermission('read') || 
+             hasPermission('write') || 
+             hasPermission('admin');
+    }
+    
+    // CONVERSACIONES
+    match /conversations/{conversationId} {
+      // Lectura: usuarios con permiso de lectura
+      allow read: if canRead();
+      
+      // Escritura: agentes y admins
+      allow write: if isAgentOrAdmin();
+      
+      // Creación: agentes y admins
+      allow create: if isAgentOrAdmin() &&
+                       validateConversationData();
+      
+      // Actualización: agentes y admins
+      allow update: if isAgentOrAdmin() &&
+                       validateConversationData();
+      
+      // Eliminación: solo admins
+      allow delete: if isAdmin();
+      
+      // MENSAJES dentro de conversaciones
+      match /messages/{messageId} {
+        // Lectura: usuarios con permiso de lectura
+        allow read: if canRead();
+        
+        // Escritura: agentes y admins
+        allow write: if isAgentOrAdmin();
+        
+        // Creación: agentes y admins con datos válidos
+        allow create: if isAgentOrAdmin() &&
+                         validateMessageData();
+        
+        // Actualización: agentes y admins
+        allow update: if isAgentOrAdmin() &&
+                         validateMessageUpdate();
+        
+        // Eliminación: solo admins
+        allow delete: if isAdmin();
+      }
+    }
+    
+    // CONTACTOS
+    match /contacts/{contactId} {
+      // Lectura: usuarios con permiso de lectura
+      allow read: if canRead();
+      
+      // Escritura: agentes y admins
+      allow write: if isAgentOrAdmin();
+      
+      // Creación: agentes y admins
+      allow create: if isAgentOrAdmin() &&
+                       validateContactData();
+      
+      // Actualización: agentes y admins
+      allow update: if isAgentOrAdmin() &&
+                       validateContactData();
+      
+      // Eliminación: solo admins
+      allow delete: if isAdmin();
+    }
+    
+    // CAMPAÑAS
+    match /campaigns/{campaignId} {
+      // Lectura: todos los usuarios autenticados
+      allow read: if canRead();
+      
+      // Escritura: agentes y admins
+      allow write: if isAgentOrAdmin();
+      
+      // Creación: agentes y admins
+      allow create: if isAgentOrAdmin() &&
+                       validateCampaignData();
+      
+      // Actualización: agentes y admins
+      allow update: if isAgentOrAdmin() &&
+                       validateCampaignData();
+      
+      // Eliminación: solo admins
+      allow delete: if isAdmin();
+    }
+    
+    // USUARIOS/EQUIPO - solo admins
+    match /users/{userId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // CONFIGURACIÓN DEL SISTEMA - solo admins
+    match /system/{document=**} {
+      allow read, write: if isAdmin();
+    }
+    
+    // ANALYTICS - lectura para todos, escritura para admins
+    match /analytics/{document=**} {
+      allow read: if canRead();
+      allow write: if isAdmin();
+    }
+    
+    // FUNCIONES DE VALIDACIÓN
+    
+    function validateConversationData() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['customerPhone', 'lastMessageAt']) &&
+             data.customerPhone is string &&
+             data.customerPhone.size() > 0 &&
+             data.lastMessageAt is timestamp;
+    }
+    
+    function validateMessageData() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['content', 'sender', 'timestamp']) &&
+             data.content is string &&
+             data.content.size() > 0 &&
+             data.sender in ['agent', 'client'] &&
+             data.timestamp is timestamp &&
+             (!data.keys().hasAny(['type']) || data.type in ['text', 'image', 'file', 'audio']);
+    }
+    
+    function validateMessageUpdate() {
+      let data = request.resource.data;
+      let existing = resource.data;
+      
+      // Solo permitir actualizar status, no el contenido
+      return data.diff(existing).affectedKeys().hasOnly(['status']) &&
+             (!data.keys().hasAny(['status']) || data.status in ['sent', 'delivered', 'read']);
+    }
+    
+    function validateContactData() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['name', 'phone']) &&
+             data.name is string &&
+             data.name.size() > 0 &&
+             data.phone is string &&
+             data.phone.size() > 0 &&
+             (!data.keys().hasAny(['email']) || data.email is string) &&
+             (!data.keys().hasAny(['status']) || data.status in ['new-lead', 'hot-lead', 'payment', 'customer']);
+    }
+    
+    function validateCampaignData() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['name', 'status']) &&
+             data.name is string &&
+             data.name.size() > 0 &&
+             data.status in ['draft', 'scheduled', 'sent', 'cancelled'];
+    }
+    
+    // REGLA DE DENEGACIÓN POR DEFECTO
+    // Cualquier documento no cubierto por las reglas anteriores será denegado
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+} 

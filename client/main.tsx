@@ -9,6 +9,7 @@ import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { logger } from "@/lib/utils";
 import { AppRoutes } from "@/routes/AppRoutes";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // 🚀 LOGS AVANZADOS DE ARRANQUE DEL SISTEMA
 const APP_START_TIME = performance.now();
@@ -123,21 +124,68 @@ window.addEventListener('offline', () => {
   logger.navigation('Conexión a internet perdida', null, true);
 });
 
+// 🚨 MANEJO GLOBAL DE ERRORES NO CAPTURADOS
+window.addEventListener('error', (event) => {
+  logger.critical('🚨 Error JavaScript global no capturado', {
+    error: {
+      message: event.message,
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+      stack: event.error?.stack
+    },
+    timestamp: new Date().toISOString(),
+    url: window.location.href,
+    userAgent: navigator.userAgent
+  });
+});
+
+// 🚨 MANEJO DE PROMESAS RECHAZADAS NO CAPTURADAS
+window.addEventListener('unhandledrejection', (event) => {
+  logger.critical('🚨 Promesa rechazada no capturada', {
+    reason: event.reason,
+    promise: event.promise,
+    timestamp: new Date().toISOString(),
+    url: window.location.href
+  });
+  
+  // Prevenir que el error aparezca en la consola del navegador
+  event.preventDefault();
+});
+
 const App = () => {
   logger.navigation('Componente App renderizado');
 
+  // Callback para manejar errores capturados por ErrorBoundary
+  const handleGlobalError = (error: Error, errorInfo: React.ErrorInfo) => {
+    logger.critical('🚨 Error global capturado en la aplicación', {
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      },
+      errorInfo: {
+        componentStack: errorInfo.componentStack
+      },
+      buildInfo: BUILD_INFO,
+      timestamp: new Date().toISOString()
+    });
+  };
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary onError={handleGlobalError}>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 

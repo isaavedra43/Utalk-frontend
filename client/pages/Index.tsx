@@ -182,28 +182,41 @@ export default function Index() {
 
   return (
     <div className="h-screen bg-[#121214] text-white overflow-hidden">
-      {/* Mobile header */}
-      <div className="lg:hidden flex items-center justify-between p-3 border-b border-gray-800 bg-gray-900">
-        <div className="flex items-center gap-2">
-          <h1 className="text-base font-semibold">UNIK AI</h1>
+      {/* Mobile header - Responsive design */}
+      <div className="lg:hidden flex items-center justify-between p-3 sm:p-4 border-b border-gray-800 bg-gray-900">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <h1 className="text-base sm:text-lg font-semibold truncate">UNIK AI</h1>
           {activeModule === "messages" && selectedChatId && (
-            <Badge className="bg-blue-600 text-white text-xs">
-              Chat activo
+            <Badge className="bg-blue-600 text-white text-xs sm:text-sm flex-shrink-0">
+              {isMobile ? "Chat" : "Chat activo"}
             </Badge>
           )}
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleMobileMenuToggle}
-          className="text-gray-400 hover:text-white p-2"
-        >
-          {isMobileMenuOpen ? (
-            <X className="h-5 w-5" />
-          ) : (
-            <Menu className="h-5 w-5" />
-          )}
-        </Button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Module indicator for small screens */}
+          <div className="hidden sm:block">
+            <Badge variant="outline" className="text-xs text-gray-400 border-gray-600">
+              {activeModule === "messages" ? "Mensajes" : 
+               activeModule === "dashboard" ? "Dashboard" :
+               activeModule === "crm" ? "CRM" :
+               activeModule === "team" ? "Equipo" :
+               activeModule === "campaigns" ? "Campañas" :
+               activeModule}
+            </Badge>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleMobileMenuToggle}
+            className="text-gray-400 hover:text-white p-2 h-9 w-9"
+          >
+            {isMobileMenuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Main layout */}
@@ -228,7 +241,7 @@ export default function Index() {
           />
         </div>
 
-        {/* Mobile Navigation Panel */}
+        {/* Mobile Navigation Panel - Responsive */}
         <div
           className={cn(
             "lg:hidden fixed inset-0 z-40 bg-gray-900 transform transition-transform duration-300 ease-in-out",
@@ -237,8 +250,8 @@ export default function Index() {
           style={{ top: "64px" }}
         >
           <div className="h-full flex">
-            {/* Mobile Sidebar - 1/3 width */}
-            <div className="w-1/3 border-r border-gray-800">
+            {/* Mobile Sidebar - Responsive width */}
+            <div className="w-20 sm:w-24 flex-shrink-0 border-r border-gray-800">
               <Sidebar
                 activeModule={activeModule}
                 onModuleChange={(module) => {

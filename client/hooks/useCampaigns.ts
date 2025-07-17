@@ -4,10 +4,12 @@ import { toast } from "@/hooks/use-toast";
 import { logger } from "@/lib/utils";
 import type { 
   Campaign, 
-  CampaignFormData,
-  ApiResponse, 
+  CampaignFormData, 
+  ApiResponse,
   PaginatedResponse 
 } from "@/types/api";
+import type { PaginationParams } from "@/types/pagination";
+import { convertLegacyPagination } from "@/types/pagination";
 
 // Tipos específicos para campañas
 interface CampaignStats {
@@ -45,10 +47,8 @@ interface CampaignAnalytics {
   };
 }
 
-// Hook para obtener lista de campañas
-export function useCampaigns(params?: {
-  page?: number;
-  pageSize?: number;
+// 🔧 Hook para obtener lista de campañas - UNIFICADO a limit/startAfter
+export function useCampaigns(params?: PaginationParams & {
   search?: string;
   status?: 'draft' | 'scheduled' | 'active' | 'paused' | 'completed' | 'cancelled';
   channel?: string;
@@ -65,6 +65,34 @@ export function useCampaigns(params?: {
     },
     staleTime: 2 * 60 * 1000, // 2 minutos
   });
+}
+
+// 🔄 LEGACY: Hook compatible con page/pageSize (DEPRECATED) 
+export function useCampaignsLegacy(params?: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: 'draft' | 'scheduled' | 'active' | 'paused' | 'completed' | 'cancelled';
+  channel?: string;
+  startDate?: string;
+  endDate?: string;
+}) {
+  if (!params) {
+    return useCampaigns();
+  }
+
+  const { page, pageSize, ...filters } = params;
+  const unifiedParams = {
+    ...convertLegacyPagination({ page, pageSize }),
+    ...filters
+  };
+  
+  logger.api('⚠️ USANDO HOOK LEGACY useCampaignsLegacy - Migrar a useCampaigns con PaginationParams', { 
+    legacyParams: params,
+    unifiedParams 
+  });
+  
+  return useCampaigns(unifiedParams);
 }
 
 // Hook para obtener una campaña específica

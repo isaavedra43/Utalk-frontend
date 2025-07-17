@@ -8,11 +8,11 @@ import type {
   ApiResponse, 
   PaginatedResponse 
 } from "@/types/api";
+import type { PaginationParams } from "@/types/pagination";
+import { convertLegacyPagination } from "@/types/pagination";
 
-// Hook para obtener lista de contactos con filtros reales
-export function useContacts(params?: {
-  page?: number;
-  pageSize?: number;
+// 🔧 Hook para obtener lista de contactos - UNIFICADO a limit/startAfter
+export function useContacts(params?: PaginationParams & {
   search?: string;
   status?: string;
   section?: string;
@@ -28,6 +28,32 @@ export function useContacts(params?: {
     staleTime: 5 * 60 * 1000, // 5 minutos
     enabled: true, // Siempre habilitado
   });
+}
+
+// 🔄 LEGACY: Hook compatible con page/pageSize (DEPRECATED)
+export function useContactsLegacy(params?: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: string;
+  section?: string;
+}) {
+  if (!params) {
+    return useContacts();
+  }
+
+  const { page, pageSize, ...filters } = params;
+  const unifiedParams = {
+    ...convertLegacyPagination({ page, pageSize }),
+    ...filters
+  };
+  
+  logger.api('⚠️ USANDO HOOK LEGACY useContactsLegacy - Migrar a useContacts con PaginationParams', { 
+    legacyParams: params,
+    unifiedParams 
+  });
+  
+  return useContacts(unifiedParams);
 }
 
 // Hook para obtener un contacto específico

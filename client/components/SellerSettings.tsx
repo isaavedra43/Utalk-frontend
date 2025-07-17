@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Settings, User, Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { api } from "@/lib/apiClient";
+import { logger } from "@/lib/utils";
 
 // Hook simulado para configuraciones (esto debería venir del backend)
 const useSellerSettings = () => {
@@ -18,8 +20,12 @@ const useSellerSettings = () => {
     const loadSettings = async () => {
       try {
         setIsLoading(true);
-        // TODO: Reemplazar con llamada real al backend
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // 🔧 Llamada real al backend para obtener configuración
+        const response = await api.get('/users/me/settings');
+        if (response) {
+          setSettings(response);
+          return;
+        }
         
         // Configuración por defecto que vendría del backend
         const defaultSettings: SettingValue = {

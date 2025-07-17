@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/apiClient";
 import { toast } from "@/hooks/use-toast";
 import { logger } from "@/lib/utils";
@@ -11,6 +11,8 @@ import type {
   ApiResponse, 
   PaginatedResponse 
 } from "@/types/api";
+import type { PaginationParams } from "@/types/pagination";
+import { convertLegacyPagination } from "@/types/pagination";
 
 // Hook para obtener conversaciones reales
 export function useConversations(params?: {
@@ -36,8 +38,8 @@ export function useConversations(params?: {
       
       return { ...response, conversations: processedConversations };
     },
-    staleTime: 30 * 1000,
-    refetchInterval: 10 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    // 🔥 ELIMINADO: refetchInterval - usar Socket.io para tiempo real
   });
 }
 
@@ -55,6 +57,23 @@ export function useConversation(conversationId: string) {
   });
 }
 
+// 🔄 LEGACY: Hook compatible con page/pageSize (DEPRECATED)
+export function useMessagesLegacy(conversationId: string, params?: {
+  page?: number;
+  pageSize?: number;
+}) {
+  // Convertir parámetros legacy a nuevo formato
+  const unifiedParams = params ? convertLegacyPagination(params) : undefined;
+  
+  logger.api('⚠️ USANDO HOOK LEGACY - Migrar a useMessages con PaginationParams', { 
+    conversationId, 
+    legacyParams: params,
+    unifiedParams 
+  });
+  
+  return useMessages(conversationId, unifiedParams);
+}
+
 // Hook para obtener mensajes de una conversación por teléfono (Twilio)
 export function useConversationByPhone(phone: string) {
   return useQuery({
@@ -69,11 +88,8 @@ export function useConversationByPhone(phone: string) {
   });
 }
 
-// Hook para obtener mensajes de una conversación
-export function useMessages(conversationId: string, params?: {
-  page?: number;
-  pageSize?: number;
-}) {
+// 🔧 Hook para obtener mensajes - UNIFICADO a limit/startAfter
+export function useMessages(conversationId: string, params?: PaginationParams) {
   return useQuery({
     queryKey: ['messages', conversationId, params],
     queryFn: async () => {
@@ -277,56 +293,267 @@ export function useMessagingStats(params?: {
   });
 }
 
-// Hook para tiempo real con Firestore listeners (alternativa a WebSocket)
+// 🔊 Hook para tiempo real con Socket.io + Firestore (SIN POLLING)
 export function useRealTimeMessages(conversationId: string) {
   const [newMessages, setNewMessages] = useState<Message[]>([]);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected' | 'error'>('disconnected');
+  const [typingUsers, setTypingUsers] = useState<{ userId: string; userName: string }[]>([]);
   const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!conversationId) return;
 
-    logger.socket('Configurando listener de tiempo real para conversación', { conversationId });
+    let socket: any = null;
+    let firestoreUnsubscribe: (() => void) | null = null;
 
-    // Aquí se implementaría el listener de Firestore para tiempo real
-    // Ejemplo con Firestore:
-    /*
-    const unsubscribe = onSnapshot(
-      collection(db, 'conversations', conversationId, 'messages'),
-      (snapshot) => {
-        const newMessages = snapshot.docChanges()
-          .filter(change => change.type === 'added')
-          .map(change => ({ id: change.doc.id, ...change.doc.data() } as Message));
+    const setupRealTimeConnection = async () => {
+      try {
+        setConnectionStatus('connecting');
+        logger.socket('🔌 Configurando conexión tiempo real para conversación', { conversationId });
+
+        // 1. 🔊 Configurar Socket.io
+        const { getSocket, initSocket } = await import('@/lib/socket');
+        const authToken = localStorage.getItem('authToken');
         
-        if (newMessages.length > 0) {
-          logger.socket('Nuevos mensajes recibidos en tiempo real', { count: newMessages.length });
-          setNewMessages(prev => [...prev, ...newMessages]);
+        if (authToken) {
+          socket = getSocket() || initSocket(authToken);
           
-          // Invalidar queries para actualizar UI
-          queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+          if (socket) {
+            // Join conversation room
+            socket.emit('join-conversation', conversationId);
+            logger.socket('🏠 Unido a sala de conversación', { conversationId });
+            
+            // Escuchar eventos de Socket.io
+            socket.on('connect', () => {
+              setConnectionStatus('connected');
+              logger.socket('✅ Socket conectado exitosamente', { conversationId, socketId: socket.id });
+            });
+
+            socket.on('disconnect', (reason: string) => {
+              setConnectionStatus('disconnected');
+              logger.socket('❌ Socket desconectado', { conversationId, reason });
+            });
+
+            socket.on('connect_error', (error: any) => {
+              setConnectionStatus('error');
+              logger.socket('🔴 Error de conexión Socket', { conversationId, error: error.message }, true);
+            });
+
+            // 📤 new-message: agrega el mensaje instantáneamente al chat
+            socket.on('message:new', (message: Message) => {
+              logger.socket('📨 Nuevo mensaje recibido via Socket', { 
+                messageId: message.id, 
+                conversationId,
+                sender: message.sender 
+              });
+              
+              setNewMessages(prev => {
+                const exists = prev.some(msg => msg.id === message.id);
+                if (!exists) {
+                  return [...prev, message];
+                }
+                return prev;
+              });
+
+              // Actualizar cache de React Query sin refetch
+              queryClient.setQueryData(['messages', conversationId], (oldData: any) => {
+                if (oldData?.messages) {
+                  const exists = oldData.messages.some((msg: Message) => msg.id === message.id);
+                  if (!exists) {
+                    return {
+                      ...oldData,
+                      messages: [...oldData.messages, message]
+                    };
+                  }
+                }
+                return oldData;
+              });
+            });
+
+            // 📖 message-read: actualiza el estado de leído/no leído en la UI
+            socket.on('message:read', (data: { conversationId: string; messageId: string }) => {
+              logger.socket('👁 Mensaje marcado como leído', data);
+              
+              queryClient.setQueryData(['messages', conversationId], (oldData: any) => {
+                if (oldData?.messages) {
+                  return {
+                    ...oldData,
+                    messages: oldData.messages.map((msg: Message) =>
+                      msg.id === data.messageId ? { ...msg, status: 'read' } : msg
+                    )
+                  };
+                }
+                return oldData;
+              });
+            });
+
+            // ✍️ typing-start y typing-stop: muestra "está escribiendo..."
+            socket.on('user:typing', (data: { conversationId: string; userId: string; userName?: string; isTyping: boolean }) => {
+              if (data.conversationId === conversationId) {
+                logger.socket(`✍️ Usuario ${data.isTyping ? 'escribiendo' : 'dejó de escribir'}`, { 
+                  userId: data.userId, 
+                  userName: data.userName 
+                });
+                
+                setTypingUsers(prev => {
+                  if (data.isTyping) {
+                    const exists = prev.some(user => user.userId === data.userId);
+                    if (!exists) {
+                      return [...prev, { userId: data.userId, userName: data.userName || 'Usuario' }];
+                    }
+                  } else {
+                    return prev.filter(user => user.userId !== data.userId);
+                  }
+                  return prev;
+                });
+              }
+            });
+
+            // 🏷 conversation-assigned: notifica si cambia el agente asignado
+            socket.on('conversation:assigned', (data: { conversationId: string; agentId: string; agentName: string }) => {
+              if (data.conversationId === conversationId) {
+                logger.socket('👤 Conversación reasignada', data);
+                
+                // Mostrar notificación
+                import('@/hooks/use-toast').then(({ toast }) => {
+                  toast({
+                    title: "Conversación reasignada",
+                    description: `La conversación ha sido asignada a ${data.agentName}`,
+                  });
+                });
+
+                // Invalidar queries para actualizar la información de la conversación
+                queryClient.invalidateQueries({ queryKey: ['conversations', conversationId] });
+              }
+            });
+
+            setConnectionStatus('connected');
+          }
         }
+
+        // 2. 🔥 Configurar Firestore listener para persistencia (backup)
+        const { onSnapshot, collection, query, orderBy } = await import('firebase/firestore');
+        const { db } = await import('@/lib/firebase');
+        
+        const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+        
+        // Query que funciona tanto con timestamp como createdAt
+        let firestoreQuery;
+        try {
+          firestoreQuery = query(messagesRef, orderBy('timestamp', 'desc'));
+        } catch (timestampError) {
+          logger.socket('⚠️ Campo timestamp no existe, usando createdAt', { conversationId });
+          firestoreQuery = query(messagesRef, orderBy('createdAt', 'desc'));
+        }
+        
+        firestoreUnsubscribe = onSnapshot(firestoreQuery, 
+          (snapshot) => {
+            const newFirestoreMessages = snapshot.docChanges()
+              .filter(change => change.type === 'added')
+              .map(change => {
+                const data = change.doc.data();
+                return {
+                  id: change.doc.id,
+                  conversationId: data.conversationId || conversationId,
+                  content: data.content || data.text || '',
+                  sender: data.sender || 'client',
+                  // 🔥 SOLUCION: Manejar tanto timestamp como createdAt
+                  timestamp: data.timestamp?.toDate?.()?.toISOString() || 
+                            data.createdAt?.toDate?.()?.toISOString() || 
+                            new Date().toISOString(),
+                  status: data.status || 'sent',
+                  type: data.type || 'text',
+                  attachments: data.attachments || []
+                } as Message;
+              });
+
+            if (newFirestoreMessages.length > 0) {
+              logger.socket('🔥 Nuevos mensajes de Firestore', { count: newFirestoreMessages.length });
+              
+              // Solo agregar si Socket.io no está disponible (fallback)
+              if (connectionStatus !== 'connected') {
+                setNewMessages(prev => {
+                  const filtered = newFirestoreMessages.filter(newMsg => 
+                    !prev.some(existingMsg => existingMsg.id === newMsg.id)
+                  );
+                  return [...prev, ...filtered];
+                });
+              }
+            }
+          },
+          (error) => {
+            logger.socket('❌ Error en Firestore listener', { conversationId, error: error.message }, true);
+          }
+        );
+
+      } catch (error) {
+        setConnectionStatus('error');
+        logger.socket('❌ Error configurando tiempo real', { conversationId, error }, true);
       }
-    );
+    };
+
+    setupRealTimeConnection();
 
     return () => {
-      logger.socket('Desconectando listener de tiempo real');
-      unsubscribe();
+      logger.socket('🧹 Limpiando conexión tiempo real', { conversationId });
+      
+      if (socket) {
+        socket.emit('leave-conversation', conversationId);
+        socket.off('message:new');
+        socket.off('message:read');
+        socket.off('user:typing');
+        socket.off('conversation:assigned');
+      }
+      
+      if (firestoreUnsubscribe) {
+        firestoreUnsubscribe();
+      }
+      
+      setConnectionStatus('disconnected');
+      setTypingUsers([]);
     };
-    */
+  }, [conversationId, queryClient, connectionStatus]);
 
-    // Por ahora, usar polling como fallback
-    const interval = setInterval(() => {
-      logger.socket('Polling para nuevos mensajes');
-      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-    }, 3000);
+  // Función para indicar que el usuario está escribiendo
+  const setTyping = useCallback(async (isTyping: boolean) => {
+    try {
+      const { getSocket } = await import('@/lib/socket');
+      const socket = getSocket();
+      
+      if (socket && conversationId) {
+        const eventName = isTyping ? 'typing:start' : 'typing:stop';
+        // Obtener ID real del usuario desde localStorage o contexto
+        const getUserId = () => {
+          try {
+            const authToken = localStorage.getItem('authToken');
+            if (authToken) {
+              // Decodificar JWT para obtener user ID (método simple)
+              const payload = JSON.parse(atob(authToken.split('.')[1]));
+              return payload.userId || payload.sub || 'unknown-user';
+            }
+          } catch (error) {
+            logger.api('Error obteniendo userId del token', { error }, true);
+          }
+          return 'anonymous-user';
+        };
 
-    return () => {
-      logger.socket('Deteniendo polling de mensajes');
-      clearInterval(interval);
-    };
-  }, [conversationId, queryClient]);
+        socket.emit(eventName, { 
+          conversationId, 
+          userId: getUserId()
+        });
+        
+        logger.socket(`📝 Evento ${eventName} enviado`, { conversationId });
+      }
+    } catch (error) {
+      logger.socket('❌ Error enviando estado de typing', { error }, true);
+    }
+  }, [conversationId]);
 
   return {
     newMessages,
+    connectionStatus,
+    typingUsers,
+    setTyping,
     clearNewMessages: () => setNewMessages([]),
   };
 }
