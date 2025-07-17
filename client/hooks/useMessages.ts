@@ -13,31 +13,28 @@ import type {
 } from "@/types/api";
 import type { PaginationParams } from "@/types/pagination";
 
-// Hook principal para obtener lista de conversaciones - SOLO limit/startAfter
+// 🟢 Hook para obtener lista de conversaciones (usa nuevo contrato)
 export function useConversations(params?: PaginationParams & {
   channel?: string;
-  status?: string;
+  status?: 'open' | 'closed';
+  search?: string; // Permitir búsqueda
 }) {
   return useQuery({
     queryKey: ['conversations', params],
     queryFn: async () => {
       logger.api('Obteniendo lista de conversaciones', { params });
       
-      // 🔧 SOLO PARÁMETROS UNIFICADOS: limit, startAfter, orderBy, direction
       const response = await api.get<PaginatedResponse<Conversation>>('/conversations', params);
       
-      // ✅ USA LA FUNCIÓN UTILITARIA PARA EXTRAER DATOS
-      const conversations = extractData<Conversation>(response, 'conversations');
-      
-      // 🔧 USAR NUEVA FUNCIÓN DE PROCESAMIENTO ROBUSTA
-      const processedConversations = processConversations(conversations);
+      // La normalización ahora se aplica a cada conversación individualmente
+      const processedConversations = processConversations(response.data);
 
       logger.api('Conversaciones obtenidas exitosamente', { count: processedConversations.length });
       
-      return { ...response, conversations: processedConversations };
+      // Retornar la data con las conversaciones ya procesadas
+      return { ...response, data: processedConversations };
     },
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    // 🔥 ELIMINADO: refetchInterval - usar Socket.io para tiempo real
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -69,68 +66,57 @@ export function useConversationByPhone(phone: string) {
   });
 }
 
-// 🔧 Hook para obtener mensajes - UNIFICADO EXCLUSIVAMENTE a limit/startAfter
+// 🟢 Hook para obtener mensajes (usa nuevo contrato)
 export function useMessages(conversationId: string, params?: PaginationParams) {
   return useQuery({
     queryKey: ['messages', conversationId, params],
     queryFn: async () => {
       logger.api('Obteniendo mensajes de conversación', { conversationId, params });
       
-      // 🔧 SOLO PARÁMETROS BACKEND: limit, startAfter
-      const backendParams = {
-        limit: params?.limit || 50,
-        ...(params?.startAfter && { startAfter: params.startAfter }),
-        ...(params?.orderBy && { orderBy: params.orderBy }),
-        ...(params?.direction && { direction: params.direction })
-      };
+      const response = await api.get<PaginatedResponse<Message>>(`/conversations/${conversationId}/messages`, params);
       
-      const response = await api.get<any>(`/conversations/${conversationId}/messages`, backendParams);
-      
-      // ✅ USA LA FUNCIÓN UTILITARIA PARA EXTRAER DATOS
-      const messages = extractData<Message>(response, 'messages');
-
-      // 🔧 USAR NUEVA FUNCIÓN DE PROCESAMIENTO ROBUSTA
-      const processedMessages = processMessages(messages);
+      // Normalizar cada mensaje de la respuesta
+      const processedMessages = processMessages(response.data);
 
       logger.api('Mensajes obtenidos exitosamente', { messageCount: processedMessages.length });
       
-      return { ...response, messages: processedMessages };
+      return { ...response, data: processedMessages };
     },
     enabled: !!conversationId,
-    staleTime: 10 * 1000,
-    // 🔥 ELIMINADO: refetchInterval - usar Socket.io para tiempo real EXCLUSIVAMENTE
   });
 }
 
-// Hook para enviar un mensaje real a través de Twilio
+// 🟢 Hook para enviar un mensaje (usa nuevo contrato)
 export function useSendMessage() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ to, body, mediaUrl }: { 
-      to: string; 
-      body: string; 
-      mediaUrl?: string;
-    }) => {
-      logger.api('Enviando mensaje', { to, hasMedia: !!mediaUrl, bodyLength: body.length });
+    mutationFn: async (messageData: MessageFormData & { conversationId: string }) => {
+      logger.api('Enviando mensaje', { conversationId: messageData.conversationId, content: messageData.content });
       
-      const response = await api.post<Message>('/messages/send', {
-        to,
-        body,
-        mediaUrl
-      });
+      // El backend espera `body` en lugar de `content`
+      const payload = {
+        body: messageData.content,
+        media: messageData.media
+      };
       
-      return response;
+      const response = await api.post<Message>(`/conversations/${messageData.conversationId}/messages`, payload);
+      
+      return normalizeMessage(response); // Normalizar la respuesta del backend
     },
-    onSuccess: (newMessage, variables) => {
-      // Invalidar mensajes relacionados
-      queryClient.invalidateQueries({ queryKey: ['messages'] });
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      
-      logger.api('Mensaje enviado exitosamente', { 
-        messageId: newMessage.id,
-        to: variables.to 
+    onSuccess: (newMessage) => {
+      // Actualizar cache de React Query con el mensaje normalizado
+      queryClient.setQueryData(['messages', newMessage.conversationId], (oldData: any) => {
+        if (oldData && oldData.data) {
+          return {
+            ...oldData,
+            data: [...oldData.data, newMessage],
+          };
+        }
+        return { data: [newMessage], pagination: {} };
       });
+
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
       
       toast({
         title: "Mensaje enviado",
@@ -139,8 +125,6 @@ export function useSendMessage() {
     },
     onError: (error: any) => {
       const errorMessage = error.response?.data?.message || "No se pudo enviar el mensaje.";
-      logger.api('Error al enviar mensaje', { error: errorMessage }, true);
-      
       toast({
         variant: "destructive",
         title: "Error al enviar mensaje",

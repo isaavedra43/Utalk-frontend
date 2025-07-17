@@ -11,22 +11,24 @@ import type {
 import type { PaginationParams } from "@/types/pagination";
 import { convertLegacyPagination } from "@/types/pagination";
 
-// 🔧 Hook para obtener lista de contactos - UNIFICADO a limit/startAfter
+// 🟢 Hook para obtener lista de contactos (usa nuevo contrato)
 export function useContacts(params?: PaginationParams & {
   search?: string;
-  status?: string;
-  section?: string;
+  tags?: string[];
 }) {
   return useQuery({
     queryKey: ['contacts', params],
     queryFn: async () => {
       logger.api('Obteniendo lista de contactos', { params });
+      
       const response = await api.get<PaginatedResponse<Contact>>('/contacts', params);
+      
       logger.api('Contactos obtenidos exitosamente', { total: response.pagination?.total });
+      
+      // La normalización podría no ser necesaria si el backend ya está alineado
       return response;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    enabled: true, // Siempre habilitado
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -98,70 +100,62 @@ export function useContactTags() {
   });
 }
 
-// Hook para crear un nuevo contacto
+// 🟢 Hook para crear un nuevo contacto (usa nuevo contrato)
 export function useCreateContact() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (contactData: ContactFormData) => {
-      logger.api('Creando nuevo contacto', { name: contactData.name, email: contactData.email });
+      logger.api('Creando nuevo contacto', { name: contactData.name, phone: contactData.phone });
+      
       const response = await api.post<Contact>('/contacts', contactData);
+      
       return response;
     },
-    onSuccess: (newContact) => {
-      // Invalidar la lista de contactos para que se actualice
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
-      
-      logger.api('Contacto creado exitosamente', { contactId: newContact.id, name: newContact.name });
-      
       toast({
         title: "Contacto creado",
-        description: `El contacto ${newContact.name} ha sido creado exitosamente.`,
+        description: "El nuevo contacto ha sido creado exitosamente.",
       });
     },
     onError: (error: any) => {
       const errorMessage = error.response?.data?.message || "No se pudo crear el contacto.";
-      logger.api('Error al crear contacto', { error: errorMessage }, true);
-      
       toast({
+        variant: "destructive",
         title: "Error al crear contacto",
         description: errorMessage,
-        variant: "destructive",
       });
     },
   });
 }
 
-// Hook para actualizar un contacto
+// 🟢 Hook para actualizar un contacto (usa nuevo contrato)
 export function useUpdateContact() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ contactId, data }: { contactId: string; data: Partial<ContactFormData> }) => {
-      logger.api('Actualizando contacto', { contactId, updatedFields: Object.keys(data) });
-      const response = await api.put<Contact>(`/contacts/${contactId}`, data);
+    mutationFn: async ({ id, data }: { id: string; data: Partial<ContactFormData> }) => {
+      logger.api('Actualizando contacto', { contactId: id });
+      
+      const response = await api.put<Contact>(`/contacts/${id}`, data);
+      
       return response;
     },
     onSuccess: (updatedContact) => {
-      // Invalidar queries relacionadas
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
       queryClient.setQueryData(['contacts', updatedContact.id], updatedContact);
-      
-      logger.api('Contacto actualizado exitosamente', { contactId: updatedContact.id });
-      
       toast({
         title: "Contacto actualizado",
-        description: `Los datos de ${updatedContact.name} han sido actualizados.`,
+        description: "El contacto ha sido actualizado exitosamente.",
       });
     },
     onError: (error: any) => {
       const errorMessage = error.response?.data?.message || "No se pudo actualizar el contacto.";
-      logger.api('Error al actualizar contacto', { error: errorMessage }, true);
-      
       toast({
+        variant: "destructive",
         title: "Error al actualizar contacto",
         description: errorMessage,
-        variant: "destructive",
       });
     },
   });

@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useMessages, useSendMessage, useConversation } from "@/hooks/useMessages";
+import { useContactByPhone } from "@/hooks/useContactIntegration";
 import { usePermissions, PermissionGate } from "@/hooks/usePermissions";
 import { safeString } from "@/lib/apiUtils";
 import { ChevronLeft, FileText, Zap, ChevronDown } from "lucide-react";
@@ -75,16 +76,16 @@ export function ChatThread({ conversationId, onBack, className }: ChatThreadProp
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch de mensajes y conversación desde la API (ya normalizados)
+  // 🟢 Hooks con nuevos contratos
   const { data: messagesResponse, isLoading, error } = useMessages(conversationId || "");
-  const sendMessageMutation = useSendMessage();
   const { data: conversation } = useConversation(conversationId || "");
-
-  // 🔧 PERMISOS: Verificar qué puede hacer el usuario según su rol
+  const sendMessageMutation = useSendMessage();
   const { canSendMessages, isViewer, role } = usePermissions();
 
-  // 🛡️ EXTRACCIÓN DEFENSIVA DE MENSAJES NORMALIZADOS
-  const messages = messagesResponse?.messages || [];
+  // 🟢 Obtener información del contacto a partir de la conversación
+  const { contact, displayName, avatar } = useContactByPhone(conversation?.customerPhone || '');
+  
+  const messages = messagesResponse?.data || [];
 
   // LOGS exhaustivos para debugging de estructura real
   useEffect(() => {
@@ -130,8 +131,8 @@ export function ChatThread({ conversationId, onBack, className }: ChatThreadProp
     
     try {
       sendMessageMutation.mutate({
-        to: conversationId,
-        body: newMessage
+        conversationId: conversationId!,
+        content: newMessage,
       });
       setNewMessage("");
     } catch (error) {
@@ -191,7 +192,7 @@ export function ChatThread({ conversationId, onBack, className }: ChatThreadProp
   // 🎯 RENDER PRINCIPAL CON PERMISOS
   return (
     <div className={cn("h-full flex flex-col bg-[#0A0A0A]", className)}>
-      {/* Header simplificado */}
+      {/* Header con nombre de contacto enriquecido */}
       <div className="p-4 border-b border-[#27272A] bg-[#0A0A0A]">
         <div className="flex items-center gap-3">
           <button
@@ -200,9 +201,12 @@ export function ChatThread({ conversationId, onBack, className }: ChatThreadProp
           >
             <ChevronLeft className="w-5 h-5 text-[#E4E4E7]" />
           </button>
+          <div className="w-10 h-10 bg-gray-700 rounded-full flex-shrink-0">
+             {avatar && <img src={avatar} alt={displayName} className="w-10 h-10 rounded-full" />}
+          </div>
           <div className="flex-1">
             <h3 className="text-sm font-medium text-[#E4E4E7]">
-              {conversation?.name || conversation?.customerPhone || "Cliente sin nombre"}
+              {displayName}
             </h3>
             <p className="text-xs text-[#71717A]">
               {conversation?.channel} • {conversation?.customerPhone}
@@ -233,12 +237,13 @@ export function ChatThread({ conversationId, onBack, className }: ChatThreadProp
               key={message.id}
               className={cn(
                 "max-w-[80%] p-3 rounded-lg",
-                safeGetSender(message.sender) === 'agent'
+                // 🟢 Usar sender.name para determinar si el mensaje es del agente
+                message.sender.name.toLowerCase() !== 'cliente' // Asumiendo que el cliente no se llama 'cliente'
                   ? "ml-auto bg-blue-600 text-white"
                   : "mr-auto bg-[#27272A] text-[#E4E4E7]"
               )}
             >
-              <p className="text-sm">{safeGetMessageContent(message)}</p>
+              <p className="text-sm">{message.content}</p>
               <p className="text-xs opacity-60 mt-1">
                 {safeFormatMessageTime(message.timestamp)}
               </p>
