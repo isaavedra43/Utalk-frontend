@@ -5,13 +5,10 @@ import { createRoot } from "react-dom/client";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { RequireAuth } from "@/components/RequireAuth";
 import { logger } from "@/lib/utils";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import NotFound from "./pages/NotFound";
+import { AppRoutes } from "@/routes/AppRoutes";
 
 // 🚀 LOGS AVANZADOS DE ARRANQUE DEL SISTEMA
 const APP_START_TIME = performance.now();
@@ -136,26 +133,7 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              {/* Ruta pública de login */}
-              <Route 
-                path="/login" 
-                element={<Login />} 
-              />
-              
-              {/* Rutas protegidas (requieren autenticación) */}
-              <Route element={<RequireAuth />}>
-                <Route 
-                  path="/" 
-                  element={<Index />} 
-                />
-                {/* Ruta para manejar URLs no encontradas en rutas protegidas */}
-                <Route 
-                  path="*" 
-                  element={<NotFound />} 
-                />
-              </Route>
-            </Routes>
+            <AppRoutes />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
