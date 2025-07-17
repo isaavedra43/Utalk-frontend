@@ -45,7 +45,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      logger.auth('Token encontrado, verificando validez con backend...', { tokenLength: savedToken.length });
+      logger.auth('Token encontrado, verificando validez con backend...', { 
+        tokenLength: savedToken.length,
+        tokenPreview: savedToken.substring(0, 20) + '...',
+        currentUrl: window.location.href
+      });
 
       // Verificar con el backend si el token es válido
       const response = await api.get<User>('/auth/me');
@@ -58,6 +62,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('Tiene propiedad id?:', response && typeof response === 'object' && 'id' in response);
       console.log('Tiene propiedad email?:', response && typeof response === 'object' && 'email' in response);
       console.log('Todas las propiedades:', response ? Object.keys(response) : 'N/A');
+      console.log('Token usado en request:', savedToken.substring(0, 20));
+      console.log('URL del backend:', import.meta.env.VITE_API_URL);
       console.groupEnd();
       
       if (response) {
@@ -81,7 +87,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         error: error.message,
         status: error.response?.status,
         statusText: error.response?.statusText,
-        fullError: error
+        fullError: error,
+        backendUrl: import.meta.env.VITE_API_URL,
+        tokenExists: !!localStorage.getItem('authToken')
       }, true);
       
       localStorage.removeItem('authToken');
