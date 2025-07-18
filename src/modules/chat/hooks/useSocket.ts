@@ -202,7 +202,7 @@ export function useSocket(options: UseSocketOptions = {}) {
 
   // Desconectar manualmente
   const disconnect = useCallback(() => {
-    socketClient.disconnect()
+          socketClient.disconnectSocket()
   }, [])
 
   return {

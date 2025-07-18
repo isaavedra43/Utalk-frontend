@@ -4,6 +4,7 @@ import { useReducer, useEffect } from 'react'
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import apiClient from '@/services/apiClient'
+import { socketClient } from '@/services/socketClient'
 import {
   User,
   authReducer,
@@ -103,6 +104,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 4. Actualizar contexto
       dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } })
       
+      // 5. ✅ Conectar WebSocket con token válido
+      try {
+        socketClient.connectWithToken(token)
+        logger.success('WebSocket connected after login', null, 'socket_connected')
+      } catch (socketError) {
+        logger.warn('Failed to connect WebSocket after login', socketError, 'socket_connection_failed')
+        // No fallar el login por problemas de socket
+      }
+      
       logger.endPerformance(perfId, `Login completed for ${email}`)
       
       logger.success('Login process completed successfully', {
@@ -192,6 +202,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 3. Limpiar localStorage y contexto (siempre ejecutar)
     localStorage.removeItem('auth_token')
     localStorage.removeItem('user_data')
+    
+    // 4. ✅ Desconectar WebSocket
+    try {
+      socketClient.disconnectSocket()
+      logger.success('WebSocket disconnected during logout', null, 'socket_disconnected')
+    } catch (socketError) {
+      logger.warn('Error disconnecting WebSocket during logout', socketError, 'socket_disconnect_error')
+    }
+    
     dispatch({ type: 'AUTH_LOGOUT' })
     
     logger.auth('logout', {})

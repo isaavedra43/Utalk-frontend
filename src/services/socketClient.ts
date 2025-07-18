@@ -8,18 +8,34 @@ class SocketClient {
   private eventListeners: Map<string, Set<(data: any) => void>> = new Map()
 
   constructor() {
-    this.connect()
+    // ✅ NO conectar automáticamente - solo cuando hay token
+    console.log('🔗 SocketClient initialized - will connect when authenticated')
   }
 
-  private connect() {
-    const token = localStorage.getItem('auth_token')
-    if (!token) {
-      console.warn('No hay token de autenticación para WebSocket')
+  // ✅ Método público para conectar cuando hay token
+  public connectWithToken(token: string) {
+    if (this.socket?.connected) {
+      console.log('✅ Socket already connected')
       return
     }
 
-    this.socket = io(import.meta.env.VITE_WS_URL || 'ws://localhost:8000', {
-      auth: { token },
+    console.log('🔗 Connecting to WebSocket with authentication...')
+    this.connect(token)
+  }
+
+  // ✅ Conexión con token requerido
+  private connect(token?: string) {
+    // Verificar token
+    const authToken = token || localStorage.getItem('auth_token')
+    if (!authToken) {
+      console.warn('❌ No authentication token available for WebSocket')
+      return
+    }
+
+    console.log('🔗 Establishing WebSocket connection...')
+    
+    this.socket = io(import.meta.env.VITE_WS_URL || 'http://localhost:8000', {
+      auth: { token: authToken },
       transports: ['websocket'],
       autoConnect: true,
     })
@@ -159,12 +175,13 @@ class SocketClient {
     return this.isConnected
   }
 
-  // Desconectar manualmente
-  disconnect(): void {
+  // ✅ Método público para desconectar
+  public disconnectSocket() {
     if (this.socket) {
       this.socket.disconnect()
       this.socket = null
       this.isConnected = false
+      console.log('🔗 WebSocket disconnected')
     }
   }
 

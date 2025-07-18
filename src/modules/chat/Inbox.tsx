@@ -1,6 +1,6 @@
 // Componente principal del módulo de chat/inbox
 // Layout de tres columnas: Sidebar, ConversationList, ChatWindow + Panels
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { InboxProps, ConversationFilter, MessageType, SuggestedResponse, ConversationSummary } from './types'
 import Sidebar from './components/Sidebar'
@@ -26,6 +26,7 @@ export function Inbox({ initialConversationId }: InboxProps = {}) {
   // Obtener conversationId desde URL params
   const { conversationId: urlConversationId } = useParams<{ conversationId?: string }>()
   const effectiveConversationId = urlConversationId || initialConversationId
+  const hasMounted = useRef(false)
 
   // Estados locales del inbox
   const [state, setState] = useState<InboxState>({
@@ -36,16 +37,19 @@ export function Inbox({ initialConversationId }: InboxProps = {}) {
 
   // Log de mount del componente
   useEffect(() => {
-    logger.component('Inbox', 'mount', {
-      initialConversationId,
-      urlConversationId,
-      effectiveConversationId
-    })
+    if (!hasMounted.current) {
+      logger.component('Inbox', 'mount', {
+        initialConversationId,
+        urlConversationId,
+        effectiveConversationId
+      })
+      hasMounted.current = true
+    }
 
     return () => {
       logger.component('Inbox', 'unmount')
     }
-  }, [])
+  }, [initialConversationId, urlConversationId, effectiveConversationId])
 
   // Log cuando cambia la conversación seleccionada
   useEffect(() => {

@@ -14,6 +14,7 @@ import AppRoutes from '@/pages/AppRoutes'
 // Sistema de logs y análisis
 import '@/lib/logger' // Inicializar logs
 import '@/lib/projectAnalyzer' // Inicializar análisis automático
+import '@/lib/connectionTester' // ✅ Inicializar pruebas de conexión
 
 // Configuración de React Query
 const queryClient = new QueryClient({

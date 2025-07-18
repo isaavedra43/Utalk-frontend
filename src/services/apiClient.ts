@@ -8,8 +8,10 @@ class ApiClient {
   private client: AxiosInstance
   
   constructor() {
+    const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    
     this.client = axios.create({
-      baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+      baseURL,
       timeout: 10000,
       headers: {
         'Content-Type': 'application/json',
@@ -18,12 +20,21 @@ class ApiClient {
 
     this.setupInterceptors()
     
-    // Log inicial de configuración
+    // Log inicial de configuración con detalles de debugging
     logger.info('ApiClient initialized', {
-      baseURL: this.client.defaults.baseURL,
+      baseURL,
       timeout: this.client.defaults.timeout,
-      env: import.meta.env.DEV ? 'development' : 'production'
+      env: import.meta.env.DEV ? 'development' : 'production',
+      envVarValue: import.meta.env.VITE_API_URL || 'NOT_SET'
     }, 'api_client_init')
+    
+    // ✅ Log crítico para debugging
+    if (baseURL.includes('tu-backend-utalk') || baseURL.includes('your-') || baseURL.includes('localhost:8000')) {
+      logger.warn('⚠️ API URL may not be configured correctly!', {
+        currentURL: baseURL,
+        suggestion: 'Configure VITE_API_URL in .env with real backend URL'
+      }, 'api_url_warning')
+    }
   }
 
   private setupInterceptors() {
