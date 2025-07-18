@@ -1,268 +1,214 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { 
-  getSocket, 
-  initSocket, 
-  joinConversation, 
-  leaveConversation,
-  getConnectionStatus 
-} from '@/lib/socket';
+import { useAuth } from '@/contexts/AuthContext';
+import { initSocket } from '@/lib/socket';
 import { logger } from '@/lib/utils';
-import { toast } from '@/hooks/use-toast';
 import type { Message, Conversation } from '@/types/api';
 
-/**
- * 🔊 Hook principal para integración Socket.io + React Query
- * 
- * Este hook establece la conexión Socket.io y actualiza automáticamente
- * el cache de React Query cuando llegan eventos en tiempo real.
- */
+/* ------------------------------------------------------------------------------ */
+/*  HOOK DE INTEGRACIÓN SOCKET.IO + REACT QUERY                                   */
+/* ------------------------------------------------------------------------------ */
 export function useSocketIntegration() {
   const queryClient = useQueryClient();
+  const { isAuthenticated, loading, token } = useAuth();
 
-  // Inicializar Socket.io al montar el hook
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    
-    // 🔍 LOGS DETALLADOS PARA DEBUG - SOCKET INTEGRATION
-    console.group('🔍 [SOCKET INTEGRATION DEBUG]');
-    console.log('Token en localStorage:', token ? `${token.substring(0, 20)}...` : 'NO HAY TOKEN');
-    console.log('URL actual:', window.location.href);
-    console.groupEnd();
-    
-    if (!token) {
+    // ABORTAR si AuthContext aún está cargando
+    if (loading) {
+      if (import.meta.env.DEV) {
+        console.log('🔄 [SOCKET] AuthContext aún cargando - esperando...');
+      }
+      return;
+    }
+
+    // ABORTAR si no hay autenticación válida
+    if (!isAuthenticated || !token) {
+      if (import.meta.env.DEV) {
+        console.log('❌ [SOCKET] No autenticado o sin token - abortar inicialización');
+      }
+      
       logger.socket('No hay token de autenticación, no se puede conectar Socket.io', {}, true);
       return;
+    }
+
+    if (import.meta.env.DEV) {
+      console.group('🔌 [SOCKET INTEGRATION] Inicializando...');
+      console.log('✅ AuthContext listo (loading=false)');
+      console.log('✅ Usuario autenticado');
+      console.log('✅ Token disponible:', token.substring(0, 20) + '...');
+      console.groupEnd();
     }
 
     logger.socket('🔌 Inicializando integración Socket.io + React Query');
     const socket = initSocket(token);
 
-    // 🔊 CONFIGURAR TODOS LOS EVENTOS QUE ACTUALIZAN REACT QUERY CACHE
-    
-    // 📨 NUEVO MENSAJE: Actualizar cache de mensajes instantáneamente
+    /* -------------------------------------------------------------------------- */
+    /*  EVENTOS DE MENSAJES                                                        */
+    /* -------------------------------------------------------------------------- */
     socket.on('new-message', (message: Message) => {
-      logger.socket('📨 Nuevo mensaje recibido, actualizando cache', { 
-        messageId: message.id, 
-        conversationId: message.conversationId 
-      });
-
-      // Actualizar cache de mensajes de la conversación
-      queryClient.setQueryData(['messages', message.conversationId], (old: any) => {
-        if (!old) return old;
-        
-        // Evitar duplicados
-        const exists = old.messages?.some((m: Message) => m.id === message.id);
-        if (exists) return old;
-
-        return {
-          ...old,
-          messages: [...(old.messages || []), message]
-        };
-      });
-
-      // Actualizar último mensaje en lista de conversaciones
-      queryClient.setQueryData(['conversations'], (old: any) => {
-        if (!old?.conversations) return old;
-
-        return {
-          ...old,
-          conversations: old.conversations.map((conv: Conversation) => 
-            conv.id === message.conversationId 
-              ? { 
-                  ...conv, 
-                  lastMessage: message.content,
-                  lastMessageAt: message.timestamp,
-                  isUnread: true 
-                }
-              : conv
-          )
-        };
-      });
-
-      // Mostrar notificación si no está en la conversación activa
-      toast({
-        title: "Nuevo mensaje",
-        description: `Mensaje de ${message.sender === 'client' ? 'Cliente' : 'Agente'}`,
-      });
-    });
-
-    // 👁️ MENSAJE LEÍDO: Actualizar estado de lectura
-    socket.on('message-read', (data: { conversationId: string; messageId: string; userId: string }) => {
-      logger.socket('👁️ Mensaje marcado como leído, actualizando cache', data);
-
-      queryClient.setQueryData(['messages', data.conversationId], (old: any) => {
-        if (!old) return old;
-
-        return {
-          ...old,
-          messages: old.messages?.map((msg: Message) => 
-            msg.id === data.messageId ? { ...msg, status: 'read' } : msg
-          )
-        };
-      });
-
-      // Actualizar estado de no leído en conversaciones
-      queryClient.setQueryData(['conversations'], (old: any) => {
-        if (!old?.conversations) return old;
-
-        return {
-          ...old,
-          conversations: old.conversations.map((conv: Conversation) => 
-            conv.id === data.conversationId ? { ...conv, isUnread: false } : conv
-          )
-        };
-      });
-    });
-
-    // 👤 CONVERSACIÓN ASIGNADA: Invalidar cache y mostrar notificación
-    socket.on('conversation-assigned', (data: { conversationId: string; agentId: string; agentName: string }) => {
-      logger.socket('👤 Conversación reasignada, invalidando cache', data);
-
-      // Invalidar todas las queries relacionadas con conversaciones
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.invalidateQueries({ queryKey: ['conversations', data.conversationId] });
-
-      // Mostrar notificación de asignación
-      toast({
-        title: "Conversación reasignada",
-        description: `La conversación ha sido asignada a ${data.agentName}`,
-      });
-    });
-
-    // ✅ MENSAJE ENTREGADO: Actualizar estado
-    socket.on('message-delivered', (data: { conversationId: string; messageId: string }) => {
-      logger.socket('✅ Mensaje entregado, actualizando estado', data);
-
-      queryClient.setQueryData(['messages', data.conversationId], (old: any) => {
-        if (!old) return old;
-
-        return {
-          ...old,
-          messages: old.messages?.map((msg: Message) => 
-            msg.id === data.messageId ? { ...msg, status: 'delivered' } : msg
-          )
-        };
-      });
-    });
-
-    // ❌ MENSAJE FALLÓ: Actualizar estado y mostrar error
-    socket.on('message-failed', (data: { conversationId: string; messageId: string; error: string }) => {
-      logger.socket('❌ Mensaje falló, actualizando estado', data);
-
-      queryClient.setQueryData(['messages', data.conversationId], (old: any) => {
-        if (!old) return old;
-
-        return {
-          ...old,
-          messages: old.messages?.map((msg: Message) => 
-            msg.id === data.messageId ? { ...msg, status: 'error' } : msg
-          )
-        };
-      });
-
-      toast({
-        variant: "destructive",
-        title: "Error al enviar mensaje",
-        description: data.error,
-      });
-    });
-
-    // 🟢 USUARIO EN LÍNEA: Actualizar estado de equipo
-    socket.on('user-online', (data: { userId: string; userName: string }) => {
-      logger.socket('🟢 Usuario en línea, actualizando estado de equipo', data);
-
-      queryClient.setQueryData(['team', 'members'], (old: any) => {
-        if (!old?.data) return old;
-
-        return {
-          ...old,
-          data: old.data.map((member: any) => 
-            member.id === data.userId ? { ...member, isOnline: true, status: 'online' } : member
-          )
-        };
-      });
-    });
-
-    // 🔴 USUARIO FUERA DE LÍNEA: Actualizar estado de equipo
-    socket.on('user-offline', (data: { userId: string }) => {
-      logger.socket('🔴 Usuario fuera de línea, actualizando estado de equipo', data);
-
-      queryClient.setQueryData(['team', 'members'], (old: any) => {
-        if (!old?.data) return old;
-
-        return {
-          ...old,
-          data: old.data.map((member: any) => 
-            member.id === data.userId ? { ...member, isOnline: false, status: 'offline' } : member
-          )
-        };
-      });
-    });
-
-    // 🔔 NOTIFICACIONES DEL SISTEMA: Mostrar en UI
-    socket.on('notification', (data: { type: string; title: string; message: string; conversationId?: string }) => {
-      logger.socket('🔔 Notificación del sistema recibida', data);
-
-      // Mostrar toast según el tipo de notificación
-      const isImportant = data.type === 'assignment' || data.type === 'mention' || data.type === 'alert';
-      
-      toast({
-        variant: isImportant ? "default" : "default",
-        title: data.title,
-        description: data.message,
-      });
-
-      // Si es una notificación de conversación específica, invalidar su cache
-      if (data.conversationId) {
-        queryClient.invalidateQueries({ queryKey: ['conversations', data.conversationId] });
+      if (import.meta.env.DEV) {
+        console.log('📨 [SOCKET] Nuevo mensaje recibido:', {
+          messageId: message.id,
+          conversationId: message.conversationId,
+          sender: message.sender,
+          content: message.content?.substring(0, 50) + '...'
+        });
       }
-    });
 
-    // 📋 ESTADO DE CONVERSACIÓN: Actualizar cache
-    socket.on('conversation-status', (data: { conversationId: string; status: string }) => {
-      logger.socket('📋 Estado de conversación actualizado', data);
-
-      queryClient.setQueryData(['conversations', data.conversationId], (old: any) => {
-        if (!old) return old;
-        return { ...old, status: data.status };
+      logger.socket('📨 Nuevo mensaje recibido vía Socket.io', {
+        messageId: message.id,
+        conversationId: message.conversationId,
+        sender: message.sender
       });
 
-      // También actualizar en la lista de conversaciones
-      queryClient.setQueryData(['conversations'], (old: any) => {
-        if (!old?.conversations) return old;
+      // Invalidar cache de mensajes para esta conversación
+      queryClient.invalidateQueries({
+        queryKey: ['messages', message.conversationId]
+      });
 
-        return {
-          ...old,
-          conversations: old.conversations.map((conv: Conversation) => 
-            conv.id === data.conversationId ? { ...conv, status: data.status } : conv
-          )
-        };
+      // Invalidar lista de conversaciones (para actualizar último mensaje)
+      queryClient.invalidateQueries({
+        queryKey: ['conversations']
+      });
+
+      // Actualizar contadores si están en cache
+      queryClient.invalidateQueries({
+        queryKey: ['dashboard', 'stats']
       });
     });
 
-    // Cleanup al desmontar
+    socket.on('message-read', (data: { messageId: string; conversationId: string; readBy: string }) => {
+      if (import.meta.env.DEV) {
+        console.log('👁️ [SOCKET] Mensaje marcado como leído:', data);
+      }
+
+      logger.socket('👁️ Mensaje marcado como leído', data);
+
+      // Invalidar mensajes de la conversación
+      queryClient.invalidateQueries({
+        queryKey: ['messages', data.conversationId]
+      });
+    });
+
+    /* -------------------------------------------------------------------------- */
+    /*  EVENTOS DE CONVERSACIONES                                                  */
+    /* -------------------------------------------------------------------------- */
+    socket.on('conversation-assigned', (data: { conversationId: string; assignedTo: string }) => {
+      if (import.meta.env.DEV) {
+        console.log('👤 [SOCKET] Conversación asignada:', data);
+      }
+
+      logger.socket('👤 Conversación asignada', data);
+
+      // Invalidar lista de conversaciones
+      queryClient.invalidateQueries({
+        queryKey: ['conversations']
+      });
+
+      // Invalidar stats de dashboard
+      queryClient.invalidateQueries({
+        queryKey: ['dashboard', 'stats']
+      });
+    });
+
+    socket.on('conversation-status-changed', (data: { conversationId: string; status: string }) => {
+      if (import.meta.env.DEV) {
+        console.log('🔄 [SOCKET] Estado de conversación cambiado:', data);
+      }
+
+      logger.socket('🔄 Estado de conversación cambiado', data);
+
+      // Invalidar conversaciones
+      queryClient.invalidateQueries({
+        queryKey: ['conversations']
+      });
+    });
+
+    /* -------------------------------------------------------------------------- */
+    /*  EVENTOS DE TYPING                                                          */
+    /* -------------------------------------------------------------------------- */
+    socket.on('typing-start', (data: { conversationId: string; userId: string; userName: string }) => {
+      if (import.meta.env.DEV) {
+        console.log('✍️ [SOCKET] Usuario escribiendo:', data);
+      }
+
+      // Aquí podrías actualizar un estado de "typing indicators" si lo implementas
+      logger.socket('✍️ Usuario escribiendo', data);
+    });
+
+    socket.on('typing-stop', (data: { conversationId: string; userId: string }) => {
+      if (import.meta.env.DEV) {
+        console.log('⏹️ [SOCKET] Usuario dejó de escribir:', data);
+      }
+
+      logger.socket('⏹️ Usuario dejó de escribir', data);
+    });
+
+    /* -------------------------------------------------------------------------- */
+    /*  EVENTOS DE CONEXIÓN                                                        */
+    /* -------------------------------------------------------------------------- */
+    socket.on('connect', () => {
+      if (import.meta.env.DEV) {
+        console.log('🟢 [SOCKET] Conectado exitosamente');
+      }
+
+      logger.socket('🟢 Socket.io conectado exitosamente', { socketId: socket.id });
+    });
+
+    socket.on('disconnect', (reason) => {
+      if (import.meta.env.DEV) {
+        console.log('🔴 [SOCKET] Desconectado:', reason);
+      }
+
+      logger.socket('🔴 Socket.io desconectado', { reason }, true);
+    });
+
+    socket.on('connect_error', (error) => {
+      if (import.meta.env.DEV) {
+        console.error('❌ [SOCKET] Error de conexión:', error);
+      }
+
+      logger.socket('❌ Error de conexión Socket.io', { error: error.message }, true);
+    });
+
+    /* -------------------------------------------------------------------------- */
+    /*  CLEANUP                                                                     */
+    /* -------------------------------------------------------------------------- */
     return () => {
-      logger.socket('🧹 Limpiando eventos Socket.io en hook');
-      socket.removeAllListeners('new-message');
-      socket.removeAllListeners('message-read');
-      socket.removeAllListeners('conversation-assigned');
-      socket.removeAllListeners('message-delivered');
-      socket.removeAllListeners('message-failed');
-      socket.removeAllListeners('user-online');
-      socket.removeAllListeners('user-offline');
-      socket.removeAllListeners('notification');
-      socket.removeAllListeners('conversation-status');
-    };
-  }, [queryClient]);
+      if (import.meta.env.DEV) {
+        console.log('🧹 [SOCKET] Limpiando eventos y desconectando...');
+      }
 
-  return {
-    socket: getSocket(),
-    connectionStatus: getConnectionStatus(),
-    joinConversation,
-    leaveConversation
-  };
+      logger.socket('🧹 Limpiando integración Socket.io');
+      
+      // Remover todos los listeners
+      socket.off('new-message');
+      socket.off('message-read');
+      socket.off('conversation-assigned');
+      socket.off('conversation-status-changed');
+      socket.off('typing-start');
+      socket.off('typing-stop');
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('connect_error');
+      
+      // Desconectar socket
+      socket.disconnect();
+    };
+  }, [isAuthenticated, loading, token, queryClient]); // Dependencias: solo del contexto de auth
+
+  if (import.meta.env.DEV) {
+    console.log('🔍 [SOCKET INTEGRATION] Estado actual:', {
+      loading,
+      isAuthenticated,
+      hasToken: !!token
+    });
+  }
+
+  // No retorna nada - es un hook de efecto secundario
 }
+
+export default useSocketIntegration;
 
 /**
  * 🔊 Hook específico para indicadores de escritura
@@ -273,7 +219,7 @@ export function useTypingIndicators(conversationId: string) {
   useEffect(() => {
     if (!conversationId) return;
 
-    const socket = getSocket();
+    const socket = initSocket(); // Assuming initSocket is the correct way to get the socket
     if (!socket) return;
 
     // Escuchar indicadores de escritura
@@ -330,7 +276,7 @@ export function useRealTimeStats() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const socket = getSocket();
+    const socket = initSocket(); // Assuming initSocket is the correct way to get the socket
     if (!socket) return;
 
     // Invalidar stats periódicamente cuando hay actividad

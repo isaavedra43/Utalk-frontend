@@ -78,7 +78,7 @@ export function ConversationList({
       >
         <div className="mobile-conversation-carousel">
           {conversations.map((conversation) => {
-            const ChannelIcon = channelIcons[conversation.channel];
+            const ChannelIcon = channelIcons['whatsapp'];
             const isSelected = selectedConversationId === conversation.id;
 
             return (
@@ -110,7 +110,7 @@ export function ConversationList({
                       <ChannelIcon
                         className={cn(
                           "w-2.5 h-2.5",
-                          channelColors[conversation.channel],
+                          channelColors['whatsapp'],
                         )}
                       />
                     </div>
@@ -123,14 +123,15 @@ export function ConversationList({
                       {conversation.lastMessage}
                     </p>
                     <div className="flex items-center justify-between mt-1">
-                      <span
+                      <Badge
+                        variant="secondary"
                         className={cn(
                           "text-xs",
-                          channelColors[conversation.channel],
+                          channelColors['whatsapp'],
                         )}
                       >
-                        {channelNames[conversation.channel]}
-                      </span>
+                        WhatsApp
+                      </Badge>
                       <span className="text-xs text-gray-500">
                         {conversation.timestamp}
                       </span>
@@ -167,7 +168,7 @@ export function ConversationList({
             </div>
           ) : (
             conversations.map((conversation) => {
-              const ChannelIcon = channelIcons[conversation.channel];
+              const ChannelIcon = channelIcons['whatsapp'];
               const isSelected = selectedConversationId === conversation.id;
 
               return (
@@ -190,9 +191,9 @@ export function ConversationList({
                   {/* Top row - Section and timestamp */}
                   {!hideSection && (
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-[#AAA]">
-                        {conversation.section}
-                      </span>
+                      <div className="text-xs text-gray-400 flex items-center gap-2">
+                        General
+                      </div>
                       <span className="text-sm text-[#CCC]">
                         {conversation.timestamp}
                       </span>
@@ -222,7 +223,7 @@ export function ConversationList({
                         <ChannelIcon
                           className={cn(
                             "w-2.5 h-2.5",
-                            channelColors[conversation.channel],
+                            channelColors['whatsapp'],
                           )}
                         />
                       </div>
@@ -233,14 +234,15 @@ export function ConversationList({
                       <h3 className="text-white text-base font-medium truncate">
                         {conversation.contactName}
                       </h3>
-                      <p
+                      <Badge
+                        variant="secondary"
                         className={cn(
-                          "text-xs font-medium truncate",
-                          channelColors[conversation.channel],
+                          "text-xs",
+                          channelColors['whatsapp'],
                         )}
                       >
-                        {channelNames[conversation.channel]}
-                      </p>
+                        WhatsApp
+                      </Badge>
                     </div>
 
                     {/* Unread indicator */}

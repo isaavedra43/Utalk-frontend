@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/apiClient";
 import { toast } from "@/hooks/use-toast";
 import { logger } from "@/lib/utils";
-import { extractData, processConversations, processMessages } from "@/lib/apiUtils";
+import { extractData, processConversations, processMessages, normalizeMessage } from "@/lib/apiUtils";
 import type { 
   Conversation, 
   Message, 
@@ -24,15 +24,15 @@ export function useConversations(params?: PaginationParams & {
     queryFn: async () => {
       logger.api('Obteniendo lista de conversaciones', { params });
       
-      const response = await api.get<PaginatedResponse<Conversation>>('/conversations', params);
+      const response = await api.get<PaginatedResponse<Conversation>>('/conversations', { params });
       
       // La normalización ahora se aplica a cada conversación individualmente
-      const processedConversations = processConversations(response.data);
+      const processedConversations = processConversations(response.data.data);
 
       logger.api('Conversaciones obtenidas exitosamente', { count: processedConversations.length });
       
       // Retornar la data con las conversaciones ya procesadas
-      return { ...response, data: processedConversations };
+      return { ...response.data, data: processedConversations };
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -45,7 +45,7 @@ export function useConversation(conversationId: string) {
     queryFn: async () => {
       logger.api('Obteniendo conversación específica', { conversationId });
       const response = await api.get<Conversation>(`/conversations/${conversationId}`);
-      return response;
+      return response.data;
     },
     enabled: !!conversationId,
     staleTime: 30 * 1000,
@@ -59,7 +59,7 @@ export function useConversationByPhone(phone: string) {
     queryFn: async () => {
       logger.api('Obteniendo conversación por teléfono', { phone });
       const response = await api.get<Conversation>(`/conversations/phone/${phone}`);
-      return response;
+      return response.data;
     },
     enabled: !!phone,
     staleTime: 30 * 1000,
@@ -73,14 +73,14 @@ export function useMessages(conversationId: string, params?: PaginationParams) {
     queryFn: async () => {
       logger.api('Obteniendo mensajes de conversación', { conversationId, params });
       
-      const response = await api.get<PaginatedResponse<Message>>(`/conversations/${conversationId}/messages`, params);
+      const response = await api.get<PaginatedResponse<Message>>(`/conversations/${conversationId}/messages`, { params });
       
       // Normalizar cada mensaje de la respuesta
-      const processedMessages = processMessages(response.data);
+      const processedMessages = processMessages(response.data.data);
 
       logger.api('Mensajes obtenidos exitosamente', { messageCount: processedMessages.length });
       
-      return { ...response, data: processedMessages };
+      return { ...response.data, data: processedMessages };
     },
     enabled: !!conversationId,
   });
@@ -102,7 +102,7 @@ export function useSendMessage() {
       
       const response = await api.post<Message>(`/conversations/${messageData.conversationId}/messages`, payload);
       
-      return normalizeMessage(response); // Normalizar la respuesta del backend
+      return normalizeMessage(response.data); // Normalizar la respuesta del backend
     },
     onSuccess: (newMessage) => {
       // Actualizar cache de React Query con el mensaje normalizado
@@ -178,11 +178,11 @@ export function useAssignConversation() {
       });
       return response;
     },
-    onSuccess: (updatedConversation) => {
+    onSuccess: (assignedConversation) => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.setQueryData(['conversations', updatedConversation.id], updatedConversation);
+      queryClient.setQueryData(['conversations', assignedConversation.data.id], assignedConversation.data);
       
-      logger.api('Conversación asignada exitosamente');
+      logger.api('Conversación asignada exitosamente', { conversationId: assignedConversation.data.id });
       
       toast({
         title: "Conversación asignada",
@@ -220,7 +220,7 @@ export function useCloseConversation() {
     },
     onSuccess: (closedConversation) => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      queryClient.setQueryData(['conversations', closedConversation.id], closedConversation);
+      queryClient.setQueryData(['conversations', closedConversation.data.id], closedConversation.data);
       
       logger.api('Conversación cerrada exitosamente');
       
@@ -248,9 +248,9 @@ export function useSearchMessages(query: string) {
     queryKey: ['messages', 'search', query],
     queryFn: async () => {
       logger.api('Buscando mensajes', { query });
-      const response = await api.get<Message[]>('/messages/search', { q: query });
-      logger.api('Búsqueda de mensajes completada', { resultCount: response.length });
-      return response;
+      const response = await api.get<Message[]>('/messages/search', { params: { q: query } });
+      logger.api('Búsqueda de mensajes completada', { resultCount: response.data.length });
+      return response.data;
     },
     enabled: query.length >= 3, // Solo buscar con al menos 3 caracteres
     staleTime: 30 * 1000,
@@ -274,8 +274,8 @@ export function useMessagingStats(params?: {
         averageResponseTime: number;
         messagesPerDay: number;
         conversionRate: number;
-      }>('/messages/stats', params);
-      return response;
+      }>('/messages/stats', { params });
+      return response.data;
     },
     staleTime: 2 * 60 * 1000, // 2 minutos
   });

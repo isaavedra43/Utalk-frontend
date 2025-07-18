@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useMessages, useSendMessage, useConversation } from "@/hooks/useMessages";
-import { useContactByPhone } from "@/hooks/useContactIntegration";
+import { useContacts } from "@/hooks/useContacts";
 import { usePermissions, PermissionGate } from "@/hooks/usePermissions";
 import { safeString } from "@/lib/apiUtils";
 import { ChevronLeft, FileText, Zap, ChevronDown } from "lucide-react";
@@ -78,12 +78,15 @@ export function ChatThread({ conversationId, onBack, className }: ChatThreadProp
 
   // 🟢 Hooks con nuevos contratos
   const { data: messagesResponse, isLoading, error } = useMessages(conversationId || "");
-  const { data: conversation } = useConversation(conversationId || "");
+  const { data: conversation, isLoading: isLoadingConversation } = useConversation(conversationId);
   const sendMessageMutation = useSendMessage();
   const { canSendMessages, isViewer, role } = usePermissions();
 
-  // 🟢 Obtener información del contacto a partir de la conversación
-  const { contact, displayName, avatar } = useContactByPhone(conversation?.customerPhone || '');
+  // 📲 Obtener información de la conversación
+  const { data: contactsResponse } = useContacts();
+  const contacts = Array.isArray(contactsResponse?.data) ? contactsResponse.data : [];
+  const contact = contacts.find(c => c.id === conversation?.contact?.id);
+  const displayName = contact?.name || conversation?.contact?.name || 'Cliente Desconocido';
   
   const messages = messagesResponse?.data || [];
 
@@ -201,15 +204,21 @@ export function ChatThread({ conversationId, onBack, className }: ChatThreadProp
           >
             <ChevronLeft className="w-5 h-5 text-[#E4E4E7]" />
           </button>
-          <div className="w-10 h-10 bg-gray-700 rounded-full flex-shrink-0">
-             {avatar && <img src={avatar} alt={displayName} className="w-10 h-10 rounded-full" />}
+          <div className="w-8 h-8 bg-blue-600 rounded-full flex-shrink-0 flex items-center justify-center">
+            {contact?.avatarUrl ? (
+              <img src={contact.avatarUrl} alt={displayName} className="w-8 h-8 rounded-full" />
+            ) : (
+              <span className="text-white text-sm font-medium">
+                {displayName.charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
           <div className="flex-1">
             <h3 className="text-sm font-medium text-[#E4E4E7]">
               {displayName}
             </h3>
-            <p className="text-xs text-[#71717A]">
-              {conversation?.channel} • {conversation?.customerPhone}
+            <p className="text-sm text-gray-400 flex items-center gap-2">
+              WhatsApp • {contact?.phone || 'Sin teléfono'}
             </p>
           </div>
           

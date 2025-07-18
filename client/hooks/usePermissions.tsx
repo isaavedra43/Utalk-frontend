@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { AuthContext } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { logger } from '@/lib/utils';
 
 // 🔧 TIPOS DE PERMISOS SEGÚN ROLES UTalk
@@ -110,7 +110,7 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
  * 🔧 Hook principal para gestión de permisos UTalk
  */
 export function usePermissions() {
-  const { user, isAuthenticated } = useContext(AuthContext);
+  const { user, isAuthenticated } = useAuth();
 
   // Si no está autenticado, no tiene permisos
   if (!isAuthenticated || !user) {

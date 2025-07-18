@@ -154,17 +154,6 @@ export function normalizeConversation(conv: any): Conversation {
         name: safeString(conv.assignedTo.name, 'Sin asignar'),
       } : undefined,
       messages: Array.isArray(conv.messages) ? processMessages(conv.messages) : undefined,
-
-      // Campos legacy para mantener compatibilidad temporal
-      name: safeString(contact.name || conv.name, 'Contacto Desconocido'),
-      customerPhone: safeString(conv.customerPhone || conv.phone, ''), // Este campo debe venir de `contact` en el futuro
-      channel: conv.channel || 'whatsapp',
-      timestamp: lastMessage ? lastMessage.timestamp : safeString(conv.updatedAt || conv.createdAt),
-      lastMessageAt: lastMessage ? lastMessage.timestamp : safeString(conv.updatedAt || conv.createdAt),
-      createdAt: safeString(conv.createdAt),
-      updatedAt: safeString(conv.updatedAt),
-      isUnread: (conv.unreadCount ?? 0) > 0,
-      avatar: conv.avatar,
     };
 
     console.log('✅ Conversación normalizada exitosamente:', normalized);
@@ -212,10 +201,6 @@ export function normalizeMessage(msg: any): Message {
         type: safeString(msg.media.type, ''),
       } : undefined,
       status: (['sent', 'pending', 'failed', 'delivered', 'read', 'error'].includes(msg.status)) ? msg.status : 'pending',
-
-      // Campos legacy
-      attachments: msg.media ? [{ id: 'media-1', name: 'Archivo adjunto', type: msg.media.type, url: msg.media.url, size: '' }] : [],
-      type: msg.media ? (msg.media.type.startsWith('image') ? 'image' : 'file') : 'text',
     };
 
     console.log('✅ Mensaje normalizado exitosamente:', normalized);

@@ -3,443 +3,219 @@ import { toast } from '@/hooks/use-toast';
 import { logger } from './utils';
 import { disconnectSocket } from './socket';
 
-// Configuración base de la API
-const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
-  TIMEOUT: 30000,
-  RETRY_ATTEMPTS: 3,
-  RETRY_DELAY: 1000,
-};
+// Configuración base de Axios
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-// Tipos para las respuestas de la API
-interface ApiErrorResponse {
-  message: string;
-  statusCode: number;
-  errors?: Record<string, string[]>;
-}
-
-interface ApiSuccessResponse<T = any> {
-  data: T;
-  message?: string;
-  success: boolean;
-}
-
-// Crear instancia principal de axios
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: API_CONFIG.BASE_URL,
-  timeout: API_CONFIG.TIMEOUT,
+  baseURL,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
   },
 });
 
-// Request interceptor - Añadir token de autenticación
+/* ------------------------------------------------------------------------------ */
+/*  REQUEST INTERCEPTOR - AÑADIR TOKEN Y LOGS                                      */
+/* ------------------------------------------------------------------------------ */
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('authToken');
+    const isProtectedRoute = config.url?.startsWith('/api/') || config.url?.includes('/auth/me');
     
-    // 🔍 LOGS DETALLADOS PARA DEBUG - REQUEST INTERCEPTOR
-    console.group('🔍 [REQUEST INTERCEPTOR DEBUG]');
-    console.log('URL:', config.url);
-    console.log('Método:', config.method?.toUpperCase());
-    console.log('Token en localStorage:', token ? `${token.substring(0, 20)}...` : 'NO HAY TOKEN');
-    console.log('Header Authorization antes:', config.headers?.Authorization ? 'PRESENTE' : 'AUSENTE');
+    if (import.meta.env.DEV) {
+      console.group('🔍 [API REQUEST]');
+      console.log('URL:', config.url);
+      console.log('Método:', config.method?.toUpperCase());
+      console.log('Es ruta protegida?:', isProtectedRoute);
+      console.log('Token disponible:', token ? `${token.substring(0, 20)}...` : 'NO HAY TOKEN');
+    }
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('✅ Token añadido al header Authorization');
-      logger.api('Token de autenticación añadido a la request', { 
+      
+      if (import.meta.env.DEV) {
+        console.log('✅ Token añadido al header Authorization');
+      }
+    } else if (isProtectedRoute) {
+      if (import.meta.env.DEV) {
+        console.warn('⚠️ WARNING: Request protegida sin token!');
+        console.warn('Esta request podría fallar con 401');
+      }
+      
+      logger.api('⚠️ Request protegida enviada sin token de autorización', { 
         url: config.url,
-        method: config.method?.toUpperCase(),
-        hasToken: true 
-      });
-    } else {
-      console.log('❌ NO hay token disponible para añadir');
+        method: config.method
+      }, true);
+    }
+    
+    if (import.meta.env.DEV) {
+      console.log('Headers finales:', config.headers);
+      console.groupEnd();
     }
 
-    console.log('Header Authorization después:', config.headers?.Authorization ? 'PRESENTE' : 'AUSENTE');
-    console.groupEnd();
-
-    // Log de la request saliente
-    logger.api('Enviando request HTTP', {
+    logger.api('Request enviada', { 
+      url: config.url, 
       method: config.method?.toUpperCase(),
-      url: config.url,
-      baseURL: config.baseURL,
-      params: config.params,
-      hasData: !!config.data,
-      headers: {
-        'Content-Type': config.headers['Content-Type'],
-        'Authorization': config.headers.Authorization ? '[PRESENT]' : '[MISSING]'
-      }
+      hasAuth: !!config.headers.Authorization,
+      isProtected: isProtectedRoute
     });
-
+    
     return config;
   },
   (error) => {
+    if (import.meta.env.DEV) {
+      console.error('❌ [API REQUEST ERROR]', error);
+    }
+    
     logger.api('Error en request interceptor', { error: error.message }, true);
     return Promise.reject(error);
   }
 );
 
-// Response interceptor - Manejo global de respuestas y errores
+/* ------------------------------------------------------------------------------ */
+/*  RESPONSE INTERCEPTOR - MANEJO DE ERRORES Y 401                                 */
+/* ------------------------------------------------------------------------------ */
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
-    // Log de respuesta exitosa
-    logger.api('Respuesta HTTP exitosa recibida', {
+    if (import.meta.env.DEV) {
+      console.log(`✅ [API RESPONSE] ${response.config.method?.toUpperCase()} ${response.config.url} → ${response.status}`);
+    }
+    
+    logger.api('Response exitosa', { 
+      url: response.config.url, 
       status: response.status,
-      statusText: response.statusText,
-      url: response.config.url,
-      method: response.config.method?.toUpperCase(),
-      hasData: !!response.data,
-      dataType: typeof response.data
+      method: response.config.method?.toUpperCase()
     });
-
-    return response;
+    
+    return response; // Mantener estructura completa para compatibilidad
   },
-  async (error: AxiosError<ApiErrorResponse>) => {
-    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+  (error: AxiosError) => {
+    const originalRequest = error.config;
+    const status = error.response?.status;
+    const url = originalRequest?.url;
+    const hadAuthHeader = !!originalRequest?.headers?.Authorization;
+    
+    if (import.meta.env.DEV) {
+      console.group('❌ [API RESPONSE ERROR]');
+      console.error('Error completo:', error);
+      console.log('Status:', status);
+      console.log('URL:', url);
+      console.log('Tenía Authorization header?:', hadAuthHeader);
+      console.log('Response data:', error.response?.data);
+      console.groupEnd();
+    }
 
-    // Log del error
-    logger.api('Error en respuesta HTTP', {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      url: originalRequest?.url,
+    logger.api('Error en response', {
+      url,
+      status,
       method: originalRequest?.method?.toUpperCase(),
-      message: error.response?.data?.message || error.message,
-      isNetworkError: !error.response
+      hadAuthHeader,
+      errorMessage: (error.response?.data as any)?.message || error.message
     }, true);
 
-    // Manejo específico de errores por código de estado
-    if (error.response) {
-      const { status, data } = error.response;
-
-      switch (status) {
-        case 401: {
-          // ¿La request fallida llevaba realmente token?
-          const hadAuthHeader = !!originalRequest.headers?.Authorization;
-
-          if (!hadAuthHeader) {
-            // 401 en endpoint público o llamada sin credenciales → no tocar sesión
-            logger.api('401 recibido SIN header Authorization – se preserva token', {
-              url: originalRequest?.url,
-            });
-            break;
+    // Manejo específico por status code
+    switch (status) {
+      case 401:
+        // SOLO limpiar token si la request llevaba Authorization header
+        if (hadAuthHeader) {
+          if (import.meta.env.DEV) {
+            console.group('🔥 [401 CON AUTH HEADER] - Token inválido/expirado');
+            console.log('Limpiando sesión y desconectando socket');
+            console.groupEnd();
           }
-
-          // Token inválido o expirado (porque SÍ había Authorization)
-          logger.auth('Token inválido o expirado - Limpiando sesión y cerrando socket', {
-            url: originalRequest?.url,
+          
+          logger.auth('Token inválido o expirado - Limpiando sesión', { 
+            url,
+            hadAuthHeader: true
           }, true);
-
-          // Limpiar token y cerrar conexiones tiempo real
+          
           localStorage.removeItem('authToken');
-          try {
-            disconnectSocket();
-          } catch (_) {
-            /* socket no inicializado */
-          }
-
+          disconnectSocket();
+          
+          // Solo redirigir si no estamos ya en login
           if (!window.location.pathname.includes('/login')) {
             toast({
-              variant: 'destructive',
-              title: 'Sesión expirada',
-              description: 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
+              variant: "destructive",
+              title: "Sesión expirada",
+              description: "Tu sesión ha expirado. Inicia sesión nuevamente.",
             });
-
-            setTimeout(() => {
-              window.location.href = '/login';
-            }, 1500);
-          }
-          break;
-        }
-
-        case 403:
-          // Sin permisos
-          logger.auth('Acceso denegado - Sin permisos suficientes', {
-            url: originalRequest?.url,
-            userAgent: navigator.userAgent
-          }, true);
-          
-          toast({
-            variant: "destructive",
-            title: "Acceso denegado",
-            description: "No tienes permisos para realizar esta acción.",
-          });
-          break;
-
-        case 404:
-          // Recurso no encontrado
-          logger.api('Recurso no encontrado', {
-            url: originalRequest?.url,
-            method: originalRequest?.method
-          }, true);
-          
-          toast({
-            variant: "destructive",
-            title: "Recurso no encontrado",
-            description: data?.message || "El recurso solicitado no existe.",
-          });
-          break;
-
-        case 422:
-          // Errores de validación
-          logger.api('Errores de validación', {
-            url: originalRequest?.url,
-            errors: data?.errors,
-            message: data?.message
-          }, true);
-          
-          if (data?.errors) {
-            // Mostrar errores de validación específicos
-            const errorMessages = Object.entries(data.errors)
-              .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
-              .join('\n');
             
-            toast({
-              variant: "destructive",
-              title: "Errores de validación",
-              description: errorMessages,
-            });
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Error de validación",
-              description: data?.message || "Los datos enviados no son válidos.",
-            });
+            window.location.href = '/login';
           }
-          break;
-
-        case 429:
-          // Rate limiting
-          logger.api('Rate limit excedido', {
-            url: originalRequest?.url,
-            retryAfter: error.response.headers['retry-after']
-          }, true);
+        } else {
+          if (import.meta.env.DEV) {
+            console.log('ℹ️ [401 SIN AUTH HEADER] - Request pública falló, conservando token');
+          }
           
-          toast({
-            variant: "destructive",
-            title: "Demasiadas solicitudes",
-            description: "Has excedido el límite de solicitudes. Intenta nuevamente en unos momentos.",
-          });
-          break;
+          logger.api('401 en request sin Authorization - conservando token', { url }, true);
+        }
+        break;
 
-        case 500:
-        case 502:
-        case 503:
-        case 504:
-          // Errores del servidor
-          logger.api('Error del servidor', {
-            status,
-            statusText: error.response.statusText,
-            url: originalRequest?.url
-          }, true);
-          
-          toast({
-            variant: "destructive",
-            title: "Error del servidor",
-            description: "Ocurrió un error en el servidor. Intenta nuevamente más tarde.",
-          });
-          break;
+      case 403:
+        toast({
+          variant: "destructive",
+          title: "Acceso denegado",
+          description: "No tienes permisos para realizar esta acción.",
+        });
+        break;
 
-        default:
-          // Otros errores
+      case 404:
+        if (import.meta.env.DEV) {
+          console.warn(`⚠️ [404] Endpoint no encontrado: ${url}`);
+        }
+        break;
+
+      case 500:
+        toast({
+          variant: "destructive",
+          title: "Error del servidor",
+          description: "Ha ocurrido un error interno. Inténtalo más tarde.",
+        });
+        break;
+
+      case 502:
+      case 503:
+      case 504:
+        toast({
+          variant: "destructive",
+          title: "Servicio no disponible",
+          description: "El servidor no está disponible temporalmente.",
+        });
+        break;
+
+      default:
+        if (status && status >= 400) {
+          const errorMessage = (error.response?.data as any)?.message || 'Error en la solicitud';
           toast({
             variant: "destructive",
             title: "Error",
-            description: data?.message || "Ocurrió un error inesperado.",
+            description: errorMessage,
           });
-      }
-    } else if (error.code === 'ECONNABORTED') {
-      // Timeout
-      logger.api('Timeout en request HTTP', {
-        url: originalRequest?.url,
-        timeout: API_CONFIG.TIMEOUT
-      }, true);
-      
-      toast({
-        variant: "destructive",
-        title: "Tiempo de espera agotado",
-        description: "La solicitud tardó demasiado en responder. Verifica tu conexión.",
-      });
-    } else {
-      // Error de red
-      logger.api('Error de red', {
-        message: error.message,
-        code: error.code,
-        url: originalRequest?.url
-      }, true);
-      
-      toast({
-        variant: "destructive",
-        title: "Error de conexión",
-        description: "No se pudo conectar con el servidor. Verifica tu conexión a internet.",
-      });
+        }
+        break;
     }
 
     return Promise.reject(error);
   }
 );
 
-// Wrapper principal para requests con manejo de errores y retries
-class ApiService {
-  private async request<T>(config: AxiosRequestConfig): Promise<T> {
-    try {
-      const response = await apiClient.request<ApiSuccessResponse<T> | T>(config);
-      
-      // Si la respuesta tiene formato wrapper, extraer data
-      if (response.data && typeof response.data === 'object' && 'data' in response.data) {
-        return (response.data as ApiSuccessResponse<T>).data;
-      }
-      
-      // Si es respuesta directa, retornar tal cual
-      return response.data as T;
-    } catch (error) {
-      logger.api('Error en ApiService.request', {
-        url: config.url,
-        method: config.method,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      }, true);
-      throw error;
-    }
-  }
+/* ------------------------------------------------------------------------------ */
+/*  HELPER FUNCTIONS                                                                */
+/* ------------------------------------------------------------------------------ */
 
-  async get<T>(url: string, params?: any): Promise<T> {
-    return this.request<T>({
-      method: 'GET',
-      url,
-      params,
-    });
-  }
-
-  async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    return this.request<T>({
-      method: 'POST',
-      url,
-      data,
-      ...config,
-    });
-  }
-
-  async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    return this.request<T>({
-      method: 'PUT',
-      url,
-      data,
-      ...config,
-    });
-  }
-
-  async patch<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    return this.request<T>({
-      method: 'PATCH',
-      url,
-      data,
-      ...config,
-    });
-  }
-
-  async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    return this.request<T>({
-      method: 'DELETE',
-      url,
-      ...config,
-    });
-  }
-}
-
-// Instancia principal del servicio API
-export const api = new ApiService();
-
-// Funciones utilitarias adicionales
-export const apiHelpers = {
-  // Verificar si el usuario está autenticado
-  isAuthenticated(): boolean {
-    const token = localStorage.getItem('authToken');
-    return !!token;
-  },
-
-  // Obtener el token actual
-  getAuthToken(): string | null {
-    return localStorage.getItem('authToken');
-  },
-
-  // Establecer token de autenticación
-  setAuthToken(token: string): void {
-    localStorage.setItem('authToken', token);
-    logger.auth('Token de autenticación establecido', { tokenLength: token.length });
-  },
-
-  // Limpiar token de autenticación
-  clearAuthToken(): void {
-    localStorage.removeItem('authToken');
-    logger.auth('Token de autenticación eliminado');
-  },
-
-  // Construir URL completa
-  buildUrl(endpoint: string): string {
-    return `${API_CONFIG.BASE_URL}${endpoint}`;
-  },
-
-  // Verificar conexión con el servidor
-  async checkConnection(): Promise<boolean> {
-    try {
-      logger.api('Verificando conexión con el servidor');
-      await apiClient.get('/health');
-      logger.api('Conexión con el servidor exitosa');
-      return true;
-    } catch (error) {
-      logger.api('Error de conexión con el servidor', { error }, true);
-      return false;
-    }
-  },
-
-  // Obtener información del usuario actual
-  async getCurrentUser() {
-    try {
-      logger.api('Obteniendo información del usuario actual');
-      const user = await api.get('/auth/me');
-      logger.api('Información del usuario obtenida exitosamente');
-      return user;
-    } catch (error) {
-      logger.api('Error al obtener información del usuario', { error }, true);
-      throw error;
-    }
-  }
+// Helper para setear token manualmente (usado en utilidades)
+export const setAuthToken = (token: string) => {
+  localStorage.setItem('authToken', token);
+  logger.auth('Token establecido manualmente vía apiClient helper');
 };
 
-// Configuración para diferentes entornos
-export const configureApiForEnvironment = () => {
-  const isDevelopment = import.meta.env.DEV;
-  const isProduction = import.meta.env.PROD;
-
-  if (isDevelopment) {
-    logger.api('Configurando API para entorno de desarrollo', {
-      baseURL: API_CONFIG.BASE_URL,
-      timeout: API_CONFIG.TIMEOUT
-    });
-    
-    // En desarrollo, logs más verbosos
-    apiClient.defaults.headers.common['X-Debug'] = 'true';
-  }
-
-  if (isProduction) {
-    logger.api('Configurando API para entorno de producción', {
-      baseURL: API_CONFIG.BASE_URL
-    });
-    
-    // En producción, configuraciones de seguridad adicionales
-    apiClient.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
-  }
-
-  logger.api('Configuración de API completada', {
-    environment: isDevelopment ? 'development' : 'production',
-    baseURL: API_CONFIG.BASE_URL,
-    timeout: API_CONFIG.TIMEOUT
-  });
+// Helper para limpiar token manualmente
+export const clearAuthToken = () => {
+  localStorage.removeItem('authToken');
+  disconnectSocket();
+  logger.auth('Token limpiado manualmente vía apiClient helper');
 };
 
-// Inicializar configuración
-configureApiForEnvironment();
-
-export default api; 
+// Export alias para compatibilidad
+export const api = apiClient;
+export default apiClient; 

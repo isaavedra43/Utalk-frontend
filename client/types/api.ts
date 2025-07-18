@@ -45,11 +45,6 @@ export interface Conversation {
     name: string;
   };
   messages?: Message[];
-  
-  // Propiedades enriquecidas en el frontend
-  customerPhone?: string; // Derivado para compatibilidad
-  channel?: "whatsapp" | "email" | "facebook" | "sms"; // Mantenido para UI
-  avatar?: string;
 }
 
 // /messages (Mensajes)

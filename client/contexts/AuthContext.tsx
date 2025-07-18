@@ -4,292 +4,178 @@ import { api } from '@/lib/apiClient';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/lib/utils';
 import { disconnectSocket } from '@/lib/socket';
-import type { User, ApiResponse } from '@/types/api';
+import type { User } from '@/types/api';
 
+/* ------------------------------------------------------------------------------ */
+/*  TYPES & CONTEXT                                                                */
+/* ------------------------------------------------------------------------------ */
 interface AuthContextType {
   user: User | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  isAuthenticated: boolean;
-  refreshAuth: () => Promise<void>;
   token: string | null;
+  loading: boolean;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => void;
+  refreshAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// 🔧 EXPORTS: Soportar tanto import nombrado como default
-export { AuthContext };
-export default AuthContext;
-
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export function AuthProvider({ children }: AuthProviderProps) {
+/* ------------------------------------------------------------------------------ */
+/*  PROVIDER COMPONENT                                                              */
+/* ------------------------------------------------------------------------------ */
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  // Verificar autenticación al cargar la aplicación
-  useEffect(() => {
-    logger.auth('Iniciando verificación de autenticación al cargar app');
-    refreshAuth();
-  }, []);
+  const isAuthenticated = !!user && !!token;
 
-  const refreshAuth = async (): Promise<void> => {
-    try {
-      setLoading(true);
-      logger.auth('Iniciando verificación de autenticación al cargar app');
-      
-      // Verificar si hay token guardado
-      const savedToken = localStorage.getItem('authToken');
-      
-      // 🔍 LOGS DETALLADOS PARA DEBUG - REFRESH AUTH
-      console.group('🔍 [REFRESH AUTH DEBUG]');
-      console.log('Token encontrado en localStorage:', savedToken ? `${savedToken.substring(0, 20)}...` : 'NO HAY TOKEN');
-      console.log('URL actual:', window.location.href);
-      console.log('Estado inicial - user:', user);
-      console.log('Estado inicial - token:', token);
-      console.groupEnd();
-      
-      if (!savedToken) {
-        logger.auth('No se encontró token en localStorage');
-        setLoading(false);
-        return;
-      }
-
-      logger.auth('Token encontrado, verificando validez con backend...', { 
-        tokenLength: savedToken.length,
-        tokenPreview: savedToken.substring(0, 20) + '...',
-        currentUrl: window.location.href
-      });
-
-      // Verificar con el backend si el token es válido
-      const response = await api.get<User>('/auth/me');
-      
-      // 🚨 LOGS EXHAUSTIVOS PARA DEBUG - refreshAuth
-      console.group('🔍 [REFRESH AUTH DEBUG] Respuesta del endpoint /auth/me:');
-      console.log('RESPUESTA COMPLETA:', response);
-      console.log('TIPO de respuesta:', typeof response);
-      console.log('Es un objeto?:', typeof response === 'object');
-      console.log('Tiene propiedad id?:', response && typeof response === 'object' && 'id' in response);
-      console.log('Tiene propiedad email?:', response && typeof response === 'object' && 'email' in response);
-      console.log('Todas las propiedades:', response ? Object.keys(response) : 'N/A');
-      console.log('Token usado en request:', savedToken.substring(0, 20));
-      console.log('URL del backend:', import.meta.env.VITE_API_URL);
-      console.groupEnd();
-      
-      if (response) {
-        logger.auth('Token válido - Usuario autenticado exitosamente', { 
-          userId: response.id, 
-          userEmail: response.email,
-          userRole: response.role 
-        });
-        setUser(response);
-        setToken(savedToken);
-        
-        // 🔍 LOGS DETALLADOS PARA DEBUG - ESTADO ACTUALIZADO
-        console.group('🔍 [REFRESH AUTH DEBUG] Estado actualizado:');
-        console.log('Usuario establecido:', response);
-        console.log('Token establecido:', savedToken.substring(0, 20) + '...');
-        console.groupEnd();
-      } else {
-        logger.auth('Respuesta del servidor indica token inválido', response, true);
-        // Token inválido, limpiar
-        localStorage.removeItem('authToken');
-        setUser(null);
-        setToken(null);
-      }
-    } catch (error: any) {
-      const status = error.response?.status;
-
-      logger.auth('Error al verificar autenticación', {
-        error: error.message,
-        status,
-        statusText: error.response?.statusText,
-        fullError: error,
-        backendUrl: import.meta.env.VITE_API_URL,
-        tokenExists: !!localStorage.getItem('authToken')
-      }, true);
-
-      if (status === 401) {
-        // Token inválido ⇒ limpiar sesión y cerrar socket
-        localStorage.removeItem('authToken');
-        disconnectSocket();
-        setUser(null);
-        setToken(null);
-        
-        // 🔍 LOGS DETALLADOS PARA DEBUG - TOKEN INVALIDO
-        console.group('🔍 [REFRESH AUTH DEBUG] Token inválido detectado:');
-        console.log('Status:', status);
-        console.log('Token eliminado de localStorage');
-        console.log('Socket desconectado');
-        console.log('Estado limpiado');
-        console.groupEnd();
-      } else {
-        // Error de red/servidor: conservar token para reintento
-        logger.auth('Error NO 401 – se conserva token y se permitirá reintento', { status });
-        
-        // 🔍 LOGS DETALLADOS PARA DEBUG - ERROR NO 401
-        console.group('🔍 [REFRESH AUTH DEBUG] Error NO 401:');
-        console.log('Status:', status);
-        console.log('Token conservado en localStorage');
-        console.log('Se permitirá reintento más tarde');
-        console.groupEnd();
-      }
-    } finally {
-      setLoading(false);
-      logger.auth('Verificación de autenticación completada');
-      
-      // 🔍 LOGS DETALLADOS PARA DEBUG - FINALIZACIÓN
-      console.group('🔍 [REFRESH AUTH DEBUG] Finalización:');
-      console.log('Loading establecido en false');
-      console.log('Estado final - user:', user);
-      console.log('Estado final - token:', token);
-      console.log('Token en localStorage:', localStorage.getItem('authToken') ? 'PRESENTE' : 'AUSENTE');
-      console.groupEnd();
-    }
+  // Helper: Clear token and session
+  const clearSession = () => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem('authToken');
+    disconnectSocket();
   };
 
+  /* ------------------------------------------------------------------------------ */
+  /*  LOGIN FUNCTION - EXTRACCIÓN ROBUSTA DEL TOKEN                                  */
+  /* ------------------------------------------------------------------------------ */
   const login = async (email: string, password: string): Promise<void> => {
     try {
       setLoading(true);
-      logger.auth('Iniciando proceso de login', { email });
       
-      // Validación básica antes de enviar
-      if (!email || !password) {
-        throw new Error('Email y contraseña son requeridos');
+      if (import.meta.env.DEV) {
+        console.group('🔐 [AUTH] LOGIN INICIADO');
+        console.log('Email:', email);
+        console.log('Backend URL:', import.meta.env.VITE_API_URL);
       }
-      
-      logger.auth('Enviando credenciales al servidor...');
-      
-      const response = await api.post<{ user: User; token: string }>('/auth/login', {
+
+      // HACER REQUEST AL BACKEND
+      const response = await api.post<{ user: User; token: string; expiresIn?: string }>('/auth/login', {
         email,
         password,
       });
 
-      // 🚨 LOGS EXHAUSTIVOS PARA DEBUG - VER RESPUESTA REAL
-      console.group('🔍 [LOGIN DEBUG] Respuesta REAL del backend:');
-      console.log('RESPUESTA COMPLETA:', response);
-      console.log('TIPO de respuesta:', typeof response);
-      console.log('Es un objeto?:', typeof response === 'object');
-      console.log('Tiene propiedad user?:', typeof response === 'object' && 'user' in response);
-      console.log('Tiene propiedad token?:', typeof response === 'object' && 'token' in response);
-      console.log('Valor de response.user:', response.user);
-      console.log('Valor de response.token:', response.token);
-      console.log('Todas las propiedades:', Object.keys(response));
-      console.groupEnd();
+      if (import.meta.env.DEV) {
+        console.log('✅ Respuesta HTTP recibida del backend');
+        console.log('Response completa:', response);
+        console.log('Tipo de response:', typeof response);
+      }
 
-      logger.auth('🔍 RESPUESTA REAL LOGIN - ANÁLISIS COMPLETO', { 
-        response: response,
-        responseType: typeof response,
-        responseKeys: Object.keys(response || {}),
-        hasUser: typeof response === 'object' && 'user' in response,
-        hasToken: typeof response === 'object' && 'token' in response,
-        userValue: response?.user,
-        tokenValue: response?.token
-      });
-
-      // Intentar múltiples estructuras de respuesta para compatibilidad
+      // EXTRACCIÓN ROBUSTA: Priorizar response.data (Axios wrapping), fallback a response directo
       let userData: User | undefined;
       let authToken: string | undefined;
 
-      // Opción 1: Respuesta directa { user: {...}, token: "..." }
-      if (response && typeof response === 'object' && 'user' in response && 'token' in response) {
-        userData = response.user;
-        authToken = response.token;
-        logger.auth('✅ Estructura detectada: Respuesta directa { user, token }');
-      }
-      // Opción 2: Respuesta envuelta { data: { user: {...}, token: "..." } }
-      else if (response && typeof response === 'object' && 'data' in response) {
-        const data = (response as any).data;
-        if (data && typeof data === 'object' && 'user' in data && 'token' in data) {
-          userData = data.user;
-          authToken = data.token;
-          logger.auth('✅ Estructura detectada: Respuesta envuelta { data: { user, token } }');
+      // Opción 1: Estructura Axios estándar { data: { user, token } }
+      if (response && typeof response === 'object' && 'data' in response && response.data) {
+        const responseData = response.data as any;
+        
+        if (import.meta.env.DEV) {
+          console.log('🔍 Buscando en response.data:', responseData);
+          console.log('Tiene user?:', 'user' in responseData);
+          console.log('Tiene token?:', 'token' in responseData);
+        }
+
+        if (responseData.user && responseData.token) {
+          userData = responseData.user;
+          authToken = responseData.token;
+          
+          if (import.meta.env.DEV) {
+            console.log('✅ Estructura detectada: response.data.{user,token}');
+          }
         }
       }
-             // Opción 3: El backend devuelve el usuario y token de forma no estándar
-       else if (response && typeof response === 'object') {
-         // Buscar token en diferentes propiedades posibles
-         const possibleToken = (response as any).token || (response as any).accessToken || (response as any).authToken;
-         // Buscar datos de usuario en diferentes propiedades posibles
-         const possibleUser = (response as any).user || (response as any).data || response;
-         
-         if (possibleUser && possibleToken) {
-           userData = possibleUser;
-           authToken = possibleToken;
-           logger.auth('✅ Estructura detectada: Formato no estándar');
-         }
-       }
 
-      console.group('🔍 [LOGIN DEBUG] Datos extraídos:');
-      console.log('userData extraído:', userData);
-      console.log('authToken extraído:', authToken);
-      console.log('userData válido?:', !!userData);
-      console.log('authToken válido?:', !!authToken);
-      console.groupEnd();
+      // Opción 2: Respuesta directa { user, token }
+      if (!userData || !authToken) {
+        const directResponse = response as any;
+        
+        if (import.meta.env.DEV) {
+          console.log('🔍 Buscando en response directo:', directResponse);
+          console.log('Tiene user?:', 'user' in directResponse);
+          console.log('Tiene token?:', 'token' in directResponse);
+        }
 
-      if (userData && authToken) {
-        logger.auth('Login exitoso - Guardando datos de sesión', {
-          userId: userData.id,
-          userEmail: userData.email,
-          userRole: userData.role,
-          tokenLength: authToken.length
-        });
-        
-        // Actualizar estado INMEDIATAMENTE
-        setUser(userData);
-        setToken(authToken);
-        
-        // Guardar token de autenticación
-        localStorage.setItem('authToken', authToken);
-        logger.auth('Token guardado en localStorage exitosamente');
-
-        // Mostrar mensaje de éxito
-        toast({
-          title: "¡Bienvenido!",
-          description: `Hola ${userData.name || userData.email}, sesión iniciada correctamente.`,
-        });
-        
-        logger.auth('Login completado exitosamente - Estado actualizado');
-      } else {
-        const errorMsg = 'Respuesta del servidor inválida - faltan datos de usuario o token';
-        logger.auth('Login fallido - Respuesta del servidor inválida', { 
-          response: response,
-          extractedUserData: userData,
-          extractedAuthToken: authToken,
-          responseStructure: {
-            hasUser: !!userData,
-            hasToken: !!authToken,
-            userType: typeof userData,
-            tokenType: typeof authToken
+        if (directResponse.user && directResponse.token) {
+          userData = directResponse.user;
+          authToken = directResponse.token;
+          
+          if (import.meta.env.DEV) {
+            console.log('✅ Estructura detectada: response.{user,token}');
           }
-        }, true);
-
-        // Agregar toast con información detallada para debugging
-        toast({
-          variant: "destructive",
-          title: "Error de inicio de sesión",
-          description: import.meta.env.DEV 
-            ? `${errorMsg}. Revisa la consola para detalles de la respuesta.` 
-            : errorMsg,
-        });
-
-        throw new Error(errorMsg);
+        }
       }
+
+      // VALIDACIÓN ESTRICTA: Abortar si falta token o user
+      if (!authToken || typeof authToken !== 'string' || authToken.length < 10) {
+        if (import.meta.env.DEV) {
+          console.error('❌ TOKEN INVÁLIDO O FALTANTE');
+          console.log('authToken encontrado:', authToken);
+          console.log('Tipo:', typeof authToken);
+          console.log('Longitud:', authToken?.length || 0);
+          console.groupEnd();
+        }
+        
+        throw new Error('Token de autenticación no recibido del servidor. Revisa la respuesta del backend.');
+      }
+
+      if (!userData || typeof userData !== 'object' || !userData.id || !userData.email) {
+        if (import.meta.env.DEV) {
+          console.error('❌ USUARIO INVÁLIDO O FALTANTE');
+          console.log('userData encontrado:', userData);
+          console.log('Tipo:', typeof userData);
+          console.groupEnd();
+        }
+        
+        throw new Error('Datos de usuario no válidos recibidos del servidor.');
+      }
+
+      if (import.meta.env.DEV) {
+        console.log('✅ VALIDACIÓN EXITOSA');
+        console.log('Token (primeros 20 chars):', authToken.substring(0, 20) + '...');
+        console.log('Usuario:', { id: userData.id, email: userData.email, role: userData.role });
+        console.groupEnd();
+      }
+
+      // GUARDAR EN CONTEXTO Y LOCALSTORAGE
+      setToken(authToken);
+      setUser(userData);
+      localStorage.setItem('authToken', authToken);
+
+      logger.auth('✅ Login exitoso - Token y usuario guardados', { 
+        userId: userData.id, 
+        email: userData.email,
+        tokenLength: authToken.length
+      });
+
+      // REDIRECCIÓN
+      toast({
+        title: "¡Bienvenido!",
+        description: `Hola ${userData.name || userData.email}, sesión iniciada correctamente.`,
+      });
+
+      navigate('/');
+
     } catch (error: any) {
+      if (import.meta.env.DEV) {
+        console.group('❌ [AUTH] LOGIN ERROR');
+        console.error('Error completo:', error);
+        console.log('Error message:', error.message);
+        console.log('Error response:', error.response);
+        console.groupEnd();
+      }
+
       const errorMessage = error.response?.data?.message || error.message || 'Error al iniciar sesión';
       
-      logger.auth('Login fallido - Error capturado', {
+      logger.auth('❌ Error en login', {
         error: errorMessage,
         status: error.response?.status,
-        statusText: error.response?.statusText,
-        email,
-        fullError: error
+        url: error.config?.url
       }, true);
-      
+
       toast({
         variant: "destructive",
         title: "Error de inicio de sesión",
@@ -302,69 +188,161 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const logout = async (): Promise<void> => {
+  /* ------------------------------------------------------------------------------ */
+  /*  REFRESH AUTH - HIDRATACIÓN TRAS RELOAD                                         */
+  /* ------------------------------------------------------------------------------ */
+  const refreshAuth = async (): Promise<void> => {
     try {
-      logger.auth('Iniciando proceso de logout');
+      setLoading(true);
+
+      const savedToken = localStorage.getItem('authToken');
       
-      // Llamar al endpoint de logout si existe
-      try {
-        await api.post('/auth/logout');
-        logger.auth('Logout exitoso en el servidor');
-      } catch (error) {
-        logger.auth('Error en logout del servidor (continuando con logout local)', error, true);
-        // Si falla el logout en el servidor, continuar con el logout local
+      if (import.meta.env.DEV) {
+        console.group('🔄 [AUTH] REFRESH AUTH');
+        console.log('Token en localStorage:', savedToken ? `${savedToken.substring(0, 20)}...` : 'NO HAY TOKEN');
+        console.log('URL actual:', window.location.href);
       }
-    } catch (error) {
-      logger.auth('Error durante logout', error, true);
+
+      if (!savedToken) {
+        if (import.meta.env.DEV) {
+          console.log('❌ No hay token guardado - sesión limpia');
+          console.groupEnd();
+        }
+        
+        logger.auth('No se encontró token en localStorage - usuario no autenticado');
+        setLoading(false);
+        return;
+      }
+
+      // Verificar token con backend
+      const response = await api.get<User>('/auth/me');
+      
+      if (import.meta.env.DEV) {
+        console.log('✅ Respuesta de /auth/me:', response);
+      }
+
+      const userData = response;
+      
+      if (!userData || !userData.id) {
+        throw new Error('Respuesta de /auth/me inválida');
+      }
+
+      setToken(savedToken);
+      setUser(userData);
+
+      if (import.meta.env.DEV) {
+        console.log('✅ Auth refreshed - Usuario:', { id: userData.id, email: userData.email });
+        console.groupEnd();
+      }
+
+      logger.auth('✅ Autenticación restaurada exitosamente', { userId: userData.id });
+
+    } catch (error: any) {
+      if (import.meta.env.DEV) {
+        console.group('❌ [AUTH] REFRESH ERROR');
+        console.error('Error:', error);
+        console.log('Status:', error.response?.status);
+        console.groupEnd();
+      }
+
+      // SOLO limpiar sesión si es 401 (token inválido/expirado)
+      if (error.response?.status === 401) {
+        logger.auth('❌ Token inválido o expirado durante refresh - limpiando sesión', {
+          status: 401,
+          url: error.config?.url
+        }, true);
+        
+        clearSession();
+        
+        toast({
+          variant: "destructive",
+          title: "Sesión expirada",
+          description: "Tu sesión ha expirado. Inicia sesión nuevamente.",
+        });
+      } else {
+        // Error de red/servidor - NO limpiar token
+        logger.auth('❌ Error de red en refresh - conservando token', {
+          error: error.message,
+          status: error.response?.status
+        }, true);
+      }
     } finally {
-      // Limpiar estado local siempre
-      logger.auth('Limpiando estado local de autenticación');
-      disconnectSocket();
-      setUser(null);
-      setToken(null);
-      localStorage.removeItem('authToken');
-      
-      toast({
-        title: "Sesión cerrada",
-        description: "Has cerrado sesión correctamente.",
-      });
-      
-      logger.auth('Logout completado - Usuario desconectado');
+      setLoading(false);
     }
   };
 
-  const value: AuthContextType = {
-    user,
-    loading,
-    login,
-    logout,
-    isAuthenticated: !!user && !!token,
-    refreshAuth,
-    token,
+  /* ------------------------------------------------------------------------------ */
+  /*  LOGOUT FUNCTION                                                                 */
+  /* ------------------------------------------------------------------------------ */
+  const logout = () => {
+    if (import.meta.env.DEV) {
+      console.log('🚪 [AUTH] LOGOUT - Limpiando sesión');
+    }
+
+    logger.auth('🚪 Logout iniciado por usuario');
+    
+    clearSession();
+    
+    toast({
+      title: "Sesión cerrada",
+      description: "Has cerrado sesión correctamente.",
+    });
+    
+    navigate('/login');
   };
 
-  // Log del estado actual de autenticación
+  /* ------------------------------------------------------------------------------ */
+  /*  EFFECT: HYDRATE AUTH ON MOUNT                                                  */
+  /* ------------------------------------------------------------------------------ */
   useEffect(() => {
-    logger.auth('Estado de autenticación actualizado', {
-      isAuthenticated: !!user && !!token,
-      loading,
-      userId: user?.id,
-      userEmail: user?.email,
-      hasToken: !!token
-    });
-  }, [user, loading, token]);
+    refreshAuth();
+  }, []);
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  /* ------------------------------------------------------------------------------ */
+  /*  EFFECT: WATCH LOCALSTORAGE CHANGES                                             */
+  /* ------------------------------------------------------------------------------ */
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'authToken' && e.newValue === null) {
+        if (import.meta.env.DEV) {
+          console.log('🔍 [AUTH] Token eliminado manualmente de localStorage');
+        }
+        
+        logger.auth('Token eliminado manualmente de localStorage - limpiando sesión');
+        clearSession();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  /* ------------------------------------------------------------------------------ */
+  /*  CONTEXT VALUE                                                                   */
+  /* ------------------------------------------------------------------------------ */
+  const value: AuthContextType = {
+    user,
+    token,
+    loading,
+    isAuthenticated,
+    login,
+    logout,
+    refreshAuth,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth() {
+/* ------------------------------------------------------------------------------ */
+/*  HOOK                                                                            */
+/* ------------------------------------------------------------------------------ */
+export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth debe usarse dentro de un AuthProvider');
   }
   return context;
-} 
+}
+
+// Export por defecto
+export default AuthProvider; 
