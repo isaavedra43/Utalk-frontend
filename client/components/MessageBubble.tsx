@@ -25,7 +25,7 @@ interface MessageBubbleProps {
 }
 
 export function MessageBubble({
-  id,
+  // id, // TODO: Usar cuando se implemente funcionalidad de ID
   content,
   sender,
   timestamp,

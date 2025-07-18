@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -13,11 +13,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Bot,
-  Send,
-  Edit3,
-  RefreshCw,
-  Target,
   Sparkles,
   Package,
   BarChart3,
@@ -36,16 +31,11 @@ import {
   AlertTriangle,
   TrendingUp,
   HelpCircle,
-  Star,
   Crown,
-  Flame,
   MessageSquare,
   Brain,
   Bell,
   Paperclip,
-  Filter,
-  Calendar,
-  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +52,7 @@ export function AIAssistant({ className }: AIAssistantProps) {
   const [showReminderAlert, setShowReminderAlert] = useState(false);
 
   // Client Data
-  const [clientInfo, setClientInfo] = useState({
+  const [clientInfo] = useState({
     name: "Carlos Martinez",
     company: "GRUPO ALCON",
     tags: ["Cliente VIP", "Descuento prometido"],
@@ -102,7 +92,7 @@ export function AIAssistant({ className }: AIAssistantProps) {
   ]);
 
   // Products with enhanced data
-  const [detectedProducts, setDetectedProducts] = useState([
+  const [detectedProducts] = useState([
     {
       id: "1",
       name: "Mármol Blanco Carrara",
@@ -132,7 +122,7 @@ export function AIAssistant({ className }: AIAssistantProps) {
   ]);
 
   // Shared files organized by type
-  const [sharedFiles, setSharedFiles] = useState({
+  const [sharedFiles] = useState({
     images: [
       {
         id: "1",
@@ -387,7 +377,7 @@ export function AIAssistant({ className }: AIAssistantProps) {
             </div>
 
             <div className="space-y-3">
-              {aiSuggestions.map((suggestion, index) => (
+              {aiSuggestions.map((suggestion) => (
                 <div key={suggestion.id} className="space-y-3">
                   {/* Bubble-style suggestion */}
                   <div className="bg-white rounded-2xl rounded-bl-md p-4 shadow-lg max-w-[90%]">

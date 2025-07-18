@@ -105,7 +105,7 @@ export function CampaignForm({
       ...prev,
       [key]: value,
     }));
-    console.log(`{{${key}}} changed to:`, value);
+    console.log(`${key} changed to:`, value);
   };
 
   const handleNestedChange = (parent: string, key: string, value: any) => {
@@ -116,7 +116,7 @@ export function CampaignForm({
         [key]: value,
       },
     }));
-    console.log(`{{${parent}.${key}}} changed to:`, value);
+    console.log(`${parent}.${key} changed to:`, value);
   };
 
   const handleChannelToggle = (channel: string) => {
@@ -127,12 +127,12 @@ export function CampaignForm({
   };
 
   const handleSave = () => {
-    console.log("{{saveCampaign}} - Saving campaign data:", formData);
+    console.log("saveCampaign - Saving campaign data:", formData);
     onSave(formData);
   };
 
   const handleSend = () => {
-    console.log("{{sendCampaign}} - Sending campaign:", formData);
+    console.log("sendCampaign - Sending campaign:", formData);
     onSave({ ...formData, status: "scheduled" });
   };
 
@@ -320,14 +320,14 @@ export function CampaignForm({
                     </label>
                     <div className="bg-gray-900 border border-gray-600 rounded-lg p-3 min-h-[100px]">
                       <p className="text-gray-400 text-sm">
-                        Contactos específicos a incluir ({{ includeList }})
+                        Contactos específicos a incluir (0)
                       </p>
                       <Button
                         size="sm"
                         variant="outline"
                         className="mt-2 border-gray-600 text-gray-300"
                         onClick={() =>
-                          console.log("{{selectContacts}} - Opening selector")
+                          console.log("selectContacts - Opening selector")
                         }
                       >
                         <Plus className="h-4 w-4 mr-2" />
@@ -342,14 +342,14 @@ export function CampaignForm({
                     </label>
                     <div className="bg-gray-900 border border-gray-600 rounded-lg p-3 min-h-[100px]">
                       <p className="text-gray-400 text-sm">
-                        Contactos a excluir de la campaña ({{ excludeList }})
+                        Contactos a excluir de la campaña (0)
                       </p>
                       <Button
                         size="sm"
                         variant="outline"
                         className="mt-2 border-gray-600 text-gray-300"
                         onClick={() =>
-                          console.log("{{excludeContacts}} - Opening selector")
+                          console.log("excludeContacts - Opening selector")
                         }
                       >
                         <Plus className="h-4 w-4 mr-2" />
@@ -365,19 +365,19 @@ export function CampaignForm({
                     <div className="grid grid-cols-3 gap-4 text-center text-sm">
                       <div>
                         <p className="text-white font-bold text-lg">
-                          {{ total }}
+                          0
                         </p>
                         <p className="text-gray-400">Total</p>
                       </div>
                       <div>
                         <p className="text-green-400 font-bold text-lg">
-                          {{ included }}
+                          0
                         </p>
                         <p className="text-gray-400">Incluidos</p>
                       </div>
                       <div>
                         <p className="text-red-400 font-bold text-lg">
-                          {{ excluded }}
+                          0
                         </p>
                         <p className="text-gray-400">Excluidos</p>
                       </div>
@@ -425,12 +425,12 @@ export function CampaignForm({
                       onChange={(e) =>
                         handleInputChange("messageBody", e.target.value)
                       }
-                      placeholder="Hola {{firstName}}, tenemos una oferta especial para ti... 🎉"
+                      placeholder="Hola {firstName}, tenemos una oferta especial para ti... 🎉"
                       className="bg-gray-900 border-gray-600 text-white min-h-[150px]"
                     />
                     <p className="text-xs text-gray-400 mt-1">
-                      Variables disponibles: {{ firstName }}, {{ lastName }},
-                      {{ company }}, {{ lastOrder }}
+                      Variables disponibles: {"{firstName}"}, {"{lastName}"},
+                      {"{company}"}, {"{lastOrder}"}
                     </p>
                   </div>
 
@@ -444,7 +444,7 @@ export function CampaignForm({
                         Arrastra archivos aquí o haz clic para seleccionar
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        Soportado: Imagen, Vídeo, Audio, PDF ({{ attachments }})
+                        Soportado: Imagen, Vídeo, Audio, PDF (0)
                       </p>
                     </div>
                   </div>
@@ -787,7 +787,7 @@ export function CampaignForm({
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              onClick={() => console.log("{{exportRecipients}}")}
+                                  onClick={() => console.log("exportRecipients")}
               className="border-gray-600 text-gray-300"
             >
               <Upload className="h-4 w-4 mr-2" />
@@ -795,7 +795,7 @@ export function CampaignForm({
             </Button>
             <Button
               variant="outline"
-              onClick={() => console.log("{{previewCampaign}}")}
+                                  onClick={() => console.log("previewCampaign")}
               className="border-gray-600 text-gray-300"
             >
               Vista Previa

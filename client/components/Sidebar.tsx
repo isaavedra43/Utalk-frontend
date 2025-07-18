@@ -98,7 +98,7 @@ export function Sidebar({
   onTogglePanel,
   className,
 }: SidebarProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
 
   const handleModuleClick = (moduleId: string) => {
     onModuleChange?.(moduleId);
@@ -209,10 +209,15 @@ export function Sidebar({
               className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg"
             >
               <div>
-                <div className="font-medium">{user?.name || "Usuario"}</div>
+                <div className="font-medium">{user?.name || user?.email || "Usuario"}</div>
                 <div className="text-xs text-gray-400">
-                  {user?.role || "user"}
+                  {user?.role || "user"} • JWT Auth
                 </div>
+                {isAuthenticated && (
+                  <div className="text-xs text-green-400 mt-1">
+                    ✓ Autenticado
+                  </div>
+                )}
               </div>
             </TooltipContent>
           </Tooltip>

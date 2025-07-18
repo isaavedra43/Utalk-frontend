@@ -1,4 +1,4 @@
-import React from "react";
+// import React from "react"; // TODO: Usar cuando se necesite React específicamente
 import { Loader2 } from "lucide-react";
 
 interface LoadingScreenProps {

@@ -20,7 +20,7 @@ import {
   Edit,
   ArrowUp,
   Package,
-  Megaphone,
+  // Megaphone, // TODO: Usar cuando se implemente funcionalidad de megáfono
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 

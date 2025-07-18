@@ -1,26 +1,29 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function LoginPage() {
-  const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isLoading, error, clearError, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({
     email: "",
     password: "",
   });
+
+  // Redirigir si ya está autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      window.location.href = '/';
+    }
+  }, [isAuthenticated]);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -42,6 +45,9 @@ export default function LoginPage() {
     if (!formData.password) {
       errors.password = "La contraseña es requerida";
       isValid = false;
+    } else if (formData.password.length < 6) {
+      errors.password = "La contraseña debe tener al menos 6 caracteres";
+      isValid = false;
     }
 
     setFieldErrors(errors);
@@ -50,33 +56,35 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    
+    // Limpiar errores previos
+    clearError();
+    setFieldErrors({ email: "", password: "" });
 
     if (!validateForm()) {
       return;
     }
 
-    setIsLoading(true);
-
     try {
       await login(formData.email, formData.password);
-      navigate("/");
+      // El login exitoso redirigirá automáticamente
     } catch (err: any) {
-      setError(err.message || "Error al iniciar sesión");
-    } finally {
-      setIsLoading(false);
+      // El error ya está manejado en el contexto de auth
+      console.error('Error en login:', err.message);
     }
   };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear field errors when user starts typing
+    
+    // Limpiar errores de campo cuando el usuario empiece a escribir
     if (fieldErrors[field as keyof typeof fieldErrors]) {
       setFieldErrors((prev) => ({ ...prev, [field]: "" }));
     }
-    // Clear general error when user makes changes
+    
+    // Limpiar error general
     if (error) {
-      setError("");
+      clearError();
     }
   };
 
@@ -125,9 +133,13 @@ export default function LoginPage() {
                 )}
                 disabled={isLoading}
                 autoComplete="email"
+                required
               />
               {fieldErrors.email && (
-                <p className="text-red-400 text-xs mt-1">{fieldErrors.email}</p>
+                <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {fieldErrors.email}
+                </p>
               )}
             </div>
 
@@ -156,12 +168,15 @@ export default function LoginPage() {
                   )}
                   disabled={isLoading}
                   autoComplete="current-password"
+                  required
+                  minLength={6}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                   tabIndex={-1}
+                  disabled={isLoading}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -171,16 +186,21 @@ export default function LoginPage() {
                 </button>
               </div>
               {fieldErrors.password && (
-                <p className="text-red-400 text-xs mt-1">
+                <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
                   {fieldErrors.password}
                 </p>
               )}
             </div>
 
-            {/* General Error Message */}
+            {/* General Error Message from Backend */}
             {error && (
-              <div className="text-red-400 text-sm text-center bg-red-900/20 border border-red-800 rounded-md p-3">
-                {error}
+              <div className="text-red-400 text-sm bg-red-900/20 border border-red-800 rounded-md p-3 flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Error de autenticación</p>
+                  <p className="text-xs opacity-90">{error}</p>
+                </div>
               </div>
             )}
 
@@ -190,7 +210,7 @@ export default function LoginPage() {
               disabled={!isFormValid}
               className={cn(
                 "w-full h-11 font-medium transition-all duration-200",
-                isFormValid
+                isFormValid && !isLoading
                   ? "bg-blue-600 hover:bg-blue-700 text-white"
                   : "bg-gray-700 text-gray-400 cursor-not-allowed",
               )}
@@ -206,12 +226,21 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Forgot Password Link */}
+          {/* Info sobre backend */}
           <div className="text-center mt-6">
+            <div className="text-xs text-gray-500 bg-gray-800/50 rounded-md p-2">
+              <p className="mb-1">🔐 Autenticación JWT habilitada</p>
+              <p>Backend: Node.js + Firebase Auth + JWT</p>
+            </div>
+          </div>
+
+          {/* Forgot Password Link */}
+          <div className="text-center mt-4">
             <button
               type="button"
-              onClick={() => navigate("/forgot-password")}
+              onClick={() => window.location.href = '/forgot-password'}
               className="text-blue-400 hover:text-blue-300 text-sm transition-colors"
+              disabled={isLoading}
             >
               ¿Olvidaste tu contraseña? Recupérala aquí
             </button>

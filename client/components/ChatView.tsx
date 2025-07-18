@@ -34,7 +34,7 @@ interface ChatViewProps {
 const mockConversation = {
   id: "1",
   contactName: "Israel Saavedra",
-  channel: "whatsapp" as const,
+  channel: "whatsapp" as "whatsapp" | "facebook" | "instagram" | "telegram" | "email" | "phone" | "web",
   status: "En línea",
   tag: "order",
 };
@@ -92,6 +92,14 @@ export function ChatView({
         return "Email";
       case "facebook":
         return "Facebook";
+      case "instagram":
+        return "Instagram";
+      case "telegram":
+        return "Telegram";
+      case "phone":
+        return "Teléfono";
+      case "web":
+        return "Web";
       default:
         return "Chat";
     }
@@ -105,6 +113,14 @@ export function ChatView({
         return "#4285F4";
       case "facebook":
         return "#1877F2";
+      case "instagram":
+        return "#E4405F";
+      case "telegram":
+        return "#0088CC";
+      case "phone":
+        return "#34C759";
+      case "web":
+        return "#FF6B35";
       default:
         return "#4F8EF7";
     }

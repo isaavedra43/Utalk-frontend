@@ -17,7 +17,7 @@ interface ConversationItemProps {
 }
 
 export function ConversationItem({
-  id,
+  // id, // TODO: Usar cuando se implemente funcionalidad de ID
   contactName,
   lastMessage,
   timestamp,

@@ -11,56 +11,54 @@ import Index from "./pages/Index";
 import LoginPage from "./pages/LoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import NotFound from "./pages/NotFound";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import PublicRoute from "@/components/PublicRoute";
+import RequireAuth from "@/components/RequireAuth";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutos
+      retry: (failureCount, error: any) => {
+        // No reintentar en errores 401/403 (auth)
+        if (error?.response?.status === 401 || error?.response?.status === 403) {
+          return false;
+        }
+        return failureCount < 3;
+      },
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
           <Routes>
-            {/* Public routes - redirect to dashboard if authenticated */}
-            <Route
-              path="/login"
-              element={
-                <PublicRoute>
-                  <LoginPage />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/forgot-password"
-              element={
-                <PublicRoute>
-                  <ForgotPasswordPage />
-                </PublicRoute>
-              }
-            />
+            {/* Rutas públicas - solo accesibles sin autenticación */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
-            {/* Protected routes - require authentication */}
+            {/* Rutas protegidas - requieren autenticación JWT válida */}
             <Route
               path="/"
               element={
-                <ProtectedRoute>
+                <RequireAuth>
                   <Index />
-                </ProtectedRoute>
+                </RequireAuth>
               }
             />
 
-            {/* Dashboard alias route */}
+            {/* Alias para dashboard */}
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
-            {/* 404 for any other route */}
+            {/* 404 para cualquier otra ruta */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+        </TooltipProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 

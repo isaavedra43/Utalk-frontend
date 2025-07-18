@@ -1,180 +1,208 @@
-import { useState, useEffect } from "react";
-import { PerformanceKPIs } from "./PerformanceKPIs";
+import { useState, useEffect, useMemo } from "react";
 import { ContactTable } from "./ContactTable";
 import { ContactCards } from "./ContactCards";
+import { ContactForm } from "./ContactForm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Table, Grid3X3, Plus, Filter, Download, Search } from "lucide-react";
+import { 
+  Table, 
+  Grid3X3, 
+  Plus, 
+  Filter, 
+  Download, 
+  Search, 
+  Upload,
+  RefreshCw,
+  AlertCircle,
+  Users,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-
-export interface Contact {
-  id: string;
-  owner: string;
-  name: string;
-  email: string;
-  phone: string;
-  status: "new-lead" | "hot-lead" | "payment" | "customer";
-  lastMessage: string;
-  timestamp: string;
-  date: string;
-  channel: "whatsapp" | "email" | "sms" | "facebook" | "instagram";
-  section: string;
-  isUnread: boolean;
-  avatarUrl?: string;
-  sentiment?: "positive" | "negative" | "neutral";
-  aiScore?: number;
-}
-
-// Mock data
-const mockContacts: Contact[] = [
-  {
-    id: "1",
-    owner: "María García",
-    name: "Israel Saavedra",
-    email: "israel@example.com",
-    phone: "+52 555 123 4567",
-    status: "new-lead",
-    lastMessage: "Hola, ¿cómo está el estado de mi pedido #AL-2024-0123?",
-    timestamp: "12:14 PM",
-    date: "2024-01-15",
-    channel: "facebook",
-    section: "New Lead",
-    isUnread: true,
-    sentiment: "neutral",
-    aiScore: 75,
-    avatarUrl:
-      "https://cdn.builder.io/api/v1/image/assets%2F2d1f4aff150c46d2aa10d890d5bc0fca%2Fac493c187ef4459383661e17488cac3a?format=webp&width=800",
-  },
-  {
-    id: "2",
-    owner: "Carlos López",
-    name: "Ana Morales",
-    email: "ana.morales@company.com",
-    phone: "+52 555 987 6543",
-    status: "hot-lead",
-    lastMessage: "Me interesa mucho el producto, ¿cuándo podemos hablar?",
-    timestamp: "11:30 AM",
-    date: "2024-01-15",
-    channel: "whatsapp",
-    section: "Hot Lead",
-    isUnread: true,
-    sentiment: "positive",
-    aiScore: 92,
-  },
-  {
-    id: "3",
-    owner: "Luis Hernández",
-    name: "Roberto Silva",
-    email: "roberto@email.com",
-    phone: "+52 555 456 7890",
-    status: "payment",
-    lastMessage: "Ya realicé el pago, envío confirmación por email",
-    timestamp: "Yesterday",
-    date: "2024-01-14",
-    channel: "email",
-    section: "Payment",
-    isUnread: false,
-    sentiment: "positive",
-    aiScore: 95,
-  },
-  {
-    id: "4",
-    owner: "Sofia Martinez",
-    name: "Carmen González",
-    email: "carmen@example.com",
-    phone: "+52 555 321 6547",
-    status: "customer",
-    lastMessage: "Gracias por el excelente servicio",
-    timestamp: "2 days ago",
-    date: "2024-01-13",
-    channel: "sms",
-    section: "Customer",
-    isUnread: false,
-    sentiment: "positive",
-    aiScore: 88,
-  },
-];
+import { useAuth } from "@/hooks/useAuth";
+import { 
+  useContacts, 
+  useContactStats, 
+  useContactTags,
+  useExportContacts,
+  useImportContacts,
+  contactsKeys,
+} from "@/hooks/useContacts";
+import type { Contact } from "@shared/api";
+import type { ContactsListRequest } from "@shared/api";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface CustomerHubProps {
   className?: string;
 }
 
 export function CustomerHub({ className }: CustomerHubProps) {
+  // const { user } = useAuth(); // TODO: Usar cuando se implemente autenticación
+  const queryClient = useQueryClient();
+  
+  // Estados locales para filtros y UI
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedStatus] = useState<string>("");
+  const [selectedChannel] = useState<string>("");
+  const [selectedOwner] = useState<string>("");
+  const [sortBy] = useState<'name' | 'email' | 'createdAt' | 'lastInteraction'>('createdAt');
+  const [sortOrder] = useState<'asc' | 'desc'>('desc');
+  
+  // Estados para ContactForm
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [contactToEdit, setContactToEdit] = useState<Contact | null>(null);
 
-  // Filter contacts based on search
-  const getFilteredContacts = () => {
-    let filtered = mockContacts;
+  // Construir filtros para la API
+  const filters: ContactsListRequest = useMemo(() => ({
+    page: currentPage,
+    limit: 50,
+    search: searchTerm || undefined,
+    status: selectedStatus as any || undefined,
+    channel: selectedChannel as any || undefined,
+    owner: selectedOwner || undefined,
+    sortBy,
+    sortOrder,
+  }), [currentPage, searchTerm, selectedStatus, selectedChannel, selectedOwner, sortBy, sortOrder]);
 
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (contact) =>
-          contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          contact.phone.includes(searchTerm),
-      );
-    }
+  // Hooks de datos reales
+  const { 
+    data: contactsData, 
+    isLoading: isLoadingContacts, 
+    error: contactsError,
+    refetch: refetchContacts 
+  } = useContacts(filters);
 
-    return filtered;
+  const { 
+    data: statsData, 
+    isLoading: isLoadingStats 
+  } = useContactStats();
+
+  // const { 
+  //   data: tagsData 
+  // } = useContactTags(); // TODO: Usar cuando se implemente funcionalidad de tags
+
+  const exportMutation = useExportContacts();
+  const importMutation = useImportContacts();
+
+  // Efecto para resetear página cuando cambian los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedStatus, selectedChannel, selectedOwner]);
+
+  // Handlers para operaciones (ContactForm)
+  const handleCreateContact = () => {
+    setContactToEdit(null);
+    setIsFormOpen(true);
   };
 
-  // Event handlers
-
-  const handleCreateContact = () => {
-    console.log("Creating new contact...");
-    // TODO: Open modal for creating contact
+  const handleRefresh = () => {
+    refetchContacts();
+    queryClient.invalidateQueries({ queryKey: contactsKeys.stats() });
+    queryClient.invalidateQueries({ queryKey: contactsKeys.tags() });
   };
 
   const handleFilter = () => {
-    console.log("Opening filter panel...");
-    // TODO: Open advanced filter modal
+    console.log("Abriendo panel de filtros avanzados...");
+    // TODO: Implementar modal de filtros avanzados
   };
 
-  const handleExportCSV = () => {
-    console.log("Exporting contacts to CSV...");
-    // TODO: Generate and download CSV
+  const handleExportCSV = async () => {
+    try {
+      await exportMutation.mutateAsync({ 
+        format: 'csv', 
+        filters 
+      });
+    } catch (error: any) {
+      console.error('Error al exportar:', error);
+    }
+  };
+
+  const handleImportCSV = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,.xlsx';
+    input.onchange = async (event) => {
+      const file = (event.target as HTMLInputElement).files?.[0];
+      if (file) {
+        try {
+          await importMutation.mutateAsync({ 
+            file,
+            skipDuplicates: true,
+            updateExisting: false 
+          });
+        } catch (error: any) {
+          console.error('Error al importar:', error);
+        }
+      }
+    };
+    input.click();
   };
 
   const handleSelectContact = (contactId: string) => {
     setSelectedContact(contactId);
-    console.log(`Selected contact: ${contactId}`);
+    console.log(`Contacto seleccionado: ${contactId}`);
   };
 
+  // Funciones adicionales para el ContactForm
+
   const handleEditContact = (contactId: string) => {
-    console.log(`Editing contact: ${contactId}`);
-    // TODO: Open edit modal
+    const contact = contacts.find(c => c.id === contactId);
+    if (contact) {
+      setContactToEdit(contact);
+      setIsFormOpen(true);
+    }
+  };
+
+  const handleFormSuccess = () => {
+    // Refrescar datos después de crear/editar
+    refetchContacts();
+    queryClient.invalidateQueries({ queryKey: contactsKeys.stats() });
   };
 
   const handleSendCampaign = (contactId: string) => {
-    console.log(`Sending campaign to contact: ${contactId}`);
-    // TODO: Open campaign modal
+    console.log(`Enviando campaña a contacto: ${contactId}`);
+    // TODO: Implementar modal de campaña
   };
 
   const handleDeleteContact = (contactId: string) => {
-    console.log(`Deleting contact: ${contactId}`);
-    // TODO: Show confirmation and delete
+    console.log(`Eliminando contacto: ${contactId}`);
+    // TODO: Implementar confirmación y eliminación
   };
 
-  const filteredContacts = getFilteredContacts();
+  // Estados de carga y error
+  const isLoading = isLoadingContacts || isLoadingStats;
+  const hasError = !!contactsError;
+  const contacts = contactsData?.contacts || [];
+  const pagination = contactsData?.pagination;
+  const stats = statsData;
+
+  // Renderizar error si hay problema de conexión
+  if (hasError && !isLoading) {
+    return (
+      <div className={cn("h-full flex items-center justify-center bg-gray-950", className)}>
+        <div className="text-center text-gray-400 p-8">
+          <AlertCircle className="h-16 w-16 mx-auto mb-4 text-red-400" />
+          <h3 className="text-lg font-medium mb-2 text-white">Error al cargar contactos</h3>
+          <p className="text-sm mb-4">
+            {(contactsError as any)?.response?.data?.message || 'No se pudo conectar con el servidor'}
+          </p>
+          <Button 
+            onClick={handleRefresh}
+            variant="outline"
+            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Reintentar
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("h-full flex bg-gray-950", className)}>
-      {/* Performance KPIs Sidebar - Hidden in CRM table view but kept in DOM */}
-      <div
-        className={cn(
-          "transition-all duration-300",
-          viewMode === "table" ? "hidden" : "block",
-        )}
-        aria-hidden={viewMode === "table"}
-      >
-        <PerformanceKPIs />
-      </div>
-
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
@@ -191,110 +219,204 @@ export function CustomerHub({ className }: CustomerHubProps) {
                 className="text-sm text-gray-400"
                 style={{ marginLeft: "13px" }}
               >
-                {filteredContacts.length} contacts
+                {isLoading ? 'Cargando...' : `${contacts.length} contactos`}
+                {pagination && ` de ${pagination.total} total`}
               </p>
             </div>
 
             {/* View Toggle */}
-            <div className="flex items-center gap-2 bg-gray-800 rounded-lg p-1">
+            <div className="flex items-center gap-3" style={{ marginRight: "13px" }}>
+              {/* Stats badges */}
+              {stats && (
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-green-400 border-green-400">
+                    {stats.byStatus?.customer || 0} clientes
+                  </Badge>
+                  <Badge variant="outline" className="text-blue-400 border-blue-400">
+                    {stats.byStatus?.lead || 0} leads
+                  </Badge>
+                </div>
+              )}
+
               <Button
-                size="sm"
-                variant={viewMode === "table" ? "default" : "ghost"}
                 onClick={() => setViewMode("table")}
+                variant={viewMode === "table" ? "default" : "outline"}
+                size="sm"
                 className={cn(
-                  "h-8 px-3",
+                  "transition-all",
                   viewMode === "table"
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-400 hover:text-white",
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "border-gray-600 text-gray-300 hover:bg-gray-700"
                 )}
               >
-                <Table className="h-4 w-4 mr-1" />
-                Tabla
+                <Table className="h-4 w-4" />
               </Button>
               <Button
-                size="sm"
-                variant={viewMode === "cards" ? "default" : "ghost"}
                 onClick={() => setViewMode("cards")}
+                variant={viewMode === "cards" ? "default" : "outline"}
+                size="sm"
                 className={cn(
-                  "h-8 px-3",
+                  "transition-all",
                   viewMode === "cards"
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-400 hover:text-white",
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "border-gray-600 text-gray-300 hover:bg-gray-700"
                 )}
               >
-                <Grid3X3 className="h-4 w-4 mr-1" />
-                Tarjetas
+                <Grid3X3 className="h-4 w-4" />
               </Button>
             </div>
           </div>
 
-          {/* Action Bar */}
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={handleCreateContact}
-                className="bg-blue-600 text-white hover:bg-blue-700"
-                style={{ marginLeft: "13px" }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Nuevo Contacto
-              </Button>
+          {/* Toolbar */}
+          <div className="flex items-center justify-between">
+            {/* Search */}
+            <div className="flex items-center gap-3" style={{ marginLeft: "13px" }}>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar contactos..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 bg-gray-800 border-gray-600 text-white w-64"
+                />
+              </div>
+
               <Button
                 onClick={handleFilter}
-                className="bg-[#377DFF] text-white border-none hover:bg-[#235ECC] active:bg-[#1A47AA] transition-all duration-200"
-                style={{ marginLeft: "13px" }}
+                variant="outline"
+                size="sm"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
               >
                 <Filter className="h-4 w-4 mr-2" />
-                Filtrar
+                Filtros
               </Button>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2" style={{ marginRight: "13px" }}>
+              <Button
+                onClick={handleRefresh}
+                variant="outline"
+                size="sm"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                disabled={isLoading}
+              >
+                <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
+                Actualizar
+              </Button>
+
+              <Button
+                onClick={handleImportCSV}
+                variant="outline"
+                size="sm"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                disabled={importMutation.isPending}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Importar CSV
+              </Button>
+
               <Button
                 onClick={handleExportCSV}
-                className="bg-[#377DFF] text-white border-none hover:bg-[#235ECC] active:bg-[#1A47AA] transition-all duration-200"
-                style={{ marginLeft: "13px" }}
+                variant="outline"
+                size="sm"
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                disabled={exportMutation.isPending}
               >
                 <Download className="h-4 w-4 mr-2" />
                 Exportar CSV
               </Button>
-            </div>
 
-            {/* Search */}
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Buscar contactos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-gray-800 border-gray-600 text-white placeholder-gray-400"
-              />
+              <Button
+                onClick={handleCreateContact}
+                size="sm"
+                className="bg-blue-600 text-white hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Contacto
+              </Button>
             </div>
           </div>
         </div>
 
-        {/* Content Area */}
+        {/* Content */}
         <div className="flex-1 overflow-hidden">
-          {viewMode === "table" ? (
-            <ContactTable
-              contacts={filteredContacts}
-              selectedContactId={selectedContact}
-              onSelectContact={handleSelectContact}
-              onEditContact={handleEditContact}
-              onDeleteContact={handleDeleteContact}
-              onSendCampaign={handleSendCampaign}
-              isLoading={isLoading}
-            />
-          ) : (
-            <ContactCards
-              contacts={filteredContacts}
-              selectedContactId={selectedContact}
-              onSelectContact={handleSelectContact}
-              onEditContact={handleEditContact}
-              onDeleteContact={handleDeleteContact}
-              onSendCampaign={handleSendCampaign}
-              isLoading={isLoading}
-            />
+          {/* Estado vacío */}
+          {!isLoading && contacts.length === 0 && !searchTerm && (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center text-gray-400 p-8">
+                <Users className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-medium mb-2 text-white">No hay contactos</h3>
+                <p className="text-sm mb-4">Comienza agregando tu primer contacto</p>
+                <Button
+                  onClick={handleCreateContact}
+                  className="bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Crear Primer Contacto
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Estado sin resultados de búsqueda */}
+          {!isLoading && contacts.length === 0 && searchTerm && (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center text-gray-400 p-8">
+                <Search className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-medium mb-2 text-white">Sin resultados</h3>
+                <p className="text-sm mb-4">No se encontraron contactos para "{searchTerm}"</p>
+                <Button
+                  onClick={() => setSearchTerm("")}
+                  variant="outline"
+                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                >
+                  Limpiar búsqueda
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Lista de contactos */}
+          {(contacts.length > 0 || isLoading) && (
+            <>
+              {viewMode === "table" ? (
+                <ContactTable
+                  contacts={contacts}
+                  selectedContactId={selectedContact}
+                  onSelectContact={handleSelectContact}
+                  onEditContact={handleEditContact}
+                  onDeleteContact={handleDeleteContact}
+                  onSendCampaign={handleSendCampaign}
+                  isLoading={isLoading}
+                  pagination={pagination}
+                  onPageChange={setCurrentPage}
+                />
+              ) : (
+                <ContactCards
+                  contacts={contacts}
+                  selectedContactId={selectedContact}
+                  onSelectContact={handleSelectContact}
+                  onEditContact={handleEditContact}
+                  onDeleteContact={handleDeleteContact}
+                  onSendCampaign={handleSendCampaign}
+                  isLoading={isLoading}
+                  pagination={pagination}
+                  onPageChange={setCurrentPage}
+                />
+              )}
+            </>
           )}
         </div>
       </div>
+
+      {/* Contact Form Modal */}
+      <ContactForm
+        contact={contactToEdit}
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSuccess={handleFormSuccess}
+      />
     </div>
   );
 }

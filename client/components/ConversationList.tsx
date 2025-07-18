@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { MessageCircle, Phone, Mail } from "lucide-react";
+import { MessageCircle, Mail } from "lucide-react";
 
 interface Conversation {
   id: string;

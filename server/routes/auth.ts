@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import type {
-  User,
+  // User, // TODO: Usar cuando se implemente funcionalidad de User
   LoginRequest,
   LoginResponse,
   AuthMeResponse,
@@ -29,7 +29,7 @@ const users = [
 ];
 
 // JWT secret - In production, this should be in environment variables
-const JWT_SECRET = "your-secret-key";
+// const JWT_SECRET = "your-secret-key"; // TODO: Usar cuando se implemente JWT
 
 // Simple JWT token creation (in production, use a proper JWT library)
 function createToken(user: any) {

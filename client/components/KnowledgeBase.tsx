@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -225,12 +224,12 @@ export function KnowledgeBase({ className }: KnowledgeBaseProps) {
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  // const [viewMode, setViewMode] = useState<"grid" | "list">("grid"); // TODO: Implementar cuando se necesite
   const [showFAQBuilder, setShowFAQBuilder] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
-  const [showComments, setShowComments] = useState(false);
+  // const [showComments, setShowComments] = useState(false); // TODO: Implementar cuando se necesite
   const [favorites, setFavorites] = useState<string[]>(["1", "3"]);
-  const [notifications, setNotifications] = useState(true);
+  // const [notifications, setNotifications] = useState(true); // TODO: Implementar cuando se necesite
   const [activeTab, setActiveTab] = useState("documents");
 
   // Filter documents based on search and folder
@@ -249,7 +248,7 @@ export function KnowledgeBase({ className }: KnowledgeBaseProps) {
     return matchesSearch && matchesFolder && matchesTags;
   });
 
-  const allTags = Array.from(new Set(mockDocuments.flatMap((doc) => doc.tags)));
+  // const allTags = Array.from(new Set(mockDocuments.flatMap((doc) => doc.tags))); // TODO: Implementar cuando se necesite
 
   const handleDocumentSelect = (docId: string) => {
     setSelectedDocument(docId);
