@@ -5,16 +5,9 @@ import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
 import { Loader2, PlusCircle } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { useCreateContact, useUpdateContact } from "@/hooks/useContacts";
 import type { Contact, ContactFormData } from "@/types/api";
-
-const contactSchema = z.object({
-  name: z.string().min(2, "El nombre es requerido"),
-  email: z.string().email("Email inválido"),
-  phone: z.string().min(5, "El teléfono es requerido"),
-  status: z.enum(["new-lead", "hot-lead", "payment", "customer"]),
-});
+import { contactSchema } from "@/lib/schemas";
 
 interface ContactFormProps {
     contact?: Contact | null;
@@ -25,7 +18,7 @@ interface ContactFormProps {
 export function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
     const { register, handleSubmit, formState: { errors }, reset } = useForm<ContactFormData>({
         resolver: zodResolver(contactSchema),
-        defaultValues: contact || { status: 'new-lead' }
+        defaultValues: contact || {}
     });
 
     const createContact = useCreateContact();
@@ -33,7 +26,7 @@ export function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
 
     const onSubmit = (data: ContactFormData) => {
         if (contact) {
-            updateContact.mutate({ contactId: contact.id, data }, {
+            updateContact.mutate({ id: contact.id, data }, {
                 onSuccess: () => onSave()
             });
         } else {
@@ -44,7 +37,7 @@ export function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
     };
     
     useEffect(() => {
-        reset(contact || { name: '', email: '', phone: '', status: 'new-lead' });
+        reset(contact || { name: '', email: '', phone: '' });
     }, [contact, reset]);
 
     const isLoading = createContact.isPending || updateContact.isPending;
@@ -70,15 +63,6 @@ export function ContactForm({ contact, onSave, onCancel }: ContactFormProps) {
                         <label>Teléfono</label>
                         <Input {...register("phone")} />
                         {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}
-                    </div>
-                     <div>
-                        <label>Estado</label>
-                        <select {...register("status")} className="w-full p-2 bg-gray-800 rounded">
-                            <option value="new-lead">Nuevo Lead</option>
-                            <option value="hot-lead">Hot Lead</option>
-                            <option value="payment">Pago</option>
-                            <option value="customer">Cliente</option>
-                        </select>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end gap-2">

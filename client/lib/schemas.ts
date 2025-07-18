@@ -46,8 +46,6 @@ export const contactSchema = z.object({
   position: z.string().max(100).optional(),
   notes: z.string().max(1000).optional(),
   tags: z.array(z.string()).default([]),
-  section: z.enum(["leads", "customers", "prospects"]).default("leads"),
-  status: z.enum(["active", "inactive", "blocked"]).default("active"),
   address: z.object({
     street: z.string().optional(),
     city: z.string().optional(),
