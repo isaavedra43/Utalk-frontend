@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { toast } from '@/hooks/use-toast';
 import { logger } from './utils';
+import { disconnectSocket } from './socket';
 
 // Configuración base de la API
 const API_CONFIG = {
@@ -101,28 +102,44 @@ apiClient.interceptors.response.use(
       const { status, data } = error.response;
 
       switch (status) {
-        case 401:
-          // Token inválido o expirado
-          logger.auth('Token inválido o expirado - Limpiando sesión', { 
-            url: originalRequest?.url 
+        case 401: {
+          // ¿La request fallida llevaba realmente token?
+          const hadAuthHeader = !!originalRequest.headers?.Authorization;
+
+          if (!hadAuthHeader) {
+            // 401 en endpoint público o llamada sin credenciales → no tocar sesión
+            logger.api('401 recibido SIN header Authorization – se preserva token', {
+              url: originalRequest?.url,
+            });
+            break;
+          }
+
+          // Token inválido o expirado (porque SÍ había Authorization)
+          logger.auth('Token inválido o expirado - Limpiando sesión y cerrando socket', {
+            url: originalRequest?.url,
           }, true);
-          
+
+          // Limpiar token y cerrar conexiones tiempo real
           localStorage.removeItem('authToken');
-          
-          // Solo redirigir si no estamos ya en login
+          try {
+            disconnectSocket();
+          } catch (_) {
+            /* socket no inicializado */
+          }
+
           if (!window.location.pathname.includes('/login')) {
             toast({
-              variant: "destructive",
-              title: "Sesión expirada",
-              description: "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
+              variant: 'destructive',
+              title: 'Sesión expirada',
+              description: 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
             });
-            
-            // Redirigir al login después de un pequeño delay
+
             setTimeout(() => {
               window.location.href = '/login';
             }, 1500);
           }
           break;
+        }
 
         case 403:
           // Sin permisos

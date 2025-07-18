@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/apiClient';
 import { toast } from '@/hooks/use-toast';
 import { logger } from '@/lib/utils';
+import { disconnectSocket } from '@/lib/socket';
 import type { User, ApiResponse } from '@/types/api';
 
 interface AuthContextType {
@@ -86,19 +87,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setToken(null);
       }
     } catch (error: any) {
-      // Error al verificar autenticación, limpiar estado
+      const status = error.response?.status;
+
       logger.auth('Error al verificar autenticación', {
         error: error.message,
-        status: error.response?.status,
+        status,
         statusText: error.response?.statusText,
         fullError: error,
         backendUrl: import.meta.env.VITE_API_URL,
         tokenExists: !!localStorage.getItem('authToken')
       }, true);
-      
-      localStorage.removeItem('authToken');
-      setUser(null);
-      setToken(null);
+
+      if (status === 401) {
+        // Token inválido ⇒ limpiar sesión y cerrar socket
+        localStorage.removeItem('authToken');
+        disconnectSocket();
+        setUser(null);
+        setToken(null);
+      } else {
+        // Error de red/servidor: conservar token para reintento
+        logger.auth('Error NO 401 – se conserva token y se permitirá reintento', { status });
+      }
     } finally {
       setLoading(false);
       logger.auth('Verificación de autenticación completada');
@@ -272,6 +281,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       // Limpiar estado local siempre
       logger.auth('Limpiando estado local de autenticación');
+      disconnectSocket();
       setUser(null);
       setToken(null);
       localStorage.removeItem('authToken');
