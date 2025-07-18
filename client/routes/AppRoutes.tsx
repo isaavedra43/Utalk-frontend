@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { RequireAuth } from "@/components/RequireAuth";
+import { AuthReadyGate } from "@/components/AuthReadyGate";
+import { Outlet } from "react-router-dom";
 import { logger } from "@/lib/utils";
 
 // Páginas principales
@@ -122,6 +124,8 @@ export function AppRoutes() {
         - Logs detallados de autenticación en RequireAuth.tsx
       */}
       <Route element={<RequireAuth />}>
+        {/* AuthReadyGate bloquea la UI hasta que AuthContext termine de cargar */}
+        <Route element={<AuthReadyGate><Outlet /></AuthReadyGate>}>
         
         {/* 
           RUTA PRINCIPAL - Dashboard Inbox
@@ -248,6 +252,15 @@ export function AppRoutes() {
           path="/campaigns" 
           element={<Navigate to="/campañas" replace />} 
         />
+        </Route> {/* Cierre de AuthReadyGate */}
+      </Route> {/* Cierre de RequireAuth */}
+
+        {/* ===== RUTAS DE COMPATIBILIDAD (Inglés → Español) ===== */}
+        {/*
+          REDIRECCIONES para mantener compatibilidad con URLs en inglés
+          - Útil para links externos, bookmarks, APIs que usen URLs en inglés
+          - Replace=true para no agregar a history
+        */}
         <Route 
           path="/contacts" 
           element={<Navigate to="/contactos" replace />} 
@@ -298,7 +311,6 @@ export function AppRoutes() {
           path="*" 
           element={<NotFound />} 
         />
-      </Route>
     </Routes>
   );
 }

@@ -13,6 +13,11 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useSocketIntegration, useRealTimeStats } from "@/hooks/useSocketIntegration";
 import { useEffect } from "react";
 
+// Importar script de prueba en desarrollo
+if (import.meta.env.DEV) {
+  import('./scripts/testAuthFlow');
+}
+
 // 🚀 LOGS AVANZADOS DE ARRANQUE DEL SISTEMA
 const APP_START_TIME = performance.now();
 const BUILD_INFO = {

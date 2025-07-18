@@ -39,14 +39,27 @@ apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('authToken');
     
+    // 🔍 LOGS DETALLADOS PARA DEBUG - REQUEST INTERCEPTOR
+    console.group('🔍 [REQUEST INTERCEPTOR DEBUG]');
+    console.log('URL:', config.url);
+    console.log('Método:', config.method?.toUpperCase());
+    console.log('Token en localStorage:', token ? `${token.substring(0, 20)}...` : 'NO HAY TOKEN');
+    console.log('Header Authorization antes:', config.headers?.Authorization ? 'PRESENTE' : 'AUSENTE');
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('✅ Token añadido al header Authorization');
       logger.api('Token de autenticación añadido a la request', { 
         url: config.url,
         method: config.method?.toUpperCase(),
         hasToken: true 
       });
+    } else {
+      console.log('❌ NO hay token disponible para añadir');
     }
+
+    console.log('Header Authorization después:', config.headers?.Authorization ? 'PRESENTE' : 'AUSENTE');
+    console.groupEnd();
 
     // Log de la request saliente
     logger.api('Enviando request HTTP', {

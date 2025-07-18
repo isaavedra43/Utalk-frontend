@@ -44,6 +44,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       // Verificar si hay token guardado
       const savedToken = localStorage.getItem('authToken');
+      
+      // 🔍 LOGS DETALLADOS PARA DEBUG - REFRESH AUTH
+      console.group('🔍 [REFRESH AUTH DEBUG]');
+      console.log('Token encontrado en localStorage:', savedToken ? `${savedToken.substring(0, 20)}...` : 'NO HAY TOKEN');
+      console.log('URL actual:', window.location.href);
+      console.log('Estado inicial - user:', user);
+      console.log('Estado inicial - token:', token);
+      console.groupEnd();
+      
       if (!savedToken) {
         logger.auth('No se encontró token en localStorage');
         setLoading(false);
@@ -79,6 +88,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         });
         setUser(response);
         setToken(savedToken);
+        
+        // 🔍 LOGS DETALLADOS PARA DEBUG - ESTADO ACTUALIZADO
+        console.group('🔍 [REFRESH AUTH DEBUG] Estado actualizado:');
+        console.log('Usuario establecido:', response);
+        console.log('Token establecido:', savedToken.substring(0, 20) + '...');
+        console.groupEnd();
       } else {
         logger.auth('Respuesta del servidor indica token inválido', response, true);
         // Token inválido, limpiar
@@ -104,13 +119,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
         disconnectSocket();
         setUser(null);
         setToken(null);
+        
+        // 🔍 LOGS DETALLADOS PARA DEBUG - TOKEN INVALIDO
+        console.group('🔍 [REFRESH AUTH DEBUG] Token inválido detectado:');
+        console.log('Status:', status);
+        console.log('Token eliminado de localStorage');
+        console.log('Socket desconectado');
+        console.log('Estado limpiado');
+        console.groupEnd();
       } else {
         // Error de red/servidor: conservar token para reintento
         logger.auth('Error NO 401 – se conserva token y se permitirá reintento', { status });
+        
+        // 🔍 LOGS DETALLADOS PARA DEBUG - ERROR NO 401
+        console.group('🔍 [REFRESH AUTH DEBUG] Error NO 401:');
+        console.log('Status:', status);
+        console.log('Token conservado en localStorage');
+        console.log('Se permitirá reintento más tarde');
+        console.groupEnd();
       }
     } finally {
       setLoading(false);
       logger.auth('Verificación de autenticación completada');
+      
+      // 🔍 LOGS DETALLADOS PARA DEBUG - FINALIZACIÓN
+      console.group('🔍 [REFRESH AUTH DEBUG] Finalización:');
+      console.log('Loading establecido en false');
+      console.log('Estado final - user:', user);
+      console.log('Estado final - token:', token);
+      console.log('Token en localStorage:', localStorage.getItem('authToken') ? 'PRESENTE' : 'AUSENTE');
+      console.groupEnd();
     }
   };
 

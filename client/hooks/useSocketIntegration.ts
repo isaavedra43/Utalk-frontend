@@ -23,6 +23,13 @@ export function useSocketIntegration() {
   // Inicializar Socket.io al montar el hook
   useEffect(() => {
     const token = localStorage.getItem('authToken');
+    
+    // 🔍 LOGS DETALLADOS PARA DEBUG - SOCKET INTEGRATION
+    console.group('🔍 [SOCKET INTEGRATION DEBUG]');
+    console.log('Token en localStorage:', token ? `${token.substring(0, 20)}...` : 'NO HAY TOKEN');
+    console.log('URL actual:', window.location.href);
+    console.groupEnd();
+    
     if (!token) {
       logger.socket('No hay token de autenticación, no se puede conectar Socket.io', {}, true);
       return;

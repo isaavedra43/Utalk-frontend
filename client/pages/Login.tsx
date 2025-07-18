@@ -11,6 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "@/hooks/use-toast";
 import { logger } from "@/lib/utils";
+import { AuthDebugPanel } from "@/components/AuthDebugPanel";
 
 // Schema de validación para el formulario
 const loginSchema = z.object({
@@ -110,6 +111,9 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950 text-white p-4">
       <div className="w-full max-w-md">
+        {/* Panel de Debug en desarrollo */}
+        <AuthDebugPanel />
+        
         <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold text-white">

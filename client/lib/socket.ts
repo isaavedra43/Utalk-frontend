@@ -84,6 +84,13 @@ export const initSocket = (token: string): Socket<ServerToClientEvents, ClientTo
   
   const VITE_SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || "http://localhost:3000";
 
+  // 🔍 LOGS DETALLADOS PARA DEBUG - SOCKET INIT
+  console.group('�� [SOCKET INIT DEBUG]');
+  console.log('Token recibido:', token ? `${token.substring(0, 20)}...` : 'NO HAY TOKEN');
+  console.log('URL del socket:', VITE_SOCKET_URL);
+  console.log('Token en localStorage:', localStorage.getItem('authToken') ? 'PRESENTE' : 'AUSENTE');
+  console.groupEnd();
+
   console.log("🔌 Inicializando Socket.IO con configuración completa:", {
     url: VITE_SOCKET_URL,
     maxReconnectionAttempts: SOCKET_CONFIG.RECONNECTION_ATTEMPTS,
@@ -105,6 +112,13 @@ export const initSocket = (token: string): Socket<ServerToClientEvents, ClientTo
     randomizationFactor: 0.5,
     timeout: SOCKET_CONFIG.CONNECTION_TIMEOUT,
   });
+
+  // 🔍 LOGS DETALLADOS PARA DEBUG - SOCKET CONFIG
+  console.group('🔍 [SOCKET CONFIG DEBUG]');
+  console.log('Socket creado con auth token:', (socket.auth as any)?.token ? `${(socket.auth as any).token.substring(0, 20)}...` : 'NO HAY TOKEN');
+  console.log('Socket ID:', socket.id);
+  console.log('Socket conectado:', socket.connected);
+  console.groupEnd();
 
   // 🔊 EVENTOS DE CONEXIÓN ROBUSTOS
   socket.on("connect", () => {
@@ -178,7 +192,7 @@ export const initSocket = (token: string): Socket<ServerToClientEvents, ClientTo
       messageId: message.id,
       conversationId: message.conversationId,
       sender: message.sender,
-      type: message.type
+      contentType: message.content?.substring(0, 20) + '...'
     });
   });
 
