@@ -1,14 +1,21 @@
 // Types y helpers para AuthContext
 // Archivo separado para evitar conflictos con Fast Refresh
 
+// Estructura User alineada con el backend UTalk
 export interface User {
-  id: string
-  email: string
-  name: string
-  role: string
-  avatar?: string
-  createdAt: string
-  updatedAt: string
+  id: string              // Firebase UID
+  email: string           // Email del usuario
+  name: string            // Nombre completo
+  role: 'admin' | 'agent' | 'viewer'  // Roles del backend
+  status: 'active' | 'inactive'       // Estado del usuario
+  avatar?: string         // URL del avatar (opcional)
+  createdAt: string       // Timestamp de creación
+  updatedAt?: string      // Timestamp de última actualización
+  performance?: {         // KPIs del usuario (backend)
+    totalMessages?: number
+    avgResponseTime?: number
+    customerSatisfaction?: number
+  }
 }
 
 export interface AuthState {

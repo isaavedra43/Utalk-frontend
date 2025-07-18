@@ -3,11 +3,12 @@ import { useContext } from 'react'
 import { createContext } from 'react'
 import { User, AuthState } from '@/contexts/auth-types'
 
+// Contexto de autenticación alineado con backend UTalk
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<void>
-  logout: () => void
-  register: (userData: any) => Promise<void>
-  updateUser: (userData: Partial<User>) => void
+  login: (email: string, password: string) => Promise<void>  // Firebase Auth + Backend JWT
+  logout: () => Promise<void>                                 // Logout backend + Firebase  
+  updateUser: (userData: Partial<User>) => void              // Actualizar datos locales
+  // NOTA: No hay register - usuarios creados por admin en Firebase Console
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)

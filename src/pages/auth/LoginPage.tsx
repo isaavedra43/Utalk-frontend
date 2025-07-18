@@ -25,10 +25,19 @@ export function LoginPage() {
     e.preventDefault()
     setError('')
 
+    // Validación básica
+    if (!email || !password) {
+      setError('Por favor completa todos los campos')
+      return
+    }
+
     try {
+      // Login real: Firebase Auth + Backend UTalk
       await login(email, password)
-    } catch (err) {
-      setError('Email o contraseña incorrectos')
+      // Redirección automática manejada por ProtectedRoute
+    } catch (err: any) {
+      // Mostrar mensaje de error específico del AuthContext
+      setError(err.message || 'Error de autenticación')
     }
   }
 
@@ -80,10 +89,9 @@ export function LoginPage() {
         </form>
 
         <div className="mt-6 text-center text-sm">
-          <span className="text-muted-foreground">¿No tienes cuenta? </span>
-          <Link to="/auth/register" className="text-primary hover:underline">
-            Regístrate aquí
-          </Link>
+          <span className="text-muted-foreground">
+            ¿Necesitas acceso? Contacta a tu administrador
+          </span>
         </div>
 
         {/* TODO: Añadir links de forgot password, help, etc. */}

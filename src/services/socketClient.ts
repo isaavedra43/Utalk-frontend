@@ -18,7 +18,7 @@ class SocketClient {
       return
     }
 
-    this.socket = io((import.meta as any).env.VITE_WS_URL || 'ws://localhost:8000', {
+    this.socket = io(import.meta.env.VITE_WS_URL || 'ws://localhost:8000', {
       auth: { token },
       transports: ['websocket'],
       autoConnect: true,
