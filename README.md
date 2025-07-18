@@ -1,293 +1,209 @@
-# UTalk Frontend - Sistema de Autenticación JWT
+# UTalk Frontend
 
-## Descripción General
+Frontend modular profesional para plataforma de comunicación empresarial construido con React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui.
 
-Este es el frontend de UTalk construido con React 18 + TypeScript + Vite + Tailwind CSS. El sistema está completamente integrado con el backend Node.js/Express que utiliza Firebase Auth y emite tokens JWT propios.
+## 🚀 Tecnologías
 
-## 🔐 Sistema de Autenticación
+- **React 18** - Framework principal
+- **TypeScript** - Tipado estático
+- **Vite** - Build tool y dev server
+- **Tailwind CSS** - Framework de estilos
+- **shadcn/ui** - Componentes UI
+- **React Query** - Estado del servidor
+- **React Router** - Enrutamiento
+- **Socket.IO** - Comunicación en tiempo real
+- **Axios** - Cliente HTTP
+- **React Hook Form** - Manejo de formularios
+- **Zod** - Validación de esquemas
 
-### Arquitectura de Autenticación
+## 📁 Estructura del Proyecto
 
-El sistema de autenticación está implementado con las siguientes tecnologías:
+```
+src/
+├── assets/             # Recursos estáticos (imágenes, logos, fuentes)
+├── components/         # Componentes UI globales
+│   ├── ui/            # Componentes shadcn/ui (NO SOBRESCRIBIR)
+│   └── common/        # Componentes compartidos multi-módulo
+├── layouts/           # Layouts globales (Dashboard, Auth, etc.)
+├── modules/           # Módulos de negocio organizados por feature
+│   ├── crm/          # Gestión de contactos y clientes
+│   ├── chat/         # Sistema de mensajería
+│   ├── campaigns/    # Campañas y segmentación
+│   ├── team/         # Gestión de equipo
+│   ├── knowledge/    # Base de conocimiento
+│   ├── dashboard/    # Analytics y reportes
+│   └── settings/     # Configuración de la aplicación
+├── hooks/             # Custom hooks (useAuth, useFetch, etc.)
+├── contexts/          # Contextos de React (Auth, Theme, etc.)
+├── services/          # Servicios y clientes API
+│   └── api/          # Endpoints organizados por módulo
+├── types/             # Definiciones de tipos TypeScript
+├── lib/               # Utilidades y helpers
+├── pages/             # Componentes de rutas principales
+├── tests/             # Configuración y utilities de testing
+├── mocks/             # Datos mock para desarrollo
+└── theme/             # Configuración de tema personalizado
+```
 
-- **Frontend**: React Context API + JWT storage
-- **Backend**: Node.js + Express + Firebase Auth + JWT
-- **HTTP Client**: Axios con interceptores automáticos
-- **Storage**: localStorage con clave única `jwt_token_utalk`
+## 🛠️ Instalación y Configuración
 
-### Endpoints de Autenticación
+### Prerrequisitos
+- Node.js 18+ 
+- npm o yarn
 
-El frontend consume los siguientes endpoints del backend:
+### Instalación
+```bash
+# Clonar el repositorio
+git clone <repository-url>
+cd utalk-frontend
 
-| Endpoint | Método | Descripción | Request | Response |
-|----------|--------|-------------|---------|----------|
-| `/api/auth/login` | POST | Iniciar sesión | `{ email, password }` | `{ token, user, expiresIn }` |
-| `/api/auth/me` | GET | Obtener perfil | Header: `Authorization: Bearer {token}` | `{ user }` |
-| `/api/auth/logout` | POST | Cerrar sesión | Header: `Authorization: Bearer {token}` | `{ message }` |
-| `/api/auth/profile` | PUT | Actualizar perfil | `{ name }` | `{ user, message }` |
-| `/api/auth/refresh` | POST | Renovar token (futuro) | - | `{ token, expiresIn }` |
+# Instalar dependencias
+npm install
 
-### Estructura del JWT
+# Copiar variables de entorno
+cp .env.example .env
 
-El token JWT contiene la siguiente información:
+# Iniciar servidor de desarrollo
+npm run dev
+```
+
+### Variables de Entorno
+Configura las siguientes variables en tu archivo `.env`:
+
+```env
+VITE_API_URL=http://localhost:8000
+VITE_WS_URL=ws://localhost:8000
+VITE_AUTH_DOMAIN=localhost
+VITE_APP_NAME=UTalk
+```
+
+## 📜 Scripts Disponibles
+
+- `npm run dev` - Servidor de desarrollo
+- `npm run build` - Build de producción
+- `npm run preview` - Preview del build
+- `npm run lint` - Linting con ESLint
+- `npm run test` - Ejecutar tests
+- `npm run test:ui` - Tests con interfaz visual
+
+## 🏗️ Arquitectura y Convenciones
+
+### Módulos de Negocio
+Cada módulo en `/modules` debe seguir esta estructura:
+```
+modules/[modulo]/
+├── components/     # Componentes específicos del módulo
+├── hooks/         # Hooks específicos del módulo
+├── services/      # Lógica de API específica
+├── types/         # Tipos específicos del módulo
+├── utils/         # Utilidades específicas
+└── index.ts       # Exportaciones públicas del módulo
+```
+
+### Importaciones
+Usa las rutas absolutas configuradas:
+```typescript
+import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/useAuth'
+import { ContactService } from '@/modules/crm/services'
+```
+
+### Componentes UI
+- **shadcn/ui**: Componentes en `/components/ui` - NO modificar directamente
+- **Personalizados**: Componentes propios en `/components/common`
+- **Específicos**: Componentes de módulo en `/modules/[modulo]/components`
+
+### Estado y Datos
+- **React Query**: Para estado del servidor y cache
+- **React Context**: Para estado global de UI
+- **Local State**: useState/useReducer para estado local
+
+## 🎨 Estilos y Temas
+
+### Tailwind CSS
+- Configuración optimizada para shadcn/ui
+- Variables CSS para temas personalizados
+- Responsive design mobile-first
+
+### Personalización de Tema
+Los tokens de color están en `/src/theme/colors.css`:
+```css
+:root {
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --primary: 222.2 47.4% 11.2%;
+  /* ... más tokens */
+}
+```
+
+## 🧪 Testing
+
+### Configuración
+- **Vitest**: Framework de testing
+- **@testing-library**: Testing utilities para React
+- **jsdom**: Entorno DOM para tests
+
+### Estructura de Tests
+```
+src/tests/
+├── setup.ts           # Configuración global
+├── utils/             # Utilities para testing
+└── __mocks__/         # Mocks globales
+```
+
+## 📦 Extensiones Recomendadas (VSCode)
 
 ```json
 {
-  "id": "string",
-  "email": "string", 
-  "role": "string",
-  "exp": "timestamp"
+  "recommendations": [
+    "bradlc.vscode-tailwindcss",
+    "esbenp.prettier-vscode",
+    "@typescript-eslint.typescript-eslint",
+    "ms-vscode.vscode-typescript-next"
+  ]
 }
 ```
 
-**Duración**: 24 horas
+## 🚨 Reglas Importantes
 
-### Flujo de Autenticación
+1. **NO sobrescribir** archivos en `/components/ui` con generadores externos
+2. **Siempre usar** TypeScript estricto - no `any` sin justificación
+3. **Seguir** estructura modular - no mezclar lógica entre módulos
+4. **Usar** React Query para todas las llamadas a API
+5. **Mantener** componentes pequeños y con responsabilidad única
 
-1. **Login**:
-   - Usuario ingresa email y contraseña en `/login`
-   - Frontend valida formato y llama a `POST /api/auth/login`
-   - Backend valida credenciales y retorna JWT + datos de usuario
-   - Frontend guarda JWT en localStorage y usuario en contexto
-   - Redirección automática a dashboard `/`
+## 🔗 Integración con Backend
 
-2. **Verificación de Sesión**:
-   - Al cargar la app, se ejecuta `checkSession()`
-   - Si hay JWT en localStorage, llama a `GET /api/auth/me`
-   - Si el token es válido, carga el usuario al contexto
-   - Si no es válido, ejecuta logout automático
+El backend expone:
+- **REST API**: Endpoints CRUD para todas las entidades
+- **WebSocket**: Comunicación en tiempo real para chat
+- **Autenticación**: JWT tokens con refresh automático
 
-3. **Logout**:
-   - Llama a `POST /api/auth/logout`
-   - Limpia JWT del localStorage
-   - Limpia usuario del contexto
-   - Redirige a `/login`
-
-4. **Expiración de Token**:
-   - Los interceptores de Axios detectan respuestas 401/403
-   - Ejecutan logout automático y redirigen a login
-
-## 📁 Estructura de Archivos
-
-### Archivos de Autenticación
-
-```
-client/
-├── lib/
-│   └── apiClient.ts          # Cliente Axios con interceptores JWT
-├── hooks/
-│   └── useAuth.tsx           # Hook principal de autenticación
-├── components/
-│   └── RequireAuth.tsx       # Componente de protección de rutas
-├── pages/
-│   ├── LoginPage.tsx         # Página de inicio de sesión
-│   └── ForgotPasswordPage.tsx
-└── main.tsx                  # Configuración de rutas protegidas
-
-shared/
-└── api.ts                    # Tipos TypeScript compartidos
-```
-
-### Componentes Principales
-
-#### `useAuth` Hook
-
-Proporciona toda la funcionalidad de autenticación:
-
+### Configuración de API
 ```typescript
-const {
-  user,              // Usuario actual (null si no autenticado)
-  isAuthenticated,   // Boolean: ¿está autenticado?
-  isLoading,         // Boolean: ¿está cargando?
-  error,             // String: mensaje de error
-  login,             // Function: (email, password) => Promise<void>
-  logout,            // Function: () => void
-  checkSession,      // Function: () => Promise<void>
-  updateProfile,     // Function: (name) => Promise<void>
-  clearError         // Function: () => void
-} = useAuth();
+// src/services/apiClient.ts
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  timeout: 10000,
+})
 ```
 
-#### `RequireAuth` Component
+## 📈 Próximos Pasos
 
-Protege rutas que requieren autenticación:
+1. **Configurar** autenticación y rutas protegidas
+2. **Implementar** módulos por prioridad de negocio
+3. **Integrar** WebSocket para funcionalidades en tiempo real
+4. **Añadir** tests unitarios y de integración
+5. **Configurar** CI/CD pipeline
 
-```jsx
-<RequireAuth>
-  <Dashboard />
-</RequireAuth>
-```
+## 👥 Contribución
 
-#### `apiClient` 
-
-Cliente HTTP con interceptores automáticos:
-
-```typescript
-import apiClient from '@/lib/apiClient';
-
-// Las peticiones incluyen automáticamente el JWT
-const response = await apiClient.get('/protected-endpoint');
-```
-
-## 🛡️ Seguridad
-
-### Almacenamiento del Token
-
-- **Clave**: `jwt_token_utalk` (única para evitar conflictos)
-- **Storage**: localStorage (persiste entre sesiones)
-- **Limpieza automática**: En logout y errores 401/403
-
-### Protección de Rutas
-
-- **Rutas públicas**: `/login`, `/forgot-password`
-- **Rutas protegidas**: Todas las demás (requieren JWT válido)
-- **Verificación automática**: En cada carga de página
-- **Redirección automática**: Si no hay sesión válida
-
-### Interceptores HTTP
-
-- **Request**: Agrega automáticamente `Authorization: Bearer {token}`
-- **Response**: Detecta errores de autenticación y ejecuta logout
-- **Scope**: Solo peticiones a `/api/**`
-
-## 🔧 Configuración y Uso
-
-### Para Desarrolladores
-
-1. **Consumir autenticación en componentes**:
-
-```tsx
-import { useAuth } from '@/hooks/useAuth';
-
-function MyComponent() {
-  const { user, isAuthenticated, logout } = useAuth();
-  
-  if (!isAuthenticated) {
-    return <div>No autenticado</div>;
-  }
-  
-  return (
-    <div>
-      <p>Hola {user?.name || user?.email}</p>
-      <button onClick={logout}>Cerrar Sesión</button>
-    </div>
-  );
-}
-```
-
-2. **Hacer peticiones a APIs protegidas**:
-
-```tsx
-import apiClient from '@/lib/apiClient';
-
-// El JWT se incluye automáticamente
-const fetchData = async () => {
-  try {
-    const response = await apiClient.get('/protected-data');
-    return response.data;
-  } catch (error) {
-    // Los errores 401/403 ejecutan logout automático
-    console.error('Error:', error);
-  }
-};
-```
-
-3. **Agregar nuevos endpoints protegidos**:
-
-```tsx
-// Solo usar apiClient para endpoints que requieren autenticación
-const updateData = async (data: any) => {
-  return await apiClient.put('/my-endpoint', data);
-};
-```
-
-### Validaciones Implementadas
-
-#### Frontend
-
-- **Email**: Formato válido requerido
-- **Contraseña**: Mínimo 6 caracteres
-- **Campos requeridos**: Email y contraseña obligatorios
-- **Feedback visual**: Errores mostrados en tiempo real
-
-#### Backend Integration
-
-- **Error handling**: Mensajes específicos del backend
-- **Loading states**: Durante peticiones de autenticación
-- **Network errors**: Manejo de errores de conexión
-
-## ⚠️ Consideraciones Importantes
-
-### Estado Actual del Backend
-
-- **Validación de contraseña**: Actualmente el backend NO valida la contraseña, solo verifica el email y emite JWT
-- **Preparado para futuro**: La lógica está implementada para manejar validación de contraseña cuando se habilite
-
-### Refresh Token (Futuro)
-
-El sistema está preparado para implementar refresh tokens:
-
-- Endpoint `/api/auth/refresh` definido en tipos
-- Lógica de renovación automática lista para implementar
-- Lugar específico marcado en el código para agregar esta funcionalidad
-
-### Roles y Permisos (Futuro)
-
-- El JWT incluye el campo `role`
-- La UI muestra el rol del usuario
-- Sistema preparado para implementar lógica de permisos
-
-## 🚀 Scripts de Desarrollo
-
-```bash
-# Desarrollo
-npm run dev
-
-# Build para producción
-npm run build
-
-# Verificar tipos de TypeScript
-npm run typecheck
-
-# Formatear código
-npm run format.fix
-```
-
-## 🛠️ Troubleshooting
-
-### Token Expirado
-
-Si el token expira, el sistema:
-1. Detecta automáticamente el error 401/403
-2. Ejecuta logout automático
-3. Redirige a `/login`
-4. Muestra mensaje apropiado
-
-### Pérdida de Sesión
-
-Si se pierde la sesión (localStorage borrado):
-1. `checkSession()` detecta la ausencia de token
-2. No intenta peticiones innecesarias
-3. Mantiene al usuario en estado no autenticado
-
-### Errores de Red
-
-Los interceptores manejan:
-- Errores de conexión
-- Timeouts (10 segundos)
-- Reintentos automáticos (excepto 401/403)
-
-## 📞 Soporte
-
-Para problemas relacionados con autenticación:
-
-1. Verificar que el backend esté corriendo
-2. Revisar la consola del navegador para errores
-3. Comprobar Network tab para ver peticiones HTTP
-4. Verificar localStorage para presencia del token
+1. Crear rama desde `develop`
+2. Seguir convenciones de nomenclatura
+3. Escribir tests para nuevas funcionalidades
+4. Revisar código antes de merge
+5. Mantener documentación actualizada
 
 ---
 
-**Versión**: 1.0.0
-**Última actualización**: $(date)
-**Backend compatible**: Node.js + Express + Firebase Auth + JWT 
+**Nota**: Esta estructura está diseñada para escalar con equipos enterprise. Cada módulo es independiente y puede desarrollarse en paralelo por diferentes desarrolladores. 
