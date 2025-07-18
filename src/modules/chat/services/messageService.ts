@@ -183,19 +183,19 @@ class MessageService {
     }
   }
 
-  // Mapear nuestro tipo de mensaje al tipo del backend
-  private mapToBackendType(frontendType: MessageType): string {
-    const typeMap: Record<MessageType, string> = {
-      'text': 'text',
-      'image': 'image',
-      'file': 'document',
-      'audio': 'audio',
-      'video': 'video',
-      'location': 'location',
-      'sticker': 'sticker'
-    }
-    return typeMap[frontendType] || 'text'
-  }
+  // Mapeo de tipos de mensaje para backend (reservado para uso futuro)
+  // private mapToBackendType(frontendType: MessageType): string {
+  //   const typeMap: Record<MessageType, string> = {
+  //     text: 'text',
+  //     image: 'image',
+  //     file: 'document',
+  //     audio: 'audio',
+  //     video: 'video',
+  //     location: 'location',
+  //     sticker: 'sticker'
+  //   }
+  //   return typeMap[frontendType] || 'text'
+  // }
 }
 
 export const messageService = new MessageService()

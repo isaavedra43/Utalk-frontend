@@ -179,18 +179,17 @@ class ContactService {
     return 'whatsapp'
   }
 
-  // Validar formato de teléfono
-  private validatePhone(phone: string): boolean {
-    // El backend UTalk espera formato internacional
-    const phoneRegex = /^\+[1-9]\d{1,14}$/
-    return phoneRegex.test(phone)
-  }
+  // Método de validación de teléfono (reservado para uso futuro)
+  // private validatePhone(phone: string): boolean {
+  //   const phoneRegex = /^\+[1-9]\d{1,14}$/
+  //   return phoneRegex.test(phone)
+  // }
 
-  // Validar formato de email
-  private validateEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    return emailRegex.test(email)
-  }
+  // Método de validación de email (reservado para uso futuro)  
+  // private validateEmail(email: string): boolean {
+  //   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  //   return emailRegex.test(email)
+  // }
 }
 
 export const contactService = new ContactService()

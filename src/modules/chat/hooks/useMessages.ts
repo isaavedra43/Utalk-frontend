@@ -104,11 +104,12 @@ export function useSendMessage() {
 
       return { previousMessages, optimisticMessage }
     },
-    onError: (err, data, context) => {
+    onError: (error, data, context) => {
       // Revertir optimistic update en caso de error
       if (context?.previousMessages) {
         queryClient.setQueryData(messageKeys.list(data.conversationId), context.previousMessages)
       }
+      console.error('Error enviando mensaje:', error)
     },
     onSuccess: (response, data) => {
       // Actualizar con el mensaje real del backend

@@ -1,360 +1,249 @@
 // Componente principal del módulo de chat/inbox
 // Layout de tres columnas: Sidebar, ConversationList, ChatWindow + Panels
 import { useState } from 'react'
-import { InboxProps, ConversationFilter, Conversation, Message, TypingIndicator, SuggestedResponse, ConversationSummary } from './types'
+import { useParams } from 'react-router-dom'
+import { InboxProps, ConversationFilter, MessageType, SuggestedResponse, ConversationSummary } from './types'
 import Sidebar from './components/Sidebar'
 import ConversationList from './components/ConversationList'
 import ChatWindow from './components/ChatWindow'
 import IAPanel from './components/IAPanel'
 import InfoPanel from './components/InfoPanel'
 
-// Datos simulados para demostración - TODO: Remover cuando se integre con API real
-const mockConversations: Conversation[] = [
-  {
-    id: 'conv1',
-    contact: {
-      id: 'contact1',
-      name: 'Ana García',
-      email: 'ana.garcia@email.com',
-      phone: '+34 666 777 888',
-      avatar: undefined,
-      channel: 'whatsapp',
-      tags: ['vip', 'cliente'],
-      isOnline: true,
-      lastSeen: new Date(),
-      customFields: { empresa: 'Tech Corp' }
-    },
-    channel: 'whatsapp',
-    status: 'open',
-    assignedTo: {
-      id: 'agent1',
-      name: 'Juan Pérez',
-      avatar: undefined
-    },
-    lastMessage: {
-      id: 'msg1',
-      conversationId: 'conv1',
-      content: 'Hola, necesito ayuda con mi pedido',
-      type: 'text',
-      timestamp: new Date(),
-      sender: {
-        id: 'contact1',
-        name: 'Ana García',
-        type: 'contact',
-        avatar: undefined
-      },
-      isRead: false,
-      isDelivered: true
-    },
-    unreadCount: 2,
-    tags: ['urgente'],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    priority: 'high',
-    isMuted: false
-  },
-  {
-    id: 'conv2',
-    contact: {
-      id: 'contact2',
-      name: 'Carlos López',
-      email: 'carlos.lopez@email.com',
-      phone: '+34 699 888 777',
-      avatar: undefined,
-      channel: 'email',
-      tags: ['soporte'],
-      isOnline: false,
-      lastSeen: new Date(Date.now() - 3600000), // 1 hora atrás
-      customFields: {}
-    },
-    channel: 'email',
-    status: 'pending',
-    assignedTo: undefined,
-    lastMessage: {
-      id: 'msg2',
-      conversationId: 'conv2',
-      content: 'Gracias por la información',
-      type: 'text',
-      timestamp: new Date(Date.now() - 1800000), // 30 min atrás
-      sender: {
-        id: 'agent1',
-        name: 'Juan Pérez',
-        type: 'agent',
-        avatar: undefined
-      },
-      isRead: true,
-      isDelivered: true
-    },
-    unreadCount: 0,
-    tags: [],
-    createdAt: new Date(Date.now() - 86400000), // 1 día atrás
-    updatedAt: new Date(Date.now() - 1800000),
-    priority: 'medium',
-    isMuted: false
-  }
-]
+// Hooks reales para conectar con backend UTalk
+import { useConversations } from './hooks/useConversations'
+import { useMessages, useSendMessage } from './hooks/useMessages'
+import { useSocket } from './hooks/useSocket'
 
-const mockMessages: Message[] = [
-  {
-    id: 'msg1',
-    conversationId: 'conv1',
-    content: 'Hola, tengo un problema con mi pedido número #12345',
-    type: 'text',
-    timestamp: new Date(Date.now() - 3600000),
-    sender: {
-      id: 'contact1',
-      name: 'Ana García',
-      type: 'contact',
-      avatar: undefined
-    },
-    isRead: true,
-    isDelivered: true
-  },
-  {
-    id: 'msg2',
-    conversationId: 'conv1',
-    content: 'Hola Ana, estaré encantado de ayudarte. ¿Podrías decirme qué problema específico tienes?',
-    type: 'text',
-    timestamp: new Date(Date.now() - 3500000),
-    sender: {
-      id: 'agent1',
-      name: 'Juan Pérez',
-      type: 'agent',
-      avatar: undefined
-    },
-    isRead: true,
-    isDelivered: true
-  },
-  {
-    id: 'msg3',
-    conversationId: 'conv1',
-    content: 'No me ha llegado y la fecha de entrega era ayer',
-    type: 'text',
-    timestamp: new Date(Date.now() - 1800000),
-    sender: {
-      id: 'contact1',
-      name: 'Ana García',
-      type: 'contact',
-      avatar: undefined
-    },
-    isRead: false,
-    isDelivered: true
-  }
-]
-
-const mockSuggestions: SuggestedResponse[] = [
-  {
-    id: 'sugg1',
-    content: 'Lamento escuchar sobre el retraso en tu pedido. Permíteme revisar el estado de tu envío inmediatamente.',
-    confidence: 92,
-    category: 'Disculpa',
-    isRelevant: true
-  },
-  {
-    id: 'sugg2',
-    content: 'Puedo ayudarte a rastrear tu pedido y encontrar una solución. ¿Tienes el número de seguimiento?',
-    confidence: 87,
-    category: 'Soporte',
-    isRelevant: true
-  }
-]
-
-const mockSummary: ConversationSummary = {
-  totalMessages: 8,
-  avgResponseTime: '2 min',
-  sentiment: 'neutral',
-  topics: ['pedido', 'envío', 'retraso'],
-  lastActivity: new Date()
+// Estados de la aplicación que necesitamos manejar
+interface InboxState {
+  selectedConversationId: string | undefined
+  activePanel: 'ia' | 'info' | null
+  filter: ConversationFilter
 }
 
 export function Inbox({ initialConversationId }: InboxProps = {}) {
-  const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>(initialConversationId)
-  const [conversations, setConversations] = useState<Conversation[]>(mockConversations)
-  const [messages, setMessages] = useState<Message[]>(mockMessages)
-  const [filter, setFilter] = useState<ConversationFilter>({})
-  const [isLoading] = useState(false)
-  const [activePanel, setActivePanel] = useState<'ai' | 'info'>('ai')
-  const [typingUsers] = useState<TypingIndicator[]>([])
+  // Obtener conversationId desde URL params
+  const { conversationId: urlConversationId } = useParams<{ conversationId?: string }>()
+  const effectiveConversationId = urlConversationId || initialConversationId
 
-  // Filtrar conversaciones según el filtro activo
-  const filteredConversations = conversations.filter(conv => {
-    if (filter.search && !conv.contact.name.toLowerCase().includes(filter.search.toLowerCase())) {
-      return false
-    }
-    if (filter.status && conv.status !== filter.status) {
-      return false
-    }
-    if (filter.channel && conv.channel !== filter.channel) {
-      return false
-    }
-    if (filter.assignedTo && conv.assignedTo?.id !== filter.assignedTo) {
-      return false
-    }
-    if (filter.unreadOnly && conv.unreadCount === 0) {
-      return false
-    }
-    return true
+  // Estados locales del inbox
+  const [state, setState] = useState<InboxState>({
+    selectedConversationId: effectiveConversationId,
+    activePanel: null,
+    filter: {}
   })
 
-  // Obtener conversación seleccionada
-  const selectedConversation = selectedConversationId 
-    ? conversations.find(conv => conv.id === selectedConversationId)
-    : undefined
+  // Hooks reales para conectar con backend
+  const { 
+    data: conversationsData, 
+    isLoading: conversationsLoading, 
+    error: conversationsError 
+  } = useConversations(state.filter)
 
-  // Obtener mensajes de la conversación seleccionada
-  const conversationMessages = selectedConversationId
-    ? messages.filter(msg => msg.conversationId === selectedConversationId)
-    : []
+  const { 
+    data: messagesData, 
+    isLoading: messagesLoading, 
+    error: messagesError 
+  } = useMessages(state.selectedConversationId || '', 1, 50)
+
+  const { 
+    mutate: sendMessage 
+  } = useSendMessage()
+
+  // Socket.IO para tiempo real
+  const { 
+    isConnected, 
+    typingUsers 
+  } = useSocket({ 
+    conversationId: state.selectedConversationId,
+    enableTyping: true,
+    enablePresence: true 
+  })
+
+  // Datos procesados para los componentes
+  const conversations = conversationsData?.conversations || []
+  const messages = messagesData?.messages || []
+  const selectedConversation = conversations.find(c => c.id === state.selectedConversationId)
+
+  // Handlers para interacción del usuario
+  const handleFilterChange = (newFilter: ConversationFilter) => {
+    setState(prev => ({ ...prev, filter: newFilter }))
+  }
 
   const handleSelectConversation = (conversationId: string) => {
-    setSelectedConversationId(conversationId)
-    
-    // Marcar mensajes como leídos (simulado)
-    setMessages(prev => prev.map(msg => 
-      msg.conversationId === conversationId 
-        ? { ...msg, isRead: true }
-        : msg
-    ))
-    
-    // Actualizar contador de no leídos
-    setConversations(prev => prev.map(conv =>
-      conv.id === conversationId
-        ? { ...conv, unreadCount: 0 }
-        : conv
-    ))
+    setState(prev => ({ 
+      ...prev, 
+      selectedConversationId: conversationId,
+      activePanel: null // Reset panel when switching conversations
+    }))
   }
 
-  const handleSendMessage = (content: string, type: string) => {
-    if (!selectedConversationId) return
+  const handleSendMessage = (content: string, type: MessageType = 'text') => {
+    if (!state.selectedConversationId || !content.trim()) return
 
-    const newMessage: Message = {
-      id: `msg_${Date.now()}`,
-      conversationId: selectedConversationId,
-      content,
-      type: type as any,
-      timestamp: new Date(),
-      sender: {
-        id: 'current-agent',
-        name: 'Usuario Actual',
-        type: 'agent',
-        avatar: undefined
-      },
-      isRead: false,
-      isDelivered: false
+    sendMessage({
+      conversationId: state.selectedConversationId,
+      content: content.trim(),
+      type
+    })
+  }
+
+  const handleTogglePanel = (panel: 'ia' | 'info') => {
+    setState(prev => ({ 
+      ...prev, 
+      activePanel: prev.activePanel === panel ? null : panel 
+    }))
+  }
+
+  // Mock data para IA Panel (mantenemos temporalmente hasta implementar IA)
+  const mockSuggestions: SuggestedResponse[] = [
+    {
+      id: '1',
+      content: '¡Hola! Gracias por contactarnos. ¿En qué podemos ayudarte hoy?',
+      confidence: 90,
+      category: 'greeting',
+      isRelevant: true
+    },
+    {
+      id: '2', 
+      content: 'Te ayudo a revisar el estado de tu pedido. ¿Podrías proporcionarme tu número de orden?',
+      confidence: 80,
+      category: 'order_inquiry',
+      isRelevant: true
     }
+  ]
 
-    setMessages(prev => [...prev, newMessage])
-
-    // Actualizar última actividad de la conversación
-    setConversations(prev => prev.map(conv =>
-      conv.id === selectedConversationId
-        ? { 
-            ...conv, 
-            lastMessage: newMessage,
-            updatedAt: new Date()
-          }
-        : conv
-    ))
-  }
-
-  const handleSendSuggestion = (suggestion: SuggestedResponse) => {
-    handleSendMessage(suggestion.content, 'text')
-  }
-
-  const handleAskAssistant = async (question: string) => {
-    // TODO: Implementar llamada a API de IA
-    console.log('Pregunta al asistente:', question)
-  }
-
-  const handleUpdateContact = (contactId: string, data: Partial<any>) => {
-    setConversations(prev => prev.map(conv =>
-      conv.contact.id === contactId
-        ? { ...conv, contact: { ...conv.contact, ...data } }
-        : conv
-    ))
-  }
-
-  const handleUpdateConversation = (conversationId: string, data: Partial<Conversation>) => {
-    setConversations(prev => prev.map(conv =>
-      conv.id === conversationId
-        ? { ...conv, ...data }
-        : conv
-    ))
+  const mockSummary: ConversationSummary = {
+    totalMessages: 8,
+    avgResponseTime: '2 min',
+    sentiment: 'positive',
+    topics: ['soporte', 'pedido'],
+    lastActivity: new Date()
   }
 
   return (
-    <div className="flex h-screen bg-[#181e2a] overflow-hidden">
-      {/* Sidebar izquierda */}
-      <Sidebar 
-        onFilterChange={setFilter}
-        currentFilter={filter}
-      />
+    <div className="flex h-screen bg-gray-50">
+      {/* Sidebar izquierdo */}
+      <div className="w-16 lg:w-64">
+        <Sidebar 
+          onFilterChange={handleFilterChange}
+          currentFilter={state.filter}
+        />
+      </div>
 
       {/* Lista de conversaciones */}
-      <ConversationList
-        conversations={filteredConversations}
-        selectedConversationId={selectedConversationId}
-        onSelectConversation={handleSelectConversation}
-        isLoading={isLoading}
-        filter={filter}
-        onFilterChange={setFilter}
-      />
+      <div className="w-80 border-r border-gray-200 bg-white">
+        <ConversationList
+          conversations={conversations}
+          selectedConversationId={state.selectedConversationId}
+          onSelectConversation={handleSelectConversation}
+          isLoading={conversationsLoading}
+          filter={state.filter}
+          onFilterChange={handleFilterChange}
+        />
+        
+        {conversationsError && (
+          <div className="p-4 text-center text-red-600">
+            Error al cargar conversaciones
+          </div>
+        )}
+      </div>
 
-      {/* Ventana de chat */}
-      <ChatWindow
-        conversationId={selectedConversationId}
-        messages={conversationMessages}
-        isLoading={isLoading}
-        typingUsers={typingUsers}
-        onSendMessage={handleSendMessage}
-      />
-
-      {/* Panel derecho con tabs */}
-      <div className="w-80 border-l border-gray-200 dark:border-gray-700 flex flex-col bg-white dark:bg-gray-800">
-        {/* Tabs del panel derecho */}
-        <div className="flex border-b border-gray-200 dark:border-gray-700">
-          <button
-            onClick={() => setActivePanel('ai')}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-              activePanel === 'ai'
-                ? 'bg-blue-50 border-b-2 border-blue-500 text-blue-600'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            🤖 Asistente IA
-          </button>
-          <button
-            onClick={() => setActivePanel('info')}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-              activePanel === 'info'
-                ? 'bg-blue-50 border-b-2 border-blue-500 text-blue-600'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            👤 Info Cliente
-          </button>
-        </div>
-
-        {/* Contenido del panel */}
-        <div className="flex-1 overflow-hidden">
-          {activePanel === 'ai' ? (
-            <IAPanel
-              conversationId={selectedConversationId}
-              suggestions={mockSuggestions}
-              summary={mockSummary}
-              onSendSuggestion={handleSendSuggestion}
-              onAskAssistant={handleAskAssistant}
-            />
+      {/* Área principal de chat */}
+      <div className="flex-1 flex">
+        {/* Chat window */}
+        <div className={`flex-1 ${state.activePanel ? 'mr-80' : ''} transition-all duration-200`}>
+          {state.selectedConversationId ? (
+            <>
+              {/* Header con botones de panel */}
+              <div className="border-b border-gray-200 bg-white px-4 py-2 flex justify-end gap-2">
+                <button
+                  onClick={() => handleTogglePanel('ia')}
+                  className={`px-3 py-1 text-sm rounded transition-colors ${
+                    state.activePanel === 'ia' 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  🤖 IA
+                </button>
+                <button
+                  onClick={() => handleTogglePanel('info')}
+                  className={`px-3 py-1 text-sm rounded transition-colors ${
+                    state.activePanel === 'info' 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  👤 Info
+                </button>
+              </div>
+              
+              <ChatWindow
+                conversationId={state.selectedConversationId}
+                messages={messages}
+                isLoading={messagesLoading}
+                typingUsers={typingUsers}
+                onSendMessage={handleSendMessage}
+              />
+              
+              {messagesError && (
+                <div className="p-4 text-center text-red-600">
+                  Error al cargar mensajes: {messagesError instanceof Error ? messagesError.message : JSON.stringify(messagesError)}
+                </div>
+              )}
+            </>
           ) : (
-            <InfoPanel
-              contact={selectedConversation?.contact}
-              conversation={selectedConversation}
-              onUpdateContact={handleUpdateContact}
-              onUpdateConversation={handleUpdateConversation}
-            />
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center text-gray-500">
+                <div className="text-6xl mb-4">💬</div>
+                <h3 className="text-xl font-medium mb-2">Selecciona una conversación</h3>
+                <p>Elige una conversación de la lista para comenzar a chatear</p>
+              </div>
+            </div>
           )}
         </div>
+
+        {/* Panel lateral derecho */}
+        {state.activePanel && state.selectedConversationId && (
+          <div className="w-80 border-l border-gray-200 bg-white">
+            {state.activePanel === 'ia' && (
+              <IAPanel
+                conversationId={state.selectedConversationId}
+                suggestions={mockSuggestions}
+                summary={mockSummary}
+                onSendSuggestion={(suggestion) => handleSendMessage(suggestion.content)}
+                onAskAssistant={(query) => {
+                  // TODO: Implementar consulta real a IA
+                  console.log('Consulta IA:', query)
+                }}
+              />
+            )}
+            
+            {state.activePanel === 'info' && selectedConversation && (
+              <InfoPanel
+                contact={selectedConversation.contact}
+                conversation={selectedConversation}
+                onUpdateContact={(updates) => {
+                  // TODO: Implementar actualización de contacto
+                  console.log('Actualizar contacto:', updates)
+                }}
+                onUpdateConversation={(updates) => {
+                  // TODO: Implementar actualización de conversación
+                  console.log('Actualizar conversación:', updates)
+                }}
+              />
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Indicador de conexión Socket.IO */}
+      {!isConnected && (
+        <div className="fixed bottom-4 right-4 bg-yellow-500 text-white px-4 py-2 rounded-lg shadow">
+          🔄 Reconectando chat en tiempo real...
+        </div>
+      )}
     </div>
   )
 }

@@ -16,9 +16,11 @@ import RegisterPage from './auth/RegisterPage'
 import DashboardPage from './DashboardPage'
 import NotFoundPage from './NotFoundPage'
 
+// Módulos implementados
+import { Inbox } from '@/modules/chat/Inbox'
+
 // TODO: Importar páginas de módulos cuando estén implementadas
 // import CRMPage from './crm/CRMPage'
-// import ChatPage from './chat/ChatPage'
 // import CampaignsPage from './campaigns/CampaignsPage'
 
 // Componente para rutas protegidas
@@ -98,9 +100,12 @@ export function AppRoutes() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         
+        {/* Módulos implementados */}
+        <Route path="chat" element={<Inbox />} />
+        <Route path="chat/:conversationId" element={<Inbox />} />
+        
         {/* TODO: Rutas de módulos */}
         {/* <Route path="crm/*" element={<CRMPage />} /> */}
-        {/* <Route path="chat/*" element={<ChatPage />} /> */}
         {/* <Route path="campaigns/*" element={<CampaignsPage />} /> */}
         {/* <Route path="team/*" element={<TeamPage />} /> */}
         {/* <Route path="knowledge/*" element={<KnowledgePage />} /> */}
