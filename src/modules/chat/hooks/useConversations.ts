@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ConversationFilter } from '../types'
 import conversationService from '../services/conversationService'
+import { logger } from '@/lib/logger'
 
 // Claves de query para invalidaciones y cache
 export const conversationKeys = {
@@ -16,13 +17,27 @@ export const conversationKeys = {
 
 // Hook principal para obtener conversaciones con filtros
 export function useConversations(filter: ConversationFilter = {}) {
-  return useQuery({
+  const result = useQuery({
     queryKey: conversationKeys.list(filter),
     queryFn: () => conversationService.getConversations(filter),
     staleTime: 30 * 1000, // 30 segundos antes de considerar stale
     refetchOnWindowFocus: true,
     refetchInterval: 60 * 1000, // Refetch cada minuto para conversaciones activas
   })
+
+  // Log del estado del hook
+  logger.hook('useConversations', {
+    input: { filter },
+    loading: result.isLoading,
+    error: result.error,
+    dataLength: result.data?.conversations?.length,
+    output: result.data ? { 
+      total: result.data.total,
+      conversationsCount: result.data.conversations?.length 
+    } : undefined
+  })
+
+  return result
 }
 
 // Hook para obtener una conversación específica

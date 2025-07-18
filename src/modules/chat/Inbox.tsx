@@ -1,6 +1,6 @@
 // Componente principal del módulo de chat/inbox
 // Layout de tres columnas: Sidebar, ConversationList, ChatWindow + Panels
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { InboxProps, ConversationFilter, MessageType, SuggestedResponse, ConversationSummary } from './types'
 import Sidebar from './components/Sidebar'
@@ -13,6 +13,7 @@ import InfoPanel from './components/InfoPanel'
 import { useConversations } from './hooks/useConversations'
 import { useMessages, useSendMessage } from './hooks/useMessages'
 import { useSocket } from './hooks/useSocket'
+import { logger } from '@/lib/logger'
 
 // Estados de la aplicación que necesitamos manejar
 interface InboxState {
@@ -32,6 +33,30 @@ export function Inbox({ initialConversationId }: InboxProps = {}) {
     activePanel: null,
     filter: {}
   })
+
+  // Log de mount del componente
+  useEffect(() => {
+    logger.component('Inbox', 'mount', {
+      initialConversationId,
+      urlConversationId,
+      effectiveConversationId
+    })
+
+    return () => {
+      logger.component('Inbox', 'unmount')
+    }
+  }, [])
+
+  // Log cuando cambia la conversación seleccionada
+  useEffect(() => {
+    if (state.selectedConversationId) {
+      logger.component('Inbox', 'update', {
+        action: 'conversation_selected',
+        conversationId: state.selectedConversationId,
+        forceLog: true
+      })
+    }
+  }, [state.selectedConversationId])
 
   // Hooks reales para conectar con backend
   const { 

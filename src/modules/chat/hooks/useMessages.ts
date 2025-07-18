@@ -2,6 +2,7 @@
 // Conecta con messageService para obtener datos del backend UTalk
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import messageService, { SendMessageData } from '../services/messageService'
+import { logger } from '@/lib/logger'
 
 // Claves de query para invalidaciones y cache
 export const messageKeys = {
@@ -14,13 +15,27 @@ export const messageKeys = {
 
 // Hook principal para obtener mensajes de una conversación
 export function useMessages(conversationId: string, page = 1, limit = 50) {
-  return useQuery({
+  const result = useQuery({
     queryKey: messageKeys.list(conversationId),
     queryFn: () => messageService.getMessages(conversationId, page, limit),
     enabled: !!conversationId,
     staleTime: 30 * 1000, // 30 segundos
     refetchOnWindowFocus: true,
   })
+
+  // Log del estado del hook
+  logger.hook('useMessages', {
+    input: { conversationId, page, limit },
+    loading: result.isLoading,
+    error: result.error,
+    dataLength: result.data?.messages?.length,
+    output: result.data ? {
+      total: result.data.total,
+      messagesCount: result.data.messages?.length
+    } : undefined
+  })
+
+  return result
 }
 
 // Hook para obtener todos los mensajes con filtros
@@ -55,8 +70,20 @@ export function useMessageStats() {
 export function useSendMessage() {
   const queryClient = useQueryClient()
 
-  return useMutation({
-    mutationFn: (data: SendMessageData) => messageService.sendMessage(data),
+  const mutation = useMutation({
+    mutationFn: (data: SendMessageData) => {
+      const perfId = logger.startPerformance('send_message')
+      logger.info(`Sending message to conversation ${data.conversationId}`, {
+        type: data.type,
+        contentLength: data.content.length,
+        hasMedia: !!data.media
+      }, 'send_message_start')
+      
+      return messageService.sendMessage(data).then(result => {
+        logger.endPerformance(perfId, `Message sent successfully`)
+        return result
+      })
+    },
     onMutate: async (data) => {
       // Optimistic update - añadir mensaje inmediatamente
       await queryClient.cancelQueries({ queryKey: messageKeys.list(data.conversationId) })
@@ -102,6 +129,8 @@ export function useSendMessage() {
         }
       )
 
+      logger.success(`Optimistic message added to conversation ${data.conversationId}`, null, 'optimistic_message')
+
       return { previousMessages, optimisticMessage }
     },
     onError: (error, data, context) => {
@@ -109,7 +138,8 @@ export function useSendMessage() {
       if (context?.previousMessages) {
         queryClient.setQueryData(messageKeys.list(data.conversationId), context.previousMessages)
       }
-      console.error('Error enviando mensaje:', error)
+      
+      logger.error(`Failed to send message to conversation ${data.conversationId}`, error, 'send_message_error')
     },
     onSuccess: (response, data) => {
       // Actualizar con el mensaje real del backend
@@ -130,8 +160,21 @@ export function useSendMessage() {
 
       // Invalidar lista de conversaciones para actualizar último mensaje
       queryClient.invalidateQueries({ queryKey: ['conversations'] })
+      
+      logger.success(`Message sent successfully to conversation ${data.conversationId}`, {
+        messageId: response.message?.id,
+        timestamp: response.message?.timestamp
+      }, 'send_message_success')
     },
   })
+
+  // Log del estado de la mutación
+  logger.hook('useSendMessage', {
+    loading: mutation.isPending,
+    error: mutation.error
+  })
+
+  return mutation
 }
 
 // Hook para marcar mensaje como leído

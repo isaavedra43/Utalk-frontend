@@ -315,7 +315,7 @@ export const logger = Logger.getInstance()
 // Logs específicos para debugging del proyecto
 export const debugLogs = {
   // Análisis de módulos
-  moduleStatus: (moduleName: string, status: 'complete' | 'partial' | 'empty', details?: string) => {
+  moduleStatus: (moduleName: string, status: 'complete' | 'partial' | 'empty' | 'ui-only', details?: string) => {
     logger.info(`Module ${moduleName}: ${status.toUpperCase()}`, details, `module_${moduleName}`)
   },
   

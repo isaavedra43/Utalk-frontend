@@ -11,6 +11,10 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 // Routing principal
 import AppRoutes from '@/pages/AppRoutes'
 
+// Sistema de logs y análisis
+import '@/lib/logger' // Inicializar logs
+import '@/lib/projectAnalyzer' // Inicializar análisis automático
+
 // Configuración de React Query
 const queryClient = new QueryClient({
   defaultOptions: {
