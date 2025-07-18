@@ -3,7 +3,7 @@
 
 # API Backend en Railway
 VITE_API_URL=https://tu-backend-utalk.railway.app/api
-VITE_WS_URL=wss://tu-backend-utalk.railway.app
+VITE_WS_URL=https://tu-backend-utalk.railway.app
 
 # Firebase Configuration (Frontend)
 # Obtener de Firebase Console > Project Settings > Your apps > Firebase SDK snippet

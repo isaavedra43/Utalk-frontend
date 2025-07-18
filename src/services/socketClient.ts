@@ -10,6 +10,35 @@ class SocketClient {
   constructor() {
     // ✅ NO conectar automáticamente - solo cuando hay token
     console.log('🔗 SocketClient initialized - will connect when authenticated')
+    
+    // ✅ Validar variables de entorno de WebSocket
+    this.validateWebSocketConfig()
+  }
+
+  /**
+   * Validar configuración de WebSocket
+   */
+  private validateWebSocketConfig() {
+    const wsUrl = import.meta.env.VITE_WS_URL
+    
+    if (!wsUrl) {
+      console.error('❌ VITE_WS_URL not configured')
+      return false
+    }
+
+    // ✅ Validar que no use wss:// (Socket.IO maneja el protocolo)
+    if (wsUrl.startsWith('wss://')) {
+      console.warn('⚠️ VITE_WS_URL should use https://, not wss://. Socket.IO will handle the protocol.')
+    }
+
+    if (import.meta.env.DEV) {
+      console.log('✅ WebSocket configuration validated', {
+        wsUrl,
+        protocol: wsUrl.startsWith('https://') ? 'HTTPS' : 'Other'
+      })
+    }
+
+    return true
   }
 
   // ✅ Método público para conectar cuando hay token
@@ -32,9 +61,20 @@ class SocketClient {
       return
     }
 
-    console.log('🔗 Establishing WebSocket connection...')
+    // ✅ Validar URL de WebSocket
+    const wsUrl = import.meta.env.VITE_WS_URL
+    if (!wsUrl) {
+      console.error('❌ VITE_WS_URL not configured for WebSocket connection')
+      return
+    }
+
+    console.log('🔗 Establishing WebSocket connection...', {
+      url: wsUrl,
+      hasToken: !!authToken,
+      tokenLength: authToken.length
+    })
     
-    this.socket = io(import.meta.env.VITE_WS_URL || 'http://localhost:8000', {
+    this.socket = io(wsUrl, {
       auth: { token: authToken },
       transports: ['websocket'],
       autoConnect: true,

@@ -2,7 +2,7 @@
 // Manejo del estado de usuario, login, logout y protección de rutas
 import { useReducer, useEffect } from 'react'
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
+import { auth, getFirebaseApp } from '@/lib/firebase'
 import apiClient from '@/services/apiClient'
 import { socketClient } from '@/services/socketClient'
 import {
@@ -25,6 +25,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const perfId = logger.startPerformance('auth_initialization')
       
       logger.info('Initializing authentication...', null, 'auth_init')
+      
+      // ✅ Validar que Firebase esté inicializado correctamente
+      try {
+        const firebaseApp = getFirebaseApp()
+        logger.success('Firebase App initialized successfully', {
+          projectId: firebaseApp.options.projectId,
+          authDomain: firebaseApp.options.authDomain
+        }, 'firebase_init_success')
+      } catch (error) {
+        logger.error('Firebase initialization failed', error, 'firebase_init_error')
+        dispatch({ type: 'AUTH_FAILURE', payload: 'Error de configuración de Firebase' })
+        return
+      }
       
       const token = localStorage.getItem('auth_token')
       const userData = localStorage.getItem('user_data')
@@ -75,6 +88,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const perfId = logger.startPerformance('user_login')
     
     logger.info('Starting login process...', { email }, 'login_start')
+    
+    // ✅ Validar que Firebase Auth esté disponible
+    try {
+      const authInstance = auth
+      if (!authInstance) {
+        throw new Error('Firebase Auth not initialized')
+      }
+      logger.success('Firebase Auth instance available', null, 'firebase_auth_ready')
+    } catch (error) {
+      logger.error('Firebase Auth not available', error, 'firebase_auth_error')
+      throw new Error('Error de configuración de autenticación')
+    }
     
     dispatch({ type: 'AUTH_REQUEST' })
     
@@ -202,7 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 3. Limpiar localStorage y contexto (siempre ejecutar)
     localStorage.removeItem('auth_token')
     localStorage.removeItem('user_data')
-    
+
     // 4. ✅ Desconectar WebSocket
     try {
       socketClient.disconnectSocket()
@@ -210,41 +235,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (socketError) {
       logger.warn('Error disconnecting WebSocket during logout', socketError, 'socket_disconnect_error')
     }
-    
+
     dispatch({ type: 'AUTH_LOGOUT' })
-    
+
     logger.auth('logout', {})
-    
+
     logger.endPerformance(perfId, 'Logout completed')
-    
+
     logger.success('Logout process completed', null, 'logout_complete')
   }
 
+  /**
+   * Actualizar datos del usuario en contexto
+   * Útil para cambios de perfil, roles, etc.
+   */
   const updateUser = (userData: Partial<User>) => {
-    if (state.user) {
-      const updatedUser = { ...state.user, ...userData }
-      localStorage.setItem('user_data', JSON.stringify(updatedUser))
-      dispatch({ type: 'UPDATE_USER', payload: userData })
-      
-      logger.success('User data updated', {
-        userId: updatedUser.id,
-        updatedFields: Object.keys(userData)
-      }, 'user_update')
-    }
+    logger.info('Updating user data in context', userData, 'user_update')
+    
+    dispatch({ type: 'UPDATE_USER', payload: userData })
   }
 
-  const contextValue = {
+  const value = {
     ...state,
     login,
     logout,
     updateUser,
   }
 
-  return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
  
