@@ -141,8 +141,8 @@ export function Inbox({ initialConversationId }: InboxProps = {}) {
           filter={state.filter}
           onFilterChange={handleFilterChange}
         />
-        
-        {conversationsError && (
+
+        {Boolean(conversationsError) && (
           <div className="p-4 text-center text-red-600">
             Error al cargar conversaciones
           </div>
@@ -187,9 +187,9 @@ export function Inbox({ initialConversationId }: InboxProps = {}) {
                 onSendMessage={handleSendMessage}
               />
               
-              {messagesError && (
+              {Boolean(messagesError) && (
                 <div className="p-4 text-center text-red-600">
-                  Error al cargar mensajes: {messagesError instanceof Error ? messagesError.message : JSON.stringify(messagesError)}
+                  Error al cargar mensajes
                 </div>
               )}
             </>
