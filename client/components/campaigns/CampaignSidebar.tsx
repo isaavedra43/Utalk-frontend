@@ -69,7 +69,7 @@ const statusConfig = {
 const channelColors = {
   whatsapp: "text-green-400",
   facebook: "text-blue-400",
-  sms: "text-purple-400",
+  sms: "text-blue-400",
   email: "text-blue-500",
 };
 
@@ -206,7 +206,7 @@ export function CampaignSidebar({
                   className={cn(
                     "bg-gray-800/50 border border-gray-700 rounded-lg p-3 cursor-pointer transition-all duration-200 hover:bg-gray-800/70 hover:border-gray-600",
                     isSelected &&
-                      "border-2 border-purple-500 bg-gray-800/70 shadow-lg shadow-purple-500/10",
+                      "border-2 border-blue-500 bg-gray-800/70 shadow-lg shadow-blue-500/10",
                   )}
                   onClick={() => onSelectCampaign(campaign)}
                 >
@@ -341,9 +341,9 @@ export function CampaignSidebar({
 
                   {/* Selection Indicator */}
                   {isSelected && (
-                    <div className="mt-2 pt-2 border-t border-purple-500/30">
-                      <div className="flex items-center justify-center gap-2 text-purple-400">
-                        <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                    <div className="mt-2 pt-2 border-t border-blue-500/30">
+                      <div className="flex items-center justify-center gap-2 text-blue-400">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                         <span className="text-xs font-medium">
                           Seleccionada
                         </span>

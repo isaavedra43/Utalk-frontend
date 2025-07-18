@@ -1,72 +1,174 @@
-import type { Seller } from "@/types/api";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { KpiGrid } from "./KpiGrid";
 import { TrendCharts } from "./TrendCharts";
-import { PermissionsCard } from "./PermissionsCard";
 import { IaActions } from "./IaActions";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { PermissionsCard } from "./PermissionsCard";
 import { Button } from "@/components/ui/button";
-import { Edit } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Edit, Settings, CheckCircle, XCircle, Mail, User } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { Seller } from "../EquipoPerformance";
 
 interface SellerDetailProps {
   seller: Seller;
+  onEditProfile: () => void;
+  onReassignPermissions: () => void;
 }
 
-export function SellerDetail({ seller }: SellerDetailProps) {
-  const getInitials = (name: string) => (
-    name.split(' ').map(n => n[0]).join('').toUpperCase()
-  );
-
-  const handlePermissionChange = (permission: string, value: boolean) => {
-    console.log(`Permission ${permission} for ${seller.name} changed to ${value}`);
-  };
-
-  const handleToggleEnabled = (enabled: boolean) => {
-    console.log(`Seller ${seller.name} status changed to ${enabled ? 'active' : 'inactive'}`);
+export function SellerDetail({
+  seller,
+  onEditProfile,
+  onReassignPermissions,
+}: SellerDetailProps) {
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n.charAt(0))
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header del Vendedor */}
-      <div className="flex items-center gap-4">
-        <Avatar className="h-20 w-20 border-4 border-gray-700">
-            <AvatarImage src={seller.avatar} alt={seller.name} />
-            <AvatarFallback className="text-2xl bg-gray-600">
-                {getInitials(seller.name)}
-            </AvatarFallback>
-        </Avatar>
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-white">{seller.name}</h1>
-            <Badge className={seller.status === 'active' ? 'bg-green-500' : 'bg-red-500'}>
-              {seller.status}
-            </Badge>
+    <div className="h-full bg-gray-950 overflow-hidden">
+      {/* Profile Header */}
+      <div className="border-b border-gray-800 bg-gray-900/50 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            {/* Large Avatar */}
+            <div className="relative">
+              {seller.avatar ? (
+                <img
+                  src={seller.avatar}
+                  alt={seller.name}
+                  className="w-16 h-16 rounded-full object-cover border-3 border-gray-600"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center border-3 border-gray-600">
+                  <span className="text-white text-lg font-bold">
+                    {getInitials(seller.name)}
+                  </span>
+                </div>
+              )}
+              {/* Status Indicator */}
+              <div
+                className={cn(
+                  "absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-3 border-gray-900 flex items-center justify-center",
+                  seller.status === "active" ? "bg-green-500" : "bg-red-500",
+                )}
+              >
+                {seller.status === "active" ? (
+                  <CheckCircle className="w-3 h-3 text-white" />
+                ) : (
+                  <XCircle className="w-3 h-3 text-white" />
+                )}
+              </div>
+            </div>
+
+            {/* Name and Role */}
+            <div>
+              <h1 className="text-2xl font-bold text-white">{seller.name}</h1>
+              <p className="text-gray-400 text-lg">{seller.role}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <Mail className="h-4 w-4 text-gray-500" />
+                <span className="text-sm text-gray-400">{seller.email}</span>
+              </div>
+            </div>
           </div>
-          <p className="text-lg text-gray-400">{seller.role}</p>
-          <p className="text-sm text-gray-500">{seller.email}</p>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3">
+            <Badge
+              className={cn(
+                "border text-sm px-3 py-1",
+                seller.status === "active"
+                  ? "bg-green-900/20 text-green-400 border-green-500/30"
+                  : "bg-red-900/20 text-red-400 border-red-500/30",
+              )}
+            >
+              {seller.status === "active" ? "Activo" : "Inactivo"}
+            </Badge>
+            <Button
+              onClick={onEditProfile}
+              className="bg-[#377DFF] text-white hover:bg-[#235ECC] active:bg-[#1A47AA] transition-all duration-200 border-none"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Editar Perfil
+            </Button>
+            <Button
+              onClick={onReassignPermissions}
+              className="bg-[#377DFF] text-white hover:bg-[#235ECC] active:bg-[#1A47AA] transition-all duration-200 border-none"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Reasignar Permisos
+            </Button>
+          </div>
         </div>
-        <Button variant="outline" className="ml-auto">
-          <Edit className="h-4 w-4 mr-2" />
-          Editar Perfil
-        </Button>
       </div>
 
-      {/* Grilla de KPIs */}
-      <KpiGrid seller={seller} />
+      {/* Content Area */}
+      <div
+        className="overflow-y-auto overflow-x-hidden h-[calc(100%-140px)]"
+        style={{
+          boxSizing: "border-box",
+        }}
+      >
+        <div
+          className="p-6 space-y-6"
+          style={{
+            paddingBottom: "24px",
+            boxSizing: "border-box",
+          }}
+        >
+          {/* Permissions Section */}
+          <PermissionsCard
+            seller={seller}
+            onPermissionChange={(permission, value) =>
+              console.log(`Permission ${permission} changed to ${value}`)
+            }
+            onToggleEnabled={(enabled) =>
+              console.log(`Seller enabled: ${enabled}`)
+            }
+          />
 
-      {/* Gráficos de Tendencias */}
-      <TrendCharts seller={seller} />
+          {/* KPIs Grid Section */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-white">
+                KPIs de Rendimiento
+              </h2>
+              <Badge className="bg-gray-700 text-gray-300 text-xs">
+                20 indicadores
+              </Badge>
+            </div>
+            <KpiGrid seller={seller} />
+          </div>
 
-      {/* Permisos */}
-      <PermissionsCard 
-        seller={seller}
-        onPermissionChange={handlePermissionChange}
-        onToggleEnabled={handleToggleEnabled}
-      />
-      
-      {/* Acciones de IA */}
-      <IaActions seller={seller} />
+          {/* Trend Charts Section */}
+          <div>
+            <h2 className="text-xl font-semibold text-white mb-4">
+              Gráficos de Tendencia
+            </h2>
+            <TrendCharts seller={seller} />
+          </div>
 
+          {/* AI Actions Section */}
+          <div>
+            <h2 className="text-xl font-semibold text-white mb-4">
+              Acciones IA
+            </h2>
+            <IaActions
+              seller={seller}
+              onSuggestImprovement={() =>
+                console.log(`Suggest improvement for ${seller.name}`)
+              }
+              onSendReminder={() =>
+                console.log(`Send reminder to ${seller.name}`)
+              }
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

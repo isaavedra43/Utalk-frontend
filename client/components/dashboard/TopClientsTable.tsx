@@ -55,7 +55,7 @@ const channelColors = {
   whatsapp: "text-green-400 bg-green-900/20 border-green-500/30",
   facebook: "text-blue-400 bg-blue-900/20 border-blue-500/30",
   email: "text-blue-400 bg-blue-900/20 border-blue-500/30",
-  sms: "text-purple-400 bg-purple-900/20 border-purple-500/30",
+  sms: "text-blue-400 bg-blue-900/20 border-blue-500/30",
 };
 
 const channelNames = {

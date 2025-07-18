@@ -30,7 +30,7 @@ const channelColors = {
   instagram: "text-pink-400",
   telegram: "text-blue-500",
   email: "text-blue-400",
-  sms: "text-purple-400",
+  sms: "text-blue-400",
 };
 
 const channelNames = {
@@ -78,7 +78,7 @@ export function ConversationList({
       >
         <div className="mobile-conversation-carousel">
           {conversations.map((conversation) => {
-            const ChannelIcon = channelIcons['whatsapp'];
+            const ChannelIcon = channelIcons[conversation.channel];
             const isSelected = selectedConversationId === conversation.id;
 
             return (
@@ -110,7 +110,7 @@ export function ConversationList({
                       <ChannelIcon
                         className={cn(
                           "w-2.5 h-2.5",
-                          channelColors['whatsapp'],
+                          channelColors[conversation.channel],
                         )}
                       />
                     </div>
@@ -123,15 +123,14 @@ export function ConversationList({
                       {conversation.lastMessage}
                     </p>
                     <div className="flex items-center justify-between mt-1">
-                      <Badge
-                        variant="secondary"
+                      <span
                         className={cn(
                           "text-xs",
-                          channelColors['whatsapp'],
+                          channelColors[conversation.channel],
                         )}
                       >
-                        WhatsApp
-                      </Badge>
+                        {channelNames[conversation.channel]}
+                      </span>
                       <span className="text-xs text-gray-500">
                         {conversation.timestamp}
                       </span>
@@ -168,7 +167,7 @@ export function ConversationList({
             </div>
           ) : (
             conversations.map((conversation) => {
-              const ChannelIcon = channelIcons['whatsapp'];
+              const ChannelIcon = channelIcons[conversation.channel];
               const isSelected = selectedConversationId === conversation.id;
 
               return (
@@ -191,9 +190,9 @@ export function ConversationList({
                   {/* Top row - Section and timestamp */}
                   {!hideSection && (
                     <div className="flex justify-between items-center mb-2">
-                      <div className="text-xs text-gray-400 flex items-center gap-2">
-                        General
-                      </div>
+                      <span className="text-sm text-[#AAA]">
+                        {conversation.section}
+                      </span>
                       <span className="text-sm text-[#CCC]">
                         {conversation.timestamp}
                       </span>
@@ -223,7 +222,7 @@ export function ConversationList({
                         <ChannelIcon
                           className={cn(
                             "w-2.5 h-2.5",
-                            channelColors['whatsapp'],
+                            channelColors[conversation.channel],
                           )}
                         />
                       </div>
@@ -234,15 +233,14 @@ export function ConversationList({
                       <h3 className="text-white text-base font-medium truncate">
                         {conversation.contactName}
                       </h3>
-                      <Badge
-                        variant="secondary"
+                      <p
                         className={cn(
-                          "text-xs",
-                          channelColors['whatsapp'],
+                          "text-xs font-medium truncate",
+                          channelColors[conversation.channel],
                         )}
                       >
-                        WhatsApp
-                      </Badge>
+                        {channelNames[conversation.channel]}
+                      </p>
                     </div>
 
                     {/* Unread indicator */}

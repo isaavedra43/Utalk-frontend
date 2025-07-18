@@ -48,14 +48,6 @@ export function SettingCard({
   min,
   max,
 }: SettingCardProps) {
-  // Helper function to get display text from option
-  const getOptionLabel = (option: string | { key: string; label: string }) => {
-    return typeof option === 'string' ? option : option.label;
-  };
-
-  const getOptionKey = (option: string | { key: string; label: string }) => {
-    return typeof option === 'string' ? option : option.key;
-  };
   const [error, setError] = useState<string | null>(null);
   const [isValid, setIsValid] = useState(true);
 
@@ -114,7 +106,7 @@ export function SettingCard({
                   value === options[0] ? "text-white" : "text-gray-500",
                 )}
               >
-                {getOptionLabel(options[0])}
+                {options[0]}
               </span>
               <Switch
                 checked={value === options[1]}
@@ -129,7 +121,7 @@ export function SettingCard({
                   value === options[1] ? "text-white" : "text-gray-500",
                 )}
               >
-                {getOptionLabel(options[1])}
+                {options[1]}
               </span>
             </div>
           );

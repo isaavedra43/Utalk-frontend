@@ -25,11 +25,11 @@ const colorVariants = {
     border: "border-green-500/30",
     trend: "text-green-400",
   },
-  purple: {
-    icon: "text-purple-400",
-    bg: "bg-purple-900/20",
-    border: "border-purple-500/30",
-    trend: "text-purple-400",
+  blue: {
+    icon: "text-blue-400",
+    bg: "bg-blue-900/20",
+    border: "border-blue-500/30",
+    trend: "text-blue-400",
   },
   yellow: {
     icon: "text-yellow-400",

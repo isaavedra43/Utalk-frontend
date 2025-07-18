@@ -403,7 +403,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-6 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 text-xs rounded px-1"
+                          className="h-6 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-xs rounded px-1"
                         >
                           <Video className="h-2 w-2" />
                         </Button>
@@ -440,7 +440,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
               </CardHeader>
               <CardContent className="space-y-2 p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center border border-gray-600/30 flex-shrink-0">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center border border-gray-600/30 flex-shrink-0">
                     <span className="text-xs font-bold text-white">
                       {clientData.name
                         .split(" ")
@@ -509,7 +509,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                       setIsEditingNotes(!isEditingNotes);
                       if (!isEditingNotes) setNewNote(clientNotes);
                     }}
-                    className="text-xs bg-[#7C3AED]/20 hover:bg-[#7C3AED]/30 border border-[#7C3AED]/30 text-[#E4E4E7] hover:text-white px-2 py-0.5 rounded transition-all duration-200"
+                    className="text-xs bg-[#377DFF]/20 hover:bg-[#377DFF]/30 border border-[#377DFF]/30 text-[#E4E4E7] hover:text-white px-2 py-0.5 rounded transition-all duration-200"
                   >
                     {isEditingNotes ? "Cancelar" : "Editar"}
                   </Button>
@@ -558,9 +558,9 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
             >
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs text-[#E4E4E7] flex items-center gap-2">
-                  <Tag className="h-3 w-3 text-purple-400" />
+                  <Tag className="h-3 w-3 text-blue-400" />
                   Etiquetas
-                  <Badge className="bg-purple-600/20 border border-purple-500/30 text-purple-300 text-xs rounded-full">
+                  <Badge className="bg-blue-600/20 border border-blue-500/30 text-blue-300 text-xs rounded-full">
                     {clientTags.length}
                   </Badge>
                 </CardTitle>
@@ -602,7 +602,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                       size="sm"
                       onClick={addTag}
                       disabled={!newTag.trim()}
-                      className="bg-purple-600 hover:bg-purple-700 h-6 px-2"
+                      className="bg-blue-600 hover:bg-blue-700 h-6 px-2"
                     >
                       <Plus className="h-2 w-2" />
                     </Button>
@@ -638,7 +638,7 @@ export function ClientInfoPanel({ className }: ClientInfoPanelProps) {
                           {file.type === "PDF" ? (
                             <File className="h-4 w-4 text-red-400" />
                           ) : file.type === "Video" ? (
-                            <Video className="h-4 w-4 text-purple-400" />
+                            <Video className="h-4 w-4 text-blue-400" />
                           ) : (
                             <ImageIcon className="h-4 w-4 text-blue-400" />
                           )}

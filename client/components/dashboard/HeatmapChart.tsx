@@ -1,12 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Info, HelpCircle } from "lucide-react";
+import { Calendar, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 interface HeatmapChartProps {
   data: number[]; // 24 hours of data
@@ -30,29 +24,17 @@ export function HeatmapChart({ data, title }: HeatmapChartProps) {
   const maxValue = Math.max(...data);
   const minValue = Math.min(...data);
 
-  const tooltipContent = "Densidad de mensajes recibidos/enviados por hora";
-
   return (
     <Card className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-all duration-300">
       <CardHeader className="pb-3">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-lg font-semibold text-white">
-            {title}
-          </CardTitle>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <HelpCircle
-                  className="h-4 w-4 text-gray-400 cursor-help"
-                  aria-label={tooltipContent}
-                />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{tooltipContent}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+        <CardTitle className="text-white text-lg font-semibold flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-cyan-400" />
+          {title}
+          <Info
+            className="h-4 w-4 text-gray-500 ml-auto cursor-help"
+            title="Densidad de mensajes recibidos/enviados por hora"
+          />
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {/* Heatmap Grid */}

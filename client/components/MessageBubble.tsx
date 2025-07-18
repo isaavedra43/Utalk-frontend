@@ -15,7 +15,7 @@ interface MessageBubbleProps {
   content: string;
   sender: "agent" | "client";
   timestamp: string;
-  status?: "sent" | "delivered" | "read" | "error";
+  status?: "sent" | "delivered" | "read";
   type?: "text" | "image" | "audio" | "file";
   fileUrl?: string;
   fileName?: string;

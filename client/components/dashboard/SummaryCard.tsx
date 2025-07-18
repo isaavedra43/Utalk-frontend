@@ -46,7 +46,7 @@ export function SummaryCard({ data, onViewDetail }: SummaryCardProps) {
       icon: DollarSign,
       label: "Valor de Ventas Generado",
       value: `$${data.salesValue.toLocaleString()}`,
-      color: "text-purple-400",
+      color: "text-blue-400",
     },
     {
       icon: Star,

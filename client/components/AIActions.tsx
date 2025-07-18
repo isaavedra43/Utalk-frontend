@@ -58,8 +58,8 @@ export function AIActions({
       label: "AI Score",
       icon: BarChart3,
       description: "Classify lead potential",
-      color: "text-purple-400 hover:text-purple-300",
-      bgColor: "hover:bg-purple-500/10",
+      color: "text-blue-400 hover:text-blue-300",
+      bgColor: "hover:bg-blue-500/10",
       requiresSelection: true,
     },
     {

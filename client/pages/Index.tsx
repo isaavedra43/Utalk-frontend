@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { logger } from "@/lib/utils";
+import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { MessagesSidebar } from "@/components/MessagesSidebar";
 import { InboxSidebar } from "@/components/InboxSidebar";
+import { ChatListColumn } from "@/components/ChatListColumn";
+import { ChatView } from "@/components/ChatView";
+import { InboxList } from "@/components/InboxList";
 import { ChatThread } from "@/components/ChatThread";
-import CustomerHub from "@/components/CustomerHub";
+import { CustomerHub } from "@/components/CustomerHub";
 import { ExecutiveDashboard } from "@/components/ExecutiveDashboard";
 import { EquipoPerformance } from "@/components/EquipoPerformance";
 import { CampaignModule } from "@/components/CampaignModule";
@@ -30,10 +31,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ConnectionStatus } from "@/components/ConnectionStatus";
 
 export default function Index() {
-  const isMobile = useIsMobile();
   const [selectedChatId, setSelectedChatId] = useState<string | undefined>("1");
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | undefined
@@ -47,178 +46,52 @@ export default function Index() {
   const [clientInfoVisible, setClientInfoVisible] = useState(false);
   const [selectedSection, setSelectedSection] = useState<string | null>("all");
 
-  // Log de inicialización del componente principal
-  useEffect(() => {
-    logger.navigation('Página principal inicializada', {
-      isMobile,
-      activeModule,
-      selectedChatId,
-      selectedConversationId,
-      timestamp: new Date().toISOString()
-    });
-  }, []);
-
-  // Log de cambios en el dispositivo móvil
-  useEffect(() => {
-    logger.navigation('Dispositivo móvil detectado', { isMobile });
-  }, [isMobile]);
-
-  // Log de cambios en el módulo activo
-  useEffect(() => {
-    logger.router('Módulo activo cambiado', {
-      previousModule: activeModule,
-      newModule: activeModule,
-      isMobile,
-      timestamp: new Date().toISOString()
-    });
-  }, [activeModule]);
-
   const handleChatSelect = (chatId: string) => {
-    logger.messages('Chat seleccionado', {
-      chatId,
-      previousChatId: selectedChatId,
-      isMobile
-    });
-    
     setSelectedChatId(chatId);
-    
     // Close mobile menu when chat is selected
-    if (isMobile) {
+    if (window.innerWidth < 1024) {
       setIsMobileMenuOpen(false);
-      logger.navigation('Menú móvil cerrado automáticamente tras selección de chat');
     }
   };
 
   const handleConversationSelect = (conversationId: string) => {
-    logger.messages('Conversación seleccionada', {
-      conversationId,
-      previousConversationId: selectedConversationId
-    });
-    
     setSelectedConversationId(conversationId);
   };
 
   const handleModuleChange = (module: string) => {
-    logger.router('Navegando a módulo', {
-      fromModule: activeModule,
-      toModule: module,
-      isMobile,
-      timestamp: new Date().toISOString()
-    });
-    
     setActiveModule(module);
-    
-    // Log específico del módulo al que se navega
-    switch (module) {
-      case 'messages':
-        logger.messages('Accediendo al módulo de mensajería');
-        break;
-      case 'dashboard':
-        logger.navigation('Accediendo al dashboard ejecutivo');
-        break;
-      case 'crm':
-        logger.navigation('Accediendo al hub de clientes');
-        break;
-      case 'team':
-        logger.navigation('Accediendo a rendimiento del equipo');
-        break;
-      case 'campaigns':
-        logger.navigation('Accediendo al módulo de campañas');
-        break;
-      case 'knowledge':
-        logger.navigation('Accediendo a la base de conocimiento');
-        break;
-      case 'collaboration':
-        logger.navigation('Accediendo a colaboración en tiempo real');
-        break;
-      case 'settings':
-        logger.navigation('Accediendo a configuración');
-        break;
-      default:
-        logger.navigation('Navegando a módulo desconocido', { module }, true);
-    }
+    console.log(`Navigating to ${module} module`);
   };
 
   const handleSectionSelect = (sectionId: string) => {
-    logger.navigation('Sección seleccionada', {
-      sectionId,
-      previousSection: selectedSection,
-      activeModule
-    });
-    
     setSelectedSection(sectionId);
+    console.log(`Selected section: ${sectionId}`);
   };
-
-  const handleMobileMenuToggle = () => {
-    const newState = !isMobileMenuOpen;
-    logger.navigation('Toggle menú móvil', {
-      isOpen: newState,
-      activeModule
-    });
-    
-    setIsMobileMenuOpen(newState);
-  };
-
-  const handlePanelToggle = (panelType: string, newState: boolean) => {
-    logger.navigation('Toggle panel', {
-      panelType,
-      newState,
-      activeModule
-    });
-  };
-
-  // Log de cambios en el estado de los paneles
-  useEffect(() => {
-    logger.navigation('Estado de paneles actualizado', {
-      leftPanelVisible,
-      rightPanelVisible,
-      aiPanelVisible,
-      clientInfoVisible,
-      inboxVisible
-    });
-  }, [leftPanelVisible, rightPanelVisible, aiPanelVisible, clientInfoVisible, inboxVisible]);
 
   return (
     <div className="h-screen bg-[#121214] text-white overflow-hidden">
-      {/* Mobile header - Responsive design */}
-      <div className="lg:hidden flex items-center justify-between p-3 sm:p-4 border-b border-gray-800 bg-gray-900">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <h1 className="text-base sm:text-lg font-semibold truncate">UNIK AI</h1>
+      {/* Mobile header */}
+      <div className="lg:hidden flex items-center justify-between p-3 border-b border-gray-800 bg-gray-900">
+        <div className="flex items-center gap-2">
+          <h1 className="text-base font-semibold">UNIK AI</h1>
           {activeModule === "messages" && selectedChatId && (
-            <Badge className="bg-blue-600 text-white text-xs sm:text-sm flex-shrink-0">
-              {isMobile ? "Chat" : "Chat activo"}
+            <Badge className="bg-blue-600 text-white text-xs">
+              Chat activo
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Module indicator for small screens */}
-          <div className="hidden sm:block">
-            <Badge variant="outline" className="text-xs text-gray-400 border-gray-600">
-              {activeModule === "messages" ? "Mensajes" : 
-               activeModule === "dashboard" ? "Dashboard" :
-               activeModule === "crm" ? "CRM" :
-               activeModule === "team" ? "Equipo" :
-               activeModule === "campaigns" ? "Campañas" :
-               activeModule}
-            </Badge>
-          </div>
-          
-          {/* 🔌 ESTADO DE CONEXIÓN Socket.io */}
-          <ConnectionStatus className="hidden lg:flex" />
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleMobileMenuToggle}
-            className="text-gray-400 hover:text-white p-2 h-9 w-9"
-          >
-            {isMobileMenuOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Menu className="h-5 w-5" />
-            )}
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="text-gray-400 hover:text-white p-2"
+        >
+          {isMobileMenuOpen ? (
+            <X className="h-5 w-5" />
+          ) : (
+            <Menu className="h-5 w-5" />
+          )}
+        </Button>
       </div>
 
       {/* Main layout */}
@@ -234,16 +107,12 @@ export default function Index() {
           <Sidebar
             activeModule={activeModule}
             onModuleChange={handleModuleChange}
-            onTogglePanel={() => {
-              const newState = !leftPanelVisible;
-              setLeftPanelVisible(newState);
-              handlePanelToggle('left', newState);
-            }}
+            onTogglePanel={() => setLeftPanelVisible(!leftPanelVisible)}
             className="h-full"
           />
         </div>
 
-        {/* Mobile Navigation Panel - Responsive */}
+        {/* Mobile Navigation Panel */}
         <div
           className={cn(
             "lg:hidden fixed inset-0 z-40 bg-gray-900 transform transition-transform duration-300 ease-in-out",
@@ -252,8 +121,8 @@ export default function Index() {
           style={{ top: "64px" }}
         >
           <div className="h-full flex">
-            {/* Mobile Sidebar - Responsive width */}
-            <div className="w-20 sm:w-24 flex-shrink-0 border-r border-gray-800">
+            {/* Mobile Sidebar - 1/3 width */}
+            <div className="w-1/3 border-r border-gray-800">
               <Sidebar
                 activeModule={activeModule}
                 onModuleChange={(module) => {
@@ -266,10 +135,15 @@ export default function Index() {
             {/* Mobile Chat List - 2/3 width, only show in messages module */}
             {activeModule === "messages" && (
               <div className="flex-1">
-                <div className="h-full bg-gray-800 p-4">
-                  <h2 className="text-white text-lg font-semibold mb-4">Mensajes</h2>
-                  <div className="text-gray-400">Lista de conversaciones</div>
-                </div>
+                <ChatListColumn
+                  selectedChatId={selectedChatId}
+                  onChatSelect={(chatId) => {
+                    handleChatSelect(chatId);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  selectedSection={selectedSection}
+                  className="h-full"
+                />
               </div>
             )}
 
@@ -305,10 +179,7 @@ export default function Index() {
           <div
             className="lg:hidden fixed inset-0 bg-black/50 z-30"
             style={{ top: "64px" }}
-            onClick={() => {
-              logger.navigation('Overlay clickeado - cerrando menú móvil');
-              setIsMobileMenuOpen(false);
-            }}
+            onClick={() => setIsMobileMenuOpen(false)}
           />
         )}
 
@@ -324,7 +195,18 @@ export default function Index() {
                   <div className="h-full flex flex-col">
                     {/* Mobile Chat View */}
                     <div className="flex-1">
-                      <ChatThread conversationId={selectedConversationId} />
+                      <ChatView
+                        chatId={selectedChatId}
+                        onShowAI={() => setRightPanelVisible(true)}
+                        onShowClientInfo={() => {
+                          setRightPanelVisible(true);
+                          setClientInfoVisible(true);
+                          setAiPanelVisible(false);
+                        }}
+                        onToggleRightPanel={() =>
+                          setRightPanelVisible(!rightPanelVisible)
+                        }
+                      />
                     </div>
 
                     {/* Mobile AI/Client Panel Overlay */}
@@ -339,7 +221,6 @@ export default function Index() {
                               size="sm"
                               variant={aiPanelVisible ? "default" : "ghost"}
                               onClick={() => {
-                                logger.navigation('Cambiando a panel de IA en móvil');
                                 setAiPanelVisible(true);
                                 setClientInfoVisible(false);
                               }}
@@ -357,7 +238,6 @@ export default function Index() {
                               size="sm"
                               variant={clientInfoVisible ? "default" : "ghost"}
                               onClick={() => {
-                                logger.navigation('Cambiando a panel de cliente en móvil');
                                 setClientInfoVisible(true);
                                 setAiPanelVisible(false);
                               }}
@@ -374,10 +254,7 @@ export default function Index() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => {
-                                logger.navigation('Cerrando panel lateral en móvil');
-                                setRightPanelVisible(false);
-                              }}
+                              onClick={() => setRightPanelVisible(false)}
                               className="w-12 h-12 text-gray-400 hover:text-white"
                             >
                               <X className="w-4 h-4" />
@@ -398,19 +275,19 @@ export default function Index() {
                       <InboxSidebar
                         onSectionSelect={handleSectionSelect}
                         selectedSection={selectedSection}
-                        onTogglePanels={() => {
-                          const newState = !leftPanelVisible;
-                          setLeftPanelVisible(newState);
-                          handlePanelToggle('left', newState);
-                        }}
+                        onTogglePanels={() =>
+                          setLeftPanelVisible(!leftPanelVisible)
+                        }
                         className="h-full"
                       />
                     </div>
                     <div className="flex-1">
-                      <div className="h-full bg-gray-800 p-4">
-                        <h2 className="text-white text-lg font-semibold mb-4">Mensajes</h2>
-                        <div className="text-gray-400">Lista de conversaciones</div>
-                      </div>
+                      <ChatListColumn
+                        selectedChatId={selectedChatId}
+                        onChatSelect={handleChatSelect}
+                        selectedSection={selectedSection}
+                        className="h-full"
+                      />
                     </div>
                   </div>
                 )}
@@ -429,24 +306,33 @@ export default function Index() {
                   minWidth: "960px",
                 }}
               >
-
+                {/* Responsive media queries for smaller screens */}
+                <style jsx>{`
+                  @media (max-width: 1200px) {
+                    .sidebar-collapsed {
+                      width: 64px;
+                    }
+                  }
+                  @media (max-width: 960px) {
+                    .desktop-layout {
+                      display: none !important;
+                    }
+                    .mobile-layout {
+                      display: flex !important;
+                    }
+                  }
+                `}</style>
                 {/* Column 1: Inbox List */}
                 <div className="min-w-0">
-                  <div className="h-full bg-gray-800 p-4">
-                    <h2 className="text-white text-lg font-semibold mb-4">Bandeja de Entrada</h2>
-                    <div className="text-gray-400">Lista de conversaciones</div>
-                  </div>
+                  <InboxList
+                    selectedConversationId={selectedConversationId}
+                    onConversationSelect={handleConversationSelect}
+                  />
                 </div>
 
-                {/* Column 2: Chat View */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    <div className="text-center">
-                      <div className="text-4xl mb-4">💬</div>
-                      <h3 className="text-lg font-medium mb-2">Selecciona una conversación</h3>
-                      <p className="text-sm">Elige una conversación de la lista para comenzar a chatear</p>
-                    </div>
-                  </div>
+                {/* Column 2: Chat Thread */}
+                <div className="min-w-0">
+                  <ChatThread conversationId={selectedConversationId} />
                 </div>
 
                 {/* Column 3: AI Assistant / Client Info Panel (unchanged) */}
@@ -456,7 +342,6 @@ export default function Index() {
                     <div className="flex" style={{ marginBottom: "0" }}>
                       <button
                         onClick={() => {
-                          logger.navigation('Cambiando a panel de IA en desktop');
                           setAiPanelVisible(true);
                           setClientInfoVisible(false);
                         }}
@@ -469,7 +354,7 @@ export default function Index() {
                         style={
                           aiPanelVisible
                             ? {
-                                background: "#1E1B2D",
+                                background: "#1E2A3A",
                                 color: "#E4E4E7",
                                 borderTopLeftRadius: "12px",
                                 borderTopRightRadius: !clientInfoVisible
@@ -477,7 +362,7 @@ export default function Index() {
                                   : "0",
                               }
                             : {
-                                background: "#1E1B2D",
+                                background: "#1E2A3A",
                                 color: "#6B7280",
                                 borderTopLeftRadius: "12px",
                               }
@@ -488,7 +373,6 @@ export default function Index() {
                       </button>
                       <button
                         onClick={() => {
-                          logger.navigation('Cambiando a panel de cliente en desktop');
                           setClientInfoVisible(true);
                           setAiPanelVisible(false);
                         }}
@@ -501,7 +385,7 @@ export default function Index() {
                         style={
                           clientInfoVisible
                             ? {
-                                background: "#1E1B2D",
+                                background: "#1E2A3A",
                                 color: "#E4E4E7",
                                 borderTopRightRadius: "12px",
                                 borderTopLeftRadius: !aiPanelVisible
@@ -509,7 +393,7 @@ export default function Index() {
                                   : "0",
                               }
                             : {
-                                background: "#1E1B2D",
+                                background: "#1E2A3A",
                                 color: "#6B7280",
                                 borderTopRightRadius: "12px",
                               }

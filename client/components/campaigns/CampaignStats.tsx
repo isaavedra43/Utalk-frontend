@@ -71,9 +71,9 @@ export function CampaignStats({ campaign }: CampaignStatsProps) {
       value: stats.opened,
       format: "number",
       icon: Eye,
-      color: "text-purple-400",
-      bgColor: "bg-purple-900/20",
-      borderColor: "border-purple-500/30",
+      color: "text-blue-400",
+      bgColor: "bg-blue-900/20",
+      borderColor: "border-blue-500/30",
       change: 15.7,
     },
     {
@@ -186,7 +186,7 @@ export function CampaignStats({ campaign }: CampaignStatsProps) {
       <div className="border-b border-gray-800 bg-gray-900/50 p-4">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-purple-400" />
+            <BarChart3 className="h-5 w-5 text-blue-400" />
             Estadísticas de Campaña
           </h3>
           <div className="flex items-center gap-2">
@@ -381,7 +381,7 @@ export function CampaignStats({ campaign }: CampaignStatsProps) {
                             <p className="text-gray-400">Abiertos</p>
                           </div>
                           <div>
-                            <p className="text-purple-400 font-bold">
+                            <p className="text-blue-400 font-bold">
                               {(data.opened * 0.18).toFixed(0)}
                             </p>
                             <p className="text-gray-400">Clics</p>
@@ -423,14 +423,14 @@ export function CampaignStats({ campaign }: CampaignStatsProps) {
             </div>
 
             {/* Performance Summary */}
-            <Card className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 border-purple-500/30">
+            <Card className="bg-gradient-to-r from-blue-900/20 to-blue-900/20 border-blue-500/30">
               <CardContent className="p-6">
                 <h4 className="text-lg font-semibold text-white mb-4">
                   Resumen de Rendimiento
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                   <div>
-                    <p className="text-3xl font-bold text-purple-400">
+                    <p className="text-3xl font-bold text-blue-400">
                       {((stats.delivered / stats.sent) * 100).toFixed(1)}%
                     </p>
                     <p className="text-sm text-gray-300">Tasa de Entrega</p>

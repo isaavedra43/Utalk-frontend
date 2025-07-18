@@ -1,42 +1,35 @@
-import { defineConfig } from "vite";
+import { defineConfig, Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { createServer } from "./server";
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   server: {
-    host: "localhost",
-    port: 5173,
+    host: "::",
+    port: 8080,
   },
   build: {
-    outDir: "dist",
-    sourcemap: true,
-    // Optimizaciones para SPA
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          router: ['react-router-dom'],
-          tanstack: ['@tanstack/react-query'],
-          lucide: ['lucide-react'],
-        },
-      },
-    },
-    // Configuración para SPA
-    assetsInlineLimit: 4096,
-    chunkSizeWarningLimit: 1000,
+    outDir: "dist/spa",
   },
-  plugins: [react()],
+  plugins: [react(), expressPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./client"),
+      "@shared": path.resolve(__dirname, "./shared"),
     },
   },
-  envPrefix: "VITE_",
-  // Configuración base para SPA
-  base: "/",
-  // Optimizaciones para producción
-  define: {
-    __DEV__: JSON.stringify(process.env.NODE_ENV === 'development'),
-  },
-});
+}));
+
+function expressPlugin(): Plugin {
+  return {
+    name: "express-plugin",
+    apply: "serve", // Only apply during development (serve mode)
+    configureServer(server) {
+      const app = createServer();
+
+      // Add Express app as middleware to Vite dev server
+      server.middlewares.use(app);
+    },
+  };
+}

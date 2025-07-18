@@ -6,6 +6,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -17,6 +18,7 @@ import {
   Megaphone,
   BookOpen,
   Video,
+  LogOut,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -96,6 +98,8 @@ export function Sidebar({
   onTogglePanel,
   className,
 }: SidebarProps) {
+  const { user, logout } = useAuth();
+
   const handleModuleClick = (moduleId: string) => {
     onModuleChange?.(moduleId);
   };
@@ -103,7 +107,7 @@ export function Sidebar({
   return (
     <div
       className={cn(
-        "h-full bg-[#1E1B2D] border-r border-gray-700/50 flex flex-col transition-all duration-300 ease-in-out w-16",
+        "h-full bg-[#1E2A3A] border-r border-gray-700/50 flex flex-col transition-all duration-300 ease-in-out w-16",
         className,
       )}
     >
@@ -149,13 +153,13 @@ export function Sidebar({
                     className={cn(
                       "w-full h-12 justify-center p-0 transition-all duration-200 relative group rounded-xl text-sm",
                       isActive
-                        ? "bg-[#7C3AED]/20 border border-[#7C3AED]/30 text-[#E4E4E7]"
-                        : "text-[#E4E4E7] hover:text-white hover:bg-[#2A2640] border border-transparent hover:border-gray-600/30",
+                        ? "bg-[#377DFF]/20 border border-[#377DFF]/30 text-[#E4E4E7]"
+                        : "text-[#E4E4E7] hover:text-white hover:bg-[#235ECC]/30 border border-transparent hover:border-gray-600/30",
                     )}
                   >
                     {/* Active indicator dot */}
                     {isActive && (
-                      <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-6 bg-[#7C3AED] rounded-l-full" />
+                      <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-6 bg-[#377DFF] rounded-l-full" />
                     )}
 
                     <Icon
@@ -183,17 +187,20 @@ export function Sidebar({
       {/* Separator */}
       <div className="border-t border-gray-700/50 mx-3" />
 
-      {/* Bottom Section - Settings/Profile */}
-      <div className="p-2">
+      {/* Bottom Section - Settings/Profile/Logout */}
+      <div className="p-2 space-y-2">
         <TooltipProvider>
+          {/* User Profile */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
-                className="w-full h-12 justify-center p-0 text-[#E4E4E7] hover:text-white hover:bg-[#2A2640] border border-transparent hover:border-gray-600/30 rounded-xl transition-all duration-200"
+                className="w-full h-12 justify-center p-0 text-[#E4E4E7] hover:text-white hover:bg-[#235ECC]/30 border border-transparent hover:border-gray-600/30 rounded-xl transition-all duration-200"
               >
                 <div className="w-6 h-6 bg-gradient-to-br from-gray-600 to-gray-700 rounded-full flex items-center justify-center shadow-sm">
-                  <span className="text-xs font-medium text-white">IS</span>
+                  <span className="text-xs font-medium text-white">
+                    {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                  </span>
                 </div>
               </Button>
             </TooltipTrigger>
@@ -202,9 +209,30 @@ export function Sidebar({
               className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg"
             >
               <div>
-                <div className="font-medium">Israel S.</div>
-                <div className="text-xs text-gray-400">Admin</div>
+                <div className="font-medium">{user?.name || "Usuario"}</div>
+                <div className="text-xs text-gray-400">
+                  {user?.role || "user"}
+                </div>
               </div>
+            </TooltipContent>
+          </Tooltip>
+
+          {/* Logout Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                onClick={logout}
+                className="w-full h-12 justify-center p-0 text-[#E4E4E7] hover:text-red-400 hover:bg-red-500/20 border border-transparent hover:border-red-500/30 rounded-xl transition-all duration-200"
+              >
+                <LogOut className="w-5 h-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent
+              side="right"
+              className="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg"
+            >
+              Cerrar sesión
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

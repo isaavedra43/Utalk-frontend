@@ -141,22 +141,22 @@ export function CampaignPreview({ campaign }: CampaignPreviewProps) {
     <div className="bg-gray-800 rounded-lg p-4 max-w-sm mx-auto">
       {/* SMS Header */}
       <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-700">
-        <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
           <Smartphone className="h-5 w-5 text-white" />
         </div>
         <div>
           <p className="text-white font-medium text-sm">SMS</p>
-          <p className="text-purple-400 text-xs">+52 555 123 4567</p>
+          <p className="text-blue-400 text-xs">+52 555 123 4567</p>
         </div>
       </div>
 
       {/* SMS Bubble */}
-      <div className="bg-purple-600 rounded-lg p-3">
+      <div className="bg-blue-600 rounded-lg p-3">
         <p className="text-white text-sm whitespace-pre-line">
           {mockMessage.text.replace("{{firstName}}", "María").substring(0, 160)}
           ...
         </p>
-        <p className="text-xs text-purple-200 mt-2 text-right">12:34</p>
+        <p className="text-xs text-blue-200 mt-2 text-right">12:34</p>
       </div>
 
       <p className="text-xs text-gray-400 mt-2 text-center">
@@ -221,12 +221,12 @@ export function CampaignPreview({ campaign }: CampaignPreviewProps) {
       <div className="border-b border-gray-800 bg-gray-900/50 p-4">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <Eye className="h-5 w-5 text-purple-400" />
+            <Eye className="h-5 w-5 text-blue-400" />
             Vista Previa
           </h3>
           <Button
             size="sm"
-            className="bg-purple-600 text-white hover:bg-purple-700"
+            className="bg-blue-600 text-white hover:bg-blue-700"
             onClick={() => console.log("{{editMessage}}")}
           >
             <Edit className="h-4 w-4 mr-1" />
@@ -257,7 +257,7 @@ export function CampaignPreview({ campaign }: CampaignPreviewProps) {
                 <TabsTrigger
                   key={channel}
                   value={channel}
-                  className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+                  className="data-[state=active]:bg-blue-600 data-[state=active]:text-white"
                 >
                   <Icon className="h-4 w-4 mr-1" />
                   {config.label}

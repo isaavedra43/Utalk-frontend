@@ -1,133 +1,300 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { PerformanceKPIs } from "./PerformanceKPIs";
+import { ContactTable } from "./ContactTable";
+import { ContactCards } from "./ContactCards";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Search, PlusCircle, Filter } from "lucide-react";
-import { ContactForm } from "./ContactForm"; 
-import { useContacts, useDeleteContact } from "@/hooks/useContacts";
-import { useDebounce } from "@/hooks/useDebounce";
-import type { Contact } from "@/types/api";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { Table, Grid3X3, Plus, Filter, Download, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export default function CustomerHub({ className }: { className?: string }) {
+export interface Contact {
+  id: string;
+  owner: string;
+  name: string;
+  email: string;
+  phone: string;
+  status: "new-lead" | "hot-lead" | "payment" | "customer";
+  lastMessage: string;
+  timestamp: string;
+  date: string;
+  channel: "whatsapp" | "email" | "sms" | "facebook" | "instagram";
+  section: string;
+  isUnread: boolean;
+  avatarUrl?: string;
+  sentiment?: "positive" | "negative" | "neutral";
+  aiScore?: number;
+}
+
+// Mock data
+const mockContacts: Contact[] = [
+  {
+    id: "1",
+    owner: "María García",
+    name: "Israel Saavedra",
+    email: "israel@example.com",
+    phone: "+52 555 123 4567",
+    status: "new-lead",
+    lastMessage: "Hola, ¿cómo está el estado de mi pedido #AL-2024-0123?",
+    timestamp: "12:14 PM",
+    date: "2024-01-15",
+    channel: "facebook",
+    section: "New Lead",
+    isUnread: true,
+    sentiment: "neutral",
+    aiScore: 75,
+    avatarUrl:
+      "https://cdn.builder.io/api/v1/image/assets%2F2d1f4aff150c46d2aa10d890d5bc0fca%2Fac493c187ef4459383661e17488cac3a?format=webp&width=800",
+  },
+  {
+    id: "2",
+    owner: "Carlos López",
+    name: "Ana Morales",
+    email: "ana.morales@company.com",
+    phone: "+52 555 987 6543",
+    status: "hot-lead",
+    lastMessage: "Me interesa mucho el producto, ¿cuándo podemos hablar?",
+    timestamp: "11:30 AM",
+    date: "2024-01-15",
+    channel: "whatsapp",
+    section: "Hot Lead",
+    isUnread: true,
+    sentiment: "positive",
+    aiScore: 92,
+  },
+  {
+    id: "3",
+    owner: "Luis Hernández",
+    name: "Roberto Silva",
+    email: "roberto@email.com",
+    phone: "+52 555 456 7890",
+    status: "payment",
+    lastMessage: "Ya realicé el pago, envío confirmación por email",
+    timestamp: "Yesterday",
+    date: "2024-01-14",
+    channel: "email",
+    section: "Payment",
+    isUnread: false,
+    sentiment: "positive",
+    aiScore: 95,
+  },
+  {
+    id: "4",
+    owner: "Sofia Martinez",
+    name: "Carmen González",
+    email: "carmen@example.com",
+    phone: "+52 555 321 6547",
+    status: "customer",
+    lastMessage: "Gracias por el excelente servicio",
+    timestamp: "2 days ago",
+    date: "2024-01-13",
+    channel: "sms",
+    section: "Customer",
+    isUnread: false,
+    sentiment: "positive",
+    aiScore: 88,
+  },
+];
+
+interface CustomerHubProps {
+  className?: string;
+}
+
+export function CustomerHub({ className }: CustomerHubProps) {
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
-  
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [selectedContact, setSelectedContact] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Obtener contactos
-  const { data: contactsResponse, isLoading, error } = useContacts({
-    search: debouncedSearchTerm
-  });
-  
-  const contacts = contactsResponse?.data || [];
-  const deleteContactMutation = useDeleteContact();
+  // Filter contacts based on search
+  const getFilteredContacts = () => {
+    let filtered = mockContacts;
 
-  const handleEditContact = (contactId: string) => {
-    const contact = Array.isArray(contacts) ? contacts.find(c => c.id === contactId) : null;
-    if (contact) {
-      setSelectedContact(contact);
-      setIsFormOpen(true);
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (contact) =>
+          contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          contact.phone.includes(searchTerm),
+      );
     }
+
+    return filtered;
   };
 
-  const handleDeleteContact = async (contactId: string) => {
-    try {
-      await deleteContactMutation.mutateAsync(contactId);
-    } catch (error) {
-      console.error('Error al eliminar contacto:', error);
-    }
+  // Event handlers
+
+  const handleCreateContact = () => {
+    console.log("Creating new contact...");
+    // TODO: Open modal for creating contact
+  };
+
+  const handleFilter = () => {
+    console.log("Opening filter panel...");
+    // TODO: Open advanced filter modal
+  };
+
+  const handleExportCSV = () => {
+    console.log("Exporting contacts to CSV...");
+    // TODO: Generate and download CSV
+  };
+
+  const handleSelectContact = (contactId: string) => {
+    setSelectedContact(contactId);
+    console.log(`Selected contact: ${contactId}`);
+  };
+
+  const handleEditContact = (contactId: string) => {
+    console.log(`Editing contact: ${contactId}`);
+    // TODO: Open edit modal
   };
 
   const handleSendCampaign = (contactId: string) => {
-    // TODO: Implementar envío de campaña
-    console.log('Enviando campaña a contacto:', contactId);
+    console.log(`Sending campaign to contact: ${contactId}`);
+    // TODO: Open campaign modal
   };
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full text-red-500">
-        Error al cargar contactos
-      </div>
-    );
-  }
+  const handleDeleteContact = (contactId: string) => {
+    console.log(`Deleting contact: ${contactId}`);
+    // TODO: Show confirmation and delete
+  };
+
+  const filteredContacts = getFilteredContacts();
 
   return (
-    <div className="p-6 bg-gray-900 text-white h-full flex flex-col">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Gestión de Contactos</h1>
-        <Button onClick={() => setIsFormOpen(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Nuevo Contacto
-        </Button>
+    <div className={cn("h-full flex bg-gray-950", className)}>
+      {/* Performance KPIs Sidebar - Hidden in CRM table view but kept in DOM */}
+      <div
+        className={cn(
+          "transition-all duration-300",
+          viewMode === "table" ? "hidden" : "block",
+        )}
+        aria-hidden={viewMode === "table"}
+      >
+        <PerformanceKPIs />
       </div>
 
-      {/* Search and filters */}
-      <div className="flex gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Buscar contactos..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-gray-800 border-gray-700"
-          />
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="border-b border-gray-800 bg-gray-900 px-0 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1
+                className="text-xl font-semibold text-white"
+                style={{ marginLeft: "13px" }}
+              >
+                Customer Hub
+              </h1>
+              <p
+                className="text-sm text-gray-400"
+                style={{ marginLeft: "13px" }}
+              >
+                {filteredContacts.length} contacts
+              </p>
+            </div>
+
+            {/* View Toggle */}
+            <div className="flex items-center gap-2 bg-gray-800 rounded-lg p-1">
+              <Button
+                size="sm"
+                variant={viewMode === "table" ? "default" : "ghost"}
+                onClick={() => setViewMode("table")}
+                className={cn(
+                  "h-8 px-3",
+                  viewMode === "table"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-400 hover:text-white",
+                )}
+              >
+                <Table className="h-4 w-4 mr-1" />
+                Tabla
+              </Button>
+              <Button
+                size="sm"
+                variant={viewMode === "cards" ? "default" : "ghost"}
+                onClick={() => setViewMode("cards")}
+                className={cn(
+                  "h-8 px-3",
+                  viewMode === "cards"
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-400 hover:text-white",
+                )}
+              >
+                <Grid3X3 className="h-4 w-4 mr-1" />
+                Tarjetas
+              </Button>
+            </div>
+          </div>
+
+          {/* Action Bar */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleCreateContact}
+                className="bg-blue-600 text-white hover:bg-blue-700"
+                style={{ marginLeft: "13px" }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Contacto
+              </Button>
+              <Button
+                onClick={handleFilter}
+                className="bg-[#377DFF] text-white border-none hover:bg-[#235ECC] active:bg-[#1A47AA] transition-all duration-200"
+                style={{ marginLeft: "13px" }}
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Filtrar
+              </Button>
+              <Button
+                onClick={handleExportCSV}
+                className="bg-[#377DFF] text-white border-none hover:bg-[#235ECC] active:bg-[#1A47AA] transition-all duration-200"
+                style={{ marginLeft: "13px" }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exportar CSV
+              </Button>
+            </div>
+
+            {/* Search */}
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Buscar contactos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-gray-800 border-gray-600 text-white placeholder-gray-400"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-hidden">
+          {viewMode === "table" ? (
+            <ContactTable
+              contacts={filteredContacts}
+              selectedContactId={selectedContact}
+              onSelectContact={handleSelectContact}
+              onEditContact={handleEditContact}
+              onDeleteContact={handleDeleteContact}
+              onSendCampaign={handleSendCampaign}
+              isLoading={isLoading}
+            />
+          ) : (
+            <ContactCards
+              contacts={filteredContacts}
+              selectedContactId={selectedContact}
+              onSelectContact={handleSelectContact}
+              onEditContact={handleEditContact}
+              onDeleteContact={handleDeleteContact}
+              onSendCampaign={handleSendCampaign}
+              isLoading={isLoading}
+            />
+          )}
         </div>
       </div>
-
-      {/* Content */}
-      <div className="flex-1">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-gray-400">Cargando contactos...</div>
-          </div>
-        ) : contacts.length === 0 ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-gray-400">No se encontraron contactos</div>
-          </div>
-        ) : Array.isArray(contacts) && contacts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {contacts.map((contact) => (
-              <div
-                key={contact.id}
-                className="bg-gray-800 rounded-lg p-4 border border-gray-700"
-              >
-                <h3 className="font-semibold text-white mb-2">{contact.name}</h3>
-                <p className="text-gray-400 text-sm mb-2">{contact.phone}</p>
-                {contact.email && (
-                  <p className="text-gray-400 text-sm mb-3">{contact.email}</p>
-                )}
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEditContact(contact.id)}
-                  >
-                    Editar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleDeleteContact(contact.id)}
-                  >
-                    Eliminar
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </div>
-
-      {/* Contact Form Modal */}
-      {isFormOpen && <div>Form placeholder</div>}
     </div>
   );
 }

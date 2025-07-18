@@ -1,19 +1,37 @@
-// =============================================
-// ChatThread.tsx - Renderizado de mensajes de conversación
-// =============================================
-// Este componente obtiene los mensajes normalizados del hook y renderiza 
-// con validaciones defensivas para garantizar que la UI nunca se quede en blanco
-// por datos malformados o incompletos.
-// =============================================
-
-import { useEffect, useRef, useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { useMessages, useSendMessage, useConversation } from "@/hooks/useMessages";
-import { useContacts } from "@/hooks/useContacts";
-import { usePermissions, PermissionGate } from "@/hooks/usePermissions";
-import { safeString } from "@/lib/apiUtils";
-import { ChevronLeft, FileText, Zap, ChevronDown } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
+import {
+  ChevronLeft,
+  Paperclip,
+  Image,
+  Smile,
+  Mic,
+  Send,
+  ChevronDown,
+  Mail,
+  FileText,
+  Zap,
+} from "lucide-react";
+
+// CSS for contentEditable placeholder
+const styles = `
+  [contenteditable][data-placeholder]:empty::before {
+    content: attr(data-placeholder);
+    color: #9CA3AF;
+    pointer-events: none;
+  }
+  [contenteditable]:focus {
+    outline: none;
+  }
+`;
+
+interface Message {
+  id: string;
+  text: string;
+  timestamp: string;
+  isAgent: boolean;
+  avatar?: string;
+}
 
 interface ChatThreadProps {
   conversationId?: string;
@@ -21,294 +39,387 @@ interface ChatThreadProps {
   className?: string;
 }
 
-/**
- * Función defensiva para formatear tiempo de mensaje
- * @param timestamp Timestamp a formatear
- * @returns String formateado de forma segura
- */
-function safeFormatMessageTime(timestamp: any): string {
-  try {
-    const safeTimestamp = safeString(timestamp, new Date().toISOString());
-    const date = new Date(safeTimestamp);
-    
-    if (isNaN(date.getTime())) {
-      console.warn('⚠️ [safeFormatMessageTime] Timestamp inválido, usando fecha actual:', timestamp);
-      return new Date().toLocaleTimeString('es-ES', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-    }
-    
-    return date.toLocaleTimeString('es-ES', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  } catch (error) {
-    console.error('❌ [safeFormatMessageTime] Error al formatear tiempo:', { error, timestamp });
-    return new Date().toLocaleTimeString('es-ES', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  }
-}
+const mockMessages: Record<string, Message[]> = {
+  "1": [
+    {
+      id: "m1",
+      text: "Hola, estoy interesada en sus productos. ¿Podrían enviarme más información?",
+      timestamp: "10:25",
+      isAgent: false,
+    },
+    {
+      id: "m2",
+      text: "¡Hola María! Por supuesto, será un placer ayudarte. ¿Te interesa algún producto en particular?",
+      timestamp: "10:26",
+      isAgent: true,
+    },
+    {
+      id: "m3",
+      text: "Sí, he visto sus cámaras de seguridad en la página web y me gustaría saber más sobre el modelo X-200",
+      timestamp: "10:28",
+      isAgent: false,
+    },
+    {
+      id: "m4",
+      text: "Excelente elección! El modelo X-200 es uno de nuestros más populares. Te envío la ficha técnica y precios especiales.",
+      timestamp: "10:30",
+      isAgent: true,
+    },
+  ],
+  "2": [
+    {
+      id: "m5",
+      text: "Muchas gracias por toda la información que me enviaron por email.",
+      timestamp: "09:40",
+      isAgent: false,
+    },
+    {
+      id: "m6",
+      text: "De nada Carlos! ¿Te ayudó a tomar una decisión? ¿Tienes alguna pregunta adicional?",
+      timestamp: "09:42",
+      isAgent: true,
+    },
+    {
+      id: "m7",
+      text: "Sí, me ayudó mucho. Creo que voy a proceder con la compra. ¿Cuál sería el siguiente paso?",
+      timestamp: "09:45",
+      isAgent: false,
+    },
+  ],
+};
 
-/**
- * Función defensiva para obtener el contenido del mensaje
- * @param message Mensaje a procesar
- * @returns Contenido seguro del mensaje
- */
-function safeGetMessageContent(message: any): string {
-  const content = message?.text || message?.content || message?.body || message?.message;
-  return safeString(content, "Mensaje sin contenido");
-}
+const mockConversations = {
+  "1": { name: "María González", channel: "whatsapp" },
+  "2": { name: "Carlos Ruiz", channel: "email" },
+  "3": { name: "Ana Martínez", channel: "facebook" },
+  "4": { name: "Luis Fernández", channel: "whatsapp" },
+  "5": { name: "Carmen López", channel: "email" },
+};
 
-/**
- * Función defensiva para validar el sender del mensaje
- * @param sender Sender a validar
- * @returns Sender válido
- */
-function safeGetSender(sender: any): 'agent' | 'client' {
-  const safeSender = safeString(sender, 'client').toLowerCase();
-  return (safeSender === 'agent') ? 'agent' : 'client';
-}
+const channelColors = {
+  whatsapp: "#25D366",
+  email: "#4285F4",
+  facebook: "#1877F2",
+};
 
-export function ChatThread({ conversationId, onBack, className }: ChatThreadProps) {
+const channelLabels = {
+  whatsapp: "WhatsApp",
+  email: "Email",
+  facebook: "Facebook",
+};
+
+export function ChatThread({
+  conversationId,
+  onBack,
+  className,
+}: ChatThreadProps) {
   const [newMessage, setNewMessage] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // 🟢 Hooks con nuevos contratos
-  const { data: messagesResponse, isLoading, error } = useMessages(conversationId || "");
-  const { data: conversation, isLoading: isLoadingConversation } = useConversation(conversationId);
-  const sendMessageMutation = useSendMessage();
-  const { canSendMessages, isViewer, role } = usePermissions();
+  const conversation = conversationId
+    ? mockConversations[conversationId as keyof typeof mockConversations]
+    : null;
+  const messages = conversationId ? mockMessages[conversationId] || [] : [];
 
-  // 📲 Obtener información de la conversación
-  const { data: contactsResponse } = useContacts();
-  const contacts = Array.isArray(contactsResponse?.data) ? contactsResponse.data : [];
-  const contact = contacts.find(c => c.id === conversation?.contact?.id);
-  const displayName = contact?.name || conversation?.contact?.name || 'Cliente Desconocido';
-  
-  const messages = messagesResponse?.data || [];
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
-  // LOGS exhaustivos para debugging de estructura real
   useEffect(() => {
-    console.group('🔍 [CHAT DEBUG] Datos de mensajes recibidos:');
-    console.log('conversationId:', conversationId);
-    console.log('messagesResponse:', messagesResponse);
-    console.log('messages extraídos:', messages.length);
-    if (messages.length > 0) {
-      console.log('Primer mensaje de ejemplo:', {
-        id: messages[0]?.id,
-        content: safeGetMessageContent(messages[0]),
-        sender: safeGetSender(messages[0]?.sender),
-        timestamp: messages[0]?.timestamp
-      });
-    }
-    console.log('isLoading:', isLoading);
-    console.log('error:', error);
-    console.groupEnd();
-  }, [conversationId, messagesResponse, isLoading, error, messages]);
+    scrollToBottom();
+  }, [messages]);
 
-  // Scroll automático al final al cambiar mensajes/conversación
-  useEffect(() => {
-    try {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    } catch (error) {
-      console.warn('⚠️ [ChatThread] Error en scroll automático:', error);
-    }
-  }, [messages, conversationId]);
-
-  // Enviar mensaje
   const handleSendMessage = () => {
-    if (!newMessage.trim() || !conversationId) return;
-    
-    // 🔧 VALIDACIÓN DE PERMISOS: Solo permitir envío si tiene permisos
-    if (!canSendMessages) {
-      toast({
-        variant: "destructive",
-        title: "Permisos insuficientes",
-        description: `Como ${role}, solo puedes ver mensajes pero no enviarlos.`,
-      });
-      return;
-    }
-    
-    try {
-      sendMessageMutation.mutate({
-        conversationId: conversationId!,
-        content: newMessage,
-      });
-      setNewMessage("");
-    } catch (error) {
-      console.error('❌ [ChatThread] Error al enviar mensaje:', error);
+    if (!newMessage.trim()) return;
+
+    // Simulate sending message
+    console.log("Sending message:", newMessage);
+    setNewMessage("");
+
+    // Simulate typing indicator
+    setIsTyping(true);
+    setTimeout(() => setIsTyping(false), 2000);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
     }
   };
 
-  // Renderizado de estados
-  if (!conversationId) {
+  if (!conversationId || !conversation) {
     return (
-      <div className={cn("h-full flex items-center justify-center text-gray-400", className)}>
+      <div
+        className={cn(
+          "h-full flex items-center justify-center text-gray-400",
+          className,
+        )}
+      >
         <div className="text-center">
-          <h3 className="text-lg font-medium mb-2">Selecciona una conversación</h3>
+          <h3 className="text-lg font-medium mb-2">
+            Selecciona una conversación
+          </h3>
           <p>Elige una conversación de la lista para comenzar a chatear</p>
         </div>
       </div>
     );
   }
 
-  if (isLoading) {
-    return (
-      <div className={cn("h-full flex items-center justify-center text-gray-400", className)}>
-        <div className="text-center">
-          <h3 className="text-lg font-medium mb-2">Cargando mensajes...</h3>
-          <p>Conectando con el servidor</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    console.error('❌ Error al cargar mensajes:', error);
-    return (
-      <div className={cn("h-full flex items-center justify-center text-red-400", className)}>
-        <div className="text-center">
-          <h3 className="text-lg font-medium mb-2">Error al cargar mensajes</h3>
-          <p>No se pudieron cargar los mensajes de esta conversación</p>
-          <p className="text-sm text-gray-500 mt-2">
-            {error instanceof Error ? error.message : "Error desconocido"}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!conversation) {
-    return (
-      <div className={cn("h-full flex items-center justify-center text-gray-400", className)}>
-        <div className="text-center">
-          <h3 className="text-lg font-medium mb-2">Conversación no encontrada</h3>
-          <p>La conversación seleccionada no existe o no tienes permisos para verla</p>
-        </div>
-      </div>
-    );
-  }
-
-  // 🎯 RENDER PRINCIPAL CON PERMISOS
   return (
-    <div className={cn("h-full flex flex-col bg-[#0A0A0A]", className)}>
-      {/* Header con nombre de contacto enriquecido */}
-      <div className="p-4 border-b border-[#27272A] bg-[#0A0A0A]">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="p-2 hover:bg-[#27272A] rounded-lg transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5 text-[#E4E4E7]" />
-          </button>
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex-shrink-0 flex items-center justify-center">
-            {contact?.avatarUrl ? (
-              <img src={contact.avatarUrl} alt={displayName} className="w-8 h-8 rounded-full" />
-            ) : (
-              <span className="text-white text-sm font-medium">
-                {displayName.charAt(0).toUpperCase()}
-              </span>
-            )}
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-medium text-[#E4E4E7]">
-              {displayName}
-            </h3>
-            <p className="text-sm text-gray-400 flex items-center gap-2">
-              WhatsApp • {contact?.phone || 'Sin teléfono'}
-            </p>
-          </div>
-          
-          {/* 🔧 INDICADOR DE PERMISOS para viewers */}
-          {isViewer && (
-            <div className="px-2 py-1 bg-amber-500/20 text-amber-300 text-xs rounded-md">
-              Solo lectura
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Lista de mensajes */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-[#71717A]">
-            <div className="text-center">
-              <h4 className="text-sm font-medium mb-1">No hay mensajes</h4>
-              <p className="text-xs">Esta conversación aún no tiene mensajes</p>
-            </div>
-          </div>
-        ) : (
-          messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                "max-w-[80%] p-3 rounded-lg",
-                // 🟢 Usar sender.name para determinar si el mensaje es del agente
-                message.sender.name.toLowerCase() !== 'cliente' // Asumiendo que el cliente no se llama 'cliente'
-                  ? "ml-auto bg-blue-600 text-white"
-                  : "mr-auto bg-[#27272A] text-[#E4E4E7]"
-              )}
+    <>
+      <style dangerouslySetInnerHTML={{ __html: styles }} />
+      <div
+        className={cn("h-full flex flex-col", className)}
+        style={{ background: "#18181B", fontSize: "14px", lineHeight: "1.4em" }}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center px-6 border-b border-gray-800"
+          style={{ height: "64px", background: "#18181B" }}
+        >
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="mr-4 p-1 hover:bg-gray-700 rounded-lg transition-colors"
             >
-              <p className="text-sm">{message.content}</p>
-              <p className="text-xs opacity-60 mt-1">
-                {safeFormatMessageTime(message.timestamp)}
-              </p>
-            </div>
-          ))
-        )}
-        <div ref={messagesEndRef} />
-      </div>
+              <ChevronLeft className="w-6 h-6 text-gray-400" />
+            </button>
+          )}
 
-      {/* 🔧 ÁREA DE ENVÍO: Solo mostrar si tiene permisos */}
-      <PermissionGate 
-        permissions="send_messages"
-        fallback={
-          <div className="p-4 border-t border-[#27272A] bg-[#111111]">
-            <div className="flex items-center justify-center p-3 bg-amber-500/20 rounded-lg">
-              <div className="text-center">
-                <div className="text-amber-300 text-sm font-medium mb-1">
-                  👁️ Modo solo lectura
-                </div>
-                <p className="text-amber-200 text-xs">
-                  Como {role}, puedes ver mensajes pero no enviarlos.
-                </p>
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <div>
+                <h2
+                  className="text-lg font-bold text-[#E4E4E7]"
+                  style={{ fontSize: "16px" }}
+                >
+                  {conversation.name}
+                </h2>
               </div>
             </div>
           </div>
-        }
-      >
-        <div className="p-4 border-t border-[#27272A] bg-[#0A0A0A]">
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder="Escribe un mensaje..."
-              className="flex-1 px-3 py-2 bg-[#27272A] border border-[#3F3F46] rounded-lg text-[#E4E4E7] placeholder-[#71717A] focus:outline-none focus:border-blue-500"
-              disabled={sendMessageMutation.isPending}
-            />
-            <button
-              onClick={handleSendMessage}
-              disabled={!newMessage.trim() || sendMessageMutation.isPending}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-            >
-              {sendMessageMutation.isPending ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                "Enviar"
+
+          <span
+            className="px-3 py-1 rounded text-sm font-medium text-white"
+            style={{
+              backgroundColor: "#377DFF",
+              fontSize: "12px",
+            }}
+          >
+            {channelLabels[conversation.channel as keyof typeof channelLabels]}
+          </span>
+        </div>
+
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={cn(
+                "flex",
+                message.isAgent ? "justify-end" : "justify-start",
               )}
+            >
+              <div
+                className={cn(
+                  "max-w-[70%] rounded-xl px-4 py-3",
+                  message.isAgent
+                    ? "bg-[#377DFF] text-white"
+                    : "bg-[#27272A] text-[#E4E4E7]",
+                )}
+                style={{ fontSize: "14px" }}
+              >
+                <p>{message.text}</p>
+                <div
+                  className={cn(
+                    "text-xs mt-1",
+                    message.isAgent ? "text-blue-100" : "text-[#9CA3AF]",
+                  )}
+                  style={{ fontSize: "10px" }}
+                >
+                  {message.timestamp}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {isTyping && (
+            <div className="flex justify-start">
+              <div className="bg-[#27272A] rounded-xl px-4 py-3">
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 bg-[#9CA3AF] rounded-full animate-bounce"></div>
+                  <div
+                    className="w-2 h-2 bg-[#9CA3AF] rounded-full animate-bounce"
+                    style={{ animationDelay: "0.1s" }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 bg-[#9CA3AF] rounded-full animate-bounce"
+                    style={{ animationDelay: "0.2s" }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Enhanced Message Input */}
+        <div
+          className="border-t border-gray-800"
+          style={{ background: "#18181B" }}
+        >
+          {/* Action Buttons Row */}
+          <div
+            className="flex items-center justify-between px-6 py-2 border-b border-gray-800"
+            style={{ background: "#18181B" }}
+          >
+            {/* Minimalist Action Icons */}
+            <div className="flex items-center gap-1">
+              <button
+                title="Enviar Campaña"
+                className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
+                style={{ padding: "8px" }}
+              >
+                <Mail
+                  className="w-6 h-6"
+                  style={{ width: "24px", height: "24px" }}
+                />
+              </button>
+
+              <button
+                title="Resumir (IA)"
+                className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
+                style={{ padding: "8px" }}
+              >
+                <Zap
+                  className="w-6 h-6"
+                  style={{ width: "24px", height: "24px" }}
+                />
+              </button>
+
+              <button
+                title="Agregar Nota"
+                className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
+                style={{ padding: "8px" }}
+              >
+                <FileText
+                  className="w-6 h-6"
+                  style={{ width: "24px", height: "24px" }}
+                />
+              </button>
+            </div>
+
+            {/* AI Assist Toggle - Square Button */}
+            <button
+              className={cn(
+                "flex items-center justify-center rounded-lg text-sm font-medium transition-colors bg-[#377DFF] text-white hover:bg-[#235ECC]",
+              )}
+              style={{ width: "32px", height: "32px" }}
+            >
+              <span style={{ fontSize: "16px" }}>✨</span>
             </button>
           </div>
+
+          {/* Message Input Area */}
+          <div className="px-6 py-3">
+            <div
+              className="bg-[#27272A] border border-[#3A3A40] rounded-lg overflow-hidden"
+              style={{ borderRadius: "8px" }}
+            >
+              {/* Text Input */}
+              <div className="px-4 py-3">
+                <div
+                  contentEditable
+                  suppressContentEditableWarning={true}
+                  className="min-h-8 max-h-40 overflow-y-auto text-[#E4E4E7] text-sm leading-5 outline-none"
+                  style={{
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                    fontSize: "14px",
+                  }}
+                  onInput={(e) => {
+                    const content = e.currentTarget.textContent || "";
+                    setNewMessage(content);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder="Escribe un mensaje…"
+                  data-placeholder="Escribe un mensaje…"
+                />
+              </div>
+
+              {/* Action Bar */}
+              <div className="flex items-center justify-between px-3 py-2 border-t border-[#3A3A40]">
+                <div className="flex items-center gap-1">
+                  {/* Attachment Options */}
+                  <button
+                    className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
+                    disabled
+                    style={{ padding: "8px" }}
+                  >
+                    <Paperclip
+                      className="w-6 h-6"
+                      style={{ width: "24px", height: "24px" }}
+                    />
+                  </button>
+                  <button
+                    className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
+                    disabled
+                    style={{ padding: "8px" }}
+                  >
+                    <Image
+                      className="w-6 h-6"
+                      style={{ width: "24px", height: "24px" }}
+                    />
+                  </button>
+                  <button
+                    className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
+                    disabled
+                    style={{ padding: "8px" }}
+                  >
+                    <Smile
+                      className="w-6 h-6"
+                      style={{ width: "24px", height: "24px" }}
+                    />
+                  </button>
+                  <button
+                    className="p-2 text-[#9CA3AF] hover:text-[#D4D4D8] hover:bg-gray-700 rounded-lg transition-colors"
+                    disabled
+                    style={{ padding: "8px" }}
+                  >
+                    <Mic
+                      className="w-6 h-6"
+                      style={{ width: "24px", height: "24px" }}
+                    />
+                  </button>
+                </div>
+
+                {/* Send Button - Square Purple */}
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!newMessage.trim()}
+                  className={cn(
+                    "flex items-center justify-center rounded-lg transition-colors",
+                    newMessage.trim()
+                      ? "bg-[#377DFF] text-white hover:bg-[#235ECC]"
+                      : "bg-gray-600 text-gray-400 cursor-not-allowed",
+                  )}
+                  style={{ width: "32px", height: "32px" }}
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </PermissionGate>
-    </div>
+      </div>
+    </>
   );
 }
-
-// =============================================
-// FIN ChatThread.tsx - Completamente robusto con validaciones defensivas
-// =============================================

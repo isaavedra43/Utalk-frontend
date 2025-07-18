@@ -58,7 +58,7 @@ const channelIcons = {
 const channelColors = {
   whatsapp: "text-green-400",
   facebook: "text-blue-400",
-  sms: "text-purple-400",
+  sms: "text-blue-400",
   email: "text-blue-500",
 };
 
@@ -88,7 +88,7 @@ export function CampaignListView({
           <MessageCircle className="h-16 w-16 mx-auto mb-4 opacity-50" />
           <h3 className="text-lg font-medium mb-2">No hay campañas</h3>
           <p className="text-sm mb-4">Crea tu primera campaña para comenzar</p>
-          <Button className="bg-purple-600 text-white hover:bg-purple-700">
+          <Button className="bg-blue-600 text-white hover:bg-blue-700">
             <Send className="h-4 w-4 mr-2" />
             Nueva Campaña
           </Button>

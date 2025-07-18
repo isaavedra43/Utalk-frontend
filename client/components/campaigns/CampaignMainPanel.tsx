@@ -60,7 +60,7 @@ export function CampaignMainPanel({
                 className={cn(
                   "h-8 px-3",
                   viewMode === "list"
-                    ? "bg-purple-600 text-white"
+                    ? "bg-blue-600 text-white"
                     : "text-gray-400 hover:text-white",
                 )}
               >
@@ -74,7 +74,7 @@ export function CampaignMainPanel({
                 className={cn(
                   "h-8 px-3",
                   viewMode === "cards"
-                    ? "bg-purple-600 text-white"
+                    ? "bg-blue-600 text-white"
                     : "text-gray-400 hover:text-white",
                 )}
               >
