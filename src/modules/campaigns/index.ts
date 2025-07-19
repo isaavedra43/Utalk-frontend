@@ -1,27 +1,51 @@
-// Módulo de Campañas
-// Gestión de campañas de marketing, plantillas y segmentación
+// 📋 MÓDULO DE CAMPAÑAS - UTalk Frontend
+// Exportaciones principales del módulo
 
-// Rutas del módulo
-export const campaignsRoutes = {
-  index: '/campaigns',
-  create: '/campaigns/create',
-  edit: '/campaigns/:id/edit',
-  view: '/campaigns/:id',
-  templates: '/campaigns/templates',
-  analytics: '/campaigns/analytics',
-}
+// ✅ COMPONENTES PRINCIPALES
+export { default as CampaignsDashboard } from './components/CampaignsDashboard'
+export { default as CampaignsList } from './components/CampaignsList'
+export { default as CampaignsSidebar } from './components/CampaignsSidebar'
 
-// TODO: Exportar componentes cuando estén implementados
-// export { CampaignList } from './components/CampaignList'
-// export { CampaignForm } from './components/CampaignForm'
-// export { CampaignTemplates } from './components/CampaignTemplates'
-// export { CampaignAnalytics } from './components/CampaignAnalytics'
+// ✅ HOOKS
+export { useCampaigns, useCampaign, useCampaignStats } from './hooks/useCampaigns'
 
-// TODO: Exportar servicios cuando estén implementados
-// export { campaignService } from './services/campaignService'
+// ✅ SERVICIOS
+export { campaignService } from './services/campaignService'
 
-// TODO: Exportar hooks cuando estén implementados
-// export { useCampaigns } from './hooks/useCampaigns'
+// ✅ TIPOS
+export type {
+  Campaign,
+  CampaignStatus,
+  CampaignType,
+  CampaignChannel,
+  CampaignMessage,
+  CampaignVariable,
+  CampaignAttachment,
+  CallToAction,
+  SelectedContact,
+  ContactCampaignStatus,
+  ContactSendResult,
+  ContactInteraction,
+  CampaignSettings,
+  CampaignStats,
+  ChannelStats,
+  CampaignFilters,
+  CampaignTemplate,
+  ContactSegment,
+  SegmentCriteria,
+  CampaignModuleConfig,
+  CampaignsResponse,
+  CampaignResponse,
+  ContactsResponse,
+  TemplatesResponse,
+  CampaignAction,
+  CampaignEvent
+} from './types'
 
-// TODO: Exportar tipos cuando estén implementados
-// export type { Campaign, CampaignTemplate, CampaignStats } from './types' 
+// ✅ CONSTANTES
+export {
+  CAMPAIGN_STATUS_LABELS,
+  CAMPAIGN_TYPE_LABELS,
+  CHANNEL_LABELS,
+  CONTACT_STATUS_LABELS
+} from './types' 
