@@ -16,12 +16,9 @@ import { LoginResponse } from '@/types'
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState)
 
-  /**
-   * Inicialización de autenticación al cargar la app
-   * Verifica si hay token en localStorage y valida con backend
-   */
+  // Inicializar autenticación al cargar la aplicación
   useEffect(() => {
-    const initializeAuth = async () => {
+    async function initializeAuth() {
       const perfId = logger.startPerformance('auth_initialization')
       
       logger.info('Initializing authentication...', null, 'auth_init')
@@ -32,30 +29,96 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = localStorage.getItem('auth_token')
       const userData = localStorage.getItem('user_data')
 
-      if (token) {
-        logger.info('Token found in localStorage, validating...', { hasUserData: !!userData }, 'auth_token_found')
+      console.log('🔍 Checking stored auth data:', { 
+        hasToken: !!token, 
+        hasUserData: !!userData,
+        tokenLength: token?.length || 0 
+      })
+
+      if (token && userData) {
+        logger.info('Token and user data found, validating session...', { hasUserData: !!userData }, 'auth_token_found')
         
         try {
+          // Intentar restaurar desde userData primero (más rápido)
+          const user = JSON.parse(userData)
+          console.log('👤 Parsed user data:', user)
+          
           // Verificar sesión con backend UTalk (GET /api/auth/me)
-          const user = await apiClient.get('/auth/me')
+          console.log('🔄 Validating session with backend...')
+          const validationResponse = await apiClient.get('/auth/me')
           
-          logger.auth('session_validation', { user: user.data, token })
+          console.log('✅ Session validation response:', validationResponse)
           
-          dispatch({ type: 'AUTH_SUCCESS', payload: { user: user.data, token } })
+          logger.auth('session_validation', { user: validationResponse.data || validationResponse, token })
           
-          logger.endPerformance(perfId, 'Session validated successfully')
+          // Usar datos del backend si están disponibles, sino usar datos locales
+          const validatedUser = validationResponse.data || validationResponse || user
+          
+          dispatch({ type: 'AUTH_SUCCESS', payload: { user: validatedUser, token } })
+          
+          // Conectar socket después de restaurar sesión
+          if (validatedUser?.id && token) {
+            try {
+              socketClient.connectWithToken(token, validatedUser.id)
+              console.log('🔌 Socket reconnected after session restore')
+            } catch (socketError) {
+              console.warn('Failed to reconnect socket after session restore:', socketError)
+            }
+          }
+          
+          logger.endPerformance(perfId, 'Session restored successfully')
+          console.log('✅ Session restored successfully')
+          
         } catch (error: any) {
           // Token inválido, expirado o usuario inactivo
-          logger.auth('session_validation', { error })
+          console.error('❌ Session validation failed:', error)
+          logger.auth('session_validation_failed', { error })
           
+          // Limpiar datos inválidos
           localStorage.removeItem('auth_token')
           localStorage.removeItem('user_data')
           dispatch({ type: 'AUTH_FAILURE', payload: 'Sesión expirada' })
           
           logger.endPerformance(perfId, 'Session expired, cleaned up')
+          console.log('🧹 Invalid session cleaned up')
+        }
+      } else if (token && !userData) {
+        // Solo hay token, intentar obtener datos del usuario
+        console.log('🔍 Token found but no user data, fetching from backend...')
+        
+        try {
+          const userResponse = await apiClient.get('/auth/me')
+          const user = userResponse.data || userResponse
+          
+          console.log('👤 User data fetched from backend:', user)
+          
+          // Guardar datos del usuario
+          localStorage.setItem('user_data', JSON.stringify(user))
+          
+          dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } })
+          
+          // Conectar socket
+          if (user?.id && token) {
+            try {
+              socketClient.connectWithToken(token, user.id)
+              console.log('🔌 Socket connected after user data fetch')
+            } catch (socketError) {
+              console.warn('Failed to connect socket after user data fetch:', socketError)
+            }
+          }
+          
+          logger.endPerformance(perfId, 'User data fetched and session restored')
+          console.log('✅ Session restored with user data from backend')
+          
+        } catch (error) {
+          console.error('❌ Failed to fetch user data:', error)
+          localStorage.removeItem('auth_token')
+          dispatch({ type: 'AUTH_FAILURE', payload: 'Error al obtener datos del usuario' })
+          logger.endPerformance(perfId, 'Failed to fetch user data')
         }
       } else {
         // No hay token, usuario no autenticado
+        console.log('ℹ️ No authentication data found')
         logger.info('No token found, user not authenticated', null, 'auth_no_token')
         dispatch({ type: 'AUTH_FAILURE', payload: '' })
         

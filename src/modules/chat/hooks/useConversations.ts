@@ -19,13 +19,36 @@ export const conversationKeys = {
 export function useConversations(filter: ConversationFilter = {}) {
   const result = useQuery({
     queryKey: conversationKeys.list(filter),
-    queryFn: () => conversationService.getConversations(filter),
+    queryFn: async () => {
+      console.log('🔄 useConversations: Starting fetch with filter:', filter)
+      const response = await conversationService.getConversations(filter)
+      console.log('📦 useConversations: Service response:', response)
+      return response
+    },
     staleTime: 30 * 1000, // 30 segundos antes de considerar stale
     refetchOnWindowFocus: true,
     refetchInterval: 60 * 1000, // Refetch cada minuto para conversaciones activas
+    onSuccess: (data) => {
+      console.log('✅ useConversations: Query success:', {
+        total: data.total,
+        conversationsCount: data.conversations.length,
+        conversations: data.conversations
+      })
+    },
+    onError: (error) => {
+      console.error('❌ useConversations: Query error:', error)
+    }
   })
 
   // Log del estado del hook
+  console.log('📊 useConversations hook state:', {
+    isLoading: result.isLoading,
+    isError: result.isError,
+    error: result.error,
+    dataExists: !!result.data,
+    conversationsCount: result.data?.conversations?.length || 0
+  })
+
   logger.hook('useConversations', {
     input: { filter },
     loading: result.isLoading,
