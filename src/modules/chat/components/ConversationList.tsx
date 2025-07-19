@@ -117,7 +117,7 @@ export function ConversationList({
   };
 
   return (
-    <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full">
+    <div className="w-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-3">
@@ -157,8 +157,8 @@ export function ConversationList({
       </div>
 
       {/* Tabs de filtros */}
-      <div className="border-b border-gray-200 dark:border-gray-700">
-        <div className="flex">
+      <div className="border-b border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="flex min-w-0">
           {filterTabs.map((tab) => {
             const count = getTabCount(tab.key)
             const isActive = activeTab === tab.key
@@ -169,20 +169,20 @@ export function ConversationList({
                 variant="ghost"
                 onClick={() => handleTabChange(tab.key)}
                 className={`
-                  flex-1 rounded-none border-b-2 transition-all
+                  flex-1 rounded-none border-b-2 transition-all min-w-0 px-2
                   ${isActive 
                     ? 'border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-900/20' 
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                   }
                 `}
               >
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm">{tab.icon}</span>
-                  <span className="text-sm font-medium">{tab.label}</span>
+                <div className="flex items-center space-x-1 min-w-0">
+                  <span className="text-xs flex-shrink-0">{tab.icon}</span>
+                  <span className="text-xs font-medium truncate">{tab.label}</span>
                   {count > 0 && (
                     <Badge 
                       variant={isActive ? "default" : "secondary"}
-                      className="text-xs"
+                      className="text-xs flex-shrink-0 ml-1"
                     >
                       {count}
                     </Badge>

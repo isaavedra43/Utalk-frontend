@@ -169,8 +169,8 @@ export function Inbox({ initialConversationId }: InboxProps = {}) {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Lista de conversaciones (Versión moderna unificada) */}
-      <div className="w-80 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      {/* Lista de conversaciones (Responsivo) */}
+      <div className="w-full md:w-80 lg:w-96 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <ConversationList
           conversations={conversations}
           selectedConversationId={state.selectedConversationId}
@@ -243,9 +243,9 @@ export function Inbox({ initialConversationId }: InboxProps = {}) {
           )}
         </div>
 
-        {/* Panel lateral derecho */}
+        {/* Panel lateral derecho (Responsivo) */}
         {state.activePanel && state.selectedConversationId && (
-          <div className="w-80 border-l border-gray-200 bg-white">
+          <div className="w-full md:w-80 lg:w-96 border-l border-gray-200 bg-white">
             {state.activePanel === 'ia' && (
               <IAPanel
                 conversationId={state.selectedConversationId}

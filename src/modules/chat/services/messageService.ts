@@ -2,6 +2,8 @@
 // Abstrae las llamadas a /api/messages del backend
 import { apiClient } from '@/services/apiClient'
 import { Message, MessageType } from '../types'
+import { MessageValidator } from '@/lib/validation'
+import type { CanonicalMessage } from '@/types/canonical'
 
 export interface MessagesResponse {
   success: boolean
@@ -9,6 +11,7 @@ export interface MessagesResponse {
   total: number
   page: number
   limit: number
+  error?: string
 }
 
 export interface SendMessageData {
@@ -42,43 +45,19 @@ class MessageService {
       const response = await apiClient.get(url);
       console.log('📥 Raw API response:', response);
       
-      // Examinar estructura de respuesta
-      console.log('🔍 Response analysis:', {
-        hasData: !!response.data,
-        hasMessages: !!response.messages,
-        isArray: Array.isArray(response),
-        dataIsArray: Array.isArray(response.data),
-        messagesIsArray: Array.isArray(response.messages),
-        responseKeys: Object.keys(response || {}),
-        dataKeys: response.data ? Object.keys(response.data) : 'no data',
-        firstMessage: response.data?.[0] || response.messages?.[0] || 'no messages found'
+      // ✅ VALIDACIÓN CENTRALIZADA CON EL NUEVO SISTEMA
+      const validatedMessages = MessageValidator.validateBackendResponse(response);
+      
+      console.log('🛡️ Validation complete:', {
+        originalCount: response.data?.length || response.messages?.length || 0,
+        validatedCount: validatedMessages.length,
+        validationPassed: validatedMessages.length > 0
       });
       
-      // Determinar cual estructura usar
-      let rawMessages = [];
-      if (response.data && Array.isArray(response.data)) {
-        rawMessages = response.data;
-        console.log('✅ Using response.data array with', rawMessages.length, 'messages');
-      } else if (response.messages && Array.isArray(response.messages)) {
-        rawMessages = response.messages;
-        console.log('✅ Using response.messages array with', rawMessages.length, 'messages');
-      } else if (Array.isArray(response)) {
-        rawMessages = response;
-        console.log('✅ Using direct response array with', rawMessages.length, 'messages');
-      } else {
-        console.warn('⚠️ No valid messages array found in response');
-        rawMessages = [];
-      }
-      
-      console.log('📝 Raw messages before mapping:', rawMessages.slice(0, 2));
-      
-      const mappedMessages = this.mapBackendMessages(rawMessages);
-      console.log('🔄 Mapped messages:', mappedMessages.slice(0, 2));
-      
-      const result = {
-        success: response.success || true,
-        messages: mappedMessages,
-        total: response.total || rawMessages.length || 0,
+      const result: MessagesResponse = {
+        success: true,
+        messages: validatedMessages,
+        total: response.total || validatedMessages.length,
         page: response.page || page,
         limit: response.limit || limit
       };
@@ -95,7 +74,16 @@ class MessageService {
       
     } catch (error) {
       console.error('❌ MessageService.getMessages error:', error);
-      throw error;
+      
+      // ✅ RETORNAR RESPUESTA ESTRUCTURADA EN CASO DE ERROR
+      return {
+        success: false,
+        messages: [],
+        total: 0,
+        page,
+        limit,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      };
     }
   }
 

@@ -31,7 +31,7 @@ export interface Message {
   sender: {
     id: string
     name: string
-    type: 'contact' | 'agent' | 'bot'
+    type: 'contact' | 'agent' | 'bot' | 'system'
     avatar?: string
   }
   attachments?: {
