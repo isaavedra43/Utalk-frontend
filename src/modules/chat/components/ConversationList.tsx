@@ -21,6 +21,7 @@ export function ConversationList({
   selectedConversationId,
   onSelectConversation,
   isLoading,
+  error, // ✅ NUEVO: Recibir el estado de error
   filter,
   onFilterChange
 }: ConversationListProps) {
@@ -68,9 +69,52 @@ export function ConversationList({
     }
   }
 
-  if (isLoading) {
-    return <ConversationListSkeleton />
-  }
+  // ✅ CORRECCIÓN: Renderizado condicional robusto
+  const renderContent = () => {
+    if (isLoading) {
+      return <ConversationListSkeleton />;
+    }
+
+    if (error) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 text-red-500 dark:text-red-400">
+          <div className="text-4xl mb-3">⚠️</div>
+          <h3 className="text-sm font-medium mb-1">Error al cargar</h3>
+          <p className="text-xs text-center px-4">
+            No se pudieron cargar las conversaciones. Intenta de nuevo más tarde.
+          </p>
+        </div>
+      );
+    }
+
+    if (!conversations || conversations.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+          <div className="text-4xl mb-3">💬</div>
+          <h3 className="text-sm font-medium mb-1">No hay conversaciones</h3>
+          <p className="text-xs text-center px-4">
+            {filter.search 
+              ? 'No se encontraron resultados para tu búsqueda.'
+              : 'Las nuevas conversaciones aparecerán aquí.'
+            }
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        {conversations.map((conversation) => (
+          <ConversationItem
+            key={conversation.id}
+            conversation={conversation}
+            isSelected={selectedConversationId === conversation.id}
+            onClick={() => onSelectConversation(conversation.id)}
+          />
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full">
@@ -192,29 +236,7 @@ export function ConversationList({
 
       {/* Lista de conversaciones */}
       <div className="flex-1 overflow-y-auto">
-        {conversations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">
-            <div className="text-4xl mb-3">💬</div>
-            <h3 className="text-sm font-medium mb-1">No hay conversaciones</h3>
-            <p className="text-xs text-center">
-              {filter.search 
-                ? 'No se encontraron resultados para tu búsqueda'
-                : 'Las nuevas conversaciones aparecerán aquí'
-              }
-            </p>
-          </div>
-        ) : (
-          <div>
-            {conversations.map((conversation) => (
-              <ConversationItem
-                key={conversation.id}
-                conversation={conversation}
-                isSelected={selectedConversationId === conversation.id}
-                onClick={() => onSelectConversation(conversation.id)}
-              />
-            ))}
-          </div>
-        )}
+        {renderContent()}
       </div>
 
       {/* Footer con estadísticas */}

@@ -158,6 +158,7 @@ export function Inbox({ initialConversationId }: InboxProps = {}) {
           selectedConversationId={state.selectedConversationId}
           onSelectConversation={handleSelectConversation}
           isLoading={conversationsLoading}
+          error={conversationsError as Error | null}
           filter={state.filter}
           onFilterChange={handleFilterChange}
         />

@@ -221,7 +221,7 @@ class ConversationService {
 
   // Datos mock para desarrollo cuando hay problemas de autenticación
   private getMockConversations(): ConversationResponse {
-    const mockConversations: Conversation[] = [
+    const mockData = [
       {
         id: 'conv_mock_1',
         contact: {
@@ -253,8 +253,7 @@ class ConversationService {
             name: 'Juan Pérez',
             type: 'contact'
           },
-          isRead: false,
-          isDelivered: true
+          status: 'delivered'
         },
         unreadCount: 2,
         tags: ['soporte'],
@@ -290,8 +289,7 @@ class ConversationService {
             name: 'María García',
             type: 'contact'
           },
-          isRead: true,
-          isDelivered: true
+          status: 'delivered'
         },
         unreadCount: 0,
         tags: ['ventas'],
@@ -302,12 +300,22 @@ class ConversationService {
       }
     ]
 
-    console.log('🎭 Returning mock conversations for development:', mockConversations)
+    // ✅ CORRECCIÓN: Usar el mismo mapper para datos mock y reales
+    const mappedConversations = this.mapBackendConversations(mockData.map(conv => ({
+      ...conv,
+      // Simular la estructura que vendría del backend
+      contactId: conv.contact.id,
+      lastMessageAt: conv.lastMessage?.timestamp.toISOString(),
+      createdAt: conv.createdAt.toISOString(),
+      updatedAt: conv.updatedAt.toISOString(),
+    })))
+
+    console.log('🎭 Returning mapped mock conversations for development:', mappedConversations)
 
     return {
       success: true,
-      conversations: mockConversations,
-      total: mockConversations.length,
+      conversations: mappedConversations,
+      total: mappedConversations.length,
       page: 1,
       limit: 50
     }

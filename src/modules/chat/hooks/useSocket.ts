@@ -76,6 +76,21 @@ export function useSocket(options: UseSocketOptions = {}) {
     }
   }, [conversationId])
 
+  // ✅ CORRECCIÓN: Usar un efecto para manejar la invalidación de queries
+  useEffect(() => {
+    const handleAuthSuccess = () => {
+      console.log('✅ Socket authenticated, invalidating queries...')
+      queryClient.invalidateQueries({ queryKey: ['conversations'] })
+      queryClient.invalidateQueries({ queryKey: ['messages'] })
+    }
+
+    socketClient.on('socket:auth:success', handleAuthSuccess)
+
+    return () => {
+      socketClient.off('socket:auth:success', handleAuthSuccess)
+    }
+  }, [queryClient])
+
   // Manejar nuevo mensaje recibido
   useEffect(() => {
     const handleNewMessage = (data: { message: any, conversationId: string }) => {
@@ -117,6 +132,10 @@ export function useSocket(options: UseSocketOptions = {}) {
           }
         }
       )
+
+      // Invalidar queries para refrescar
+      queryClient.invalidateQueries({ queryKey: messageKeys.list(data.message.conversationId) })
+      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })
     }
 
     socketClient.on('message:new', handleNewMessage)

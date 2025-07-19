@@ -19,10 +19,11 @@ export interface User {
 }
 
 export interface AuthState {
-  user: User | null
-  token: string | null
   isAuthenticated: boolean
   isLoading: boolean
+  isAuthReady: boolean // ✅ NUEVO: Indica si la comprobación inicial ha terminado
+  user: User | null
+  token: string | null
   error: string | null
 }
 
@@ -33,13 +34,21 @@ export type AuthAction =
   | { type: 'AUTH_LOGOUT' }
   | { type: 'UPDATE_USER'; payload: Partial<User> }
   | { type: 'CLEAR_ERROR' }
+  | { type: 'AUTH_READY' } // ✅ NUEVO: Acción para indicar que la auth está lista
 
 export const initialState: AuthState = {
-  user: null,
-  token: localStorage.getItem('auth_token'),
   isAuthenticated: false,
-  isLoading: true,
-  error: null,
+  isLoading: true, // Empieza en true hasta que se verifique la sesión
+  isAuthReady: false, // ✅ NUEVO: Inicia en false
+  user: null,
+  token: null,
+  error: null
+}
+
+export interface AuthContextType extends AuthState {
+  login: (email: string, password: string) => Promise<void>
+  logout: () => Promise<void>
+  updateUser: (userData: Partial<User>) => void
 }
 
 export function authReducer(state: AuthState, action: AuthAction): AuthState {
@@ -49,20 +58,22 @@ export function authReducer(state: AuthState, action: AuthAction): AuthState {
     case 'AUTH_SUCCESS':
       return {
         ...state,
-        user: action.payload.user,
-        token: action.payload.token,
         isAuthenticated: true,
         isLoading: false,
-        error: null,
+        isAuthReady: true, // ✅ Se vuelve true con el éxito
+        user: action.payload.user,
+        token: action.payload.token,
+        error: null
       }
     case 'AUTH_FAILURE':
       return {
         ...state,
-        user: null,
-        token: null,
         isAuthenticated: false,
         isLoading: false,
-        error: action.payload,
+        isAuthReady: true, // ✅ Se vuelve true también en fallo
+        user: null,
+        token: null,
+        error: action.payload
       }
     case 'AUTH_LOGOUT':
       return {
@@ -80,6 +91,12 @@ export function authReducer(state: AuthState, action: AuthAction): AuthState {
       }
     case 'CLEAR_ERROR':
       return { ...state, error: null }
+    case 'AUTH_READY': // ✅ NUEVO: Manejar la acción para marcar la auth como lista
+      return {
+        ...state,
+        isLoading: false,
+        isAuthReady: true,
+      }
     default:
       return state
   }

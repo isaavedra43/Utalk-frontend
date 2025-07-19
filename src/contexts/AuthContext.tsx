@@ -12,9 +12,11 @@ import {
 import { AuthContext } from '@/hooks/useAuthContext'
 import { logger } from '@/lib/logger'
 import { LoginResponse } from '@/types'
+import { useQueryClient } from '@tanstack/react-query'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState)
+  const queryClient = useQueryClient() // ✅ OBTENER EL CLIENTE DE QUERY
 
   // Inicializar autenticación al cargar la aplicación
   useEffect(() => {
@@ -118,11 +120,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         // No hay token, usuario no autenticado
-        console.log('ℹ️ No authentication data found')
-        logger.info('No token found, user not authenticated', null, 'auth_no_token')
-        dispatch({ type: 'AUTH_FAILURE', payload: '' })
-        
-        logger.endPerformance(perfId, 'No token found')
+        console.log('🤷 No token found, user is not authenticated.')
+        dispatch({ type: 'AUTH_READY' }) // ✅ CORRECCIÓN: Indicar que la auth está lista
       }
     }
 
@@ -230,6 +229,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 4. Actualizar contexto
       dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } })
       
+      // ✅ CORRECCIÓN: Invalidar queries tras login exitoso
+      console.log('✅ Login successful, invalidating all queries...')
+      queryClient.invalidateQueries() // Invalida todas las queries
+
       // 5. ✅ Conectar WebSocket con token y userId válidos (según Backend UTalk)
       try {
         if (user?.id && token) {
@@ -357,6 +360,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'AUTH_LOGOUT' })
 
     logger.auth('logout', {})
+
+    // ✅ CORRECCIÓN: Limpiar cache de React Query al hacer logout
+    console.log('🧹 Clearing query cache after logout...')
+    queryClient.clear()
 
     logger.endPerformance(perfId, 'Logout completed')
 

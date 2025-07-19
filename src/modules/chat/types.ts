@@ -116,6 +116,7 @@ export interface ConversationListProps {
   selectedConversationId?: string
   onSelectConversation: (conversationId: string) => void
   isLoading: boolean
+  error: Error | null
   filter: ConversationFilter
   onFilterChange: (filter: ConversationFilter) => void
 }

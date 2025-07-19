@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ConversationFilter } from '../types'
 import conversationService from '../services/conversationService'
 import { logger } from '@/lib/logger'
+import { useAuth } from '@/hooks/useAuth' // Importar hook de autenticación
 
 // Claves de query para invalidaciones y cache
 export const conversationKeys = {
@@ -17,6 +18,8 @@ export const conversationKeys = {
 
 // Hook principal para obtener conversaciones con filtros
 export function useConversations(filter: ConversationFilter = {}) {
+  const { isAuthenticated, isAuthReady } = useAuth() // Obtener estado de autenticación
+
   const result = useQuery({
     queryKey: conversationKeys.list(filter),
     queryFn: async () => {
@@ -25,6 +28,8 @@ export function useConversations(filter: ConversationFilter = {}) {
       console.log('📦 useConversations: Service response:', response)
       return response
     },
+    // ✅ CORRECCIÓN: La query solo se ejecutará si el usuario está autenticado y la sesión está lista
+    enabled: isAuthenticated && isAuthReady,
     staleTime: 30 * 1000, // 30 segundos antes de considerar stale
     refetchOnWindowFocus: true,
     refetchInterval: 60 * 1000, // Refetch cada minuto para conversaciones activas
