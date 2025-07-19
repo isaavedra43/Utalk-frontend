@@ -117,37 +117,39 @@ export function CRM() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900">
       {/* Panel de KPIs (fijo en la parte superior) */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6">
+      <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6">
         <KPIStatsPanel />
       </div>
 
       {/* Toolbar */}
-      <CRMToolbar
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        searchQuery={searchQuery}
-        onSearchChange={handleToolbarSearch}
-        onNewContact={handleNewContact}
-        onExportCSV={handleExportCSV}
-        onShowFilters={() => setShowFilters(!showFilters)}
-        selectedCount={selectedContacts.length}
-        totalCount={filteredContacts.length}
-      />
+      <div className="flex-shrink-0">
+        <CRMToolbar
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          searchQuery={searchQuery}
+          onSearchChange={handleToolbarSearch}
+          onNewContact={handleNewContact}
+          onExportCSV={handleExportCSV}
+          onShowFilters={() => setShowFilters(!showFilters)}
+          selectedCount={selectedContacts.length}
+          totalCount={filteredContacts.length}
+        />
+      </div>
 
-      {/* Contenido principal */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* Contenido principal con scroll */}
+      <div className="flex flex-1 min-h-0">
         {/* Sidebar de filtros (colapsible) */}
         {showFilters && (
-          <div className="hidden lg:block">
+          <div className="hidden lg:block flex-shrink-0">
             <CRMLeftSidebar onFilterChange={handleFiltersChange} />
           </div>
         )}
 
-        {/* Panel principal de contactos */}
-        <div className="flex-1 overflow-hidden">
-          <div className="h-full overflow-y-auto p-6">
+        {/* Panel principal de contactos con scroll */}
+        <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 overflow-y-auto p-6">
             {/* Vista condicional: tabla o tarjetas */}
             {viewMode === 'table' ? (
               <ContactsTable

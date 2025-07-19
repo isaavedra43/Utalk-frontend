@@ -142,8 +142,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </aside>
 
         {/* Contenido principal */}
-        <main className="flex-1 overflow-auto">
-          <div className="container mx-auto p-6">
+        <main className="flex-1 flex flex-col min-h-0">
+          <div className="flex-1 overflow-auto">
             {children || <Outlet />}
           </div>
         </main>
