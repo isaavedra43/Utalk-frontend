@@ -1,9 +1,8 @@
 // Componente principal del módulo de chat/inbox
-// Layout de tres columnas: Sidebar, ConversationList, ChatWindow + Panels
+// Layout de dos columnas: ConversationList, ChatWindow + Panels
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { InboxProps, ConversationFilter, MessageType, SuggestedResponse, ConversationSummary } from './types'
-import Sidebar from './components/Sidebar'
 import ConversationList from './components/ConversationList'
 import ChatWindow from './components/ChatWindow'
 import IAPanel from './components/IAPanel'

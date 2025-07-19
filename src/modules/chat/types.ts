@@ -109,10 +109,7 @@ export interface InboxProps {
   initialConversationId?: string
 }
 
-export interface SidebarProps {
-  onFilterChange: (filter: ConversationFilter) => void
-  currentFilter: ConversationFilter
-}
+// SidebarProps removed - functionality unified in ConversationListProps
 
 export interface ConversationListProps {
   conversations: Conversation[]

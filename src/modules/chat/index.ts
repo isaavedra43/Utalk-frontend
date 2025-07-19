@@ -11,7 +11,7 @@ export { default as MessageList } from './components/MessageList'
 export { default as MessageInput } from './components/MessageInput'
 export { default as MessageBubble } from './components/MessageBubble'
 export { default as ChatWindow } from './components/ChatWindow'
-export { default as Sidebar } from './components/Sidebar'
+// Sidebar component removed - functionality unified in ConversationList
 export { default as IAPanel } from './components/IAPanel'
 export { default as InfoPanel } from './components/InfoPanel'
 
