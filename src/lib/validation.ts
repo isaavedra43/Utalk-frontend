@@ -5,11 +5,7 @@ import {
   CanonicalMessage, 
   CanonicalConversation, 
   CanonicalContact,
-  CanonicalCampaign,
-  CanonicalUser,
-  CanonicalAPIResponse,
-  ValidationResult,
-  ValidationRule
+  ValidationResult
 } from '@/types/canonical'
 
 /**
@@ -55,7 +51,8 @@ class ValidationLogger {
   private reportToMonitoring(level: string, message: string, data: any, context: string) {
     // En producción, enviar a Sentry, LogRocket, etc.
     if (process.env.NODE_ENV === 'production') {
-      // Ejemplo: Sentry.captureException(new Error(message), { extra: { data, context } })
+      // Ejemplo: Sentry.captureException(new Error(message), { extra: { data, context, level } })
+      console.log(`Monitoring: ${level} - ${context} - ${message}`, data)
     }
   }
 }

@@ -3,7 +3,6 @@
 import { apiClient } from '@/services/apiClient'
 import { Message, MessageType } from '../types'
 import { MessageValidator } from '@/lib/validation'
-import type { CanonicalMessage } from '@/types/canonical'
 
 export interface MessagesResponse {
   success: boolean

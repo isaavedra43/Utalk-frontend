@@ -1,7 +1,7 @@
 // 🧪 TESTS DE INTEGRACIÓN - Sistema de Validación Centralizado
 // Garantiza que la validación funcione correctamente en todos los escenarios
 
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { MessageValidator, ConversationValidator, ContactValidator } from '@/lib/validation'
 import type { CanonicalMessage, CanonicalConversation, CanonicalContact } from '@/types/canonical'
 
