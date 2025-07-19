@@ -197,22 +197,15 @@ class ApiClient {
       responseStructure: JSON.stringify(response.data, null, 2).substring(0, 500)
     }, 'api_post_response_debug')
     
-    // ✅ CORREGIDO: Para /auth/login, retornar response.data directamente (no .data.data)
-    // El backend UTalk responde con { user, token } directamente en response.data
-    if (url.includes('/auth/login')) {
-      const loginData = response.data as any
-      logger.info('🔑 Login endpoint - returning direct response.data', {
-        hasUser: !!loginData?.user,
-        hasToken: !!loginData?.token,
-        userExists: !!loginData?.user?.id,
-        tokenLength: loginData?.token?.length || 0
-      }, 'login_response_direct')
-      
-      return loginData as T
+    // ✅ ACTUALIZADO: El backend UTalk usa patrón estándar para todos los endpoints
+    // Verificar si la respuesta es del tipo ApiResponse<T> o directa
+    if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+      // Patrón ApiResponse<T> estándar
+      return response.data.data
+    } else {
+      // Respuesta directa (algunos endpoints especiales como login)
+      return response.data as T
     }
-    
-    // Para otros endpoints, usar el patrón ApiResponse<T>
-    return response.data.data
   }
 
   async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {

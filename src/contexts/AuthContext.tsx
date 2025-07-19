@@ -1,8 +1,7 @@
 // Contexto global de autenticación
 // Manejo del estado de usuario, login, logout y protección de rutas
+// ACTUALIZADO: Sin dependencia de Firebase Auth (autenticación directa)
 import { useReducer, useEffect } from 'react'
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
-import { auth, getFirebaseApp } from '@/lib/firebase'
 import { apiClient } from '@/services/apiClient'
 import { socketClient } from '@/services/socketClient'
 import {
@@ -27,18 +26,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       logger.info('Initializing authentication...', null, 'auth_init')
       
-      // ✅ Validar que Firebase esté inicializado correctamente
-      try {
-        const firebaseApp = getFirebaseApp()
-        logger.success('Firebase App initialized successfully', {
-          projectId: firebaseApp.options.projectId,
-          authDomain: firebaseApp.options.authDomain
-        }, 'firebase_init_success')
-      } catch (error) {
-        logger.error('Firebase initialization failed', error, 'firebase_init_error')
-        dispatch({ type: 'AUTH_FAILURE', payload: 'Error de configuración de Firebase' })
-        return
-      }
+      // ✅ Validación de configuración básica
+      logger.info('Direct auth mode - no Firebase initialization needed', null, 'direct_auth_mode')
       
       const token = localStorage.getItem('auth_token')
       const userData = localStorage.getItem('user_data')
@@ -78,77 +67,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   /**
-   * Login con Firebase Auth + Backend UTalk
-   * 1. Autentica con Firebase (signInWithEmailAndPassword)
-   * 2. Obtiene idToken de Firebase
-   * 3. Envía idToken al backend /api/auth/login
-   * 4. Recibe usuario + JWT del backend
-   * 5. Almacena en localStorage y contexto
+   * Login directo con Backend UTalk
+   * ACTUALIZADO: El backend real usa email/password directo, no Firebase Auth
+   * 1. Envía email/password al backend /api/auth/login
+   * 2. Recibe usuario + JWT del backend
+   * 3. Almacena en localStorage y contexto
    */
   const login = async (email: string, password: string) => {
-    const perfId = logger.startPerformance('full_login_flow')
+    const perfId = logger.startPerformance('direct_login_flow')
     
-    logger.info('🚀 LOGIN FLOW STARTED', {
+    logger.info('🚀 LOGIN FLOW STARTED (DIRECT AUTH)', {
       email,
       timestamp: new Date().toISOString(),
       environment: import.meta.env.MODE,
       apiUrl: import.meta.env.VITE_API_URL,
       hasApiUrl: !!import.meta.env.VITE_API_URL,
-      firebaseProject: import.meta.env.VITE_FIREBASE_PROJECT_ID,
       userAgent: navigator.userAgent.substring(0, 100)
     }, 'login_flow_start')
-
-    // ✅ CRÍTICO: Verificar configuración antes de proceder
-    try {
-      getFirebaseApp() // Esto inicializa Firebase si no está inicializado
-      logger.success('Firebase app initialized successfully', null, 'firebase_init_check')
-    } catch (error) {
-      logger.error('Firebase Auth not available', error, 'firebase_auth_error')
-      throw new Error('Error de configuración de autenticación')
-    }
     
     dispatch({ type: 'AUTH_REQUEST' })
     
     try {
-      // 1. Autenticar con Firebase Auth
-      logger.info('Authenticating with Firebase...', null, 'firebase_auth_start')
-      const firebaseUser = await signInWithEmailAndPassword(auth, email, password)
-      const idToken = await firebaseUser.user.getIdToken()
-
-      logger.success('Firebase Auth successful', {
-        uid: firebaseUser.user.uid,
-        email: firebaseUser.user.email,
-        tokenLength: idToken.length
-      }, 'firebase_auth_success')
-
-      // ✅ LOGS CRÍTICOS: Verificar idToken de Firebase antes de enviarlo
-      logger.info('🔑 Firebase idToken obtained', {
-        idTokenExists: !!idToken,
-        idTokenLength: idToken ? idToken.length : 0,
-        idTokenPrefix: idToken ? idToken.substring(0, 50) + '...' : 'null',
-        userUID: firebaseUser.user.uid,
-        userEmail: firebaseUser.user.email
-      }, 'firebase_idtoken_details')
-
-      // ✅ CRÍTICO: Enviar idToken al backend UTalk exactamente como lo espera
-      const finalApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-      const finalBaseURL = finalApiUrl.endsWith('/api') ? finalApiUrl : `${finalApiUrl}/api`
-      const fullEndpoint = `${finalBaseURL}/auth/login`
+      // 1. Autenticación directa con backend UTalk (email/password)
+      logger.info('🔑 Sending credentials directly to backend...', {
+        email,
+        hasPassword: !!password,
+        passwordLength: password.length
+      }, 'backend_auth_start')
       
-      logger.info('🚀 Sending POST to backend', {
-        fullEndpoint,
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        bodyKeys: ['idToken'],
-        idTokenLength: idToken.length,
-        timestamp: new Date().toISOString()
-      }, 'backend_request_detailed')
-
-      // 2. Enviar idToken al backend UTalk
-      logger.info('Sending idToken to backend...', null, 'backend_auth_start')
-      
-      // ✅ CRÍTICO: Petición al backend con logs detallados
-      const response = await apiClient.post<LoginResponse>('/auth/login', { idToken })
+      // ✅ CORREGIDO: Enviar email/password como espera el backend real
+      const response = await apiClient.post<LoginResponse>('/auth/login', { 
+        email, 
+        password 
+      })
       
       // ✅ LOGS CRÍTICOS: Verificar estructura de respuesta ANTES de extraer datos
       logger.info('🔍 Backend response received', {
@@ -297,15 +248,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Los usuarios son creados directamente en Firebase Console por administradores
 
   /**
-   * Logout completo: Backend + Firebase + Local
+   * Logout completo: Backend + Local
+   * ACTUALIZADO: Sin dependencia de Firebase
    * 1. Invalida sesión en backend UTalk
-   * 2. Cierra sesión en Firebase Auth
-   * 3. Limpia localStorage y contexto
+   * 2. Limpia localStorage y contexto
    */
   const logout = async () => {
     const perfId = logger.startPerformance('user_logout')
     
-    logger.info('Starting logout process...', null, 'logout_start')
+    logger.info('Starting logout process (DIRECT AUTH)...', null, 'logout_start')
 
     try {
       // 1. Invalidar sesión en backend UTalk
@@ -318,22 +269,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Continúa con logout local aunque falle el backend
     }
 
-    try {
-      // 2. Cerrar sesión en Firebase Auth
-      logger.info('Signing out from Firebase...', null, 'firebase_logout_start')
-      await signOut(auth)
-      
-      logger.success('Firebase signout successful', null, 'firebase_logout_success')
-    } catch (error) {
-      logger.warn('Error signing out from Firebase', error, 'firebase_logout_error')
-      // Continúa con logout local aunque falle Firebase
-    }
-
-    // 3. Limpiar localStorage y contexto (siempre ejecutar)
+    // 2. Limpiar localStorage y contexto (siempre ejecutar)
     localStorage.removeItem('auth_token')
     localStorage.removeItem('user_data')
 
-    // 4. ✅ Desconectar WebSocket
+    // 3. ✅ Desconectar WebSocket
     try {
       socketClient.disconnectSocket()
       logger.success('WebSocket disconnected during logout', null, 'socket_disconnected')
