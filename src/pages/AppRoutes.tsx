@@ -20,8 +20,10 @@ import NotFoundPage from './NotFoundPage'
 import { Inbox } from '@/modules/chat/Inbox'
 import { CRM } from '@/modules/crm'
 
-// TODO: Importar páginas de módulos cuando estén implementadas
-// import CampaignsPage from './campaigns/CampaignsPage'
+// Módulos de Agentes, Campañas y Conocimiento
+import { AgentsDashboard } from '@/modules/agents/components/AgentsDashboard'
+import { CampaignsDashboard } from '@/modules/campaigns/components/CampaignsDashboard'
+import { KnowledgeDashboard } from '@/modules/knowledge/components/KnowledgeDashboard'
 
 // Componente para rutas protegidas
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -106,10 +108,13 @@ export function AppRoutes() {
         <Route path="chat/:conversationId" element={<Inbox />} />
         <Route path="crm" element={<CRM />} />
         
-        {/* TODO: Rutas de módulos */}
-        {/* <Route path="campaigns/*" element={<CampaignsPage />} /> */}
+        {/* 🎯 MÓDULOS NUEVOS - Agentes, Campañas y Conocimiento */}
+        <Route path="agents" element={<AgentsDashboard />} />
+        <Route path="campaigns" element={<CampaignsDashboard />} />
+        <Route path="knowledge" element={<KnowledgeDashboard />} />
+        
+        {/* TODO: Rutas de módulos futuros */}
         {/* <Route path="team/*" element={<TeamPage />} /> */}
-        {/* <Route path="knowledge/*" element={<KnowledgePage />} /> */}
         {/* <Route path="settings/*" element={<SettingsPage />} /> */}
       </Route>
 

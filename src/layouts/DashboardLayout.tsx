@@ -14,7 +14,8 @@ import {
   Search,
   User,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  UserCheck
 } from 'lucide-react'
 
 interface DashboardLayoutProps {
@@ -41,6 +42,12 @@ const navigationItems = [
     label: 'CRM',
     href: '/crm',
     description: 'Gestión de contactos'
+  },
+  {
+    icon: UserCheck,
+    label: 'Agentes',
+    href: '/agents',
+    description: 'Gestión de agentes y performance'
   },
   {
     icon: Megaphone,
