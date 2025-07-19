@@ -1,28 +1,70 @@
-// Módulo de Base de Conocimiento
-// Gestión de documentos, artículos, FAQs y búsqueda de contenido
+// 📚 MÓDULO DE CENTRO DE CONOCIMIENTO - UTalk Frontend
+// Exportaciones principales del módulo
 
-// Rutas del módulo
-export const knowledgeRoutes = {
-  index: '/knowledge',
-  articles: '/knowledge/articles',
-  categories: '/knowledge/categories',
-  search: '/knowledge/search',
-  create: '/knowledge/create',
-  edit: '/knowledge/:id/edit',
-  view: '/knowledge/:id',
-}
+// ✅ COMPONENTES PRINCIPALES
+export { default as KnowledgeDashboard } from './components/KnowledgeDashboard'
+export { default as KnowledgeSearchBar } from './components/KnowledgeSearchBar'
 
-// TODO: Exportar componentes cuando estén implementados
-// export { ArticleList } from './components/ArticleList'
-// export { ArticleForm } from './components/ArticleForm'
-// export { KnowledgeSearch } from './components/KnowledgeSearch'
-// export { CategoryManagement } from './components/CategoryManagement'
+// ✅ HOOKS
+export { 
+  useKnowledgeDocuments, 
+  useKnowledgeDocument, 
+  useKnowledgeFAQs, 
+  useKnowledgeCourses, 
+  useKnowledgeStats,
+  useKnowledgeCategories 
+} from './hooks/useKnowledge'
 
-// TODO: Exportar servicios cuando estén implementados
-// export { knowledgeService } from './services/knowledgeService'
+// ✅ SERVICIOS
+export { knowledgeService } from './services/knowledgeService'
 
-// TODO: Exportar hooks cuando estén implementados
-// export { useKnowledge } from './hooks/useKnowledge'
+// ✅ TIPOS
+export type {
+  KnowledgeDocument,
+  KnowledgeFAQ,
+  KnowledgeCourse,
+  KnowledgeCategory,
+  DocumentType,
+  DocumentStatus,
+  KnowledgeFilters,
+  KnowledgeStats,
+  KnowledgeActivity,
+  ActivityType,
+  CourseProgress,
+  CourseLesson,
+  CourseQuiz,
+  QuizQuestion,
+  QuizResult,
+  DocumentVersion,
+  KnowledgeModuleConfig,
+  KnowledgeDocumentsResponse,
+  KnowledgeDocumentResponse,
+  KnowledgeFAQsResponse,
+  KnowledgeCoursesResponse,
+  KnowledgeCategoriesResponse,
+  KnowledgeStatsResponse,
+  KnowledgeAction,
+  KnowledgeEvent
+} from './types'
 
-// TODO: Exportar tipos cuando estén implementados
-// export type { Article, Category, SearchResult, Tag } from './types' 
+// ✅ CONSTANTES
+export {
+  DOCUMENT_TYPE_LABELS,
+  DOCUMENT_TYPE_ICONS,
+  DOCUMENT_STATUS_LABELS,
+  DIFFICULTY_LABELS,
+  MIME_TYPE_MAPPINGS
+} from './types'
+
+// TODO: Los siguientes componentes se implementarán como archivos separados:
+// - KnowledgeSidebar
+// - KnowledgeList  
+// - KnowledgeCard
+// - KnowledgeDocumentViewer
+// - KnowledgeUploadModal
+// - KnowledgeFAQPanel
+// - KnowledgeStatsPanel
+// - KnowledgeCourseList
+// - KnowledgeCourseDetail
+// - KnowledgeCourseProgress
+// - KnowledgeActivityFeed 
