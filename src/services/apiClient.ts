@@ -8,7 +8,9 @@ class ApiClient {
   private client: AxiosInstance
   
   constructor() {
-    const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    // ✅ CRÍTICO: Backend UTalk tiene todas las rutas bajo /api
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+    const baseURL = apiUrl.endsWith('/api') ? apiUrl : `${apiUrl}/api`
     
     this.client = axios.create({
       baseURL,
@@ -22,7 +24,8 @@ class ApiClient {
     
     // Log inicial de configuración con detalles de debugging
     logger.info('ApiClient initialized', {
-      baseURL,
+      originalApiUrl: apiUrl,
+      finalBaseURL: baseURL,
       timeout: this.client.defaults.timeout,
       env: import.meta.env.DEV ? 'development' : 'production',
       envVarValue: import.meta.env.VITE_API_URL || 'NOT_SET'
@@ -32,7 +35,7 @@ class ApiClient {
     if (baseURL.includes('tu-backend-utalk') || baseURL.includes('your-') || baseURL.includes('localhost:8000')) {
       logger.warn('⚠️ API URL may not be configured correctly!', {
         currentURL: baseURL,
-        suggestion: 'Configure VITE_API_URL in .env with real backend URL'
+        suggestion: 'Configure VITE_API_URL in .env with real Railway backend URL'
       }, 'api_url_warning')
     }
   }
@@ -194,6 +197,21 @@ class ApiClient {
       responseStructure: JSON.stringify(response.data, null, 2).substring(0, 500)
     }, 'api_post_response_debug')
     
+    // ✅ CORREGIDO: Para /auth/login, retornar response.data directamente (no .data.data)
+    // El backend UTalk responde con { user, token } directamente en response.data
+    if (url.includes('/auth/login')) {
+      const loginData = response.data as any
+      logger.info('🔑 Login endpoint - returning direct response.data', {
+        hasUser: !!loginData?.user,
+        hasToken: !!loginData?.token,
+        userExists: !!loginData?.user?.id,
+        tokenLength: loginData?.token?.length || 0
+      }, 'login_response_direct')
+      
+      return loginData as T
+    }
+    
+    // Para otros endpoints, usar el patrón ApiResponse<T>
     return response.data.data
   }
 

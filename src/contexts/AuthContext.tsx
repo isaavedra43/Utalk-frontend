@@ -3,7 +3,7 @@
 import { useReducer, useEffect } from 'react'
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { auth, getFirebaseApp } from '@/lib/firebase'
-import apiClient from '@/services/apiClient'
+import { apiClient } from '@/services/apiClient'
 import { socketClient } from '@/services/socketClient'
 import {
   User,
@@ -12,6 +12,7 @@ import {
 } from './auth-types'
 import { AuthContext } from '@/hooks/useAuthContext'
 import { logger } from '@/lib/logger'
+import { LoginResponse } from '@/types'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState)
@@ -85,17 +86,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * 5. Almacena en localStorage y contexto
    */
   const login = async (email: string, password: string) => {
-    const perfId = logger.startPerformance('user_login')
+    const perfId = logger.startPerformance('full_login_flow')
     
-    logger.info('Starting login process...', { email }, 'login_start')
-    
-    // ✅ Validar que Firebase Auth esté disponible
+    logger.info('🚀 LOGIN FLOW STARTED', {
+      email,
+      timestamp: new Date().toISOString(),
+      environment: import.meta.env.MODE,
+      apiUrl: import.meta.env.VITE_API_URL,
+      hasApiUrl: !!import.meta.env.VITE_API_URL,
+      firebaseProject: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+      userAgent: navigator.userAgent.substring(0, 100)
+    }, 'login_flow_start')
+
+    // ✅ CRÍTICO: Verificar configuración antes de proceder
     try {
-      const authInstance = auth
-      if (!authInstance) {
-        throw new Error('Firebase Auth not initialized')
-      }
-      logger.success('Firebase Auth instance available', null, 'firebase_auth_ready')
+      getFirebaseApp() // Esto inicializa Firebase si no está inicializado
+      logger.success('Firebase app initialized successfully', null, 'firebase_init_check')
     } catch (error) {
       logger.error('Firebase Auth not available', error, 'firebase_auth_error')
       throw new Error('Error de configuración de autenticación')
@@ -109,17 +115,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const firebaseUser = await signInWithEmailAndPassword(auth, email, password)
       const idToken = await firebaseUser.user.getIdToken()
 
-      logger.success('Firebase authentication successful', {
+      logger.success('Firebase Auth successful', {
         uid: firebaseUser.user.uid,
         email: firebaseUser.user.email,
         tokenLength: idToken.length
       }, 'firebase_auth_success')
 
+      // ✅ LOGS CRÍTICOS: Verificar idToken de Firebase antes de enviarlo
+      logger.info('🔑 Firebase idToken obtained', {
+        idTokenExists: !!idToken,
+        idTokenLength: idToken ? idToken.length : 0,
+        idTokenPrefix: idToken ? idToken.substring(0, 50) + '...' : 'null',
+        userUID: firebaseUser.user.uid,
+        userEmail: firebaseUser.user.email
+      }, 'firebase_idtoken_details')
+
+      // ✅ CRÍTICO: Enviar idToken al backend UTalk exactamente como lo espera
+      const finalApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const finalBaseURL = finalApiUrl.endsWith('/api') ? finalApiUrl : `${finalApiUrl}/api`
+      const fullEndpoint = `${finalBaseURL}/auth/login`
+      
+      logger.info('🚀 Sending POST to backend', {
+        fullEndpoint,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        bodyKeys: ['idToken'],
+        idTokenLength: idToken.length,
+        timestamp: new Date().toISOString()
+      }, 'backend_request_detailed')
+
       // 2. Enviar idToken al backend UTalk
       logger.info('Sending idToken to backend...', null, 'backend_auth_start')
       
       // ✅ CRÍTICO: Petición al backend con logs detallados
-      const response = await apiClient.post('/auth/login', { idToken })
+      const response = await apiClient.post<LoginResponse>('/auth/login', { idToken })
       
       // ✅ LOGS CRÍTICOS: Verificar estructura de respuesta ANTES de extraer datos
       logger.info('🔍 Backend response received', {
@@ -137,9 +166,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }, 'backend_response_checkpoint')
 
       // ✅ CORREGIDO: Extracción robusta de user y token
-      let user, token
+      let user: User, token: string
 
-      // El apiClient ya devuelve response.data.data, así que response debería ser directo
+      // El apiClient ya retorna LoginResponse directamente para /auth/login
       if (response && typeof response === 'object') {
         // Caso 1: Respuesta directa { user, token }
         if (response.user && response.token) {
@@ -147,13 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           token = response.token
           logger.success('✅ Direct extraction successful', { hasUser: !!user, hasToken: !!token }, 'token_extraction')
         }
-        // Caso 2: Respuesta anidada en .data
-        else if (response.data && response.data.user && response.data.token) {
-          user = response.data.user
-          token = response.data.token
-          logger.success('✅ Nested extraction successful', { hasUser: !!user, hasToken: !!token }, 'token_extraction')
-        }
-        // Caso 3: Error - estructura no reconocida
+        // Caso 2: Error - estructura no reconocida
         else {
           logger.error('❌ Unrecognized response structure', {
             response,
@@ -230,8 +253,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fullError: JSON.stringify(error, Object.getOwnPropertyNames(error), 2).substring(0, 500)
       }, 'complete_login_error')
 
-      dispatch({ type: 'AUTH_FAILURE', payload: error.message || 'Error de autenticación' })
-      throw error
+      // ✅ MANEJO INTELIGENTE DE ERRORES ESPECÍFICOS
+      let userMessage = 'Error de autenticación'
+      
+      if (error?.code === 'ERR_NETWORK') {
+        userMessage = 'No se puede conectar al servidor. Verifica tu conexión.'
+        logger.error('Network connectivity issue', { 
+          baseURL: import.meta.env.VITE_API_URL,
+          isOnline: navigator.onLine 
+        }, 'network_error')
+      } else if (error?.response?.status === 401) {
+        userMessage = 'Credenciales inválidas. Verifica tu email y contraseña.'
+      } else if (error?.response?.status === 403) {
+        userMessage = 'No tienes permisos para acceder a esta aplicación.'
+      } else if (error?.response?.status >= 500) {
+        userMessage = 'Error del servidor. Intenta nuevamente en unos minutos.'
+      } else if (error?.code?.startsWith('auth/')) {
+        // Errores específicos de Firebase
+        switch (error.code) {
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+            userMessage = 'Email o contraseña incorrectos'
+            break
+          case 'auth/user-disabled':
+            userMessage = 'Usuario deshabilitado'
+            break
+          case 'auth/too-many-requests':
+            userMessage = 'Demasiados intentos fallidos. Intenta más tarde'
+            break
+          default:
+            userMessage = 'Error de autenticación con Firebase'
+        }
+      } else if (error?.response?.data?.message) {
+        userMessage = error.response.data.message
+      }
+
+      dispatch({ type: 'AUTH_FAILURE', payload: userMessage })
+      throw new Error(userMessage)
     }
   }
 

@@ -15,6 +15,20 @@ export interface User {
   updatedAt: Date
 }
 
+// ✅ NUEVO: Interface para la respuesta de login del backend UTalk
+export interface LoginResponse {
+  user: {
+    id: string
+    email: string
+    name: string
+    role: 'admin' | 'agent' | 'viewer'
+    status: 'active' | 'inactive'
+    createdAt: string
+    lastLoginAt?: string
+  }
+  token: string
+}
+
 export type UserRole = 'admin' | 'manager' | 'agent' | 'viewer'
 
 export interface AuthState {
