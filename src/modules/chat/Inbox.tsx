@@ -151,17 +151,9 @@ export function Inbox({ initialConversationId }: InboxProps = {}) {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar izquierdo */}
-      <div className="w-16 lg:w-64">
-        <Sidebar 
-          onFilterChange={handleFilterChange}
-          currentFilter={state.filter}
-        />
-      </div>
-
-      {/* Lista de conversaciones */}
-      <div className="w-80 border-r border-gray-200 bg-white">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Lista de conversaciones (Versión moderna unificada) */}
+      <div className="w-80 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <ConversationList
           conversations={conversations}
           selectedConversationId={state.selectedConversationId}
