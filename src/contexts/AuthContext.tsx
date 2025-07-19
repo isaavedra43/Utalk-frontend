@@ -129,6 +129,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         responseStructure: response ? JSON.stringify(response, null, 2).substring(0, 500) : 'null'
       }, 'backend_response_structure')
 
+      // ✅ NUEVO: Log crítico para verificar si llegamos hasta aquí
+      logger.info('🎯 CHECKPOINT: Response received from backend', {
+        timestamp: new Date().toISOString(),
+        responseExists: !!response,
+        responseType: typeof response
+      }, 'backend_response_checkpoint')
+
       // ✅ CORREGIDO: Extracción robusta de user y token
       let user, token
 
@@ -204,44 +211,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }, 'login_complete')
 
     } catch (error: any) {
-      let message = 'Error de autenticación'
-      
-      // Manejo específico de errores Firebase vs Backend
-      if (error.code) {
-        // Error de Firebase Auth
-        switch (error.code) {
-          case 'auth/user-not-found':
-          case 'auth/wrong-password':
-            message = 'Email o contraseña incorrectos'
-            break
-          case 'auth/user-disabled':
-            message = 'Usuario deshabilitado'
-            break
-          case 'auth/too-many-requests':
-            message = 'Demasiados intentos fallidos. Intenta más tarde'
-            break
-          default:
-            message = 'Error de autenticación con Firebase'
-        }
-        
-        logger.error('Firebase authentication failed', error, 'firebase_auth_error')
-      } else if (error.response) {
-        // Error del backend UTalk
-        message = error.response.data?.message || 'Error del servidor'
-        
-        logger.error('Backend authentication failed', {
+      // ✅ LOGS SÚPER CRÍTICOS: Capturar TODO sobre el error
+      logger.error('❌ COMPLETE LOGIN ERROR ANALYSIS', {
+        errorType: typeof error,
+        errorName: error?.name,
+        errorMessage: error?.message,
+        errorCode: error?.code,
+        errorStatus: error?.status,
+        errorResponse: error?.response ? {
           status: error.response.status,
-          data: error.response.data
-        }, 'backend_auth_error')
-      }
+          statusText: error.response.statusText,
+          data: error.response.data,
+          headers: error.response.headers
+        } : 'no response',
+        errorStack: error?.stack?.substring(0, 300),
+        isAxiosError: error?.isAxiosError,
+        isNetworkError: error?.code === 'ERR_NETWORK',
+        fullError: JSON.stringify(error, Object.getOwnPropertyNames(error), 2).substring(0, 500)
+      }, 'complete_login_error')
 
-      logger.auth('login', { error })
-      
-      dispatch({ type: 'AUTH_FAILURE', payload: message })
-      
-      logger.endPerformance(perfId, `Login failed: ${message}`)
-      
-      throw new Error(message)
+      dispatch({ type: 'AUTH_FAILURE', payload: error.message || 'Error de autenticación' })
+      throw error
     }
   }
 
