@@ -67,6 +67,15 @@ if (import.meta.env.DEV) {
   }, 2000)
 }
 
+console.group('🔍 VARIABLES DE ENTORNO EN RUNTIME')
+console.log('VITE_API_URL:', import.meta.env.VITE_API_URL)
+console.log('VITE_WS_URL:', import.meta.env.VITE_WS_URL)
+console.log('VITE_FIREBASE_API_KEY:', import.meta.env.VITE_FIREBASE_API_KEY ? 'CONFIGURADA' : 'NO CONFIGURADA')
+console.log('VITE_FIREBASE_AUTH_DOMAIN:', import.meta.env.VITE_FIREBASE_AUTH_DOMAIN)
+console.log('VITE_FIREBASE_PROJECT_ID:', import.meta.env.VITE_FIREBASE_PROJECT_ID)
+console.log('VITE_FIREBASE_APP_ID:', import.meta.env.VITE_FIREBASE_APP_ID)
+console.groupEnd()
+
 // Configuración de React Query
 const queryClient = new QueryClient({
   defaultOptions: {
