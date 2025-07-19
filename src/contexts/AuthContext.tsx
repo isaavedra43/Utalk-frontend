@@ -167,10 +167,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 4. Actualizar contexto
       dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } })
       
-      // 5. ✅ Conectar WebSocket con token válido
+      // 5. ✅ Conectar WebSocket con token y userId válidos (según Backend UTalk)
       try {
-        socketClient.connectWithToken(token)
-        logger.success('WebSocket connected after login', null, 'socket_connected')
+        if (user?.id && token) {
+          socketClient.connectWithToken(token, user.id)
+          logger.success('WebSocket connected after login', { 
+            hasToken: !!token, 
+            hasUserId: !!user.id 
+          }, 'socket_connected')
+        } else {
+          logger.warn('Missing token or userId for WebSocket connection', {
+            hasToken: !!token,
+            hasUserId: !!user?.id
+          }, 'socket_connection_missing_data')
+        }
       } catch (socketError) {
         logger.warn('Failed to connect WebSocket after login', socketError, 'socket_connection_failed')
         // No fallar el login por problemas de socket
