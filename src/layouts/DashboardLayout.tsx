@@ -1,19 +1,67 @@
 // Layout principal del dashboard con sidebar y header
 // Estructura base para todas las páginas autenticadas
 import React from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, Link, useLocation } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { 
+  LayoutDashboard, 
+  MessageSquare, 
+  Users, 
+  Megaphone, 
+  BookOpen, 
+  Settings,
+  Bell,
+  Search,
+  User
+} from 'lucide-react'
 
 interface DashboardLayoutProps {
   children?: React.ReactNode
 }
 
+// Configuración de navegación principal
+const navigationItems = [
+  {
+    icon: LayoutDashboard,
+    label: 'Dashboard',
+    href: '/dashboard',
+    description: 'Resumen y métricas'
+  },
+  {
+    icon: MessageSquare,
+    label: 'Mensajería',
+    href: '/chat',
+    description: 'Chat y conversaciones',
+    badge: '12' // Mensajes sin leer
+  },
+  {
+    icon: Users,
+    label: 'CRM',
+    href: '/crm',
+    description: 'Gestión de contactos'
+  },
+  {
+    icon: Megaphone,
+    label: 'Campañas',
+    href: '/campaigns',
+    description: 'Marketing y promociones'
+  },
+  {
+    icon: BookOpen,
+    label: 'Conocimiento',
+    href: '/knowledge',
+    description: 'Base de conocimiento'
+  },
+  {
+    icon: Settings,
+    label: 'Configuración',
+    href: '/settings',
+    description: 'Ajustes del sistema'
+  }
+]
+
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  // TODO: Implementar layout completo
-  // - Sidebar con navegación
-  // - Header con user menu y notificaciones
-  // - Breadcrumbs
-  // - Responsive design
-  // - Estados de loading
+  const location = useLocation()
 
   return (
     <div className="min-h-screen bg-background">
@@ -22,14 +70,36 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="flex h-14 items-center px-4">
           <div className="mr-4 hidden md:flex">
             <nav className="flex items-center space-x-6 text-sm font-medium">
-              {/* TODO: Implementar navegación */}
-              <span>UTalk</span>
+              <Link to="/dashboard" className="flex items-center space-x-2">
+                <MessageSquare className="w-6 h-6 text-primary" />
+                <span className="font-bold text-xl">UTalk</span>
+              </Link>
             </nav>
           </div>
+          
           <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-            {/* TODO: Búsqueda global, notificaciones, user menu */}
+            {/* Búsqueda global */}
             <div className="w-full flex-1 md:w-auto md:flex-none">
-              <span className="text-sm text-muted-foreground">Header - Pendiente</span>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Buscar en UTalk..."
+                  className="w-full md:w-64 pl-10 pr-4 py-2 text-sm border rounded-md bg-background"
+                />
+              </div>
+            </div>
+
+            {/* Notificaciones y usuario */}
+            <div className="flex items-center space-x-2">
+              <Button variant="ghost" size="sm" className="relative">
+                <Bell className="w-4 h-4" />
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              </Button>
+              
+              <Button variant="ghost" size="sm">
+                <User className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -40,9 +110,32 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <aside className="hidden w-64 border-r bg-background md:block">
           <div className="flex h-full flex-col">
             <div className="flex-1 py-4">
-              {/* TODO: Implementar menú de navegación */}
-              <nav className="space-y-2 px-3">
-                <div className="text-sm text-muted-foreground">Sidebar - Pendiente</div>
+              <nav className="space-y-1 px-3">
+                {navigationItems.map((item) => {
+                  const isActive = location.pathname.startsWith(item.href)
+                  
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className={`
+                        flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors
+                        ${isActive 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                        }
+                      `}
+                    >
+                      <item.icon className="w-4 h-4" />
+                      <span className="flex-1">{item.label}</span>
+                      {item.badge && (
+                        <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  )
+                })}
               </nav>
             </div>
           </div>
