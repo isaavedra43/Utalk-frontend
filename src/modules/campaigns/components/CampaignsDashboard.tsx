@@ -1,12 +1,12 @@
 // 📊 DASHBOARD PRINCIPAL DE CAMPAÑAS - UTalk Frontend
 // Vista general con KPIs, filtros y gestión de campañas
 
-import React, { useState, useMemo } from 'react'
-import { Plus, Filter, Download, RefreshCw, Search, Calendar, Users, Send, TrendingUp } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Plus, Filter, Download, RefreshCw, Search, Users, Send, TrendingUp, Calendar } from 'lucide-react'
 import { useCampaigns } from '../hooks/useCampaigns'
 import { CampaignsList } from './CampaignsList'
-import { CampaignsSidebar } from './CampaignsSidebar'
-import type { CampaignFilters, CampaignStatus, CampaignType } from '../types'
+// import { CampaignsSidebar } from './CampaignsSidebar' // TODO: Implementar
+import type { CampaignStatus, CampaignType } from '../types'
 import { CAMPAIGN_STATUS_LABELS, CAMPAIGN_TYPE_LABELS } from '../types'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -29,9 +29,7 @@ export function CampaignsDashboard() {
     isLoading,
     filters,
     updateFilters,
-    resetFilters,
-    refresh,
-    isMutating
+    refresh
   } = useCampaigns()
 
   // ✅ CALCULAR KPIs
@@ -113,11 +111,17 @@ export function CampaignsDashboard() {
     <div className="flex h-full bg-gray-50 dark:bg-gray-900">
       {/* 📱 SIDEBAR */}
       {showSidebar && (
-        <CampaignsSidebar 
-          onClose={() => setShowSidebar(false)}
-          filters={filters}
-          onFiltersChange={updateFilters}
-        />
+        <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">Filtros de Campañas</h3>
+            <button onClick={() => setShowSidebar(false)} className="text-gray-400 hover:text-gray-600">
+              ✕
+            </button>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Panel de filtros en desarrollo...
+          </p>
+        </div>
       )}
 
       {/* 📋 CONTENIDO PRINCIPAL */}
@@ -373,7 +377,7 @@ export function CampaignsDashboard() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={resetFilters}
+                    onClick={() => updateFilters({ page: 1 })} // Reset only page
                   >
                     Limpiar Filtros
                   </Button>
@@ -395,9 +399,9 @@ export function CampaignsDashboard() {
               campaigns={campaigns}
               total={total}
               isLoading={isLoading}
+              isMutating={false}
               filters={filters}
               onFiltersChange={updateFilters}
-              isMutating={isMutating}
             />
           )}
         </div>

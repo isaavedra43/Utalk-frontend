@@ -8,8 +8,8 @@ import type {
   KnowledgeCategory,
   KnowledgeStats,
   KnowledgeActivity,
-  CourseLesson,
-  CourseProgress
+  
+  
 } from '../types'
 
 /**

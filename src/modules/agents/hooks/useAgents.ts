@@ -6,16 +6,9 @@ import { useState, useCallback, useEffect } from 'react'
 import type { 
   Agent,
   AgentFilters,
-  AgentMetrics,
   AgentTeam,
   AgentRole,
-  AgentsResponse,
   AgentResponse,
-  AgentMetricsResponse,
-  AgentTeamsResponse,
-  AgentRolesResponse,
-  MetricsTimeSeries,
-  AIAnalysis,
   AgentStatus,
   AgentPermissions
 } from '../types'

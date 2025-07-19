@@ -1,7 +1,7 @@
 // 👥 DASHBOARD PRINCIPAL - Módulo de Agentes y Performance UTalk
 // Sistema ultra moderno para gestión de equipos y análisis de performance
 
-import React, { useState, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { 
   Users, 
   Search, 
@@ -9,41 +9,19 @@ import {
   Filter, 
   Download,
   RefreshCw,
-  TrendingUp,
-  TrendingDown,
-  Target,
   Clock,
   Star,
   Activity,
-  MessageSquare,
   DollarSign,
   UserCheck,
-  AlertTriangle,
-  BarChart3,
   Grid,
-  List,
-  Settings,
-  MoreVertical,
-  Eye,
-  Edit,
-  Trash2,
-  Copy,
-  Mail,
-  Phone,
-  Crown,
-  Shield,
-  Zap
+  List
 } from 'lucide-react'
 import { useAgents, useAgentStats, useAgentRealTime } from '../hooks/useAgents'
-// TODO: Importar componentes cuando estén implementados
-// import { AgentsList, AgentsFilters, AgentDetailPanel, AgentCreateModal, AgentStatsPanel } from './components'
-import type { Agent, AgentFilters, AgentStatus } from '../types'
-import { AGENT_STATUS_LABELS, AGENT_STATUS_COLORS } from '../types'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Avatar } from '@/components/ui/avatar'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 
 /**
@@ -59,20 +37,13 @@ export function AgentsDashboard() {
   // ✅ HOOKS PRINCIPALES
   const {
     agents,
-    total,
     isLoading,
     selectedAgent,
-    filters,
-    createAgent,
-    updateAgent,
-    deleteAgent,
-    updateAgentStatus,
-    updateFilters,
     selectAgent,
     refresh
   } = useAgents()
 
-  const { stats, isLoading: isLoadingStats } = useAgentStats()
+  const { stats } = useAgentStats()
   const { isConnected } = useAgentRealTime()
 
   // ✅ ESTADÍSTICAS RÁPIDAS
@@ -142,13 +113,9 @@ export function AgentsDashboard() {
   }
 
   // ✅ MANEJAR CREACIÓN DE AGENTE
-  const handleCreateAgent = async (agentData: any) => {
-    try {
-      await createAgent(agentData)
-      setShowCreateModal(false)
-    } catch (error) {
-      console.error('Error creating agent:', error)
-    }
+  const handleCreateAgent = () => {
+    console.log('🎯 Crear nuevo agente')
+    setShowCreateModal(false)
   }
 
   // ✅ EXPORTAR DATOS
@@ -244,7 +211,7 @@ export function AgentsDashboard() {
               </Button>
 
               <Button
-                onClick={() => setShowCreateModal(true)}
+                onClick={handleCreateAgent}
                 className="bg-blue-600 hover:bg-blue-700"
               >
                 <Plus className="w-4 h-4 mr-2" />

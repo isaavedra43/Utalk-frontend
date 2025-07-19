@@ -1,10 +1,9 @@
 // 🔍 BARRA DE BÚSQUEDA - Centro de Conocimiento
 // Búsqueda inteligente con sugerencias y filtros rápidos
 
-import React, { useState, useRef, useEffect } from 'react'
-import { Search, Mic, Filter, X, Clock, TrendingUp } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Search, Mic,  X, Clock, TrendingUp } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 

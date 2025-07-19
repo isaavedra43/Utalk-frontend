@@ -1,7 +1,7 @@
 // 👥 TIPOS CANÓNICOS - Módulo de Agentes y Performance UTalk
 // Sistema completo de gestión de equipos y métricas avanzadas
 
-import type { CanonicalUser } from '@/types/canonical'
+// import type { CanonicalUser } from '@/types/canonical'
 
 /**
  * 🎯 AGENTE CANÓNICO

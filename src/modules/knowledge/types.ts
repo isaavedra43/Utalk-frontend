@@ -1,10 +1,10 @@
 // 📚 TIPOS CANÓNICOS - Módulo de Centro de Conocimiento UTalk
-// Estructura estricta para documentos, cursos, FAQs y materiales de capacitación
+// Sistema completo de gestión de documentos, FAQs y capacitación
 
-import type { CanonicalUser } from '@/types/canonical'
+// // import type { CanonicalUser } from '@/types/canonical'
 
 /**
- * 🎯 DOCUMENTO DE CONOCIMIENTO CANÓNICO
+ * 🎯 DOCUMENTO DE CONOCIMIENTO
  */
 export interface KnowledgeDocument {
   // ✅ CAMPOS OBLIGATORIOS

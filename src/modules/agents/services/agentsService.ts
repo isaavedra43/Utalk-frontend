@@ -5,7 +5,6 @@ import { apiClient } from '@/services/apiClient'
 import type { 
   Agent,
   AgentFilters,
-  AgentMetrics,
   AgentTeam,
   AgentRole,
   AgentsResponse,

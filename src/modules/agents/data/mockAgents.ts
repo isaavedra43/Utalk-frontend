@@ -5,12 +5,7 @@ import type {
   Agent,
   AgentRole,
   AgentTeam,
-  AgentMetrics,
-  TeamMetrics,
-  AIAnalysis,
-  AgentStatus,
-  AccessLevel,
-  Channel
+  AIAnalysis
 } from '../types'
 import { DEFAULT_PERMISSIONS } from '../types'
 

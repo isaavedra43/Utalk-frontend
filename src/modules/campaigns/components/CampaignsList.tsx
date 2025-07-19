@@ -1,7 +1,7 @@
 // 📋 LISTA DE CAMPAÑAS - UTalk Frontend
 // Tabla con campañas, acciones rápidas y gestión de estados
 
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { 
   MoreVertical, 
   Play, 
@@ -10,7 +10,6 @@ import {
   Trash2, 
   Edit, 
   BarChart3, 
-  Calendar,
   Users,
   MessageSquare,
   Send,
@@ -20,7 +19,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import type { Campaign, CampaignFilters } from '../types'
-import { CAMPAIGN_STATUS_LABELS, CAMPAIGN_TYPE_LABELS, CHANNEL_LABELS } from '../types'
+import { CAMPAIGN_STATUS_LABELS } from '../types'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -311,7 +310,8 @@ export function CampaignsList({
                       <div className="flex flex-wrap gap-1">
                         {campaign.channels.map(channel => (
                           <Badge key={channel} variant="secondary" className="text-xs">
-                            {CHANNEL_LABELS[channel]}
+                            {/* CHANNEL_LABELS[channel] */}
+                            {channel}
                           </Badge>
                         ))}
                       </div>

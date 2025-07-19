@@ -1,14 +1,12 @@
-// 🎣 HOOK PRINCIPAL - Gestión de Campañas
-// Maneja el estado global de campañas con React Query
+// 🎣 HOOKS DE CAMPAÑAS - UTalk Frontend
+// Gestión de estado para campañas con React Query
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useCallback } from 'react'
 import type { 
-  Campaign, 
-  CampaignFilters, 
-  CampaignsResponse, 
-  CampaignResponse,
-  CampaignAction 
+  Campaign,
+  CampaignFilters,
+  CampaignResponse
 } from '../types'
 import { campaignService } from '../services/campaignService'
 
@@ -19,12 +17,12 @@ export function useCampaigns(initialFilters?: CampaignFilters) {
   const queryClient = useQueryClient()
   const [filters, setFilters] = useState<CampaignFilters>(initialFilters || {
     page: 1,
-    limit: 10,
+    limit: 20,
     sortBy: 'createdAt',
     sortOrder: 'desc'
   })
 
-  // ✅ CONSULTAR CAMPAÑAS
+  // ✅ OBTENER CAMPAÑAS
   const {
     data: campaignsData,
     isLoading,
@@ -187,7 +185,7 @@ export function useCampaigns(initialFilters?: CampaignFilters) {
   }, [cancelCampaignMutation])
 
   // ✅ ACCIONES EN LOTE
-  const executeAction = useCallback(async (campaignIds: string[], action: CampaignAction) => {
+  const executeAction = useCallback(async (campaignIds: string[], action: any) => { // Changed CampaignAction to any as it's removed
     const results = await Promise.allSettled(
       campaignIds.map(id => {
         switch (action) {

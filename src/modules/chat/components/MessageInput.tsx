@@ -1,6 +1,6 @@
 // Entrada de mensajes con soporte para texto, archivos y emojis
 // Maneja el envío de mensajes y indicadores de escritura
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Paperclip, Smile, Mic, Send } from 'lucide-react'

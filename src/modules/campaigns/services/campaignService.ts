@@ -7,9 +7,9 @@ import type {
   CampaignFilters, 
   CampaignsResponse, 
   CampaignResponse,
-  SelectedContact,
+  
   ContactsResponse,
-  CampaignTemplate,
+  
   TemplatesResponse,
   CampaignStats
 } from '../types'

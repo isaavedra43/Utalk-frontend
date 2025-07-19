@@ -1,8 +1,8 @@
 // 🗂️ SIDEBAR DE CAMPAÑAS - UTalk Frontend
 // Panel lateral con filtros avanzados y navegación
 
-import React, { useState } from 'react'
-import { X, Calendar, Filter, Tag, User, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { useState } from 'react'
+import { X, Calendar, Filter, Tag, Search, ChevronDown, ChevronUp } from 'lucide-react'
 import type { CampaignFilters } from '../types'
 import { CAMPAIGN_STATUS_LABELS, CAMPAIGN_TYPE_LABELS, CHANNEL_LABELS } from '../types'
 import { Button } from '@/components/ui/button'

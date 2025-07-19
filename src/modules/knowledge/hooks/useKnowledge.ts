@@ -6,12 +6,12 @@ import { useState, useCallback } from 'react'
 import type { 
   KnowledgeDocument,
   KnowledgeFAQ,
-  KnowledgeCourse,
+  
   KnowledgeFilters,
-  KnowledgeDocumentsResponse,
+  
   KnowledgeDocumentResponse,
-  KnowledgeFAQsResponse,
-  KnowledgeCoursesResponse,
+  
+  
   KnowledgeAction 
 } from '../types'
 import { knowledgeService } from '../services/knowledgeService'

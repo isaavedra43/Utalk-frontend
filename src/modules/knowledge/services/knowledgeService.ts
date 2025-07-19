@@ -6,7 +6,7 @@ import type {
   KnowledgeDocument,
   KnowledgeFAQ,
   KnowledgeCourse,
-  KnowledgeCategory,
+  
   KnowledgeFilters,
   KnowledgeDocumentsResponse,
   KnowledgeDocumentResponse,
