@@ -1,6 +1,6 @@
 // Layout principal del dashboard con sidebar y header
 // Estructura base para todas las páginas autenticadas
-import React from 'react'
+import React, { useState } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { 
@@ -12,7 +12,9 @@ import {
   Settings,
   Bell,
   Search,
-  User
+  User,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 
 interface DashboardLayoutProps {
@@ -62,6 +64,11 @@ const navigationItems = [
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const location = useLocation()
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed)
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -72,7 +79,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <nav className="flex items-center space-x-6 text-sm font-medium">
               <Link to="/dashboard" className="flex items-center space-x-2">
                 <MessageSquare className="w-6 h-6 text-primary" />
-                <span className="font-bold text-xl">UTalk</span>
+                {!sidebarCollapsed && <span className="font-bold text-xl">UTalk</span>}
               </Link>
             </nav>
           </div>
@@ -106,9 +113,24 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </header>
 
       <div className="flex">
-        {/* Sidebar */}
-        <aside className="hidden w-64 border-r bg-background md:block">
+        {/* Sidebar Colapsible */}
+        <aside className={`hidden md:block border-r bg-background transition-all duration-300 ease-in-out ${
+          sidebarCollapsed ? 'w-16' : 'w-64'
+        }`}>
           <div className="flex h-full flex-col">
+            {/* Botón para colapsar/expandir */}
+            <div className="flex justify-end p-2 border-b">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleSidebar}
+                className="h-8 w-8 p-0"
+                title={sidebarCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
+              >
+                {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+              </Button>
+            </div>
+
             <div className="flex-1 py-4">
               <nav className="space-y-1 px-3">
                 {navigationItems.map((item) => {
@@ -124,14 +146,20 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                           ? 'bg-primary text-primary-foreground' 
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                         }
+                        ${sidebarCollapsed ? 'justify-center space-x-0' : ''}
                       `}
+                      title={sidebarCollapsed ? item.label : undefined}
                     >
-                      <item.icon className="w-4 h-4" />
-                      <span className="flex-1">{item.label}</span>
-                      {item.badge && (
-                        <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
-                          {item.badge}
-                        </span>
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                      {!sidebarCollapsed && (
+                        <>
+                          <span className="flex-1">{item.label}</span>
+                          {item.badge && (
+                            <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
+                              {item.badge}
+                            </span>
+                          )}
+                        </>
                       )}
                     </Link>
                   )

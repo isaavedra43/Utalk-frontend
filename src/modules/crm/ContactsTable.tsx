@@ -150,7 +150,7 @@ export function ContactsTable({
                           {getChannelIcon(contact.channel)}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                      <div className="space-y-1 text-sm text-gray-500 dark:text-gray-400">
                         <div className="flex items-center gap-1">
                           <Mail className="w-3 h-3" />
                           {contact.email}
