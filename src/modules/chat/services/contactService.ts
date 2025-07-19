@@ -147,17 +147,31 @@ class ContactService {
 
   // Mapear contacto del backend a nuestro tipo Contact
   private mapBackendContact(backendContact: any): Contact {
+    // ✅ MAPEAR A ESTRUCTURA CANÓNICA COMPLETA
     return {
       id: backendContact.id,
       name: backendContact.name,
-      email: backendContact.email,
       phone: backendContact.phone,
-      avatar: backendContact.avatar, // El backend puede no tener avatar
+      email: backendContact.email,
+      avatar: backendContact.avatar,
+      company: backendContact.company,
+      position: backendContact.position,
+      status: backendContact.status || 'active',
+      source: backendContact.source || 'manual',
+      isOnline: backendContact.isOnline || false,
       channel: this.inferChannel(backendContact.phone), // Inferir canal desde teléfono
+      lastSeen: backendContact.lastSeen ? new Date(backendContact.lastSeen) : undefined,
+      createdAt: backendContact.createdAt ? new Date(backendContact.createdAt) : new Date(),
+      updatedAt: backendContact.updatedAt ? new Date(backendContact.updatedAt) : new Date(),
+      lastContactAt: backendContact.lastContactAt ? new Date(backendContact.lastContactAt) : undefined,
+      totalMessages: backendContact.totalMessages || 0,
+      totalConversations: backendContact.totalConversations || 0,
+      averageResponseTime: backendContact.averageResponseTime,
+      value: backendContact.value || 0,
+      currency: backendContact.currency || 'USD',
       tags: backendContact.tags || [],
-      isOnline: backendContact.isActive || false,
-      lastSeen: backendContact.lastContactAt ? new Date(backendContact.lastContactAt) : undefined,
-      customFields: backendContact.customFields || {}
+      customFields: backendContact.customFields || {},
+      metadata: backendContact.metadata
     }
   }
 

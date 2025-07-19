@@ -135,7 +135,7 @@ class DataValidator {
    */
   static normalizePhone(phone: string): string {
     // Remover espacios, guiones, paréntesis
-    let normalized = phone.replace(/[\s\-\(\)]/g, '')
+    let normalized = phone.replace(/[\s\-()]/g, '') // ✅ Corregido: sin escapes innecesarios
     
     // Si no empieza con +, agregar +52 (México por default)
     if (!normalized.startsWith('+')) {
@@ -178,7 +178,7 @@ export class MessageValidator {
     }
     
     // ✅ TIMESTAMP
-    let timestamp = DataValidator.transformToDate(data.timestamp, 'timestamp')
+    const timestamp = DataValidator.transformToDate(data.timestamp, 'timestamp')
     if (!timestamp) {
       errors.push({ field: 'timestamp', message: 'timestamp inválido', value: data.timestamp })
     }
@@ -512,27 +512,31 @@ export class ContactValidator {
     // ✅ NORMALIZAR TELÉFONO
     const normalizedPhone = DataValidator.normalizePhone(data.phone)
     
-    // ✅ CONSTRUIR CONTACTO CANÓNICO
+    // ✅ CONSTRUIR CONTACTO CANÓNICO COMPLETO
     const canonicalContact: CanonicalContact = {
       id: data.id,
       name: data.name,
       phone: normalizedPhone,
-      email: data.email || undefined,
-      avatar: data.avatar || undefined,
-      company: data.company || undefined,
-      position: data.position || undefined,
-      status,
-      source,
+      email: data.email,
+      avatar: data.avatar,
+      company: data.company,
+      position: data.position,
+      status: data.status,
+      source: data.source,
+      isOnline: data.isOnline ?? false, // ✅ Campo obligatorio agregado
+      channel: data.channel || 'whatsapp', // ✅ Campo obligatorio agregado
+      lastSeen: data.lastSeen ? (DataValidator.transformToDate(data.lastSeen, 'lastSeen') || undefined) : undefined,
       createdAt: createdAt!,
       updatedAt: updatedAt!,
-      lastContactAt: data.lastContactAt ? DataValidator.transformToDate(data.lastContactAt, 'lastContactAt') || undefined : undefined,
-      totalMessages: data.totalMessages || 0,
-      totalConversations: data.totalConversations || 0,
-      averageResponseTime: data.averageResponseTime || undefined,
-      value: data.value || 0,
-      currency: data.currency || 'MXN',
-      tags: data.tags || [],
-      metadata: data.metadata || {}
+      lastContactAt: data.lastContactAt ? (DataValidator.transformToDate(data.lastContactAt, 'lastContactAt') || undefined) : undefined,
+      totalMessages: data.totalMessages ?? 0,
+      totalConversations: data.totalConversations ?? 0,
+      averageResponseTime: data.averageResponseTime,
+      value: data.value ?? 0,
+      currency: data.currency || 'USD',
+      tags: Array.isArray(data.tags) ? data.tags : [],
+      customFields: data.customFields,
+      metadata: data.metadata
     }
     
     logger.info('Contacto validado exitosamente', canonicalContact, 'CONTACT_VALIDATION_SUCCESS')

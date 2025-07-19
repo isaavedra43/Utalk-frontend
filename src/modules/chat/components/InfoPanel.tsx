@@ -51,6 +51,7 @@ export function InfoPanel({
         assignedTo: { 
           id: 'current-user', 
           name: 'Usuario Actual',
+          role: 'agent', // ✅ Campo requerido por estructura canónica
           avatar: undefined
         }
       })

@@ -130,6 +130,11 @@ export interface CanonicalContact {
   status: 'active' | 'inactive' | 'blocked' | 'prospect' | 'customer' | 'lead'
   source: 'manual' | 'import' | 'whatsapp' | 'webchat' | 'api'
   
+  // ✅ INFORMACIÓN DE CHAT (REQUERIDA PARA UI)
+  isOnline: boolean            // Estado de conexión en tiempo real
+  channel: 'whatsapp' | 'telegram' | 'email' | 'webchat' | 'api' | 'facebook' | 'web' | 'instagram' // Canal de comunicación
+  lastSeen?: Date              // Última vez que estuvo online
+  
   // ✅ TIMESTAMPS
   createdAt: Date
   updatedAt: Date
@@ -147,9 +152,11 @@ export interface CanonicalContact {
   // ✅ ETIQUETAS Y CLASIFICACIÓN
   tags: string[]               // Etiquetas del contacto
   
+  // ✅ CAMPOS PERSONALIZADOS (REQUERIDOS PARA UI)
+  customFields?: Record<string, any> // Campos personalizados
+  
   // ✅ METADATOS
   metadata?: {
-    customFields?: Record<string, any>
     preferences?: {
       language?: string
       timezone?: string

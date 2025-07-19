@@ -136,7 +136,16 @@ class ApiClient {
   // Métodos HTTP principales
   async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.axiosInstance.get<ApiResponse<T>>(url, config)
-    return response.data.data
+    
+    // ✅ MANEJO ROBUSTO: Verificar formato de respuesta como en POST
+    // Compatibilidad con estructura canónica y formato ApiResponse<T>
+    if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+      // Patrón ApiResponse<T> estándar: { data: {...} }
+      return response.data.data
+    } else {
+      // Respuesta directa (estructura canónica): {...} 
+      return response.data as T
+    }
   }
 
   async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {

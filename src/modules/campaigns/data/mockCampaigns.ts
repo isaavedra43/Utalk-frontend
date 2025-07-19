@@ -556,72 +556,57 @@ export const mockCampaignTemplates: CampaignTemplate[] = [
 export const mockSelectedContacts: SelectedContact[] = [
   {
     id: 'contact_001',
-    name: 'María García López',
-    phone: '+525512345678',
-    email: 'maria.garcia@email.com',
+    name: 'Ana García',
+    phone: '+5215512345678',
+    email: 'ana@empresa.com',
     company: 'Empresa ABC',
-    position: 'Gerente de Marketing',
+    position: 'Gerente',
     status: 'active',
     source: 'manual',
-    createdAt: new Date('2024-01-15T09:00:00Z'),
-    updatedAt: new Date('2024-11-20T10:30:00Z'),
+    isOnline: false, // ✅ Campo obligatorio agregado
+    channel: 'whatsapp', // ✅ Campo obligatorio agregado
+    createdAt: new Date('2024-01-15T08:00:00Z'),
+    updatedAt: new Date('2024-01-20T15:30:00Z'),
     totalMessages: 25,
     totalConversations: 3,
-    value: 15000,
-    currency: 'MXN',
-    tags: ['vip', 'cliente-premium', 'marketing'],
-    campaignStatus: 'delivered',
-    personalizedVariables: {
-      '{{nombre}}': 'María',
-      '{{empresa}}': 'Empresa ABC',
-      '{{descuento}}': '25%'
-    },
-    preferredChannel: 'whatsapp',
+    value: 5000,
+    currency: 'USD',
+    tags: ['cliente', 'premium'],
+    campaignStatus: 'read', // ✅ Campo requerido agregado - ContactCampaignStatus
     sendResult: {
-      twilioSid: 'SM1234567890abcdef',
-      channel: 'whatsapp',
-      sentAt: new Date('2024-11-25T08:05:00Z'),
-      status: 'delivered',
-      deliveredAt: new Date('2024-11-25T08:07:00Z'),
-      readAt: new Date('2024-11-25T08:45:00Z'),
-      interactions: [
-        {
-          id: 'int_001',
-          type: 'click',
-          timestamp: new Date('2024-11-25T08:50:00Z'),
-          data: { url: 'https://tienda.com/black-friday' }
-        }
-      ]
+      channel: 'whatsapp', // ✅ Campo obligatorio agregado
+      status: 'read', // ✅ Tipo ContactCampaignStatus
+      sentAt: new Date('2024-01-20T10:00:00Z'),
+      deliveredAt: new Date('2024-01-20T10:01:30Z'),
+      readAt: new Date('2024-01-20T10:15:00Z'),
+      repliedAt: new Date('2024-01-20T10:20:00Z') // ✅ Corregido: responseAt → repliedAt
+      // ✅ Eliminado: errorMessage (no existe en la interfaz)
     }
   },
-  
   {
     id: 'contact_002',
-    name: 'Carlos Rodríguez',
-    phone: '+525587654321',
-    email: 'carlos.rodriguez@email.com',
+    name: 'Carlos López', 
+    phone: '+5215587654321',
+    email: 'carlos@email.com',
     status: 'active',
     source: 'whatsapp',
-    createdAt: new Date('2024-03-10T14:20:00Z'),
-    updatedAt: new Date('2024-11-22T16:15:00Z'),
-    totalMessages: 8,
-    totalConversations: 1,
-    value: 5000,
-    currency: 'MXN',
-    tags: ['cliente-nuevo', 'interesado'],
-    campaignStatus: 'read',
-    personalizedVariables: {
-      '{{nombre}}': 'Carlos',
-      '{{descuento}}': '20%'
-    },
-    preferredChannel: 'sms',
+    isOnline: true, // ✅ Campo obligatorio agregado
+    channel: 'whatsapp', // ✅ Campo obligatorio agregado
+    createdAt: new Date('2024-01-10T10:00:00Z'),
+    updatedAt: new Date('2024-01-18T14:00:00Z'),
+    totalMessages: 40,
+    totalConversations: 2,
+    value: 2500,
+    currency: 'USD',
+    tags: ['lead'],
+    campaignStatus: 'delivered', // ✅ Campo requerido agregado - ContactCampaignStatus
     sendResult: {
-      twilioSid: 'SM0987654321fedcba',
-      channel: 'sms',
-      sentAt: new Date('2024-11-25T08:10:00Z'),
-      status: 'read',
-      deliveredAt: new Date('2024-11-25T08:11:00Z'),
-      readAt: new Date('2024-11-25T09:20:00Z')
+      channel: 'whatsapp', // ✅ Campo obligatorio agregado
+      status: 'delivered', // ✅ Tipo ContactCampaignStatus
+      sentAt: new Date('2024-01-20T10:00:00Z'),
+      deliveredAt: new Date('2024-01-20T10:02:00Z')
+      // ✅ Omitidos: readAt y repliedAt (opcionales, sin null)
+      // ✅ Eliminado: errorMessage (no existe en la interfaz)
     }
   }
 ] 

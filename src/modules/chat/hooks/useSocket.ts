@@ -1,11 +1,14 @@
 // Hook para gestionar conexión Socket.IO en tiempo real
 // Conecta con socketClient para eventos del backend UTalk
+// ✅ ALINEADO CON ESTRUCTURA CANÓNICA - Validación obligatoria para WebSocket
 import { useEffect, useState, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { socketClient } from '@/services/socketClient'
 import { TypingIndicator } from '../types'
 import { messageKeys } from './useMessages'
 import { conversationKeys } from './useConversations'
+import { MessageValidator } from '@/lib/validation'
+import { logger } from '@/lib/logger'
 
 export interface SocketState {
   isConnected: boolean
@@ -91,22 +94,52 @@ export function useSocket(options: UseSocketOptions = {}) {
     }
   }, [queryClient])
 
-  // Manejar nuevo mensaje recibido
+  // ✅ NUEVO: Manejar nuevo mensaje recibido CON VALIDACIÓN CANÓNICA
   useEffect(() => {
     const handleNewMessage = (data: { message: any, conversationId: string }) => {
-      // Actualizar cache de mensajes con el nuevo mensaje
+      logger.info('🔍 WebSocket message received - validating with canonical structure', {
+        conversationId: data.conversationId,
+        messageStructure: data.message ? Object.keys(data.message) : []
+      }, 'websocket_message_received')
+
+      // ✅ VALIDACIÓN CANÓNICA OBLIGATORIA - Misma que REST
+      const validatedMessages = MessageValidator.validateBackendResponse([data.message]);
+      
+      if (validatedMessages.length === 0) {
+        logger.error('❌ WebSocket message failed canonical validation - DISCARDED', {
+          conversationId: data.conversationId,
+          originalMessage: data.message
+        }, 'websocket_message_validation_failed')
+        return; // Descartar mensaje inválido
+      }
+
+      const validatedMessage = validatedMessages[0];
+      
+      logger.success('✅ WebSocket message validated successfully', {
+        messageId: validatedMessage.id,
+        conversationId: validatedMessage.conversationId,
+        type: validatedMessage.type,
+        hasContent: !!validatedMessage.content
+      }, 'websocket_message_validated')
+
+      // Actualizar cache de mensajes con el mensaje VALIDADO
       queryClient.setQueryData(
         messageKeys.list(data.conversationId),
         (old: any) => {
           if (!old) return old
           
           // Verificar si el mensaje ya existe para evitar duplicados
-          const exists = old.messages?.some((msg: any) => msg.id === data.message.id)
-          if (exists) return old
+          const exists = old.messages?.some((msg: any) => msg.id === validatedMessage.id)
+          if (exists) {
+            logger.info('WebSocket message already exists in cache - skipping', {
+              messageId: validatedMessage.id
+            }, 'websocket_message_duplicate')
+            return old
+          }
           
           return {
             ...old,
-            messages: [...(old.messages || []), data.message],
+            messages: [...(old.messages || []), validatedMessage], // ✅ Mensaje validado
             total: (old.total || 0) + 1
           }
         }
@@ -123,7 +156,13 @@ export function useSocket(options: UseSocketOptions = {}) {
               conv.id === data.conversationId
                 ? { 
                     ...conv, 
-                    lastMessage: data.message,
+                    lastMessage: {
+                      id: validatedMessage.id,
+                      content: validatedMessage.content,
+                      timestamp: validatedMessage.timestamp,
+                      senderName: validatedMessage.sender.name,
+                      type: validatedMessage.type
+                    },
                     updatedAt: new Date(),
                     unreadCount: conv.unreadCount + 1
                   }
@@ -134,7 +173,7 @@ export function useSocket(options: UseSocketOptions = {}) {
       )
 
       // Invalidar queries para refrescar
-      queryClient.invalidateQueries({ queryKey: messageKeys.list(data.message.conversationId) })
+      queryClient.invalidateQueries({ queryKey: messageKeys.list(validatedMessage.conversationId) })
       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })
     }
 
@@ -145,6 +184,11 @@ export function useSocket(options: UseSocketOptions = {}) {
   // Manejar mensaje marcado como leído
   useEffect(() => {
     const handleMessageRead = (data: { messageId: string, conversationId: string }) => {
+      logger.info('📖 WebSocket message read event received', {
+        messageId: data.messageId,
+        conversationId: data.conversationId
+      }, 'websocket_message_read')
+
       // Actualizar estado del mensaje en cache
       queryClient.setQueryData(
         messageKeys.list(data.conversationId),

@@ -1,12 +1,17 @@
 // Servicio para mensajes - Conecta con API real de UTalk Backend
 // Abstrae las llamadas a /api/messages del backend
+// ✅ ALINEADO 100% CON ESTRUCTURA CANÓNICA - Sin mapeo manual
 import { apiClient } from '@/services/apiClient'
-import { Message, MessageType } from '../types'
 import { MessageValidator } from '@/lib/validation'
+import { CanonicalMessage } from '@/types/canonical'
+
+// Reexportar tipo para compatibilidad
+export type Message = CanonicalMessage
+export type MessageType = CanonicalMessage['type']
 
 export interface MessagesResponse {
   success: boolean
-  messages: Message[]
+  messages: CanonicalMessage[]
   total: number
   page: number
   limit: number
@@ -26,7 +31,7 @@ export interface SendMessageData {
 
 export interface SendMessageResponse {
   success: boolean
-  message: Message
+  message: CanonicalMessage
 }
 
 class MessageService {
@@ -44,7 +49,7 @@ class MessageService {
       const response = await apiClient.get(url);
       console.log('📥 Raw API response:', response);
       
-      // ✅ VALIDACIÓN CENTRALIZADA CON EL NUEVO SISTEMA
+      // ✅ VALIDACIÓN CENTRALIZADA CON EL SISTEMA CANÓNICO (ÚNICA FUENTE DE VERDAD)
       const validatedMessages = MessageValidator.validateBackendResponse(response);
       
       console.log('🛡️ Validation complete:', {
@@ -88,22 +93,36 @@ class MessageService {
 
   // Obtener todos los mensajes con filtros
   async getAllMessages(filters: { search?: string, status?: string } = {}): Promise<MessagesResponse> {
-    const params = new URLSearchParams()
-    
-    if (filters.search) params.append('search', filters.search)
-    if (filters.status) params.append('status', filters.status)
-    
-    const queryString = params.toString()
-    const url = queryString ? `${this.baseUrl}?${queryString}` : this.baseUrl
+    try {
+      const params = new URLSearchParams()
+      
+      if (filters.search) params.append('search', filters.search)
+      if (filters.status) params.append('status', filters.status)
+      
+      const queryString = params.toString()
+      const url = queryString ? `${this.baseUrl}?${queryString}` : this.baseUrl
 
-    const response = await apiClient.get(url)
-    
-    return {
-      success: response.success || true,
-      messages: this.mapBackendMessages(response.data || response.messages || []),
-      total: response.total || response.data?.length || 0,
-      page: response.page || 1,
-      limit: response.limit || 50
+      const response = await apiClient.get(url)
+      
+      // ✅ USAR VALIDADOR CANÓNICO EN LUGAR DE MAPEO MANUAL
+      const validatedMessages = MessageValidator.validateBackendResponse(response);
+      
+      return {
+        success: response.success || true,
+        messages: validatedMessages,
+        total: response.total || validatedMessages.length,
+        page: response.page || 1,
+        limit: response.limit || 50
+      }
+    } catch (error) {
+      return {
+        success: false,
+        messages: [],
+        total: 0,
+        page: 1,
+        limit: 50,
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      }
     }
   }
 
@@ -119,9 +138,17 @@ class MessageService {
 
     const response = await apiClient.post(`${this.baseUrl}/send`, payload)
     
+    // ✅ VALIDAR RESPUESTA DE ENVÍO TAMBIÉN
+    const validatedMessages = MessageValidator.validateBackendResponse([response.data || response.message]);
+    const validatedMessage = validatedMessages[0];
+    
+    if (!validatedMessage) {
+      throw new Error('Respuesta de envío de mensaje inválida del backend');
+    }
+    
     return {
       success: response.success || true,
-      message: this.mapBackendMessage(response.data || response.message)
+      message: validatedMessage
     }
   }
 
@@ -152,92 +179,33 @@ class MessageService {
 
   // Buscar mensajes
   async searchMessages(query: string): Promise<MessagesResponse> {
-    const response = await apiClient.get(`${this.baseUrl}/search?q=${encodeURIComponent(query)}`)
-    
-    return {
-      success: response.success || true,
-      messages: this.mapBackendMessages(response.data || response.messages || []),
-      total: response.total || response.data?.length || 0,
-      page: 1,
-      limit: 50
-    }
-  }
-
-  // Mapear mensaje del backend a nuestro tipo Message
-  private mapBackendMessage(backendMessage: any): Message {
-    return {
-      id: backendMessage.id,
-      conversationId: backendMessage.conversationId,
-      content: backendMessage.content,
-      type: this.mapMessageType(backendMessage.type),
-      timestamp: new Date(backendMessage.timestamp),
-      sender: {
-        id: backendMessage.sender?.id || 'unknown',
-        name: backendMessage.sender?.name || 'Usuario',
-        type: this.mapSenderType(backendMessage.direction),
-        avatar: backendMessage.sender?.avatar
-      },
-      attachments: backendMessage.media ? [{
-        id: backendMessage.id + '_media',
-        name: backendMessage.media.name || 'Archivo',
-        url: backendMessage.media.url,
-        type: backendMessage.media.type,
-        size: 0 // El backend UTalk no incluye size
-      }] : undefined,
-      isRead: backendMessage.status === 'read',
-      isDelivered: ['delivered', 'read'].includes(backendMessage.status),
-      metadata: {
-        twilioSid: backendMessage.twilioSid,
-        userId: backendMessage.userId,
-        direction: backendMessage.direction,
-        originalStatus: backendMessage.status
+    try {
+      const response = await apiClient.get(`${this.baseUrl}/search?q=${encodeURIComponent(query)}`)
+      
+      // ✅ USAR VALIDADOR CANÓNICO EN LUGAR DE MAPEO MANUAL
+      const validatedMessages = MessageValidator.validateBackendResponse(response);
+      
+      return {
+        success: response.success || true,
+        messages: validatedMessages,
+        total: response.total || validatedMessages.length,
+        page: 1,
+        limit: 50
+      }
+    } catch (error) {
+      return {
+        success: false,
+        messages: [],
+        total: 0,
+        page: 1,
+        limit: 50,
+        error: error instanceof Error ? error.message : 'Error desconocido'
       }
     }
   }
 
-  private mapBackendMessages(backendMessages: any[]): Message[] {
-    return backendMessages.map(msg => this.mapBackendMessage(msg))
-  }
-
-  // Mapear tipos de mensaje del backend a nuestros tipos
-  private mapMessageType(backendType: string): MessageType {
-    const typeMap: Record<string, MessageType> = {
-      'text': 'text',
-      'image': 'image',
-      'document': 'file',
-      'audio': 'audio',
-      'video': 'video',
-      'location': 'location',
-      'sticker': 'sticker'
-    }
-    return typeMap[backendType] || 'text'
-  }
-
-  // Mapear dirección del mensaje a tipo de remitente
-  private mapSenderType(direction: string): 'contact' | 'agent' | 'bot' {
-    switch (direction) {
-      case 'inbound':
-        return 'contact'
-      case 'outbound':
-        return 'agent'
-      default:
-        return 'agent'
-    }
-  }
-
-  // Mapeo de tipos de mensaje para backend (reservado para uso futuro)
-  // private mapToBackendType(frontendType: MessageType): string {
-  //   const typeMap: Record<MessageType, string> = {
-  //     text: 'text',
-  //     image: 'image',
-  //     file: 'document',
-  //     audio: 'audio',
-  //     video: 'video',
-  //     location: 'location',
-  //     sticker: 'sticker'
-  //   }
-  //   return typeMap[frontendType] || 'text'
-  // }
+  // ✅ TODO EL MAPEO MANUAL FUE ELIMINADO
+  // El MessageValidator canónico es la ÚNICA fuente de verdad para transformación de datos
 }
 
 export const messageService = new MessageService()

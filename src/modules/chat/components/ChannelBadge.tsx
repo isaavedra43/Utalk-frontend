@@ -1,43 +1,54 @@
 // Badge para mostrar el canal de comunicación (WhatsApp, Facebook, etc.)
 // Componente reutilizable con iconos y colores específicos por canal
+import { ElementType } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { MessageCircle, Mail, Globe, Instagram, Send } from 'lucide-react'
+import { MessageCircle, Mail, Globe } from 'lucide-react'
 import { ChannelBadgeProps, ChannelType } from '../types'
 
-const channelConfig: Record<ChannelType, { 
-  icon: React.ElementType
+const channelConfig: Record<ChannelType, {
+  icon: ElementType
   label: string
   className: string
 }> = {
   whatsapp: {
     icon: MessageCircle,
     label: 'WhatsApp',
-    className: 'bg-green-500/10 text-green-600 border-green-500/20'
+    className: 'bg-green-100 text-green-800'
   },
   facebook: {
     icon: MessageCircle,
     label: 'Facebook',
-    className: 'bg-blue-500/10 text-blue-600 border-blue-500/20'
+    className: 'bg-blue-100 text-blue-800'
   },
   email: {
     icon: Mail,
     label: 'Email',
-    className: 'bg-purple-500/10 text-purple-600 border-purple-500/20'
+    className: 'bg-gray-100 text-gray-800'
   },
   web: {
     icon: Globe,
     label: 'Web',
-    className: 'bg-gray-500/10 text-gray-600 border-gray-500/20'
+    className: 'bg-purple-100 text-purple-800'
   },
   instagram: {
-    icon: Instagram,
+    icon: MessageCircle,
     label: 'Instagram',
-    className: 'bg-pink-500/10 text-pink-600 border-pink-500/20'
+    className: 'bg-pink-100 text-pink-800'
   },
   telegram: {
-    icon: Send,
+    icon: MessageCircle,
     label: 'Telegram',
-    className: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20'
+    className: 'bg-sky-100 text-sky-800'
+  },
+  webchat: {
+    icon: MessageCircle,
+    label: 'Web Chat',
+    className: 'bg-indigo-100 text-indigo-800'
+  },
+  api: {
+    icon: MessageCircle,
+    label: 'API',
+    className: 'bg-orange-100 text-orange-800'
   }
 }
 
@@ -57,8 +68,8 @@ export function ChannelBadge({ channel, size = 'md' }: ChannelBadgeProps) {
   }
 
   return (
-    <Badge 
-      variant="outline" 
+    <Badge
+      variant="outline"
       className={`${config.className} ${sizeStyles.text} ${sizeStyles.padding} inline-flex items-center gap-1 font-medium border`}
     >
       <Icon className={sizeStyles.icon} />

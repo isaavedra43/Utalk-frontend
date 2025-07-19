@@ -270,9 +270,9 @@ export function KnowledgeSearchBar({
                   💡 Consejos de búsqueda
                 </h4>
                 <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                  <p>• Usa palabras clave específicas como "manual", "tutorial", "configuración"</p>
-                  <p>• Filtra por tipo de archivo: "PDF configuración" o "video tutorial"</p>
-                  <p>• Busca por categoría: "ventas", "soporte", "productos"</p>
+                  <p>• Usa palabras clave específicas como &quot;manual&quot;, &quot;tutorial&quot;, &quot;configuración&quot;</p>
+                  <p>• Filtra por tipo de archivo: &quot;PDF configuración&quot; o &quot;video tutorial&quot;</p>
+                  <p>• Busca por categoría: &quot;ventas&quot;, &quot;soporte&quot;, &quot;productos&quot;</p>
                 </div>
               </div>
             )}

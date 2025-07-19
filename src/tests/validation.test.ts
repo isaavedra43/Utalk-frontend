@@ -449,6 +449,8 @@ export const mockValidConversation: CanonicalConversation = {
     email: 'test@example.com',
     status: 'active',
     source: 'manual',
+    isOnline: true, // ✅ Campo obligatorio agregado
+    channel: 'whatsapp', // ✅ Campo obligatorio agregado
     createdAt: new Date('2024-01-15T09:00:00Z'),
     updatedAt: new Date('2024-01-15T10:30:00Z'),
     totalMessages: 5,
@@ -477,6 +479,8 @@ export const mockValidContact: CanonicalContact = {
   position: 'Desarrollador',
   status: 'active',
   source: 'manual',
+  isOnline: true, // ✅ Campo obligatorio agregado
+  channel: 'whatsapp', // ✅ Campo obligatorio agregado
   createdAt: new Date('2024-01-15T09:00:00Z'),
   updatedAt: new Date('2024-01-15T10:30:00Z'),
   totalMessages: 10,

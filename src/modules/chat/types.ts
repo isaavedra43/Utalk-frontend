@@ -1,70 +1,26 @@
 // Tipos para el módulo de Chat/Inbox de UTalk
 // Define todas las interfaces y enums necesarios para mensajería
+// ✅ ALINEADO 100% CON ESTRUCTURA CANÓNICA
 
-export type ChannelType = 'whatsapp' | 'facebook' | 'email' | 'web' | 'instagram' | 'telegram'
+// ✅ IMPORTAR TIPOS CANÓNICOS EN LUGAR DE DUPLICAR
+import { 
+  CanonicalMessage, 
+  CanonicalConversation, 
+  CanonicalContact 
+} from '@/types/canonical'
 
-export type MessageType = 'text' | 'image' | 'file' | 'audio' | 'video' | 'location' | 'sticker'
+// ✅ USAR TIPOS CANÓNICOS COMO FUENTE DE VERDAD
+export type Message = CanonicalMessage
+export type Contact = CanonicalContact
+export type Conversation = CanonicalConversation
 
-export type ConversationStatus = 'open' | 'closed' | 'pending' | 'assigned'
-
+// ✅ MANTENER TIPOS ESPECÍFICOS DEL MÓDULO CHAT
+export type ChannelType = 'whatsapp' | 'telegram' | 'email' | 'webchat' | 'api' | 'facebook' | 'web' | 'instagram' // Alineado con CanonicalContact
+export type MessageType = CanonicalMessage['type']
+export type ConversationStatus = CanonicalConversation['status']
 export type UserRole = 'admin' | 'agent' | 'viewer'
 
-export interface Contact {
-  id: string
-  name: string
-  email?: string
-  phone?: string
-  avatar?: string
-  channel: ChannelType
-  tags: string[]
-  isOnline: boolean
-  lastSeen?: Date
-  customFields?: Record<string, any>
-}
-
-export interface Message {
-  id: string
-  conversationId: string
-  content: string
-  type: MessageType
-  timestamp: Date
-  sender: {
-    id: string
-    name: string
-    type: 'contact' | 'agent' | 'bot' | 'system'
-    avatar?: string
-  }
-  attachments?: {
-    id: string
-    name: string
-    url: string
-    type: string
-    size: number
-  }[]
-  isRead: boolean
-  isDelivered: boolean
-  metadata?: Record<string, any>
-}
-
-export interface Conversation {
-  id: string
-  contact: Contact
-  channel: ChannelType
-  status: ConversationStatus
-  assignedTo?: {
-    id: string
-    name: string
-    avatar?: string
-  }
-  lastMessage?: Message
-  unreadCount: number
-  tags: string[]
-  createdAt: Date
-  updatedAt: Date
-  priority: 'low' | 'medium' | 'high'
-  isMuted: boolean
-}
-
+// ✅ INTERFACES ESPECÍFICAS DEL MÓDULO CHAT (no duplicar las canónicas)
 export interface ConversationFilter {
   status?: ConversationStatus
   channel?: ChannelType
@@ -108,8 +64,6 @@ export interface ConversationSummary {
 export interface InboxProps {
   initialConversationId?: string
 }
-
-// SidebarProps removed - functionality unified in ConversationListProps
 
 export interface ConversationListProps {
   conversations: Conversation[]

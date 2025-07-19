@@ -136,46 +136,61 @@ class ConversationService {
     // El backend UTalk usa esta estructura según la documentación
     return {
       id: backendConv.id,
+      // ✅ CONTACTO (ESTRUCTURA CANÓNICA COMPLETA)
       contact: {
         id: backendConv.contactId || backendConv.contact?.id,
         name: backendConv.contact?.name || 'Sin nombre',
+        phone: backendConv.contact?.phone || '',
         email: backendConv.contact?.email,
-        phone: backendConv.contact?.phone,
         avatar: backendConv.contact?.avatar,
-        channel: this.mapChannel(backendConv.contact?.channel || 'whatsapp'),
-        tags: backendConv.contact?.tags || [],
+        company: backendConv.contact?.company,
+        position: backendConv.contact?.position,
+        status: backendConv.contact?.status || 'active',
+        source: backendConv.contact?.source || 'whatsapp',
         isOnline: backendConv.contact?.isActive || false,
+        channel: this.mapChannel(backendConv.contact?.channel || 'whatsapp'),
         lastSeen: backendConv.contact?.lastContactAt ? new Date(backendConv.contact.lastContactAt) : undefined,
-        customFields: backendConv.contact?.customFields || {}
+        createdAt: backendConv.contact?.createdAt ? new Date(backendConv.contact.createdAt) : new Date(),
+        updatedAt: backendConv.contact?.updatedAt ? new Date(backendConv.contact.updatedAt) : new Date(),
+        lastContactAt: backendConv.contact?.lastContactAt ? new Date(backendConv.contact.lastContactAt) : undefined,
+        totalMessages: backendConv.contact?.totalMessages || 0,
+        totalConversations: backendConv.contact?.totalConversations || 1,
+        averageResponseTime: backendConv.contact?.averageResponseTime,
+        value: backendConv.contact?.value || 0,
+        currency: backendConv.contact?.currency || 'USD',
+        tags: backendConv.contact?.tags || [],
+        customFields: backendConv.contact?.customFields || {},
+        metadata: backendConv.contact?.metadata
       },
       channel: this.mapChannel(backendConv.contact?.channel || 'whatsapp'),
       status: this.mapStatus(backendConv.status),
+      // ✅ ASIGNACIÓN (ESTRUCTURA CANÓNICA OBLIGATORIA)
       assignedTo: backendConv.assignedTo ? {
         id: backendConv.assignedTo.id,
         name: backendConv.assignedTo.name,
+        role: backendConv.assignedTo.role || 'agent', // Default role si no se especifica
         avatar: backendConv.assignedTo.avatar
       } : undefined,
+      
+      // ✅ ÚLTIMO MENSAJE (ESTRUCTURA CANÓNICA OBLIGATORIA)
       lastMessage: backendConv.lastMessage ? {
         id: backendConv.lastMessage.id,
-        conversationId: backendConv.id,
         content: backendConv.lastMessage.content,
-        type: this.mapMessageType(backendConv.lastMessage.type),
         timestamp: new Date(backendConv.lastMessage.timestamp),
-        sender: {
-          id: backendConv.lastMessage.sender?.id || 'unknown',
-          name: backendConv.lastMessage.sender?.name || 'Usuario',
-          type: backendConv.lastMessage.direction === 'inbound' ? 'contact' : 'agent',
-          avatar: backendConv.lastMessage.sender?.avatar
-        },
-        isRead: backendConv.lastMessage.status === 'read',
-        isDelivered: ['delivered', 'read'].includes(backendConv.lastMessage.status)
+        senderName: backendConv.lastMessage.sender?.name || 'Usuario',
+        type: this.mapMessageType(backendConv.lastMessage.type)
       } : undefined,
-      unreadCount: backendConv.messageCount || 0, // El backend puede tener lógica diferente
+      // ✅ CAMPOS OBLIGATORIOS CANÓNICOS
+      title: backendConv.title || backendConv.contact?.name || 'Conversación',
+      lastMessageAt: backendConv.lastMessageAt ? new Date(backendConv.lastMessageAt) : new Date(),
+      messageCount: backendConv.messageCount || 0,
+      unreadCount: backendConv.unreadCount || 0,
       tags: backendConv.tags || [],
       createdAt: new Date(backendConv.createdAt),
       updatedAt: new Date(backendConv.updatedAt || backendConv.lastMessageAt),
-      priority: 'medium', // El backend UTalk no tiene priority en el modelo
-      isMuted: false // El backend UTalk no tiene muted en el modelo
+      priority: backendConv.priority || 'medium',
+      isMuted: backendConv.isMuted || false,
+      isArchived: backendConv.isArchived || false
     }
   }
 
