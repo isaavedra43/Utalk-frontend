@@ -59,6 +59,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           dispatch({ type: 'AUTH_FAILURE', payload: 'Session expired or invalid' });
         }
       } finally {
+        // ✅ CRÍTICO: Marcar la autenticación como lista en todos los casos
+        if (isMounted) {
+          dispatch({ type: 'AUTH_READY' });
+        }
         console.log('--- Auth Initialization End ---');
       }
     }

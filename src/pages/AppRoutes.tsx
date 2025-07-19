@@ -25,10 +25,10 @@ import { CRM } from '@/modules/crm'
 
 // Componente para rutas protegidas
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isAuthReady } = useAuth()
 
-  if (isLoading) {
-    // TODO: Implementar componente de loading
+  if (!isAuthReady) {
+    // ✅ CORRECCIÓN: Usar isAuthReady en lugar de isLoading
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -48,9 +48,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 // Componente para rutas públicas (solo accesibles sin autenticación)
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isAuthReady } = useAuth()
 
-  if (isLoading) {
+  if (!isAuthReady) {
+    // ✅ CORRECCIÓN: Usar isAuthReady en lugar de isLoading
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
