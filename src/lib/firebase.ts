@@ -13,6 +13,16 @@ let authInstance: Auth | null = null
  */
 export function getFirebaseApp(): FirebaseApp {
   if (!appInstance) {
+    // ✅ LOGS CRÍTICOS: Verificar contexto antes de inicializar
+    if (import.meta.env.DEV) {
+      console.log('🔥 Initializing Firebase App', {
+        timestamp: new Date().toISOString(),
+        context: 'runtime',
+        hasDocument: typeof document !== 'undefined',
+        hasWindow: typeof window !== 'undefined'
+      })
+    }
+
     // ✅ Validación en runtime, NO en import
     const config = {
       apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -34,19 +44,44 @@ export function getFirebaseApp(): FirebaseApp {
     }
 
     if (missingKeys.length > 0) {
-      throw new Error(
-        `Firebase configuration missing required environment variables: ${missingKeys.join(', ')}`
-      )
+      const errorMsg = `Firebase configuration missing required environment variables: ${missingKeys.join(', ')}`
+      console.error('❌ Firebase Init Error:', errorMsg)
+      throw new Error(errorMsg)
     }
 
-    // ✅ Solo inicializar si todas las variables están disponibles
-    appInstance = initializeApp(config)
-    
-    // Log de inicialización exitosa (solo en dev)
+    // ✅ LOGS CRÍTICOS: Confirmar configuración antes de inicializar
     if (import.meta.env.DEV) {
-      console.log('✅ Firebase initialized successfully', {
+      console.log('🔥 Firebase config validated', {
         projectId: config.projectId,
-        authDomain: config.authDomain
+        authDomain: config.authDomain,
+        hasApiKey: !!config.apiKey,
+        hasAppId: !!config.appId
+      })
+    }
+
+    try {
+      // ✅ Solo inicializar si todas las variables están disponibles
+      appInstance = initializeApp(config)
+      
+      // Log de inicialización exitosa (solo en dev)
+      if (import.meta.env.DEV) {
+        console.log('✅ Firebase initialized successfully', {
+          projectId: config.projectId,
+          authDomain: config.authDomain,
+          appName: appInstance.name,
+          timestamp: new Date().toISOString()
+        })
+      }
+    } catch (error) {
+      console.error('❌ Firebase initialization failed:', error)
+      throw error
+    }
+  } else {
+    // App ya inicializada
+    if (import.meta.env.DEV) {
+      console.log('🔥 Firebase App already initialized', {
+        appName: appInstance.name,
+        timestamp: new Date().toISOString()
       })
     }
   }

@@ -40,34 +40,66 @@ export function LoginPage() {
 
     const perfId = logger.startPerformance('login_attempt')
     
-    logger.info('Login attempt started', { email }, 'login_attempt_start')
+    logger.info('🚀 Login attempt started', { 
+      email,
+      timestamp: new Date().toISOString(),
+      pathname: window.location.pathname
+    }, 'login_attempt_start')
+
+    // ✅ LOGS CRÍTICOS: Verificar estado antes del login
+    logger.info('🔍 Pre-login state check', {
+      hasEmail: !!email,
+      hasPassword: !!password,
+      emailLength: email.length,
+      passwordLength: password.length,
+      isLoading,
+      currentError: error
+    }, 'pre_login_state')
 
     // Validación básica
     if (!email || !password) {
       const message = 'Por favor completa todos los campos'
       setError(message)
-      logger.warn('Login validation failed', { email, reason: 'missing_fields' }, 'login_validation_error')
+      logger.warn('❌ Login validation failed', { 
+        email, 
+        hasEmail: !!email, 
+        hasPassword: !!password, 
+        reason: 'missing_fields' 
+      }, 'login_validation_error')
       logger.endPerformance(perfId, 'Validation failed')
       return
     }
 
     try {
+      // ✅ LOGS CRÍTICOS: Antes de llamar al contexto de auth
+      logger.info('🔥 Calling auth context login', {
+        email,
+        authContextExists: !!login,
+        authContextType: typeof login
+      }, 'auth_context_call')
+
       // Login real: Firebase Auth + Backend UTalk
       await login(email, password)
       
       logger.endPerformance(perfId, 'Login successful')
-      logger.success('Login completed successfully', { email }, 'login_success')
+      logger.success('✅ Login completed successfully', { 
+        email,
+        redirectPath: window.location.pathname 
+      }, 'login_success')
       
       // Redirección automática manejada por ProtectedRoute
     } catch (err: any) {
-      // Mostrar mensaje de error específico del AuthContext
+      // ✅ LOGS CRÍTICOS: Error detallado
       const errorMessage = err.message || 'Error de autenticación'
       setError(errorMessage)
       
-      logger.error('Login failed', {
+      logger.error('❌ Login failed', {
         email,
         error: errorMessage,
-        errorCode: err.code
+        errorCode: err.code,
+        errorType: typeof err,
+        errorStack: err.stack?.substring(0, 200),
+        errorDetails: err
       }, 'login_error')
       
       logger.endPerformance(perfId, `Login failed: ${errorMessage}`)

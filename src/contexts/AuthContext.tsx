@@ -117,10 +117,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // 2. Enviar idToken al backend UTalk
       logger.info('Sending idToken to backend...', null, 'backend_auth_start')
+      
+      // ✅ CRÍTICO: Petición al backend con logs detallados
       const response = await apiClient.post('/auth/login', { idToken })
-      const { user, token } = response
+      
+      // ✅ LOGS CRÍTICOS: Verificar estructura de respuesta ANTES de extraer datos
+      logger.info('🔍 Backend response received', {
+        responseType: typeof response,
+        hasData: !!response,
+        responseKeys: response ? Object.keys(response) : [],
+        responseStructure: response ? JSON.stringify(response, null, 2).substring(0, 500) : 'null'
+      }, 'backend_response_structure')
 
-      logger.auth('backend_login', { user, token })
+      // ✅ CORREGIDO: Extracción robusta de user y token
+      let user, token
+
+      // El apiClient ya devuelve response.data.data, así que response debería ser directo
+      if (response && typeof response === 'object') {
+        // Caso 1: Respuesta directa { user, token }
+        if (response.user && response.token) {
+          user = response.user
+          token = response.token
+          logger.success('✅ Direct extraction successful', { hasUser: !!user, hasToken: !!token }, 'token_extraction')
+        }
+        // Caso 2: Respuesta anidada en .data
+        else if (response.data && response.data.user && response.data.token) {
+          user = response.data.user
+          token = response.data.token
+          logger.success('✅ Nested extraction successful', { hasUser: !!user, hasToken: !!token }, 'token_extraction')
+        }
+        // Caso 3: Error - estructura no reconocida
+        else {
+          logger.error('❌ Unrecognized response structure', {
+            response,
+            availableKeys: Object.keys(response),
+            suggestion: 'Check backend response format'
+          }, 'token_extraction_error')
+          throw new Error('Respuesta del servidor inválida: no se encontró user/token')
+        }
+      } else {
+        logger.error('❌ Invalid response type', {
+          responseType: typeof response,
+          response
+        }, 'invalid_response_type')
+        throw new Error('Respuesta del servidor inválida')
+      }
+
+      // ✅ VALIDACIÓN FINAL: Verificar que tenemos los datos necesarios
+      if (!user || !token) {
+        logger.error('❌ Missing user or token after extraction', {
+          hasUser: !!user,
+          hasToken: !!token,
+          userType: typeof user,
+          tokenType: typeof token
+        }, 'missing_auth_data')
+        throw new Error('Error en autenticación: datos incompletos del servidor')
+      }
+
+      logger.auth('backend_login', { 
+        user: { id: user.id, email: user.email, role: user.role }, 
+        token: token.substring(0, 20) + '...' // Solo mostrar inicio del token por seguridad
+      })
 
       // 3. Guardar en localStorage (para persistencia)
       localStorage.setItem('auth_token', token)

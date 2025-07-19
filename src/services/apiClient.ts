@@ -110,18 +110,35 @@ class ApiClient {
 
         // Manejo específico de errores
         if (status === 401) {
-          logger.warn('Unauthorized request - token may be expired', {
+          // ✅ CORREGIDO: NO redirigir automáticamente durante el proceso de login
+          const isLoginEndpoint = url.includes('/auth/login')
+          
+          logger.warn('Unauthorized request detected', {
             url,
-            token: config?.headers?.Authorization ? 'present' : 'missing'
+            isLoginEndpoint,
+            token: config?.headers?.Authorization ? 'present' : 'missing',
+            willRedirect: !isLoginEndpoint
           }, 'api_unauthorized')
           
-          // Limpiar token inválido
-          localStorage.removeItem('auth_token')
-          localStorage.removeItem('user_data')
-          
-          // Redirigir a login si estamos en una página protegida
-          if (window.location.pathname !== '/auth/login') {
-            window.location.href = '/auth/login'
+          // Solo limpiar tokens y redirigir si NO es el endpoint de login
+          if (!isLoginEndpoint) {
+            // Limpiar token inválido solo si no estamos haciendo login
+            localStorage.removeItem('auth_token')
+            localStorage.removeItem('user_data')
+            
+            // Redirigir a login si estamos en una página protegida
+            if (window.location.pathname !== '/auth/login') {
+              logger.info('Redirecting to login due to expired session', { 
+                currentPath: window.location.pathname 
+              }, 'session_expired_redirect')
+              window.location.href = '/auth/login'
+            }
+          } else {
+            // Es el endpoint de login, dejar que el contexto maneje el error
+            logger.info('Login endpoint 401 - letting context handle error', {
+              url,
+              status
+            }, 'login_error_passthrough')
           }
         } else if (status === 403) {
           logger.error('Forbidden request - insufficient permissions', {
@@ -141,6 +158,14 @@ class ApiClient {
             url,
             baseURL: config?.baseURL 
           }, 'api_network_error')
+        } else {
+          // ✅ NUEVO: Log para otros tipos de errores
+          logger.error('Unknown API error', {
+            url,
+            status,
+            code: error.code,
+            message: error.message
+          }, 'api_unknown_error')
         }
 
         return Promise.reject(error)
@@ -156,6 +181,19 @@ class ApiClient {
 
   async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.post<ApiResponse<T>>(url, data, config)
+    
+    // ✅ LOGS CRÍTICOS: Verificar estructura de respuesta antes de retornar
+    logger.info('🔍 API POST Response Debug', {
+      url,
+      status: response.status,
+      hasData: !!response.data,
+      dataType: typeof response.data,
+      dataKeys: response.data ? Object.keys(response.data) : [],
+      hasDataData: response.data?.data !== undefined,
+      dataDataType: typeof response.data?.data,
+      responseStructure: JSON.stringify(response.data, null, 2).substring(0, 500)
+    }, 'api_post_response_debug')
+    
     return response.data.data
   }
 
