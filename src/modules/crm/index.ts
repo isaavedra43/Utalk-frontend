@@ -1,28 +1,19 @@
-// Módulo CRM - Gestión de contactos y clientes
-// Exportaciones públicas del módulo para uso en otras partes de la aplicación
+// Exportaciones del módulo CRM de UTalk
+// Punto de entrada para todos los componentes del CRM
 
-// Componentes principales
-// export { ContactList } from './components/ContactList'
-// export { ContactDetail } from './components/ContactDetail'
-// export { ContactForm } from './components/ContactForm'
+// Componente principal
+export { default as CRM } from './CRM'
 
-// Servicios
-// export { contactService } from './services/contactService'
+// Componentes individuales
+export { default as KPIStatsPanel } from './KPIStatsPanel'
+export { default as CRMToolbar } from './CRMToolbar'
+export { default as ContactsTable } from './ContactsTable'
+export { default as ContactsCards } from './ContactsCards'
+export { default as CRMLeftSidebar } from './CRMLeftSidebar'
 
-// Hooks específicos del módulo
-// export { useContacts } from './hooks/useContacts'
-// export { useContactForm } from './hooks/useContactForm'
+// Datos mock y tipos
+export * from './mockContacts'
 
-// Tipos específicos
-// export type { Contact, ContactFilters } from './types'
-
-// Rutas del módulo
-export const CRM_ROUTES = {
-  index: '/crm',
-  contacts: '/crm/contacts',
-  contactDetail: '/crm/contacts/:id',
-  newContact: '/crm/contacts/new',
-  companies: '/crm/companies',
-  deals: '/crm/deals',
-  reports: '/crm/reports',
-} as const 
+// Tipos para consumo externo
+export type { CRMViewMode } from './CRMToolbar'
+export type { CRMFilters } from './CRMLeftSidebar' 

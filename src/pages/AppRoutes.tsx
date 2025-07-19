@@ -18,9 +18,9 @@ import NotFoundPage from './NotFoundPage'
 
 // Módulos implementados
 import { Inbox } from '@/modules/chat/Inbox'
+import { CRM } from '@/modules/crm'
 
 // TODO: Importar páginas de módulos cuando estén implementadas
-// import CRMPage from './crm/CRMPage'
 // import CampaignsPage from './campaigns/CampaignsPage'
 
 // Componente para rutas protegidas
@@ -103,9 +103,9 @@ export function AppRoutes() {
         {/* Módulos implementados */}
         <Route path="chat" element={<Inbox />} />
         <Route path="chat/:conversationId" element={<Inbox />} />
+        <Route path="crm" element={<CRM />} />
         
         {/* TODO: Rutas de módulos */}
-        {/* <Route path="crm/*" element={<CRMPage />} /> */}
         {/* <Route path="campaigns/*" element={<CampaignsPage />} /> */}
         {/* <Route path="team/*" element={<TeamPage />} /> */}
         {/* <Route path="knowledge/*" element={<KnowledgePage />} /> */}
