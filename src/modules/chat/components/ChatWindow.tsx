@@ -30,6 +30,15 @@ export function ChatWindow({
 }: ChatWindowProps) {
   const [showInfo, setShowInfo] = useState(false)
 
+  // ✅ LOGS CRÍTICOS: Diagnosticar datos de mensajes
+  console.log('🔍 ChatWindow render:', {
+    conversationId,
+    messagesLength: messages.length,
+    isLoading,
+    messages: messages.slice(0, 3), // Solo los primeros 3 para debug
+    messageTypes: messages.map(m => ({ id: m.id, type: m.type, content: m.content?.substring(0, 50) }))
+  });
+
   // Simulación de datos de conversación para el header
   // TODO: Recibir estos datos como props o desde un hook
   const conversation = conversationId ? {
@@ -97,10 +106,12 @@ export function ChatWindow({
   }
 
   if (isLoading) {
+    console.log('🔄 ChatWindow: Showing loading state');
     return <ChatWindowSkeleton />
   }
 
   if (!conversationId || !conversation) {
+    console.log('🤷 ChatWindow: No conversation selected');
     return (
       <div className="flex-1 flex flex-col bg-white dark:bg-gray-900">
         <div className="flex-1 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
@@ -113,6 +124,8 @@ export function ChatWindow({
       </div>
     )
   }
+
+  console.log('✅ ChatWindow: Rendering conversation with', messages.length, 'messages');
 
   return (
     <div className="flex-1 flex flex-col bg-white dark:bg-gray-900">
@@ -240,32 +253,49 @@ export function ChatWindow({
       <div className="flex-1 overflow-hidden flex flex-col">
         {/* Lista de mensajes */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
-              <div className="text-4xl mb-3">💬</div>
-              <h3 className="text-lg font-medium mb-1">¡Comienza la conversación!</h3>
-              <p className="text-sm text-center">
-                Este es el inicio de tu conversación con {conversation.contact.name}
-              </p>
-            </div>
-          ) : (
-            <>
-              {messages.map((message, index) => {
-                const previousMessage = index > 0 ? messages[index - 1] : null
-                const isGrouped = previousMessage?.sender.id === message.sender.id
-                const showAvatar = !isGrouped || index === 0
-                
-                return (
-                  <MessageBubble
-                    key={message.id}
-                    message={message}
-                    showAvatar={showAvatar}
-                    isGrouped={isGrouped}
-                  />
-                )
-              })}
-            </>
-          )}
+          {(() => {
+            console.log('🎯 ChatWindow: Rendering messages area with', messages.length, 'messages');
+            
+            if (messages.length === 0) {
+              console.log('📭 ChatWindow: No messages, showing empty state');
+              return (
+                <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                  <div className="text-4xl mb-3">💬</div>
+                  <h3 className="text-lg font-medium mb-1">¡Comienza la conversación!</h3>
+                  <p className="text-sm text-center">
+                    Este es el inicio de tu conversación con {conversation.contact.name}
+                  </p>
+                </div>
+              );
+            }
+
+            console.log('💬 ChatWindow: Rendering', messages.length, 'message bubbles');
+            return (
+              <>
+                {messages.map((message, index) => {
+                  console.log(`📝 Rendering message ${index + 1}/${messages.length}:`, {
+                    id: message.id,
+                    content: message.content?.substring(0, 50),
+                    sender: message.sender.name,
+                    type: message.type
+                  });
+                  
+                  const previousMessage = index > 0 ? messages[index - 1] : null
+                  const isGrouped = previousMessage?.sender.id === message.sender.id
+                  const showAvatar = !isGrouped || index === 0
+                  
+                  return (
+                    <MessageBubble
+                      key={message.id}
+                      message={message}
+                      showAvatar={showAvatar}
+                      isGrouped={isGrouped}
+                    />
+                  )
+                })}
+              </>
+            );
+          })()}
         </div>
 
         {/* Indicadores de typing */}

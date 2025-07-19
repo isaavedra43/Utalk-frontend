@@ -91,6 +91,24 @@ export function Inbox({ initialConversationId }: InboxProps = {}) {
   // Datos procesados para los componentes
   const conversations = conversationsData?.conversations || []
   const messages = messagesData?.messages || []
+
+  // ✅ LOGS CRÍTICOS: Diagnosticar el flujo de datos en Inbox
+  console.log('🏠 Inbox component data flow:', {
+    selectedConversationId: state.selectedConversationId,
+    conversationsData: {
+      exists: !!conversationsData,
+      conversationsCount: conversations.length,
+      loading: conversationsLoading,
+      error: conversationsError
+    },
+    messagesData: {
+      exists: !!messagesData,
+      messagesCount: messages.length,
+      loading: messagesLoading,
+      error: messagesError,
+      rawData: messagesData
+    }
+  });
   const selectedConversation = conversations.find(c => c.id === state.selectedConversationId)
 
   // Handlers para interacción del usuario

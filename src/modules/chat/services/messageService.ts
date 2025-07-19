@@ -32,15 +32,70 @@ class MessageService {
 
   // Obtener mensajes de una conversación específica
   async getMessages(conversationId: string, page = 1, limit = 50): Promise<MessagesResponse> {
-    // Según la documentación, el backend usa /api/conversations/:id/messages
-    const response = await apiClient.get(`/conversations/${conversationId}/messages?page=${page}&limit=${limit}`)
+    console.log('🔍 MessageService.getMessages called:', { conversationId, page, limit });
     
-    return {
-      success: response.success || true,
-      messages: this.mapBackendMessages(response.data || response.messages || []),
-      total: response.total || response.data?.length || 0,
-      page: response.page || page,
-      limit: response.limit || limit
+    try {
+      // Según la documentación, el backend usa /api/conversations/:id/messages
+      const url = `/conversations/${conversationId}/messages?page=${page}&limit=${limit}`;
+      console.log('📡 Making API call to:', url);
+      
+      const response = await apiClient.get(url);
+      console.log('📥 Raw API response:', response);
+      
+      // Examinar estructura de respuesta
+      console.log('🔍 Response analysis:', {
+        hasData: !!response.data,
+        hasMessages: !!response.messages,
+        isArray: Array.isArray(response),
+        dataIsArray: Array.isArray(response.data),
+        messagesIsArray: Array.isArray(response.messages),
+        responseKeys: Object.keys(response || {}),
+        dataKeys: response.data ? Object.keys(response.data) : 'no data',
+        firstMessage: response.data?.[0] || response.messages?.[0] || 'no messages found'
+      });
+      
+      // Determinar cual estructura usar
+      let rawMessages = [];
+      if (response.data && Array.isArray(response.data)) {
+        rawMessages = response.data;
+        console.log('✅ Using response.data array with', rawMessages.length, 'messages');
+      } else if (response.messages && Array.isArray(response.messages)) {
+        rawMessages = response.messages;
+        console.log('✅ Using response.messages array with', rawMessages.length, 'messages');
+      } else if (Array.isArray(response)) {
+        rawMessages = response;
+        console.log('✅ Using direct response array with', rawMessages.length, 'messages');
+      } else {
+        console.warn('⚠️ No valid messages array found in response');
+        rawMessages = [];
+      }
+      
+      console.log('📝 Raw messages before mapping:', rawMessages.slice(0, 2));
+      
+      const mappedMessages = this.mapBackendMessages(rawMessages);
+      console.log('🔄 Mapped messages:', mappedMessages.slice(0, 2));
+      
+      const result = {
+        success: response.success || true,
+        messages: mappedMessages,
+        total: response.total || rawMessages.length || 0,
+        page: response.page || page,
+        limit: response.limit || limit
+      };
+      
+      console.log('✅ MessageService.getMessages result:', {
+        success: result.success,
+        messagesCount: result.messages.length,
+        total: result.total,
+        page: result.page,
+        limit: result.limit
+      });
+      
+      return result;
+      
+    } catch (error) {
+      console.error('❌ MessageService.getMessages error:', error);
+      throw error;
     }
   }
 

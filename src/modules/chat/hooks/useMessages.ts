@@ -15,15 +15,44 @@ export const messageKeys = {
 
 // Hook principal para obtener mensajes de una conversación
 export function useMessages(conversationId: string, page = 1, limit = 50) {
+  console.log('🎣 useMessages hook called:', { conversationId, page, limit });
+  
   const result = useQuery({
     queryKey: messageKeys.list(conversationId),
-    queryFn: () => messageService.getMessages(conversationId, page, limit),
+    queryFn: async () => {
+      console.log('🔄 useMessages: Executing queryFn for conversation:', conversationId);
+      const response = await messageService.getMessages(conversationId, page, limit);
+      console.log('📦 useMessages: Service response:', response);
+      return response;
+    },
     enabled: !!conversationId,
     staleTime: 30 * 1000, // 30 segundos
     refetchOnWindowFocus: true,
+    onSuccess: (data) => {
+      console.log('✅ useMessages: Query success:', {
+        conversationId,
+        messagesCount: data.messages?.length,
+        total: data.total,
+        firstMessage: data.messages?.[0]
+      });
+    },
+    onError: (error) => {
+      console.error('❌ useMessages: Query error:', { conversationId, error });
+    }
   })
 
   // Log del estado del hook
+  console.log('📊 useMessages hook state:', {
+    conversationId,
+    isLoading: result.isLoading,
+    isError: result.isError,
+    isFetching: result.isFetching,
+    isSuccess: result.isSuccess,
+    dataExists: !!result.data,
+    messagesCount: result.data?.messages?.length || 0,
+    error: result.error
+  });
+
   logger.hook('useMessages', {
     input: { conversationId, page, limit },
     loading: result.isLoading,
