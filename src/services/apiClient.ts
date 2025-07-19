@@ -5,68 +5,25 @@ import { ApiResponse } from '@/types'
 import { logger } from '@/lib/logger'
 
 class ApiClient {
-  private client: AxiosInstance
+  private axiosInstance: AxiosInstance
   
-  constructor() {
-    // ✅ CRÍTICO: Backend UTalk tiene todas las rutas bajo /api
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-    const baseURL = apiUrl.endsWith('/api') ? apiUrl : `${apiUrl}/api`
-    
-    this.client = axios.create({
+  constructor(baseURL: string) {
+    this.axiosInstance = axios.create({
       baseURL,
-      timeout: 10000,
       headers: {
         'Content-Type': 'application/json',
       },
     })
 
-    this.setupInterceptors()
-    
-    // Log inicial de configuración con detalles de debugging
-    logger.info('ApiClient initialized', {
-      originalApiUrl: apiUrl,
-      finalBaseURL: baseURL,
-      timeout: this.client.defaults.timeout,
-      env: import.meta.env.DEV ? 'development' : 'production',
-      envVarValue: import.meta.env.VITE_API_URL || 'NOT_SET'
-    }, 'api_client_init')
-    
-    // ✅ Log crítico para debugging
-    if (baseURL.includes('tu-backend-utalk') || baseURL.includes('your-') || baseURL.includes('localhost:8000')) {
-      logger.warn('⚠️ API URL may not be configured correctly!', {
-        currentURL: baseURL,
-        suggestion: 'Configure VITE_API_URL in .env with real Railway backend URL'
-      }, 'api_url_warning')
-    }
-  }
-
-  private setupInterceptors() {
-    // Request interceptor - agregar token de autenticación y logging
-    this.client.interceptors.request.use(
-      (config) => {
-        const token = localStorage.getItem('auth_token')
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`
-        }
-        
-        // Iniciar tracking de performance
-        const perfId = logger.startPerformance(`API_${config.method?.toUpperCase()}_${config.url}`)
-        ;(config as any).metadata = { perfId, startTime: Date.now() }
-        
-        logger.api(config.method?.toUpperCase() || 'GET', config.url || '', {
-          headers: config.headers as Record<string, string>
-        })
-        
-        return config
-      },
-      (error) => {
-        logger.error('API Request interceptor error', error, 'api_request_error')
-        return Promise.reject(error)
+    this.axiosInstance.interceptors.request.use((config) => {
+      const token = localStorage.getItem('auth_token')
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
       }
-    )
+      return config
+    })
 
-    // Response interceptor - manejo de errores globales y logging
-    this.client.interceptors.response.use(
+    this.axiosInstance.interceptors.response.use(
       (response: AxiosResponse<ApiResponse>) => {
         const config = response.config as any
         const duration = config.metadata?.startTime ? Date.now() - config.metadata.startTime : 0
@@ -178,12 +135,12 @@ class ApiClient {
 
   // Métodos HTTP principales
   async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.get<ApiResponse<T>>(url, config)
+    const response = await this.axiosInstance.get<ApiResponse<T>>(url, config)
     return response.data.data
   }
 
   async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.post<ApiResponse<T>>(url, data, config)
+    const response = await this.axiosInstance.post<ApiResponse<T>>(url, data, config)
     
     // ✅ LOGS CRÍTICOS: Verificar estructura de respuesta antes de retornar
     logger.info('🔍 API POST Response Debug', {
@@ -209,17 +166,17 @@ class ApiClient {
   }
 
   async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.put<ApiResponse<T>>(url, data, config)
+    const response = await this.axiosInstance.put<ApiResponse<T>>(url, data, config)
     return response.data.data
   }
 
   async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.patch<ApiResponse<T>>(url, data, config)
+    const response = await this.axiosInstance.patch<ApiResponse<T>>(url, data, config)
     return response.data.data
   }
 
   async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.delete<ApiResponse<T>>(url, config)
+    const response = await this.axiosInstance.delete<ApiResponse<T>>(url, config)
     return response.data.data
   }
 
@@ -240,26 +197,35 @@ class ApiClient {
       },
     }
 
-    const response = await this.client.post<ApiResponse<T>>(url, formData, config)
+    const response = await this.axiosInstance.post<ApiResponse<T>>(url, formData, config)
     return response.data.data
   }
 
   // Método para configurar headers personalizados
   setHeader(key: string, value: string) {
-    this.client.defaults.headers.common[key] = value
+    this.axiosInstance.defaults.headers.common[key] = value
   }
 
   // Método para remover headers
   removeHeader(key: string) {
-    delete this.client.defaults.headers.common[key]
+    delete this.axiosInstance.defaults.headers.common[key]
+  }
+
+  // ✅ NUEVO: Método para establecer el token de autorización explícitamente
+  setAuthToken(token: string | null) {
+    if (token) {
+      this.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    } else {
+      delete this.axiosInstance.defaults.headers.common['Authorization'];
+    }
   }
 
   // Getter para acceso directo al cliente Axios si es necesario
-  get axiosInstance() {
-    return this.client
+  get instance() {
+    return this.axiosInstance
   }
 }
 
 // Instancia singleton del cliente API
-export const apiClient = new ApiClient()
+export const apiClient = new ApiClient(import.meta.env.VITE_API_URL)
 export default apiClient 

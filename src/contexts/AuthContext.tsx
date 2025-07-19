@@ -16,117 +16,59 @@ import { useQueryClient } from '@tanstack/react-query'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState)
-  const queryClient = useQueryClient() // ✅ OBTENER EL CLIENTE DE QUERY
+  const queryClient = useQueryClient()
 
-  // Inicializar autenticación al cargar la aplicación
   useEffect(() => {
+    let isMounted = true;
     async function initializeAuth() {
-      const perfId = logger.startPerformance('auth_initialization')
-      
-      logger.info('Initializing authentication...', null, 'auth_init')
-      
-      // ✅ Validación de configuración básica
-      logger.info('Direct auth mode - no Firebase initialization needed', null, 'direct_auth_mode')
-      
-      const token = localStorage.getItem('auth_token')
-      const userData = localStorage.getItem('user_data')
+      console.log('--- Auth Initialization Start ---');
+      dispatch({ type: 'AUTH_REQUEST' }); // Poner la app en estado de carga
 
-      console.log('🔍 Checking stored auth data:', { 
-        hasToken: !!token, 
-        hasUserData: !!userData,
-        tokenLength: token?.length || 0 
-      })
+      try {
+        const token = localStorage.getItem('auth_token');
+        const userData = localStorage.getItem('user_data');
+        console.log('1. Reading from localStorage', { hasToken: !!token, hasUserData: !!userData });
 
-      if (token && userData) {
-        logger.info('Token and user data found, validating session...', { hasUserData: !!userData }, 'auth_token_found')
-        
-        try {
-          // Intentar restaurar desde userData primero (más rápido)
-          const user = JSON.parse(userData)
-          console.log('👤 Parsed user data:', user)
+        if (token && userData) {
+          console.log('2. Token and user data found. Validating with backend...');
           
-          // Verificar sesión con backend UTalk (GET /api/auth/me)
-          console.log('🔄 Validating session with backend...')
-          const validationResponse = await apiClient.get('/auth/me')
-          
-          console.log('✅ Session validation response:', validationResponse)
-          
-          logger.auth('session_validation', { user: validationResponse.data || validationResponse, token })
-          
-          // Usar datos del backend si están disponibles, sino usar datos locales
-          const validatedUser = validationResponse.data || validationResponse || user
-          
-          dispatch({ type: 'AUTH_SUCCESS', payload: { user: validatedUser, token } })
-          
-          // Conectar socket después de restaurar sesión
-          if (validatedUser?.id && token) {
-            try {
-              socketClient.connectWithToken(token, validatedUser.id)
-              console.log('🔌 Socket reconnected after session restore')
-            } catch (socketError) {
-              console.warn('Failed to reconnect socket after session restore:', socketError)
-            }
+          // ✅ CORRECCIÓN: Usar el nuevo método para establecer el token
+          apiClient.setAuthToken(token);
+
+          const validationResponse = await apiClient.get('/auth/me');
+          const validatedUser = validationResponse || JSON.parse(userData); // apiClient ya devuelve la data
+          console.log('3. Session validated successfully:', validatedUser);
+
+          if (isMounted) {
+            dispatch({ type: 'AUTH_SUCCESS', payload: { user: validatedUser, token } });
+            socketClient.connectWithToken(token, validatedUser.id);
+            console.log('4. Session restored and socket connected.');
           }
-          
-          logger.endPerformance(perfId, 'Session restored successfully')
-          console.log('✅ Session restored successfully')
-          
-        } catch (error: any) {
-          // Token inválido, expirado o usuario inactivo
-          console.error('❌ Session validation failed:', error)
-          logger.auth('session_validation_failed', { error })
-          
-          // Limpiar datos inválidos
-          localStorage.removeItem('auth_token')
-          localStorage.removeItem('user_data')
-          dispatch({ type: 'AUTH_FAILURE', payload: 'Sesión expirada' })
-          
-          logger.endPerformance(perfId, 'Session expired, cleaned up')
-          console.log('🧹 Invalid session cleaned up')
-        }
-      } else if (token && !userData) {
-        // Solo hay token, intentar obtener datos del usuario
-        console.log('🔍 Token found but no user data, fetching from backend...')
-        
-        try {
-          const userResponse = await apiClient.get('/auth/me')
-          const user = userResponse.data || userResponse
-          
-          console.log('👤 User data fetched from backend:', user)
-          
-          // Guardar datos del usuario
-          localStorage.setItem('user_data', JSON.stringify(user))
-          
-          dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } })
-          
-          // Conectar socket
-          if (user?.id && token) {
-            try {
-              socketClient.connectWithToken(token, user.id)
-              console.log('🔌 Socket connected after user data fetch')
-            } catch (socketError) {
-              console.warn('Failed to connect socket after user data fetch:', socketError)
-            }
+        } else {
+          console.log('2. No session found in localStorage.');
+          if (isMounted) {
+            dispatch({ type: 'AUTH_FAILURE', payload: 'No active session' });
           }
-          
-          logger.endPerformance(perfId, 'User data fetched and session restored')
-          console.log('✅ Session restored with user data from backend')
-          
-        } catch (error) {
-          console.error('❌ Failed to fetch user data:', error)
-          localStorage.removeItem('auth_token')
-          dispatch({ type: 'AUTH_FAILURE', payload: 'Error al obtener datos del usuario' })
-          logger.endPerformance(perfId, 'Failed to fetch user data')
         }
-      } else {
-        // No hay token, usuario no autenticado
-        console.log('🤷 No token found, user is not authenticated.')
-        dispatch({ type: 'AUTH_READY' }) // ✅ CORRECCIÓN: Indicar que la auth está lista
+      } catch (error: any) {
+        console.error('3. Session validation failed:', error.message);
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data');
+        apiClient.setAuthToken(null); // ✅ Limpiar token del cliente
+        if (isMounted) {
+          dispatch({ type: 'AUTH_FAILURE', payload: 'Session expired or invalid' });
+        }
+      } finally {
+        console.log('--- Auth Initialization End ---');
       }
     }
 
-    initializeAuth()
-  }, [])
+    initializeAuth();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   /**
    * Login directo con Backend UTalk
@@ -378,6 +320,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logger.info('Updating user data in context', userData, 'user_update')
     
     dispatch({ type: 'UPDATE_USER', payload: userData })
+  }
+
+  // ✅ CORRECCIÓN: Evitar renderizar la app hasta que la autenticación esté lista
+  if (!state.isAuthReady) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   const value = {
