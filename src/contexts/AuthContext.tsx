@@ -1,7 +1,8 @@
 // Contexto global de autenticación
 // Manejo del estado de usuario, login, logout y protección de rutas
-// ACTUALIZADO: Sin dependencia de Firebase Auth (autenticación directa)
+// ACTUALIZADO: Firebase Auth + Backend idToken validation
 import { useReducer, useEffect } from 'react'
+import { signInWithEmailAndPassword, getAuth } from 'firebase/auth'
 import { apiClient } from '@/services/apiClient'
 import { socketClient } from '@/services/socketClient'
 import {
@@ -17,6 +18,7 @@ import { useQueryClient } from '@tanstack/react-query'
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState)
   const queryClient = useQueryClient()
+  const auth = getAuth()
 
   useEffect(() => {
     let isMounted = true;
@@ -75,41 +77,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /**
-   * Login directo con Backend UTalk
-   * ACTUALIZADO: El backend real usa email/password directo, no Firebase Auth
-   * 1. Envía email/password al backend /api/auth/login
-   * 2. Recibe usuario + JWT del backend
-   * 3. Almacena en localStorage y contexto
+   * Login con Firebase Auth + Backend idToken validation
+   * FLUJO ACTUALIZADO siguiendo especificaciones:
+   * 1. Usa firebase.auth().signInWithEmailAndPassword(email, password)
+   * 2. Obtiene idToken con userCredential.user.getIdToken()
+   * 3. Envía solo { idToken } al backend /api/auth/login
+   * 4. Recibe { user, token } del backend
+   * 5. Guarda JWT del backend en localStorage
    */
   const login = async (email: string, password: string) => {
-    const perfId = logger.startPerformance('direct_login_flow')
+    const perfId = logger.startPerformance('firebase_auth_login_flow')
     
-    logger.info('🚀 LOGIN FLOW STARTED (DIRECT AUTH)', {
+    logger.info('🚀 LOGIN FLOW STARTED (Firebase Auth + idToken)', {
       email,
       timestamp: new Date().toISOString(),
       environment: import.meta.env.MODE,
       apiUrl: import.meta.env.VITE_API_URL,
       hasApiUrl: !!import.meta.env.VITE_API_URL,
       userAgent: navigator.userAgent.substring(0, 100)
-    }, 'login_flow_start')
+    }, 'firebase_login_flow_start')
     
     dispatch({ type: 'AUTH_REQUEST' })
     
     try {
-      // 1. Autenticación directa con backend UTalk (email/password)
-      logger.info('🔑 Sending credentials directly to backend...', {
+      // 1. Autenticación con Firebase Auth
+      logger.info('🔑 Starting Firebase Authentication...', {
         email,
         hasPassword: !!password,
         passwordLength: password.length
-      }, 'backend_auth_start')
+      }, 'firebase_auth_start')
       
-      // ✅ CORREGIDO: Enviar email/password como espera el backend real
-      const response = await apiClient.post<LoginResponse>('/auth/login', { 
-        email, 
-        password 
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      
+      logger.info('✅ Firebase Auth successful, getting idToken...', {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email
+      }, 'firebase_auth_success')
+
+      // 2. Obtener idToken de Firebase
+      const idToken = await userCredential.user.getIdToken()
+      
+      logger.info('✅ Firebase idToken obtained', {
+        idTokenLength: idToken.length,
+        idTokenStart: idToken.substring(0, 20) + '...'
+      }, 'firebase_idtoken_obtained')
+
+      // 3. Enviar idToken al backend UTalk para validación
+      logger.info('🔄 Sending idToken to backend for validation...', {
+        endpoint: '/api/auth/login',
+        hasIdToken: !!idToken
+      }, 'backend_validation_start')
+      
+      const response = await apiClient.post<LoginResponse>('/api/auth/login', { 
+        idToken 
       })
       
-      // ✅ LOGS CRÍTICOS: Verificar estructura de respuesta ANTES de extraer datos
+      // ✅ LOGS CRÍTICOS: Verificar estructura de respuesta del backend
       logger.info('🔍 Backend response received', {
         responseType: typeof response,
         hasData: !!response,
@@ -117,39 +140,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         responseStructure: response ? JSON.stringify(response, null, 2).substring(0, 500) : 'null'
       }, 'backend_response_structure')
 
-      // ✅ NUEVO: Log crítico para verificar si llegamos hasta aquí
-      logger.info('🎯 CHECKPOINT: Response received from backend', {
-        timestamp: new Date().toISOString(),
-        responseExists: !!response,
-        responseType: typeof response
-      }, 'backend_response_checkpoint')
-
-      // ✅ CORREGIDO: Extracción robusta de user y token
+      // ✅ Extracción robusta de user y token del backend
       let user: User, token: string
 
-      // El apiClient ya retorna LoginResponse directamente para /auth/login
       if (response && typeof response === 'object') {
-        // Caso 1: Respuesta directa { user, token }
         if (response.user && response.token) {
           user = response.user
           token = response.token
-          logger.success('✅ Direct extraction successful', { hasUser: !!user, hasToken: !!token }, 'token_extraction')
-        }
-        // Caso 2: Error - estructura no reconocida
-        else {
-          logger.error('❌ Unrecognized response structure', {
+          logger.success('✅ Backend validation successful', { 
+            hasUser: !!user, 
+            hasToken: !!token,
+            userId: user.id,
+            userRole: user.role 
+          }, 'backend_validation_success')
+        } else {
+          logger.error('❌ Invalid backend response structure', {
             response,
             availableKeys: Object.keys(response),
-            suggestion: 'Check backend response format'
-          }, 'token_extraction_error')
-          throw new Error('Respuesta del servidor inválida: no se encontró user/token')
+            expectedKeys: ['user', 'token']
+          }, 'invalid_backend_response')
+          throw new Error('Los datos enviados no son válidos.')
         }
       } else {
-        logger.error('❌ Invalid response type', {
+        logger.error('❌ Invalid response type from backend', {
           responseType: typeof response,
           response
         }, 'invalid_response_type')
-        throw new Error('Respuesta del servidor inválida')
+        throw new Error('Los datos enviados no son válidos.')
       }
 
       // ✅ VALIDACIÓN FINAL: Verificar que tenemos los datos necesarios
@@ -160,26 +177,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           userType: typeof user,
           tokenType: typeof token
         }, 'missing_auth_data')
-        throw new Error('Error en autenticación: datos incompletos del servidor')
+        throw new Error('Los datos enviados no son válidos.')
       }
 
-      logger.auth('backend_login', { 
-        user: { id: user.id, email: user.email, role: user.role }, 
-        token: token.substring(0, 20) + '...' // Solo mostrar inicio del token por seguridad
+      logger.auth('firebase_backend_login', { 
+        user: { id: user.id, email: user.email, role: user.role },
+        token: token.substring(0, 20) + '...'
       })
 
-      // 3. Guardar en localStorage (para persistencia)
+      // 4. Guardar JWT del backend en localStorage (para persistencia)
       localStorage.setItem('auth_token', token)
       localStorage.setItem('user_data', JSON.stringify(user))
 
-      // 4. Actualizar contexto
+      // 5. Actualizar contexto
       dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } })
       
-      // ✅ CORRECCIÓN: Invalidar queries tras login exitoso
+      // ✅ Invalidar queries tras login exitoso
       console.log('✅ Login successful, invalidating all queries...')
-      queryClient.invalidateQueries() // Invalida todas las queries
+      queryClient.invalidateQueries()
 
-      // 5. ✅ Conectar WebSocket con token y userId válidos (según Backend UTalk)
+      // 6. ✅ Conectar WebSocket con token JWT del backend y userId
       try {
         if (user?.id && token) {
           socketClient.connectWithToken(token, user.id)
@@ -198,16 +215,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // No fallar el login por problemas de socket
       }
       
-      logger.endPerformance(perfId, `Login completed for ${email}`)
+      logger.endPerformance(perfId, `Firebase Auth + Backend login completed for ${email}`)
       
       logger.success('Login process completed successfully', {
-        userId: user.id,
+        firebaseUid: userCredential.user.uid,
+        backendUserId: user.id,
         role: user.role,
         email: user.email
       }, 'login_complete')
 
     } catch (error: any) {
-      // ✅ LOGS SÚPER CRÍTICOS: Capturar TODO sobre el error
+      // ✅ MANEJO ESPECÍFICO DE ERRORES FIREBASE + BACKEND
       logger.error('❌ COMPLETE LOGIN ERROR ANALYSIS', {
         errorType: typeof error,
         errorName: error?.name,
@@ -222,42 +240,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } : 'no response',
         errorStack: error?.stack?.substring(0, 300),
         isAxiosError: error?.isAxiosError,
+        isFirebaseError: error?.code?.startsWith('auth/'),
         isNetworkError: error?.code === 'ERR_NETWORK',
         fullError: JSON.stringify(error, Object.getOwnPropertyNames(error), 2).substring(0, 500)
       }, 'complete_login_error')
 
       // ✅ MANEJO INTELIGENTE DE ERRORES ESPECÍFICOS
-      let userMessage = 'Error de autenticación'
+      let userMessage = 'Los datos enviados no son válidos.'
       
-      if (error?.code === 'ERR_NETWORK') {
-        userMessage = 'No se puede conectar al servidor. Verifica tu conexión.'
-        logger.error('Network connectivity issue', { 
-          baseURL: import.meta.env.VITE_API_URL,
-          isOnline: navigator.onLine 
-        }, 'network_error')
-      } else if (error?.response?.status === 401) {
-        userMessage = 'Credenciales inválidas. Verifica tu email y contraseña.'
-      } else if (error?.response?.status === 403) {
-        userMessage = 'No tienes permisos para acceder a esta aplicación.'
-      } else if (error?.response?.status >= 500) {
-        userMessage = 'Error del servidor. Intenta nuevamente en unos minutos.'
-      } else if (error?.code?.startsWith('auth/')) {
-        // Errores específicos de Firebase
+      // Errores de Firebase Auth
+      if (error?.code?.startsWith('auth/')) {
         switch (error.code) {
           case 'auth/user-not-found':
           case 'auth/wrong-password':
-            userMessage = 'Email o contraseña incorrectos'
+          case 'auth/invalid-credential':
+            userMessage = 'Login fallido: Verifica tu correo y contraseña'
             break
           case 'auth/user-disabled':
-            userMessage = 'Usuario deshabilitado'
+            userMessage = 'Usuario deshabilitado. Contacta al administrador.'
             break
           case 'auth/too-many-requests':
-            userMessage = 'Demasiados intentos fallidos. Intenta más tarde'
+            userMessage = 'Demasiados intentos fallidos. Intenta más tarde.'
+            break
+          case 'auth/network-request-failed':
+            userMessage = 'Error de conexión. Verifica tu internet.'
             break
           default:
-            userMessage = 'Error de autenticación con Firebase'
+            userMessage = 'Error de autenticación Firebase'
         }
-      } else if (error?.response?.data?.message) {
+      }
+      // Errores del backend 
+      else if (error?.response?.status === 400) {
+        userMessage = 'Los datos enviados no son válidos.'
+      }
+      else if (error?.response?.status === 401) {
+        userMessage = 'Credenciales inválidas. Verifica tu correo y contraseña.'
+      }
+      else if (error?.response?.status === 403) {
+        userMessage = 'No tienes permisos para acceder a esta aplicación.'
+      }
+      else if (error?.response?.status >= 500) {
+        userMessage = 'Error del servidor. Intenta nuevamente en unos minutos.'
+      }
+      else if (error?.code === 'ERR_NETWORK') {
+        userMessage = 'No se puede conectar al servidor. Verifica tu conexión.'
+      }
+      else if (error?.response?.data?.message) {
         userMessage = error.response.data.message
       }
 

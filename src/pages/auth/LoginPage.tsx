@@ -12,6 +12,7 @@ export function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const { login, isLoading } = useAuth()
 
   // Log de mount del componente
@@ -26,21 +27,14 @@ export function LoginPage() {
     }
   }, [])
 
-  // TODO: Implementar formulario completo
-  // - Integrar react-hook-form
-  // - Validación con loginSchema
-  // - Manejo de errores
-  // - Remember me
-  // - Forgot password
-  // - Loading states
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setIsSubmitting(true)
 
     const perfId = logger.startPerformance('login_attempt')
     
-    logger.info('🚀 Login attempt started', { 
+    logger.info('🚀 Login attempt started (Firebase Auth + idToken)', { 
       email,
       timestamp: new Date().toISOString(),
       pathname: window.location.pathname
@@ -60,6 +54,7 @@ export function LoginPage() {
     if (!email || !password) {
       const message = 'Por favor completa todos los campos'
       setError(message)
+      setIsSubmitting(false)
       logger.warn('❌ Login validation failed', { 
         email, 
         hasEmail: !!email, 
@@ -72,13 +67,13 @@ export function LoginPage() {
 
     try {
       // ✅ LOGS CRÍTICOS: Antes de llamar al contexto de auth
-      logger.info('🔥 Calling auth context login', {
+      logger.info('🔥 Calling auth context login (Firebase + Backend)', {
         email,
         authContextExists: !!login,
         authContextType: typeof login
       }, 'auth_context_call')
 
-      // Login real: Firebase Auth + Backend UTalk
+      // Login con Firebase Auth + Backend idToken validation
       await login(email, password)
       
       logger.endPerformance(perfId, 'Login successful')
@@ -89,8 +84,8 @@ export function LoginPage() {
       
       // Redirección automática manejada por ProtectedRoute
     } catch (err: any) {
-      // ✅ LOGS CRÍTICOS: Error detallado
-      const errorMessage = err.message || 'Error de autenticación'
+      // ✅ Mostrar el mensaje de error que viene del contexto de auth
+      const errorMessage = err.message || 'Los datos enviados no son válidos.'
       setError(errorMessage)
       
       logger.error('❌ Login failed', {
@@ -103,6 +98,8 @@ export function LoginPage() {
       }, 'login_error')
       
       logger.endPerformance(perfId, `Login failed: ${errorMessage}`)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -124,6 +121,7 @@ export function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="tu@email.com"
               required
+              disabled={isSubmitting || isLoading}
             />
           </div>
           
@@ -135,11 +133,12 @@ export function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
+              disabled={isSubmitting || isLoading}
             />
           </div>
 
           {error && (
-            <div className="text-sm text-destructive text-center">
+            <div className="text-sm text-destructive text-center bg-destructive/10 p-3 rounded-md border border-destructive/20">
               {error}
             </div>
           )}
@@ -147,9 +146,16 @@ export function LoginPage() {
           <Button 
             type="submit" 
             className="w-full"
-            disabled={isLoading}
+            disabled={isSubmitting || isLoading}
           >
-            {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+            {(isSubmitting || isLoading) ? (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                <span>Iniciando sesión...</span>
+              </div>
+            ) : (
+              'Iniciar Sesión'
+            )}
           </Button>
         </form>
 
@@ -159,7 +165,6 @@ export function LoginPage() {
           </span>
         </div>
 
-        {/* TODO: Añadir links de forgot password, help, etc. */}
         <div className="mt-4 text-center">
           <Link to="#" className="text-sm text-muted-foreground hover:underline">
             ¿Olvidaste tu contraseña?
