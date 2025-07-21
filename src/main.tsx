@@ -1,5 +1,8 @@
 // Entry point de la aplicación React
 // Configuración del root de React 18 con StrictMode
+// ✅ CRÍTICO: Firebase DEBE importarse PRIMERO para inicializarse antes que React
+import './lib/firebase'
+
 // import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'

@@ -94,10 +94,45 @@ export function getFirebaseApp(): FirebaseApp {
  */
 export function getFirebaseAuth(): Auth {
   if (!authInstance) {
+    // ✅ Log crítico para debugging
+    if (import.meta.env.DEV) {
+      console.log('🔥 Initializing Firebase Auth instance...', {
+        timestamp: new Date().toISOString()
+      })
+    }
+    
     const firebaseApp = getFirebaseApp()
     authInstance = getAuth(firebaseApp)
+    
+    // ✅ Confirmar inicialización exitosa
+    if (import.meta.env.DEV) {
+      console.log('✅ Firebase Auth instance created successfully', {
+        hasAuth: !!authInstance,
+        timestamp: new Date().toISOString()
+      })
+    }
+  } else {
+    // ✅ Log cuando ya existe
+    if (import.meta.env.DEV) {
+      console.log('🔥 Firebase Auth instance already exists, reusing...', {
+        timestamp: new Date().toISOString()
+      })
+    }
   }
   return authInstance
+}
+
+// ✅ CRÍTICO: Inicializar Firebase inmediatamente al importar este módulo
+// Esto asegura que Firebase esté listo cuando otros módulos lo necesiten
+try {
+  const firebaseApp = getFirebaseApp()
+  console.log('🚀 Firebase App inicializada automáticamente al importar módulo', {
+    appName: firebaseApp.name,
+    timestamp: new Date().toISOString()
+  })
+} catch (error) {
+  console.error('❌ Error crítico al inicializar Firebase App:', error)
+  throw error
 }
 
 // ✅ Exportar instancias lazy para compatibilidad

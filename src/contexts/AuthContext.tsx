@@ -1,8 +1,9 @@
 // Contexto global de autenticación
 // Manejo del estado de usuario, login, logout y protección de rutas
-// ACTUALIZADO: Firebase Auth + Backend idToken validation
+// CORREGIDO: Firebase Auth + Backend idToken validation con lazy loading
 import { useReducer, useEffect } from 'react'
-import { signInWithEmailAndPassword, getAuth } from 'firebase/auth'
+import { signInWithEmailAndPassword } from 'firebase/auth'
+import { getFirebaseAuth } from '@/lib/firebase'
 import { apiClient } from '@/services/apiClient'
 import { socketClient } from '@/services/socketClient'
 import {
@@ -18,7 +19,6 @@ import { useQueryClient } from '@tanstack/react-query'
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState)
   const queryClient = useQueryClient()
-  const auth = getAuth()
 
   useEffect(() => {
     let isMounted = true;
@@ -100,12 +100,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'AUTH_REQUEST' })
     
     try {
-      // 1. Autenticación con Firebase Auth
+      // 1. Autenticación con Firebase Auth (lazy loading)
       logger.info('🔑 Starting Firebase Authentication...', {
         email,
         hasPassword: !!password,
         passwordLength: password.length
       }, 'firebase_auth_start')
+      
+      // ✅ CORRECCIÓN: Obtener auth SOLO cuando se necesita (lazy loading)
+      const auth = getFirebaseAuth()
+      
+      logger.info('🔥 Firebase Auth instance obtained', {
+        hasAuth: !!auth,
+        timestamp: new Date().toISOString()
+      }, 'firebase_auth_instance')
       
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
       
