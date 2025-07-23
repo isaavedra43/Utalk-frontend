@@ -138,7 +138,7 @@ class ProjectAnalyzer {
     module.completionPercentage = 95
     module.missingFeatures = ['Password reset', 'Remember me', 'Two-factor auth']
 
-    debugLogs.endpointStatus('/api/auth/login', 'connected')
+          debugLogs.endpointStatus('/auth/login', 'connected')
     debugLogs.endpointStatus('/api/auth/me', 'connected')
     debugLogs.endpointStatus('/api/auth/logout', 'connected')
   }
@@ -253,7 +253,7 @@ class ProjectAnalyzer {
 
   private analyzeEndpoints(): void {
     this.analysis.endpointStatus = {
-      '/api/auth/login': 'connected',
+      '/auth/login': 'connected',
       '/api/auth/me': 'connected', 
       '/api/auth/logout': 'connected',
       '/api/conversations': 'connected',

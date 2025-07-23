@@ -2,6 +2,7 @@
 // Prueba endpoints, URLs, CORS, y conectividad
 
 import { logger } from './logger'
+import { API_ENDPOINTS } from './constants'
 
 interface ConnectionTestResult {
   endpoint: string
@@ -112,7 +113,7 @@ class ConnectionTester {
 
   // ✅ Test 3: Auth endpoint (sin token)
   private async testAuthEndpoint(): Promise<ConnectionTestResult> {
-    const endpoint = `${this.baseURL}/auth/login`
+    const endpoint = `${this.baseURL}${API_ENDPOINTS.AUTH.LOGIN}`
     const startTime = Date.now()
     
     try {

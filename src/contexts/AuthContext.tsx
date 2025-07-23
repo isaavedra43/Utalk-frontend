@@ -15,6 +15,7 @@ import { AuthContext } from '@/hooks/useAuthContext'
 import { logger } from '@/lib/logger'
 import { LoginResponse } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
+import { API_ENDPOINTS } from '@/lib/constants'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState)
@@ -37,7 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // ✅ CORRECCIÓN: Usar el nuevo método para establecer el token
           apiClient.setAuthToken(token);
 
-          const validationResponse = await apiClient.get('/auth/me');
+          const validationResponse = await apiClient.get(API_ENDPOINTS.AUTH.ME);
           const validatedUser = validationResponse || JSON.parse(userData); // apiClient ya devuelve la data
           console.log('3. Session validated successfully:', validatedUser);
 
@@ -81,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * FLUJO ACTUALIZADO siguiendo especificaciones:
    * 1. Usa firebase.auth().signInWithEmailAndPassword(email, password)
    * 2. Obtiene idToken con userCredential.user.getIdToken()
-   * 3. Envía solo { idToken } al backend /api/auth/login
+   * 3. Envía solo { idToken } al backend usando API_ENDPOINTS.AUTH.LOGIN
    * 4. Recibe { user, token } del backend
    * 5. Guarda JWT del backend en localStorage
    */
@@ -132,11 +133,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // 3. Enviar idToken al backend UTalk para validación
       logger.info('🔄 Sending idToken to backend for validation...', {
-        endpoint: '/api/auth/login',
+        endpoint: API_ENDPOINTS.AUTH.LOGIN,
         hasIdToken: !!idToken
       }, 'backend_validation_start')
       
-      const response = await apiClient.post<LoginResponse>('/api/auth/login', { 
+      const response = await apiClient.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, { 
         idToken 
       })
       
@@ -319,7 +320,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // 1. Invalidar sesión en backend UTalk
       logger.info('Invalidating backend session...', null, 'backend_logout_start')
-      await apiClient.post('/auth/logout')
+      await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT)
       
       logger.success('Backend session invalidated', null, 'backend_logout_success')
     } catch (error) {

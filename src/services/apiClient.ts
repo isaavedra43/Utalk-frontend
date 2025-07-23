@@ -8,6 +8,11 @@ class ApiClient {
   private axiosInstance: AxiosInstance
   
   constructor(baseURL: string) {
+    // ✅ VALIDACIÓN: Prevenir duplicación de /api en URLs
+    if (baseURL.endsWith('/api') && !baseURL.endsWith('/api/')) {
+      console.warn('⚠️ VITE_API_URL ends with /api - endpoints should NOT start with /api to avoid duplication')
+    }
+    
     this.axiosInstance = axios.create({
       baseURL,
       headers: {
