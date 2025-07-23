@@ -326,40 +326,24 @@ export class ConversationValidator {
     
     logger.info('Validando conversación', data, 'CONVERSATION_VALIDATION')
     
-    // ✅ CAMPOS OBLIGATORIOS
+    // ✅ CAMPOS OBLIGATORIOS CRÍTICOS (según requisitos)
     if (!DataValidator.validateRequired(data.id, 'id')) {
       errors.push({ field: 'id', message: 'ID es requerido', value: data.id })
     }
     
-    if (!DataValidator.validateRequired(data.title, 'title')) {
-      // Si no hay title, usar el nombre del contacto
-      if (data.contact?.name) {
-        warnings.push({ field: 'title', message: 'title no definido, usando nombre del contacto', value: data.contact.name })
-      } else {
-        errors.push({ field: 'title', message: 'title es requerido', value: data.title })
-      }
+    // ✅ CONTACTO (OBLIGATORIO)
+    if (!data.contact) {
+      errors.push({ field: 'contact', message: 'contact es requerido', value: data.contact })
     }
     
-    // ✅ STATUS
+    // ✅ STATUS (OBLIGATORIO)
     if (!DataValidator.validateEnum(data.status, ['open', 'pending', 'closed', 'archived'], 'status')) {
       errors.push({ field: 'status', message: 'status inválido', value: data.status })
     }
     
-    // ✅ PRIORITY CON DEFAULT
-    const priority = data.priority || 'medium'
-    if (!DataValidator.validateEnum(priority, ['low', 'medium', 'high', 'urgent'], 'priority')) {
-      errors.push({ field: 'priority', message: 'priority inválido', value: data.priority })
-    }
-    
-    // ✅ CHANNEL
-    if (!DataValidator.validateEnum(data.channel, ['whatsapp', 'telegram', 'email', 'webchat', 'api'], 'channel')) {
-      errors.push({ field: 'channel', message: 'channel inválido', value: data.channel })
-    }
-    
-    // ✅ TIMESTAMPS
+    // ✅ TIMESTAMPS OBLIGATORIOS
     const createdAt = DataValidator.transformToDate(data.createdAt, 'createdAt')
     const updatedAt = DataValidator.transformToDate(data.updatedAt, 'updatedAt')
-    const lastMessageAt = DataValidator.transformToDate(data.lastMessageAt, 'lastMessageAt')
     
     if (!createdAt) {
       errors.push({ field: 'createdAt', message: 'createdAt inválido', value: data.createdAt })
@@ -369,26 +353,62 @@ export class ConversationValidator {
       errors.push({ field: 'updatedAt', message: 'updatedAt inválido', value: data.updatedAt })
     }
     
-    if (!lastMessageAt) {
-      errors.push({ field: 'lastMessageAt', message: 'lastMessageAt inválido', value: data.lastMessageAt })
+    // ✅ LAST MESSAGE (OBLIGATORIO según requisitos)
+    if (!data.lastMessage) {
+      errors.push({ field: 'lastMessage', message: 'lastMessage es requerido', value: data.lastMessage })
     }
     
-    // ✅ CONTACTO (validar por separado)
-    if (!data.contact) {
-      errors.push({ field: 'contact', message: 'contact es requerido', value: data.contact })
+    // ✅ ASSIGNED TO (OBLIGATORIO según requisitos)
+    if (!data.assignedTo) {
+      errors.push({ field: 'assignedTo', message: 'assignedTo es requerido', value: data.assignedTo })
     }
     
     // Si hay errores críticos, no continuar
     if (errors.length > 0) {
-      logger.error('Conversación falló validación', { data, errors }, 'CONVERSATION_VALIDATION_FAILED')
+      logger.error('Conversación falló validación crítica', { data, errors }, 'CONVERSATION_VALIDATION_FAILED')
       return { isValid: false, errors, warnings }
     }
     
-    // Validar contacto
+    // ✅ VALIDAR CONTACTO POR SEPARADO
     const contactValidation = ContactValidator.validate(data.contact)
     if (!contactValidation.isValid) {
       errors.push({ field: 'contact', message: 'Contacto inválido', value: contactValidation.errors })
       return { isValid: false, errors, warnings }
+    }
+    
+    // ✅ VALIDAR LAST MESSAGE SI EXISTE
+    let lastMessageValidation: any = null
+    if (data.lastMessage) {
+      lastMessageValidation = MessageValidator.validate(data.lastMessage)
+      if (!lastMessageValidation.isValid) {
+        warnings.push({ field: 'lastMessage', message: 'lastMessage tiene errores de validación', value: lastMessageValidation.errors })
+      }
+    }
+    
+    // ✅ VALIDAR ASSIGNED TO
+    if (data.assignedTo) {
+      if (!DataValidator.validateRequired(data.assignedTo.id, 'assignedTo.id')) {
+        errors.push({ field: 'assignedTo.id', message: 'assignedTo.id es requerido', value: data.assignedTo.id })
+      }
+      if (!DataValidator.validateRequired(data.assignedTo.name, 'assignedTo.name')) {
+        errors.push({ field: 'assignedTo.name', message: 'assignedTo.name es requerido', value: data.assignedTo.name })
+      }
+    }
+    
+    // ✅ CAMPOS OPCIONALES CON VALIDACIÓN
+    const priority = data.priority || 'medium'
+    if (!DataValidator.validateEnum(priority, ['low', 'medium', 'high', 'urgent'], 'priority')) {
+      warnings.push({ field: 'priority', message: 'priority inválido, usando medium', value: data.priority })
+    }
+    
+    const channel = data.channel || 'whatsapp'
+    if (!DataValidator.validateEnum(channel, ['whatsapp', 'telegram', 'email', 'webchat', 'api'], 'channel')) {
+      warnings.push({ field: 'channel', message: 'channel inválido, usando whatsapp', value: data.channel })
+    }
+    
+    const lastMessageAt = DataValidator.transformToDate(data.lastMessageAt, 'lastMessageAt')
+    if (!lastMessageAt) {
+      warnings.push({ field: 'lastMessageAt', message: 'lastMessageAt inválido, usando updatedAt', value: data.lastMessageAt })
     }
     
     // ✅ CONSTRUIR CONVERSACIÓN CANÓNICA
@@ -398,14 +418,14 @@ export class ConversationValidator {
       status: data.status,
       priority,
       contact: contactValidation.data!,
-      channel: data.channel,
+      channel,
       createdAt: createdAt!,
       updatedAt: updatedAt!,
-      lastMessageAt: lastMessageAt!,
+      lastMessageAt: lastMessageAt || updatedAt!,
       messageCount: data.messageCount || 0,
       unreadCount: data.unreadCount || 0,
       assignedTo: data.assignedTo || undefined,
-      lastMessage: data.lastMessage || undefined,
+      lastMessage: lastMessageValidation?.data || data.lastMessage || undefined,
       tags: data.tags || [],
       isMuted: data.isMuted || false,
       isArchived: data.isArchived || false,
@@ -423,34 +443,101 @@ export class ConversationValidator {
     
     if (response.data && Array.isArray(response.data)) {
       conversations = response.data
+      logger.info('Usando formato response.data', { count: conversations.length }, 'BACKEND_FORMAT_DETECTION')
     } else if (response.conversations && Array.isArray(response.conversations)) {
       conversations = response.conversations
+      logger.info('Usando formato response.conversations', { count: conversations.length }, 'BACKEND_FORMAT_DETECTION')
     } else if (Array.isArray(response)) {
       conversations = response
+      logger.info('Usando formato directo array', { count: conversations.length }, 'BACKEND_FORMAT_DETECTION')
     } else {
-      logger.error('Respuesta del backend no contiene array de conversaciones válido', response, 'BACKEND_STRUCTURE_INVALID')
+      logger.error('❌ Respuesta del backend no contiene array de conversaciones válido', response, 'BACKEND_STRUCTURE_INVALID')
+      return []
+    }
+    
+    if (conversations.length === 0) {
+      logger.warning('⚠️ Array de conversaciones vacío del backend', { response }, 'EMPTY_CONVERSATIONS_ARRAY')
       return []
     }
     
     const validConversations: CanonicalConversation[] = []
     let invalidCount = 0
+    let criticalErrors = 0
+    let warnings = 0
     
     conversations.forEach((conv, index) => {
+      logger.info(`Validando conversación ${index + 1}/${conversations.length}`, { 
+        id: conv.id, 
+        hasContact: !!conv.contact,
+        hasLastMessage: !!conv.lastMessage,
+        hasAssignedTo: !!conv.assignedTo
+      }, 'CONVERSATION_VALIDATION_PROGRESS')
+      
       const validation = ConversationValidator.validate(conv)
       
       if (validation.isValid && validation.data) {
         validConversations.push(validation.data)
+        if (validation.warnings.length > 0) {
+          warnings += validation.warnings.length
+          logger.warning(`Conversación ${index + 1} tiene warnings`, { 
+            id: conv.id, 
+            warnings: validation.warnings 
+          }, 'CONVERSATION_WARNINGS')
+        }
       } else {
         invalidCount++
-        logger.error(`Conversación ${index} inválida`, { conv, errors: validation.errors }, 'CONVERSATION_INVALID')
+        if (validation.errors.some(e => ['id', 'contact', 'status', 'createdAt', 'updatedAt', 'lastMessage', 'assignedTo'].includes(e.field))) {
+          criticalErrors++
+          logger.error(`❌ Conversación ${index + 1} CRÍTICA - campos obligatorios faltantes`, { 
+            id: conv.id, 
+            errors: validation.errors,
+            originalData: conv
+          }, 'CONVERSATION_CRITICAL_INVALID')
+        } else {
+          logger.warning(`⚠️ Conversación ${index + 1} inválida - campos opcionales`, { 
+            id: conv.id, 
+            errors: validation.errors 
+          }, 'CONVERSATION_OPTIONAL_INVALID')
+        }
       }
     })
     
-    if (invalidCount > 0) {
-      logger.error(`${invalidCount} conversaciones inválidas de ${conversations.length} total`, { invalidCount }, 'CONVERSATIONS_VALIDATION_SUMMARY')
+    // ✅ REPORTE DETALLADO DE VALIDACIÓN
+    logger.info('📊 Resumen de validación de conversaciones', {
+      total: conversations.length,
+      valid: validConversations.length,
+      invalid: invalidCount,
+      criticalErrors,
+      warnings,
+      successRate: `${((validConversations.length / conversations.length) * 100).toFixed(1)}%`
+    }, 'CONVERSATIONS_VALIDATION_SUMMARY')
+    
+    if (criticalErrors > 0) {
+      logger.error(`❌ ${criticalErrors} conversaciones descartadas por errores críticos`, { 
+        criticalErrors, 
+        total: conversations.length 
+      }, 'CONVERSATIONS_CRITICAL_DISCARDED')
     }
     
-    logger.info(`${validConversations.length} conversaciones válidas procesadas`, validConversations.length, 'CONVERSATIONS_VALIDATION_SUCCESS')
+    if (invalidCount > 0) {
+      logger.warning(`⚠️ ${invalidCount} conversaciones inválidas de ${conversations.length} total`, { 
+        invalidCount, 
+        total: conversations.length 
+      }, 'CONVERSATIONS_INVALID_SUMMARY')
+    }
+    
+    if (validConversations.length === 0 && conversations.length > 0) {
+      logger.error('❌ TODAS las conversaciones fueron descartadas por validación', { 
+        total: conversations.length,
+        criticalErrors,
+        invalidCount
+      }, 'ALL_CONVERSATIONS_DISCARDED')
+    }
+    
+    logger.info(`✅ ${validConversations.length} conversaciones válidas procesadas`, { 
+      count: validConversations.length 
+    }, 'CONVERSATIONS_VALIDATION_SUCCESS')
+    
     return validConversations
   }
 }

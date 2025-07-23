@@ -20,6 +20,7 @@ import ChannelBadge from './ChannelBadge'
 import MessageInput from './MessageInput'
 import MessageBubble from './MessageBubble'
 import { ChatWindowSkeleton } from './LoaderSkeleton'
+import { useConversationData } from '../hooks/useConversationData'
 
 export function ChatWindow({
   conversationId,
@@ -30,38 +31,22 @@ export function ChatWindow({
 }: ChatWindowProps) {
   const [showInfo, setShowInfo] = useState(false)
 
-  // ✅ LOGS CRÍTICOS: Diagnosticar datos de mensajes
+  // ✅ OBTENER DATOS REALES DEL BACKEND - Reemplaza datos hardcodeados
+  const { data: conversationData, isLoading: isLoadingConversation, error: conversationError } = useConversationData(conversationId)
+
+  // ✅ LOGS CRÍTICOS: Diagnosticar datos de mensajes y conversación
   console.log('🔍 ChatWindow render:', {
     conversationId,
     messagesLength: messages.length,
     isLoading,
+    isLoadingConversation,
+    conversationError,
+    hasConversationData: !!conversationData,
+    contactName: conversationData?.contact?.name,
+    status: conversationData?.status,
     messages: messages.slice(0, 3), // Solo los primeros 3 para debug
     messageTypes: messages.map(m => ({ id: m.id, type: m.type, content: m.content?.substring(0, 50) }))
   });
-
-  // Simulación de datos de conversación para el header
-  // TODO: Recibir estos datos como props o desde un hook
-  const conversation = conversationId ? {
-    id: conversationId,
-    contact: {
-      id: '1',
-      name: 'Ana García',
-      avatar: undefined,
-      isOnline: true,
-      channel: 'whatsapp' as any,
-      phone: '+34 666 777 888',
-      email: 'ana.garcia@email.com'
-    },
-    status: 'open' as any,
-    assignedTo: {
-      id: 'agent1',
-      name: 'Juan Pérez',
-      avatar: undefined
-    },
-    unreadCount: 0,
-    isMuted: false,
-    priority: 'high' as any  // Cambio a 'high' para que la comparación tenga sentido
-  } : null
 
   const handleSendMessage = (content: string) => {
     onSendMessage(content, 'text')
@@ -105,12 +90,30 @@ export function ChatWindow({
     )
   }
 
-  if (isLoading) {
+  // ✅ MOSTRAR LOADING SI SE ESTÁ CARGANDO LA CONVERSACIÓN
+  if (isLoading || isLoadingConversation) {
     console.log('🔄 ChatWindow: Showing loading state');
     return <ChatWindowSkeleton />
   }
 
-  if (!conversationId || !conversation) {
+  // ✅ MOSTRAR ERROR SI HAY PROBLEMA CON LA CONVERSACIÓN
+  if (conversationError) {
+    console.error('❌ ChatWindow: Conversation error:', conversationError);
+    return (
+      <div className="flex-1 flex flex-col bg-white dark:bg-gray-900">
+        <div className="flex-1 flex flex-col items-center justify-center text-red-500 dark:text-red-400">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h2 className="text-xl font-medium mb-2">Error al cargar conversación</h2>
+          <p className="text-sm text-center max-w-md">
+            No se pudo cargar la información de la conversación
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // ✅ MOSTRAR ESTADO VACÍO SI NO HAY CONVERSACIÓN SELECCIONADA
+  if (!conversationId || !conversationData) {
     console.log('🤷 ChatWindow: No conversation selected');
     return (
       <div className="flex-1 flex flex-col bg-white dark:bg-gray-900">
@@ -125,6 +128,9 @@ export function ChatWindow({
     )
   }
 
+  // ✅ EXTRAER DATOS DE LA CONVERSACIÓN REAL
+  const { contact, status, assignedTo, priority, isMuted } = conversationData
+
   console.log('✅ ChatWindow: Rendering conversation with', messages.length, 'messages');
 
   return (
@@ -133,46 +139,46 @@ export function ChatWindow({
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <div className="flex items-center space-x-3">
           <Avatar 
-            src={conversation.contact.avatar}
-            name={conversation.contact.name}
+            src={contact.avatar}
+            name={contact.name}
             size="lg"
-            isOnline={conversation.contact.isOnline}
-            channel={conversation.contact.channel}
+            isOnline={contact.isOnline}
+            channel={contact.channel}
           />
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white truncate">
-                {conversation.contact.name}
+                {contact.name}
               </h3>
               
-              <ChannelBadge channel={conversation.contact.channel} size="sm" />
+              <ChannelBadge channel={contact.channel} size="sm" />
               
-              {conversation.priority === 'high' && (
+              {priority === 'high' && (
                 <Pin className="w-4 h-4 text-red-500 transform rotate-45" />
               )}
               
-              {conversation.isMuted && (
+              {isMuted && (
                 <VolumeX className="w-4 h-4 text-gray-400" />
               )}
             </div>
             
             <div className="flex items-center space-x-4 mt-1">
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                {conversation.contact.phone}
+                {contact.phone}
               </span>
               
               <Badge 
-                variant={conversation.status === 'open' ? 'default' : 'secondary'}
+                variant={status === 'open' ? 'default' : 'secondary'}
                 className="text-xs"
               >
-                {conversation.status === 'open' ? 'Abierta' : 
-                 conversation.status === 'closed' ? 'Cerrada' : 'Pendiente'}
+                {status === 'open' ? 'Abierta' : 
+                 status === 'closed' ? 'Cerrada' : 'Pendiente'}
               </Badge>
               
-              {conversation.assignedTo && (
+              {assignedTo && (
                 <span className="text-xs text-gray-500">
-                  Asignado a: {conversation.assignedTo.name}
+                  Asignado a: {assignedTo.name}
                 </span>
               )}
             </div>
@@ -214,9 +220,9 @@ export function ChatWindow({
             size="sm"
             onClick={handleMuteConversation}
             className="text-gray-500 hover:text-gray-700"
-            title={conversation.isMuted ? "Activar notificaciones" : "Silenciar conversación"}
+            title={isMuted ? "Activar notificaciones" : "Silenciar conversación"}
           >
-            {conversation.isMuted ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            {isMuted ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </Button>
           
           <Button
@@ -263,7 +269,7 @@ export function ChatWindow({
                   <div className="text-4xl mb-3">💬</div>
                   <h3 className="text-lg font-medium mb-1">¡Comienza la conversación!</h3>
                   <p className="text-sm text-center">
-                    Este es el inicio de tu conversación con {conversation.contact.name}
+                    Este es el inicio de tu conversación con {contact.name}
                   </p>
                 </div>
               );
@@ -305,7 +311,7 @@ export function ChatWindow({
         <MessageInput
           conversationId={conversationId}
           onSendMessage={handleSendMessage}
-          disabled={conversation.status === 'closed'}
+          disabled={status === 'closed'}
         />
       </div>
     </div>

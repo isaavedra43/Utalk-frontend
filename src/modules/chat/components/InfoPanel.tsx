@@ -22,13 +22,19 @@ import {
 import { InfoPanelProps } from '../types'
 import Avatar from './Avatar'
 import ChannelBadge from './ChannelBadge'
+import { useConversationData } from '../hooks/useConversationData'
 
 export function InfoPanel({
-  contact,
-  conversation,
+  conversationId,
   onUpdateContact,
   onUpdateConversation
-}: InfoPanelProps) {
+}: Omit<InfoPanelProps, 'contact' | 'conversation'> & { conversationId?: string }) {
+  // ✅ OBTENER DATOS REALES DEL BACKEND - Reemplaza props hardcodeadas
+  const { data: conversationData, isLoading, error } = useConversationData(conversationId)
+  
+  // Extraer datos de la conversación real
+  const contact = conversationData?.contact
+  const conversation = conversationData?.conversation
   const [isEditingContact, setIsEditingContact] = useState(false)
   const [editedContact, setEditedContact] = useState(contact)
 
@@ -64,6 +70,37 @@ export function InfoPanel({
     }
   }
 
+  // ✅ MOSTRAR LOADING SI SE ESTÁ CARGANDO
+  if (isLoading) {
+    return (
+      <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4">
+        <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-3"></div>
+          <h3 className="text-sm font-medium mb-1">Cargando información...</h3>
+          <p className="text-xs text-center">
+            Obteniendo datos del cliente
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // ✅ MOSTRAR ERROR SI HAY PROBLEMA
+  if (error) {
+    return (
+      <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4">
+        <div className="flex flex-col items-center justify-center h-64 text-red-500 dark:text-red-400">
+          <div className="text-4xl mb-3">⚠️</div>
+          <h3 className="text-sm font-medium mb-1">Error al cargar</h3>
+          <p className="text-xs text-center">
+            No se pudo cargar la información del cliente
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // ✅ MOSTRAR ESTADO VACÍO SI NO HAY CONTACTO
   if (!contact) {
     return (
       <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4">

@@ -16,6 +16,7 @@ import { logger } from '@/lib/logger'
 import { LoginResponse } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { API_ENDPOINTS } from '@/lib/constants'
+import { tokenManager } from '@/lib/tokenManager'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState)
@@ -28,7 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'AUTH_REQUEST' }); // Poner la app en estado de carga
 
       try {
-        const token = localStorage.getItem('auth_token');
+        let token = localStorage.getItem('auth_token');
         const userData = localStorage.getItem('user_data');
         console.log('1. Reading from localStorage', { hasToken: !!token, hasUserData: !!userData });
 
@@ -38,6 +39,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // ✅ CORRECCIÓN: Usar el nuevo método para establecer el token
           apiClient.setAuthToken(token);
 
+          // ✅ OPTIMIZACIÓN: Verificar si el token está próximo a expirar
+          if (tokenManager.isTokenExpiringSoon()) {
+            console.log('Token próximo a expirar, refrescando...');
+            const newToken = await tokenManager.refreshToken();
+            if (newToken) {
+              token = newToken;
+              apiClient.setAuthToken(newToken);
+            }
+          }
+
           const validationResponse = await apiClient.get(API_ENDPOINTS.AUTH.ME);
           const validatedUser = validationResponse || JSON.parse(userData); // apiClient ya devuelve la data
           console.log('3. Session validated successfully:', validatedUser);
@@ -45,6 +56,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (isMounted) {
             dispatch({ type: 'AUTH_SUCCESS', payload: { user: validatedUser, token } });
             socketClient.connectWithToken(token, validatedUser.id);
+            
+            // ✅ OPTIMIZACIÓN: Iniciar monitoreo de token
+            tokenManager.startTokenMonitoring();
+            
             console.log('4. Session restored and socket connected.');
           }
         } else {
@@ -194,8 +209,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token: token.substring(0, 20) + '...'
       })
 
-      // 4. Guardar JWT del backend en localStorage (para persistencia)
-      localStorage.setItem('auth_token', token)
+      // 4. ✅ OPTIMIZACIÓN: Usar tokenManager para guardar token con refresh automático
+      tokenManager.setToken(token, (response as any).expiresIn || 24 * 60 * 60) // 24h por defecto
       localStorage.setItem('user_data', JSON.stringify(user))
 
       // 5. Actualizar contexto

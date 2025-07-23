@@ -1,252 +1,230 @@
-// Lista de conversaciones con filtros, búsqueda y tabs
-// Panel central que muestra todas las conversaciones filtradas
+// Lista de conversaciones con filtros y búsqueda
+// Componente principal para mostrar conversaciones
 import { useState } from 'react'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Search, MoreVertical, Filter, SortDesc } from 'lucide-react'
+import { 
+  Search, 
+  Filter, 
+  RefreshCw
+} from 'lucide-react'
 import { ConversationListProps } from '../types'
 import ConversationItem from './ConversationItem'
 import { ConversationListSkeleton } from './LoaderSkeleton'
-
-const filterTabs = [
-  { key: 'all', label: 'Todas', icon: '💬' },
-  { key: 'open', label: 'Abiertas', icon: '🟢' },
-  { key: 'pending', label: 'Pendientes', icon: '🟡' },
-  { key: 'closed', label: 'Cerradas', icon: '⚫' }
-]
 
 export function ConversationList({
   conversations,
   selectedConversationId,
   onSelectConversation,
   isLoading,
-  error, // ✅ NUEVO: Recibir el estado de error
+  error,
   filter,
-  onFilterChange
-}: ConversationListProps) {
-  const [activeTab, setActiveTab] = useState('all')
-  const [searchQuery, setSearchQuery] = useState(filter.search || '')
-  const [sortBy, setSortBy] = useState<'recent' | 'unread' | 'name'>('recent')
+  onFilterChange,
+  onRefresh
+}: ConversationListProps & { onRefresh?: () => void }) {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
 
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab)
+  // Filtrar conversaciones por término de búsqueda
+  const filteredConversations = conversations.filter(conversation => {
+    const matchesSearch = searchTerm === '' || 
+      conversation.contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      conversation.lastMessage?.content.toLowerCase().includes(searchTerm.toLowerCase())
     
-    const newFilter = { ...filter }
+    const matchesStatus = !filter.status || conversation.status === filter.status
+    const matchesChannel = !filter.channel || conversation.channel === filter.channel
+    const matchesAssigned = !filter.assignedTo || conversation.assignedTo?.id === filter.assignedTo
     
-    if (tab === 'all') {
-      delete newFilter.status
-    } else {
-      newFilter.status = tab as any
-    }
-    
-    onFilterChange(newFilter)
+    return matchesSearch && matchesStatus && matchesChannel && matchesAssigned
+  })
+
+  const handleRefresh = () => {
+    console.log('🔄 Manual refresh triggered')
+    onRefresh?.()
   }
 
-  const handleSearchChange = (value: string) => {
-    setSearchQuery(value)
-    onFilterChange({ ...filter, search: value })
+  if (isLoading) {
+    return <ConversationListSkeleton />
   }
 
-  const handleSortChange = () => {
-    const nextSort = sortBy === 'recent' ? 'unread' : sortBy === 'unread' ? 'name' : 'recent'
-    setSortBy(nextSort)
-    // TODO: Implementar ordenamiento en el servicio
-  }
-
-  // Contar conversaciones por estado
-  const getTabCount = (status: string) => {
-    if (status === 'all') return conversations.length
-    return conversations.filter(conv => conv.status === status).length
-  }
-
-  const getSortLabel = () => {
-    switch (sortBy) {
-      case 'recent': return 'Recientes'
-      case 'unread': return 'No leídos'
-      case 'name': return 'Nombre'
-      default: return 'Recientes'
-    }
-  }
-
-  // ✅ CORRECCIÓN: Renderizado condicional robusto
-  const renderContent = () => {
-    if (isLoading) {
-      return <ConversationListSkeleton />;
-    }
-
-    if (error) {
-      return (
-        <div className="flex flex-col items-center justify-center h-64 text-red-500 dark:text-red-400">
-          <div className="text-4xl mb-3">⚠️</div>
-          <h3 className="text-sm font-medium mb-1">Error al cargar</h3>
-          <p className="text-xs text-center px-4">
-            No se pudieron cargar las conversaciones. Intenta de nuevo más tarde.
-          </p>
-        </div>
-      );
-    }
-
-    if (!conversations || conversations.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">
-          <div className="text-4xl mb-3">💬</div>
-          <h3 className="text-sm font-medium mb-1">No hay conversaciones</h3>
-          <p className="text-xs text-center px-4">
-            {filter.search 
-              ? 'No se encontraron resultados para tu búsqueda.'
-              : 'Las nuevas conversaciones aparecerán aquí.'
-            }
-          </p>
-        </div>
-      );
-    }
-
+  if (error) {
     return (
-      <div>
-        {conversations.map((conversation) => (
-          <ConversationItem
-            key={conversation.id}
-            conversation={conversation}
-            isSelected={selectedConversationId === conversation.id}
-            onClick={() => onSelectConversation(conversation.id)}
-          />
-        ))}
+      <div className="w-full md:w-80 lg:w-96 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Conversaciones
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="text-center text-red-600 dark:text-red-400 py-8">
+            <div className="text-4xl mb-3">⚠️</div>
+            <h3 className="text-lg font-medium mb-2">Error al cargar</h3>
+            <p className="text-sm text-gray-500">
+              No se pudieron cargar las conversaciones
+            </p>
+            <Button
+              onClick={handleRefresh}
+              className="mt-4"
+              variant="outline"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Reintentar
+            </Button>
+          </div>
+        </div>
       </div>
-    );
-  };
+    )
+  }
 
   return (
-    <div className="w-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full">
+    <div className="w-full md:w-80 lg:w-96 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             Conversaciones
           </h2>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSortChange}
-              className="text-gray-500 hover:text-gray-700"
-              title={`Ordenar por: ${getSortLabel()}`}
-            >
-              <SortDesc className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefresh}
+            className="text-gray-500 hover:text-gray-700"
+            title="Actualizar conversaciones"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </Button>
         </div>
 
         {/* Búsqueda */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
             placeholder="Buscar conversaciones..."
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
-      </div>
 
-      {/* Tabs de filtros */}
-      <div className="border-b border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="flex min-w-0">
-          {filterTabs.map((tab) => {
-            const count = getTabCount(tab.key)
-            const isActive = activeTab === tab.key
-            
-            return (
-              <Button
-                key={tab.key}
-                variant="ghost"
-                onClick={() => handleTabChange(tab.key)}
-                className={`
-                  flex-1 rounded-none border-b-2 transition-all min-w-0 px-2
-                  ${isActive 
-                    ? 'border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-900/20' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                  }
-                `}
-              >
-                <div className="flex items-center space-x-1 min-w-0">
-                  <span className="text-xs flex-shrink-0">{tab.icon}</span>
-                  <span className="text-xs font-medium truncate">{tab.label}</span>
-                  {count > 0 && (
-                    <Badge 
-                      variant={isActive ? "default" : "secondary"}
-                      className="text-xs flex-shrink-0 ml-1"
-                    >
-                      {count}
-                    </Badge>
-                  )}
-                </div>
-              </Button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Filtros activos */}
-      {(filter.search || filter.assignedTo || filter.tags?.length) && (
-        <div className="p-3 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Filter className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-600 dark:text-gray-300">
-                Filtros activos:
-              </span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onFilterChange({})}
-              className="text-xs text-gray-500 hover:text-gray-700"
-            >
-              Limpiar
-            </Button>
-          </div>
+        {/* Filtros */}
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            className={`text-sm ${showFilters ? 'bg-blue-50 text-blue-600' : 'text-gray-600'}`}
+          >
+            <Filter className="w-4 h-4 mr-1" />
+            Filtros
+          </Button>
           
-          <div className="flex flex-wrap gap-2 mt-2">
-            {filter.search && (
-                             <Badge variant="outline" className="text-xs">
-                 Búsqueda: &quot;{filter.search}&quot;
-               </Badge>
-            )}
-            {filter.assignedTo && (
-              <Badge variant="outline" className="text-xs">
-                Asignado: {filter.assignedTo}
-              </Badge>
-            )}
-            {filter.tags?.map((tag, index) => (
-              <Badge key={index} variant="outline" className="text-xs">
-                #{tag}
-              </Badge>
-            ))}
-          </div>
+          {filter.status && (
+            <Badge variant="outline" className="text-xs">
+              {filter.status}
+            </Badge>
+          )}
+          
+          {filter.channel && (
+            <Badge variant="outline" className="text-xs">
+              {filter.channel}
+            </Badge>
+          )}
         </div>
-      )}
+
+        {/* Panel de filtros expandible */}
+        {showFilters && (
+          <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-3">
+            <div>
+              <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                Estado
+              </label>
+              <div className="flex flex-wrap gap-1">
+                {['open', 'closed', 'pending'].map((status) => (
+                  <Button
+                    key={status}
+                    variant={filter.status === status ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => onFilterChange({ ...filter, status: filter.status === status ? undefined : status as any })}
+                    className="text-xs h-6"
+                  >
+                    {status === 'open' ? 'Abiertas' : 
+                     status === 'closed' ? 'Cerradas' : 'Pendientes'}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">
+                Canal
+              </label>
+              <div className="flex flex-wrap gap-1">
+                {['whatsapp', 'email', 'web'].map((channel) => (
+                  <Button
+                    key={channel}
+                    variant={filter.channel === channel ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => onFilterChange({ ...filter, channel: filter.channel === channel ? undefined : channel as any })}
+                    className="text-xs h-6"
+                  >
+                    {channel}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Lista de conversaciones */}
       <div className="flex-1 overflow-y-auto">
-        {renderContent()}
+        {filteredConversations.length === 0 ? (
+          <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+            {searchTerm ? (
+              <>
+                <div className="text-4xl mb-3">🔍</div>
+                <h3 className="text-lg font-medium mb-1">No se encontraron conversaciones</h3>
+                                 <p className="text-sm">
+                   No hay conversaciones que coincidan con &quot;{searchTerm}&quot;
+                 </p>
+              </>
+            ) : (
+              <>
+                <div className="text-4xl mb-3">💬</div>
+                <h3 className="text-lg font-medium mb-1">No hay conversaciones</h3>
+                <p className="text-sm">
+                  Las nuevas conversaciones aparecerán aquí
+                </p>
+              </>
+            )}
+          </div>
+        ) : (
+          filteredConversations.map((conversation) => (
+            <ConversationItem
+              key={conversation.id}
+              conversation={conversation}
+              isSelected={conversation.id === selectedConversationId}
+              onClick={() => onSelectConversation(conversation.id)}
+            />
+          ))
+        )}
       </div>
 
       {/* Footer con estadísticas */}
-      <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
-        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+      <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+          <span>{filteredConversations.length} conversaciones</span>
           <span>
-            {conversations.length} conversación{conversations.length !== 1 ? 'es' : ''}
-          </span>
-          <span>
-            Ordenado por: {getSortLabel()}
+            {conversations.filter(c => c.unreadCount > 0).length} no leídas
           </span>
         </div>
       </div>

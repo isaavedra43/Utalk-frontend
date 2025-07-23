@@ -1,7 +1,9 @@
 // Servicio para conversaciones - Conecta con API real de UTalk Backend
 // Abstrae las llamadas a /api/conversations del backend
+// ✅ ALINEADO 100% CON ESTRUCTURA CANÓNICA - Validación obligatoria
 import { apiClient } from '@/services/apiClient'
 import { Conversation, ConversationFilter } from '../types'
+import { ConversationValidator } from '@/lib/validation'
 
 export interface ConversationResponse {
   success: boolean
@@ -39,42 +41,20 @@ class ConversationService {
       
       console.log('📥 Raw backend response:', response)
       
-      // Manejar diferentes estructuras de respuesta del backend
-      let conversations = []
-      let total = 0
+      // ✅ VALIDACIÓN CANÓNICA OBLIGATORIA - Misma que MessageValidator
+      const validatedConversations = ConversationValidator.validateBackendResponse(response)
       
-      if (response.conversations) {
-        // Formato: { conversations: [...], total: number }
-        conversations = response.conversations
-        total = response.total || response.conversations.length
-        console.log('✅ Using response.conversations format')
-      } else if (response.data && Array.isArray(response.data)) {
-        // Formato: { data: [...] }
-        conversations = response.data
-        total = response.data.length
-        console.log('✅ Using response.data array format')
-      } else if (Array.isArray(response)) {
-        // Formato directo: [...]
-        conversations = response
-        total = response.length
-        console.log('✅ Using direct array format')
-      } else {
-        console.warn('⚠️ Unexpected response format:', response)
-        conversations = []
-        total = 0
-      }
+      console.log('🛡️ ConversationValidator result:', {
+        originalCount: response.conversations?.length || response.data?.length || 0,
+        validatedCount: validatedConversations.length,
+        validationPassed: validatedConversations.length > 0
+      })
       
-      console.log(`📊 Processing ${conversations.length} conversations`)
-      
-      const mappedConversations = this.mapBackendConversations(conversations)
-      
-      console.log('🎯 Final mapped conversations:', mappedConversations)
-      
-      // Mapear respuesta del backend a nuestros tipos
+      // ✅ RETORNAR CONVERSACIONES VALIDADAS - Sin mapeo manual
       return {
         success: response.success || true,
-        conversations: mappedConversations,
-        total: total,
+        conversations: validatedConversations,
+        total: validatedConversations.length,
         page: response.page || 1,
         limit: response.limit || 50
       }
@@ -95,9 +75,17 @@ class ConversationService {
   async getConversation(conversationId: string): Promise<SingleConversationResponse> {
     const response = await apiClient.get(`${this.baseUrl}/${conversationId}`)
     
+    // ✅ VALIDACIÓN CANÓNICA PARA CONVERSACIÓN INDIVIDUAL
+    const validatedConversations = ConversationValidator.validateBackendResponse([response.data || response.conversation])
+    const validatedConversation = validatedConversations[0]
+    
+    if (!validatedConversation) {
+      throw new Error('Conversación inválida o no encontrada')
+    }
+    
     return {
       success: response.success || true,
-      conversation: this.mapBackendConversation(response.data || response.conversation)
+      conversation: validatedConversation
     }
   }
 
@@ -131,108 +119,7 @@ class ConversationService {
     await apiClient.delete(`${this.baseUrl}/${conversationId}`)
   }
 
-  // Mapear datos del backend a nuestro tipo Conversation
-  private mapBackendConversation(backendConv: any): Conversation {
-    // El backend UTalk usa esta estructura según la documentación
-    return {
-      id: backendConv.id,
-      // ✅ CONTACTO (ESTRUCTURA CANÓNICA COMPLETA)
-      contact: {
-        id: backendConv.contactId || backendConv.contact?.id,
-        name: backendConv.contact?.name || 'Sin nombre',
-        phone: backendConv.contact?.phone || '',
-        email: backendConv.contact?.email,
-        avatar: backendConv.contact?.avatar,
-        company: backendConv.contact?.company,
-        position: backendConv.contact?.position,
-        status: backendConv.contact?.status || 'active',
-        source: backendConv.contact?.source || 'whatsapp',
-        isOnline: backendConv.contact?.isActive || false,
-        channel: this.mapChannel(backendConv.contact?.channel || 'whatsapp'),
-        lastSeen: backendConv.contact?.lastContactAt ? new Date(backendConv.contact.lastContactAt) : undefined,
-        createdAt: backendConv.contact?.createdAt ? new Date(backendConv.contact.createdAt) : new Date(),
-        updatedAt: backendConv.contact?.updatedAt ? new Date(backendConv.contact.updatedAt) : new Date(),
-        lastContactAt: backendConv.contact?.lastContactAt ? new Date(backendConv.contact.lastContactAt) : undefined,
-        totalMessages: backendConv.contact?.totalMessages || 0,
-        totalConversations: backendConv.contact?.totalConversations || 1,
-        averageResponseTime: backendConv.contact?.averageResponseTime,
-        value: backendConv.contact?.value || 0,
-        currency: backendConv.contact?.currency || 'USD',
-        tags: backendConv.contact?.tags || [],
-        customFields: backendConv.contact?.customFields || {},
-        metadata: backendConv.contact?.metadata
-      },
-      channel: this.mapChannel(backendConv.contact?.channel || 'whatsapp'),
-      status: this.mapStatus(backendConv.status),
-      // ✅ ASIGNACIÓN (ESTRUCTURA CANÓNICA OBLIGATORIA)
-      assignedTo: backendConv.assignedTo ? {
-        id: backendConv.assignedTo.id,
-        name: backendConv.assignedTo.name,
-        role: backendConv.assignedTo.role || 'agent', // Default role si no se especifica
-        avatar: backendConv.assignedTo.avatar
-      } : undefined,
-      
-      // ✅ ÚLTIMO MENSAJE (ESTRUCTURA CANÓNICA OBLIGATORIA)
-      lastMessage: backendConv.lastMessage ? {
-        id: backendConv.lastMessage.id,
-        content: backendConv.lastMessage.content,
-        timestamp: new Date(backendConv.lastMessage.timestamp),
-        senderName: backendConv.lastMessage.sender?.name || 'Usuario',
-        type: this.mapMessageType(backendConv.lastMessage.type)
-      } : undefined,
-      // ✅ CAMPOS OBLIGATORIOS CANÓNICOS
-      title: backendConv.title || backendConv.contact?.name || 'Conversación',
-      lastMessageAt: backendConv.lastMessageAt ? new Date(backendConv.lastMessageAt) : new Date(),
-      messageCount: backendConv.messageCount || 0,
-      unreadCount: backendConv.unreadCount || 0,
-      tags: backendConv.tags || [],
-      createdAt: new Date(backendConv.createdAt),
-      updatedAt: new Date(backendConv.updatedAt || backendConv.lastMessageAt),
-      priority: backendConv.priority || 'medium',
-      isMuted: backendConv.isMuted || false,
-      isArchived: backendConv.isArchived || false
-    }
-  }
 
-  private mapBackendConversations(backendConversations: any[]): Conversation[] {
-    return backendConversations.map(conv => this.mapBackendConversation(conv))
-  }
-
-  // Mapear canales del backend a nuestros tipos
-  private mapChannel(backendChannel: string): any {
-    const channelMap: Record<string, any> = {
-      'whatsapp': 'whatsapp',
-      'email': 'email',
-      'web': 'web',
-      'facebook': 'facebook',
-      'instagram': 'instagram',
-      'telegram': 'telegram'
-    }
-    return channelMap[backendChannel] || 'whatsapp'
-  }
-
-  // Mapear estados del backend a nuestros tipos
-  private mapStatus(backendStatus: string): any {
-    const statusMap: Record<string, any> = {
-      'open': 'open',
-      'closed': 'closed',
-      'pending': 'pending',
-      'assigned': 'assigned'
-    }
-    return statusMap[backendStatus] || 'open'
-  }
-
-  // Mapear tipos de mensaje del backend a nuestros tipos
-  private mapMessageType(backendType: string): any {
-    const typeMap: Record<string, any> = {
-      'text': 'text',
-      'image': 'image', 
-      'document': 'file',
-      'audio': 'audio',
-      'video': 'video'
-    }
-    return typeMap[backendType] || 'text'
-  }
 
   // Datos mock para desarrollo cuando hay problemas de autenticación
   private getMockConversations(): ConversationResponse {
@@ -315,8 +202,8 @@ class ConversationService {
       }
     ]
 
-    // ✅ CORRECCIÓN: Usar el mismo mapper para datos mock y reales
-    const mappedConversations = this.mapBackendConversations(mockData.map(conv => ({
+    // ✅ CORRECCIÓN: Usar ConversationValidator para datos mock también
+    const validatedMockConversations = ConversationValidator.validateBackendResponse(mockData.map(conv => ({
       ...conv,
       // Simular la estructura que vendría del backend
       contactId: conv.contact.id,
@@ -325,12 +212,12 @@ class ConversationService {
       updatedAt: conv.updatedAt.toISOString(),
     })))
 
-    console.log('🎭 Returning mapped mock conversations for development:', mappedConversations)
+    console.log('🎭 Returning validated mock conversations for development:', validatedMockConversations)
 
     return {
       success: true,
-      conversations: mappedConversations,
-      total: mappedConversations.length,
+      conversations: validatedMockConversations,
+      total: validatedMockConversations.length,
       page: 1,
       limit: 50
     }

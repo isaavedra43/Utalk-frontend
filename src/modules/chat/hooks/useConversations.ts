@@ -30,9 +30,9 @@ export function useConversations(filter: ConversationFilter = {}) {
     },
     // ✅ CORRECCIÓN: La query solo se ejecutará si el usuario está autenticado y la sesión está lista
     enabled: isAuthenticated && isAuthReady,
-    staleTime: 30 * 1000, // 30 segundos antes de considerar stale
-    refetchOnWindowFocus: true,
-    refetchInterval: 60 * 1000, // Refetch cada minuto para conversaciones activas
+    staleTime: 5 * 60 * 1000, // 5 minutos antes de considerar stale
+    refetchOnWindowFocus: false, // ✅ OPTIMIZACIÓN: Evitar refetch al cambiar ventana
+    refetchInterval: 5 * 60 * 1000, // ✅ OPTIMIZACIÓN: Refetch cada 5 minutos
     onSuccess: (data) => {
       console.log('✅ useConversations: Query success:', {
         total: data.total,

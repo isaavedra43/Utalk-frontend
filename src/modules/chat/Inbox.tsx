@@ -2,11 +2,10 @@
 // Layout de dos columnas: ConversationList, ChatWindow + Panels
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { InboxProps, ConversationFilter, MessageType, SuggestedResponse, ConversationSummary } from './types'
+import { InboxProps, ConversationFilter, MessageType } from './types'
 import ConversationList from './components/ConversationList'
 import ChatWindow from './components/ChatWindow'
-import IAPanel from './components/IAPanel'
-import InfoPanel from './components/InfoPanel'
+import { LazyIAPanel, LazyInfoPanel } from './components/LazyPanels'
 
 // Hooks reales para conectar con backend UTalk
 import { useConversations } from './hooks/useConversations'
@@ -109,7 +108,6 @@ export function Inbox({ initialConversationId }: InboxProps = {}) {
       rawData: messagesData
     }
   });
-  const selectedConversation = conversations.find(c => c.id === state.selectedConversationId)
 
   // Handlers para interacción del usuario
   const handleFilterChange = (newFilter: ConversationFilter) => {
@@ -141,31 +139,7 @@ export function Inbox({ initialConversationId }: InboxProps = {}) {
     }))
   }
 
-  // Mock data para IA Panel (mantenemos temporalmente hasta implementar IA)
-  const mockSuggestions: SuggestedResponse[] = [
-    {
-      id: '1',
-      content: '¡Hola! Gracias por contactarnos. ¿En qué podemos ayudarte hoy?',
-      confidence: 90,
-      category: 'greeting',
-      isRelevant: true
-    },
-    {
-      id: '2', 
-      content: 'Te ayudo a revisar el estado de tu pedido. ¿Podrías proporcionarme tu número de orden?',
-      confidence: 80,
-      category: 'order_inquiry',
-      isRelevant: true
-    }
-  ]
-
-  const mockSummary: ConversationSummary = {
-    totalMessages: 8,
-    avgResponseTime: '2 min',
-    sentiment: 'positive',
-    topics: ['soporte', 'pedido'],
-    lastActivity: new Date()
-  }
+  // ✅ ELIMINADO: Datos mock reemplazados por hooks reales de IA
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
@@ -179,6 +153,10 @@ export function Inbox({ initialConversationId }: InboxProps = {}) {
           error={conversationsError as Error | null}
           filter={state.filter}
           onFilterChange={handleFilterChange}
+          onRefresh={() => {
+            console.log('🔄 Manual refresh triggered from Inbox')
+            // TODO: Implementar refresh manual
+          }}
         />
 
         {Boolean(conversationsError) && (
@@ -247,29 +225,26 @@ export function Inbox({ initialConversationId }: InboxProps = {}) {
         {state.activePanel && state.selectedConversationId && (
           <div className="w-full md:w-80 lg:w-96 border-l border-gray-200 bg-white">
             {state.activePanel === 'ia' && (
-              <IAPanel
+              <LazyIAPanel
                 conversationId={state.selectedConversationId}
-                suggestions={mockSuggestions}
-                summary={mockSummary}
-                onSendSuggestion={(suggestion) => handleSendMessage(suggestion.content)}
-                onAskAssistant={(query) => {
+                onSendSuggestion={(suggestion: any) => handleSendMessage(suggestion.content)}
+                onAskAssistant={(query: string) => {
                   // TODO: Implementar consulta real a IA
                   console.log('Consulta IA:', query)
                 }}
               />
             )}
             
-            {state.activePanel === 'info' && selectedConversation && (
-              <InfoPanel
-                contact={selectedConversation.contact}
-                conversation={selectedConversation}
-                onUpdateContact={(updates) => {
+            {state.activePanel === 'info' && (
+              <LazyInfoPanel
+                conversationId={state.selectedConversationId}
+                onUpdateContact={(contactId: string, updates: any) => {
                   // TODO: Implementar actualización de contacto
-                  console.log('Actualizar contacto:', updates)
+                  console.log('Actualizar contacto:', { contactId, updates })
                 }}
-                onUpdateConversation={(updates) => {
+                onUpdateConversation={(conversationId: string, updates: any) => {
                   // TODO: Implementar actualización de conversación
-                  console.log('Actualizar conversación:', updates)
+                  console.log('Actualizar conversación:', { conversationId, updates })
                 }}
               />
             )}

@@ -16,14 +16,16 @@ import {
   MessageSquare
 } from 'lucide-react'
 import { IAPanelProps } from '../types'
+import { useIASuggestions, useConversationSummary } from '../hooks/useConversationData'
 
 export function IAPanel({
   conversationId,
-  suggestions,
-  summary,
   onSendSuggestion,
   onAskAssistant
-}: IAPanelProps) {
+}: Omit<IAPanelProps, 'suggestions' | 'summary'>) {
+  // ✅ OBTENER DATOS REALES DE IA DEL BACKEND
+  const { data: suggestions = [], isLoading: isLoadingSuggestions } = useIASuggestions(conversationId)
+  const { data: summary, isLoading: isLoadingSummary } = useConversationSummary(conversationId)
   const [question, setQuestion] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -61,6 +63,21 @@ export function IAPanel({
     if (confidence >= 80) return 'Alta'
     if (confidence >= 60) return 'Media'
     return 'Baja'
+  }
+
+  // ✅ MOSTRAR LOADING SI SE ESTÁ CARGANDO DATOS DE IA
+  if (isLoadingSuggestions || isLoadingSummary) {
+    return (
+      <div className="w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4">
+        <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mb-3"></div>
+          <h3 className="text-sm font-medium mb-1">Analizando conversación...</h3>
+          <p className="text-xs text-center">
+            El asistente IA está procesando la información
+          </p>
+        </div>
+      </div>
+    )
   }
 
   if (!conversationId) {
