@@ -2,53 +2,54 @@
 // Componente reutilizable con iconos y colores específicos por canal
 import { ElementType } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { MessageCircle, Mail, Globe } from 'lucide-react'
+import { MessageCircle, Mail, Globe, Send, MessageSquare } from 'lucide-react'
 import { ChannelBadgeProps, ChannelType } from '../types'
 
-const channelConfig: Record<ChannelType, {
-  icon: ElementType
-  label: string
-  className: string
-}> = {
+const channelConfig: Record<ChannelType, { icon: ElementType; label: string; className: string }> = {
   whatsapp: {
     icon: MessageCircle,
     label: 'WhatsApp',
-    className: 'bg-green-100 text-green-800'
+    className: 'bg-green-100 text-green-700 border-green-200'
   },
-  facebook: {
-    icon: MessageCircle,
-    label: 'Facebook',
-    className: 'bg-blue-100 text-blue-800'
+  telegram: {
+    icon: Send,
+    label: 'Telegram',
+    className: 'bg-blue-100 text-blue-700 border-blue-200'
   },
   email: {
     icon: Mail,
     label: 'Email',
-    className: 'bg-gray-100 text-gray-800'
+    className: 'bg-gray-100 text-gray-700 border-gray-200'
+  },
+  sms: {
+    icon: MessageSquare,
+    label: 'SMS',
+    className: 'bg-purple-100 text-purple-700 border-purple-200'
   },
   web: {
     icon: Globe,
     label: 'Web',
-    className: 'bg-purple-100 text-purple-800'
+    className: 'bg-indigo-100 text-indigo-700 border-indigo-200'
+  },
+  webchat: {
+    icon: MessageCircle,
+    label: 'WebChat',
+    className: 'bg-cyan-100 text-cyan-700 border-cyan-200'
+  },
+  api: {
+    icon: Globe,
+    label: 'API',
+    className: 'bg-orange-100 text-orange-700 border-orange-200'
+  },
+  facebook: {
+    icon: MessageCircle,
+    label: 'Facebook',
+    className: 'bg-blue-100 text-blue-700 border-blue-200'
   },
   instagram: {
     icon: MessageCircle,
     label: 'Instagram',
-    className: 'bg-pink-100 text-pink-800'
-  },
-  telegram: {
-    icon: MessageCircle,
-    label: 'Telegram',
-    className: 'bg-sky-100 text-sky-800'
-  },
-  webchat: {
-    icon: MessageCircle,
-    label: 'Web Chat',
-    className: 'bg-indigo-100 text-indigo-800'
-  },
-  api: {
-    icon: MessageCircle,
-    label: 'API',
-    className: 'bg-orange-100 text-orange-800'
+    className: 'bg-pink-100 text-pink-700 border-pink-200'
   }
 }
 

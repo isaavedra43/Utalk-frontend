@@ -9,35 +9,32 @@ export const APP_CONFIG = {
 } as const
 
 // Constantes centralizadas para endpoints de la API
-// ✅ ACTUALIZADA: Endpoints alineados con UID de Firebase + Firestore
-// Previene duplicación de rutas y facilita mantenimiento
+// ✅ EMAIL-FIRST: Todos los identificadores usan email
+// Sin dependencias Firebase, UID o Firestore
 
 export const API_ENDPOINTS = {
-  // ✅ ACTUALIZADA: Autenticación con soporte para Firestore
+  // ✅ Autenticación con backend propio
   AUTH: {
     LOGIN: '/auth/login',
     LOGOUT: '/auth/logout',
     ME: '/auth/me',
-    REFRESH: '/auth/refresh',
-    // ✅ NUEVOS: Endpoints específicos de Firestore
-    USER_FIRESTORE: (uid: string) => `/auth/user/${uid}/firestore`,
-    SYNC_FIRESTORE: (uid: string) => `/auth/user/${uid}/sync`,
-    CREATE_FIRESTORE_USER: '/auth/firestore/create'
+    VALIDATE_TOKEN: '/auth/validate-token',
+    REFRESH: '/auth/refresh'
   },
   
-  // ✅ ACTUALIZADA: Usuarios usando UID como identificador
+  // ✅ Usuarios usando EMAIL como identificador
   USERS: {
     LIST: '/users',
     CREATE: '/users',
-    UPDATE: (uid: string) => `/users/${uid}`,          // ✅ Usa UID
-    DELETE: (uid: string) => `/users/${uid}`,          // ✅ Usa UID
-    PROFILE: (uid: string) => `/users/${uid}/profile`, // ✅ Usa UID
-    BY_UID: (uid: string) => `/users/uid/${uid}`,      // ✅ NUEVO: Buscar por UID
-    PERMISSIONS: (uid: string) => `/users/${uid}/permissions`,
-    ROLES: (uid: string) => `/users/${uid}/roles`
+    BY_EMAIL: (email: string) => `/users/email/${encodeURIComponent(email)}`,
+    UPDATE: (email: string) => `/users/${encodeURIComponent(email)}`,
+    DELETE: (email: string) => `/users/${encodeURIComponent(email)}`,
+    PROFILE: (email: string) => `/users/${encodeURIComponent(email)}/profile`,
+    PERMISSIONS: (email: string) => `/users/${encodeURIComponent(email)}/permissions`,
+    ROLES: (email: string) => `/users/${encodeURIComponent(email)}/roles`
   },
   
-  // ✅ ACTUALIZADA: Conversaciones usando UID para asignación
+  // ✅ Conversaciones usando EMAIL para asignación
   CONVERSATIONS: {
     LIST: '/conversations',
     CREATE: '/conversations',
@@ -45,28 +42,26 @@ export const API_ENDPOINTS = {
     UPDATE: (id: string) => `/conversations/${id}`,
     DELETE: (id: string) => `/conversations/${id}`,
     MESSAGES: (id: string) => `/conversations/${id}/messages`,
-    // ✅ NUEVOS: Filtros por UID
-    BY_ASSIGNED: (uid: string) => `/conversations/assigned/${uid}`,
-    BY_PARTICIPANT: (uid: string) => `/conversations/participant/${uid}`,
+    BY_ASSIGNED: (email: string) => `/conversations/assigned/${encodeURIComponent(email)}`,
+    BY_PARTICIPANT: (email: string) => `/conversations/participant/${encodeURIComponent(email)}`,
     ASSIGN: (id: string) => `/conversations/${id}/assign`,
     UNASSIGN: (id: string) => `/conversations/${id}/unassign`
   },
   
-  // ✅ ACTUALIZADA: Mensajes usando UID para identificación
+  // ✅ Mensajes usando EMAIL para identificación
   MESSAGES: {
     LIST: '/messages',
     CREATE: '/messages',
     GET: (id: string) => `/messages/${id}`,
     UPDATE: (id: string) => `/messages/${id}`,
     DELETE: (id: string) => `/messages/${id}`,
-    // ✅ NUEVOS: Filtros por UID
-    BY_SENDER: (uid: string) => `/messages/sender/${uid}`,
-    BY_RECIPIENT: (uid: string) => `/messages/recipient/${uid}`,
-    SEND: '/messages/send',
-    MARK_READ: (id: string) => `/messages/${id}/read`
+    BY_SENDER: (email: string) => `/messages/sender/${encodeURIComponent(email)}`,
+    BY_RECIPIENT: (email: string) => `/messages/recipient/${encodeURIComponent(email)}`,
+    MARK_READ: (id: string) => `/messages/${id}/read`,
+    SEARCH: '/messages/search'
   },
   
-  // Contactos CRM (sin cambios significativos)
+  // ✅ Contactos
   CONTACTS: {
     LIST: '/contacts',
     CREATE: '/contacts',
@@ -76,34 +71,29 @@ export const API_ENDPOINTS = {
     SEARCH: '/contacts/search'
   },
   
-  // ✅ ACTUALIZADA: Campañas con asignación por UID
+  // ✅ Campañas con asignación por EMAIL
   CAMPAIGNS: {
     LIST: '/campaigns',
     CREATE: '/campaigns',
     GET: (id: string) => `/campaigns/${id}`,
     UPDATE: (id: string) => `/campaigns/${id}`,
     DELETE: (id: string) => `/campaigns/${id}`,
-    START: (id: string) => `/campaigns/${id}/start`,
-    STOP: (id: string) => `/campaigns/${id}/stop`,
-    // ✅ NUEVOS: Asignación por UID
-    ASSIGN: (id: string) => `/campaigns/${id}/assign`,
-    BY_ASSIGNED: (uid: string) => `/campaigns/assigned/${uid}`
+    STATS: (id: string) => `/campaigns/${id}/stats`,
+    BY_ASSIGNED: (email: string) => `/campaigns/assigned/${encodeURIComponent(email)}`
   },
   
-  // ✅ ACTUALIZADA: Agentes IA usando UID
+  // ✅ Agentes IA usando EMAIL
   AGENTS: {
     LIST: '/agents',
     CREATE: '/agents',
     GET: (id: string) => `/agents/${id}`,
     UPDATE: (id: string) => `/agents/${id}`,
     DELETE: (id: string) => `/agents/${id}`,
-    TRAIN: (id: string) => `/agents/${id}/train`,
-    // ✅ NUEVOS: Por UID de creador/asignado
-    BY_CREATOR: (uid: string) => `/agents/creator/${uid}`,
-    ASSIGN: (id: string) => `/agents/${id}/assign`
+    ANALYTICS: (id: string) => `/agents/${id}/analytics`,
+    BY_CREATOR: (email: string) => `/agents/creator/${encodeURIComponent(email)}`
   },
   
-  // Base de conocimiento (sin cambios significativos)
+  // ✅ Base de conocimientos
   KNOWLEDGE: {
     LIST: '/knowledge',
     CREATE: '/knowledge',
@@ -113,25 +103,14 @@ export const API_ENDPOINTS = {
     SEARCH: '/knowledge/search'
   },
   
-  // ✅ NUEVOS: Endpoints específicos de Firestore
-  FIRESTORE: {
-    USER_EXISTS: (uid: string) => `/firestore/users/${uid}/exists`,
-    USER_CREATE: '/firestore/users/create',
-    USER_UPDATE: (uid: string) => `/firestore/users/${uid}`,
-    USER_DELETE: (uid: string) => `/firestore/users/${uid}`,
-    SYNC_ALL: '/firestore/sync/all',
-    HEALTH: '/firestore/health'
-  },
-  
-  // ✅ NUEVOS: Endpoints de permisos y roles
+  // ✅ Permisos y roles por EMAIL
   PERMISSIONS: {
-    CHECK: (uid: string, permission: string) => `/permissions/check/${uid}/${permission}`,
-    LIST: (uid: string) => `/permissions/user/${uid}`,
-    GRANT: '/permissions/grant',
-    REVOKE: '/permissions/revoke'
+    CHECK: (email: string, permission: string) => `/permissions/check/${encodeURIComponent(email)}/${permission}`,
+    LIST: (email: string) => `/permissions/user/${encodeURIComponent(email)}`,
+    UPDATE: (email: string) => `/permissions/user/${encodeURIComponent(email)}`
   },
   
-  // Sistema
+  // ✅ Sistema y configuración
   SYSTEM: {
     HEALTH: '/health',
     STATUS: '/status',
@@ -139,38 +118,41 @@ export const API_ENDPOINTS = {
   }
 } as const
 
-// ✅ NUEVAS: Funciones helper para construcción de filtros con UID
+// ✅ Parámetros de filtros usando EMAIL
 export const FILTER_PARAMS = {
-  // Filtros de conversaciones
+  // ✅ Filtros generales
+  ASSIGNED_TO: 'assignedTo',
+  STATUS: 'status',
+  CHANNEL: 'channel',
+  DATE_FROM: 'dateFrom',
+  DATE_TO: 'dateTo',
+  
+  // ✅ Filtros para conversaciones con EMAIL
   CONVERSATIONS: {
-    ASSIGNED_TO: 'assignedTo',        // UID del agente asignado
-    PARTICIPANT: 'participantUid',    // UID del participante
-    CUSTOMER_UID: 'customerUid',      // UID del cliente
-    AGENT_UID: 'agentUid',           // UID del agente
+    ASSIGNED_TO: 'assignedTo',
+    PARTICIPANT_EMAIL: 'participantEmail',
+    CUSTOMER_EMAIL: 'customerEmail',
+    AGENT_EMAIL: 'agentEmail',
     STATUS: 'status',
     CHANNEL: 'channel',
     DATE_FROM: 'dateFrom',
-    DATE_TO: 'dateTo'
+    DATE_TO: 'dateTo',
   },
   
-  // Filtros de mensajes
+  // ✅ Filtros para mensajes con EMAIL
   MESSAGES: {
-    SENDER_UID: 'senderUid',         // UID del remitente
-    RECIPIENT_UID: 'recipientUid',   // UID del destinatario
+    SENDER_EMAIL: 'senderEmail',
+    RECIPIENT_EMAIL: 'recipientEmail',
     CONVERSATION_ID: 'conversationId',
-    TYPE: 'type',
-    STATUS: 'status',
     DATE_FROM: 'dateFrom',
-    DATE_TO: 'dateTo'
+    DATE_TO: 'dateTo',
   },
   
-  // Filtros de usuarios
-  USERS: {
-    ROLE: 'role',
-    STATUS: 'status',
-    DEPARTMENT: 'department',
-    IS_ONLINE: 'isOnline'
-  }
+  // ✅ Campos comunes usando EMAIL
+  SENDER_EMAIL: 'senderEmail',
+  RECIPIENT_EMAIL: 'recipientEmail',
+  CUSTOMER_EMAIL: 'customerEmail',
+  AGENT_EMAIL: 'agentEmail',
 } as const
 
 // Tipos para TypeScript

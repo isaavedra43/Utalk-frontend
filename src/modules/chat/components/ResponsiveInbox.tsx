@@ -8,7 +8,7 @@ import {
   X, 
   ChevronLeft
 } from 'lucide-react'
-import { InboxProps } from '../types'
+import { ResponsiveInboxProps } from '../types'
 import ConversationList from './ConversationList'
 import ChatWindow from './ChatWindow'
 import { LazyIAPanel, LazyInfoPanel } from './LazyPanels'
@@ -26,7 +26,7 @@ interface ResponsiveInboxState {
   isMobileChatOpen: boolean
 }
 
-export function ResponsiveInbox({ initialConversationId }: InboxProps = {}) {
+export function ResponsiveInbox({ initialConversationId }: ResponsiveInboxProps = {}) {
   const { conversationId: urlConversationId } = useParams<{ conversationId?: string }>()
   const navigate = useNavigate()
   const effectiveConversationId = urlConversationId || initialConversationId
@@ -40,14 +40,13 @@ export function ResponsiveInbox({ initialConversationId }: InboxProps = {}) {
   })
 
   // Hook para filtros sincronizados con URL
-  const { filters, updateFilters } = useConversationFilters()
+  const { updateFilters } = useConversationFilters()
 
   // Hooks para datos
-  const { 
-    data: conversationsData, 
-    isLoading: conversationsLoading, 
-    error: conversationsError 
-  } = useConversations(filters)
+  const {
+    data: conversationsData,
+    refetch: conversationsRefetch,
+  } = useConversations({})
 
   const { 
     data: messagesData, 
@@ -66,7 +65,10 @@ export function ResponsiveInbox({ initialConversationId }: InboxProps = {}) {
 
   // Datos procesados
   const conversations = conversationsData?.conversations || []
-  const messages = messagesData?.messages || []
+  const messages = messagesData || []
+  
+  // ✅ Obtener conversación seleccionada
+  const selectedConversation = conversations.find(c => c.id === state.selectedConversationId)
 
   // Handlers para interacción
   const handleSelectConversation = (conversationId: string) => {
@@ -81,12 +83,14 @@ export function ResponsiveInbox({ initialConversationId }: InboxProps = {}) {
     navigate(`/chat/${conversationId}`)
   }
 
+  // Lógica para enviar mensaje
   const handleSendMessage = (content: string, type: any = 'text') => {
     if (!state.selectedConversationId || !content.trim()) return
 
     sendMessage({
       conversationId: state.selectedConversationId,
       content: content.trim(),
+      recipientEmail: selectedConversation?.contact?.email || '',
       type
     })
   }
@@ -111,11 +115,6 @@ export function ResponsiveInbox({ initialConversationId }: InboxProps = {}) {
       isMobileChatOpen: false 
     }))
     navigate('/chat')
-  }
-
-  const handleRefresh = () => {
-    console.log('🔄 Manual refresh triggered')
-    // TODO: Implementar refresh manual
   }
 
   // Log de mount
@@ -159,11 +158,9 @@ export function ResponsiveInbox({ initialConversationId }: InboxProps = {}) {
           conversations={conversations}
           selectedConversationId={state.selectedConversationId}
           onSelectConversation={handleSelectConversation}
-          isLoading={conversationsLoading}
-          error={conversationsError as Error | null}
-          filter={filters}
+          filter={{}}
           onFilterChange={updateFilters}
-          onRefresh={handleRefresh}
+          onRefresh={() => conversationsRefetch()}
         />
       </div>
 

@@ -1,131 +1,104 @@
-// Configuración principal de rutas de la aplicación
-// Define todas las rutas, layouts y protección de autenticación
-import React from 'react'
+// Configuración de rutas principales de la aplicación
+// ✅ EMAIL-FIRST: Rutas protegidas y autenticación
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useAuth } from '@/hooks/useAuth'
+import { Suspense, lazy } from 'react'
+
+// Auth pages
+import { LoginPage } from './auth/LoginPage'
+import { RegisterPage } from './auth/RegisterPage'
 
 // Layouts
-import DashboardLayout from '@/layouts/DashboardLayout'
-import AuthLayout from '@/layouts/AuthLayout'
+import { AuthLayout } from '@/layouts/AuthLayout'
+import { DashboardLayout } from '@/layouts/DashboardLayout'
 
-// Páginas de autenticación
-import LoginPage from './auth/LoginPage'
-import RegisterPage from './auth/RegisterPage'
+// Protected pages (lazy loaded)
+const DashboardPage = lazy(() => import('./DashboardPage'))
+const NotFoundPage = lazy(() => import('./NotFoundPage'))
 
-// Páginas principales
-import DashboardPage from './DashboardPage'
-import NotFoundPage from './NotFoundPage'
+// Module components (lazy loaded)
+const Inbox = lazy(() => import('@/modules/chat/Inbox').then(module => ({ default: module.Inbox })))
+const AgentsDashboard = lazy(() => import('@/modules/agents/components/AgentsDashboard').then(module => ({ default: module.AgentsDashboard })))
+const CampaignsDashboard = lazy(() => import('@/modules/campaigns/components/CampaignsDashboard').then(module => ({ default: module.CampaignsDashboard })))
+const KnowledgeDashboard = lazy(() => import('@/modules/knowledge/components/KnowledgeDashboard').then(module => ({ default: module.KnowledgeDashboard })))
 
-// Módulos implementados
-import { Inbox } from '@/modules/chat/Inbox'
-import { CRM } from '@/modules/crm'
-
-// Módulos de Agentes, Campañas y Conocimiento
-import { AgentsDashboard } from '@/modules/agents/components/AgentsDashboard'
-import { CampaignsDashboard } from '@/modules/campaigns/components/CampaignsDashboard'
-import { KnowledgeDashboard } from '@/modules/knowledge/components/KnowledgeDashboard'
-
-// Componente para rutas protegidas
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isAuthReady } = useAuth()
-
-  if (!isAuthReady) {
-    // ✅ CORRECCIÓN: Usar isAuthReady en lugar de isLoading
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Cargando...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
-  }
-
-  return <>{children}</>
-}
-
-// Componente para rutas públicas (solo accesibles sin autenticación)
-function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isAuthReady } = useAuth()
-
-  if (!isAuthReady) {
-    // ✅ CORRECCIÓN: Usar isAuthReady en lugar de isLoading
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
-
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />
-  }
-
-  return <>{children}</>
-}
+// Loading fallback
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+)
 
 export function AppRoutes() {
   return (
     <Routes>
-      {/* Rutas públicas */}
+      {/* Public routes */}
       <Route path="/auth" element={<AuthLayout />}>
-        <Route
-          path="login"
-          element={
-            <PublicRoute>
-              <LoginPage />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="register"
-          element={
-            <PublicRoute>
-              <RegisterPage />
-            </PublicRoute>
-          }
-        />
+        <Route path="login" element={<LoginPage />} />
+        <Route path="register" element={<RegisterPage />} />
+        <Route index element={<Navigate to="/auth/login" replace />} />
       </Route>
 
-      {/* Rutas protegidas */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout />
-          </ProtectedRoute>
-        }
-      >
+      {/* Protected routes */}
+      <Route path="/" element={<DashboardLayout />}>
         <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<DashboardPage />} />
         
-        {/* Módulos implementados */}
-        <Route path="chat" element={<Inbox />} />
-        <Route path="chat/:conversationId" element={<Inbox />} />
-        <Route path="crm" element={<CRM />} />
+        <Route 
+          path="dashboard" 
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <DashboardPage />
+            </Suspense>
+          } 
+        />
         
-        {/* 🎯 MÓDULOS NUEVOS - Agentes, Campañas y Conocimiento */}
-        <Route path="agents" element={<AgentsDashboard />} />
-        <Route path="campaigns" element={<CampaignsDashboard />} />
-        <Route path="knowledge" element={<KnowledgeDashboard />} />
+        <Route 
+          path="chat" 
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Inbox />
+            </Suspense>
+          } 
+        />
         
-        {/* TODO: Rutas de módulos futuros */}
-        {/* <Route path="team/*" element={<TeamPage />} /> */}
-        {/* <Route path="settings/*" element={<SettingsPage />} /> */}
+        <Route 
+          path="agents" 
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <AgentsDashboard />
+            </Suspense>
+          } 
+        />
+        
+        <Route 
+          path="campaigns" 
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <CampaignsDashboard />
+            </Suspense>
+          } 
+        />
+        
+        <Route 
+          path="knowledge" 
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <KnowledgeDashboard />
+            </Suspense>
+          } 
+        />
+        
+        <Route 
+          path="*" 
+          element={
+            <Suspense fallback={<LoadingFallback />}>
+              <NotFoundPage />
+            </Suspense>
+          } 
+        />
       </Route>
 
-      {/* Rutas de autenticación directas (redirects) */}
-      <Route path="/login" element={<Navigate to="/auth/login" replace />} />
-      <Route path="/register" element={<Navigate to="/auth/register" replace />} />
-
-      {/* 404 */}
-      <Route path="*" element={<NotFoundPage />} />
+      {/* Fallback for unmatched routes */}
+      <Route path="*" element={<Navigate to="/auth/login" replace />} />
     </Routes>
   )
-}
-
-export default AppRoutes 
+} 

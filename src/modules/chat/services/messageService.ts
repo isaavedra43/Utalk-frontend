@@ -1,352 +1,215 @@
-// Servicio para mensajes - Conecta con API real de UTalk Backend
-// ✅ ALINEADO CON UID DE FIREBASE + FIRESTORE SYNC
-// Abstrae las llamadas a /api/messages del backend
+// Servicio para el manejo de mensajes
+// ✅ EMAIL-FIRST: Todos los identificadores usan email
 import { apiClient } from '@/services/apiClient'
+import { logger } from '@/lib/logger'
 import { MessageValidator } from '@/lib/validation'
-import { CanonicalMessage } from '@/types/canonical'
 import { API_ENDPOINTS, FILTER_PARAMS } from '@/lib/constants'
+import type { 
+  CanonicalMessage 
+} from '@/types/canonical'
 
-// Reexportar tipo para compatibilidad
-export type Message = CanonicalMessage
-export type MessageType = CanonicalMessage['type']
-
-export interface MessagesResponse {
-  success: boolean
-  messages: CanonicalMessage[]
-  total: number
-  page: number
-  limit: number
-  error?: string
-}
-
+// ✅ Estructura para envío de mensajes usando EMAIL
 export interface SendMessageData {
   conversationId: string
   content: string
-  type: MessageType
-  senderUid?: string         // ✅ NUEVO: UID del remitente (se auto-detecta del token)
-  recipientUid?: string      // ✅ NUEVO: UID del destinatario
-  media?: {
-    url: string
-    type: string
-    name?: string
-  }
+  type?: 'text' | 'image' | 'file' | 'audio' | 'video' | 'location' | 'sticker'
+  senderEmail: string    // ✅ EMAIL como identificador
+  recipientEmail: string // ✅ EMAIL como identificador
+  timestamp?: Date
 }
 
-export interface SendMessageResponse {
-  success: boolean
-  message: CanonicalMessage
-}
-
+/**
+ * ✅ Servicio singleton para mensajes usando EMAIL como identificador
+ */
 class MessageService {
-  private baseUrl = '/messages'
-
-  // ✅ ACTUALIZADO: Obtener mensajes con mejor logging UID
-  async getMessages(conversationId: string, page = 1, limit = 50): Promise<MessagesResponse> {
-    console.log('🔍 MessageService.getMessages called with UID context:', { 
-      conversationId, 
-      page, 
-      limit 
-    });
-    
+  /**
+   * ✅ Obtener mensajes de una conversación
+   */
+  async getMessages(conversationId: string): Promise<CanonicalMessage[]> {
     try {
-      // Según la documentación, el backend usa /api/conversations/:id/messages
-      const url = `/conversations/${conversationId}/messages?page=${page}&limit=${limit}`;
-      console.log('📡 Making API call to:', url);
-      
-      const response = await apiClient.get(url);
-      console.log('📥 Raw API response:', response);
-      
-      // ✅ VALIDACIÓN CENTRALIZADA CON EL SISTEMA CANÓNICO
-      const validatedMessages = MessageValidator.validateBackendResponse(response);
-      
-      console.log('🛡️ Validation complete:', {
-        originalCount: response.data?.length || response.messages?.length || 0,
-        validatedCount: validatedMessages.length,
-        validationPassed: validatedMessages.length > 0
-      });
-      
-      const result: MessagesResponse = {
-        success: true,
-        messages: validatedMessages,
-        total: response.total || validatedMessages.length,
-        page: response.page || page,
-        limit: response.limit || limit
-      };
-      
-      console.log('✅ MessageService.getMessages result:', {
-        success: result.success,
-        messagesCount: result.messages.length,
-        total: result.total,
-        page: result.page,
-        limit: result.limit
-      });
-      
-      return result;
-      
+      logger.info('Fetching messages for conversation', { conversationId }, 'messages_fetch_start')
+
+      const response = await apiClient.get(API_ENDPOINTS.CONVERSATIONS.MESSAGES(conversationId))
+      const validatedMessages = MessageValidator.validateBackendResponse(response)
+
+      logger.success('Messages fetched successfully', {
+        conversationId,
+        count: validatedMessages.length
+      }, 'messages_fetch_success')
+
+      return validatedMessages
     } catch (error) {
-      console.error('❌ MessageService.getMessages error:', error);
-      
-      return {
-        success: false,
-        messages: [],
-        total: 0,
-        page,
-        limit,
-        error: error instanceof Error ? error.message : 'Error desconocido'
-      };
+      logger.error('Failed to fetch messages', { conversationId, error }, 'messages_fetch_error')
+      throw error
     }
   }
 
-  // ✅ NUEVO: Obtener mensajes por remitente UID
-  async getMessagesBySenderUid(uid: string, page = 1, limit = 50): Promise<MessagesResponse> {
+  /**
+   * ✅ Obtener mensajes por email del remitente
+   */
+  async getMessagesBySenderEmail(senderEmail: string): Promise<CanonicalMessage[]> {
     try {
-      console.log('🔍 Fetching messages by sender UID:', uid);
+      logger.info('Fetching messages by sender email', { senderEmail }, 'messages_by_sender_start')
       
-      const response = await apiClient.get(API_ENDPOINTS.MESSAGES.BY_SENDER(uid) + `?page=${page}&limit=${limit}`);
-      const validatedMessages = MessageValidator.validateBackendResponse(response);
-      
-      return {
-        success: true,
-        messages: validatedMessages,
-        total: response.total || validatedMessages.length,
-        page,
-        limit
-      };
+      const response = await apiClient.get(API_ENDPOINTS.MESSAGES.BY_SENDER(senderEmail))
+      const validatedMessages = MessageValidator.validateBackendResponse(response)
+
+      logger.success('Messages by sender email fetched', {
+        senderEmail,
+        count: validatedMessages.length
+      }, 'messages_by_sender_success')
+
+      return validatedMessages
     } catch (error) {
-      console.error('❌ Error fetching messages by sender UID:', error);
-      return {
-        success: false,
-        messages: [],
-        total: 0,
-        page,
-        limit,
-        error: error instanceof Error ? error.message : 'Error desconocido'
-      };
+      logger.error('Failed to fetch messages by sender email', { senderEmail, error }, 'messages_by_sender_error')
+      throw error
     }
   }
 
-  // ✅ NUEVO: Obtener mensajes por destinatario UID
-  async getMessagesByRecipientUid(uid: string, page = 1, limit = 50): Promise<MessagesResponse> {
+  /**
+   * ✅ Obtener mensajes por email del destinatario
+   */
+  async getMessagesByRecipientEmail(recipientEmail: string): Promise<CanonicalMessage[]> {
     try {
-      console.log('🔍 Fetching messages by recipient UID:', uid);
+      logger.info('Fetching messages by recipient email', { recipientEmail }, 'messages_by_recipient_start')
       
-      const response = await apiClient.get(API_ENDPOINTS.MESSAGES.BY_RECIPIENT(uid) + `?page=${page}&limit=${limit}`);
-      const validatedMessages = MessageValidator.validateBackendResponse(response);
-      
-      return {
-        success: true,
-        messages: validatedMessages,
-        total: response.total || validatedMessages.length,
-        page,
-        limit
-      };
+      const response = await apiClient.get(API_ENDPOINTS.MESSAGES.BY_RECIPIENT(recipientEmail))
+      const validatedMessages = MessageValidator.validateBackendResponse(response)
+
+      logger.success('Messages by recipient email fetched', {
+        recipientEmail,
+        count: validatedMessages.length
+      }, 'messages_by_recipient_success')
+
+      return validatedMessages
     } catch (error) {
-      console.error('❌ Error fetching messages by recipient UID:', error);
-      return {
-        success: false,
-        messages: [],
-        total: 0,
-        page,
-        limit,
-        error: error instanceof Error ? error.message : 'Error desconocido'
-      };
+      logger.error('Failed to fetch messages by recipient email', { recipientEmail, error }, 'messages_by_recipient_error')
+      throw error
     }
   }
 
-  // ✅ ACTUALIZADO: Obtener todos los mensajes con filtros UID
-  async getAllMessages(filters: { 
-    search?: string; 
-    status?: string;
-    senderUid?: string;     // ✅ NUEVO: Filtrar por UID remitente
-    recipientUid?: string;  // ✅ NUEVO: Filtrar por UID destinatario
-    dateFrom?: string;      // ✅ NUEVO: Fecha desde
-    dateTo?: string;        // ✅ NUEVO: Fecha hasta
-  } = {}): Promise<MessagesResponse> {
+  /**
+   * ✅ Enviar nuevo mensaje (usando email)
+   */
+  async sendMessage(messageData: SendMessageData): Promise<CanonicalMessage> {
     try {
+      logger.info('Sending message with EMAIL identifiers', {
+        conversationId: messageData.conversationId,
+        senderEmail: messageData.senderEmail,
+        recipientEmail: messageData.recipientEmail,
+        type: messageData.type || 'text'
+      }, 'message_send_start')
+
+      // ✅ Preparar payload con email
+      const payload = {
+        ...messageData,
+        timestamp: messageData.timestamp || new Date()
+      }
+
+      const response = await apiClient.post(
+        API_ENDPOINTS.CONVERSATIONS.MESSAGES(messageData.conversationId),
+        payload
+      )
+
+      // ✅ Validar mensaje individual
+      const validatedMessages = MessageValidator.validateBackendResponse([response])
+      const validatedMessage = validatedMessages[0]
+      
+      if (!validatedMessage) {
+        throw new Error('Respuesta de envío de mensaje inválida del backend')
+      }
+
+      logger.success('Message sent successfully', {
+        messageId: validatedMessage.id,
+        conversationId: messageData.conversationId,
+        senderEmail: messageData.senderEmail
+      }, 'message_send_success')
+
+      return validatedMessage
+    } catch (error) {
+      logger.error('Failed to send message', { messageData, error }, 'message_send_error')
+      throw error
+    }
+  }
+
+  /**
+   * ✅ Marcar mensaje como leído (usando email)
+   */
+  async markAsRead(messageId: string, markedByEmail: string): Promise<CanonicalMessage> {
+    try {
+      logger.info('Marking message as read', { messageId, markedByEmail }, 'message_mark_read_start')
+
+      const response = await apiClient.patch(
+        API_ENDPOINTS.MESSAGES.MARK_READ(messageId),
+        { markedByEmail }
+      )
+
+      // ✅ Validar mensaje individual
+      const validatedMessages = MessageValidator.validateBackendResponse([response])
+      const validatedMessage = validatedMessages[0]
+      
+      if (!validatedMessage) {
+        throw new Error('Respuesta de marcado como leído inválida del backend')
+      }
+
+      logger.success('Message marked as read', {
+        messageId,
+        markedByEmail
+      }, 'message_mark_read_success')
+
+      return validatedMessage
+    } catch (error) {
+      logger.error('Failed to mark message as read', { messageId, markedByEmail, error }, 'message_mark_read_error')
+      throw error
+    }
+  }
+
+  /**
+   * ✅ Buscar mensajes con filtros EMAIL-FIRST
+   */
+  async searchMessages(query: {
+    search?: string
+    senderEmail?: string
+    recipientEmail?: string
+    conversationId?: string
+    dateFrom?: string
+    dateTo?: string
+  }): Promise<CanonicalMessage[]> {
+    try {
+      logger.info('Searching messages with EMAIL filters', { query }, 'message_search_start')
+
       const params = new URLSearchParams()
       
-      if (filters.search) params.append('search', filters.search)
-      if (filters.status) params.append('status', filters.status)
-      
-      // ✅ NUEVOS: Filtros por UID
-      if (filters.senderUid) {
-        params.append(FILTER_PARAMS.MESSAGES.SENDER_UID, filters.senderUid)
-      }
-      if (filters.recipientUid) {
-        params.append(FILTER_PARAMS.MESSAGES.RECIPIENT_UID, filters.recipientUid)
-      }
-      if (filters.dateFrom) {
-        params.append(FILTER_PARAMS.MESSAGES.DATE_FROM, filters.dateFrom)
-      }
-      if (filters.dateTo) {
-        params.append(FILTER_PARAMS.MESSAGES.DATE_TO, filters.dateTo)
-      }
-      
-      const queryString = params.toString()
-      const url = queryString ? `${this.baseUrl}?${queryString}` : this.baseUrl
+      if (query.search) params.append('search', query.search)
+      if (query.senderEmail) params.append(FILTER_PARAMS.MESSAGES.SENDER_EMAIL, query.senderEmail)
+      if (query.recipientEmail) params.append(FILTER_PARAMS.MESSAGES.RECIPIENT_EMAIL, query.recipientEmail)
+      if (query.conversationId) params.append(FILTER_PARAMS.MESSAGES.CONVERSATION_ID, query.conversationId)
+      if (query.dateFrom) params.append(FILTER_PARAMS.MESSAGES.DATE_FROM, query.dateFrom)
+      if (query.dateTo) params.append(FILTER_PARAMS.MESSAGES.DATE_TO, query.dateTo)
 
-      console.log('🔍 Fetching all messages with UID filters:', {
-        url,
-        filters,
-        senderUid: filters.senderUid,
-        recipientUid: filters.recipientUid
-      });
+      const response = await apiClient.get(`${API_ENDPOINTS.MESSAGES.SEARCH}?${params.toString()}`)
+      const validatedMessages = MessageValidator.validateBackendResponse(response)
 
-      const response = await apiClient.get(url)
-      
-      // ✅ USAR VALIDADOR CANÓNICO EN LUGAR DE MAPEO MANUAL
-      const validatedMessages = MessageValidator.validateBackendResponse(response);
-      
-      return {
-        success: response.success || true,
-        messages: validatedMessages,
-        total: response.total || validatedMessages.length,
-        page: response.page || 1,
-        limit: response.limit || 50
-      }
-    } catch (error) {
-      return {
-        success: false,
-        messages: [],
-        total: 0,
-        page: 1,
-        limit: 50,
-        error: error instanceof Error ? error.message : 'Error desconocido'
-      }
-    }
-  }
-
-  // ✅ ACTUALIZADO: Enviar mensaje con soporte UID
-  async sendMessage(data: SendMessageData): Promise<SendMessageResponse> {
-    console.log('📤 Sending message with UID context:', {
-      conversationId: data.conversationId,
-      senderUid: data.senderUid,
-      recipientUid: data.recipientUid,
-      contentLength: data.content.length,
-      type: data.type
-    });
-
-    // El backend UTalk espera esta estructura con UID
-    const payload = {
-      conversationId: data.conversationId,
-      content: data.content,
-      type: data.type,
-      senderUid: data.senderUid,       // ✅ UID del remitente
-      recipientUid: data.recipientUid, // ✅ UID del destinatario
-      media: data.media
-    }
-
-    const response = await apiClient.post(API_ENDPOINTS.MESSAGES.SEND, payload)
-    
-    // ✅ VALIDAR RESPUESTA DE ENVÍO TAMBIÉN
-    const validatedMessages = MessageValidator.validateBackendResponse([response.data || response.message]);
-    const validatedMessage = validatedMessages[0];
-    
-    if (!validatedMessage) {
-      throw new Error('Respuesta de envío de mensaje inválida del backend');
-    }
-    
-    console.log('✅ Message sent successfully with UID:', {
-      messageId: validatedMessage.id,
-      senderUid: data.senderUid,
-      recipientUid: data.recipientUid
-    });
-    
-    return {
-      success: response.success || true,
-      message: validatedMessage
-    }
-  }
-
-  // Marcar mensaje como leído
-  async markAsRead(messageId: string): Promise<void> {
-    await apiClient.put(API_ENDPOINTS.MESSAGES.MARK_READ(messageId))
-  }
-
-  // Marcar múltiples mensajes como leídos
-  async markMultipleAsRead(messageIds: string[]): Promise<void> {
-    await apiClient.put(`${this.baseUrl}/read-multiple`, {
-      messageIds
-    })
-  }
-
-  // Actualizar estado de mensaje
-  async updateStatus(messageId: string, status: string): Promise<void> {
-    await apiClient.put(`${this.baseUrl}/${messageId}/status`, {
-      status
-    })
-  }
-
-  // Obtener estadísticas de mensajes
-  async getMessageStats(): Promise<any> {
-    const response = await apiClient.get(`${this.baseUrl}/stats`)
-    return response.data || response
-  }
-
-  // ✅ ACTUALIZADO: Buscar mensajes con filtros UID
-  async searchMessages(query: string, filters?: {
-    senderUid?: string;
-    recipientUid?: string;
-    conversationId?: string;
-    dateFrom?: string;
-    dateTo?: string;
-  }): Promise<MessagesResponse> {
-    try {
-      const params = new URLSearchParams()
-      params.append('q', query)
-      
-      // ✅ Agregar filtros UID si están presentes
-      if (filters?.senderUid) {
-        params.append(FILTER_PARAMS.MESSAGES.SENDER_UID, filters.senderUid)
-      }
-      if (filters?.recipientUid) {
-        params.append(FILTER_PARAMS.MESSAGES.RECIPIENT_UID, filters.recipientUid)
-      }
-      if (filters?.conversationId) {
-        params.append(FILTER_PARAMS.MESSAGES.CONVERSATION_ID, filters.conversationId)
-      }
-      if (filters?.dateFrom) {
-        params.append(FILTER_PARAMS.MESSAGES.DATE_FROM, filters.dateFrom)
-      }
-      if (filters?.dateTo) {
-        params.append(FILTER_PARAMS.MESSAGES.DATE_TO, filters.dateTo)
-      }
-      
-      const url = `${this.baseUrl}/search?${params.toString()}`
-      
-      console.log('🔍 Searching messages with UID filters:', {
+      logger.success('Message search completed', {
         query,
-        filters,
-        url
-      });
-      
-      const response = await apiClient.get(url)
-      
-      // ✅ USAR VALIDADOR CANÓNICO EN LUGAR DE MAPEO MANUAL
-      const validatedMessages = MessageValidator.validateBackendResponse(response);
-      
-      return {
-        success: response.success || true,
-        messages: validatedMessages,
-        total: response.total || validatedMessages.length,
-        page: 1,
-        limit: 50
-      }
+        count: validatedMessages.length
+      }, 'message_search_success')
+
+      return validatedMessages
     } catch (error) {
-      return {
-        success: false,
-        messages: [],
-        total: 0,
-        page: 1,
-        limit: 50,
-        error: error instanceof Error ? error.message : 'Error desconocido'
-      }
+      logger.error('Failed to search messages', { query, error }, 'message_search_error')
+      throw error
     }
   }
 
-  // ✅ TODO EL MAPEO MANUAL FUE ELIMINADO
-  // El MessageValidator canónico es la ÚNICA fuente de verdad para transformación de datos
+  /**
+   * ✅ Obtener estadísticas de mensajes (placeholder)
+   */
+  async getMessageStats(): Promise<any> {
+    // ✅ Placeholder para estadísticas
+    return {}
+  }
 }
 
-export const messageService = new MessageService()
-export default messageService 
+// ✅ Export singleton instance
+export const messageService = new MessageService() 

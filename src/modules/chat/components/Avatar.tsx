@@ -46,8 +46,8 @@ export function Avatar({
   channel 
 }: AvatarProps) {
   const styles = sizeConfig[size]
-  const initials = getInitials(name)
-  const colorClass = getAvatarColor(name)
+  const initials = getInitials(name || '')
+  const colorClass = getAvatarColor(name || '')
 
   return (
     <div className="relative inline-block">

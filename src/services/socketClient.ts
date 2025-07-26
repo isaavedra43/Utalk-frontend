@@ -1,47 +1,27 @@
 // Cliente WebSocket para comunicación en tiempo real
-// Configuración de Socket.IO, eventos y reconexión automática
+// ✅ EMAIL-FIRST: Identificación por email, sin UID ni Firebase
 import { io, Socket } from 'socket.io-client'
+import { logger } from '@/lib/logger'
 
 class SocketClient {
   private socket: Socket | null = null
-  private isConnected = false
-  private eventListeners: Map<string, Set<(data: any) => void>> = new Map()
+  private isConnected: boolean = false
   private currentToken: string | null = null
-  private currentUserId: string | null = null
+  private currentUserEmail: string | null = null
 
   constructor() {
-    console.log('🔗 SocketClient initialized - will connect when authenticated')
-    this.validateWebSocketConfig()
+    console.log('🔗 SocketClient initialized for EMAIL-FIRST backend')
   }
 
   /**
-   * Validar configuración de WebSocket
+   * ✅ Método público para conectar con token JWT y email del usuario
    */
-  private validateWebSocketConfig() {
-    const wsUrl = import.meta.env.VITE_WS_URL
-    
-    if (!wsUrl) {
-      console.error('❌ VITE_WS_URL not configured')
-      return false
-    }
-
-    if (import.meta.env.DEV) {
-      console.log('✅ WebSocket configuration validated', {
-        wsUrl,
-        protocol: wsUrl.startsWith('https://') ? 'HTTPS' : 'Other'
-      })
-    }
-
-    return true
-  }
-
-  // ✅ Método público para conectar cuando hay token y userId
-  public connectWithToken(token: string, userId: string) {
-    // Validar que tenemos token y userId
-    if (!token || !userId) {
-      console.error('❌ Cannot connect socket: Missing token or userId', {
+  public connectWithToken(token: string, userEmail: string) {
+    // Validar que tenemos token y email
+    if (!token || !userEmail) {
+      console.error('❌ Cannot connect socket: Missing token or userEmail', {
         hasToken: !!token,
-        hasUserId: !!userId
+        hasUserEmail: !!userEmail
       })
       return
     }
@@ -54,17 +34,19 @@ class SocketClient {
       this.isConnected = false
     }
 
-    console.log('🔗 Conectando al socket con token:', token.substring(0, 20) + '...', 'y userId:', userId)
+    console.log('🔗 Conectando al socket con token:', token.substring(0, 20) + '...', 'y email:', userEmail)
     
     // Guardar credenciales actuales
     this.currentToken = token
-    this.currentUserId = userId
+    this.currentUserEmail = userEmail
     
-    this.connect(token, userId)
+    this.connect(token, userEmail)
   }
 
-  // ✅ CORREGIDO: Conexión con token JWT en handshake inicial
-  private connect(token: string, userId: string) {
+  /**
+   * ✅ CRÍTICO: Conexión con email en handshake inicial
+   */
+  private connect(token: string, userEmail: string) {
     const wsUrl = import.meta.env.VITE_WS_URL
     if (!wsUrl) {
       console.error('❌ VITE_WS_URL not configured for WebSocket connection')
@@ -74,15 +56,15 @@ class SocketClient {
     console.log('🔗 Establishing WebSocket connection...', {
       url: wsUrl,
       hasToken: !!token,
-      hasUserId: !!userId,
+      hasUserEmail: !!userEmail,
       tokenLength: token.length
     })
     
-    // ✅ CRÍTICO: Enviar token JWT en handshake inicial (según documentación oficial)
+    // ✅ CRÍTICO: Enviar email en handshake inicial (EMAIL-FIRST)
     this.socket = io(wsUrl, {
       auth: {
-        token: token,      // ✅ Token JWT en handshake inicial
-        userId: userId     // ✅ User ID en handshake inicial
+        token: token,           // ✅ Token JWT en handshake inicial
+        email: userEmail        // ✅ EMAIL como identificador (no userId)
       },
       transports: ['polling', 'websocket'], // ✅ IMPORTANTE: NO solo 'websocket'
       autoConnect: true,
@@ -96,111 +78,121 @@ class SocketClient {
     this.setupEventListeners()
   }
 
+  /**
+   * ✅ Configurar listeners de eventos
+   */
   private setupEventListeners() {
     if (!this.socket) return
 
-    // ✅ Conexión exitosa
     this.socket.on('connect', () => {
-      console.log('✅ Socket connected successfully', {
-        socketId: this.socket?.id,
-        hasToken: !!this.currentToken,
-        hasUserId: !!this.currentUserId
-      })
       this.isConnected = true
-      this.emit('socket:status', { connected: true })
+      console.log('✅ Socket connected successfully', {
+        id: this.socket?.id,
+        hasToken: !!this.currentToken,
+        hasUserEmail: !!this.currentUserEmail
+      })
+      
+      logger.success('WebSocket connected', {
+        socketId: this.socket?.id,
+        email: this.currentUserEmail
+      }, 'socket_connected')
     })
 
-    // ✅ Manejar autenticación exitosa del backend
-    this.socket.on('authenticated', (data) => {
-      console.log('✅ Socket authentication confirmed by backend:', data)
-      this.emit('socket:auth:success', data)
+    this.socket.on('authenticated', () => {
+      console.log('✅ Socket authentication successful')
+      logger.success('Socket authentication successful', {
+        email: this.currentUserEmail
+      }, 'socket_authenticated')
     })
 
-    // ✅ Manejar confirmación de autenticación (evento alternativo)
-    this.socket.on('auth:success', (data) => {
-      console.log('✅ Socket authentication successful:', data)
-      this.emit('socket:auth:success', data)
-    })
-
-    // ✅ Manejar error de autenticación del backend
     this.socket.on('authentication_error', (error) => {
       console.error('❌ Socket authentication failed:', error)
-      this.emit('socket:auth:error', error)
-      this.disconnectSocket()
-    })
-
-    // ✅ Manejar error de autenticación (evento alternativo)
-    this.socket.on('auth:error', (error) => {
-      console.error('❌ Socket authentication failed:', error)
-      this.emit('socket:auth:error', error)
+      logger.error('Socket authentication failed', error, 'socket_auth_failed')
+      
+      // Desconectar automáticamente en caso de error de autenticación
       this.disconnectSocket()
     })
 
     this.socket.on('disconnect', (reason) => {
-      console.log('❌ WebSocket desconectado:', reason)
       this.isConnected = false
-      this.emit('socket:status', { connected: false, reason })
+      console.log('🔌 Socket disconnected:', reason)
+      
+      logger.warn('Socket disconnected', { 
+        reason,
+        email: this.currentUserEmail 
+      }, 'socket_disconnected')
     })
 
     this.socket.on('connect_error', (error) => {
-      console.error('❌ Error de conexión WebSocket:', error)
-      this.emit('socket:error', { error: error.message })
+      console.error('❌ Socket connection error:', error)
+      logger.error('Socket connection error', error, 'socket_connection_error')
     })
 
-    this.socket.on('reconnect', (attemptNumber) => {
-      console.log('🔄 WebSocket reconectado después de', attemptNumber, 'intentos')
-      this.emit('socket:reconnect', { attempts: attemptNumber })
-    })
-
-    // Escuchar eventos de la aplicación
-    this.setupAppEvents()
-  }
-
-  private setupAppEvents() {
-    if (!this.socket) return
-
-    // Eventos de mensajería
-    this.socket.on('message:new', (data) => {
-      console.log('📨 New message received via socket:', data)
-      this.emit('message:new', data)
-    })
-
-    this.socket.on('message:read', (data) => {
-      console.log('📖 Message read via socket:', data)
-      this.emit('message:read', data)
-    })
-
-    this.socket.on('conversation:typing', (data) => {
-      this.emit('conversation:typing', data)
-    })
-
-    // Eventos de presencia
-    this.socket.on('user:online', (data) => {
-      this.emit('user:online', data)
-    })
-
-    this.socket.on('user:offline', (data) => {
-      this.emit('user:offline', data)
-    })
-
-    // Eventos de campañas
-    this.socket.on('campaign:status', (data) => {
-      this.emit('campaign:status', data)
-    })
-
-    // Eventos de equipo
-    this.socket.on('team:update', (data) => {
-      this.emit('team:update', data)
+    this.socket.on('error', (error) => {
+      console.error('❌ Socket error:', error)
+      logger.error('Socket error', error, 'socket_error')
     })
   }
 
-  // ✅ Helper para obtener userId del localStorage
-  private getUserIdFromStorage(): string | null {
+  /**
+   * ✅ Unirse a un room/canal por email
+   */
+  public joinRoom(roomId: string) {
+    if (this.socket && this.isConnected) {
+      console.log(`📞 Joining room: ${roomId} as email: ${this.currentUserEmail}`)
+      this.socket.emit('join:room', { 
+        roomId,
+        email: this.currentUserEmail 
+      })
+    }
+  }
+
+  /**
+   * ✅ Salir de un room/canal
+   */
+  public leaveRoom(roomId: string) {
+    if (this.socket && this.isConnected) {
+      console.log(`🚪 Leaving room: ${roomId}`)
+      this.socket.emit('leave:room', { 
+        roomId,
+        email: this.currentUserEmail 
+      })
+    }
+  }
+
+  /**
+   * ✅ Enviar evento de typing
+   */
+  public sendTyping(conversationId: string) {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('user:typing', { 
+        conversationId,
+        email: this.currentUserEmail 
+      })
+    }
+  }
+
+  /**
+   * ✅ Enviar evento de stop typing
+   */
+  public sendStopTyping(conversationId: string) {
+    if (this.socket && this.isConnected) {
+      this.socket.emit('user:stopped_typing', { 
+        conversationId,
+        email: this.currentUserEmail 
+      })
+    }
+  }
+
+  /**
+   * ✅ Helper para obtener email del localStorage
+   */
+  private getUserEmailFromStorage(): string | null {
     try {
       const userData = localStorage.getItem('user_data')
       if (userData) {
         const user = JSON.parse(userData)
-        return user?.id || user?.uid || user?.firebaseUid || null
+        return user?.email || null
       }
     } catch (error) {
       console.warn('Error parsing user data from localStorage:', error)
@@ -208,112 +200,52 @@ class SocketClient {
     return null
   }
 
-  // Emitir evento al servidor
-  send(event: string, data: any): void {
-    if (!this.socket || !this.isConnected) {
-      console.warn('❌ Socket no conectado, no se puede enviar evento:', event, data)
-      return
-    }
-
-    console.log('📤 Sending socket event:', event, data)
-    this.socket.emit(event, data)
-  }
-
-  // Suscribirse a eventos
-  on(event: string, callback: (data: any) => void): void {
-    if (!this.eventListeners.has(event)) {
-      this.eventListeners.set(event, new Set())
-    }
-    this.eventListeners.get(event)!.add(callback)
-  }
-
-  // Desuscribirse de eventos
-  off(event: string, callback?: (data: any) => void): void {
-    if (!this.eventListeners.has(event)) return
-
-    if (callback) {
-      this.eventListeners.get(event)!.delete(callback)
-    } else {
-      this.eventListeners.delete(event)
-    }
-  }
-
-  // Emitir evento localmente
-  private emit(event: string, data: any): void {
-    const listeners = this.eventListeners.get(event)
-    if (listeners) {
-      listeners.forEach(callback => callback(data))
-    }
-  }
-
-  // Unirse a una sala/room
-  joinRoom(roomId: string): void {
-    this.send('room:join', { roomId })
-  }
-
-  // Salir de una sala/room
-  leaveRoom(roomId: string): void {
-    this.send('room:leave', { roomId })
-  }
-
-  // Indicar que el usuario está escribiendo
-  startTyping(conversationId: string): void {
-    this.send('conversation:typing:start', { conversationId })
-  }
-
-  // Indicar que el usuario dejó de escribir
-  stopTyping(conversationId: string): void {
-    this.send('conversation:typing:stop', { conversationId })
-  }
-
-  // Marcar mensaje como leído
-  markAsRead(messageId: string): void {
-    this.send('message:mark-read', { messageId })
-  }
-
-  // Obtener estado de conexión
-  get connected(): boolean {
-    return this.isConnected
-  }
-
-  // ✅ Método público para desconectar
+  /**
+   * ✅ Desconectar socket
+   */
   public disconnectSocket() {
     if (this.socket) {
-      console.log('🔗 Disconnecting WebSocket...')
+      console.log('🔌 Disconnecting socket...')
       this.socket.disconnect()
       this.socket = null
       this.isConnected = false
       this.currentToken = null
-      this.currentUserId = null
+      this.currentUserEmail = null
     }
   }
 
-  // ✅ NUEVO: Reconectar con token válido desde localStorage
+  /**
+   * ✅ Reconectar con credenciales almacenadas
+   */
   public reconnectWithAuth() {
     const token = localStorage.getItem('auth_token')
-    const userId = this.getUserIdFromStorage()
-    
-    if (token && userId) {
-      console.log('🔄 Reconnecting with stored credentials...')
-      this.connectWithToken(token, userId)
+    const userEmail = this.getUserEmailFromStorage()
+
+    if (token && userEmail) {
+      console.log('🔄 Reconnecting socket with stored credentials...')
+      this.connectWithToken(token, userEmail)
     } else {
-      console.warn('❌ Cannot reconnect: Missing token or userId', {
+      console.warn('❌ Cannot reconnect: Missing token or userEmail', {
         hasToken: !!token,
-        hasUserId: !!userId
+        hasUserEmail: !!userEmail
       })
     }
   }
 
-  // Reconectar manualmente
-  reconnect(): void {
-    if (this.socket && this.currentToken && this.currentUserId) {
-      this.socket.connect()
-    } else {
-      this.reconnectWithAuth()
-    }
+  /**
+   * ✅ Verificar estado de conexión
+   */
+  public isSocketConnected(): boolean {
+    return this.socket && this.currentToken && this.currentUserEmail ? this.isConnected : false
+  }
+
+  /**
+   * ✅ Obtener socket instance para listeners externos
+   */
+  public getSocket(): Socket | null {
+    return this.socket
   }
 }
 
-// Instancia singleton del cliente WebSocket
-export const socketClient = new SocketClient()
-export default socketClient 
+// ✅ Export singleton instance
+export const socketClient = new SocketClient() 

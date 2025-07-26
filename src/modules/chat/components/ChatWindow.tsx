@@ -32,7 +32,7 @@ export function ChatWindow({
   const [showInfo, setShowInfo] = useState(false)
 
   // ✅ OBTENER DATOS REALES DEL BACKEND - Reemplaza datos hardcodeados
-  const { data: conversationData, isLoading: isLoadingConversation, error: conversationError } = useConversationData(conversationId)
+  const { conversation: conversationData, isLoading: isLoadingConversation, error: conversationError } = useConversationData(conversationId)
 
   // ✅ LOGS CRÍTICOS: Diagnosticar datos de mensajes y conversación
   console.log('🔍 ChatWindow render:', {
@@ -69,22 +69,19 @@ export function ChatWindow({
 
   // Renderizar indicadores de typing
   const renderTypingIndicators = () => {
-    if (typingUsers.length === 0) return null
+    if (!typingUsers || typingUsers.length === 0) return null
 
     return (
-      <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-700">
-        <div className="flex items-center space-x-2">
-          <div className="flex space-x-1">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+      <div className="px-4 py-2 bg-gray-50 border-b text-sm text-gray-600">
+        <div className="flex items-center space-x-1">
+          <div className="typing-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
           </div>
-          <span className="text-xs text-gray-500">
-            {typingUsers.length === 1 
-              ? `${typingUsers[0].userName} está escribiendo...`
-              : `${typingUsers.length} personas están escribiendo...`
-            }
-          </span>
+          {typingUsers && typingUsers.length === 1
+            ? `${typingUsers[0].userName} está escribiendo...`
+            : `${typingUsers?.length || 0} personas están escribiendo...`}
         </div>
       </div>
     )
@@ -279,21 +276,20 @@ export function ChatWindow({
             return (
               <>
                 {messages.map((message, index) => {
-                  console.log(`📝 Rendering message ${index + 1}/${messages.length}:`, {
-                    id: message.id,
-                    content: message.content?.substring(0, 50),
-                    sender: message.sender.name,
-                    type: message.type
-                  });
-                  
-                  const previousMessage = index > 0 ? messages[index - 1] : null
-                  const isGrouped = previousMessage?.sender.id === message.sender.id
-                  const showAvatar = !isGrouped || index === 0
-                  
+                  const isOwnMessage = message.sender?.type === 'agent' || message.direction === 'outbound'
+                  const isLastMessageFromSameSender = 
+                    index < messages.length - 1 && 
+                    messages[index + 1]?.sender?.id === message.sender?.id
+                  const showAvatar = !isLastMessageFromSameSender
+                  const isGrouped = 
+                    index > 0 && 
+                    messages[index - 1]?.sender?.id === message.sender?.id
+
                   return (
                     <MessageBubble
                       key={message.id}
                       message={message}
+                      isOwn={isOwnMessage}
                       showAvatar={showAvatar}
                       isGrouped={isGrouped}
                     />

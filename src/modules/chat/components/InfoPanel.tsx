@@ -30,18 +30,26 @@ export function InfoPanel({
   onUpdateConversation
 }: Omit<InfoPanelProps, 'contact' | 'conversation'> & { conversationId?: string }) {
   // ✅ OBTENER DATOS REALES DEL BACKEND - Reemplaza props hardcodeadas
-  const { data: conversationData, isLoading, error } = useConversationData(conversationId)
+  const { conversation: conversationData, isLoading, error } = useConversationData(conversationId)
   
   // Extraer datos de la conversación real
   const contact = conversationData?.contact
-  const conversation = conversationData?.conversation
+  const conversation = conversationData
   const [isEditingContact, setIsEditingContact] = useState(false)
   const [editedContact, setEditedContact] = useState(contact)
+  const [isSaving, setIsSaving] = useState(false)
 
-  const handleSaveContact = () => {
-    if (editedContact && contact) {
-      onUpdateContact(contact.id, editedContact)
+  const handleSaveContact = async () => {
+    if (!contact || !editedContact || !onUpdateContact) return
+    
+    try {
+      setIsSaving(true)
+      await onUpdateContact(editedContact)
       setIsEditingContact(false)
+    } catch (error) {
+      console.error('Error updating contact:', error)
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -50,23 +58,33 @@ export function InfoPanel({
     setIsEditingContact(false)
   }
 
-  const handleAssignConversation = () => {
-    if (conversation) {
-      // TODO: Implementar lógica de asignación
-      onUpdateConversation(conversation.id, { 
-        assignedTo: { 
-          id: 'current-user', 
+  const handleAssignToMe = async () => {
+    if (!conversation || !onUpdateConversation) return
+    
+    try {
+      await onUpdateConversation({
+        ...conversation,
+        assignedTo: {
+          id: 'current-user',
           name: 'Usuario Actual',
-          role: 'agent', // ✅ Campo requerido por estructura canónica
-          avatar: undefined
+          role: 'agent'
         }
       })
+    } catch (error) {
+      console.error('Error assigning conversation:', error)
     }
   }
 
-  const handleUnassignConversation = () => {
-    if (conversation) {
-      onUpdateConversation(conversation.id, { assignedTo: undefined })
+  const handleUnassign = async () => {
+    if (!conversation || !onUpdateConversation) return
+    
+    try {
+      await onUpdateConversation({ 
+        ...conversation, 
+        assignedTo: undefined 
+      })
+    } catch (error) {
+      console.error('Error unassigning conversation:', error)
     }
   }
 
@@ -150,7 +168,7 @@ export function InfoPanel({
                 {isEditingContact ? (
                                      <Input
                      value={editedContact?.name || ''}
-                     onChange={(e) => setEditedContact(prev => prev ? {...prev, name: e.target.value} : undefined)}
+                     onChange={(e) => setEditedContact((prev: any) => prev ? {...prev, name: e.target.value} : undefined)}
                      className="text-center font-medium"
                    />
                 ) : (
@@ -178,7 +196,7 @@ export function InfoPanel({
                                      <Input
                      type="email"
                      value={editedContact?.email || ''}
-                     onChange={(e) => setEditedContact(prev => prev ? {...prev, email: e.target.value} : undefined)}
+                     onChange={(e) => setEditedContact((prev: any) => prev ? {...prev, email: e.target.value} : undefined)}
                      placeholder="email@ejemplo.com"
                      className="text-sm"
                    />
@@ -196,7 +214,7 @@ export function InfoPanel({
                                      <Input
                      type="tel"
                      value={editedContact?.phone || ''}
-                     onChange={(e) => setEditedContact(prev => prev ? {...prev, phone: e.target.value} : undefined)}
+                     onChange={(e) => setEditedContact((prev: any) => prev ? {...prev, phone: e.target.value} : undefined)}
                      placeholder="+1234567890"
                      className="text-sm"
                    />
@@ -225,8 +243,13 @@ export function InfoPanel({
                   onClick={handleSaveContact}
                   size="sm"
                   className="flex-1"
+                  disabled={isSaving}
                 >
-                  <Save className="w-4 h-4 mr-1" />
+                  {isSaving ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-1"></div>
+                  ) : (
+                    <Save className="w-4 h-4 mr-1" />
+                  )}
                   Guardar
                 </Button>
                 <Button
@@ -255,7 +278,7 @@ export function InfoPanel({
               <p className="text-xs text-gray-500">Sin etiquetas</p>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {contact.tags.map((tag, index) => (
+                {contact.tags.map((tag: any, index: number) => (
                   <Badge key={index} variant="outline" className="text-xs">
                     {tag}
                   </Badge>
@@ -298,7 +321,7 @@ export function InfoPanel({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={handleUnassignConversation}
+                      onClick={handleUnassign}
                       className="h-5 w-5 p-0"
                     >
                       <UserX className="w-3 h-3" />
@@ -308,11 +331,11 @@ export function InfoPanel({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleAssignConversation}
+                    onClick={handleAssignToMe}
                     className="h-6 px-2 text-xs"
                   >
                     <UserCheck className="w-3 h-3 mr-1" />
-                    Asignar
+                    Asignar a mí
                   </Button>
                 )}
               </div>

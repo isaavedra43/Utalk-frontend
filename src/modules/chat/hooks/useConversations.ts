@@ -1,192 +1,178 @@
-// Hook para gestionar conversaciones con React Query
-// Conecta con conversationService para obtener datos del backend UTalk
+// Hook para gestión de conversaciones
+// ✅ EMAIL-FIRST: Todos los identificadores usan email
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ConversationFilter } from '../types'
-import conversationService from '../services/conversationService'
+import { conversationService } from '../services/conversationService'
+import { useAuth } from '@/contexts/AuthContext'
 import { logger } from '@/lib/logger'
-import { useAuth } from '@/hooks/useAuth' // Importar hook de autenticación
+import type { ConversationFilter } from '../types'
 
-// Claves de query para invalidaciones y cache
+// ✅ Query keys usando EMAIL
 export const conversationKeys = {
   all: ['conversations'] as const,
   lists: () => [...conversationKeys.all, 'list'] as const,
-  list: (filter: ConversationFilter) => [...conversationKeys.lists(), filter] as const,
+  list: (filters: ConversationFilter) => [...conversationKeys.lists(), filters] as const,
+  byAssigned: (email: string) => [...conversationKeys.all, 'byAssigned', email] as const,
+  byParticipant: (email: string) => [...conversationKeys.all, 'byParticipant', email] as const,
   details: () => [...conversationKeys.all, 'detail'] as const,
   detail: (id: string) => [...conversationKeys.details(), id] as const,
   stats: () => [...conversationKeys.all, 'stats'] as const,
 }
 
-// Hook principal para obtener conversaciones con filtros
-export function useConversations(filter: ConversationFilter = {}) {
-  const { isAuthenticated, isAuthReady } = useAuth() // Obtener estado de autenticación
-
-  const result = useQuery({
-    queryKey: conversationKeys.list(filter),
-    queryFn: async () => {
-      console.log('🔄 useConversations: Starting fetch with filter:', filter)
-      const response = await conversationService.getConversations(filter)
-      console.log('📦 useConversations: Service response:', response)
-      return response
-    },
-    // ✅ CORRECCIÓN: La query solo se ejecutará si el usuario está autenticado y la sesión está lista
-    enabled: isAuthenticated && isAuthReady,
-    staleTime: 5 * 60 * 1000, // 5 minutos antes de considerar stale
-    refetchOnWindowFocus: false, // ✅ OPTIMIZACIÓN: Evitar refetch al cambiar ventana
-    refetchInterval: 5 * 60 * 1000, // ✅ OPTIMIZACIÓN: Refetch cada 5 minutos
-    onSuccess: (data) => {
-      console.log('✅ useConversations: Query success:', {
-        total: data.total,
-        conversationsCount: data.conversations.length,
-        conversations: data.conversations
-      })
-    },
+/**
+ * ✅ Hook para obtener conversaciones con filtros EMAIL-FIRST
+ */
+export function useConversations(filters: ConversationFilter = {}) {
+  const { user } = useAuth()
+  
+  return useQuery({
+    queryKey: conversationKeys.list(filters),
+    queryFn: () => conversationService.getConversations(filters),
+    enabled: !!user?.email && !!user?.isActive,
+    staleTime: 1000 * 60 * 2, // 2 minutos
+    refetchOnWindowFocus: true,
     onError: (error) => {
-      console.error('❌ useConversations: Query error:', error)
+      logger.error('Failed to fetch conversations', { filters, error }, 'conversations_query_error')
+    },
+    onSuccess: (data) => {
+      logger.info('Conversations fetched successfully', { 
+        count: data.length, 
+        userEmail: user?.email 
+      }, 'conversations_query_success')
     }
   })
-
-  // Log del estado del hook
-  console.log('📊 useConversations hook state:', {
-    isLoading: result.isLoading,
-    isError: result.isError,
-    error: result.error,
-    dataExists: !!result.data,
-    conversationsCount: result.data?.conversations?.length || 0
-  })
-
-  logger.hook('useConversations', {
-    input: { filter },
-    loading: result.isLoading,
-    error: result.error,
-    dataLength: result.data?.conversations?.length,
-    output: result.data ? { 
-      total: result.data.total,
-      conversationsCount: result.data.conversations?.length 
-    } : undefined
-  })
-
-  return result
 }
 
-// Hook para obtener una conversación específica
-export function useConversation(conversationId: string) {
+/**
+ * ✅ Hook para obtener conversaciones asignadas a un email específico
+ */
+export function useConversationsByAssignedEmail(email: string) {
   return useQuery({
-    queryKey: conversationKeys.detail(conversationId),
-    queryFn: () => conversationService.getConversation(conversationId),
-    enabled: !!conversationId,
-    staleTime: 30 * 1000,
+    queryKey: conversationKeys.byAssigned(email),
+    queryFn: () => conversationService.getConversationsByAssignedEmail(email),
+    enabled: !!email,
+    staleTime: 1000 * 60 * 2, // 2 minutos
+    onError: (error) => {
+      logger.error('Failed to fetch conversations by assigned email', { email, error }, 'conversations_by_assigned_error')
+    }
   })
 }
 
-// Hook para obtener estadísticas de conversaciones
-export function useConversationStats() {
+/**
+ * ✅ Hook para obtener conversaciones donde participa un email específico
+ */
+export function useConversationsByParticipantEmail(email: string) {
   return useQuery({
-    queryKey: conversationKeys.stats(),
-    queryFn: () => conversationService.getConversationStats(),
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    queryKey: conversationKeys.byParticipant(email),
+    queryFn: () => conversationService.getConversationsByParticipantEmail(email),
+    enabled: !!email,
+    staleTime: 1000 * 60 * 2, // 2 minutos
+    onError: (error) => {
+      logger.error('Failed to fetch conversations by participant email', { email, error }, 'conversations_by_participant_error')
+    }
   })
 }
 
-// Hook para marcar conversación como leída
-export function useMarkConversationAsRead() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (conversationId: string) => 
-      conversationService.markAsRead(conversationId),
-    onSuccess: (_, conversationId) => {
-      // Invalidar queries relacionadas
-      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })
-      queryClient.invalidateQueries({ queryKey: conversationKeys.detail(conversationId) })
-    },
-  })
-}
-
-// Hook para asignar conversación a agente
+/**
+ * ✅ Hook para asignar conversación usando email
+ */
 export function useAssignConversation() {
   const queryClient = useQueryClient()
+  const { user } = useAuth()
 
   return useMutation({
-    mutationFn: ({ conversationId, agentId }: { conversationId: string; agentId: string }) =>
-      conversationService.assignConversation(conversationId, agentId),
-    onSuccess: (_, { conversationId }) => {
-      // Invalidar queries relacionadas
-      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })
-      queryClient.invalidateQueries({ queryKey: conversationKeys.detail(conversationId) })
+    mutationFn: ({ conversationId, agentEmail }: { conversationId: string; agentEmail: string }) =>
+      conversationService.assignConversation(conversationId, agentEmail),
+    onSuccess: (updatedConversation) => {
+      // ✅ Invalidar queries relacionadas
+      queryClient.invalidateQueries({ queryKey: conversationKeys.all })
+      
+      // ✅ Actualizar cache específica
+      queryClient.setQueryData(
+        conversationKeys.detail(updatedConversation.id),
+        updatedConversation
+      )
+
+      logger.success('Conversation assigned successfully', {
+        conversationId: updatedConversation.id,
+        agentEmail: updatedConversation.assignedTo,
+        assignedBy: user?.email
+      }, 'conversation_assign_success')
     },
+    onError: (error, variables) => {
+      logger.error('Failed to assign conversation', { 
+        variables, 
+        error,
+        assignedBy: user?.email 
+      }, 'conversation_assign_error')
+    }
   })
 }
 
-// Hook para cambiar estado de conversación
-export function useUpdateConversationStatus() {
+/**
+ * ✅ Hook para desasignar conversación
+ */
+export function useUnassignConversation() {
   const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({ conversationId, status }: { conversationId: string; status: string }) =>
-      conversationService.updateStatus(conversationId, status),
-    onSuccess: (_, { conversationId }) => {
-      // Invalidar queries relacionadas
-      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })
-      queryClient.invalidateQueries({ queryKey: conversationKeys.detail(conversationId) })
-    },
-  })
-}
-
-// Hook para archivar conversación
-export function useArchiveConversation() {
-  const queryClient = useQueryClient()
+  const { user } = useAuth()
 
   return useMutation({
     mutationFn: (conversationId: string) =>
-      conversationService.archiveConversation(conversationId),
-    onSuccess: (_, conversationId) => {
-      // Invalidar queries relacionadas
-      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })
-      queryClient.invalidateQueries({ queryKey: conversationKeys.detail(conversationId) })
+      conversationService.unassignConversation(conversationId),
+    onSuccess: (updatedConversation) => {
+      // ✅ Invalidar queries relacionadas
+      queryClient.invalidateQueries({ queryKey: conversationKeys.all })
+      
+      // ✅ Actualizar cache específica
+      queryClient.setQueryData(
+        conversationKeys.detail(updatedConversation.id),
+        updatedConversation
+      )
+
+      logger.success('Conversation unassigned successfully', {
+        conversationId: updatedConversation.id,
+        unassignedBy: user?.email
+      }, 'conversation_unassign_success')
     },
+    onError: (error, conversationId) => {
+      logger.error('Failed to unassign conversation', { 
+        conversationId, 
+        error,
+        unassignedBy: user?.email 
+      }, 'conversation_unassign_error')
+    }
   })
 }
 
-// Hook para refrescar todas las conversaciones
-export function useRefreshConversations() {
+/**
+ * ✅ Hook para crear nueva conversación
+ */
+export function useCreateConversation() {
   const queryClient = useQueryClient()
+  const { user } = useAuth()
 
-  return () => {
-    queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })
-  }
-}
-
-// Hook para optimistic updates de conversaciones
-export function useOptimisticConversationUpdate() {
-  const queryClient = useQueryClient()
-
-  return {
-    updateConversationOptimistically: (conversationId: string, updates: any) => {
-      // Actualizar conversation detail optimísticamente
+  return useMutation({
+    mutationFn: conversationService.createConversation,
+    onSuccess: (newConversation) => {
+      // ✅ Invalidar queries de lista
+      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })
+      
+      // ✅ Agregar a cache
       queryClient.setQueryData(
-        conversationKeys.detail(conversationId),
-        (old: any) => {
-          if (!old) return old
-          return {
-            ...old,
-            conversation: { ...old.conversation, ...updates }
-          }
-        }
+        conversationKeys.detail(newConversation.id),
+        newConversation
       )
 
-      // Actualizar lista de conversaciones optimísticamente
-      queryClient.setQueriesData(
-        { queryKey: conversationKeys.lists() },
-        (old: any) => {
-          if (!old?.conversations) return old
-          return {
-            ...old,
-            conversations: old.conversations.map((conv: any) =>
-              conv.id === conversationId ? { ...conv, ...updates } : conv
-            )
-          }
-        }
-      )
+      logger.success('Conversation created successfully', {
+        conversationId: newConversation.id,
+        createdBy: user?.email
+      }, 'conversation_create_success')
+    },
+    onError: (error, variables) => {
+      logger.error('Failed to create conversation', { 
+        variables, 
+        error,
+        createdBy: user?.email 
+      }, 'conversation_create_error')
     }
-  }
+  })
 } 

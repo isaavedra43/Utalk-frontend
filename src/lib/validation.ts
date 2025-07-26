@@ -262,7 +262,7 @@ export class MessageValidator {
       }] : undefined),
       metadata: {
         twilioSid: data.twilioSid,
-        userId: data.userId,
+        userEmail: data.userEmail || data.email,
         edited: data.edited || false,
         ...(data.metadata || {})
       }

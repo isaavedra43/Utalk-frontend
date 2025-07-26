@@ -124,7 +124,7 @@ export function useSocket(options: UseSocketOptions = {}) {
 
       // Actualizar cache de mensajes con el mensaje VALIDADO
       queryClient.setQueryData(
-        messageKeys.list(data.conversationId),
+        messageKeys.conversations(data.conversationId),
         (old: any) => {
           if (!old) return old
           
@@ -139,11 +139,14 @@ export function useSocket(options: UseSocketOptions = {}) {
           
           return {
             ...old,
-            messages: [...(old.messages || []), validatedMessage], // ✅ Mensaje validado
+            messages: [...(old.messages || []), validatedMessage],
             total: (old.total || 0) + 1
           }
         }
       )
+
+      // Invalidar queries relacionadas para refrescar UI
+      queryClient.invalidateQueries({ queryKey: messageKeys.conversations(validatedMessage.conversationId) })
 
       // Actualizar último mensaje en lista de conversaciones
       queryClient.setQueriesData(
@@ -173,7 +176,7 @@ export function useSocket(options: UseSocketOptions = {}) {
       )
 
       // Invalidar queries para refrescar
-      queryClient.invalidateQueries({ queryKey: messageKeys.list(validatedMessage.conversationId) })
+      queryClient.invalidateQueries({ queryKey: messageKeys.conversations(validatedMessage.conversationId) })
       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })
     }
 
@@ -191,13 +194,15 @@ export function useSocket(options: UseSocketOptions = {}) {
 
       // Actualizar estado del mensaje en cache
       queryClient.setQueryData(
-        messageKeys.list(data.conversationId),
+        messageKeys.conversations(data.conversationId),
         (old: any) => {
           if (!old?.messages) return old
           return {
             ...old,
             messages: old.messages.map((msg: any) =>
-              msg.id === data.messageId ? { ...msg, isRead: true } : msg
+              msg.id === data.messageId 
+                ? { ...msg, isRead: true, readAt: new Date() }
+                : msg
             )
           }
         }

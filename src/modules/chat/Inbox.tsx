@@ -64,7 +64,8 @@ export function Inbox({ initialConversationId }: InboxProps = {}) {
   const { 
     data: conversationsData, 
     isLoading: conversationsLoading, 
-    error: conversationsError 
+    error: conversationsError,
+    refetch: conversationsRefetch 
   } = useConversations(state.filter)
 
   const { 
@@ -89,7 +90,7 @@ export function Inbox({ initialConversationId }: InboxProps = {}) {
 
   // Datos procesados para los componentes
   const conversations = conversationsData?.conversations || []
-  const messages = messagesData?.messages || []
+  const messages = messagesData || []
 
   // ✅ LOGS CRÍTICOS: Diagnosticar el flujo de datos en Inbox
   console.log('🏠 Inbox component data flow:', {
@@ -128,6 +129,7 @@ export function Inbox({ initialConversationId }: InboxProps = {}) {
     sendMessage({
       conversationId: state.selectedConversationId,
       content: content.trim(),
+      recipientEmail: conversations.find((c: any) => c.id === state.selectedConversationId)?.contact?.email || '',
       type
     })
   }
@@ -149,14 +151,9 @@ export function Inbox({ initialConversationId }: InboxProps = {}) {
           conversations={conversations}
           selectedConversationId={state.selectedConversationId}
           onSelectConversation={handleSelectConversation}
-          isLoading={conversationsLoading}
-          error={conversationsError as Error | null}
           filter={state.filter}
           onFilterChange={handleFilterChange}
-          onRefresh={() => {
-            console.log('🔄 Manual refresh triggered from Inbox')
-            // TODO: Implementar refresh manual
-          }}
+          onRefresh={() => conversationsRefetch()}
         />
 
         {Boolean(conversationsError) && (

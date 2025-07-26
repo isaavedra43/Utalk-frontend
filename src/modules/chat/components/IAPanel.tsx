@@ -29,13 +29,15 @@ export function IAPanel({
   const [question, setQuestion] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleSendQuestion = async () => {
-    if (!question.trim()) return
+  const handleAskAssistant = async () => {
+    if (!question.trim() || !onAskAssistant) return
     
-    setIsLoading(true)
     try {
+      setIsLoading(true)
       await onAskAssistant(question)
       setQuestion('')
+    } catch (error) {
+      console.error('Error asking assistant:', error)
     } finally {
       setIsLoading(false)
     }
@@ -44,7 +46,7 @@ export function IAPanel({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSendQuestion()
+      handleAskAssistant()
     }
   }
 
@@ -237,7 +239,11 @@ export function IAPanel({
 
                       <Button
                         size="sm"
-                        onClick={() => onSendSuggestion(suggestion)}
+                        onClick={() => {
+                          if (onSendSuggestion) {
+                            onSendSuggestion(suggestion.content)
+                          }
+                        }}
                         className="h-6 px-3 text-xs"
                       >
                         Usar
@@ -268,7 +274,7 @@ export function IAPanel({
               className="text-sm"
             />
             <Button
-              onClick={handleSendQuestion}
+              onClick={handleAskAssistant}
               disabled={!question.trim() || isLoading}
               size="sm"
               className="flex-shrink-0"

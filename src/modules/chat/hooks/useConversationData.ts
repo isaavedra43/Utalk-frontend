@@ -1,88 +1,28 @@
 // Hook para obtener datos específicos de conversación y contacto
 // Usado por ChatWindow e InfoPanel para obtener datos reales del backend
 import { useQuery } from '@tanstack/react-query'
-import { useConversation } from './useConversations'
-import conversationService from '../services/conversationService'
-import { logger } from '@/lib/logger'
+import { conversationService } from '../services/conversationService'
 
-// Hook para obtener datos completos de una conversación (incluye contacto)
 export function useConversationData(conversationId?: string) {
-  const conversationQuery = useConversation(conversationId || '')
-
-  const result = useQuery({
-    queryKey: ['conversation-data', conversationId],
+  const conversationQuery = useQuery({
+    queryKey: ['conversation', conversationId],
     queryFn: async () => {
       if (!conversationId) return null
       
-      console.log('🔍 useConversationData: Fetching data for conversation:', conversationId)
-      
-      // Obtener conversación completa
-      const conversationResponse = await conversationService.getConversation(conversationId)
-      const conversation = conversationResponse.conversation
-      
-      console.log('📦 useConversationData: Conversation data:', conversation)
-      
-      // Extraer datos del contacto desde la conversación
-      const contact = conversation.contact
-      
-      return {
-        conversation,
-        contact,
-        // Datos derivados para facilitar el uso en componentes
-        isOnline: contact?.isOnline || false,
-        channel: conversation.channel,
-        status: conversation.status,
-        assignedTo: conversation.assignedTo,
-        unreadCount: conversation.unreadCount,
-        priority: conversation.priority,
-        isMuted: conversation.isMuted,
-        lastMessage: conversation.lastMessage,
-        tags: conversation.tags,
-        createdAt: conversation.createdAt,
-        updatedAt: conversation.updatedAt
-      }
+      // Como no tenemos getConversation individual, buscar por filtros
+      const conversations = await conversationService.getConversations({ search: conversationId })
+      return conversations.find(c => c.id === conversationId) || null
     },
-    enabled: !!conversationId && conversationQuery.isSuccess,
-    staleTime: 5 * 60 * 1000, // ✅ OPTIMIZACIÓN: 5 minutos antes de considerar stale
-    refetchInterval: 5 * 60 * 1000, // ✅ OPTIMIZACIÓN: Refetch cada 5 minutos
-    onSuccess: (data) => {
-      console.log('✅ useConversationData: Success:', {
-        conversationId,
-        hasContact: !!data?.contact,
-        hasConversation: !!data?.conversation,
-        contactName: data?.contact?.name,
-        status: data?.status
-      })
-    },
-    onError: (error) => {
-      console.error('❌ useConversationData: Error:', error)
-    }
+    enabled: !!conversationId,
+    staleTime: 5 * 60 * 1000, // 5 minutos
   })
 
-  // Log del estado del hook
-  console.log('📊 useConversationData hook state:', {
-    conversationId,
-    isLoading: result.isLoading,
-    isError: result.isError,
-    error: result.error,
-    dataExists: !!result.data,
-    hasContact: !!result.data?.contact,
-    hasConversation: !!result.data?.conversation
-  })
-
-  logger.hook('useConversationData', {
-    input: { conversationId },
-    loading: result.isLoading,
-    error: result.error,
-    output: result.data ? {
-      hasContact: !!result.data.contact,
-      hasConversation: !!result.data.conversation,
-      contactName: result.data.contact?.name,
-      status: result.data.status
-    } : undefined
-  })
-
-  return result
+  return {
+    conversation: conversationQuery.data,
+    isLoading: conversationQuery.isLoading,
+    error: conversationQuery.error,
+    refetch: conversationQuery.refetch
+  }
 }
 
 // Hook para obtener sugerencias de IA para una conversación
