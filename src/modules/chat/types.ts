@@ -11,16 +11,11 @@ export type MessageType = 'text' | 'image' | 'file' | 'audio' | 'video' | 'locat
 export type ChannelType = 'whatsapp' | 'telegram' | 'web' | 'email' | 'sms' | 'voice' | 'webchat' | 'api' | 'facebook' | 'instagram'
 
 // ✅ Tipos adicionales requeridos por componentes
-export interface TypingIndicator {
-  userEmail: string
-  conversationId: string
-}
-
 export interface Message extends CanonicalMessage {}
 export interface Conversation extends CanonicalConversation {}
 export interface Contact extends CanonicalContact {}
 
-export type ConversationStatus = 'active' | 'inactive' | 'pending' | 'closed'
+export type ConversationStatus = 'open' | 'pending' | 'closed' | 'archived'
 
 export interface SuggestedResponse {
   id: string
@@ -80,7 +75,7 @@ export interface ChatWindowProps {
   onSendMessage: (data: SendMessageData) => void
   onSelectConversation?: (conversationId: string) => void
   isLoading?: boolean
-  typingUsers?: string[]
+  typingUsers?: string[]  // ✅ Array de strings de usuarios escribiendo
 }
 
 export interface ConversationItemProps {

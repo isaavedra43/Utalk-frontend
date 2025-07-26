@@ -1,341 +1,156 @@
-// Componente Inbox responsivo mejorado
-// Optimizado para móviles con touch feedback y swipe
+// Inbox responsivo con adaptación móvil/desktop
+// ✅ EMAIL-FIRST: Layout adaptativo para diferentes pantallas
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { ArrowLeft, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { 
-  Menu, 
-  X, 
-  ChevronLeft
-} from 'lucide-react'
-import { ResponsiveInboxProps } from '../types'
-import ConversationList from './ConversationList'
-import ChatWindow from './ChatWindow'
-import { LazyIAPanel, LazyInfoPanel } from './LazyPanels'
+import { ConversationList } from './ConversationList'
+import { ChatWindow } from './ChatWindow'
 import { useConversations } from '../hooks/useConversations'
-import { useMessages, useSendMessage } from '../hooks/useMessages'
-import { useSocket } from '../hooks/useSocket'
-import { useConversationFilters } from '../hooks/useConversationFilters'
-import { logger } from '@/lib/logger'
+import { useSendMessage } from '../hooks/useMessages'
+import type { ResponsiveInboxProps, SendMessageData } from '../types'
 
-// Estados de la aplicación
-interface ResponsiveInboxState {
-  selectedConversationId: string | undefined
-  activePanel: 'ia' | 'info' | null
-  isMobileMenuOpen: boolean
-  isMobileChatOpen: boolean
-}
+export function ResponsiveInbox({
+  initialConversationId,
+  onSendMessage,
+  onSelectConversation
+}: ResponsiveInboxProps) {
+  const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>(
+    initialConversationId
+  )
+  const [isMobile, setIsMobile] = useState(false)
+  const [showChat, setShowChat] = useState(!!initialConversationId)
 
-export function ResponsiveInbox({ initialConversationId }: ResponsiveInboxProps = {}) {
-  const { conversationId: urlConversationId } = useParams<{ conversationId?: string }>()
-  const navigate = useNavigate()
-  const effectiveConversationId = urlConversationId || initialConversationId
-
-  // Estados locales
-  const [state, setState] = useState<ResponsiveInboxState>({
-    selectedConversationId: effectiveConversationId,
-    activePanel: null,
-    isMobileMenuOpen: false,
-    isMobileChatOpen: false
-  })
-
-  // Hook para filtros sincronizados con URL
-  const { updateFilters } = useConversationFilters()
-
-  // Hooks para datos
-  const {
-    data: conversationsData,
-    refetch: conversationsRefetch,
-  } = useConversations({})
-
+  // ✅ Hooks corregidos - usar datos directamente
   const { 
-    data: messagesData, 
-    isLoading: messagesLoading, 
-    error: messagesError 
-  } = useMessages(state.selectedConversationId || '', 1, 50)
-
-  const { mutate: sendMessage } = useSendMessage()
-
-  // Socket.IO para tiempo real
-  const { isConnected, typingUsers } = useSocket({ 
-    conversationId: state.selectedConversationId,
-    enableTyping: true,
-    enablePresence: true 
-  })
-
-  // Datos procesados
-  const conversations = conversationsData?.conversations || []
-  const messages = messagesData || []
+    data: conversations = [], 
+    isLoading: conversationsLoading, 
+    error: conversationsError 
+  } = useConversations()
   
-  // ✅ Obtener conversación seleccionada
-  const selectedConversation = conversations.find(c => c.id === state.selectedConversationId)
+  const sendMessageMutation = useSendMessage()
 
-  // Handlers para interacción
-  const handleSelectConversation = (conversationId: string) => {
-    setState(prev => ({ 
-      ...prev, 
-      selectedConversationId: conversationId,
-      activePanel: null,
-      isMobileChatOpen: true // Abrir chat en móvil
-    }))
-    
-    // Actualizar URL
-    navigate(`/chat/${conversationId}`)
-  }
-
-  // Lógica para enviar mensaje
-  const handleSendMessage = (content: string, type: any = 'text') => {
-    if (!state.selectedConversationId || !content.trim()) return
-
-    sendMessage({
-      conversationId: state.selectedConversationId,
-      content: content.trim(),
-      recipientEmail: selectedConversation?.contact?.email || '',
-      type
-    })
-  }
-
-  const handleTogglePanel = (panel: 'ia' | 'info') => {
-    setState(prev => ({ 
-      ...prev, 
-      activePanel: prev.activePanel === panel ? null : panel 
-    }))
-  }
-
-  const handleMobileMenuToggle = () => {
-    setState(prev => ({ 
-      ...prev, 
-      isMobileMenuOpen: !prev.isMobileMenuOpen 
-    }))
-  }
-
-  const handleMobileChatClose = () => {
-    setState(prev => ({ 
-      ...prev, 
-      isMobileChatOpen: false 
-    }))
-    navigate('/chat')
-  }
-
-  // Log de mount
+  // Detectar tamaño de pantalla
   useEffect(() => {
-    logger.component('ResponsiveInbox', 'mount', {
-      initialConversationId,
-      urlConversationId,
-      effectiveConversationId,
-      isMobile: window.innerWidth < 768
-    })
-  }, [initialConversationId, urlConversationId, effectiveConversationId])
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    checkScreenSize()
+    window.addEventListener('resize', checkScreenSize)
+    return () => window.removeEventListener('resize', checkScreenSize)
+  }, [])
 
-  return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
-      {/* Lista de conversaciones - Responsivo */}
-      <div className={`
-        ${state.isMobileChatOpen ? 'hidden' : 'flex'}
-        ${state.isMobileMenuOpen ? 'flex' : 'hidden'}
-        md:flex
-        w-full md:w-80 lg:w-96 
-        border-r border-gray-200 dark:border-gray-700 
-        bg-white dark:bg-gray-800
-        flex-col
-      `}>
-        {/* Header móvil */}
-        <div className="md:hidden flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Conversaciones
-          </h1>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleMobileMenuToggle}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X className="w-5 h-5" />
-          </Button>
+  // Encontrar conversación seleccionada
+  const selectedConversation = conversations.find((c: any) => c.id === selectedConversationId)
+
+  const handleSelectConversation = (conversationId: string) => {
+    setSelectedConversationId(conversationId)
+    setShowChat(true)
+    onSelectConversation?.(conversationId)
+  }
+
+  const handleSendMessage = (messageData: SendMessageData) => {
+    sendMessageMutation.mutate(messageData)
+    onSendMessage?.(messageData)
+  }
+
+  const handleBackToList = () => {
+    setShowChat(false)
+    setSelectedConversationId(undefined)
+  }
+
+  // Convertir error a string si existe
+  const errorMessage = conversationsError ? String(conversationsError) : null
+
+  // Vista móvil: mostrar solo lista o solo chat
+  if (isMobile) {
+    if (showChat && selectedConversationId) {
+      return (
+        <div className="flex flex-col h-full bg-white dark:bg-gray-900">
+          {/* Header móvil */}
+          <div className="flex items-center p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBackToList}
+              className="mr-3"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center space-x-3">
+              <MessageCircle className="h-5 w-5 text-gray-500" />
+              <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {selectedConversation?.contact?.name || 'Chat'}
+              </h1>
+            </div>
+          </div>
+
+          {/* Chat completo */}
+          <div className="flex-1">
+            <ChatWindow
+              conversationId={selectedConversationId}
+              onSendMessage={handleSendMessage}
+              onSelectConversation={handleSelectConversation}
+              isLoading={false}
+              typingUsers={[]}
+            />
+          </div>
         </div>
+      )
+    }
 
+    // Vista de lista en móvil
+    return (
+      <div className="h-full">
         <ConversationList
           conversations={conversations}
-          selectedConversationId={state.selectedConversationId}
+          selectedConversationId={selectedConversationId}
           onSelectConversation={handleSelectConversation}
-          filter={{}}
-          onFilterChange={updateFilters}
-          onRefresh={() => conversationsRefetch()}
+          isLoading={conversationsLoading}
+          error={errorMessage}
+        />
+      </div>
+    )
+  }
+
+  // Vista desktop: layout de dos columnas
+  return (
+    <div className="flex h-full bg-gray-100 dark:bg-gray-900">
+      {/* Lista de conversaciones */}
+      <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+        <ConversationList
+          conversations={conversations}
+          selectedConversationId={selectedConversationId}
+          onSelectConversation={handleSelectConversation}
+          isLoading={conversationsLoading}
+          error={errorMessage}
         />
       </div>
 
-      {/* Área principal de chat - Responsivo */}
-      <div className={`
-        ${!state.isMobileChatOpen && !state.selectedConversationId ? 'hidden' : 'flex'}
-        md:flex
-        flex-1 flex-col
-      `}>
-        {/* Header móvil para chat */}
-        {state.selectedConversationId && (
-          <div className="md:hidden flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-            <div className="flex items-center space-x-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleMobileChatClose}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </Button>
-              <span className="text-lg font-medium text-gray-900 dark:text-white">
-                Chat
-              </span>
+      {/* Área de chat */}
+      <div className="flex-1">
+        {selectedConversationId ? (
+          <ChatWindow
+            conversationId={selectedConversationId}
+            onSendMessage={handleSendMessage}
+            onSelectConversation={handleSelectConversation}
+            isLoading={false}
+            typingUsers={[]}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full bg-white dark:bg-gray-800">
+            <div className="text-center">
+              <MessageCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                Selecciona una conversación
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400">
+                Elige una conversación de la lista para comenzar a chatear
+              </p>
             </div>
-            
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleTogglePanel('ia')}
-                className={`px-3 py-1 text-sm rounded transition-colors ${
-                  state.activePanel === 'ia' 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                🤖
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleTogglePanel('info')}
-                className={`px-3 py-1 text-sm rounded transition-colors ${
-                  state.activePanel === 'info' 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                👤
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Chat window */}
-        <div className={`flex-1 ${state.activePanel ? 'mr-80' : ''} transition-all duration-200`}>
-          {state.selectedConversationId ? (
-            <>
-              {/* Header desktop con botones de panel */}
-              <div className="hidden md:flex border-b border-gray-200 bg-white px-4 py-2 justify-end gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleTogglePanel('ia')}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
-                    state.activePanel === 'ia' 
-                      ? 'bg-blue-500 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  🤖 IA
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleTogglePanel('info')}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
-                    state.activePanel === 'info' 
-                      ? 'bg-blue-500 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  👤 Info
-                </Button>
-              </div>
-              
-              <ChatWindow
-                conversationId={state.selectedConversationId}
-                messages={messages}
-                isLoading={messagesLoading}
-                typingUsers={typingUsers}
-                onSendMessage={handleSendMessage}
-              />
-              
-              {Boolean(messagesError) && (
-                <div className="p-4 text-center text-red-600">
-                  Error al cargar mensajes
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center text-gray-500">
-                <div className="text-6xl mb-4">💬</div>
-                <h3 className="text-xl font-medium mb-2">Selecciona una conversación</h3>
-                <p className="text-sm">Elige una conversación de la lista para comenzar a chatear</p>
-                
-                {/* Botón para abrir menú en móvil */}
-                <Button
-                  onClick={handleMobileMenuToggle}
-                  className="mt-4 md:hidden"
-                  variant="outline"
-                >
-                  <Menu className="w-4 h-4 mr-2" />
-                  Ver conversaciones
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Panel lateral derecho - Responsivo */}
-        {state.activePanel && state.selectedConversationId && (
-          <div className={`
-            ${state.isMobileChatOpen ? 'flex' : 'hidden'}
-            md:flex
-            w-full md:w-80 lg:w-96 
-            border-l border-gray-200 bg-white
-            flex-col
-          `}>
-            {state.activePanel === 'ia' && (
-              <LazyIAPanel
-                conversationId={state.selectedConversationId}
-                onSendSuggestion={(suggestion: any) => handleSendMessage(suggestion.content)}
-                onAskAssistant={(query: string) => {
-                  console.log('Consulta IA:', query)
-                }}
-              />
-            )}
-            
-            {state.activePanel === 'info' && (
-              <LazyInfoPanel
-                conversationId={state.selectedConversationId}
-                onUpdateContact={(contactId: string, updates: any) => {
-                  console.log('Actualizar contacto:', { contactId, updates })
-                }}
-                onUpdateConversation={(conversationId: string, updates: any) => {
-                  console.log('Actualizar conversación:', { conversationId, updates })
-                }}
-              />
-            )}
           </div>
         )}
       </div>
-
-      {/* Botón flotante para menú en móvil */}
-      {!state.isMobileChatOpen && (
-        <Button
-          onClick={handleMobileMenuToggle}
-          className="fixed bottom-4 right-4 md:hidden z-50 rounded-full w-14 h-14 shadow-lg"
-          size="lg"
-        >
-          <Menu className="w-6 h-6" />
-        </Button>
-      )}
-
-      {/* Indicador de conexión Socket.IO */}
-      {!isConnected && (
-        <div className="fixed bottom-4 left-4 bg-yellow-500 text-white px-4 py-2 rounded-lg shadow z-50">
-          🔄 Reconectando chat en tiempo real...
-        </div>
-      )}
     </div>
   )
-}
-
-export default ResponsiveInbox 
+} 

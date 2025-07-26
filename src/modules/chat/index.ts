@@ -1,53 +1,65 @@
-// Módulo Chat - Sistema de mensajería y comunicación
-// Exportaciones públicas del módulo para uso en otras partes de la aplicación
-
-// Componente principal
-export { default as Inbox } from './Inbox'
+// Punto de entrada principal del módulo de chat
+// ✅ EMAIL-FIRST: Exportaciones limpias y organizadas
 
 // Componentes principales
-export { default as ConversationList } from './components/ConversationList'
-export { default as ConversationItem } from './components/ConversationItem'
-export { default as MessageList } from './components/MessageList'
-export { default as MessageInput } from './components/MessageInput'
-export { default as MessageBubble } from './components/MessageBubble'
-export { default as ChatWindow } from './components/ChatWindow'
-// Sidebar component removed - functionality unified in ConversationList
-export { default as IAPanel } from './components/IAPanel'
-export { default as InfoPanel } from './components/InfoPanel'
+export { Inbox } from './Inbox'
+
+// Componentes de conversación
+export { ConversationItem } from './components/ConversationItem'
+export { ConversationList } from './components/ConversationList'
+
+// Componentes de chat
+export { ChatWindow } from './components/ChatWindow'
+export { MessageBubble } from './components/MessageBubble'
+export { MessageInput } from './components/MessageInput'
+export { MessageList } from './components/MessageList'
 
 // Componentes de UI
-export { default as Avatar } from './components/Avatar'
-export { default as ChannelBadge } from './components/ChannelBadge'
-export * as LoaderSkeletons from './components/LoaderSkeleton'
+export { Avatar } from './components/Avatar'
+export { ChannelBadge } from './components/ChannelBadge'
+export { InfoPanel } from './components/InfoPanel'
+export { IAPanel } from './components/IAPanel'
+export { ResponsiveInbox } from './components/ResponsiveInbox'
 
-// Tipos específicos
-export type { 
-  Message, 
-  Conversation, 
-  Contact,
+// Hooks
+export { useConversations } from './hooks/useConversations'
+export { useMessages, useSendMessage } from './hooks/useMessages'
+export { useSocket } from './hooks/useSocket'
+export { useConversationData } from './hooks/useConversationData'
+
+// Tipos
+export type {
+  // Tipos principales
   MessageType,
   ChannelType,
+  Message,
+  Conversation,
+  Contact,
   ConversationStatus,
-  ConversationFilter,
-  TypingIndicator,
   SuggestedResponse,
   ConversationSummary,
-  InboxProps,
+  
+  // Filtros y datos
+  ConversationFilter,
+  SendMessageData,
+  User,
+  
+  // Props de componentes
+  AvatarProps,
+  ChannelBadgeProps,
   ChatWindowProps,
+  ConversationItemProps,
   ConversationListProps,
   MessageBubbleProps,
   IAPanelProps,
-  InfoPanelProps
+  InfoPanelProps,
+  InboxProps,
+  ResponsiveInboxProps,
 } from './types'
 
 // Servicios (TODO: Implementar cuando se integre con backend)
 // export { messageService } from './services/messageService'
 // export { conversationService } from './services/conversationService'
-
-// Hooks específicos del módulo (TODO: Implementar)
-// export { useMessages } from './hooks/useMessages'
-// export { useConversations } from './hooks/useConversations'
-// export { useSocket } from './hooks/useSocket'
 
 // Rutas del módulo
 export const CHAT_ROUTES = {

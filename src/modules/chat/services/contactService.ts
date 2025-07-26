@@ -155,7 +155,7 @@ class ContactService {
       email: backendContact.email,
       avatar: backendContact.avatar,
       company: backendContact.company,
-      position: backendContact.position,
+      // position: backendContact.position, // ✅ Eliminado - no existe en CanonicalContact
       status: backendContact.status || 'active',
       source: backendContact.source || 'manual',
       isOnline: backendContact.isOnline || false,

@@ -492,7 +492,7 @@ export interface CampaignEvent {
   campaignId: string
   type: 'created' | 'updated' | 'sent' | 'paused' | 'cancelled' | 'completed' | 'failed'
   timestamp: Date
-  userId: string
+  userEmail: string
   data?: Record<string, any>
   description: string
 }

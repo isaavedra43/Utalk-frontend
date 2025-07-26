@@ -477,7 +477,7 @@ export class ConversationValidator {
       
       if (validation.isValid && validation.data) {
         validConversations.push(validation.data)
-        if (validation.warnings.length > 0) {
+        if (validation.warnings && validation.warnings.length > 0) {
           warnings += validation.warnings.length
           logger.warning(`Conversación ${index + 1} tiene warnings`, { 
             id: conv.id, 
@@ -486,7 +486,7 @@ export class ConversationValidator {
         }
       } else {
         invalidCount++
-        if (validation.errors.some(e => ['id', 'contact', 'status', 'createdAt', 'updatedAt', 'lastMessage', 'assignedTo'].includes(e.field))) {
+        if (validation.errors.some((e: any) => ['id', 'contact', 'status', 'createdAt', 'updatedAt', 'lastMessage', 'assignedTo'].includes(e.field))) {
           criticalErrors++
           logger.error(`❌ Conversación ${index + 1} CRÍTICA - campos obligatorios faltantes`, { 
             id: conv.id, 
@@ -607,12 +607,12 @@ export class ContactValidator {
       email: data.email,
       avatar: data.avatar,
       company: data.company,
-      position: data.position,
+      // position: data.position, // ✅ Eliminado - no existe en CanonicalContact
       status: data.status,
       source: data.source,
       isOnline: data.isOnline ?? false, // ✅ Campo obligatorio agregado
       channel: data.channel || 'whatsapp', // ✅ Campo obligatorio agregado
-      lastSeen: data.lastSeen ? (DataValidator.transformToDate(data.lastSeen, 'lastSeen') || undefined) : undefined,
+      lastSeen: data.lastSeen ? (DataValidator.transformToDate(data.lastSeen, 'lastSeen') || new Date()) : new Date(),
       createdAt: createdAt!,
       updatedAt: updatedAt!,
       lastContactAt: data.lastContactAt ? (DataValidator.transformToDate(data.lastContactAt, 'lastContactAt') || undefined) : undefined,

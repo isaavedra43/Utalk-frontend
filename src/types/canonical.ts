@@ -2,6 +2,23 @@
 // Esta es la fuente de verdad para TODOS los módulos del sistema
 
 /**
+ * 🔍 RESULTADO DE VALIDACIÓN
+ */
+export interface ValidationResult {
+  isValid: boolean
+  errors: Array<{
+    field: string
+    message: string
+    value?: any
+  }>
+  warnings?: Array<{
+    field: string
+    message: string
+    value?: any
+  }>
+}
+
+/**
  * 🎯 MENSAJE CANÓNICO
  * Estructura estricta que DEBE cumplir todo mensaje en UTalk
  */
@@ -14,7 +31,7 @@ export interface CanonicalMessage {
   
   // ✅ REMITENTE OBLIGATORIO
   sender: {
-    id: string                 // ID único del remitente
+    id: string                 // ID único del remitente (EMAIL)
     name: string               // Nombre completo
     type: 'contact' | 'agent' | 'bot' | 'system'  // Tipo estricto
     avatar?: string            // URL del avatar (opcional)
@@ -42,11 +59,11 @@ export interface CanonicalMessage {
   // ✅ METADATOS (OPCIONAL)
   metadata?: {
     twilioSid?: string         // ID de Twilio (si aplica)
-    userId?: string            // ID del usuario que envió
+    userEmail?: string         // EMAIL del usuario que envió
     edited?: boolean           // Si fue editado
     reactions?: Array<{        // Reacciones al mensaje
       emoji: string
-      userId: string
+      userEmail: string        // ✅ EMAIL en lugar de userId
       timestamp: Date
     }>
   }
@@ -80,7 +97,7 @@ export interface CanonicalConversation {
   
   // ✅ ASIGNACIÓN (OPCIONAL)
   assignedTo?: {
-    id: string
+    id: string                 // EMAIL del agente asignado
     name: string
     role: string
     avatar?: string
@@ -118,201 +135,90 @@ export interface CanonicalContact {
   name: string                 // Nombre completo
   phone: string                // Teléfono (formato internacional)
   
-  // ✅ INFORMACIÓN PERSONAL
-  email?: string               // Email (opcional pero común)
+  // ✅ CONTACTO OPCIONAL
+  email?: string               // Email (opcional)
   avatar?: string              // URL del avatar
   
-  // ✅ INFORMACIÓN COMERCIAL
+  // ✅ ESTADO TEMPORAL
+  isOnline: boolean            // Estado en línea
+  lastSeen?: Date              // ✅ Última vez visto (OPCIONAL)
+  
+  // ✅ ORGANIZACIÓN Y METADATOS
   company?: string             // Empresa
-  position?: string            // Cargo
-  
-  // ✅ ESTADO Y CLASIFICACIÓN
-  status: 'active' | 'inactive' | 'blocked' | 'prospect' | 'customer' | 'lead'
-  source: 'manual' | 'import' | 'whatsapp' | 'webchat' | 'api'
-  
-  // ✅ INFORMACIÓN DE CHAT (REQUERIDA PARA UI)
-  isOnline: boolean            // Estado de conexión en tiempo real
-  channel: 'whatsapp' | 'telegram' | 'email' | 'webchat' | 'api' | 'facebook' | 'web' | 'instagram' // Canal de comunicación
-  lastSeen?: Date              // Última vez que estuvo online
-  
-  // ✅ TIMESTAMPS
-  createdAt: Date
-  updatedAt: Date
-  lastContactAt?: Date
-  
-  // ✅ ESTADÍSTICAS
-  totalMessages: number        // Total de mensajes
-  totalConversations: number   // Total de conversaciones
-  averageResponseTime?: number // Tiempo promedio de respuesta (minutos)
-  
-  // ✅ DATOS COMERCIALES
-  value: number                // Valor comercial (0 por default)
-  currency: string             // Moneda (USD, MXN, etc)
-  
-  // ✅ ETIQUETAS Y CLASIFICACIÓN
+  department?: string          // Departamento
   tags: string[]               // Etiquetas del contacto
   
-  // ✅ CAMPOS PERSONALIZADOS (REQUERIDOS PARA UI)
-  customFields?: Record<string, any> // Campos personalizados
-  
-  // ✅ METADATOS
-  metadata?: {
-    preferences?: {
-      language?: string
-      timezone?: string
-      communicationChannel?: string
-    }
-    social?: {
-      linkedin?: string
-      twitter?: string
-      facebook?: string
-    }
-  }
-}
-
-/**
- * 🎯 CAMPAÑA CANÓNICA
- * Estructura para campañas de marketing
- */
-export interface CanonicalCampaign {
-  // ✅ CAMPOS OBLIGATORIOS
-  id: string
-  name: string
-  status: 'draft' | 'scheduled' | 'running' | 'paused' | 'completed' | 'cancelled'
-  type: 'broadcast' | 'drip' | 'triggered' | 'automated'
-  
-  // ✅ CONTENIDO
-  message: {
-    content: string
-    type: CanonicalMessage['type']
-    attachments?: CanonicalMessage['attachments']
-  }
-  
-  // ✅ AUDIENCIA
-  audience: {
-    targetCount: number        // Cantidad objetivo
-    sentCount: number          // Cantidad enviada
-    deliveredCount: number     // Cantidad entregada
-    readCount: number          // Cantidad leída
-    responseCount: number      // Cantidad que respondió
-  }
-  
-  // ✅ PROGRAMACIÓN
-  scheduledAt?: Date           // Cuando está programada
-  startedAt?: Date            // Cuando inició
-  completedAt?: Date          // Cuando terminó
-  
   // ✅ TIMESTAMPS
   createdAt: Date
   updatedAt: Date
   
-  // ✅ CREADOR
-  createdBy: {
-    id: string
-    name: string
-  }
-  
-  // ✅ METADATOS
-  metadata?: {
-    budget?: number
-    cost?: number
-    roi?: number
-    notes?: string
-  }
-}
-
-/**
- * 🎯 USUARIO CANÓNICO
- * Estructura para usuarios del sistema
- */
-export interface CanonicalUser {
-  // ✅ CAMPOS OBLIGATORIOS
-  id: string
-  email: string
-  name: string
-  role: 'admin' | 'manager' | 'agent' | 'viewer'
-  status: 'active' | 'inactive' | 'suspended'
-  
-  // ✅ INFORMACIÓN PERSONAL
-  avatar?: string
-  phone?: string
-  department?: string
+  // ✅ CAMPOS PERSONALIZADOS
+  customFields?: Record<string, any>
   
   // ✅ CONFIGURACIÓN
+  isBlocked: boolean           // Si está bloqueado
   preferences: {
-    language: string           // es, en, etc
-    timezone: string           // America/Mexico_City
-    theme: 'light' | 'dark' | 'auto'
-    notifications: {
-      email: boolean
-      push: boolean
-      desktop: boolean
-    }
+    language: string           // Idioma preferido
+    timezone: string           // Zona horaria
+    notifications: boolean     // Recibe notificaciones
   }
+}
+
+/**
+ * 🎯 USUARIO CANÓNICO EMAIL-FIRST
+ * Estructura estricta para usuarios del sistema
+ */
+export interface CanonicalUser {
+  // ✅ IDENTIFICACIÓN EMAIL-FIRST
+  email: string                // EMAIL como identificador único
+  name: string                 // Nombre completo
   
-  // ✅ PERMISOS
-  permissions: string[]        // Array de permisos específicos
+  // ✅ AUTENTICACIÓN Y AUTORIZACIÓN
+  isActive: boolean            // Usuario activo
+  role: string                 // Rol del usuario
+  permissions: string[]        // Permisos específicos
+  department: string           // Departamento
   
-  // ✅ ESTADÍSTICAS
-  stats: {
-    totalConversations: number
-    totalMessages: number
-    averageResponseTime: number
-    satisfactionRating: number
-    lastActivity: Date
-  }
+  // ✅ INFORMACIÓN OPCIONAL
+  avatar?: string              // URL del avatar
+  phone?: string               // Teléfono
   
   // ✅ TIMESTAMPS
-  createdAt: Date
-  updatedAt: Date
+  createdAt?: Date
+  updatedAt?: Date
   lastLoginAt?: Date
   
-  // ✅ METADATOS
-  metadata?: {
-    onboardingCompleted: boolean
-    trainingCompleted: boolean
-    customFields?: Record<string, any>
+  // ✅ CONFIGURACIÓN
+  preferences?: {
+    language: string
+    timezone: string
+    theme: 'light' | 'dark' | 'system'
+    notifications: boolean
   }
 }
 
 /**
- * 🎯 RESPUESTA DE API CANÓNICA
- * Estructura estándar para todas las respuestas de API
- */
-export interface CanonicalAPIResponse<T> {
-  // ✅ ESTADO OBLIGATORIO
-  success: boolean
-  
-  // ✅ DATOS (si success = true)
-  data?: T
-  
-  // ✅ ERROR (si success = false)
-  error?: {
-    code: string               // ERROR_CODE_STANDARD
-    message: string            // Mensaje legible
-    details?: any              // Detalles adicionales
-    timestamp: Date            // Cuando ocurrió
-  }
-  
-  // ✅ METADATOS DE RESPUESTA
-  meta?: {
-    total?: number             // Total de elementos (para paginación)
-    page?: number              // Página actual
-    limit?: number             // Límite por página
-    hasMore?: boolean          // Si hay más páginas
-    requestId?: string         // ID de la petición
-    responseTime?: number      // Tiempo de respuesta en ms
-  }
-  
-  // ✅ TIMESTAMP
-  timestamp: Date              // Timestamp de la respuesta
-}
-
-/**
- * 🎯 FILTROS CANÓNICOS
- * Estructura estándar para filtros en todas las consultas
+ * 🔄 FILTROS PARA BÚSQUEDAS
  */
 export interface CanonicalFilters {
+  // ✅ EMAIL-FIRST: Filtros por email
+  senderEmail?: string         // Email del remitente
+  recipientEmail?: string      // Email del destinatario
+  assignedToEmail?: string     // Email del agente asignado
+  
+  // ✅ FILTROS TEMPORALES
+  dateFrom?: Date
+  dateTo?: Date
+  
+  // ✅ FILTROS DE ESTADO
+  status?: string[]
+  priority?: string[]
+  channel?: string[]
+  tags?: string[]
+  
+  // ✅ BÚSQUEDA
+  search?: string
+  
   // ✅ PAGINACIÓN
   page?: number
   limit?: number
@@ -320,55 +226,43 @@ export interface CanonicalFilters {
   // ✅ ORDENAMIENTO
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
-  
-  // ✅ BÚSQUEDA
-  search?: string
-  
-  // ✅ FILTROS TEMPORALES
-  dateFrom?: Date
-  dateTo?: Date
-  
-  // ✅ FILTROS ESPECÍFICOS
-  status?: string | string[]
-  tags?: string | string[]
-  assignedTo?: string | string[]
-  
-  // ✅ FILTROS AVANZADOS
-  customFilters?: Record<string, any>
 }
 
 /**
- * 🎯 VALIDACIÓN DE ESTRUCTURA
- * Tipos para el sistema de validación
+ * 📊 RESPUESTAS DE API TIPADAS
  */
-export interface ValidationResult {
-  isValid: boolean
-  errors: Array<{
-    field: string
-    message: string
-    value: any
-  }>
-  warnings: Array<{
-    field: string
-    message: string
-    value: any
-  }>
+export interface CanonicalResponse<T> {
+  data: T
+  success: boolean
+  message?: string
+  errors?: string[]
+  meta?: {
+    total: number
+    page: number
+    limit: number
+    pages: number
+  }
 }
 
-export interface ValidationRule {
-  field: string
-  required: boolean
-  type: 'string' | 'number' | 'boolean' | 'date' | 'array' | 'object'
-  validator?: (value: any) => boolean
-  defaultValue?: any
-  transform?: (value: any) => any
+/**
+ * 🔍 PAGINACIÓN ESTÁNDAR
+ */
+export interface CanonicalPagination {
+  page: number
+  limit: number
+  total: number
+  pages: number
+  hasNext: boolean
+  hasPrev: boolean
 }
 
-// ✅ EXPORTAR TIPOS LEGACY PARA MIGRACIÓN GRADUAL
-export type Message = CanonicalMessage
-export type Conversation = CanonicalConversation
-export type Contact = CanonicalContact
-export type Campaign = CanonicalCampaign
-export type User = CanonicalUser
-export type APIResponse<T> = CanonicalAPIResponse<T>
-export type Filters = CanonicalFilters 
+/**
+ * ⚡ EVENTOS EN TIEMPO REAL EMAIL-FIRST
+ */
+export interface CanonicalSocketEvent {
+  type: string
+  conversationId?: string
+  userEmail: string            // ✅ EMAIL como identificador
+  data: any
+  timestamp: Date
+} 

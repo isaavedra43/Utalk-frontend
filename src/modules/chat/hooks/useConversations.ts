@@ -141,38 +141,4 @@ export function useUnassignConversation() {
       }, 'conversation_unassign_error')
     }
   })
-}
-
-/**
- * ✅ Hook para crear nueva conversación
- */
-export function useCreateConversation() {
-  const queryClient = useQueryClient()
-  const { user } = useAuth()
-
-  return useMutation({
-    mutationFn: conversationService.createConversation,
-    onSuccess: (newConversation) => {
-      // ✅ Invalidar queries de lista
-      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() })
-      
-      // ✅ Agregar a cache
-      queryClient.setQueryData(
-        conversationKeys.detail(newConversation.id),
-        newConversation
-      )
-
-      logger.success('Conversation created successfully', {
-        conversationId: newConversation.id,
-        createdBy: user?.email
-      }, 'conversation_create_success')
-    },
-    onError: (error, variables) => {
-      logger.error('Failed to create conversation', { 
-        variables, 
-        error,
-        createdBy: user?.email 
-      }, 'conversation_create_error')
-    }
-  })
 } 

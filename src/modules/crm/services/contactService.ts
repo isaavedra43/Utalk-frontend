@@ -81,8 +81,8 @@ class ContactService {
   }
 
   // Asignar contacto a usuario
-  async assignContact(contactId: string, userId: string): Promise<Contact> {
-    return apiClient.patch(`${this.baseUrl}/${contactId}/assign`, { userId })
+  async assignContact(contactId: string, userEmail: string): Promise<Contact> {
+    return apiClient.patch(`${this.baseUrl}/${contactId}/assign`, { userEmail })
   }
 
   // Añadir etiquetas a contacto

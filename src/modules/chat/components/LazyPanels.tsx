@@ -1,37 +1,30 @@
-// Componentes lazy para InfoPanel e IAPanel
-// Reduce el bundle size cargando solo cuando se necesitan
+// Lazy loading para paneles de chat
 import { lazy, Suspense } from 'react'
-import { InfoPanelSkeleton, IAPanelSkeleton } from './LoaderSkeleton'
 
-// Lazy load de InfoPanel
-const InfoPanel = lazy(() => import('./InfoPanel').then(module => ({
-  default: module.default
-})))
+const InfoPanel = lazy(() => 
+  import('./InfoPanel').then(module => ({
+    default: module.InfoPanel
+  }))
+)
 
-// Lazy load de IAPanel
-const IAPanel = lazy(() => import('./IAPanel').then(module => ({
-  default: module.default
-})))
+const IAPanel = lazy(() => 
+  import('./IAPanel').then(module => ({
+    default: module.IAPanel
+  }))
+)
 
-// Wrapper para InfoPanel con loading
 export function LazyInfoPanel(props: any) {
   return (
-    <Suspense fallback={<InfoPanelSkeleton />}>
+    <Suspense fallback={<div className="w-80 bg-gray-100 animate-pulse" />}>
       <InfoPanel {...props} />
     </Suspense>
   )
 }
 
-// Wrapper para IAPanel con loading
 export function LazyIAPanel(props: any) {
   return (
-    <Suspense fallback={<IAPanelSkeleton />}>
+    <Suspense fallback={<div className="w-80 bg-gray-100 animate-pulse" />}>
       <IAPanel {...props} />
     </Suspense>
   )
-}
-
-export default {
-  LazyInfoPanel,
-  LazyIAPanel
 } 
