@@ -560,18 +560,16 @@ export const mockSelectedContacts: SelectedContact[] = [
     phone: '+5215512345678',
     email: 'ana@empresa.com',
     company: 'Empresa ABC',
-    position: 'Gerente',
-    status: 'active',
-    source: 'manual',
     isOnline: false, // ✅ Campo obligatorio agregado
-    channel: 'whatsapp', // ✅ Campo obligatorio agregado
     createdAt: new Date('2024-01-15T08:00:00Z'),
     updatedAt: new Date('2024-01-20T15:30:00Z'),
-    totalMessages: 25,
-    totalConversations: 3,
-    value: 5000,
-    currency: 'USD',
     tags: ['cliente', 'premium'],
+    isBlocked: false,
+    preferences: {
+      language: 'es',
+      timezone: 'America/Mexico_City',
+      notifications: true
+    },
     campaignStatus: 'read', // ✅ Campo requerido agregado - ContactCampaignStatus
     sendResult: {
       channel: 'whatsapp', // ✅ Campo obligatorio agregado
@@ -588,17 +586,16 @@ export const mockSelectedContacts: SelectedContact[] = [
     name: 'Carlos López', 
     phone: '+5215587654321',
     email: 'carlos@email.com',
-    status: 'active',
-    source: 'whatsapp',
     isOnline: true, // ✅ Campo obligatorio agregado
-    channel: 'whatsapp', // ✅ Campo obligatorio agregado
     createdAt: new Date('2024-01-10T10:00:00Z'),
     updatedAt: new Date('2024-01-18T14:00:00Z'),
-    totalMessages: 40,
-    totalConversations: 2,
-    value: 2500,
-    currency: 'USD',
     tags: ['lead'],
+    isBlocked: false,
+    preferences: {
+      language: 'es',
+      timezone: 'America/Mexico_City',
+      notifications: false
+    },
     campaignStatus: 'delivered', // ✅ Campo requerido agregado - ContactCampaignStatus
     sendResult: {
       channel: 'whatsapp', // ✅ Campo obligatorio agregado

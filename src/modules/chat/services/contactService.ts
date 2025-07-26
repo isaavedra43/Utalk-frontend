@@ -155,42 +155,24 @@ class ContactService {
       email: backendContact.email,
       avatar: backendContact.avatar,
       company: backendContact.company,
-      // position: backendContact.position, // ✅ Eliminado - no existe en CanonicalContact
-      status: backendContact.status || 'active',
-      source: backendContact.source || 'manual',
+      // source: backendContact.source || 'manual', // ✅ Eliminado - no existe en CanonicalContact
       isOnline: backendContact.isOnline || false,
-      channel: this.inferChannel(backendContact.phone), // Inferir canal desde teléfono
       lastSeen: backendContact.lastSeen ? new Date(backendContact.lastSeen) : undefined,
       createdAt: backendContact.createdAt ? new Date(backendContact.createdAt) : new Date(),
       updatedAt: backendContact.updatedAt ? new Date(backendContact.updatedAt) : new Date(),
-      lastContactAt: backendContact.lastContactAt ? new Date(backendContact.lastContactAt) : undefined,
-      totalMessages: backendContact.totalMessages || 0,
-      totalConversations: backendContact.totalConversations || 0,
-      averageResponseTime: backendContact.averageResponseTime,
-      value: backendContact.value || 0,
-      currency: backendContact.currency || 'USD',
-      tags: backendContact.tags || [],
       customFields: backendContact.customFields || {},
-      metadata: backendContact.metadata
+      tags: backendContact.tags || [],
+      isBlocked: backendContact.isBlocked || false,
+      preferences: {
+        language: backendContact.preferences?.language || 'es',
+        timezone: backendContact.preferences?.timezone || 'America/Mexico_City',
+        notifications: backendContact.preferences?.notifications ?? true
+      }
     }
   }
 
   private mapBackendContacts(backendContacts: any[]): Contact[] {
     return backendContacts.map(contact => this.mapBackendContact(contact))
-  }
-
-  // Inferir canal de comunicación desde el número de teléfono
-  private inferChannel(phone: string): any {
-    // Por defecto, el backend UTalk maneja WhatsApp principalmente
-    // Se puede expandir esta lógica según sea necesario
-    if (phone && phone.includes('whatsapp:')) {
-      return 'whatsapp'
-    }
-    if (phone && phone.includes('@')) {
-      return 'email'
-    }
-    // Por defecto asumimos WhatsApp para números de teléfono
-    return 'whatsapp'
   }
 
   // Método de validación de teléfono (reservado para uso futuro)

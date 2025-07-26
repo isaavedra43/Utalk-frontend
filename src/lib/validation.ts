@@ -608,22 +608,21 @@ export class ContactValidator {
       avatar: data.avatar,
       company: data.company,
       // position: data.position, // ✅ Eliminado - no existe en CanonicalContact
-      status: data.status,
-      source: data.source,
+      // status: data.status, // ✅ Eliminado - no existe en CanonicalContact  
+      // source: data.source, // ✅ Eliminado - no existe en CanonicalContact
       isOnline: data.isOnline ?? false, // ✅ Campo obligatorio agregado
-      channel: data.channel || 'whatsapp', // ✅ Campo obligatorio agregado
       lastSeen: data.lastSeen ? (DataValidator.transformToDate(data.lastSeen, 'lastSeen') || new Date()) : new Date(),
       createdAt: createdAt!,
       updatedAt: updatedAt!,
-      lastContactAt: data.lastContactAt ? (DataValidator.transformToDate(data.lastContactAt, 'lastContactAt') || undefined) : undefined,
-      totalMessages: data.totalMessages ?? 0,
-      totalConversations: data.totalConversations ?? 0,
-      averageResponseTime: data.averageResponseTime,
-      value: data.value ?? 0,
-      currency: data.currency || 'USD',
       tags: Array.isArray(data.tags) ? data.tags : [],
-      customFields: data.customFields,
-      metadata: data.metadata
+      // metadata: data.metadata // ✅ Eliminado - no existe en CanonicalContact
+      // Agregar campos obligatorios
+      isBlocked: false,
+      preferences: {
+        language: 'es',
+        timezone: 'America/Mexico_City', 
+        notifications: true
+      }
     }
     
     logger.info('Contacto validado exitosamente', canonicalContact, 'CONTACT_VALIDATION_SUCCESS')
