@@ -8,9 +8,12 @@ class ApiClient {
   private axiosInstance: AxiosInstance
   
   constructor(baseURL: string) {
-    // ✅ VALIDACIÓN: Prevenir duplicación de /api en URLs
+    // ✅ VALIDACIÓN MEJORADA: Solo advertir si realmente hay duplicación
     if (baseURL.endsWith('/api') && !baseURL.endsWith('/api/')) {
-      console.warn('⚠️ VITE_API_URL ends with /api - endpoints should NOT start with /api to avoid duplication')
+      logger.warn('VITE_API_URL ends with /api - ensure endpoints do not start with /api to avoid duplication', {
+        baseURL,
+        suggestion: 'Use endpoints like /auth/login instead of /api/auth/login'
+      })
     }
     
     this.axiosInstance = axios.create({

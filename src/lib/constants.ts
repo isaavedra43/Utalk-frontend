@@ -100,21 +100,17 @@ export const API_ENDPOINTS = {
     GET: (id: string) => `/knowledge/${id}`,
     UPDATE: (id: string) => `/knowledge/${id}`,
     DELETE: (id: string) => `/knowledge/${id}`,
-    SEARCH: '/knowledge/search'
+    SEARCH: '/knowledge/search',
+    CATEGORIES: '/knowledge/categories',
+    BY_CREATOR: (email: string) => `/knowledge/creator/${encodeURIComponent(email)}`
   },
   
-  // ✅ Permisos y roles por EMAIL
-  PERMISSIONS: {
-    CHECK: (email: string, permission: string) => `/permissions/check/${encodeURIComponent(email)}/${permission}`,
-    LIST: (email: string) => `/permissions/user/${encodeURIComponent(email)}`,
-    UPDATE: (email: string) => `/permissions/user/${encodeURIComponent(email)}`
-  },
-  
-  // ✅ Sistema y configuración
+  // ✅ Sistema y utilidades
   SYSTEM: {
     HEALTH: '/health',
     STATUS: '/status',
-    CONFIG: '/config'
+    CONFIG: '/config',
+    LOGS: '/logs'
   }
 } as const
 
