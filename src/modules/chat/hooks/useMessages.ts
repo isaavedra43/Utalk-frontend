@@ -1,47 +1,77 @@
-// Hook para gestionar mensajes con React Query
-// Conecta con messageService para obtener datos del backend UTalk
+// Hook para gestionar mensajes de chat
+// ✅ ALINEADO CON UID DE FIREBASE + FIRESTORE SYNC
+// Conecta con messageService para obtener datos del backend
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import messageService, { SendMessageData } from '../services/messageService'
+import { messageService, SendMessageData } from '../services/messageService'
 import { logger } from '@/lib/logger'
+import { useAuth } from '@/hooks'
 
-// Claves de query para invalidaciones y cache
+// ✅ ACTUALIZADO: Query keys con contexto UID
 export const messageKeys = {
   all: ['messages'] as const,
   lists: () => [...messageKeys.all, 'list'] as const,
   list: (conversationId: string) => [...messageKeys.lists(), conversationId] as const,
-  search: (query: string) => [...messageKeys.all, 'search', query] as const,
-  stats: () => [...messageKeys.all, 'stats'] as const,
+  bySender: (uid: string) => [...messageKeys.all, 'sender', uid] as const,
+  byRecipient: (uid: string) => [...messageKeys.all, 'recipient', uid] as const,
+  search: (query: string, filters?: any) => [...messageKeys.all, 'search', query, filters] as const,
+  stats: () => [...messageKeys.all, 'stats'] as const
 }
 
-// Hook principal para obtener mensajes de una conversación
+// ✅ ACTUALIZADO: Hook principal con contexto UID
 export function useMessages(conversationId: string, page = 1, limit = 50) {
-  console.log('🎣 useMessages hook called:', { conversationId, page, limit });
+  const { user, isAuthenticated, isAuthReady } = useAuth()
+  
+  console.log('🎣 useMessages hook called with UID context:', { 
+    conversationId, 
+    page, 
+    limit,
+    userUid: user?.uid,
+    userRole: user?.firestoreData?.role
+  });
   
   const result = useQuery({
     queryKey: messageKeys.list(conversationId),
     queryFn: async () => {
-      console.log('🔄 useMessages: Executing queryFn for conversation:', conversationId);
+      console.log('🔄 useMessages: Executing queryFn with UID context:', {
+        conversationId,
+        userUid: user?.uid,
+        userRole: user?.firestoreData?.role
+      });
+      
       const response = await messageService.getMessages(conversationId, page, limit);
-      console.log('📦 useMessages: Service response:', response);
+      
+      console.log('📦 useMessages: Service response with UID context:', {
+        conversationId,
+        messagesCount: response.messages?.length,
+        total: response.total,
+        userUid: user?.uid
+      });
+      
       return response;
     },
-    enabled: !!conversationId,
+    // ✅ Solo ejecutar si usuario está autenticado, auth está listo Y existe en Firestore
+    enabled: !!conversationId && isAuthenticated && isAuthReady && !!user?.syncStatus?.isFirestoreUser,
     staleTime: 30 * 1000, // 30 segundos
     refetchOnWindowFocus: true,
     onSuccess: (data) => {
-      console.log('✅ useMessages: Query success:', {
+      console.log('✅ useMessages: Query success with UID context:', {
         conversationId,
         messagesCount: data.messages?.length,
         total: data.total,
-        firstMessage: data.messages?.[0]
+        userUid: user?.uid,
+        userRole: user?.firestoreData?.role
       });
     },
     onError: (error) => {
-      console.error('❌ useMessages: Query error:', { conversationId, error });
+      console.error('❌ useMessages: Query error:', { 
+        conversationId, 
+        error,
+        userUid: user?.uid
+      });
     }
   })
 
-  // Log del estado del hook
+  // ✅ NUEVO: Log del estado del hook con contexto UID
   console.log('📊 useMessages hook state:', {
     conversationId,
     isLoading: result.isLoading,
@@ -50,128 +80,163 @@ export function useMessages(conversationId: string, page = 1, limit = 50) {
     isSuccess: result.isSuccess,
     dataExists: !!result.data,
     messagesCount: result.data?.messages?.length || 0,
-    error: result.error
+    error: result.error,
+    userUid: user?.uid,
+    userRole: user?.firestoreData?.role,
+    isFirestoreUser: user?.syncStatus?.isFirestoreUser
   });
 
   logger.hook('useMessages', {
-    input: { conversationId, page, limit },
+    input: { 
+      conversationId, 
+      page, 
+      limit,
+      userUid: user?.uid 
+    },
     loading: result.isLoading,
     error: result.error,
     dataLength: result.data?.messages?.length,
     output: result.data ? {
       total: result.data.total,
-      messagesCount: result.data.messages?.length
+      messagesCount: result.data.messages?.length,
+      userContext: {
+        uid: user?.uid,
+        role: user?.firestoreData?.role
+      }
     } : undefined
   })
 
   return result
 }
 
-// Hook para obtener todos los mensajes con filtros
-export function useAllMessages(filters: { search?: string, status?: string } = {}) {
+// ✅ NUEVO: Hook para mensajes por remitente UID
+export function useMessagesBySenderUid(uid: string, page = 1, limit = 50) {
+  const { user, isAuthenticated, isAuthReady } = useAuth()
+
   return useQuery({
-    queryKey: [...messageKeys.lists(), 'all', filters],
-    queryFn: () => messageService.getAllMessages(filters),
-    staleTime: 60 * 1000, // 1 minuto
+    queryKey: messageKeys.bySender(uid),
+    queryFn: async () => {
+      console.log('🔄 useMessagesBySenderUid: Fetching for UID:', uid)
+      return await messageService.getMessagesBySenderUid(uid, page, limit)
+    },
+    enabled: isAuthenticated && isAuthReady && !!user?.syncStatus?.isFirestoreUser && !!uid,
+    staleTime: 2 * 60 * 1000,
+    onSuccess: (data) => {
+      console.log('✅ useMessagesBySenderUid: Success for UID:', {
+        senderUid: uid,
+        messagesCount: data.messages.length
+      })
+    }
   })
 }
 
-// Hook para buscar mensajes
-export function useSearchMessages(query: string) {
+// ✅ NUEVO: Hook para mensajes por destinatario UID
+export function useMessagesByRecipientUid(uid: string, page = 1, limit = 50) {
+  const { user, isAuthenticated, isAuthReady } = useAuth()
+
   return useQuery({
-    queryKey: messageKeys.search(query),
-    queryFn: () => messageService.searchMessages(query),
-    enabled: query.length > 2, // Solo buscar si hay al menos 3 caracteres
-    staleTime: 30 * 1000,
+    queryKey: messageKeys.byRecipient(uid),
+    queryFn: async () => {
+      console.log('🔄 useMessagesByRecipientUid: Fetching for UID:', uid)
+      return await messageService.getMessagesByRecipientUid(uid, page, limit)
+    },
+    enabled: isAuthenticated && isAuthReady && !!user?.syncStatus?.isFirestoreUser && !!uid,
+    staleTime: 2 * 60 * 1000,
+    onSuccess: (data) => {
+      console.log('✅ useMessagesByRecipientUid: Success for UID:', {
+        recipientUid: uid,
+        messagesCount: data.messages.length
+      })
+    }
   })
 }
 
-// Hook para obtener estadísticas de mensajes
-export function useMessageStats() {
-  return useQuery({
-    queryKey: messageKeys.stats(),
-    queryFn: () => messageService.getMessageStats(),
-    staleTime: 5 * 60 * 1000, // 5 minutos
-  })
-}
-
-// Hook para enviar mensaje
+// ✅ ACTUALIZADO: Hook para enviar mensajes con UID
 export function useSendMessage() {
   const queryClient = useQueryClient()
+  const { user } = useAuth()
+  
+  const perfId = logger.startPerformance('send_message_mutation')
 
   const mutation = useMutation({
     mutationFn: (data: SendMessageData) => {
-      const perfId = logger.startPerformance('send_message')
-      logger.info(`Sending message to conversation ${data.conversationId}`, {
-        type: data.type,
-        contentLength: data.content.length,
-        hasMedia: !!data.media
-      }, 'send_message_start')
+      // ✅ CRÍTICO: Auto-agregar UID del remitente si no está presente
+      const enhancedData = {
+        ...data,
+        senderUid: data.senderUid || user?.uid // ✅ Usar UID del usuario actual
+      }
       
-      return messageService.sendMessage(data).then(result => {
-        logger.endPerformance(perfId, `Message sent successfully`)
+      console.log('📤 useSendMessage: Sending with UID context:', {
+        conversationId: enhancedData.conversationId,
+        senderUid: enhancedData.senderUid,
+        recipientUid: enhancedData.recipientUid,
+        contentLength: enhancedData.content.length,
+        userUid: user?.uid
+      })
+      
+      return messageService.sendMessage(enhancedData).then(result => {
+        logger.endPerformance(perfId, `Message sent successfully by UID: ${enhancedData.senderUid}`)
         return result
       })
     },
+    
     onMutate: async (data) => {
-      // Optimistic update - añadir mensaje inmediatamente
+      // ✅ Cancelar queries en vuelo para evitar sobrescritura
       await queryClient.cancelQueries({ queryKey: messageKeys.list(data.conversationId) })
 
+      // ✅ Snapshot del estado anterior
       const previousMessages = queryClient.getQueryData(messageKeys.list(data.conversationId))
 
-      // Crear mensaje optimistic
-      const optimisticMessage = {
-        id: `temp_${Date.now()}`,
-        conversationId: data.conversationId,
-        content: data.content,
-        type: data.type,
-        timestamp: new Date(),
-        sender: {
-          id: 'current-user',
-          name: 'Tú',
-          type: 'agent' as const,
-          avatar: undefined
-        },
-        isRead: false,
-        isDelivered: false,
-        attachments: data.media ? [{
-          id: `temp_media_${Date.now()}`,
-          name: data.media.name || 'Archivo',
-          url: data.media.url,
-          type: data.media.type,
-          size: 0
-        }] : undefined,
-        metadata: {
-          isPending: true
-        }
-      }
+      // ✅ ACTUALIZADO: Actualización optimista con UID
+      queryClient.setQueryData(messageKeys.list(data.conversationId), (old: any) => {
+        if (!old) return old
 
-      // Actualizar query con mensaje optimistic
-      queryClient.setQueryData(
-        messageKeys.list(data.conversationId),
-        (old: any) => {
-          if (!old) return old
-          return {
-            ...old,
-            messages: [...(old.messages || []), optimisticMessage]
+        const optimisticMessage = {
+          id: `temp-${Date.now()}`,
+          conversationId: data.conversationId,
+          content: data.content,
+          type: data.type,
+          timestamp: new Date(),
+          sender: {
+            uid: data.senderUid || user?.uid,  // ✅ UID del remitente
+            id: data.senderUid || user?.uid,   // ✅ Compatibilidad
+            name: user?.firestoreData?.name || user?.displayName || 'Usuario',
+            type: 'agent'
+          },
+          status: 'sending',
+          direction: 'outbound',
+          isRead: false,
+          isDelivered: false,
+          isImportant: false,
+          metadata: { 
+            isPending: true,
+            senderUid: data.senderUid || user?.uid
           }
         }
-      )
 
-      logger.success(`Optimistic message added to conversation ${data.conversationId}`, null, 'optimistic_message')
+        return {
+          ...old,
+          messages: [...(old.messages || []), optimisticMessage],
+          total: (old.total || 0) + 1
+        }
+      })
 
-      return { previousMessages, optimisticMessage }
+      console.log('🔄 useSendMessage: Optimistic update applied with UID:', {
+        conversationId: data.conversationId,
+        senderUid: data.senderUid || user?.uid
+      })
+
+      return { previousMessages }
     },
-    onError: (error, data, context) => {
-      // Revertir optimistic update en caso de error
-      if (context?.previousMessages) {
-        queryClient.setQueryData(messageKeys.list(data.conversationId), context.previousMessages)
-      }
-      
-      logger.error(`Failed to send message to conversation ${data.conversationId}`, error, 'send_message_error')
-    },
+
     onSuccess: (response, data) => {
-      // Actualizar con el mensaje real del backend
+      console.log('✅ useSendMessage: Message sent successfully:', {
+        messageId: response.message.id,
+        conversationId: data.conversationId,
+        senderUid: data.senderUid || user?.uid
+      })
+
+      // ✅ Actualizar con mensaje real del servidor
       queryClient.setQueryData(
         messageKeys.list(data.conversationId),
         (old: any) => {
@@ -187,46 +252,112 @@ export function useSendMessage() {
         }
       )
 
-      // Invalidar lista de conversaciones para actualizar último mensaje
-      queryClient.invalidateQueries({ queryKey: ['conversations'] })
+      // ✅ Invalidar queries relacionadas
+      queryClient.invalidateQueries({ queryKey: messageKeys.list(data.conversationId) })
       
-      logger.success(`Message sent successfully to conversation ${data.conversationId}`, {
-        messageId: response.message?.id,
-        timestamp: response.message?.timestamp
-      }, 'send_message_success')
+      // ✅ Si el remitente es el usuario actual, invalidar sus mensajes
+      if ((data.senderUid || user?.uid) === user?.uid && user?.uid) {
+        queryClient.invalidateQueries({ queryKey: messageKeys.bySender(user.uid) })
+      }
     },
-  })
 
-  // Log del estado de la mutación
-  logger.hook('useSendMessage', {
-    loading: mutation.isPending,
-    error: mutation.error
+    onError: (error, data, context) => {
+      console.error('❌ useSendMessage: Error sending message:', {
+        error,
+        conversationId: data.conversationId,
+        senderUid: data.senderUid || user?.uid
+      })
+
+      // ✅ Revertir actualización optimista
+      if (context?.previousMessages) {
+        queryClient.setQueryData(messageKeys.list(data.conversationId), context.previousMessages)
+      }
+    }
   })
 
   return mutation
 }
 
+// ✅ NUEVO: Hook para búsqueda de mensajes con filtros UID
+export function useSearchMessages(query: string, filters?: {
+  senderUid?: string;
+  recipientUid?: string;
+  conversationId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}) {
+  const { user, isAuthenticated, isAuthReady } = useAuth()
+
+  return useQuery({
+    queryKey: messageKeys.search(query, filters),
+    queryFn: async () => {
+      console.log('🔍 useSearchMessages: Searching with UID filters:', {
+        query,
+        filters,
+        userUid: user?.uid
+      })
+      return await messageService.searchMessages(query, filters)
+    },
+    enabled: isAuthenticated && isAuthReady && !!user?.syncStatus?.isFirestoreUser && !!query && query.length > 2,
+    staleTime: 5 * 60 * 1000,
+    onSuccess: (data) => {
+      console.log('✅ useSearchMessages: Search successful:', {
+        query,
+        filters,
+        messagesCount: data.messages.length,
+        userUid: user?.uid
+      })
+    }
+  })
+}
+
 // Hook para marcar mensaje como leído
 export function useMarkMessageAsRead() {
   const queryClient = useQueryClient()
+  const { user } = useAuth()
 
   return useMutation({
-    mutationFn: (messageId: string) => messageService.markAsRead(messageId),
-    onSuccess: (_, messageId) => {
-      // Actualizar mensajes optimísticamente
-      queryClient.setQueriesData(
-        { queryKey: messageKeys.lists() },
-        (old: any) => {
-          if (!old?.messages) return old
-          return {
-            ...old,
-            messages: old.messages.map((msg: any) =>
-              msg.id === messageId ? { ...msg, isRead: true } : msg
-            )
-          }
-        }
-      )
+    mutationFn: async (messageId: string) => {
+      console.log('🔄 useMarkMessageAsRead: Marking as read:', {
+        messageId,
+        markedByUid: user?.uid
+      })
+      await messageService.markAsRead(messageId)
+      return messageId
     },
+    onSuccess: (messageId) => {
+      console.log('✅ useMarkMessageAsRead: Message marked as read:', {
+        messageId,
+        markedByUid: user?.uid
+      })
+      
+      // Invalidar queries relacionadas
+      queryClient.invalidateQueries({ queryKey: messageKeys.lists() })
+    },
+    onError: (error) => {
+      console.error('❌ useMarkMessageAsRead: Error:', error)
+    }
+  })
+}
+
+// Hook para estadísticas de mensajes
+export function useMessageStats() {
+  const { user, isAuthenticated, isAuthReady } = useAuth()
+
+  return useQuery({
+    queryKey: messageKeys.stats(),
+    queryFn: async () => {
+      console.log('🔄 useMessageStats: Fetching stats for user:', user?.uid)
+      return await messageService.getMessageStats()
+    },
+    enabled: isAuthenticated && isAuthReady && !!user?.syncStatus?.isFirestoreUser,
+    staleTime: 10 * 60 * 1000, // 10 minutos
+    onSuccess: (data) => {
+      console.log('✅ useMessageStats: Success for user:', {
+        userUid: user?.uid,
+        stats: data
+      })
+    }
   })
 }
 

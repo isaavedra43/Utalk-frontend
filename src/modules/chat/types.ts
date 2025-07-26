@@ -24,10 +24,14 @@ export type UserRole = 'admin' | 'agent' | 'viewer'
 export interface ConversationFilter {
   status?: ConversationStatus
   channel?: ChannelType
-  assignedTo?: string
+  assignedTo?: string        // ✅ UID del agente asignado
+  customerUid?: string       // ✅ NUEVO: UID del cliente
+  participantUid?: string    // ✅ NUEVO: UID del participante
   tags?: string[]
   search?: string
   unreadOnly?: boolean
+  dateFrom?: string          // ✅ NUEVO: Fecha desde (ISO string)
+  dateTo?: string            // ✅ NUEVO: Fecha hasta (ISO string)
 }
 
 export interface TypingIndicator {

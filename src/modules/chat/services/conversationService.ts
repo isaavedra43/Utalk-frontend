@@ -1,9 +1,10 @@
 // Servicio para conversaciones - Conecta con API real de UTalk Backend
+// ✅ ALINEADO CON UID DE FIREBASE + FIRESTORE SYNC
 // Abstrae las llamadas a /api/conversations del backend
-// ✅ ALINEADO 100% CON ESTRUCTURA CANÓNICA - Validación obligatoria
 import { apiClient } from '@/services/apiClient'
 import { Conversation, ConversationFilter } from '../types'
 import { ConversationValidator } from '@/lib/validation'
+import { API_ENDPOINTS, FILTER_PARAMS } from '@/lib/constants'
 
 export interface ConversationResponse {
   success: boolean
@@ -21,36 +22,77 @@ export interface SingleConversationResponse {
 class ConversationService {
   private baseUrl = '/conversations'
 
-  // Obtener lista de conversaciones con filtros
+  // ✅ ACTUALIZADO: Obtener lista de conversaciones con filtros usando UID
   async getConversations(filter: ConversationFilter = {}): Promise<ConversationResponse> {
     try {
       const params = new URLSearchParams()
       
-      // Aplicar filtros según el backend UTalk
-      if (filter.status) params.append('status', filter.status)
-      if (filter.assignedTo) params.append('assignedTo', filter.assignedTo)
-      if (filter.search) params.append('search', filter.search)
-      if (filter.unreadOnly) params.append('unreadOnly', 'true')
+      // ✅ CRÍTICO: Usar UID para filtros (no phone ni otros identificadores)
+      if (filter.assignedTo) {
+        params.append(FILTER_PARAMS.CONVERSATIONS.ASSIGNED_TO, filter.assignedTo) // ✅ UID del agente
+      }
+      
+      if (filter.customerUid) {
+        params.append(FILTER_PARAMS.CONVERSATIONS.CUSTOMER_UID, filter.customerUid) // ✅ UID del cliente
+      }
+      
+      if (filter.participantUid) {
+        params.append(FILTER_PARAMS.CONVERSATIONS.PARTICIPANT, filter.participantUid) // ✅ UID participante
+      }
+      
+      if (filter.status) {
+        params.append(FILTER_PARAMS.CONVERSATIONS.STATUS, filter.status)
+      }
+      
+      if (filter.channel) {
+        params.append(FILTER_PARAMS.CONVERSATIONS.CHANNEL, filter.channel)
+      }
+      
+      if (filter.search) {
+        params.append('search', filter.search)
+      }
+      
+      if (filter.unreadOnly) {
+        params.append('unreadOnly', 'true')
+      }
+      
+      if (filter.dateFrom) {
+        params.append(FILTER_PARAMS.CONVERSATIONS.DATE_FROM, filter.dateFrom)
+      }
+      
+      if (filter.dateTo) {
+        params.append(FILTER_PARAMS.CONVERSATIONS.DATE_TO, filter.dateTo)
+      }
       
       const queryString = params.toString()
       const url = queryString ? `${this.baseUrl}?${queryString}` : this.baseUrl
 
-      console.log('🔍 Fetching conversations from:', url)
+      console.log('🔍 Fetching conversations with UID filters:', {
+        url,
+        filters: filter,
+        assignedToUid: filter.assignedTo,
+        customerUid: filter.customerUid
+      })
       
       const response = await apiClient.get(url)
       
       console.log('📥 Raw backend response:', response)
       
-      // ✅ VALIDACIÓN CANÓNICA OBLIGATORIA - Misma que MessageValidator
+      // ✅ VALIDACIÓN CANÓNICA OBLIGATORIA
       const validatedConversations = ConversationValidator.validateBackendResponse(response)
       
       console.log('🛡️ ConversationValidator result:', {
         originalCount: response.conversations?.length || response.data?.length || 0,
         validatedCount: validatedConversations.length,
-        validationPassed: validatedConversations.length > 0
+        validationPassed: validatedConversations.length > 0,
+        uidFiltersApplied: {
+          assignedTo: !!filter.assignedTo,
+          customerUid: !!filter.customerUid,
+          participantUid: !!filter.participantUid
+        }
       })
       
-      // ✅ RETORNAR CONVERSACIONES VALIDADAS - Sin mapeo manual
+      // ✅ RETORNAR CONVERSACIONES VALIDADAS
       return {
         success: response.success || true,
         conversations: validatedConversations,
@@ -67,6 +109,48 @@ class ConversationService {
         return this.getMockConversations()
       }
       
+      throw error
+    }
+  }
+
+  // ✅ NUEVO: Obtener conversaciones asignadas a un UID específico
+  async getConversationsByAssignedUid(uid: string): Promise<ConversationResponse> {
+    try {
+      console.log('🔍 Fetching conversations assigned to UID:', uid)
+      
+      const response = await apiClient.get(API_ENDPOINTS.CONVERSATIONS.BY_ASSIGNED(uid))
+      const validatedConversations = ConversationValidator.validateBackendResponse(response)
+      
+      return {
+        success: true,
+        conversations: validatedConversations,
+        total: validatedConversations.length,
+        page: 1,
+        limit: 50
+      }
+    } catch (error: any) {
+      console.error('❌ Error fetching conversations by assigned UID:', error)
+      throw error
+    }
+  }
+
+  // ✅ NUEVO: Obtener conversaciones donde participa un UID
+  async getConversationsByParticipantUid(uid: string): Promise<ConversationResponse> {
+    try {
+      console.log('🔍 Fetching conversations for participant UID:', uid)
+      
+      const response = await apiClient.get(API_ENDPOINTS.CONVERSATIONS.BY_PARTICIPANT(uid))
+      const validatedConversations = ConversationValidator.validateBackendResponse(response)
+      
+      return {
+        success: true,
+        conversations: validatedConversations,
+        total: validatedConversations.length,
+        page: 1,
+        limit: 50
+      }
+    } catch (error: any) {
+      console.error('❌ Error fetching conversations by participant UID:', error)
       throw error
     }
   }
@@ -89,6 +173,28 @@ class ConversationService {
     }
   }
 
+  // ✅ ACTUALIZADO: Asignar conversación usando UID
+  async assignConversation(conversationId: string, agentUid: string): Promise<void> {
+    console.log('🔄 Assigning conversation to agent UID:', { conversationId, agentUid })
+    
+    await apiClient.put(API_ENDPOINTS.CONVERSATIONS.ASSIGN(conversationId), {
+      assignedTo: agentUid  // ✅ Usa UID en lugar de agentId
+    })
+    
+    console.log('✅ Conversation assigned successfully to UID:', agentUid)
+  }
+
+  // ✅ ACTUALIZADO: Desasignar conversación
+  async unassignConversation(conversationId: string): Promise<void> {
+    console.log('🔄 Unassigning conversation:', conversationId)
+    
+    await apiClient.put(API_ENDPOINTS.CONVERSATIONS.UNASSIGN(conversationId), {
+      assignedTo: null
+    })
+    
+    console.log('✅ Conversation unassigned successfully')
+  }
+
   // Obtener estadísticas de conversaciones
   async getConversationStats(): Promise<any> {
     const response = await apiClient.get(`${this.baseUrl}/stats`)
@@ -98,13 +204,6 @@ class ConversationService {
   // Marcar conversación como leída
   async markAsRead(conversationId: string): Promise<void> {
     await apiClient.put(`${this.baseUrl}/${conversationId}/read`)
-  }
-
-  // Asignar conversación a agente
-  async assignConversation(conversationId: string, agentId: string): Promise<void> {
-    await apiClient.put(`${this.baseUrl}/${conversationId}/assign`, {
-      agentId
-    })
   }
 
   // Cambiar estado de conversación
@@ -119,9 +218,7 @@ class ConversationService {
     await apiClient.delete(`${this.baseUrl}/${conversationId}`)
   }
 
-
-
-  // Datos mock para desarrollo cuando hay problemas de autenticación
+  // ✅ ACTUALIZADO: Datos mock con estructura UID para desarrollo
   private getMockConversations(): ConversationResponse {
     const mockData = [
       {
@@ -140,7 +237,8 @@ class ConversationService {
         channel: 'whatsapp',
         status: 'open',
         assignedTo: {
-          id: 'agent_1',
+          uid: 'firebase_uid_agent_1',        // ✅ UID de Firebase
+          id: 'firebase_uid_agent_1',         // ✅ Compatibilidad
           name: 'Agente Demo',
           avatar: ''
         },
@@ -151,7 +249,8 @@ class ConversationService {
           type: 'text',
           timestamp: new Date(Date.now() - 300000), // 5 minutos atrás
           sender: {
-            id: 'contact_1',
+            uid: 'firebase_uid_contact_1',    // ✅ UID de Firebase
+            id: 'firebase_uid_contact_1',     // ✅ Compatibilidad
             name: 'Juan Pérez',
             type: 'contact'
           },
@@ -180,6 +279,12 @@ class ConversationService {
         },
         channel: 'email',
         status: 'pending',
+        assignedTo: {
+          uid: 'firebase_uid_agent_2',        // ✅ UID de Firebase
+          id: 'firebase_uid_agent_2',         // ✅ Compatibilidad
+          name: 'María Admin',
+          avatar: ''
+        },
         lastMessage: {
           id: 'msg_2',
           conversationId: 'conv_mock_2',
@@ -187,7 +292,8 @@ class ConversationService {
           type: 'text',
           timestamp: new Date(Date.now() - 1800000),
           sender: {
-            id: 'contact_2',
+            uid: 'firebase_uid_contact_2',    // ✅ UID de Firebase
+            id: 'firebase_uid_contact_2',     // ✅ Compatibilidad
             name: 'María García',
             type: 'contact'
           },
@@ -202,17 +308,21 @@ class ConversationService {
       }
     ]
 
-    // ✅ CORRECCIÓN: Usar ConversationValidator para datos mock también
+    // ✅ Usar ConversationValidator para datos mock también
     const validatedMockConversations = ConversationValidator.validateBackendResponse(mockData.map(conv => ({
       ...conv,
-      // Simular la estructura que vendría del backend
       contactId: conv.contact.id,
       lastMessageAt: conv.lastMessage?.timestamp.toISOString(),
       createdAt: conv.createdAt.toISOString(),
       updatedAt: conv.updatedAt.toISOString(),
+      // ✅ CRÍTICO: Asegurar que assignedTo tenga UID
+      assignedTo: conv.assignedTo ? {
+        ...conv.assignedTo,
+        uid: conv.assignedTo.uid || conv.assignedTo.id
+      } : null
     })))
 
-    console.log('🎭 Returning validated mock conversations for development:', validatedMockConversations)
+    console.log('🎭 Returning validated mock conversations with UID structure:', validatedMockConversations)
 
     return {
       success: true,
