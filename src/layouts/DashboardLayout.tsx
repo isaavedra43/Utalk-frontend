@@ -1,22 +1,26 @@
 // Layout principal del dashboard con sidebar y header
 // Estructura base para todas las páginas autenticadas
 import React, { useState } from 'react'
-import { Outlet, Link, useLocation } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
+import { Link, useLocation, Outlet } from 'react-router-dom'
 import { 
-  LayoutDashboard, 
+  Home, 
   MessageSquare, 
   Users, 
+  UserCheck, 
   Megaphone, 
   BookOpen, 
   Settings,
-  Bell,
   Search,
+  Bell,
   User,
+  Sun,
+  Moon,
   ChevronLeft,
-  ChevronRight,
-  UserCheck
+  ChevronRight
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+
+import { useTheme } from '@/hooks/useTheme'
 
 interface DashboardLayoutProps {
   children?: React.ReactNode
@@ -25,7 +29,7 @@ interface DashboardLayoutProps {
 // Configuración de navegación principal
 const navigationItems = [
   {
-    icon: LayoutDashboard,
+    icon: Home,
     label: 'Dashboard',
     href: '/dashboard',
     description: 'Resumen y métricas'
@@ -70,11 +74,16 @@ const navigationItems = [
 ]
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
+  const { theme, setTheme } = useTheme()
   const location = useLocation()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed)
+  }
+
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light')
   }
 
   return (
@@ -106,7 +115,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
             {/* Notificaciones y usuario */}
             <div className="flex items-center space-x-2">
-              <Button variant="ghost" size="sm" className="relative">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                title={theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
+              >
+                {theme === 'light' ? (
+                  <Moon className="h-5 w-5" />
+                ) : (
+                  <Sun className="h-5 w-5" />
+                )}
+              </button>
+
+              <Button variant="ghost" size="sm">
                 <Bell className="w-4 h-4" />
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </Button>
