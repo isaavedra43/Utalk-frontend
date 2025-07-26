@@ -6,12 +6,11 @@ class SocketClient {
   private socket: Socket | null = null
   private isConnected = false
   private eventListeners: Map<string, Set<(data: any) => void>> = new Map()
+  private currentToken: string | null = null
+  private currentUserId: string | null = null
 
   constructor() {
-    // ✅ NO conectar automáticamente - solo cuando hay token
     console.log('🔗 SocketClient initialized - will connect when authenticated')
-    
-    // ✅ Validar variables de entorno de WebSocket
     this.validateWebSocketConfig()
   }
 
@@ -26,11 +25,6 @@ class SocketClient {
       return false
     }
 
-    // ✅ Validar que no use wss:// (Socket.IO maneja el protocolo)
-    if (wsUrl.startsWith('wss://')) {
-      console.warn('⚠️ VITE_WS_URL should use https://, not wss://. Socket.IO will handle the protocol.')
-    }
-
     if (import.meta.env.DEV) {
       console.log('✅ WebSocket configuration validated', {
         wsUrl,
@@ -43,35 +37,34 @@ class SocketClient {
 
   // ✅ Método público para conectar cuando hay token y userId
   public connectWithToken(token: string, userId: string) {
-    if (this.socket?.connected) {
-      console.log('✅ Socket already connected')
-      return
-    }
-
-    console.log('🔗 Connecting to WebSocket with authentication...', {
-      hasToken: !!token,
-      hasUserId: !!userId,
-      tokenLength: token?.length || 0
-    })
-    
-    this.connect(token, userId)
-  }
-
-  // ✅ Conexión con token y userId requeridos (según Backend UTalk)
-  private connect(token?: string, userId?: string) {
-    // Verificar token y userId
-    const authToken = token || localStorage.getItem('auth_token')
-    const authUserId = userId || this.getUserIdFromStorage()
-    
-    if (!authToken || !authUserId) {
-      console.warn('❌ Missing authentication data for WebSocket', {
-        hasToken: !!authToken,
-        hasUserId: !!authUserId
+    // Validar que tenemos token y userId
+    if (!token || !userId) {
+      console.error('❌ Cannot connect socket: Missing token or userId', {
+        hasToken: !!token,
+        hasUserId: !!userId
       })
       return
     }
 
-    // ✅ Validar URL de WebSocket
+    // Desconectar socket anterior si existe
+    if (this.socket) {
+      console.log('🔄 Disconnecting previous socket connection...')
+      this.socket.disconnect()
+      this.socket = null
+      this.isConnected = false
+    }
+
+    console.log('🔗 Conectando al socket con token:', token.substring(0, 20) + '...', 'y userId:', userId)
+    
+    // Guardar credenciales actuales
+    this.currentToken = token
+    this.currentUserId = userId
+    
+    this.connect(token, userId)
+  }
+
+  // ✅ CORREGIDO: Conexión con token JWT en handshake inicial
+  private connect(token: string, userId: string) {
     const wsUrl = import.meta.env.VITE_WS_URL
     if (!wsUrl) {
       console.error('❌ VITE_WS_URL not configured for WebSocket connection')
@@ -80,75 +73,68 @@ class SocketClient {
 
     console.log('🔗 Establishing WebSocket connection...', {
       url: wsUrl,
-      hasToken: !!authToken,
-      hasUserId: !!authUserId,
-      tokenLength: authToken.length
+      hasToken: !!token,
+      hasUserId: !!userId,
+      tokenLength: token.length
     })
     
-    // ✅ Conectar SIN token en auth (el backend UTalk espera evento explícito)
+    // ✅ CRÍTICO: Enviar token JWT en handshake inicial (según documentación oficial)
     this.socket = io(wsUrl, {
-      transports: ['websocket'],
+      auth: {
+        token: token,      // ✅ Token JWT en handshake inicial
+        userId: userId     // ✅ User ID en handshake inicial
+      },
+      transports: ['polling', 'websocket'], // ✅ IMPORTANTE: NO solo 'websocket'
       autoConnect: true,
+      forceNew: true,
+      timeout: 20000,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
     })
 
-    // ✅ Configurar autenticación específica para Backend UTalk
-    this.setupAuthenticationForUTalk(authToken, authUserId)
     this.setupEventListeners()
-  }
-
-  // ✅ Autenticación específica para Backend UTalk
-  private setupAuthenticationForUTalk(token: string, userId: string) {
-    if (!this.socket) return
-
-    // ✅ Emitir evento 'auth' cuando el socket se conecte (según Backend UTalk)
-    this.socket.on('connect', () => {
-      console.log('🔗 Socket connected, emitting auth event...')
-      
-      // ✅ Backend UTalk espera: socket.emit('auth', { token, userId })
-      this.socket!.emit('auth', {
-        token: token,
-        userId: userId
-      })
-      
-      console.log('🔐 Socket auth emitido:', { 
-        token: token.substring(0, 20) + '...', 
-        userId 
-      })
-    })
-
-    // ✅ Escuchar confirmación de autenticación
-    this.socket.on('auth:success', (data) => {
-      console.log('✅ Socket authentication successful:', data)
-      this.isConnected = true
-      this.emit('socket:status', { connected: true })
-      this.emit('socket:auth:success', data)
-    })
-
-    this.socket.on('auth:error', (error) => {
-      console.error('❌ Socket authentication failed:', error)
-      this.emit('socket:auth:error', error)
-    })
-  }
-
-  // ✅ Helper para obtener userId del localStorage
-  private getUserIdFromStorage(): string | null {
-    try {
-      const userData = localStorage.getItem('user_data')
-      if (userData) {
-        const user = JSON.parse(userData)
-        return user?.id || null
-      }
-    } catch (error) {
-      console.warn('Error parsing user data from localStorage:', error)
-    }
-    return null
   }
 
   private setupEventListeners() {
     if (!this.socket) return
 
-    // ✅ El evento 'connect' se maneja en setupAuthenticationForUTalk
-    // Solo agregamos eventos adicionales aquí
+    // ✅ Conexión exitosa
+    this.socket.on('connect', () => {
+      console.log('✅ Socket connected successfully', {
+        socketId: this.socket?.id,
+        hasToken: !!this.currentToken,
+        hasUserId: !!this.currentUserId
+      })
+      this.isConnected = true
+      this.emit('socket:status', { connected: true })
+    })
+
+    // ✅ Manejar autenticación exitosa del backend
+    this.socket.on('authenticated', (data) => {
+      console.log('✅ Socket authentication confirmed by backend:', data)
+      this.emit('socket:auth:success', data)
+    })
+
+    // ✅ Manejar confirmación de autenticación (evento alternativo)
+    this.socket.on('auth:success', (data) => {
+      console.log('✅ Socket authentication successful:', data)
+      this.emit('socket:auth:success', data)
+    })
+
+    // ✅ Manejar error de autenticación del backend
+    this.socket.on('authentication_error', (error) => {
+      console.error('❌ Socket authentication failed:', error)
+      this.emit('socket:auth:error', error)
+      this.disconnectSocket()
+    })
+
+    // ✅ Manejar error de autenticación (evento alternativo)
+    this.socket.on('auth:error', (error) => {
+      console.error('❌ Socket authentication failed:', error)
+      this.emit('socket:auth:error', error)
+      this.disconnectSocket()
+    })
 
     this.socket.on('disconnect', (reason) => {
       console.log('❌ WebSocket desconectado:', reason)
@@ -175,10 +161,12 @@ class SocketClient {
 
     // Eventos de mensajería
     this.socket.on('message:new', (data) => {
+      console.log('📨 New message received via socket:', data)
       this.emit('message:new', data)
     })
 
     this.socket.on('message:read', (data) => {
+      console.log('📖 Message read via socket:', data)
       this.emit('message:read', data)
     })
 
@@ -206,13 +194,28 @@ class SocketClient {
     })
   }
 
+  // ✅ Helper para obtener userId del localStorage
+  private getUserIdFromStorage(): string | null {
+    try {
+      const userData = localStorage.getItem('user_data')
+      if (userData) {
+        const user = JSON.parse(userData)
+        return user?.id || user?.uid || user?.firebaseUid || null
+      }
+    } catch (error) {
+      console.warn('Error parsing user data from localStorage:', error)
+    }
+    return null
+  }
+
   // Emitir evento al servidor
   send(event: string, data: any): void {
     if (!this.socket || !this.isConnected) {
-      console.warn('Socket no conectado, no se puede enviar:', event)
+      console.warn('❌ Socket no conectado, no se puede enviar evento:', event, data)
       return
     }
 
+    console.log('📤 Sending socket event:', event, data)
     this.socket.emit(event, data)
   }
 
@@ -276,19 +279,37 @@ class SocketClient {
   // ✅ Método público para desconectar
   public disconnectSocket() {
     if (this.socket) {
+      console.log('🔗 Disconnecting WebSocket...')
       this.socket.disconnect()
       this.socket = null
       this.isConnected = false
-      console.log('🔗 WebSocket disconnected')
+      this.currentToken = null
+      this.currentUserId = null
+    }
+  }
+
+  // ✅ NUEVO: Reconectar con token válido desde localStorage
+  public reconnectWithAuth() {
+    const token = localStorage.getItem('auth_token')
+    const userId = this.getUserIdFromStorage()
+    
+    if (token && userId) {
+      console.log('🔄 Reconnecting with stored credentials...')
+      this.connectWithToken(token, userId)
+    } else {
+      console.warn('❌ Cannot reconnect: Missing token or userId', {
+        hasToken: !!token,
+        hasUserId: !!userId
+      })
     }
   }
 
   // Reconectar manualmente
   reconnect(): void {
-    if (this.socket) {
+    if (this.socket && this.currentToken && this.currentUserId) {
       this.socket.connect()
     } else {
-      this.connect()
+      this.reconnectWithAuth()
     }
   }
 }
