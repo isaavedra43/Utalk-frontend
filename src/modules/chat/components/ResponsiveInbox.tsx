@@ -103,19 +103,19 @@ export function ResponsiveInbox({
   }
 
   return (
-    <div className="h-screen w-full bg-gray-50 dark:bg-gray-900 flex flex-col">
-      {/* Layout principal - PANTALLA COMPLETA */}
-      <div className="flex h-full w-full flex-1 min-h-0">
+    <div className="h-full w-full bg-gray-50 dark:bg-gray-900 flex flex-col">
+      {/* Layout principal - PANTALLA COMPLETA CORREGIDA */}
+      <div className="flex h-full w-full flex-1">
         
         {/* Panel izquierdo - Lista de conversaciones */}
         <div className={`
           flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700
-          transition-all duration-300 ease-in-out
+          transition-all duration-300 ease-in-out flex flex-col
           ${isMobile && selectedConversationId ? 'hidden' : ''}
           ${isMobile ? 'w-full' : 'w-80 min-w-80'}
         `}>
           {/* Header del panel */}
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Conversaciones
@@ -154,7 +154,7 @@ export function ResponsiveInbox({
           </div>
 
           {/* Lista de conversaciones */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto min-h-0">
             <ConversationList 
               conversations={filteredConversations}
               selectedConversationId={selectedConversationId}
@@ -177,7 +177,7 @@ export function ResponsiveInbox({
             <>
               {/* Botón volver en móvil */}
               {isMobile && (
-                <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0">
                   <Button 
                     variant="ghost" 
                     size="sm"
@@ -192,8 +192,8 @@ export function ResponsiveInbox({
                 </div>
               )}
               
-              {/* Ventana de chat mejorada */}
-              <div className="flex-1 flex flex-col min-h-0">
+              {/* Ventana de chat mejorada - ALTURA COMPLETA SIN CORTES */}
+              <div className="flex-1 flex flex-col min-h-0 h-full">
                 <ChatWindow
                   conversation={selectedConversation}
                   messages={messages}

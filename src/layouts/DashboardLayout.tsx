@@ -76,8 +76,9 @@ export function DashboardLayout() {
 
   // ✅ AUTO-CERRADO DEL SIDEBAR AL NAVEGAR
   useEffect(() => {
-    // Cerrar sidebar automáticamente cuando cambie la ruta
-    setSidebarCollapsed(false)
+    // Colapsar sidebar automáticamente cuando cambie la ruta
+    // sidebarCollapsed = true significa COLAPSADO/CERRADO
+    setSidebarCollapsed(true)
   }, [location.pathname])
 
   const toggleSidebar = () => {
@@ -198,11 +199,11 @@ export function DashboardLayout() {
 
         {/* Contenido principal */}
         <main className={`
-          flex-1 overflow-hidden
+          flex-1 overflow-hidden h-full
           ${location.pathname === '/chat' ? 'p-0' : 'p-6'}
         `}>
           {location.pathname === '/chat' ? (
-            // Para el chat, ocupar toda la pantalla sin padding
+            // Para el chat, ocupar toda la pantalla sin padding y con altura completa
             <div className="h-full w-full">
               <Outlet />
             </div>
