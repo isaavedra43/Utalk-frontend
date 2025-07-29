@@ -1,98 +1,86 @@
 // Tipos específicos del módulo de chat
-// ✅ EMAIL-FIRST: Todos los identificadores usan email
-import type { 
-  CanonicalMessage, 
-  CanonicalConversation, 
-  CanonicalContact 
-} from '@/types/canonical'
+// ✅ REFACTORIZADO: Tipos simplificados sin lógica de filtrado
+import { CanonicalConversation, CanonicalMessage } from '@/types/canonical'
 
-// ✅ Tipos de mensaje y canal
-export type MessageType = 'text' | 'image' | 'file' | 'audio' | 'video' | 'location' | 'sticker'
-export type ChannelType = 'whatsapp' | 'telegram' | 'web' | 'email' | 'sms' | 'voice' | 'webchat' | 'api' | 'facebook' | 'instagram'
+// ✅ Tipo principal de conversación (usando el canónico)
+export type Conversation = CanonicalConversation
 
-// ✅ Tipos adicionales requeridos por componentes
-export interface Message extends CanonicalMessage {}
-export interface Conversation extends CanonicalConversation {}
-export interface Contact extends CanonicalContact {}
-
+// ✅ Tipos de canal y mensaje (simplificados)
+export type ChannelType = 'whatsapp' | 'telegram' | 'facebook' | 'instagram' | 'email' | 'sms' | 'web' | 'api' | 'voice' | 'webchat'
+export type MessageType = 'text' | 'image' | 'file' | 'audio' | 'video' | 'location'
 export type ConversationStatus = 'open' | 'pending' | 'closed' | 'archived'
 
-export interface SuggestedResponse {
-  id: string
-  text: string
-  category: string
-}
+// ✅ Tipos legacy para compatibilidad
+export type Contact = any
+export type Message = CanonicalMessage
 
-export interface ConversationSummary {
-  id: string
-  summary: string
-  sentiment: string
-  topics: string[]
-}
-
-// ✅ Filtro de conversaciones usando EMAIL
-export interface ConversationFilter {
-  assignedTo?: string       // Email del agente asignado
-  customerEmail?: string    // Email del cliente
-  participantEmail?: string // Email del participante
-  status?: ConversationStatus
-  channel?: ChannelType
-  dateFrom?: string        // Fecha desde (ISO string)
-  dateTo?: string          // Fecha hasta (ISO string)
-  search?: string          // Búsqueda de texto
-  limit?: number
-  page?: number
-  unreadOnly?: boolean     // Solo conversaciones no leídas
-  tags?: string[]          // Tags de conversación
-}
-
-// ✅ Datos para envío de mensaje usando EMAIL
-export interface SendMessageData {
-  conversationId: string
-  content: string
-  type?: MessageType
-  senderEmail: string      // ✅ EMAIL como identificador
-  recipientEmail: string   // ✅ EMAIL como identificador
-  timestamp?: Date
-}
-
-// ✅ Props para componentes
-export interface AvatarProps {
-  name?: string
-  src?: string
-  size?: 'sm' | 'md' | 'lg' | 'xl'  // ✅ Incluir 'xl'
-  isOnline?: boolean
-  channel?: ChannelType
-}
-
-export interface ChannelBadgeProps {
-  channel: ChannelType
-  size?: 'sm' | 'md'
-}
-
-export interface ChatWindowProps {
-  conversationId?: string
-  onSendMessage: (data: SendMessageData) => void
+// ✅ Props para componentes principales
+export interface InboxProps {
+  initialConversationId?: string
+  onSendMessage?: (messageData: SendMessageData) => void
   onSelectConversation?: (conversationId: string) => void
-  isLoading?: boolean
-  typingUsers?: string[]  // ✅ Array de strings de usuarios escribiendo
 }
 
-export interface ConversationItemProps {
-  conversation: CanonicalConversation
-  isSelected?: boolean
-  onSelect: (conversationId: string) => void
-  showAvatar?: boolean
+export interface ResponsiveInboxProps {
+  conversations: Conversation[]
+  initialConversationId?: string
+  onSendMessage?: (messageData: SendMessageData) => void
+  onSelectConversation?: (conversationId: string) => void
 }
 
 export interface ConversationListProps {
-  conversations: CanonicalConversation[]
+  conversations: Conversation[]
   selectedConversationId?: string
-  onSelectConversation: (conversationId: string) => void
-  isLoading?: boolean
+  onSelect: (conversationId: string) => void
+  onSelectConversation?: (conversationId: string) => void
+  isLoading: boolean
   error?: string | null
-  filter?: ConversationFilter
-  onFilterChange?: (filter: ConversationFilter) => void
+  searchQuery: string
+  onSearchChange: (query: string) => void
+  filter?: any
+  onFilterChange?: (filter: any) => void
+}
+
+export interface ChatWindowProps {
+  conversation?: Conversation
+  conversationId?: string
+  messages: CanonicalMessage[]
+  isLoading: boolean
+  onSendMessage: (data: SendMessageData) => void
+  currentUserEmail: string
+  typingUsers: TypingIndicator[]
+}
+
+// ✅ Datos para envío de mensajes
+export interface SendMessageData {
+  conversationId: string
+  content: string
+  senderEmail: string
+  recipientEmail?: string
+  type?: MessageType
+  attachments?: File[]
+}
+
+// ✅ Indicador de escritura
+export interface TypingIndicator {
+  userEmail: string
+  userName: string
+}
+
+// ✅ Props para otros componentes (mantenemos los existentes que funcionan)
+export interface AvatarProps {
+  name?: string
+  size?: 'sm' | 'md' | 'lg' | 'xl'
+  src?: string
+  isOnline?: boolean
+  channel?: string
+}
+
+export interface ConversationItemProps {
+  conversation: Conversation
+  isSelected?: boolean
+  onSelect: (conversationId: string) => void
+  showAvatar?: boolean
 }
 
 export interface MessageBubbleProps {
@@ -102,44 +90,17 @@ export interface MessageBubbleProps {
   isGrouped?: boolean
 }
 
+// ✅ Props para paneles
 export interface IAPanelProps {
   conversationId?: string
-  summary?: string
-  suggestions?: string[]
   onSendSuggestion?: (suggestion: string) => void
   onAskAssistant?: (question: string) => void
 }
 
 export interface InfoPanelProps {
+  conversation?: Conversation
   conversationId?: string
-  contact?: CanonicalContact
-  conversation?: CanonicalConversation
-  onUpdateContact?: (contact: Partial<CanonicalContact>) => void
-  onUpdateConversation?: (conversation: Partial<CanonicalConversation>) => void
-}
-
-export interface InboxProps {
-  initialConversationId?: string
-  onSendMessage?: (data: SendMessageData) => void
-  onSelectConversation?: (conversationId: string) => void
-}
-
-export interface ResponsiveInboxProps {
-  initialConversationId?: string
-  onSendMessage?: (data: SendMessageData) => void
-  onSelectConversation?: (conversationId: string) => void
-}
-
-// ✅ Usuario simplificado EMAIL-FIRST
-export interface User {
-  email: string            // ✅ Identificador principal
-  name: string
-  permissions: string[]
-  department: string
-  isActive: boolean
-  role?: string
-  avatar?: string
-  phone?: string
-  createdAt?: string
-  updatedAt?: string
+  contact?: any
+  onUpdateContact?: (contact: any) => void
+  onUpdateConversation?: (conversation: any) => void
 } 

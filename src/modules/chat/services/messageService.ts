@@ -1,22 +1,11 @@
 // Servicio para el manejo de mensajes
-// ✅ EMAIL-FIRST: Todos los identificadores usan email
+// ✅ BACKEND PROPIO CON JWT - USA EMAIL COMO IDENTIFICADOR
 import { apiClient } from '@/services/apiClient'
 import { logger } from '@/lib/logger'
 import { MessageValidator } from '@/lib/validation'
 import { API_ENDPOINTS, FILTER_PARAMS } from '@/lib/constants'
-import type { 
-  CanonicalMessage 
-} from '@/types/canonical'
-
-// ✅ Estructura para envío de mensajes usando EMAIL
-export interface SendMessageData {
-  conversationId: string
-  content: string
-  type?: 'text' | 'image' | 'file' | 'audio' | 'video' | 'location' | 'sticker'
-  senderEmail: string    // ✅ EMAIL como identificador
-  recipientEmail: string // ✅ EMAIL como identificador
-  timestamp?: Date
-}
+import type { CanonicalMessage } from '@/types/canonical'
+import type { SendMessageData } from '../types'
 
 /**
  * ✅ Servicio singleton para mensajes usando EMAIL como identificador
@@ -103,7 +92,6 @@ class MessageService {
       // ✅ Preparar payload con email
       const payload = {
         ...messageData,
-        timestamp: messageData.timestamp || new Date()
       }
 
       const response = await apiClient.post(

@@ -1,156 +1,86 @@
 // Inbox responsivo con adaptación móvil/desktop
-// ✅ EMAIL-FIRST: Layout adaptativo para diferentes pantallas
-import { useState, useEffect } from 'react'
-import { ArrowLeft, MessageCircle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+// ✅ REFACTORIZADO: Sin lógica de filtrado, solo renderizado
+import { useState, useMemo } from 'react'
 import { ConversationList } from './ConversationList'
 import { ChatWindow } from './ChatWindow'
-import { useConversations } from '../hooks/useConversations'
-import { useSendMessage } from '../hooks/useMessages'
-import type { ResponsiveInboxProps, SendMessageData } from '../types'
+import { useAuth } from '@/contexts/AuthContext'
+import { useMessages, useSendMessage } from '../hooks/useMessages'
+import type { 
+  ResponsiveInboxProps, 
+  SendMessageData, 
+} from '../types'
 
-export function ResponsiveInbox({
-  initialConversationId,
-  onSendMessage,
-  onSelectConversation
+export function ResponsiveInbox({ 
+  conversations,
+  initialConversationId, 
+  onSendMessage: onSendMessageProp,
+  onSelectConversation: onSelectConversationProp,
 }: ResponsiveInboxProps) {
-  const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>(
-    initialConversationId
-  )
-  const [isMobile, setIsMobile] = useState(false)
-  const [showChat, setShowChat] = useState(!!initialConversationId)
-
-  // ✅ Hooks corregidos - usar datos directamente
-  const { 
-    data: conversations = [], 
-    isLoading: conversationsLoading, 
-    error: conversationsError 
-  } = useConversations()
+  const { user } = useAuth()
+  const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>(initialConversationId)
+  const [searchQuery, setSearchQuery] = useState('')
   
+  const {
+    data: messages = [],
+    isLoading: messagesLoading,
+  } = useMessages(selectedConversationId)
+
   const sendMessageMutation = useSendMessage()
-
-  // Detectar tamaño de pantalla
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 768)
-    }
-    
-    checkScreenSize()
-    window.addEventListener('resize', checkScreenSize)
-    return () => window.removeEventListener('resize', checkScreenSize)
-  }, [])
-
-  // Encontrar conversación seleccionada
-  const selectedConversation = conversations.find((c: any) => c.id === selectedConversationId)
+  
+  const handleSendMessage = (messageData: SendMessageData) => {
+    sendMessageMutation.mutate(messageData)
+    onSendMessageProp?.(messageData)
+  }
 
   const handleSelectConversation = (conversationId: string) => {
     setSelectedConversationId(conversationId)
-    setShowChat(true)
-    onSelectConversation?.(conversationId)
+    onSelectConversationProp?.(conversationId)
   }
 
-  const handleSendMessage = (messageData: SendMessageData) => {
-    sendMessageMutation.mutate(messageData)
-    onSendMessage?.(messageData)
-  }
-
-  const handleBackToList = () => {
-    setShowChat(false)
-    setSelectedConversationId(undefined)
-  }
-
-  // Convertir error a string si existe
-  const errorMessage = conversationsError ? String(conversationsError) : null
-
-  // Vista móvil: mostrar solo lista o solo chat
-  if (isMobile) {
-    if (showChat && selectedConversationId) {
-      return (
-        <div className="flex flex-col h-full bg-white dark:bg-gray-900">
-          {/* Header móvil */}
-          <div className="flex items-center p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleBackToList}
-              className="mr-3"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div className="flex items-center space-x-3">
-              <MessageCircle className="h-5 w-5 text-gray-500" />
-              <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                {selectedConversation?.contact?.name || 'Chat'}
-              </h1>
-            </div>
-          </div>
-
-          {/* Chat completo */}
-          <div className="flex-1">
-            <ChatWindow
-              conversationId={selectedConversationId}
-              onSendMessage={handleSendMessage}
-              onSelectConversation={handleSelectConversation}
-              isLoading={false}
-              typingUsers={[]}
-            />
-          </div>
-        </div>
-      )
-    }
-
-    // Vista de lista en móvil
-    return (
-      <div className="h-full">
-        <ConversationList
-          conversations={conversations}
-          selectedConversationId={selectedConversationId}
-          onSelectConversation={handleSelectConversation}
-          isLoading={conversationsLoading}
-          error={errorMessage}
-        />
-      </div>
+  // Búsqueda local sobre las conversaciones recibidas
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery) return conversations
+    const lowercasedQuery = searchQuery.toLowerCase()
+    return conversations.filter((conv) => 
+      conv.contact?.name?.toLowerCase().includes(lowercasedQuery) ||
+      conv.lastMessage?.content?.toLowerCase().includes(lowercasedQuery)
     )
-  }
+  }, [conversations, searchQuery])
 
-  // Vista desktop: layout de dos columnas
+  const selectedConversation = useMemo(() => {
+    return conversations.find(c => c.id === selectedConversationId)
+  }, [conversations, selectedConversationId])
+
   return (
-    <div className="flex h-full bg-gray-100 dark:bg-gray-900">
-      {/* Lista de conversaciones */}
-      <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+    <div className="flex h-full w-full bg-white dark:bg-gray-800">
+      <aside className={`w-full md:w-1/3 lg:w-1/4 border-r border-gray-200 dark:border-gray-700 flex flex-col ${selectedConversationId ? 'hidden md:flex' : 'flex'}`}>
         <ConversationList
-          conversations={conversations}
+          conversations={filteredConversations}
           selectedConversationId={selectedConversationId}
-          onSelectConversation={handleSelectConversation}
-          isLoading={conversationsLoading}
-          error={errorMessage}
+          onSelect={handleSelectConversation}
+          isLoading={false}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
         />
-      </div>
-
-      {/* Área de chat */}
-      <div className="flex-1">
-        {selectedConversationId ? (
+      </aside>
+      
+      <main className={`w-full md:w-2/3 lg:w-3/4 flex flex-col ${!selectedConversationId ? 'hidden md:flex' : 'flex'}`}>
+        {selectedConversation ? (
           <ChatWindow
-            conversationId={selectedConversationId}
+            conversation={selectedConversation}
+            messages={messages}
+            isLoading={messagesLoading}
             onSendMessage={handleSendMessage}
-            onSelectConversation={handleSelectConversation}
-            isLoading={false}
-            typingUsers={[]}
+            currentUserEmail={user?.email || ''}
+            typingUsers={[]} // Placeholder for typing users
           />
         ) : (
-          <div className="flex items-center justify-center h-full bg-white dark:bg-gray-800">
-            <div className="text-center">
-              <MessageCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                Selecciona una conversación
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400">
-                Elige una conversación de la lista para comenzar a chatear
-              </p>
-            </div>
+          <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
+            <h2 className="text-xl font-medium">Selecciona una conversación</h2>
+            <p>Elige una conversación de la lista para ver los mensajes.</p>
           </div>
         )}
-      </div>
+      </main>
     </div>
   )
 } 

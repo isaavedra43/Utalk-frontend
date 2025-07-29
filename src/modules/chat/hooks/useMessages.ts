@@ -1,9 +1,10 @@
 // Hook para gestión de mensajes
 // ✅ EMAIL-FIRST: Todos los identificadores usan email
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { messageService, SendMessageData } from '../services/messageService'
+import { messageService } from '../services/messageService'
 import { useAuth } from '@/contexts/AuthContext'
 import { logger } from '@/lib/logger'
+import type { SendMessageData } from '../types'
 
 // ✅ Query keys usando EMAIL
 export const messageKeys = {
@@ -17,12 +18,15 @@ export const messageKeys = {
 /**
  * ✅ Hook para obtener mensajes de una conversación
  */
-export function useMessages(conversationId: string) {
+export function useMessages(conversationId?: string) {
   const { user } = useAuth()
   
   return useQuery({
-    queryKey: messageKeys.conversations(conversationId),
-    queryFn: () => messageService.getMessages(conversationId),
+    queryKey: messageKeys.conversations(conversationId || 'none'),
+    queryFn: () => {
+      if (!conversationId) return []
+      return messageService.getMessages(conversationId)
+    },
     enabled: !!conversationId && !!user?.email && !!user?.isActive,
     staleTime: 1000 * 30, // 30 segundos
     refetchOnWindowFocus: true,
@@ -70,12 +74,11 @@ export function useSendMessage() {
   const { user } = useAuth()
 
   return useMutation({
-    mutationFn: (messageData: Omit<SendMessageData, 'senderEmail'> & { senderEmail?: string }) => {
-      // ✅ Auto-incluir email del usuario autenticado
+    mutationFn: (messageData: SendMessageData) => {
+      // ✅ Auto-incluir email del usuario autenticado si no está presente
       const completeMessageData: SendMessageData = {
         ...messageData,
         senderEmail: messageData.senderEmail || user?.email || '',
-        timestamp: new Date()
       }
       
       return messageService.sendMessage(completeMessageData)
@@ -96,7 +99,6 @@ export function useSendMessage() {
         recipientPhone: messageData.recipientEmail,
         content: messageData.content,
         type: messageData.type || 'text',
-        timestamp: new Date(),
         status: 'sending' as const,
         isOptimistic: true
       }
@@ -121,7 +123,7 @@ export function useSendMessage() {
 
       // ✅ Invalidar queries relacionadas
       queryClient.invalidateQueries({ queryKey: messageKeys.bySender(user?.email || '') })
-      queryClient.invalidateQueries({ queryKey: messageKeys.byRecipient(variables.recipientEmail) })
+      queryClient.invalidateQueries({ queryKey: messageKeys.byRecipient(variables.recipientEmail ?? '') })
 
       logger.success('Message sent successfully', {
         messageId: sentMessage.id,

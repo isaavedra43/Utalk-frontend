@@ -1,30 +1,29 @@
-// Ventana principal de chat con mensajes y envío
-// ✅ EMAIL-FIRST: Componente alineado con backend
-import React, { useState, useRef, useEffect } from 'react'
-import { Send, Paperclip, Smile, MoreVertical } from 'lucide-react'
+// Ventana de chat principal
+import { useState, useRef, useEffect } from 'react'
+import { Send, Smile, Paperclip, MoreVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { MessageBubble } from './MessageBubble'
 import { Avatar } from './Avatar'
 import { ChannelBadge } from './ChannelBadge'
-import { useMessages } from '../hooks/useMessages'
-import { useConversationData } from '../hooks/useConversationData'
+import { MessageBubble } from './MessageBubble'
 import { useAuth } from '@/contexts/AuthContext'
 import type { ChatWindowProps, SendMessageData } from '../types'
 import type { CanonicalMessage } from '@/types/canonical'
 
 export function ChatWindow({
-  conversationId,
-  onSendMessage,
+  conversation,
+  messages,
   isLoading,
+  onSendMessage,
   typingUsers = []
 }: ChatWindowProps) {
   const [messageText, setMessageText] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
   const { user } = useAuth()
-  const { data: messages = [] } = useMessages(conversationId || '')
-  const { conversation: conversationData } = useConversationData(conversationId || '')
+  
+  const conversationId = conversation?.id
+  const conversationData = conversation
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -43,7 +42,6 @@ export function ChatWindow({
       type: 'text',
       senderEmail: user.email,
       recipientEmail: conversationData?.contact?.email || '',
-      timestamp: new Date()
     }
 
     onSendMessage(messageData)

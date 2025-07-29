@@ -1,5 +1,5 @@
 // Punto de entrada principal del módulo de chat
-// ✅ EMAIL-FIRST: Exportaciones limpias y organizadas
+// ✅ REFACTORIZADO: Exportaciones limpias y simplificadas
 
 // Componentes principales
 export { Inbox } from './Inbox'
@@ -25,41 +25,26 @@ export { ResponsiveInbox } from './components/ResponsiveInbox'
 export { useConversations } from './hooks/useConversations'
 export { useMessages, useSendMessage } from './hooks/useMessages'
 export { useSocket } from './hooks/useSocket'
-export { useConversationData } from './hooks/useConversationData'
 
 // Tipos
 export type {
   // Tipos principales
+  Conversation,
   MessageType,
   ChannelType,
-  Message,
-  Conversation,
-  Contact,
   ConversationStatus,
-  SuggestedResponse,
-  ConversationSummary,
-  
-  // Filtros y datos
-  ConversationFilter,
   SendMessageData,
-  User,
+  TypingIndicator,
   
   // Props de componentes
-  AvatarProps,
-  ChannelBadgeProps,
-  ChatWindowProps,
-  ConversationItemProps,
-  ConversationListProps,
-  MessageBubbleProps,
-  IAPanelProps,
-  InfoPanelProps,
   InboxProps,
   ResponsiveInboxProps,
+  ConversationListProps,
+  ChatWindowProps,
+  ConversationItemProps,
+  MessageBubbleProps,
+  AvatarProps,
 } from './types'
-
-// Servicios (TODO: Implementar cuando se integre con backend)
-// export { messageService } from './services/messageService'
-// export { conversationService } from './services/conversationService'
 
 // Rutas del módulo
 export const CHAT_ROUTES = {

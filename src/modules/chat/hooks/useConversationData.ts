@@ -1,5 +1,5 @@
 // Hook para obtener datos específicos de conversación y contacto
-// Usado por ChatWindow e InfoPanel para obtener datos reales del backend
+// ✅ REFACTORIZADO: Sin lógica de filtrado
 import { useQuery } from '@tanstack/react-query'
 import { conversationService } from '../services/conversationService'
 
@@ -9,8 +9,8 @@ export function useConversationData(conversationId?: string) {
     queryFn: async () => {
       if (!conversationId) return null
       
-      // Como no tenemos getConversation individual, buscar por filtros
-      const conversations = await conversationService.getConversations({ search: conversationId })
+      // Obtener todas las conversaciones y buscar la específica
+      const conversations = await conversationService.getConversations()
       return conversations.find(c => c.id === conversationId) || null
     },
     enabled: !!conversationId,
