@@ -195,52 +195,38 @@ class ConversationService {
         })
       }
 
-      // ✅ CORREGIDO: Priorizar response.data.data como estructura principal
+      // ✅ CORREGIDO: Buscar en response.data.data que es donde realmente está el array
       let conversations: any = []
 
-      // PRIORIDAD 1: { data: { data: [...] } } - ESTRUCTURA PRINCIPAL
+      // PRIORIDAD 1: { success: true, data: [...] } - TU ESTRUCTURA REAL
       if (Array.isArray(response.data?.data)) {
         conversations = response.data.data
-        console.log('✅ [DEBUG] Using PRIMARY structure: response.data.data')
+        console.log('✅ [DEBUG] Using CORRECT structure: response.data.data')
         if (process.env.NODE_ENV === 'development') {
-          console.log('✅ [DEBUG] Detected nested data format (PRIMARY)')
+          console.log('✅ [DEBUG] Detected correct backend format: response.data.data')
         }
-      } 
-      // PRIORIDAD 2: Array directo en data
+      }
+      // PRIORIDAD 2: Array directo en data (fallback)
       else if (Array.isArray(response.data)) {
         conversations = response.data
         console.log('✅ [DEBUG] Using FALLBACK structure: response.data (direct array)')
         if (process.env.NODE_ENV === 'development') {
           console.log('✅ [DEBUG] Detected direct array format (FALLBACK)')
         }
-      } 
-      // PRIORIDAD 3: { data: { conversations: [...] } }
+      }
+      // PRIORIDAD 3: Otros formatos alternativos
       else if (Array.isArray(response.data?.conversations)) {
         conversations = response.data.conversations
-        console.log('✅ [DEBUG] Using LEGACY structure: response.data.conversations')
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ [DEBUG] Detected nested conversations format (LEGACY)')
-        }
-      } 
-      // PRIORIDAD 4: Otros formatos alternativos
-      else if (Array.isArray(response.data?.results)) {
+        console.log('✅ [DEBUG] Using ALT structure: response.data.conversations')
+      } else if (Array.isArray(response.data?.results)) {
         conversations = response.data.results
         console.log('✅ [DEBUG] Using ALT structure: response.data.results')
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ [DEBUG] Detected results format (ALT)')
-        }
       } else if (Array.isArray(response.data?.items)) {
         conversations = response.data.items
         console.log('✅ [DEBUG] Using ALT structure: response.data.items')
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ [DEBUG] Detected items format (ALT)')
-        }
       } else if (Array.isArray(response.data?.list)) {
         conversations = response.data.list
         console.log('✅ [DEBUG] Using ALT structure: response.data.list')
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ [DEBUG] Detected list format (ALT)')
-        }
       } else {
         // ÚLTIMO RECURSO: Búsqueda dinámica
         if (response.data && typeof response.data === 'object') {
@@ -248,9 +234,6 @@ class ConversationService {
             if (Array.isArray(response.data[key])) {
               conversations = response.data[key]
               console.log(`✅ [DEBUG] Using DYNAMIC structure: response.data.${key}`)
-              if (process.env.NODE_ENV === 'development') {
-                console.log(`✅ [DEBUG] Found array in property: ${key} (DYNAMIC)`)
-              }
               break
             }
           }
