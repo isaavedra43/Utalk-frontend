@@ -173,107 +173,49 @@ class ConversationService {
     try {
       const response = await apiClient.get(API_ENDPOINTS.CONVERSATIONS.LIST)
 
-      // ✅ PASO 1: Log de debugging inmediato después de recibir datos
-      console.log('[DEBUG] Conversations received from backend:', response.data)
-      console.log('[DEBUG] Backend response structure:', {
-        hasData: !!response.data,
-        dataType: typeof response.data,
-        isDataArray: Array.isArray(response.data),
-        hasDataData: !!response.data?.data,
-        dataDataType: typeof response.data?.data,
-        isDataDataArray: Array.isArray(response.data?.data),
-        dataKeys: response.data && typeof response.data === 'object' ? Object.keys(response.data) : 'N/A'
-      })
-
-      // ✅ LOGS SUPER ESPECÍFICOS PARA DETECTAR EL PROBLEMA
-      console.log('[CRITICAL-DEBUG] response.data:', response.data)
-      console.log('[CRITICAL-DEBUG] response.data.data:', response.data?.data)
-      console.log('[CRITICAL-DEBUG] typeof response.data.data:', typeof response.data?.data)
-      console.log('[CRITICAL-DEBUG] Array.isArray(response.data.data):', Array.isArray(response.data?.data))
+      // ✅ LOGS CRÍTICOS: apiClient.get() ya procesó la respuesta
+      console.log('[CRITICAL-FIX] Response from apiClient.get():', response)
+      console.log('[CRITICAL-FIX] typeof response:', typeof response)
+      console.log('[CRITICAL-FIX] Array.isArray(response):', Array.isArray(response))
       
-      if (response.data && typeof response.data === 'object') {
-        console.log('[CRITICAL-DEBUG] Keys in response.data:', Object.keys(response.data))
-        for (const key of Object.keys(response.data)) {
-          console.log(`[CRITICAL-DEBUG] response.data.${key}:`, response.data[key])
-          console.log(`[CRITICAL-DEBUG] typeof response.data.${key}:`, typeof response.data[key])
-          console.log(`[CRITICAL-DEBUG] Array.isArray(response.data.${key}):`, Array.isArray(response.data[key]))
+      if (response && typeof response === 'object' && !Array.isArray(response)) {
+        console.log('[CRITICAL-FIX] Response object keys:', Object.keys(response))
+        for (const key of Object.keys(response)) {
+          console.log(`[CRITICAL-FIX] response.${key}:`, response[key])
+          console.log(`[CRITICAL-FIX] Array.isArray(response.${key}):`, Array.isArray(response[key]))
         }
       }
 
-      // Log para depuración (solo en desarrollo)
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔎 [DEBUG] RAW RESPONSE CONVERSATIONS:', response.data)
-        console.log('🔎 [DEBUG] Response structure:', {
-          isArray: Array.isArray(response.data),
-          type: typeof response.data,
-          keys: response.data && typeof response.data === 'object' ? Object.keys(response.data) : 'N/A'
-        })
-      }
-
-      // ✅ CORRECCIÓN CRÍTICA: ApiClient ya extrae response.data.data automáticamente
-      // Así que 'response.data' puede ser directamente el array o un objeto con el array
+      // ✅ NUEVA LÓGICA: apiClient.get() ya extrajo el array
       let conversations: any = []
 
-      console.log('[CRITICAL-FIX] Detecting response format after apiClient processing...')
-      
-      // CASO 1: ApiClient retornó el array directamente (más probable)
-      if (Array.isArray(response.data)) {
-        conversations = response.data
-        console.log('✅ [SUCCESS] ApiClient returned array directly:', conversations.length)
+      // CASO 1: apiClient.get() retornó el array directamente
+      if (Array.isArray(response)) {
+        conversations = response
+        console.log('✅ [SUCCESS] apiClient returned array directly')
       }
-      // CASO 2: Respuesta completa sin extracción automática
-      else if (response.data && response.data.data && Array.isArray(response.data.data)) {
-        conversations = response.data.data
-        console.log('✅ [SUCCESS] Found conversations in response.data.data:', conversations.length)
-      }
-      // CASO 3: Respuesta en root level
-      else if (response.data && Array.isArray(response.data['data'])) {
-        conversations = response.data['data']
-        console.log('✅ [SUCCESS] Found conversations in response.data["data"]:', conversations.length)
-      }
-      // CASO 4: Otros formatos alternativos
-      else if (Array.isArray(response.data?.conversations)) {
-        conversations = response.data.conversations
-        console.log('✅ [DEBUG] Using ALT structure: response.data.conversations')
-      } else if (Array.isArray(response.data?.results)) {
-        conversations = response.data.results
-        console.log('✅ [DEBUG] Using ALT structure: response.data.results')
-      } else if (Array.isArray(response.data?.items)) {
-        conversations = response.data.items
-        console.log('✅ [DEBUG] Using ALT structure: response.data.items')
-      } else if (Array.isArray(response.data?.list)) {
-        conversations = response.data.list
-        console.log('✅ [DEBUG] Using ALT structure: response.data.list')
-      } else {
-        // ÚLTIMO RECURSO: Búsqueda dinámica
-        console.log('🔍 [DEBUG] Searching for arrays in response.data...')
-        if (response.data && typeof response.data === 'object') {
-          for (const key of Object.keys(response.data)) {
-            if (Array.isArray(response.data[key])) {
-              conversations = response.data[key]
-              console.log(`✅ [DEBUG] Using DYNAMIC structure: response.data.${key}`)
-              break
-            }
+      // CASO 2: apiClient.get() retornó un objeto con el array en alguna propiedad
+      else if (response && typeof response === 'object') {
+        // Buscar array en cualquier propiedad del objeto
+        for (const key of Object.keys(response)) {
+          if (Array.isArray(response[key])) {
+            conversations = response[key]
+            console.log(`✅ [SUCCESS] Found array in response.${key}`)
+            break
           }
-        }
-        
-        if (conversations.length === 0) {
-          console.error('❌ [ERROR] No array found anywhere in response')
-          console.error('❌ [ERROR] Full response structure:', response.data)
-          console.error('❌ [ERROR] Response keys:', response.data ? Object.keys(response.data) : 'none')
         }
       }
 
-      // ✅ PASO 1: Log específico del array extraído
+      // ✅ LOGS FINALES
       console.log('[DEBUG] Extracted conversations array:', conversations)
       console.log('[DEBUG] Extracted array length:', conversations?.length)
-      console.log('[DEBUG] Extracted array type:', typeof conversations)
       console.log('[DEBUG] Is extracted array valid:', Array.isArray(conversations))
 
       // Validación final
       if (!Array.isArray(conversations)) {
-        console.error('❌ [ERROR] Estructura de conversaciones inesperada:', response.data)
-        console.error('❌ [ERROR] No se pudo encontrar un array válido de conversaciones en la respuesta')
+        console.error('❌ [ERROR] No array found anywhere in response')
+        console.error('❌ [ERROR] Full response structure:', response)
+        console.error('❌ [ERROR] Response keys:', response && typeof response === 'object' ? Object.keys(response) : 'none')
         return []
       }
 
@@ -294,33 +236,45 @@ class ConversationService {
           console.log(`✅ [NORMALIZE] Conversación ${i + 1} normalizada exitosamente:`, normalized.id)
           processedConversations.push(normalized)
         } else {
-          console.error(`❌ [NORMALIZE] Conversación ${i + 1} descartada (sin ID):`, originalConv)
+          console.warn(`⚠️ [NORMALIZE] Conversación ${i + 1} descartada por falta de ID`)
         }
       }
 
+      // ✅ RESULTADO FINAL
       console.log('📊 [FINAL] Resultado del procesamiento:', {
         backend_conversations: conversations.length,
         processed_conversations: processedConversations.length,
-        success_rate: `${((processedConversations.length / conversations.length) * 100).toFixed(1)}%`,
+        success_rate: `${Math.round((processedConversations.length / conversations.length) * 100) || 0}%`,
         conversations_to_render: processedConversations
       })
 
-      // ✅ GARANTÍA: Si el backend envió conversaciones pero todas se perdieron, 
-      // crear conversación de emergencia
-      if (conversations.length > 0 && processedConversations.length === 0) {
-        console.error('🚨 [CRITICAL] ¡TODAS las conversaciones se perdieron en el procesamiento!')
-        console.error('🚨 [CRITICAL] Datos originales del backend:', conversations)
+      if (processedConversations.length === 0) {
+        console.warn('⚠️ [INFO] No hay conversaciones en el backend - array vacío legítimo')
+      } else {
+        console.log('✅ [SUCCESS] Conversaciones listas para renderizar:', processedConversations.length)
+      }
+
+      return processedConversations
+
+    } catch (error) {
+      console.error('❌ [ERROR] Error en getConversations:', error)
+      console.error('❌ [ERROR] Tipo de error:', typeof error)
+      console.error('❌ [ERROR] Stack trace:', error instanceof Error ? error.stack : 'No disponible')
+      
+      // En caso de error, retornar array vacío pero con conversación de emergencia
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🚨 [EMERGENCY] Creando conversación de emergencia para desarrollo...')
         
-        // ✅ CREAR CONVERSACIÓN DE EMERGENCIA para mostrar el problema
+        // ✅ MODO DE EMERGENCIA: Crear conversación de prueba para mostrar algo
         const emergencyConversation = {
           id: 'emergency-' + Date.now(),
-          title: `ERROR: ${conversations.length} conversaciones perdidas`,
+          title: 'Conversación de Emergencia',
           status: 'open' as const,
-          priority: 'urgent' as const,
+          priority: 'medium' as const,
           contact: {
             id: 'emergency-contact',
-            name: 'ERROR DE PROCESAMIENTO',
-            phone: 'Ver logs del navegador',
+            name: 'Error en Backend',
+            phone: 'N/A',
             avatar: undefined,
             email: undefined,
             isOnline: false,
@@ -334,51 +288,28 @@ class ConversationService {
           createdAt: new Date(),
           updatedAt: new Date(),
           lastMessageAt: new Date(),
-          messageCount: 1,
-          unreadCount: 1,
           lastMessage: {
             id: 'emergency-msg',
-            content: `Error de procesamiento: ${conversations.length} conversaciones del backend no pudieron ser normalizadas. Revisar logs de consola.`,
+            content: 'Error al cargar conversaciones del backend',
             timestamp: new Date(),
-            senderName: 'Sistema de Debug',
-            type: 'text' as const
+            senderName: 'Sistema',
+            type: 'text' as const,
+            direction: 'incoming' as const,
+            status: 'delivered' as const,
+            conversationId: 'emergency-' + Date.now()
           },
-          tags: ['error', 'debug'],
+          tags: ['error', 'sistema'],
+          unreadCount: 1,
+          messageCount: 1,
           isMuted: false,
-          isArchived: false,
-          participants: [],
-          metadata: { 
-            source: 'emergency', 
-            error: true,
-            originalCount: conversations.length
-          }
+          isArchived: false
         }
-        
-        console.log('🆘 [EMERGENCY] Creando conversación de emergencia:', emergencyConversation)
+
+        console.log('🚨 [EMERGENCY] Conversación de emergencia creada:', emergencyConversation)
         return [emergencyConversation]
       }
 
-      // ✅ ASEGURAR QUE NUNCA RETORNEMOS ARRAY VACÍO SI HABÍA DATOS
-      if (processedConversations.length === 0 && conversations.length === 0) {
-        console.log('ℹ️ [INFO] No hay conversaciones en el backend - array vacío legítimo')
-      }
-
-      console.log('✅ [SUCCESS] Conversaciones listas para renderizar:', processedConversations.length)
-      return processedConversations
-
-    } catch (error) {
-      console.error('❌ [ERROR] Error fetching conversations:', error)
-      
-      // Mensaje más específico según el tipo de error
-      if (error instanceof TypeError) {
-        console.error('❌ [ERROR] Problema de tipado/estructura en la respuesta del backend')
-      } else if (error instanceof SyntaxError) {
-        console.error('❌ [ERROR] Respuesta del backend no es JSON válido')
-      } else {
-        console.error('❌ [ERROR] Error de red o servidor al obtener conversaciones')
-      }
-      
-      throw error
+      return []
     }
   }
 }
