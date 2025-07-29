@@ -24,16 +24,47 @@ export const conversationKeys = {
 export function useConversations(filters: ConversationFilter = {}) {
   const { user } = useAuth()
   
+  // ✅ CRÍTICO: Agregar email del usuario como participante automáticamente
+  const userFilters = {
+    ...filters,
+    participantEmail: user?.email // ✅ Incluir usuario como participante
+  }
+  
+  // 🔍 DEBUG: Log del estado del usuario
+  console.log('🔍 useConversations DEBUG:', {
+    userEmail: user?.email,
+    userIsActive: user?.isActive,
+    isAuthenticated: !!user,
+    originalFilters: filters,
+    userFilters,
+    enabled: !!user?.email && !!user?.isActive
+  })
+  
   return useQuery({
-    queryKey: conversationKeys.list(filters),
-    queryFn: () => conversationService.getConversations(filters),
+    queryKey: conversationKeys.list(userFilters),
+    queryFn: async () => {
+      console.log('🚀 useConversations: Iniciando llamada al backend...')
+      const result = await conversationService.getConversations(userFilters)
+      console.log('📊 useConversations: Respuesta del backend:', {
+        count: result.length,
+        conversations: result.map(c => ({ id: c.id, contact: c.contact?.name, status: c.status }))
+      })
+      return result
+    },
     enabled: !!user?.email && !!user?.isActive,
     staleTime: 1000 * 60 * 2, // 2 minutos
     refetchOnWindowFocus: true,
     onError: (error) => {
-      logger.error('Failed to fetch conversations', { filters, error }, 'conversations_query_error')
+      console.error('❌ useConversations ERROR:', error)
+      logger.error('Failed to fetch conversations', { filters: userFilters, error }, 'conversations_query_error')
     },
     onSuccess: (data) => {
+      console.log('✅ useConversations SUCCESS:', {
+        count: data.length,
+        userEmail: user?.email,
+        filters: userFilters,
+        conversations: data.map(c => ({ id: c.id, contact: c.contact?.name, status: c.status }))
+      })
       logger.info('Conversations fetched successfully', { 
         count: data.length, 
         userEmail: user?.email 
@@ -68,6 +99,37 @@ export function useConversationsByParticipantEmail(email: string) {
     staleTime: 1000 * 60 * 2, // 2 minutos
     onError: (error) => {
       logger.error('Failed to fetch conversations by participant email', { email, error }, 'conversations_by_participant_error')
+    }
+  })
+}
+
+/**
+ * ✅ Hook para obtener conversaciones donde participa el usuario actual
+ */
+export function useConversationsByCurrentParticipant() {
+  const { user } = useAuth()
+  
+  return useQuery({
+    queryKey: conversationKeys.byParticipant(user?.email || ''),
+    queryFn: () => conversationService.getConversationsByParticipantEmail(user?.email || ''),
+    enabled: !!user?.email && !!user?.isActive,
+    staleTime: 1000 * 60 * 2, // 2 minutos
+    onError: (error) => {
+      console.error('❌ useConversationsByCurrentParticipant ERROR:', error)
+      logger.error('Failed to fetch conversations by current participant', { 
+        userEmail: user?.email, 
+        error 
+      }, 'conversations_by_current_participant_error')
+    },
+    onSuccess: (data) => {
+      console.log('✅ useConversationsByCurrentParticipant SUCCESS:', {
+        count: data.length,
+        userEmail: user?.email
+      })
+      logger.success('Conversations by current participant fetched', {
+        userEmail: user?.email,
+        count: data.length
+      }, 'conversations_by_current_participant_success')
     }
   })
 }

@@ -437,25 +437,85 @@ export class ConversationValidator {
   }
   
   static validateBackendResponse(response: any): CanonicalConversation[] {
-    logger.info('Validando respuesta de conversaciones del backend', response, 'CONVERSATION_BACKEND_VALIDATION')
+    console.log('🔍 Validando respuesta del backend:', {
+      responseType: typeof response,
+      hasData: !!response.data,
+      dataType: typeof response.data,
+      isArray: Array.isArray(response.data),
+      responseKeys: Object.keys(response || {}),
+      responseDataKeys: response.data ? Object.keys(response.data) : []
+    })
+    
+    logger.info('Validando respuesta de conversaciones del backend', { 
+      responseType: typeof response,
+      hasData: !!response.data,
+      responseKeys: Object.keys(response || {})
+    }, 'CONVERSATION_BACKEND_VALIDATION')
     
     let conversations: any[] = []
     
-    if (response.data && Array.isArray(response.data)) {
+    // ✅ MEJORAR: Detectar formato más flexible y robusto
+    if (response?.data && Array.isArray(response.data)) {
       conversations = response.data
+      console.log('✅ Usando formato response.data', { count: conversations.length })
       logger.info('Usando formato response.data', { count: conversations.length }, 'BACKEND_FORMAT_DETECTION')
-    } else if (response.conversations && Array.isArray(response.conversations)) {
+    } else if (response?.conversations && Array.isArray(response.conversations)) {
       conversations = response.conversations
+      console.log('✅ Usando formato response.conversations', { count: conversations.length })
       logger.info('Usando formato response.conversations', { count: conversations.length }, 'BACKEND_FORMAT_DETECTION')
     } else if (Array.isArray(response)) {
       conversations = response
+      console.log('✅ Usando formato directo array', { count: conversations.length })
       logger.info('Usando formato directo array', { count: conversations.length }, 'BACKEND_FORMAT_DETECTION')
+    } else if (response?.results && Array.isArray(response.results)) {
+      conversations = response.results
+      console.log('✅ Usando formato response.results', { count: conversations.length })
+      logger.info('Usando formato response.results', { count: conversations.length }, 'BACKEND_FORMAT_DETECTION')
+    } else if (response?.items && Array.isArray(response.items)) {
+      conversations = response.items
+      console.log('✅ Usando formato response.items', { count: conversations.length })
+      logger.info('Usando formato response.items', { count: conversations.length }, 'BACKEND_FORMAT_DETECTION')
+    } else if (response?.list && Array.isArray(response.list)) {
+      conversations = response.list
+      console.log('✅ Usando formato response.list', { count: conversations.length })
+      logger.info('Usando formato response.list', { count: conversations.length }, 'BACKEND_FORMAT_DETECTION')
     } else {
-      logger.error('❌ Respuesta del backend no contiene array de conversaciones válido', response, 'BACKEND_STRUCTURE_INVALID')
-      return []
+      console.error('❌ Formato de respuesta no reconocido:', response)
+      logger.error('❌ Respuesta del backend no contiene array de conversaciones válido', { 
+        response,
+        responseKeys: Object.keys(response || {}),
+        responseDataKeys: response.data ? Object.keys(response.data) : []
+      }, 'BACKEND_STRUCTURE_INVALID')
+      
+      // ✅ NO retornar array vacío, intentar extraer datos de forma más agresiva
+      if (response && typeof response === 'object') {
+        const possibleArrays = Object.values(response).filter(v => Array.isArray(v))
+        if (possibleArrays.length > 0) {
+          conversations = possibleArrays[0]
+          console.log('⚠️ Usando primer array encontrado:', { count: conversations.length })
+          logger.warning('Usando primer array encontrado en respuesta', { count: conversations.length }, 'BACKEND_FALLBACK_ARRAY')
+        } else {
+          // ✅ ÚLTIMO RECURSO: Si no hay arrays, buscar objetos que parezcan conversaciones
+          const possibleConversations = Object.values(response).filter(v => 
+            v && typeof v === 'object' && (v as any).id && (v as any).contact
+          )
+          if (possibleConversations.length > 0) {
+            conversations = possibleConversations
+            console.log('⚠️ Usando objetos que parecen conversaciones:', { count: conversations.length })
+            logger.warning('Usando objetos que parecen conversaciones', { count: conversations.length }, 'BACKEND_FALLBACK_OBJECTS')
+          }
+        }
+      }
+      
+      if (conversations.length === 0) {
+        console.error('❌ No se pudo extraer conversaciones de la respuesta')
+        logger.error('❌ No se pudo extraer conversaciones de la respuesta', { response }, 'NO_CONVERSATIONS_EXTRACTED')
+        return []
+      }
     }
     
     if (conversations.length === 0) {
+      console.warn('⚠️ Array de conversaciones vacío del backend')
       logger.warning('⚠️ Array de conversaciones vacío del backend', { response }, 'EMPTY_CONVERSATIONS_ARRAY')
       return []
     }
@@ -466,11 +526,20 @@ export class ConversationValidator {
     let warnings = 0
     
     conversations.forEach((conv, index) => {
+      console.log(`Validando conversación ${index + 1}/${conversations.length}`, { 
+        id: conv.id, 
+        hasContact: !!conv.contact,
+        hasLastMessage: !!conv.lastMessage,
+        hasAssignedTo: !!conv.assignedTo,
+        contactName: conv.contact?.name
+      })
+      
       logger.info(`Validando conversación ${index + 1}/${conversations.length}`, { 
         id: conv.id, 
         hasContact: !!conv.contact,
         hasLastMessage: !!conv.lastMessage,
-        hasAssignedTo: !!conv.assignedTo
+        hasAssignedTo: !!conv.assignedTo,
+        contactName: conv.contact?.name
       }, 'CONVERSATION_VALIDATION_PROGRESS')
       
       const validation = ConversationValidator.validate(conv)
@@ -479,6 +548,7 @@ export class ConversationValidator {
         validConversations.push(validation.data)
         if (validation.warnings && validation.warnings.length > 0) {
           warnings += validation.warnings.length
+          console.warn(`Conversación ${index + 1} tiene warnings:`, validation.warnings)
           logger.warning(`Conversación ${index + 1} tiene warnings`, { 
             id: conv.id, 
             warnings: validation.warnings 
@@ -488,12 +558,14 @@ export class ConversationValidator {
         invalidCount++
         if (validation.errors.some((e: any) => ['id', 'contact', 'status', 'createdAt', 'updatedAt', 'lastMessage', 'assignedTo'].includes(e.field))) {
           criticalErrors++
+          console.error(`❌ Conversación ${index + 1} CRÍTICA - campos obligatorios faltantes:`, validation.errors)
           logger.error(`❌ Conversación ${index + 1} CRÍTICA - campos obligatorios faltantes`, { 
             id: conv.id, 
             errors: validation.errors,
             originalData: conv
           }, 'CONVERSATION_CRITICAL_INVALID')
         } else {
+          console.warn(`⚠️ Conversación ${index + 1} inválida - campos opcionales:`, validation.errors)
           logger.warning(`⚠️ Conversación ${index + 1} inválida - campos opcionales`, { 
             id: conv.id, 
             errors: validation.errors 
@@ -503,6 +575,15 @@ export class ConversationValidator {
     })
     
     // ✅ REPORTE DETALLADO DE VALIDACIÓN
+    console.log('📊 Resumen de validación de conversaciones:', {
+      total: conversations.length,
+      valid: validConversations.length,
+      invalid: invalidCount,
+      criticalErrors,
+      warnings,
+      successRate: `${((validConversations.length / conversations.length) * 100).toFixed(1)}%`
+    })
+    
     logger.info('📊 Resumen de validación de conversaciones', {
       total: conversations.length,
       valid: validConversations.length,
@@ -513,6 +594,7 @@ export class ConversationValidator {
     }, 'CONVERSATIONS_VALIDATION_SUMMARY')
     
     if (criticalErrors > 0) {
+      console.error(`❌ ${criticalErrors} conversaciones descartadas por errores críticos`)
       logger.error(`❌ ${criticalErrors} conversaciones descartadas por errores críticos`, { 
         criticalErrors, 
         total: conversations.length 
@@ -520,6 +602,7 @@ export class ConversationValidator {
     }
     
     if (invalidCount > 0) {
+      console.warn(`⚠️ ${invalidCount} conversaciones inválidas de ${conversations.length} total`)
       logger.warning(`⚠️ ${invalidCount} conversaciones inválidas de ${conversations.length} total`, { 
         invalidCount, 
         total: conversations.length 
@@ -527,6 +610,7 @@ export class ConversationValidator {
     }
     
     if (validConversations.length === 0 && conversations.length > 0) {
+      console.error('❌ TODAS las conversaciones fueron descartadas por validación')
       logger.error('❌ TODAS las conversaciones fueron descartadas por validación', { 
         total: conversations.length,
         criticalErrors,
@@ -534,6 +618,7 @@ export class ConversationValidator {
       }, 'ALL_CONVERSATIONS_DISCARDED')
     }
     
+    console.log(`✅ ${validConversations.length} conversaciones válidas procesadas`)
     logger.info(`✅ ${validConversations.length} conversaciones válidas procesadas`, { 
       count: validConversations.length 
     }, 'CONVERSATIONS_VALIDATION_SUCCESS')

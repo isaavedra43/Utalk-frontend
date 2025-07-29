@@ -18,37 +18,201 @@ class ConversationService {
    */
   async getConversations(filters: ConversationFilter = {}): Promise<CanonicalConversation[]> {
     try {
+      console.log('🔍 conversationService.getConversations DEBUG:', {
+        filters,
+        filtersUsed: Object.keys(filters),
+        endpoint: API_ENDPOINTS.CONVERSATIONS.LIST,
+        hasParticipantEmail: !!filters.participantEmail,
+        participantEmail: filters.participantEmail
+      })
+      
       logger.info('Fetching conversations with filters', { 
         filters,
-        filtersUsed: Object.keys(filters)
+        filtersUsed: Object.keys(filters),
+        hasParticipantEmail: !!filters.participantEmail
       }, 'conversation_fetch_start')
 
       const params = new URLSearchParams()
 
-      // ✅ Filtros usando EMAIL
-      if (filters.assignedTo) params.append(FILTER_PARAMS.ASSIGNED_TO, filters.assignedTo)
-      if (filters.customerEmail) params.append('customerEmail', filters.customerEmail)
-      if (filters.participantEmail) params.append('participantEmail', filters.participantEmail)
-      if (filters.status) params.append(FILTER_PARAMS.STATUS, filters.status)
-      if (filters.channel) params.append(FILTER_PARAMS.CHANNEL, filters.channel)
-      if (filters.dateFrom) params.append(FILTER_PARAMS.DATE_FROM, filters.dateFrom)
-      if (filters.dateTo) params.append(FILTER_PARAMS.DATE_TO, filters.dateTo)
+      // ✅ Filtros usando EMAIL - CRÍTICO: Siempre incluir participantEmail si está presente
+      if (filters.assignedTo) params.append(FILTER_PARAMS.CONVERSATIONS.ASSIGNED_TO, filters.assignedTo)
+      if (filters.customerEmail) params.append(FILTER_PARAMS.CONVERSATIONS.CUSTOMER_EMAIL, filters.customerEmail)
+      if (filters.participantEmail) {
+        params.append(FILTER_PARAMS.CONVERSATIONS.PARTICIPANT_EMAIL, filters.participantEmail)
+        console.log('✅ Agregando filtro participantEmail:', filters.participantEmail)
+      }
+      if (filters.status) params.append(FILTER_PARAMS.CONVERSATIONS.STATUS, filters.status)
+      if (filters.channel) params.append(FILTER_PARAMS.CONVERSATIONS.CHANNEL, filters.channel)
+      if (filters.dateFrom) params.append(FILTER_PARAMS.CONVERSATIONS.DATE_FROM, filters.dateFrom)
+      if (filters.dateTo) params.append(FILTER_PARAMS.CONVERSATIONS.DATE_TO, filters.dateTo)
 
-      console.log('📞 Getting conversations with EMAIL filters:', Object.fromEntries(params))
+      const url = `${API_ENDPOINTS.CONVERSATIONS.LIST}?${params.toString()}`
+      console.log('📞 Getting conversations with EMAIL filters:', {
+        url,
+        params: Object.fromEntries(params),
+        fullUrl: url,
+        participantEmailIncluded: params.has('participantEmail')
+      })
 
-      const response = await apiClient.get(`${API_ENDPOINTS.CONVERSATIONS.LIST}?${params.toString()}`)
+      // ✅ PRUEBA: Simular respuesta en desarrollo si no hay backend
+      if (process.env.NODE_ENV === 'development' && !import.meta.env.VITE_API_URL) {
+        console.log('🧪 SIMULANDO RESPUESTA DEL BACKEND (modo desarrollo)')
+        return this.getMockConversations(filters)
+      }
+
+      const response = await apiClient.get(url)
+      console.log('📥 conversationService: Raw response from backend:', {
+        status: response.status,
+        hasData: !!response.data,
+        dataType: typeof response.data,
+        isArray: Array.isArray(response.data),
+        dataLength: Array.isArray(response.data) ? response.data.length : 'N/A',
+        responseKeys: response.data ? Object.keys(response.data) : []
+      })
+      
       const validatedConversations = ConversationValidator.validateBackendResponse(response)
+      console.log('✅ conversationService: Validated conversations:', {
+        count: validatedConversations.length,
+        participantEmail: filters.participantEmail,
+        conversations: validatedConversations.map(c => ({ 
+          id: c.id, 
+          contact: c.contact?.name, 
+          status: c.status,
+          assignedTo: c.assignedTo?.id
+        }))
+      })
 
       logger.success('Conversations fetched successfully', {
         count: validatedConversations.length,
-        hasFilters: Object.keys(filters).length > 0
+        hasFilters: Object.keys(filters).length > 0,
+        participantEmail: filters.participantEmail
       }, 'conversation_fetch_success')
 
       return validatedConversations
     } catch (error) {
-      logger.error('Failed to fetch conversations', error, 'conversation_fetch_error')
+      console.error('❌ conversationService ERROR:', error)
+      logger.error('Failed to fetch conversations', { 
+        error, 
+        filters,
+        participantEmail: filters.participantEmail 
+      }, 'conversation_fetch_error')
       throw error
     }
+  }
+
+  /**
+   * ✅ Generar conversaciones mock para desarrollo
+   */
+  private getMockConversations(filters: ConversationFilter): CanonicalConversation[] {
+    console.log('🎭 Generando conversaciones mock con filtros:', filters)
+    
+    const mockConversations: CanonicalConversation[] = [
+      {
+        id: 'conv-1',
+        title: 'Soporte Técnico - Problema con facturación',
+        status: 'open',
+        priority: 'medium',
+        contact: {
+          id: 'contact-1',
+          name: 'Juan Pérez',
+          phone: '+1234567890',
+          email: 'juan@test.com',
+          isOnline: true,
+          tags: ['cliente', 'premium'],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          isBlocked: false,
+          preferences: {
+            language: 'es',
+            timezone: 'America/Mexico_City',
+            notifications: true
+          }
+        },
+        channel: 'whatsapp',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastMessageAt: new Date(),
+        messageCount: 15,
+        unreadCount: 2,
+        assignedTo: {
+          id: filters.participantEmail || 'user@example.com',
+          name: 'Usuario Test',
+          role: 'agent'
+        },
+        lastMessage: {
+          id: 'msg-1',
+          content: 'Hola, ¿cómo puedo ayudarte con tu problema de facturación?',
+          timestamp: new Date(),
+          senderName: 'Usuario Test',
+          type: 'text'
+        },
+        tags: ['soporte', 'facturación'],
+        isMuted: false,
+        isArchived: false,
+        metadata: {
+          source: 'whatsapp',
+          satisfaction: 4
+        }
+      },
+      {
+        id: 'conv-2',
+        title: 'Venta - Consulta sobre productos',
+        status: 'pending',
+        priority: 'high',
+        contact: {
+          id: 'contact-2',
+          name: 'María García',
+          phone: '+1987654321',
+          email: 'maria@test.com',
+          isOnline: false,
+          tags: ['prospecto', 'ventas'],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          isBlocked: false,
+          preferences: {
+            language: 'es',
+            timezone: 'America/Mexico_City',
+            notifications: true
+          }
+        },
+        channel: 'telegram',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastMessageAt: new Date(),
+        messageCount: 8,
+        unreadCount: 1,
+        assignedTo: {
+          id: filters.participantEmail || 'user@example.com',
+          name: 'Usuario Test',
+          role: 'agent'
+        },
+        lastMessage: {
+          id: 'msg-2',
+          content: '¿Podrías enviarme información sobre los precios?',
+          timestamp: new Date(),
+          senderName: 'María García',
+          type: 'text'
+        },
+        tags: ['ventas', 'productos'],
+        isMuted: false,
+        isArchived: false,
+        metadata: {
+          source: 'telegram',
+          satisfaction: 5
+        }
+      }
+    ]
+
+    // ✅ Filtrar por participante si se especifica
+    if (filters.participantEmail) {
+      const filtered = mockConversations.filter(conv => 
+        conv.assignedTo?.id === filters.participantEmail
+      )
+      console.log(`🎭 Filtrado por participante ${filters.participantEmail}:`, filtered.length)
+      return filtered
+    }
+
+    return mockConversations
   }
 
   /**

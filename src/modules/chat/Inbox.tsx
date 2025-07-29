@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { ResponsiveInbox } from './components/ResponsiveInbox'
 import { useConversations } from './hooks/useConversations'
 import { useSendMessage } from './hooks/useMessages'
+import { useAuth } from '@/contexts/AuthContext'
 import type { InboxProps, SendMessageData } from './types'
 
 export function Inbox({
@@ -11,6 +12,8 @@ export function Inbox({
   onSendMessage,
   onSelectConversation
 }: InboxProps) {
+  const { user } = useAuth() // ✅ AGREGADO: Obtener usuario del contexto de autenticación
+  
   const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>(
     initialConversationId
   )
@@ -24,6 +27,23 @@ export function Inbox({
   } = useConversations()
   
   const sendMessageMutation = useSendMessage()
+
+  // 🔍 DEBUG: Log del estado de las conversaciones
+  console.log('🔍 Inbox DEBUG:', {
+    conversationsCount: conversations.length,
+    isLoading: conversationsLoading,
+    hasError: !!conversationsError,
+    errorMessage: conversationsError,
+    selectedConversationId,
+    userEmail: user?.email,
+    userIsActive: user?.isActive,
+    conversations: conversations.map(c => ({ 
+      id: c.id, 
+      contact: c.contact?.name, 
+      status: c.status,
+      assignedTo: c.assignedTo?.id
+    }))
+  })
 
   // Sincronizar con prop inicial
   useEffect(() => {
@@ -57,8 +77,9 @@ export function Inbox({
     refetchConversations()
   }
 
-  // Estado de carga inicial
-  if (conversationsLoading && conversations.length === 0) {
+  // ✅ MEJORAR: Estados más específicos
+  if (conversationsLoading) {
+    console.log('🔄 Inbox: Mostrando loading...')
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
@@ -69,8 +90,8 @@ export function Inbox({
     )
   }
 
-  // Estado de error
   if (conversationsError) {
+    console.log('❌ Inbox: Mostrando error...', conversationsError)
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
@@ -92,8 +113,9 @@ export function Inbox({
     )
   }
 
-  // Sin conversaciones
-  if (!conversationsLoading && conversations.length === 0) {
+  // ✅ MEJORAR: Estado vacío más informativo
+  if (conversations.length === 0) {
+    console.log('💬 Inbox: Mostrando estado vacío')
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
@@ -101,15 +123,22 @@ export function Inbox({
           <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
             No hay conversaciones
           </h3>
-          <p className="text-gray-500 dark:text-gray-400">
+          <p className="text-gray-500 dark:text-gray-400 mb-4">
             Las nuevas conversaciones aparecerán aquí cuando lleguen mensajes
           </p>
+          <button
+            onClick={handleRefreshConversations}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+          >
+            Actualizar
+          </button>
         </div>
       </div>
     )
   }
 
-  // Render principal
+  // ✅ Render normal
+  console.log('✅ Inbox: Renderizando conversaciones normales...', conversations.length)
   return (
     <div className="h-full bg-gray-50 dark:bg-gray-900">
       <ResponsiveInbox
