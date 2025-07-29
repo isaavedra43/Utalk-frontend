@@ -116,49 +116,13 @@ export function ResponsiveInbox({
     }
   }
 
-  // Búsqueda local sobre las conversaciones recibidas
-  const filteredConversations = useMemo(() => {
-    console.log('[FILTER] ResponsiveInbox.tsx: Calculando filteredConversations')
-    console.log('[FILTER] - conversations entrada:', conversations)
-    console.log('[FILTER] - searchQuery:', searchQuery)
-    console.log('[FILTER] - conversations es array:', Array.isArray(conversations))
-    console.log('[FILTER] - conversations length:', conversations?.length)
-    
-    if (!searchQuery) {
-      console.log('[FILTER] - Sin searchQuery, retornando conversations original')
-      console.log('[FILTER] - Resultado sin filtro:', conversations)
-      return conversations
-    }
-    
-    const lowercasedQuery = searchQuery.toLowerCase()
-    console.log('[FILTER] - Aplicando filtro con query:', lowercasedQuery)
-    
-    if (!Array.isArray(conversations)) {
-      console.warn('[FILTER] - conversations no es array, retornando array vacío')
-      return []
-    }
-    
-    const filtered = conversations.filter((conv) => {
-      const contactNameMatch = conv.contact?.name?.toLowerCase().includes(lowercasedQuery)
-      const lastMessageMatch = conv.lastMessage?.content?.toLowerCase().includes(lowercasedQuery)
-      const matches = contactNameMatch || lastMessageMatch
-      
-      console.log(`[FILTER] - Conversación ${conv.id}:`, {
-        contactName: conv.contact?.name,
-        lastMessageContent: conv.lastMessage?.content,
-        contactNameMatch,
-        lastMessageMatch,
-        matches
-      })
-      
-      return matches
-    })
-    
-    console.log('[FILTER] - Resultado filtrado:', filtered)
-    console.log('[FILTER] - Longitud resultado:', filtered.length)
-    
-    return filtered
-  }, [conversations, searchQuery])
+  // ✅ PASO 3: ELIMINAR DOBLE FILTRADO
+  // ResponsiveInbox ya NO filtra - solo pasa las conversaciones directamente
+  // El filtrado se hace ÚNICAMENTE en ConversationList
+  console.log('[FILTER] ResponsiveInbox.tsx: NO FILTERING - Pasando conversaciones directamente')
+  console.log('[FILTER] - conversations originales:', conversations)
+  console.log('[FILTER] - conversations length:', conversations?.length)
+  console.log('[FILTER] - searchQuery (ignorado aquí):', searchQuery)
 
   const selectedConversation = useMemo(() => {
     console.log('[MEMO] ResponsiveInbox.tsx: Calculando selectedConversation')
@@ -189,8 +153,8 @@ export function ResponsiveInbox({
   }, [conversations, selectedConversationId])
 
   console.log('[RENDER] ResponsiveInbox.tsx: Preparando render final')
-  console.log('[RENDER] - filteredConversations:', filteredConversations)
-  console.log('[RENDER] - filteredConversations length:', filteredConversations?.length)
+  console.log('[RENDER] - conversations (SIN FILTRAR):', conversations)
+  console.log('[RENDER] - conversations length:', conversations?.length)
   console.log('[RENDER] - selectedConversation:', selectedConversation)
   console.log('[RENDER] - selectedConversationId:', selectedConversationId)
   console.log('[RENDER] - messages:', messages)
@@ -198,8 +162,8 @@ export function ResponsiveInbox({
 
   // Logs adicionales para el renderizado
   console.log('[RENDER] ResponsiveInbox.tsx: Renderizando ConversationList con props:', {
-    conversations: filteredConversations,
-    conversationsLength: filteredConversations?.length,
+    conversations: conversations, // ✅ CORREGIDO: Pasa conversations SIN filtrar
+    conversationsLength: conversations?.length,
     selectedConversationId,
     onSelect: typeof handleSelectConversation,
     isLoading: false,
@@ -226,7 +190,7 @@ export function ResponsiveInbox({
     <div className="flex h-full w-full bg-white dark:bg-gray-800">
       <aside className={`w-full md:w-1/3 lg:w-1/4 border-r border-gray-200 dark:border-gray-700 flex flex-col ${selectedConversationId ? 'hidden md:flex' : 'flex'}`}>
         <ConversationList
-          conversations={filteredConversations}
+          conversations={conversations} // ✅ CORREGIDO: Pasa conversations SIN filtrar
           selectedConversationId={selectedConversationId}
           onSelect={handleSelectConversation}
           isLoading={false}

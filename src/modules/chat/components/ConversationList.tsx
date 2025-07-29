@@ -52,9 +52,10 @@ export function ConversationList({
     console.log('[EFFECT] - selectedConversationId:', selectedConversationId)
   }, [conversations, searchQuery, selectedConversationId])
 
-  // Filtrar conversaciones por búsqueda local
+  // ✅ PASO 3: ÚNICO PUNTO DE FILTRADO - ConversationList
+  // ResponsiveInbox ya NO filtra, solo ConversationList filtra por búsqueda
   const filteredConversations = useMemo(() => {
-    console.log('[FILTER] ConversationList.tsx: Calculando filteredConversations')
+    console.log('[FILTER] ConversationList.tsx: ✅ ÚNICO PUNTO DE FILTRADO')
     console.log('[FILTER] - conversations entrada:', conversations)
     console.log('[FILTER] - searchQuery:', searchQuery)
     console.log('[FILTER] - conversations es array:', Array.isArray(conversations))
@@ -72,7 +73,7 @@ export function ConversationList({
     }
     
     const lowercasedQuery = searchQuery.toLowerCase()
-    console.log('[FILTER] - Aplicando filtro con query:', lowercasedQuery)
+    console.log('[FILTER] - ✅ APLICANDO FILTRO ÚNICO con query:', lowercasedQuery)
     
     const filtered = conversations.filter((conversation) => {
       console.log(`[FILTER] - Evaluando conversación ${conversation?.id}:`)
@@ -106,6 +107,7 @@ export function ConversationList({
       return matches
     })
     
+    console.log('[FILTER] - ✅ FILTRO ÚNICO COMPLETADO')
     console.log('[FILTER] - Resultado filtrado:', filtered)
     console.log('[FILTER] - Longitud resultado:', filtered.length)
     console.log('[FILTER] - IDs filtrados:', filtered.map(c => c.id))
