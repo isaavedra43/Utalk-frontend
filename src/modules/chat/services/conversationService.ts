@@ -185,6 +185,21 @@ class ConversationService {
         dataKeys: response.data && typeof response.data === 'object' ? Object.keys(response.data) : 'N/A'
       })
 
+      // ✅ LOGS SUPER ESPECÍFICOS PARA DETECTAR EL PROBLEMA
+      console.log('[CRITICAL-DEBUG] response.data:', response.data)
+      console.log('[CRITICAL-DEBUG] response.data.data:', response.data?.data)
+      console.log('[CRITICAL-DEBUG] typeof response.data.data:', typeof response.data?.data)
+      console.log('[CRITICAL-DEBUG] Array.isArray(response.data.data):', Array.isArray(response.data?.data))
+      
+      if (response.data && typeof response.data === 'object') {
+        console.log('[CRITICAL-DEBUG] Keys in response.data:', Object.keys(response.data))
+        for (const key of Object.keys(response.data)) {
+          console.log(`[CRITICAL-DEBUG] response.data.${key}:`, response.data[key])
+          console.log(`[CRITICAL-DEBUG] typeof response.data.${key}:`, typeof response.data[key])
+          console.log(`[CRITICAL-DEBUG] Array.isArray(response.data.${key}):`, Array.isArray(response.data[key]))
+        }
+      }
+
       // Log para depuración (solo en desarrollo)
       if (process.env.NODE_ENV === 'development') {
         console.log('🔎 [DEBUG] RAW RESPONSE CONVERSATIONS:', response.data)
@@ -198,23 +213,22 @@ class ConversationService {
       // ✅ CORREGIDO: Buscar en response.data.data que es donde realmente está el array
       let conversations: any = []
 
-      // PRIORIDAD 1: { success: true, data: [...] } - TU ESTRUCTURA REAL
-      if (Array.isArray(response.data?.data)) {
+      // PRIORIDAD 1: Verificar response.data.data
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
         conversations = response.data.data
-        console.log('✅ [DEBUG] Using CORRECT structure: response.data.data')
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ [DEBUG] Detected correct backend format: response.data.data')
-        }
+        console.log('✅ [SUCCESS] Found conversations in response.data.data:', conversations.length)
       }
-      // PRIORIDAD 2: Array directo en data (fallback)
+      // PRIORIDAD 2: Verificar response.data directamente  
       else if (Array.isArray(response.data)) {
         conversations = response.data
-        console.log('✅ [DEBUG] Using FALLBACK structure: response.data (direct array)')
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ [DEBUG] Detected direct array format (FALLBACK)')
-        }
+        console.log('✅ [SUCCESS] Found conversations in response.data:', conversations.length)
       }
-      // PRIORIDAD 3: Otros formatos alternativos
+      // PRIORIDAD 3: Buscar en el campo "data" específicamente
+      else if (response.data && Array.isArray(response.data['data'])) {
+        conversations = response.data['data']
+        console.log('✅ [SUCCESS] Found conversations in response.data["data"]:', conversations.length)
+      }
+      // PRIORIDAD 4: Otros formatos alternativos
       else if (Array.isArray(response.data?.conversations)) {
         conversations = response.data.conversations
         console.log('✅ [DEBUG] Using ALT structure: response.data.conversations')
@@ -229,6 +243,7 @@ class ConversationService {
         console.log('✅ [DEBUG] Using ALT structure: response.data.list')
       } else {
         // ÚLTIMO RECURSO: Búsqueda dinámica
+        console.log('🔍 [DEBUG] Searching for arrays in response.data...')
         if (response.data && typeof response.data === 'object') {
           for (const key of Object.keys(response.data)) {
             if (Array.isArray(response.data[key])) {
@@ -237,6 +252,11 @@ class ConversationService {
               break
             }
           }
+        }
+        
+        if (conversations.length === 0) {
+          console.error('❌ [ERROR] No array found in response.data')
+          console.error('❌ [ERROR] response.data structure:', response.data)
         }
       }
 
