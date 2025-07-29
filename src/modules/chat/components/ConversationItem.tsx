@@ -13,42 +13,123 @@ export function ConversationItem({
   onSelect,
   showAvatar = true
 }: ConversationItemProps) {
-  const { contact, lastMessage, unreadCount, channel, status, updatedAt } = conversation
+  // ✅ RENDER DEFENSIVO: Destructuring con defaults para todos los campos
+  const { 
+    contact = { 
+      id: 'unknown', 
+      name: 'Cliente Sin Nombre', 
+      phone: 'N/A', 
+      avatar: undefined,
+      isOnline: false,
+      email: undefined
+    }, 
+    lastMessage = {
+      id: 'placeholder',
+      content: 'Sin mensajes',
+      timestamp: new Date(),
+      senderName: 'Sistema',
+      type: 'text'
+    }, 
+    unreadCount = 0, 
+    channel = 'whatsapp', 
+    status = 'open', 
+    updatedAt = new Date(),
+    id = 'unknown'
+  } = conversation || {}
+
+  // ✅ LOG CRÍTICO PARA DEBUG
+  console.log('[CRITICAL] ConversationItem render attempt:', {
+    conversationId: id,
+    hasRequiredFields: !!(conversation && id),
+    contactValid: !!(contact?.name),
+    statusValid: !!status,
+    dateValid: !!updatedAt,
+    dateType: typeof updatedAt,
+    originalConversation: conversation
+  })
 
   const handleClick = () => {
-    onSelect(conversation.id)
+    if (onSelect && id) {
+      onSelect(id)
+    } else {
+      console.warn('[HANDLER] No se puede seleccionar conversación:', { hasOnSelect: !!onSelect, hasId: !!id })
+    }
   }
 
-  const formatLastMessageTime = (date: Date) => {
+  // ✅ FORMATEO ROBUSTO DE FECHAS
+  const formatLastMessageTime = (date: any) => {
     try {
-      return formatDistanceToNow(date, { 
+      // Manejar diferentes tipos de fecha
+      let dateObj: Date
+      
+      if (date instanceof Date) {
+        dateObj = date
+      } else if (typeof date === 'string') {
+        dateObj = new Date(date)
+      } else if (typeof date === 'number') {
+        dateObj = new Date(date)
+      } else if (date?._seconds) {
+        // Firebase timestamp
+        dateObj = new Date(date._seconds * 1000)
+      } else {
+        dateObj = new Date()
+      }
+      
+      // Verificar si la fecha es válida
+      if (isNaN(dateObj.getTime())) {
+        console.warn('[FORMAT] Fecha inválida en conversación:', { id, date, dateType: typeof date })
+        return 'Fecha inválida'
+      }
+      
+      return formatDistanceToNow(dateObj, { 
         addSuffix: true, 
         locale: es 
       })
     } catch (error) {
-      return 'Ahora'
+      console.warn('[FORMAT] Error formateando fecha:', { id, date, error })
+      return 'Hace un momento'
     }
   }
 
+  // ✅ STATUS COLOR DEFENSIVO
   const getStatusColor = () => {
     switch (status) {
       case 'open': return 'text-green-600 dark:text-green-400'
       case 'pending': return 'text-yellow-600 dark:text-yellow-400'
       case 'closed': return 'text-gray-600 dark:text-gray-400'
       case 'archived': return 'text-gray-500 dark:text-gray-500'
-      default: return 'text-gray-600 dark:text-gray-400'
+      default: 
+        console.warn('[STATUS] Status desconocido en conversación:', { id, status })
+        return 'text-gray-600 dark:text-gray-400'
     }
   }
 
+  // ✅ STATUS LABEL DEFENSIVO
   const getStatusLabel = () => {
     switch (status) {
       case 'open': return 'Abierta'
       case 'pending': return 'Pendiente'
       case 'closed': return 'Cerrada'
       case 'archived': return 'Archivada'
-      default: return status
+      default: 
+        console.warn('[STATUS] Label desconocido en conversación:', { id, status })
+        return status || 'Sin estado'
     }
   }
+
+  // ✅ VALIDACIÓN FINAL ANTES DEL RENDER
+  if (!id) {
+    console.error('[RENDER] Conversación sin ID válido, no se puede renderizar:', conversation)
+    return null
+  }
+
+  console.log('[RENDER] ConversationItem renderizando:', {
+    id,
+    contactName: contact?.name,
+    status,
+    hasLastMessage: !!lastMessage,
+    unreadCount
+  })
 
   return (
     <div
@@ -69,7 +150,7 @@ export function ConversationItem({
             src={contact?.avatar}
             name={contact?.name || 'Cliente'}
             size="md"
-            isOnline={contact?.isOnline}
+            isOnline={contact?.isOnline || false}
             channel={channel}
           />
         )}
@@ -112,15 +193,15 @@ export function ConversationItem({
           </div>
 
           {/* Last message preview */}
-          {lastMessage && (
+          {lastMessage && lastMessage.content && (
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-700 dark:text-gray-300 truncate flex-1">
                 {lastMessage.type === 'text' 
-                  ? lastMessage.content 
-                  : `📎 ${lastMessage.type}`}
+                  ? (lastMessage.content || 'Mensaje sin contenido')
+                  : `📎 ${lastMessage.type || 'archivo'}`}
               </span>
               <span className="text-xs text-gray-400">
-                {lastMessage.senderName}
+                {lastMessage.senderName || 'Usuario'}
               </span>
             </div>
           )}

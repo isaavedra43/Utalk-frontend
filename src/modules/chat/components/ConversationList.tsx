@@ -180,13 +180,57 @@ export function ConversationList({
 
       {/* Lista de conversaciones */}
       <div className="flex-1 overflow-y-auto">
-        {filteredConversations?.length === 0 ? (
+        {/* ✅ CONDICIÓN DE RENDER MÁS ROBUSTA */}
+        {!filteredConversations || !Array.isArray(filteredConversations) || filteredConversations.length === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
-            <p>No hay conversaciones</p>
+            <div className="text-center">
+              <p className="text-lg mb-2">No hay conversaciones disponibles</p>
+              <p className="text-sm opacity-75">
+                {!filteredConversations ? 'Datos no cargados' : 
+                 !Array.isArray(filteredConversations) ? 'Formato de datos inválido' :
+                 'Lista vacía'}
+              </p>
+              {/* ✅ DEBUG INFO VISIBLE */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-4 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs">
+                  <p>DEBUG: conversations type: {typeof conversations}</p>
+                  <p>DEBUG: conversations length: {conversations?.length}</p>
+                  <p>DEBUG: filteredConversations type: {typeof filteredConversations}</p>
+                  <p>DEBUG: filteredConversations length: {filteredConversations?.length}</p>
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <div className="space-y-1 p-2">
-            {filteredConversations?.map((conversation, index) => {
+            {filteredConversations.map((conversation, index) => {
+              // ✅ VALIDACIÓN ANTES DEL RENDER
+              if (!conversation || !conversation.id) {
+                console.warn('[MAP] Conversación inválida en índice:', index, {
+                  conversation,
+                  hasConversation: !!conversation,
+                  hasId: !!conversation?.id,
+                  type: typeof conversation
+                })
+                
+                // ✅ RENDER DE CONVERSACIÓN DE ERROR VISIBLE
+                return (
+                  <div 
+                    key={`invalid-${index}`} 
+                    className="p-4 border border-red-200 bg-red-50 rounded"
+                  >
+                    <p className="text-red-600 text-sm">
+                      ⚠️ Conversación inválida (índice {index})
+                    </p>
+                    {process.env.NODE_ENV === 'development' && (
+                      <pre className="text-xs mt-2 overflow-auto">
+                        {JSON.stringify(conversation, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                )
+              }
+              
               console.log(`[MAP] ConversationList.tsx: Renderizando conversación ${index + 1}/${filteredConversations.length}:`, {
                 id: conversation?.id,
                 contactName: conversation?.contact?.name,
@@ -196,9 +240,9 @@ export function ConversationList({
               
               return (
                 <ConversationItem
-                  key={conversation?.id || `conv-${index}`}
+                  key={conversation.id}
                   conversation={conversation}
-                  isSelected={conversation?.id === selectedConversationId}
+                  isSelected={conversation.id === selectedConversationId}
                   onSelect={() => {
                     console.log('[HANDLER] ConversationList.tsx: ConversationItem onSelect llamado')
                     console.log('[HANDLER] - conversationId:', conversation?.id)
