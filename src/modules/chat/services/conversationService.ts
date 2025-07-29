@@ -5,194 +5,160 @@ import { API_ENDPOINTS } from '@/lib/constants'
 import type { CanonicalConversation } from '@/types/canonical'
 
 /**
- * ✅ NORMALIZACIÓN ROBUSTA: Convierte cualquier objeto del backend en conversación válida
+ * ✅ NORMALIZACIÓN SIMPLE Y ROBUSTA: Solo descarta si no hay ID
+ * Todo lo demás usa defaults seguros
  */
 function normalizeConversation(conv: any): any {
+  // ❌ ÚNICO DESCARTE: Si no hay ID
   if (!conv || !conv.id) {
-    console.warn('[NORMALIZE] Conversación sin ID válido:', conv)
+    console.warn('[NORMALIZE] Descartando conversación sin ID:', conv)
     return null
   }
 
-  // ✅ NORMALIZAR FECHAS: String/Timestamp → Date
-  const normalizeDate = (dateValue: any): Date => {
-    if (!dateValue) return new Date()
-    if (dateValue instanceof Date) return dateValue
-    
-    // Manejar timestamps de Firebase { _seconds, _nanoseconds }
-    if (dateValue._seconds) {
-      return new Date(dateValue._seconds * 1000)
-    }
-    
-    // Manejar strings ISO
-    if (typeof dateValue === 'string') {
-      const parsed = new Date(dateValue)
-      return isNaN(parsed.getTime()) ? new Date() : parsed
-    }
-    
-    // Manejar números (unix timestamp)
-    if (typeof dateValue === 'number') {
-      return new Date(dateValue)
-    }
-    
-    return new Date()
-  }
+  console.log('[NORMALIZE] Procesando conversación:', conv.id, conv)
 
-  // ✅ NORMALIZAR CONTACTO
-  const normalizeContact = (contactData: any) => {
-    if (!contactData) {
-      return {
-        id: conv.customerPhone || conv.participants?.[0] || 'unknown',
-        name: conv.customerPhone || conv.participants?.[0] || 'Cliente Sin Nombre',
-        phone: conv.customerPhone || conv.participants?.[0] || 'N/A',
-        avatar: null,
-        email: undefined,
-        isOnline: false,
-        lastSeen: undefined,
-        company: undefined,
-        department: undefined,
-        tags: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        customFields: undefined,
-        isBlocked: false,
-        preferences: {
-          language: 'es',
-          timezone: 'UTC',
-          notifications: true
-        }
+  // ✅ NORMALIZACIÓN SIMPLE CON DEFAULTS SEGUROS
+  const normalized = {
+    // ✅ ID obligatorio (ya validado)
+    id: conv.id,
+    
+    // ✅ TÍTULO con múltiples fallbacks
+    title: conv.title || 
+           conv.contact?.name || 
+           conv.customerPhone || 
+           conv.participants?.[0] || 
+           'Conversación Sin Título',
+    
+    // ✅ STATUS con default seguro
+    status: (['open', 'pending', 'closed', 'archived'].includes(conv.status)) ? 
+            conv.status : 'open',
+    
+    // ✅ PRIORITY con default seguro  
+    priority: (['low', 'medium', 'high', 'urgent'].includes(conv.priority)) ? 
+              conv.priority : 'medium',
+    
+    // ✅ CONTACTO con defaults inteligentes
+    contact: conv.contact ? {
+      id: conv.contact.id || conv.customerPhone || conv.participants?.[0] || 'unknown',
+      name: conv.contact.name || conv.customerPhone || conv.participants?.[0] || 'Cliente',
+      phone: conv.contact.phone || conv.customerPhone || conv.participants?.[0] || 'N/A',
+      avatar: conv.contact.avatarUrl || conv.contact.avatar || undefined,
+      email: conv.contact.email || undefined,
+      isOnline: conv.contact.isOnline || false,
+      lastSeen: conv.contact.lastSeen ? new Date(conv.contact.lastSeen) : undefined,
+      company: conv.contact.company || undefined,
+      department: conv.contact.department || undefined,
+      tags: conv.contact.tags || [],
+      createdAt: conv.contact.createdAt ? new Date(conv.contact.createdAt) : new Date(),
+      updatedAt: conv.contact.updatedAt ? new Date(conv.contact.updatedAt) : new Date(),
+      customFields: conv.contact.customFields || undefined,
+      isBlocked: conv.contact.isBlocked || false,
+      preferences: conv.contact.preferences || {
+        language: 'es',
+        timezone: 'UTC', 
+        notifications: true
       }
-    }
-
-    return {
-      id: contactData.id || conv.customerPhone || conv.participants?.[0] || 'unknown',
-      name: contactData.name || contactData.phone || conv.customerPhone || conv.participants?.[0] || 'Cliente Sin Nombre',
-      phone: contactData.phone || conv.customerPhone || conv.participants?.[0] || 'N/A',
-      avatar: contactData.avatarUrl || contactData.avatar,
-      email: contactData.email,
-      isOnline: contactData.isOnline || false,
-      lastSeen: contactData.lastSeen ? normalizeDate(contactData.lastSeen) : undefined,
-      company: contactData.company,
-      department: contactData.department,
-      tags: contactData.tags || [],
-      createdAt: contactData.createdAt ? normalizeDate(contactData.createdAt) : new Date(),
-      updatedAt: contactData.updatedAt ? normalizeDate(contactData.updatedAt) : new Date(),
-      customFields: contactData.customFields,
-      isBlocked: contactData.isBlocked || false,
-      preferences: contactData.preferences || {
+    } : {
+      // ✅ CONTACTO DEFAULT si no existe
+      id: conv.customerPhone || conv.participants?.[0] || 'unknown',
+      name: conv.customerPhone || conv.participants?.[0] || 'Cliente',
+      phone: conv.customerPhone || conv.participants?.[0] || 'N/A',
+      avatar: undefined,
+      email: undefined,
+      isOnline: false,
+      lastSeen: undefined,
+      company: undefined,
+      department: undefined,
+      tags: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      customFields: undefined,
+      isBlocked: false,
+      preferences: {
         language: 'es',
         timezone: 'UTC',
         notifications: true
       }
-    }
-  }
-
-  // ✅ NORMALIZAR ÚLTIMO MENSAJE
-  const normalizeLastMessage = (messageData: any) => {
-    if (!messageData) {
-      return {
-        id: 'placeholder',
-        content: 'Sin mensajes',
-        timestamp: new Date(),
-        senderName: 'Sistema',
-        type: 'text' as const
-      }
-    }
-
-    return {
-      id: messageData.id || 'unknown',
-      content: messageData.content || messageData.text || 'Mensaje sin contenido',
-      timestamp: normalizeDate(messageData.timestamp || messageData.createdAt),
-      senderName: messageData.senderName || messageData.sender?.name || 'Usuario',
-      type: (messageData.type || 'text') as any
-    }
-  }
-
-  // ✅ NORMALIZAR CONTADORES
-  const normalizeCount = (countValue: any): number => {
-    if (typeof countValue === 'number') return Math.max(0, countValue)
-    if (countValue?.operand && typeof countValue.operand === 'number') return Math.max(0, countValue.operand)
-    if (typeof countValue === 'string') {
-      const parsed = parseInt(countValue, 10)
-      return isNaN(parsed) ? 0 : Math.max(0, parsed)
-    }
-    return 0
-  }
-
-  // ✅ CONVERSACIÓN NORMALIZADA COMPLETA
-  const normalized = {
-    // Campos obligatorios básicos
-    id: conv.id,
-    title: conv.title || `Conversación con ${conv.contact?.name || conv.customerPhone || 'Cliente'}`,
-    status: ['open', 'pending', 'closed', 'archived'].includes(conv.status) ? conv.status : 'open',
-    priority: ['low', 'medium', 'high', 'urgent'].includes(conv.priority) ? conv.priority : 'medium',
+    },
     
-    // Contacto normalizado
-    contact: normalizeContact(conv.contact),
-    
-    // Canal con fallback inteligente
+    // ✅ CANAL con fallback inteligente
     channel: conv.channel || conv.contact?.channel || 'whatsapp',
     
-    // Fechas normalizadas
-    createdAt: normalizeDate(conv.createdAt),
-    updatedAt: normalizeDate(conv.updatedAt || conv.lastMessageAt),
-    lastMessageAt: normalizeDate(conv.lastMessageAt || conv.lastMessage?.timestamp),
+    // ✅ FECHAS - Maneja Firebase timestamps, strings, Date objects
+    createdAt: conv.createdAt?._seconds ? 
+               new Date(conv.createdAt._seconds * 1000) :
+               conv.createdAt ? new Date(conv.createdAt) : new Date(),
+               
+    updatedAt: conv.updatedAt?._seconds ? 
+               new Date(conv.updatedAt._seconds * 1000) :
+               conv.updatedAt ? new Date(conv.updatedAt) : 
+               conv.lastMessageAt ? new Date(conv.lastMessageAt) : new Date(),
+               
+    lastMessageAt: conv.lastMessageAt?._seconds ? 
+                   new Date(conv.lastMessageAt._seconds * 1000) :
+                   conv.lastMessageAt ? new Date(conv.lastMessageAt) :
+                   conv.lastMessage?.timestamp?._seconds ? 
+                   new Date(conv.lastMessage.timestamp._seconds * 1000) :
+                   conv.lastMessage?.timestamp ? new Date(conv.lastMessage.timestamp) : new Date(),
     
-    // Contadores normalizados
-    messageCount: normalizeCount(conv.messageCount),
-    unreadCount: normalizeCount(conv.unreadCount),
+    // ✅ CONTADORES - Maneja formato {operand: 1}
+    messageCount: typeof conv.messageCount === 'object' && conv.messageCount?.operand ? 
+                  conv.messageCount.operand : 
+                  typeof conv.messageCount === 'number' ? conv.messageCount : 1,
+                  
+    unreadCount: typeof conv.unreadCount === 'object' && conv.unreadCount?.operand ? 
+                 conv.unreadCount.operand :
+                 typeof conv.unreadCount === 'number' ? conv.unreadCount : 0,
     
-    // Asignación opcional
+    // ✅ ASIGNACIÓN opcional
     assignedTo: conv.assignedTo || undefined,
     
-    // Último mensaje normalizado
-    lastMessage: normalizeLastMessage(conv.lastMessage),
+    // ✅ ÚLTIMO MENSAJE con defaults seguros
+    lastMessage: conv.lastMessage ? {
+      id: conv.lastMessage.id || 'unknown',
+      content: conv.lastMessage.content || 'Sin contenido',
+      timestamp: conv.lastMessage.timestamp?._seconds ? 
+                 new Date(conv.lastMessage.timestamp._seconds * 1000) :
+                 conv.lastMessage.timestamp ? new Date(conv.lastMessage.timestamp) : new Date(),
+      senderName: conv.lastMessage.senderName || 'Usuario',
+      type: conv.lastMessage.type || 'text'
+    } : {
+      id: 'placeholder',
+      content: 'Sin mensajes',
+      timestamp: new Date(),
+      senderName: 'Sistema',
+      type: 'text'
+    },
     
-    // Metadatos con defaults seguros
+    // ✅ METADATOS con defaults seguros
     tags: Array.isArray(conv.tags) ? conv.tags : [],
     isMuted: conv.isMuted || false,
     isArchived: conv.isArchived || false,
     
-    // Preservar campos adicionales del backend
+    // ✅ CAMPOS ADICIONALES del backend
     participants: conv.participants || [],
-    customerPhone: conv.customerPhone,
-    lastMessageId: conv.lastMessageId,
+    customerPhone: conv.customerPhone || undefined,
+    lastMessageId: conv.lastMessageId || undefined,
     
-    // Metadatos adicionales
+    // ✅ METADATOS de normalización
     metadata: {
       source: 'backend',
       normalized: true,
-      originalStatus: conv.status,
-      originalChannel: conv.channel,
-      ...(conv.metadata || {})
+      originalData: conv
     }
   }
 
-  console.log('[NORMALIZE] Conversación normalizada:', {
+  console.log('[NORMALIZE] ✅ Conversación normalizada exitosamente:', {
     id: normalized.id,
-    originalStatus: conv.status,
-    normalizedStatus: normalized.status,
+    title: normalized.title,
     hasContact: !!normalized.contact,
     contactName: normalized.contact.name,
-    hasLastMessage: !!normalized.lastMessage,
+    status: normalized.status,
     messageCount: normalized.messageCount,
     unreadCount: normalized.unreadCount
   })
 
   return normalized
-}
-
-/**
- * ✅ VALIDADOR MÍNIMO: Solo verifica ID después de normalización
- */
-function isValidConversation(conv: any): boolean {
-  const hasId = conv && typeof conv === 'object' && conv.id
-  
-  if (!hasId) {
-    console.warn('[VALIDATION] Conversación sin ID después de normalización:', conv)
-    return false
-  }
-  
-  return true
 }
 
 /**
@@ -307,70 +273,47 @@ class ConversationService {
       console.log('🔧 [NORMALIZE] Iniciando normalización de conversaciones...')
       console.log('🔧 [NORMALIZE] Conversaciones originales del backend:', conversations)
 
-      // ✅ NORMALIZACIÓN: Convertir TODAS las conversaciones a formato válido
-      const normalizedConversations = conversations
-        .map((conv, index) => {
-          console.log(`🔧 [NORMALIZE] Procesando conversación ${index + 1}/${conversations.length}:`, {
-            id: conv?.id,
-            hasContact: !!conv?.contact,
-            status: conv?.status,
-            channel: conv?.channel
-          })
-          
-          return normalizeConversation(conv)
-        })
-        .filter(conv => conv !== null) // Remover conversaciones que no pudieron normalizarse
-
-      console.log('🔧 [NORMALIZE] Conversaciones después de normalización:', normalizedConversations.length)
+      // ✅ PROCESAMIENTO SIMPLE: Solo normalizar y validar ID
+      const processedConversations = []
       
-      // ✅ VALIDACIÓN MÍNIMA: Solo verificar ID
-      const validConversations = normalizedConversations.filter((conv, index) => {
-        const isValid = isValidConversation(conv)
-        if (!isValid) {
-          console.warn(`⚠️ [VALIDATION] Conversación ${index + 1} inválida después de normalización:`, conv)
-        }
-        return isValid
-      })
-      
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`✅ [DEBUG] Total conversations received: ${conversations.length}`)
-        console.log(`🔧 [DEBUG] Conversations after normalization: ${normalizedConversations.length}`)
-        console.log(`✅ [DEBUG] Valid conversations after filtering: ${validConversations.length}`)
+      for (let i = 0; i < conversations.length; i++) {
+        const originalConv = conversations[i]
+        console.log(`🔧 [NORMALIZE] Procesando conversación ${i + 1}/${conversations.length}:`, originalConv)
         
-        if (validConversations.length !== conversations.length) {
-          console.warn('⚠️ [WARNING] Some conversations were filtered out:', {
-            original: conversations.length,
-            normalized: normalizedConversations.length,
-            valid: validConversations.length,
-            lost: conversations.length - validConversations.length
-          })
+        // ✅ NORMALIZAR (solo falla si no hay ID)
+        const normalized = normalizeConversation(originalConv)
+        
+        if (normalized) {
+          console.log(`✅ [NORMALIZE] Conversación ${i + 1} normalizada exitosamente:`, normalized.id)
+          processedConversations.push(normalized)
+        } else {
+          console.error(`❌ [NORMALIZE] Conversación ${i + 1} descartada (sin ID):`, originalConv)
         }
       }
 
-      // ✅ LOG FINAL PARA DEBUGGING
-      console.log('📊 [FINAL] Resumen de procesamiento:', {
-        backend_response: conversations.length,
-        after_normalization: normalizedConversations.length,
-        after_validation: validConversations.length,
-        conversations_to_render: validConversations
+      console.log('📊 [FINAL] Resultado del procesamiento:', {
+        backend_conversations: conversations.length,
+        processed_conversations: processedConversations.length,
+        success_rate: `${((processedConversations.length / conversations.length) * 100).toFixed(1)}%`,
+        conversations_to_render: processedConversations
       })
 
-      // Si no hay conversaciones válidas después de normalización
-      if (validConversations.length === 0 && conversations.length > 0) {
-        console.error('🚨 [CRITICAL] Se recibieron conversaciones del backend pero NINGUNA pudo ser procesada')
-        console.error('🚨 [CRITICAL] Datos originales:', conversations)
-        console.error('🚨 [CRITICAL] Esto indica un problema grave en la normalización o estructura del backend')
+      // ✅ GARANTÍA: Si el backend envió conversaciones pero todas se perdieron, 
+      // crear conversación de emergencia
+      if (conversations.length > 0 && processedConversations.length === 0) {
+        console.error('🚨 [CRITICAL] ¡TODAS las conversaciones se perdieron en el procesamiento!')
+        console.error('🚨 [CRITICAL] Datos originales del backend:', conversations)
         
-        // ✅ MODO DE EMERGENCIA: Crear conversación de prueba para mostrar algo
+        // ✅ CREAR CONVERSACIÓN DE EMERGENCIA para mostrar el problema
         const emergencyConversation = {
           id: 'emergency-' + Date.now(),
-          title: 'Conversación de Emergencia',
+          title: `ERROR: ${conversations.length} conversaciones perdidas`,
           status: 'open' as const,
-          priority: 'medium' as const,
+          priority: 'urgent' as const,
           contact: {
             id: 'emergency-contact',
-            name: 'Error en Backend',
-            phone: 'N/A',
+            name: 'ERROR DE PROCESAMIENTO',
+            phone: 'Ver logs del navegador',
             avatar: undefined,
             email: undefined,
             isOnline: false,
@@ -388,23 +331,33 @@ class ConversationService {
           unreadCount: 1,
           lastMessage: {
             id: 'emergency-msg',
-            content: `Error: ${conversations.length} conversaciones del backend no pudieron procesarse`,
+            content: `Error de procesamiento: ${conversations.length} conversaciones del backend no pudieron ser normalizadas. Revisar logs de consola.`,
             timestamp: new Date(),
-            senderName: 'Sistema',
+            senderName: 'Sistema de Debug',
             type: 'text' as const
           },
-          tags: [],
+          tags: ['error', 'debug'],
           isMuted: false,
           isArchived: false,
           participants: [],
-          metadata: { source: 'emergency', error: true }
+          metadata: { 
+            source: 'emergency', 
+            error: true,
+            originalCount: conversations.length
+          }
         }
         
-        console.log('🆘 [EMERGENCY] Creando conversación de emergencia para mostrar el error:', emergencyConversation)
+        console.log('🆘 [EMERGENCY] Creando conversación de emergencia:', emergencyConversation)
         return [emergencyConversation]
       }
 
-      return validConversations
+      // ✅ ASEGURAR QUE NUNCA RETORNEMOS ARRAY VACÍO SI HABÍA DATOS
+      if (processedConversations.length === 0 && conversations.length === 0) {
+        console.log('ℹ️ [INFO] No hay conversaciones en el backend - array vacío legítimo')
+      }
+
+      console.log('✅ [SUCCESS] Conversaciones listas para renderizar:', processedConversations.length)
+      return processedConversations
 
     } catch (error) {
       console.error('❌ [ERROR] Error fetching conversations:', error)
