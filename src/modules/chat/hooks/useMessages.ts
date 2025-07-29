@@ -21,18 +21,41 @@ export const messageKeys = {
 export function useMessages(conversationId?: string) {
   const { user } = useAuth()
   
+  console.log('[HOOK] useMessages called with:', {
+    conversationId,
+    userEmail: user?.email,
+    userActive: user?.isActive,
+    enabled: !!conversationId && !!user?.email && !!user?.isActive
+  })
+  
   return useQuery({
     queryKey: messageKeys.conversations(conversationId || 'none'),
-    queryFn: () => {
-      if (!conversationId) return []
-      return messageService.getMessages(conversationId)
+    queryFn: async () => {
+      console.log('[HOOK] useMessages queryFn executing for:', conversationId)
+      
+      if (!conversationId) {
+        console.log('[HOOK] useMessages: No conversationId, returning empty array')
+        return []
+      }
+      
+      try {
+        const messages = await messageService.getMessages(conversationId)
+        console.log('[HOOK] useMessages: Success, received messages:', {
+          count: messages?.length,
+          messages: messages
+        })
+        return messages
+      } catch (error) {
+        console.error('[HOOK] useMessages: Error fetching messages:', error)
+        logger.error('Failed to fetch messages', { conversationId, error }, 'messages_query_error')
+        throw error
+      }
     },
     enabled: !!conversationId && !!user?.email && !!user?.isActive,
     staleTime: 1000 * 30, // 30 segundos
     refetchOnWindowFocus: true,
-    onError: (error) => {
-      logger.error('Failed to fetch messages', { conversationId, error }, 'messages_query_error')
-    }
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
   })
 }
 
@@ -45,9 +68,7 @@ export function useMessagesBySenderEmail(senderEmail: string) {
     queryFn: () => messageService.getMessagesBySenderEmail(senderEmail),
     enabled: !!senderEmail,
     staleTime: 1000 * 60 * 2, // 2 minutos
-    onError: (error) => {
-      logger.error('Failed to fetch messages by sender email', { senderEmail, error }, 'messages_by_sender_error')
-    }
+    retry: 3
   })
 }
 
@@ -60,9 +81,7 @@ export function useMessagesByRecipientEmail(recipientEmail: string) {
     queryFn: () => messageService.getMessagesByRecipientEmail(recipientEmail),
     enabled: !!recipientEmail,
     staleTime: 1000 * 60 * 2, // 2 minutos
-    onError: (error) => {
-      logger.error('Failed to fetch messages by recipient email', { recipientEmail, error }, 'messages_by_recipient_error')
-    }
+    retry: 3
   })
 }
 
@@ -74,52 +93,86 @@ export function useSendMessage() {
   const { user } = useAuth()
 
   return useMutation({
-    mutationFn: (messageData: SendMessageData) => {
+    mutationFn: async (messageData: SendMessageData) => {
+      console.log('[HOOK] useSendMessage mutationFn called with:', messageData)
+      
       // ✅ Auto-incluir email del usuario autenticado si no está presente
       const completeMessageData: SendMessageData = {
         ...messageData,
         senderEmail: messageData.senderEmail || user?.email || '',
       }
       
-      return messageService.sendMessage(completeMessageData)
+      console.log('[HOOK] useSendMessage sending message with complete data:', completeMessageData)
+      
+      try {
+        const result = await messageService.sendMessage(completeMessageData)
+        console.log('[HOOK] useSendMessage success:', result)
+        return result
+      } catch (error) {
+        console.error('[HOOK] useSendMessage error:', error)
+        throw error
+      }
     },
     onMutate: async (messageData) => {
+      console.log('[HOOK] useSendMessage onMutate called')
+      
       // ✅ Optimistic update
       const conversationQueryKey = messageKeys.conversations(messageData.conversationId)
       
       await queryClient.cancelQueries({ queryKey: conversationQueryKey })
       
-      const previousMessages = queryClient.getQueryData(conversationQueryKey)
+      const previousMessages = queryClient.getQueryData(conversationQueryKey) as any[]
+      console.log('[HOOK] Previous messages:', previousMessages)
       
-      // ✅ Crear mensaje optimistic con email
+      // ✅ Crear mensaje optimistic con estructura correcta
       const optimisticMessage = {
         id: `temp-${Date.now()}`,
         conversationId: messageData.conversationId,
-        senderPhone: user?.email || '',
-        recipientPhone: messageData.recipientEmail,
         content: messageData.content,
         type: messageData.type || 'text',
+        direction: 'outgoing' as const,
         status: 'sending' as const,
+        timestamp: new Date(),
+        sender: {
+          id: user?.email || '',
+          name: user?.name || 'Tú',
+          email: user?.email || ''
+        },
+        recipient: {
+          id: messageData.recipientEmail || '',
+          email: messageData.recipientEmail || ''
+        },
         isOptimistic: true
       }
       
+      console.log('[HOOK] Adding optimistic message:', optimisticMessage)
+      
       queryClient.setQueryData(conversationQueryKey, (old: any) => {
-        return old ? [...old, optimisticMessage] : [optimisticMessage]
+        const newMessages = old ? [...old, optimisticMessage] : [optimisticMessage]
+        console.log('[HOOK] Updated messages with optimistic:', newMessages)
+        return newMessages
       })
       
-      return { previousMessages, optimisticMessage }
+      return { previousMessages, optimisticMessage, conversationQueryKey }
     },
     onSuccess: (sentMessage, variables, context) => {
-      // ✅ Reemplazar mensaje optimistic con el real
-      const conversationQueryKey = messageKeys.conversations(variables.conversationId)
+      console.log('[HOOK] useSendMessage onSuccess called')
+      console.log('[HOOK] Sent message:', sentMessage)
       
-      queryClient.setQueryData(conversationQueryKey, (old: any) => {
-        if (!old) return [sentMessage]
-        
-        return old.map((msg: any) => 
-          msg.id === context?.optimisticMessage.id ? sentMessage : msg
-        )
-      })
+      // ✅ Reemplazar mensaje optimistic con el real
+      const conversationQueryKey = context?.conversationQueryKey
+      
+      if (conversationQueryKey) {
+        queryClient.setQueryData(conversationQueryKey, (old: any) => {
+          if (!old) return [sentMessage]
+          
+          const updated = old.map((msg: any) => 
+            msg.id === context?.optimisticMessage.id ? sentMessage : msg
+          )
+          console.log('[HOOK] Replaced optimistic message with real:', updated)
+          return updated
+        })
+      }
 
       // ✅ Invalidar queries relacionadas
       queryClient.invalidateQueries({ queryKey: messageKeys.bySender(user?.email || '') })
@@ -132,10 +185,13 @@ export function useSendMessage() {
       }, 'message_send_success')
     },
     onError: (error, variables, context) => {
+      console.error('[HOOK] useSendMessage onError called')
+      console.error('[HOOK] Error:', error)
+      
       // ✅ Revertir optimistic update
-      if (context?.previousMessages) {
-        const conversationQueryKey = messageKeys.conversations(variables.conversationId)
-        queryClient.setQueryData(conversationQueryKey, context.previousMessages)
+      if (context?.previousMessages && context?.conversationQueryKey) {
+        queryClient.setQueryData(context.conversationQueryKey, context.previousMessages)
+        console.log('[HOOK] Reverted optimistic update')
       }
 
       logger.error('Failed to send message', { 
@@ -143,6 +199,9 @@ export function useSendMessage() {
         error,
         senderEmail: user?.email 
       }, 'message_send_error')
+    },
+    onSettled: () => {
+      console.log('[HOOK] useSendMessage onSettled called')
     }
   })
 }

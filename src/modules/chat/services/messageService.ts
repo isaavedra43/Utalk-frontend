@@ -16,10 +16,48 @@ class MessageService {
    */
   async getMessages(conversationId: string): Promise<CanonicalMessage[]> {
     try {
+      console.log('[SERVICE] messageService.getMessages called with:', conversationId)
       logger.info('Fetching messages for conversation', { conversationId }, 'messages_fetch_start')
 
       const response = await apiClient.get(API_ENDPOINTS.CONVERSATIONS.MESSAGES(conversationId))
-      const validatedMessages = MessageValidator.validateBackendResponse(response)
+      
+      console.log('[SERVICE] Raw response from API:', {
+        status: response?.status,
+        data: response?.data,
+        dataType: typeof response?.data,
+        isArray: Array.isArray(response?.data),
+        length: response?.data?.length
+      })
+
+      // ✅ Manejo robusto de respuesta vacía
+      if (!response || !response.data) {
+        console.log('[SERVICE] Empty response, returning empty array')
+        return []
+      }
+
+      // ✅ Manejar diferentes estructuras de respuesta
+      let messages = response.data
+      if (Array.isArray(response.data?.data)) {
+        messages = response.data.data
+        console.log('[SERVICE] Using nested data structure')
+      } else if (Array.isArray(response.data?.messages)) {
+        messages = response.data.messages
+        console.log('[SERVICE] Using messages property')
+      }
+
+      console.log('[SERVICE] Messages before validation:', {
+        type: typeof messages,
+        isArray: Array.isArray(messages),
+        length: messages?.length,
+        firstMessage: messages?.[0]
+      })
+
+      const validatedMessages = MessageValidator.validateBackendResponse(messages)
+      
+      console.log('[SERVICE] Messages after validation:', {
+        count: validatedMessages.length,
+        validatedMessages
+      })
 
       logger.success('Messages fetched successfully', {
         conversationId,
@@ -28,6 +66,7 @@ class MessageService {
 
       return validatedMessages
     } catch (error) {
+      console.error('[SERVICE] Error in getMessages:', error)
       logger.error('Failed to fetch messages', { conversationId, error }, 'messages_fetch_error')
       throw error
     }
