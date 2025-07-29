@@ -1,6 +1,6 @@
 // Layout principal del dashboard con sidebar y header
 // Estructura base para todas las páginas autenticadas
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Link, useLocation, Outlet } from 'react-router-dom'
 import { 
   Home, 
@@ -21,10 +21,6 @@ import {
 import { Button } from '@/components/ui/button'
 
 import { useTheme } from '@/hooks/useTheme'
-
-interface DashboardLayoutProps {
-  children?: React.ReactNode
-}
 
 // Configuración de navegación principal
 const navigationItems = [
@@ -73,7 +69,7 @@ const navigationItems = [
   }
 ]
 
-export function DashboardLayout({ children }: DashboardLayoutProps) {
+export function DashboardLayout() {
   const { theme, setTheme } = useTheme()
   const location = useLocation()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -99,109 +95,117 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </Link>
             </nav>
           </div>
-          
-          <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-            {/* Búsqueda global */}
-            <div className="w-full flex-1 md:w-auto md:flex-none">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Buscar en UTalk..."
-                  className="w-full md:w-64 pl-10 pr-4 py-2 text-sm border rounded-md bg-background"
-                />
-              </div>
-            </div>
 
-            {/* Notificaciones y usuario */}
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                title={theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
-              >
-                {theme === 'light' ? (
-                  <Moon className="h-5 w-5" />
-                ) : (
-                  <Sun className="h-5 w-5" />
-                )}
-              </button>
-
-              <Button variant="ghost" size="sm">
-                <Bell className="w-4 h-4" />
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </Button>
-              
-              <Button variant="ghost" size="sm">
-                <User className="w-4 h-4" />
-              </Button>
+          {/* Barra de búsqueda central */}
+          <div className="flex-1 max-w-2xl mx-auto">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Buscar en UTalk..."
+                className="w-full pl-10 pr-4 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+              />
             </div>
+          </div>
+
+          {/* Acciones del header */}
+          <div className="flex items-center space-x-2 ml-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleTheme}
+              className="h-8 w-8 p-0"
+            >
+              {theme === 'light' ? (
+                <Moon className="h-4 w-4" />
+              ) : (
+                <Sun className="h-4 w-4" />
+              )}
+            </Button>
+            
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <Bell className="h-4 w-4" />
+            </Button>
+            
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <User className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </header>
 
-      <div className="flex">
-        {/* Sidebar Colapsible */}
-        <aside className={`hidden md:block border-r bg-background transition-all duration-300 ease-in-out ${
-          sidebarCollapsed ? 'w-16' : 'w-64'
-        }`}>
-          <div className="flex h-full flex-col">
-            {/* Botón para colapsar/expandir */}
-            <div className="flex justify-end p-2 border-b">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleSidebar}
-                className="h-8 w-8 p-0"
-                title={sidebarCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
-              >
-                {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-              </Button>
-            </div>
-
-            <div className="flex-1 py-4">
-              <nav className="space-y-1 px-3">
-                {navigationItems.map((item) => {
-                  const isActive = location.pathname.startsWith(item.href)
-                  
-                  return (
-                    <Link
-                      key={item.href}
-                      to={item.href}
-                      className={`
-                        flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-medium transition-colors
-                        ${isActive 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                        }
-                        ${sidebarCollapsed ? 'justify-center space-x-0' : ''}
-                      `}
-                      title={sidebarCollapsed ? item.label : undefined}
-                    >
-                      <item.icon className="w-4 h-4 flex-shrink-0" />
-                      {!sidebarCollapsed && (
-                        <>
-                          <span className="flex-1">{item.label}</span>
-                          {item.badge && (
-                            <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
-                              {item.badge}
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </Link>
-                  )
-                })}
-              </nav>
-            </div>
+      {/* Layout principal */}
+      <div className="flex h-[calc(100vh-3.5rem)]">
+        {/* Sidebar */}
+        <aside className={`
+          bg-background border-r transition-all duration-300 ease-in-out
+          ${sidebarCollapsed ? 'w-16' : 'w-64'}
+        `}>
+          <div className="p-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleSidebar}
+              className="w-full justify-start mb-4"
+            >
+              {sidebarCollapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+            </Button>
           </div>
+
+          <nav className="px-2">
+            {navigationItems.map((item) => {
+              const isActive = location.pathname === item.href
+              const Icon = item.icon
+
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={`
+                    flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
+                    ${isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                    }
+                  `}
+                >
+                  <Icon className="h-4 w-4 mr-3" />
+                  {!sidebarCollapsed && (
+                    <div className="flex-1 flex items-center justify-between">
+                      <span>{item.label}</span>
+                      {item.badge && (
+                        <span className="bg-primary-foreground text-primary text-xs px-2 py-1 rounded-full">
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </Link>
+              )
+            })}
+          </nav>
         </aside>
 
         {/* Contenido principal */}
-        <main className="flex-1 flex flex-col min-h-0">
-          <div className="flex-1 overflow-auto">
-            {children || <Outlet />}
-          </div>
+        <main className={`
+          flex-1 overflow-hidden
+          ${location.pathname === '/chat' ? 'p-0' : 'p-6'}
+        `}>
+          {location.pathname === '/chat' ? (
+            // Para el chat, ocupar toda la pantalla sin padding
+            <div className="h-full w-full">
+              <Outlet />
+            </div>
+          ) : (
+            // Para otras páginas, mantener el padding normal
+            <div className="h-full">
+              <Outlet />
+            </div>
+          )}
         </main>
       </div>
     </div>

@@ -25,62 +25,50 @@ function useMediaQuery(query: string) {
   return matches
 }
 
-export function ResponsiveInbox({ 
+export function ResponsiveInbox({
   conversations,
-  initialConversationId, 
-  onSendMessage: onSendMessageProp,
-  onSelectConversation: onSelectConversationProp,
+  initialConversationId,
+  onSendMessage,
+  onSelectConversation
 }: ResponsiveInboxProps) {
-  console.log('[COMPONENT] ResponsiveInbox.tsx: Componente renderizado')
-  console.log('[PROP] ResponsiveInbox.tsx: Props recibidas:')
-  console.log('[PROP] - conversations:', conversations)
-  console.log('[PROP] - Tipo de conversations:', typeof conversations)
-  console.log('[PROP] - Es array:', Array.isArray(conversations))
-  console.log('[PROP] - Longitud:', conversations?.length)
-  console.log('[PROP] - initialConversationId:', initialConversationId, 'Type:', typeof initialConversationId)
-  console.log('[PROP] - onSendMessage:', typeof onSendMessageProp)
-  console.log('[PROP] - onSelectConversation:', typeof onSelectConversationProp)
-
-  if (conversations && Array.isArray(conversations)) {
-    console.log('[PROP] ResponsiveInbox.tsx: Detalle de conversaciones recibidas:')
-    conversations.forEach((conv, index) => {
-      console.log(`[PROP] Conversación ${index + 1}:`, {
-        id: conv?.id,
-        hasContact: !!conv?.contact,
-        contactName: conv?.contact?.name,
-        hasLastMessage: !!conv?.lastMessage,
-        status: conv?.status
-      })
-    })
-  } else {
-    console.warn('[PROP] ResponsiveInbox.tsx: conversations no es un array válido:', conversations)
-  }
-
-  const { user } = useAuth()
-  console.log('[AUTH] ResponsiveInbox.tsx: Usuario autenticado:', {
-    hasUser: !!user,
-    email: user?.email,
-    isActive: user?.isActive
-  })
-
   const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>(initialConversationId)
   const [searchQuery, setSearchQuery] = useState('')
-  
-  console.log('[STATE] ResponsiveInbox.tsx: Estados iniciales:')
-  console.log('[STATE] - selectedConversationId:', selectedConversationId)
-  console.log('[STATE] - searchQuery:', searchQuery)
+  const { user } = useAuth()
+  const isMobile = useMediaQuery('(max-width: 768px)')
 
-  useEffect(() => {
-    console.log('[EFFECT] ResponsiveInbox.tsx: useEffect para initialConversationId')
-    console.log('[EFFECT] - initialConversationId:', initialConversationId)
-    console.log('[EFFECT] - selectedConversationId actual:', selectedConversationId)
-    
-    if (initialConversationId && initialConversationId !== selectedConversationId) {
-      console.log('[EFFECT] ResponsiveInbox.tsx: Actualizando selectedConversationId')
-      setSelectedConversationId(initialConversationId)
-    }
-  }, [initialConversationId])
-  
+  // ✅ LOGS CRÍTICOS PARA DEBUG
+  console.log('[COMPONENT] ResponsiveInbox render:', {
+    conversationsCount: conversations?.length,
+    selectedConversationId,
+    searchQuery,
+    isMobile,
+    userEmail: user?.email
+  })
+
+  // ✅ Filtrar conversaciones por búsqueda
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery.trim()) return conversations
+
+    const query = searchQuery.toLowerCase()
+    return conversations.filter(conversation => {
+      const contactName = conversation?.contact?.name?.toLowerCase() || ''
+      const contactPhone = conversation?.contact?.phone?.toLowerCase() || ''
+      const lastMessage = conversation?.lastMessage?.content?.toLowerCase() || ''
+      const title = conversation?.title?.toLowerCase() || ''
+
+      return contactName.includes(query) || 
+             contactPhone.includes(query) || 
+             lastMessage.includes(query) || 
+             title.includes(query)
+    })
+  }, [conversations, searchQuery])
+
+  // ✅ Obtener conversación seleccionada
+  const selectedConversation = useMemo(() => {
+    return conversations.find(conv => conv.id === selectedConversationId)
+  }, [conversations, selectedConversationId])
+
+  // ✅ Hook para mensajes de la conversación seleccionada
   const {
     data: messages = [],
     isLoading: messagesLoading,
@@ -99,119 +87,25 @@ export function ResponsiveInbox({
   console.log('[CRITICAL] ResponsiveInbox.tsx: Tipo de selectedConversationId:', typeof selectedConversationId)
   console.log('[CRITICAL] ResponsiveInbox.tsx: selectedConversationId es truthy:', !!selectedConversationId)
 
+  // ✅ Hook para enviar mensajes
   const sendMessageMutation = useSendMessage()
-  
-  const handleSendMessage = (messageData: SendMessageData) => {
-    console.log('[HANDLER] ResponsiveInbox.tsx: handleSendMessage llamado')
-    console.log('[HANDLER] - messageData:', messageData)
-    console.log('[HANDLER] - Tipo de messageData:', typeof messageData)
-    
-    try {
-      sendMessageMutation.mutate(messageData)
-      console.log('[HANDLER] - sendMessageMutation.mutate ejecutado')
-      
-      if (onSendMessageProp) {
-        console.log('[HANDLER] - Llamando callback onSendMessageProp')
-        onSendMessageProp(messageData)
-      } else {
-        console.log('[HANDLER] - No hay callback onSendMessageProp')
-      }
-    } catch (error) {
-      console.error('[ERROR] ResponsiveInbox.tsx: Error en handleSendMessage:', error)
-    }
-  }
 
   const handleSelectConversation = (conversationId: string) => {
-    console.log('[HANDLER] ResponsiveInbox.tsx: handleSelectConversation llamado')
-    console.log('[HANDLER] - conversationId:', conversationId, 'Type:', typeof conversationId)
-    
+    console.log('[EVENT] Seleccionando conversación:', conversationId)
     setSelectedConversationId(conversationId)
-    console.log('[HANDLER] - selectedConversationId actualizado a:', conversationId)
-    
-    if (onSelectConversationProp) {
-      console.log('[HANDLER] - Llamando callback onSelectConversationProp')
-      onSelectConversationProp(conversationId)
-    } else {
-      console.log('[HANDLER] - No hay callback onSelectConversationProp')
-    }
+    onSelectConversation?.(conversationId)
   }
 
-  // ✅ PASO 3: ELIMINAR DOBLE FILTRADO
-  // ResponsiveInbox ya NO filtra - solo pasa las conversaciones directamente
-  // El filtrado se hace ÚNICAMENTE en ConversationList
-  console.log('[FILTER] ResponsiveInbox.tsx: NO FILTERING - Pasando conversaciones directamente')
-  console.log('[FILTER] - conversations originales:', conversations)
-  console.log('[FILTER] - conversations length:', conversations?.length)
-  console.log('[FILTER] - searchQuery (ignorado aquí):', searchQuery)
-
-  const selectedConversation = useMemo(() => {
-    console.log('[MEMO] ResponsiveInbox.tsx: Calculando selectedConversation')
-    console.log('[MEMO] - conversations:', conversations)
-    console.log('[MEMO] - selectedConversationId:', selectedConversationId)
-    console.log('[MEMO] - conversations es array:', Array.isArray(conversations))
-    
-    if (!selectedConversationId || !Array.isArray(conversations)) {
-      console.log('[MEMO] - No hay selectedConversationId o conversations no es array')
-      return undefined
-    }
-    
-    const found = conversations.find(c => c.id === selectedConversationId)
-    console.log('[MEMO] - Conversación encontrada:', found)
-    console.log('[MEMO] - ID buscado:', selectedConversationId)
-    
-    if (found) {
-      console.log('[MEMO] - Conversación seleccionada:', {
-        id: found.id,
-        contactName: found.contact?.name,
-        hasMessages: !!found.lastMessage
-      })
-    } else {
-      console.log('[MEMO] - No se encontró conversación con ID:', selectedConversationId)
-    }
-    
-    return found
-  }, [conversations, selectedConversationId])
-
-  console.log('[RENDER] ResponsiveInbox.tsx: Preparando render final')
-  console.log('[RENDER] - conversations (SIN FILTRAR):', conversations)
-  console.log('[RENDER] - conversations length:', conversations?.length)
-  console.log('[RENDER] - selectedConversation:', selectedConversation)
-  console.log('[RENDER] - selectedConversationId:', selectedConversationId)
-  console.log('[RENDER] - messages:', messages)
-  console.log('[RENDER] - messagesLoading:', messagesLoading)
-
-  // Logs adicionales para el renderizado
-  console.log('[RENDER] ResponsiveInbox.tsx: Renderizando ConversationList con props:', {
-    conversations: conversations, // ✅ CORREGIDO: Pasa conversations SIN filtrar
-    conversationsLength: conversations?.length,
-    selectedConversationId,
-    onSelect: typeof handleSelectConversation,
-    isLoading: false,
-    searchQuery,
-    onSearchChange: typeof setSearchQuery
-  })
-
-  if (selectedConversation) {
-    console.log('[RENDER] ResponsiveInbox.tsx: Renderizando ChatWindow con props:', {
-      conversation: selectedConversation,
-      conversationId: selectedConversation.id,
-      messages,
-      messagesLength: messages?.length,
-      isLoading: messagesLoading,
-      onSendMessage: typeof handleSendMessage,
-      currentUserEmail: user?.email,
-      typingUsers: []
-    })
-  } else {
-    console.log('[RENDER] ResponsiveInbox.tsx: Renderizando placeholder (no hay conversación seleccionada)')
+  const handleSendMessage = (messageData: SendMessageData) => {
+    console.log('[EVENT] Enviando mensaje:', messageData)
+    sendMessageMutation.mutate(messageData)
+    onSendMessage?.(messageData)
   }
-
-  const isMobile = useMediaQuery('(max-width: 768px)')
 
   return (
-    <div className="h-full bg-gray-50 dark:bg-gray-900">
-      {/* Layout principal mejorado */}
-      <div className="flex h-full w-full">
+    <div className="h-screen w-full bg-gray-50 dark:bg-gray-900 flex flex-col">
+      {/* Layout principal - PANTALLA COMPLETA */}
+      <div className="flex h-full w-full flex-1 min-h-0">
         
         {/* Panel izquierdo - Lista de conversaciones */}
         <div className={`
@@ -238,7 +132,7 @@ export function ResponsiveInbox({
               </div>
             </div>
             
-            {/* Barra de búsqueda mejorada */}
+            {/* Barra de búsqueda única */}
             <div className="relative">
               <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" 
                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -262,7 +156,7 @@ export function ResponsiveInbox({
           {/* Lista de conversaciones */}
           <div className="flex-1 overflow-y-auto">
             <ConversationList 
-              conversations={conversations}
+              conversations={filteredConversations}
               selectedConversationId={selectedConversationId}
               onSelect={handleSelectConversation}
               isLoading={false}
