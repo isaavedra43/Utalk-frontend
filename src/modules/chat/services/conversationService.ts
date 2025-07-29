@@ -210,25 +210,28 @@ class ConversationService {
         })
       }
 
-      // ✅ CORREGIDO: Buscar en response.data.data que es donde realmente está el array
+      // ✅ CORRECCIÓN CRÍTICA: ApiClient ya extrae response.data.data automáticamente
+      // Así que 'response.data' puede ser directamente el array o un objeto con el array
       let conversations: any = []
 
-      // PRIORIDAD 1: Verificar response.data.data
-      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+      console.log('[CRITICAL-FIX] Detecting response format after apiClient processing...')
+      
+      // CASO 1: ApiClient retornó el array directamente (más probable)
+      if (Array.isArray(response.data)) {
+        conversations = response.data
+        console.log('✅ [SUCCESS] ApiClient returned array directly:', conversations.length)
+      }
+      // CASO 2: Respuesta completa sin extracción automática
+      else if (response.data && response.data.data && Array.isArray(response.data.data)) {
         conversations = response.data.data
         console.log('✅ [SUCCESS] Found conversations in response.data.data:', conversations.length)
       }
-      // PRIORIDAD 2: Verificar response.data directamente  
-      else if (Array.isArray(response.data)) {
-        conversations = response.data
-        console.log('✅ [SUCCESS] Found conversations in response.data:', conversations.length)
-      }
-      // PRIORIDAD 3: Buscar en el campo "data" específicamente
+      // CASO 3: Respuesta en root level
       else if (response.data && Array.isArray(response.data['data'])) {
         conversations = response.data['data']
         console.log('✅ [SUCCESS] Found conversations in response.data["data"]:', conversations.length)
       }
-      // PRIORIDAD 4: Otros formatos alternativos
+      // CASO 4: Otros formatos alternativos
       else if (Array.isArray(response.data?.conversations)) {
         conversations = response.data.conversations
         console.log('✅ [DEBUG] Using ALT structure: response.data.conversations')
@@ -255,8 +258,9 @@ class ConversationService {
         }
         
         if (conversations.length === 0) {
-          console.error('❌ [ERROR] No array found in response.data')
-          console.error('❌ [ERROR] response.data structure:', response.data)
+          console.error('❌ [ERROR] No array found anywhere in response')
+          console.error('❌ [ERROR] Full response structure:', response.data)
+          console.error('❌ [ERROR] Response keys:', response.data ? Object.keys(response.data) : 'none')
         }
       }
 
