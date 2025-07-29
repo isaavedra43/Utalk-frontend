@@ -1,6 +1,6 @@
 // Layout principal del dashboard con sidebar y header
 // Estructura base para todas las páginas autenticadas
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation, Outlet } from 'react-router-dom'
 import { 
   Home, 
@@ -73,6 +73,12 @@ export function DashboardLayout() {
   const { theme, setTheme } = useTheme()
   const location = useLocation()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  // ✅ AUTO-CERRADO DEL SIDEBAR AL NAVEGAR
+  useEffect(() => {
+    // Cerrar sidebar automáticamente cuando cambie la ruta
+    setSidebarCollapsed(false)
+  }, [location.pathname])
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed)

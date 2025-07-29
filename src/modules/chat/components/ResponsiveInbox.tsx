@@ -171,7 +171,7 @@ export function ResponsiveInbox({
         <div className={`
           flex-1 flex flex-col bg-white dark:bg-gray-900
           ${isMobile && !selectedConversationId ? 'hidden' : ''}
-          min-w-0
+          min-w-0 h-full
         `}>
           {selectedConversationId ? (
             <>

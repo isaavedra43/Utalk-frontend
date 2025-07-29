@@ -126,7 +126,7 @@ export function ChatWindow({
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-900">
       {/* Header mejorado */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm flex-shrink-0">
         <div className="flex items-center space-x-3">
           {/* Avatar del contacto */}
           <div className="relative">
@@ -167,6 +167,7 @@ export function ChatWindow({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </Button>
+          
           <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
@@ -175,8 +176,8 @@ export function ChatWindow({
         </div>
       </div>
 
-      {/* Área de mensajes mejorada */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-4 space-y-4">
+      {/* Área de mensajes mejorada - CON ALTURA FLEXIBLE */}
+      <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-4 space-y-4 min-h-0">
         {messages.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
@@ -214,15 +215,15 @@ export function ChatWindow({
         {renderTypingIndicator()}
       </div>
 
-      {/* Input de mensaje mejorado */}
-      <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+      {/* Input de mensaje mejorado - CON ALTURA FIJA */}
+      <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex-shrink-0">
         <div className="flex items-end space-x-3">
           {/* Botón adjuntar */}
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2"
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 flex-shrink-0"
             title="Adjuntar archivo"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -231,7 +232,7 @@ export function ChatWindow({
           </Button>
 
           {/* Input principal */}
-          <div className="flex-1 relative">
+          <div className="flex-1 relative min-w-0">
             <textarea
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
@@ -259,7 +260,7 @@ export function ChatWindow({
               type="button"
               variant="ghost"
               size="sm"
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex-shrink-0"
               title="Emoji"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -274,7 +275,7 @@ export function ChatWindow({
             disabled={!messageText.trim() || isLoading}
             className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 
                       text-white rounded-full p-3 transition-all duration-200 shadow-md hover:shadow-lg
-                      disabled:cursor-not-allowed"
+                      disabled:cursor-not-allowed flex-shrink-0"
             size="sm"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
