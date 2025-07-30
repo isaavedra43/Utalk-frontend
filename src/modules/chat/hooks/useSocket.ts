@@ -279,6 +279,18 @@ export function useSocket() {
         content: normalizedMessage.content.substring(0, 100)
       }, 'socket_new_message')
 
+      // ✅ AGREGAR: Invalidación agresiva de queries relacionadas
+      queryClient.invalidateQueries({
+        queryKey: ['conversations']
+      })
+
+      queryClient.invalidateQueries({
+        queryKey: ['messages']
+      })
+
+      // ✅ AGREGAR: Logging para debugging
+      console.log('[SOCKET] Cache invalidated for new message:', normalizedMessage.id)
+
     } catch (error) {
       console.error('[SOCKET] Error processing new message:', error)
       logger.error('Failed to process new message from WebSocket', {
@@ -383,7 +395,7 @@ export function useSocket() {
     }
 
     // ✅ CORREGIR: Configuración optimizada para evitar rate limiting
-    const wsUrl = import.meta.env.VITE_WS_URL || 'http://localhost:3000'
+    const wsUrl = import.meta.env.VITE_WS_URL || 'https://utalk-backend-production.up.railway.app'
     
     console.log('[SOCKET] Connecting to WebSocket...', {
       url: wsUrl,

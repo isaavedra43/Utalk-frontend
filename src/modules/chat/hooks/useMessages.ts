@@ -33,13 +33,16 @@ export function useMessages(conversationId: string, enablePagination = false) {
     enabled: !!conversationId && !!user?.email && !!user?.isActive
   })
 
+  // ✅ VALIDACIÓN CRÍTICA: No ejecutar si no hay conversationId válido
+  const isEnabled = !!(conversationId && conversationId.trim() && user?.email && user?.isActive && apiClient.getAuthToken())
+
   // Hook para mensajes con paginación (scroll infinito)
   const infiniteQuery = useInfiniteQuery({
     queryKey: messageKeys.infinite(conversationId || 'none'),
     queryFn: async ({ pageParam = 1 }) => {
       console.log('[HOOK] useMessages infinite queryFn executing for:', { conversationId, page: pageParam })
       
-      if (!conversationId) {
+      if (!conversationId || !conversationId.trim()) {
         console.log('[HOOK] useMessages: No conversationId, returning empty array')
         return { messages: [], hasMore: false, nextPage: null }
       }
@@ -64,14 +67,19 @@ export function useMessages(conversationId: string, enablePagination = false) {
         throw error
       }
     },
-    enabled: !!conversationId && !!user?.email && !!user?.isActive && !!apiClient.getAuthToken() && enablePagination,
+    enabled: isEnabled && enablePagination,
     getNextPageParam: (lastPage) => {
       return lastPage.hasMore ? (lastPage.nextPage || 1) : undefined
     },
-    staleTime: 1000 * 30, // 30 segundos
+    staleTime: 0, // ✅ CAMBIAR: Siempre considerar stale para tiempo real
     refetchOnWindowFocus: false, // Evitar refetch innecesario, mejor usar WebSocket
+    refetchOnMount: true, // ✅ AGREGAR: Refetch al montar
+    refetchOnReconnect: true, // ✅ AGREGAR: Refetch al reconectar
     retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    // ✅ AGREGAR: Configuración para tiempo real
+    refetchInterval: false, // No polling, solo Socket.IO
+    refetchIntervalInBackground: false
   })
 
   // Hook para mensajes simples (sin paginación)
@@ -80,7 +88,7 @@ export function useMessages(conversationId: string, enablePagination = false) {
     queryFn: async () => {
       console.log('[HOOK] useMessages simple queryFn executing for:', conversationId)
       
-      if (!conversationId) {
+      if (!conversationId || !conversationId.trim()) {
         console.log('[HOOK] useMessages: No conversationId, returning empty array')
         return []
       }
@@ -98,11 +106,16 @@ export function useMessages(conversationId: string, enablePagination = false) {
         throw error
       }
     },
-    enabled: !!conversationId && !!user?.email && !!user?.isActive && !enablePagination,
-    staleTime: 1000 * 30, // 30 segundos
+    enabled: isEnabled && !enablePagination,
+    staleTime: 0, // ✅ CAMBIAR: Siempre considerar stale para tiempo real
     refetchOnWindowFocus: false, // Evitar refetch innecesario, mejor usar WebSocket
+    refetchOnMount: true, // ✅ AGREGAR: Refetch al montar
+    refetchOnReconnect: true, // ✅ AGREGAR: Refetch al reconectar
     retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    // ✅ AGREGAR: Configuración para tiempo real
+    refetchInterval: false, // No polling, solo Socket.IO
+    refetchIntervalInBackground: false
   })
 
   // Retornar el hook apropiado según la configuración
@@ -342,7 +355,19 @@ export function useSearchMessages(query: {
 export const normalizeMessage = (message: any): CanonicalMessage => {
   // ✅ VALIDACIÓN BÁSICA
   if (!message) {
-    throw new Error('Message object is required')
+    console.error('[MESSAGES] Message is null or undefined')
+    throw new Error('Message is required')
+  }
+  
+  // ✅ AGREGAR: Validación de campos críticos
+  if (!message.id && !message.messageId) {
+    console.error('[MESSAGES] Message without ID:', message)
+    throw new Error('Message must have an ID')
+  }
+  
+  if (!message.conversationId) {
+    console.error('[MESSAGES] Message without conversationId:', message)
+    throw new Error('Message must have conversationId')
   }
 
   console.log('[MESSAGES] Normalizing message:', {
@@ -353,13 +378,13 @@ export const normalizeMessage = (message: any): CanonicalMessage => {
     rawStructure: Object.keys(message)
   })
 
-  return {
+  const normalizedMessage = {
     id: message.id || message.messageId || `msg_${Date.now()}_${Math.random()}`,
     conversationId: message.conversationId,
     content: message.content || message.text || '',
     type: message.type || 'text',
     direction: message.direction || 'outbound',
-    timestamp: message.timestamp || new Date().toISOString(),
+    timestamp: message.timestamp || message.createdAt || new Date().toISOString(),
     status: message.status || 'sent',
     
     // ✅ CORREGIDO: Estructura anidada para compatibilidad
@@ -390,6 +415,17 @@ export const normalizeMessage = (message: any): CanonicalMessage => {
     isImportant: message.isImportant || false,
     attachments: message.attachments || []
   }
+  
+  // ✅ AGREGAR: Logging para debugging
+  console.log('[MESSAGES] Normalized message:', {
+    id: normalizedMessage.id,
+    conversationId: normalizedMessage.conversationId,
+    hasContent: !!normalizedMessage.content,
+    senderEmail: normalizedMessage.sender.email,
+    recipientEmail: normalizedMessage.recipient.email
+  })
+  
+  return normalizedMessage
 }
 
 // ✅ CORREGIR: Función para procesar mensajes entrantes y actualizar cache

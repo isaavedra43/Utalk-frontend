@@ -308,5 +308,7 @@ class ApiClient {
 }
 
 // Instancia singleton del cliente API
-export const apiClient = new ApiClient(import.meta.env.VITE_API_URL)
+export const apiClient = new ApiClient(
+  import.meta.env.VITE_API_URL || 'https://utalk-backend-production.up.railway.app/api'
+)
 export default apiClient 

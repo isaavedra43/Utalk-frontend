@@ -97,8 +97,18 @@ export function MessageList({ conversationId }: MessageListProps) {
   // ✅ CORREGIDO: Ordenar mensajes por timestamp para mostrar orden correcto
   const sortedMessages = useMemo(() => {
     return [...messages].sort((a, b) => {
-      const timestampA = new Date(a.timestamp || 0).getTime()
-      const timestampB = new Date(b.timestamp || 0).getTime()
+      // ✅ AGREGAR: Múltiples campos de timestamp para robustez
+      const timestampA = new Date(a.timestamp || a.createdAt || a.sentAt || 0).getTime()
+      const timestampB = new Date(b.timestamp || b.createdAt || b.sentAt || 0).getTime()
+      
+      // ✅ AGREGAR: Logging para debugging
+      if (!a.timestamp && !a.createdAt && !a.sentAt) {
+        console.warn('[MESSAGES] Message without timestamp:', a.id)
+      }
+      if (!b.timestamp && !b.createdAt && !b.sentAt) {
+        console.warn('[MESSAGES] Message without timestamp:', b.id)
+      }
+      
       return timestampA - timestampB
     })
   }, [messages])
