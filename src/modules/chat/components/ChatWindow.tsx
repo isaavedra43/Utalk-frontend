@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { MessageBubble } from './MessageBubble'
+import { FileUpload, useFileUpload, type FileWithPreview } from './FileUpload'
 import { useAuth } from '@/contexts/AuthContext'
 import { useMessages, useSendMessage } from '../hooks/useMessages'
 import { useSocket, useTypingIndicators } from '../hooks/useSocket'
@@ -17,6 +18,7 @@ export function ChatWindow({
 }) {
   const [messageText, setMessageText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [showFileUpload, setShowFileUpload] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -42,6 +44,16 @@ export function ChatWindow({
   
   // ✅ Typing indicators para esta conversación
   const typingUsers = useTypingIndicators(conversationId)
+
+  // ✅ Hook para manejo de archivos
+  const {
+    selectedFiles,
+    addFiles,
+    removeFile,
+    uploadFiles,
+    isUploading,
+    uploadProgress
+  } = useFileUpload()
 
   // ✅ Scroll automático al final cuando llegan nuevos mensajes
   const scrollToBottom = useCallback((behavior: 'smooth' | 'auto' = 'smooth') => {
@@ -167,6 +179,74 @@ export function ChatWindow({
       setMessageText('')
     }
   }, [messageText, handleSendMessage])
+
+  // ✅ Manejo de archivos
+  const handleFilesSelected = useCallback((files: FileWithPreview[]) => {
+    console.log('[CHAT] Files selected:', files.length)
+    addFiles(files)
+  }, [addFiles])
+
+  const handleFileRemove = useCallback((fileId: string) => {
+    console.log('[CHAT] Removing file:', fileId)
+    removeFile(fileId)
+  }, [removeFile])
+
+  const handleSendWithFiles = useCallback(async () => {
+    if (!conversationId || !user?.email || selectedFiles.length === 0) {
+      console.log('[CHAT] Cannot send files: missing data or no files')
+      return
+    }
+
+    try {
+      console.log('[CHAT] Uploading files:', selectedFiles.length)
+      
+      // Subir archivos primero
+      const uploadedFiles = await uploadFiles()
+      
+      if (!uploadedFiles || uploadedFiles.length === 0) {
+        console.error('[CHAT] No files were uploaded successfully')
+        return
+      }
+
+      // Crear mensaje con archivos adjuntos
+      const messageData: SendMessageData = {
+        conversationId,
+        content: messageText.trim() || 'Archivos adjuntos',
+        type: 'file',
+        senderEmail: user.email,
+        recipientEmail: conversation?.contact?.email || conversation?.contact?.phone || '',
+        attachments: uploadedFiles.map(file => ({
+          id: file.id,
+          filename: file.filename,
+          url: file.url,
+          mimeType: file.mimeType,
+          size: file.size,
+          category: file.category as 'image' | 'audio' | 'document' | 'video'
+        }))
+      }
+
+      // Enviar mensaje con archivos
+      await sendMessageMutation.mutateAsync(messageData)
+      
+      // Llamar callback si existe
+      if (onSendMessage) {
+        onSendMessage(messageData)
+      }
+      
+      // Limpiar estado
+      setMessageText('')
+      setShowFileUpload(false)
+      
+      console.log('[CHAT] Message with files sent successfully')
+      
+    } catch (error) {
+      console.error('[CHAT] Error sending message with files:', error)
+    }
+  }, [conversationId, user?.email, conversation?.contact, selectedFiles, messageText, uploadFiles, sendMessageMutation, onSendMessage])
+
+  const handleToggleFileUpload = useCallback(() => {
+    setShowFileUpload(!showFileUpload)
+  }, [showFileUpload])
 
   // ✅ Limpiar typing timeout al desmontar
   useEffect(() => {
@@ -382,8 +462,10 @@ export function ChatWindow({
             type="button"
             variant="ghost"
             size="sm"
+            onClick={handleToggleFileUpload}
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 flex-shrink-0"
             title="Adjuntar archivo"
+            disabled={messagesLoading || sendMessageMutation.isPending}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -446,6 +528,48 @@ export function ChatWindow({
             )}
           </Button>
         </div>
+
+        {/* Componente de subida de archivos */}
+        {showFileUpload && (
+          <div className="mt-4">
+            <FileUpload
+              onFilesSelected={handleFilesSelected}
+              onFileRemove={handleFileRemove}
+              selectedFiles={selectedFiles}
+              maxFiles={5}
+              disabled={isUploading || sendMessageMutation.isPending}
+            />
+            
+            {/* Botón para enviar archivos */}
+            {selectedFiles.length > 0 && (
+              <div className="mt-3 flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFileUpload(false)}
+                  disabled={isUploading || sendMessageMutation.isPending}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleSendWithFiles}
+                  disabled={isUploading || sendMessageMutation.isPending}
+                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                  size="sm"
+                >
+                  {isUploading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Subiendo...</span>
+                    </div>
+                  ) : (
+                    `Enviar ${selectedFiles.length} archivo${selectedFiles.length > 1 ? 's' : ''}`
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

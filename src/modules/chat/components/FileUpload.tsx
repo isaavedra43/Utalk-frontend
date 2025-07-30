@@ -368,6 +368,16 @@ export function FileUpload({
 // ✅ Hook para usar FileUpload
 export function useFileUpload() {
   const [selectedFiles, setSelectedFiles] = useState<FileWithPreview[]>([])
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
+
+  const addFiles = useCallback((files: FileWithPreview[]) => {
+    setSelectedFiles(prev => [...prev, ...files])
+  }, [])
+
+  const removeFile = useCallback((fileId: string) => {
+    setSelectedFiles(prev => prev.filter(file => file.id !== fileId))
+  }, [])
 
   const handleFilesSelected = useCallback((files: FileWithPreview[]) => {
     setSelectedFiles(files)
@@ -385,6 +395,7 @@ export function useFileUpload() {
     setSelectedFiles(prev => prev.map(file =>
       file.id === fileId ? { ...file, uploadProgress: progress } : file
     ))
+    setUploadProgress(prev => ({ ...prev, [fileId]: progress }))
   }, [])
 
   const updateFileError = useCallback((fileId: string, error: string) => {
@@ -393,12 +404,56 @@ export function useFileUpload() {
     ))
   }, [])
 
+  const uploadFiles = useCallback(async () => {
+    if (selectedFiles.length === 0) return []
+
+    setIsUploading(true)
+    
+    try {
+      // Importar el servicio de upload dinámicamente
+      const { uploadService } = await import('../services/uploadService')
+      
+      const uploadPromises = selectedFiles.map(async (file) => {
+        try {
+          const result = await uploadService.uploadFile(file, (progress) => {
+            updateFileProgress(file.id, progress.progress)
+          })
+          
+          return result
+        } catch (error) {
+          console.error(`Error uploading file ${file.name}:`, error)
+          updateFileError(file.id, 'Error al subir archivo')
+          return null
+        }
+      })
+
+      const results = await Promise.all(uploadPromises)
+      const successfulUploads = results.filter(result => result !== null)
+      
+      // Limpiar archivos después de subir
+      setSelectedFiles([])
+      setUploadProgress({})
+      
+      return successfulUploads
+    } catch (error) {
+      console.error('Error uploading files:', error)
+      return []
+    } finally {
+      setIsUploading(false)
+    }
+  }, [selectedFiles, updateFileProgress, updateFileError])
+
   return {
     selectedFiles,
+    addFiles,
+    removeFile,
     handleFilesSelected,
     handleFileRemove,
     clearFiles,
     updateFileProgress,
-    updateFileError
+    updateFileError,
+    uploadFiles,
+    isUploading,
+    uploadProgress
   }
 }

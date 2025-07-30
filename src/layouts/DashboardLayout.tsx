@@ -143,22 +143,22 @@ export function DashboardLayout() {
 
       {/* Layout principal */}
       <div className="flex h-[calc(100vh-3.5rem)]">
-        {/* Sidebar - CORREGIDO: Íconos más grandes y fáciles de clickear */}
+        {/* Sidebar - CORREGIDO: Íconos más pequeños y estéticos */}
         <aside className={`
           bg-background border-r transition-all duration-300 ease-in-out
-          ${sidebarCollapsed ? 'w-20' : 'w-64'}
+          ${sidebarCollapsed ? 'w-16' : 'w-64'}
         `}>
-          <div className="p-4">
+          <div className="p-3">
             <Button
               variant="ghost"
               size="sm"
               onClick={toggleSidebar}
-              className="w-full justify-start mb-4"
+              className="w-full justify-start mb-3"
             >
               {sidebarCollapsed ? (
-                <ChevronRight className="h-5 w-5" />
+                <ChevronRight className="h-4 w-4" />
               ) : (
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-4 w-4" />
               )}
             </Button>
           </div>
@@ -173,7 +173,7 @@ export function DashboardLayout() {
                   key={item.href}
                   to={item.href}
                   className={`
-                    flex items-center px-3 py-3 text-sm font-medium rounded-md transition-colors
+                    flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors
                     ${sidebarCollapsed ? 'justify-center' : ''}
                     ${isActive
                       ? 'bg-primary text-primary-foreground'
@@ -181,8 +181,8 @@ export function DashboardLayout() {
                     }
                   `}
                 >
-                  {/* ✅ CORREGIDO: Íconos más grandes en sidebar colapsado */}
-                  <Icon className={`${sidebarCollapsed ? 'h-6 w-6' : 'h-5 w-5 mr-3'}`} />
+                  {/* ✅ CORREGIDO: Íconos más pequeños y estéticos */}
+                  <Icon className={`${sidebarCollapsed ? 'h-4 w-4' : 'h-4 w-4 mr-3'}`} />
                   {!sidebarCollapsed && (
                     <div className="flex-1 flex items-center justify-between">
                       <span>{item.label}</span>
