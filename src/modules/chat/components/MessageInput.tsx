@@ -1,5 +1,6 @@
 // Componente de entrada de mensajes con soporte multimedia
 import React, { useState, useRef, useCallback } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Send, Paperclip, Mic, X } from 'lucide-react'
@@ -34,7 +35,11 @@ export function MessageInput({
     try {
       setIsSending(true)
       
+      // ✅ Generar messageId único
+      const messageId = uuidv4()
+      
       await onSendMessage({
+        messageId, // ✅ OBLIGATORIO: UUID único para el backend
         conversationId,
         content: message.trim(),
         senderEmail: '', // Se llenará en el hook
@@ -48,9 +53,8 @@ export function MessageInput({
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto'
       }
-      
     } catch (error) {
-      console.error('[MESSAGE-INPUT] Error sending message:', error)
+      console.error('Error sending message:', error)
     } finally {
       setIsSending(false)
     }
@@ -74,7 +78,11 @@ export function MessageInput({
         metadata: file.metadata
       }))
 
+      // ✅ Generar messageId único para archivos
+      const messageId = uuidv4()
+
       await onSendMessage({
+        messageId, // ✅ OBLIGATORIO: UUID único para el backend
         conversationId,
         content: message.trim() || 'Archivo adjunto',
         senderEmail: '', // Se llenará en el hook
@@ -110,12 +118,16 @@ export function MessageInput({
         metadata: uploadedAudio.metadata
       }
 
+      // ✅ Generar messageId único para audio
+      const messageId = uuidv4()
+
       await onSendMessage({
+        messageId, // ✅ OBLIGATORIO: UUID único para el backend
         conversationId,
         content: 'Mensaje de audio',
         senderEmail: '', // Se llenará en el hook
         recipientEmail: '', // Se llenará en el hook
-        type: 'media',
+        type: 'audio',
         attachments: [audioAttachment]
       })
 

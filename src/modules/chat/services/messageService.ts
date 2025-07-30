@@ -1,5 +1,6 @@
 // Servicio para el manejo de mensajes
 // ✅ BACKEND PROPIO CON JWT - USA EMAIL COMO IDENTIFICADOR
+import { v4 as uuidv4 } from 'uuid'
 import { apiClient } from '@/services/apiClient'
 import { logger } from '@/lib/logger'
 import { MessageValidator } from '@/lib/validation'
@@ -263,22 +264,43 @@ class MessageService {
    */
   async sendMessage(messageData: SendMessageData): Promise<CanonicalMessage> {
     try {
-      logger.info('Sending message with EMAIL identifiers', {
+      // ✅ Generar messageId único si no se proporciona
+      const messageId = messageData.messageId || uuidv4()
+      
+      logger.info('Sending message with EMAIL identifiers and unique messageId', {
+        messageId,
         conversationId: messageData.conversationId,
         senderEmail: messageData.senderEmail,
         recipientEmail: messageData.recipientEmail,
         type: messageData.type || 'text'
       }, 'message_send_start')
 
-      // ✅ Preparar payload con email
+      // ✅ Preparar payload con email y messageId único
       const payload = {
         ...messageData,
+        messageId, // ✅ OBLIGATORIO: Incluir messageId único
       }
+
+      console.log('🔍 [MESSAGE_SERVICE] Sending message with payload:', {
+        messageId,
+        conversationId: payload.conversationId,
+        hasContent: !!payload.content,
+        contentLength: payload.content?.length || 0,
+        senderEmail: payload.senderEmail,
+        recipientEmail: payload.recipientEmail,
+        type: payload.type || 'text'
+      })
 
       const response = await apiClient.post(
         API_ENDPOINTS.CONVERSATIONS.MESSAGES(messageData.conversationId),
         payload
       )
+
+      console.log('✅ [MESSAGE_SERVICE] Backend response:', {
+        status: response?.status,
+        hasData: !!response?.data,
+        messageId: response?.data?.id || response?.data?.messageId
+      })
 
       // ✅ Validar mensaje individual
       const validatedMessages = MessageValidator.validateBackendResponse([response])
@@ -288,8 +310,9 @@ class MessageService {
         throw new Error('Respuesta de envío de mensaje inválida del backend')
       }
 
-      logger.success('Message sent successfully', {
+      logger.success('Message sent successfully with messageId', {
         messageId: validatedMessage.id,
+        originalMessageId: messageId,
         conversationId: messageData.conversationId,
         senderEmail: messageData.senderEmail
       }, 'message_send_success')

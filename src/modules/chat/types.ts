@@ -62,6 +62,7 @@ export interface ChatWindowProps {
 
 // ✅ DATOS PARA ENVÍO DE MENSAJES - CORREGIDO Y UNIFICADO
 export interface SendMessageData {
+  messageId?: string // ✅ UUID único generado en frontend
   conversationId: string
   content: string
   senderEmail: string

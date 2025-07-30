@@ -1,11 +1,12 @@
-// Hook de mensajería con soporte completo para tiempo real y paginación
-// ✅ BACKEND PROPIO CON JWT - USA EMAIL COMO IDENTIFICADOR
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useAuth } from '@/contexts/AuthContext'
+// Hook para gestión de mensajes con React Query
+// ✅ OPTIMIZADO: Caching inteligente, optimistic updates y paginación
+import { useQuery, useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
+import { v4 as uuidv4 } from 'uuid'
 import { messageService } from '../services/messageService'
+import { useAuth } from '@/contexts/AuthContext'
 import { logger } from '@/lib/logger'
-import type { CanonicalMessage } from '@/types/canonical'
 import type { SendMessageData } from '../types'
+import type { CanonicalMessage } from '@/types/canonical'
 
 // ✅ Query keys para React Query
 export const messageKeys = {
@@ -145,13 +146,24 @@ export function useSendMessage() {
         throw new Error('recipientEmail es requerido para enviar el mensaje')
       }
 
+      // ✅ Generar messageId único si no existe
+      const messageId = messageData.messageId || uuidv4()
+
       // Agregar email del usuario si no está presente
       const enrichedData: SendMessageData = {
         ...messageData,
+        messageId, // ✅ OBLIGATORIO: Asegurar que existe messageId
         senderEmail: messageData.senderEmail || user.email,
         recipientEmail: messageData.recipientEmail,
         type: messageData.type || 'text'
       }
+
+      console.log('🔍 [HOOK] useSendMessage: Sending with messageId:', {
+        messageId,
+        conversationId: enrichedData.conversationId,
+        hasContent: !!enrichedData.content,
+        type: enrichedData.type
+      })
 
       const response = await messageService.sendMessage(enrichedData)
       console.log('[HOOK] useSendMessage: Message sent successfully:', response)

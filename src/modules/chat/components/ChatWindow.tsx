@@ -13,6 +13,7 @@ import type { SendMessageData } from '../types'
 import type { CanonicalMessage } from '@/types/canonical'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { MessageBubble } from './MessageBubble'
+import { v4 as uuidv4 } from 'uuid'
 
 export function ChatWindow({
   conversation,
@@ -177,13 +178,25 @@ export function ChatWindow({
       return
     }
 
+    // ✅ Generar messageId único para cada mensaje
+    const messageId = uuidv4()
+
     const messageData: SendMessageData = {
+      messageId, // ✅ OBLIGATORIO: UUID único para el backend
       conversationId,
       content: content.trim(),
       type: 'text',
       senderEmail: user.email,
       recipientEmail: conversation?.contact?.email || conversation?.contact?.phone || '',
     }
+
+    console.log('🔍 [CHAT_WINDOW] Sending message with messageId:', {
+      messageId,
+      conversationId,
+      contentLength: content.trim().length,
+      senderEmail: user.email,
+      recipientEmail: messageData.recipientEmail
+    })
 
     try {
       // Enviar mensaje via mutation (con optimistic update)
@@ -199,11 +212,15 @@ export function ChatWindow({
         sendStopTyping(conversationId)
         setIsTyping(false)
       }
-      
-      console.log('[CHAT] Message sent successfully')
-      
+
+      console.log('✅ [CHAT_WINDOW] Message sent successfully:', messageId)
     } catch (error) {
-      console.error('[CHAT] Error sending message:', error)
+      console.error('❌ [CHAT_WINDOW] Failed to send message:', error)
+      // logger.error('Failed to send message from ChatWindow', {
+      //   messageId,
+      //   conversationId,
+      //   error
+      // }, 'chat_window_send_error')
     }
   }, [conversationId, user?.email, conversation?.contact, sendMessageMutation, onSendMessage, isTyping, sendStopTyping])
 
@@ -278,8 +295,12 @@ export function ChatWindow({
       //   return
       // }
 
+      // ✅ Generar messageId único para mensaje con archivos
+      const messageId = uuidv4()
+
       // Crear mensaje con archivos adjuntos
       const messageData: SendMessageData = {
+        messageId, // ✅ OBLIGATORIO: UUID único para el backend
         conversationId,
         content: messageText.trim() || 'Archivos adjuntos',
         type: 'file',
@@ -287,6 +308,13 @@ export function ChatWindow({
         recipientEmail: conversation?.contact?.email || conversation?.contact?.phone || '',
         attachments: [] // No attachments directly here, handled by FileUpload
       }
+
+      console.log('🔍 [CHAT_WINDOW] Sending file message with messageId:', {
+        messageId,
+        conversationId,
+        type: 'file',
+        senderEmail: user.email
+      })
 
       // Enviar mensaje con archivos
       await sendMessageMutation.mutateAsync(messageData)
