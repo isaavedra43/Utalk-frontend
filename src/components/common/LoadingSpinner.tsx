@@ -2,7 +2,7 @@
 // Spinner animado para estados de carga
 import { cn } from '@/lib/utils'
 
-interface LoadingSpinnerProps {
+export interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg'
   className?: string
   text?: string

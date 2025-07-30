@@ -4,6 +4,7 @@ import { useQuery, useMutation, useInfiniteQuery, useQueryClient } from '@tansta
 import { v4 as uuidv4 } from 'uuid'
 import { messageService } from '../services/messageService'
 import { useAuth } from '@/contexts/AuthContext'
+import { apiClient } from '@/services/apiClient'
 import { logger } from '@/lib/logger'
 import type { SendMessageData } from '../types'
 import type { CanonicalMessage } from '@/types/canonical'
@@ -62,7 +63,7 @@ export function useMessages(conversationId?: string, enablePagination = false) {
         throw error
       }
     },
-    enabled: !!conversationId && !!user?.email && !!user?.isActive && enablePagination,
+    enabled: !!conversationId && !!user?.email && !!user?.isActive && !!apiClient.getAuthToken() && enablePagination,
     getNextPageParam: (lastPage) => {
       return lastPage.hasMore ? (lastPage.nextPage || 1) : undefined
     },

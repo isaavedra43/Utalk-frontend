@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { ResponsiveInbox } from './components/ResponsiveInbox'
 import { useConversations } from './hooks/useConversations'
+import { AuthWrapper } from '@/components/common/AuthWrapper'
 import type { InboxProps } from './types'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 
@@ -16,6 +17,22 @@ export function Inbox({
   console.log('[PROP] - onSendMessage:', typeof onSendMessage)
   console.log('[PROP] - onSelectConversation:', typeof onSelectConversation)
 
+  return (
+    <AuthWrapper fallback={<div className="flex h-full w-full items-center justify-center"><LoadingSpinner /></div>}>
+      <InboxContent 
+        initialConversationId={initialConversationId}
+        onSendMessage={onSendMessage}
+        onSelectConversation={onSelectConversation}
+      />
+    </AuthWrapper>
+  )
+}
+
+function InboxContent({
+  initialConversationId,
+  onSendMessage,
+  onSelectConversation
+}: InboxProps) {
   const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>(
     initialConversationId
   )

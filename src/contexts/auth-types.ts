@@ -20,6 +20,7 @@ export interface AuthState {
   isAuthenticated: boolean
   isLoading: boolean
   isAuthReady: boolean
+  isAuthLoaded: boolean // ✅ NUEVO: Indica si la inicialización de auth terminó
   error: string | null
 }
 
@@ -38,6 +39,7 @@ export const initialState: AuthState = {
   isAuthenticated: false,
   isLoading: false,
   isAuthReady: false,
+  isAuthLoaded: false,
   error: null,
 }
 

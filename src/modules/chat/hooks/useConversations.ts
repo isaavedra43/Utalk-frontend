@@ -2,6 +2,8 @@
 // ✅ REFACTORIZADO: Solo obtiene TODAS las conversaciones del backend
 import { useQuery } from '@tanstack/react-query'
 import { conversationService } from '../services/conversationService'
+import { useAuth } from '@/contexts/AuthContext'
+import { apiClient } from '@/services/apiClient'
 
 // ✅ Query keys simplificadas - sin filtros
 export const conversationKeys = {
@@ -12,14 +14,37 @@ export const conversationKeys = {
 /**
  * ✅ Hook principal para obtener TODAS las conversaciones
  * Sin filtros - el backend ya entrega la lista correcta
+ * CON VALIDACIÓN DE AUTENTICACIÓN
  */
 export function useConversations() {
-  console.log('[HOOK] useConversations: Hook llamado, iniciando consulta...')
+  console.log('[HOOK] useConversations: Hook llamado, verificando autenticación...')
+  
+  // ✅ VALIDAR AUTENTICACIÓN ANTES DE HACER QUERIES
+  const { isAuthenticated, isAuthReady, user } = useAuth()
   
   return useQuery({
     queryKey: conversationKeys.list(),
     queryFn: async () => {
       console.log('[HOOK] useConversations: Ejecutando queryFn...')
+      
+      // ✅ VALIDACIÓN DOBLE: Contexto + Token en ApiClient
+      if (!isAuthenticated || !user) {
+        console.error('[HOOK] useConversations: Usuario no autenticado en contexto')
+        throw new Error('Usuario no autenticado')
+      }
+
+      const currentToken = apiClient.getAuthToken()
+      if (!currentToken) {
+        console.error('[HOOK] useConversations: No hay token en ApiClient')
+        throw new Error('No hay token de autenticación')
+      }
+
+      console.log('[HOOK] useConversations: ✅ Autenticación válida, procediendo con request')
+      console.log('[HOOK] useConversations: Token presente:', {
+        hasToken: !!currentToken,
+        tokenPreview: currentToken.substring(0, 20) + '...',
+        userEmail: user.email
+      })
       
       try {
         const result = await conversationService.getConversations()
@@ -54,8 +79,18 @@ export function useConversations() {
         throw error
       }
     },
+    // ✅ CONDICIONES CRÍTICAS: Solo ejecutar si está autenticado y listo
+    enabled: isAuthReady && isAuthenticated && !!user && !!apiClient.getAuthToken(),
     staleTime: 1000 * 60 * 5, // 5 minutos
     refetchOnWindowFocus: true,
+    retry: (failureCount, error: any) => {
+      // ✅ NO REINTENTAR si es error de autenticación
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
+        console.error('[HOOK] useConversations: Error de autenticación, no reintentando')
+        return false
+      }
+      return failureCount < 3
+    },
     onSuccess: (data) => {
       console.log('[HOOK] useConversations: onSuccess ejecutado')
       console.log('[HOOK] - Data recibida:', data)
@@ -67,6 +102,14 @@ export function useConversations() {
       console.error('[HOOK] useConversations: onError ejecutado')
       console.error('[HOOK] - Error:', error)
       console.error('[HOOK] - Mensaje:', error instanceof Error ? error.message : 'Error sin mensaje')
+      
+      // ✅ LOG ADICIONAL PARA DEBUG DE AUTENTICACIÓN
+      console.error('[HOOK] - Estado de autenticación:', {
+        isAuthenticated,
+        isAuthReady,
+        hasUser: !!user,
+        hasToken: !!apiClient.getAuthToken()
+      })
     },
     onSettled: (data, error) => {
       console.log('[HOOK] useConversations: onSettled ejecutado')

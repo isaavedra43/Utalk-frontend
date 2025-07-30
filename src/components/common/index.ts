@@ -1,11 +1,14 @@
-// Exportaciones centralizadas de componentes comunes
-// Componentes compartidos entre múltiples módulos
-
+// Componentes comunes exportados
 export { LoadingSpinner } from './LoadingSpinner'
+export { AuthWrapper } from './AuthWrapper'
 
-// TODO: Añadir más exportaciones según se vayan creando componentes
-// export { ErrorBoundary } from './ErrorBoundary'
-// export { ConfirmDialog } from './ConfirmDialog'
-// export { DataTable } from './DataTable'
-// export { FileUpload } from './FileUpload'
-// export { SearchInput } from './SearchInput' 
+// Utilidades de componentes
+export type { LoadingSpinnerProps } from './LoadingSpinner'
+
+// Configuraciones comunes
+export const SPINNER_SIZES = {
+  small: 'w-4 h-4',
+  medium: 'w-6 h-6', 
+  large: 'w-8 h-8',
+  xlarge: 'w-12 h-12'
+} as const 

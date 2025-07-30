@@ -32,26 +32,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     async function initializeAuth() {
       console.log('--- ✅ Auth Initialization Start (EMAIL-FIRST Backend) ---')
-      dispatch({ type: 'AUTH_REQUEST' })
-
+      
       try {
         const token = localStorage.getItem('auth_token')
         const userData = localStorage.getItem('user_data')
         
         console.log('1. Reading from localStorage', { 
           hasToken: !!token, 
-          hasUserData: !!userData 
+          hasUserData: !!userData,
+          tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
         })
 
         if (token && userData) {
-          console.log('2. Token and user data found. Validating with backend...')
+          console.log('2. Token and user data found. Configuring apiClient FIRST...')
           
-          // ✅ CONFIGURAR TOKEN EN APICLIENT ANTES DE VALIDAR
+          // ✅ CONFIGURAR TOKEN EN APICLIENT ANTES DE CUALQUIER REQUEST
           apiClient.setAuthToken(token)
-
+          
+          console.log('3. ApiClient configured. Now validating with backend...')
+          
           // ✅ Validar token con backend
           const validationResponse = await apiClient.get(API_ENDPOINTS.AUTH.VALIDATE_TOKEN)
-          console.log('3. Backend validation response:', validationResponse)
+          console.log('4. Backend validation response:', validationResponse)
 
           if (validationResponse && validationResponse.valid) {
             const user: User = JSON.parse(userData)
@@ -62,9 +64,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             if (isMounted) {
+              // ✅ PRIMERO actualizar contexto
               dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } })
               
-              console.log('4. ✅ Session restored successfully.')
+              console.log('5. ✅ Session restored successfully.')
+              console.log('6. ✅ User authenticated:', {
+                email: user.email,
+                role: user.role,
+                isActive: user.isActive
+              })
             }
           } else {
             throw new Error('Token inválido')
@@ -88,6 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } finally {
         if (isMounted) {
+          // ✅ MARCAR COMO LISTO SIEMPRE AL FINAL
           dispatch({ type: 'AUTH_READY' })
         }
         console.log('--- Auth Initialization End ---')
