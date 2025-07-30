@@ -61,7 +61,7 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
       isAuthenticated,
       sessionValid,
       socketConnected,
-      conversationsCount: conversations.length,
+      conversationsCount: Array.isArray(conversations) ? conversations.length : 0,
       messagesCount: safeMessages.length,
       hasValidMessages
     }

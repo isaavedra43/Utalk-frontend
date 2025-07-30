@@ -20,7 +20,7 @@ export function Inbox() {
       isAuthLoaded,
       isAuthenticated,
       userEmail: user?.email,
-      conversationsCount: conversations?.length,
+      conversationsCount: Array.isArray(conversations) ? conversations.length : 0,
       selectedConversationId
     }
   })
@@ -82,7 +82,7 @@ export function Inbox() {
   logger.info('RENDER', '✅ Rendering inbox with conversations', createLogContext({
     ...context,
     data: {
-      conversationsCount: conversations.length,
+      conversationsCount: Array.isArray(conversations) ? conversations.length : 0,
       selectedConversationId,
       isLoading
     }
