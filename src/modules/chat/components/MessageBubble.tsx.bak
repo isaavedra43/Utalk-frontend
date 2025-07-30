@@ -209,7 +209,7 @@ export function MessageBubble({
 
             {/* Contenido del mensaje */}
             <div className={styles.text}>
-              {renderMessageContent(message)}
+              {renderMessageContent(message, isOwn)}
             </div>
           </div>
 

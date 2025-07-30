@@ -1,10 +1,26 @@
-// Tipos canónicos para el sistema de chat UTalk
-// ✅ ESTRUCTURA CANÓNICA PARA MENSAJES, CONVERSACIONES, CONTACTOS Y USUARIOS
-// Estos tipos definen la estructura de datos que usa toda la aplicación
+// 📋 ESTRUCTURA CANÓNICA DE DATOS - UTalk Frontend
+// Esta es la fuente de verdad para TODOS los módulos del sistema
+
+/**
+ * 🔍 RESULTADO DE VALIDACIÓN
+ */
+export interface ValidationResult {
+  isValid: boolean
+  errors: Array<{
+    field: string
+    message: string
+    value?: any
+  }>
+  warnings?: Array<{
+    field: string
+    message: string
+    value?: any
+  }>
+}
 
 /**
  * 🎯 MENSAJE CANÓNICO
- * Estructura estricta que debe cumplir todo mensaje en el sistema
+ * Estructura estricta que DEBE cumplir todo mensaje en UTalk
  */
 export interface CanonicalMessage {
   // ✅ CAMPOS OBLIGATORIOS
@@ -14,17 +30,16 @@ export interface CanonicalMessage {
   timestamp: Date              // Timestamp SIEMPRE Date, nunca string
   
   // ✅ REMITENTE OBLIGATORIO
-  sender: {
     id: string                 // ID único del remitente (EMAIL)
     name: string               // Nombre completo
-    type: 'contact' | 'agent' | 'bot' | 'system' | 'customer'  // Tipo estricto
+    type: "contact" | "agent" | "bot" | "system" | "customer" | "customer"  // Tipo estricto
     avatar?: string            // URL del avatar (opcional)
   }
   
   // ✅ TIPO Y ESTADO OBLIGATORIOS
   type: 'text' | 'image' | 'video' | 'audio' | 'file' | 'location' | 'sticker'
-  status: 'pending' | 'sent' | 'delivered' | 'read' | 'failed'
-  direction: 'inbound' | 'outbound'
+  status: "pending" | "sent" | "delivered" | "read" | "failed"
+  status: "pending" | "sent" | "delivered" | "read" | "failed"
   
   // ✅ CAMPOS BOOLEANOS CON DEFAULTS
   isRead: boolean              // Estado de lectura
@@ -38,7 +53,7 @@ export interface CanonicalMessage {
     url: string                // URL del archivo
     mimeType: string           // MIME type
     size: number               // Tamaño en bytes
-    category: 'image' | 'video' | 'audio' | 'document' // Categoría del archivo
+    category: "image" | "video" | "audio" | "document" // Categoría del archivo
     uploadedAt?: Date          // Fecha de subida
     metadata?: {
       width?: number           // Ancho (imágenes/videos)
@@ -53,7 +68,6 @@ export interface CanonicalMessage {
     twilioSid?: string         // ID de Twilio (si aplica)
     userEmail?: string         // EMAIL del usuario que envió
     edited?: boolean           // Si fue editado
-    error?: string             // Error message if failed
     reactions?: Array<{        // Reacciones al mensaje
       emoji: string
       userEmail: string        // ✅ EMAIL en lugar de userId
@@ -76,14 +90,21 @@ export interface CanonicalConversation {
   // ✅ CONTACTO OBLIGATORIO
   contact: CanonicalContact    // Contacto principal
   
-  // ✅ CANAL Y TIMESTAMPS
-  channel: 'whatsapp' | 'email' | 'web' | 'sms' | 'phone' | 'telegram'
+  // ✅ CANAL OBLIGATORIO
+  channel: 'whatsapp' | 'telegram' | 'email' | 'webchat' | 'api'
+  
+  // ✅ TIMESTAMPS OBLIGATORIOS
   createdAt: Date
   updatedAt: Date
+  lastMessageAt: Date
   
-  // ✅ AGENTE ASIGNADO (OPCIONAL)
+  // ✅ CONTADORES OBLIGATORIOS
+  messageCount: number         // Total de mensajes
+  unreadCount: number          // Mensajes sin leer
+  
+  // ✅ ASIGNACIÓN (OPCIONAL)
   assignedTo?: {
-    email: string              // ✅ EMAIL como identificador
+    id: string                 // EMAIL del agente asignado
     name: string
     role: string
     avatar?: string
@@ -98,10 +119,10 @@ export interface CanonicalConversation {
     type: CanonicalMessage['type']
   }
   
-  // ✅ CONTADORES Y METADATOS
-  messageCount: number         // Total de mensajes
-  unreadCount: number          // Mensajes sin leer
+  // ✅ ETIQUETAS Y METADATOS
   tags: string[]               // Array de etiquetas
+  isMuted: boolean            // Si está silenciado
+  isArchived: boolean         // Si está archivado
   
   // ✅ METADATOS
   metadata?: {
@@ -165,121 +186,90 @@ export interface CanonicalUser {
   permissions: string[]        // Permisos específicos
   department: string           // Departamento
   
-  // ✅ INFORMACIÓN PERSONAL (OPCIONAL)
+  // ✅ INFORMACIÓN OPCIONAL
   avatar?: string              // URL del avatar
   phone?: string               // Teléfono
   
   // ✅ TIMESTAMPS
-  createdAt: Date
-  updatedAt: Date
-  lastLoginAt?: Date           // ✅ Último login (OPCIONAL)
+  createdAt?: Date
+  updatedAt?: Date
+  lastLoginAt?: Date
   
-  // ✅ CONFIGURACIÓN PERSONAL
-  preferences: {
-    language: string           // Idioma preferido
-    timezone: string           // Zona horaria
-    theme: 'light' | 'dark' | 'system' // Tema preferido
-    notifications: {
-      email: boolean           // Notificaciones por email
-      push: boolean            // Notificaciones push
-      desktop: boolean         // Notificaciones de escritorio
-    }
-  }
-  
-  // ✅ METADATOS ADICIONALES
-  metadata?: {
-    firstLogin?: Date          // Primer login
-    sessionCount?: number      // Contador de sesiones
-    customFields?: Record<string, any>
+  // ✅ CONFIGURACIÓN
+  preferences?: {
+    language: string
+    timezone: string
+    theme: 'light' | 'dark' | 'system'
+    notifications: boolean
   }
 }
 
 /**
- * 🎯 VALIDADORES DE TIPOS
- * Funciones para validar que los objetos cumplen con la estructura canónica
+ * 🔄 FILTROS PARA BÚSQUEDAS
  */
-
-// ✅ Validador de mensaje básico (solo campos obligatorios)
-export function isValidMessageBasic(obj: any): obj is CanonicalMessage {
-  return (
-    obj &&
-    typeof obj.id === 'string' &&
-    typeof obj.conversationId === 'string' &&
-    typeof obj.content === 'string' &&
-    obj.timestamp instanceof Date &&
-    obj.sender &&
-    typeof obj.sender.id === 'string' &&
-    typeof obj.sender.name === 'string' &&
-    ['contact', 'agent', 'bot', 'system', 'customer'].includes(obj.sender.type) &&
-    ['text', 'image', 'video', 'audio', 'file', 'location', 'sticker'].includes(obj.type) &&
-    ['pending', 'sent', 'delivered', 'read', 'failed'].includes(obj.status) &&
-    ['inbound', 'outbound'].includes(obj.direction) &&
-    typeof obj.isRead === 'boolean' &&
-    typeof obj.isDelivered === 'boolean' &&
-    typeof obj.isImportant === 'boolean'
-  )
+export interface CanonicalFilters {
+  // ✅ EMAIL-FIRST: Filtros por email
+  senderEmail?: string         // Email del remitente
+  recipientEmail?: string      // Email del destinatario
+  assignedToEmail?: string     // Email del agente asignado
+  
+  // ✅ FILTROS TEMPORALES
+  dateFrom?: Date
+  dateTo?: Date
+  
+  // ✅ FILTROS DE ESTADO
+  status?: string[]
+  priority?: string[]
+  channel?: string[]
+  tags?: string[]
+  
+  // ✅ BÚSQUEDA
+  search?: string
+  
+  // ✅ PAGINACIÓN
+  page?: number
+  limit?: number
+  
+  // ✅ ORDENAMIENTO
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
 }
 
-// ✅ Validador de conversación básico
-export function isValidConversationBasic(obj: any): obj is CanonicalConversation {
-  return (
-    obj &&
-    typeof obj.id === 'string' &&
-    typeof obj.title === 'string' &&
-    ['open', 'pending', 'closed', 'archived'].includes(obj.status) &&
-    ['low', 'medium', 'high', 'urgent'].includes(obj.priority) &&
-    obj.contact &&
-    typeof obj.contact.id === 'string' &&
-    ['whatsapp', 'email', 'web', 'sms', 'phone', 'telegram'].includes(obj.channel) &&
-    obj.createdAt instanceof Date &&
-    obj.updatedAt instanceof Date &&
-    typeof obj.messageCount === 'number' &&
-    typeof obj.unreadCount === 'number' &&
-    Array.isArray(obj.tags)
-  )
+/**
+ * 📊 RESPUESTAS DE API TIPADAS
+ */
+export interface CanonicalResponse<T> {
+  data: T
+  success: boolean
+  message?: string
+  errors?: string[]
+  meta?: {
+    total: number
+    page: number
+    limit: number
+    pages: number
+  }
 }
 
-// ✅ Validador de contacto básico
-export function isValidContactBasic(obj: any): obj is CanonicalContact {
-  return (
-    obj &&
-    typeof obj.id === 'string' &&
-    typeof obj.name === 'string' &&
-    typeof obj.phone === 'string' &&
-    typeof obj.isOnline === 'boolean' &&
-    Array.isArray(obj.tags) &&
-    obj.createdAt instanceof Date &&
-    obj.updatedAt instanceof Date &&
-    typeof obj.isBlocked === 'boolean' &&
-    obj.preferences &&
-    typeof obj.preferences.language === 'string' &&
-    typeof obj.preferences.timezone === 'string' &&
-    typeof obj.preferences.notifications === 'boolean'
-  )
+/**
+ * 🔍 PAGINACIÓN ESTÁNDAR
+ */
+export interface CanonicalPagination {
+  page: number
+  limit: number
+  total: number
+  pages: number
+  hasNext: boolean
+  hasPrev: boolean
 }
 
-// ✅ Validador de usuario básico
-export function isValidUserBasic(obj: any): obj is CanonicalUser {
-  return (
-    obj &&
-    typeof obj.email === 'string' &&
-    typeof obj.name === 'string' &&
-    typeof obj.isActive === 'boolean' &&
-    typeof obj.role === 'string' &&
-    Array.isArray(obj.permissions) &&
-    typeof obj.department === 'string' &&
-    obj.createdAt instanceof Date &&
-    obj.updatedAt instanceof Date &&
-    obj.preferences &&
-    typeof obj.preferences.language === 'string' &&
-    typeof obj.preferences.timezone === 'string' &&
-    ['light', 'dark', 'system'].includes(obj.preferences.theme)
-  )
-}
-
-// ✅ Resultado de validación
-export interface ValidationResult {
-  isValid: boolean
-  error?: string
-  warnings?: string[]
-}
+/**
+ * ⚡ EVENTOS EN TIEMPO REAL EMAIL-FIRST
+ */
+export interface CanonicalSocketEvent {
+  type: string
+  conversationId?: string
+  userEmail: string            // ✅ EMAIL como identificador
+  data: any
+  timestamp: Date
+} 

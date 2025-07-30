@@ -284,7 +284,7 @@ class ConversationService {
             isBlocked: false,
             preferences: { language: 'es', timezone: 'UTC', notifications: true }
           },
-          channel: 'web' as const,
+          channel: 'api' as const,
           createdAt: new Date(),
           updatedAt: new Date(),
           lastMessageAt: new Date(),

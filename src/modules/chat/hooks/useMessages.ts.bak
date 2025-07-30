@@ -177,7 +177,7 @@ export function useSendMessage() {
           avatar: user?.avatar
         },
         type: messageData.type || 'text',
-        status: 'pending',
+        status: 'sending',
         direction: 'outbound',
         isRead: false,
         isDelivered: false,

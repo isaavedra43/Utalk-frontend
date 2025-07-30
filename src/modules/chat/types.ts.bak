@@ -6,7 +6,7 @@ import { CanonicalConversation, CanonicalMessage } from '@/types/canonical'
 export type Conversation = CanonicalConversation
 
 // ✅ Tipos de canal y mensaje (compatibles con canonical)
-export type ChannelType = "whatsapp" | "email" | "web" | "sms" | "phone" | "telegram" | "facebook" | "instagram" | "api" | "voice" | "webchat"
+export type ChannelType = 'whatsapp' | 'telegram' | 'facebook' | 'instagram' | 'email' | 'sms' | 'web' | 'api' | 'voice' | 'webchat'
 export type MessageType = 'text' | 'image' | 'video' | 'audio' | 'file' | 'location' | 'sticker'
 export type ConversationStatus = 'open' | 'pending' | 'closed' | 'archived'
 
