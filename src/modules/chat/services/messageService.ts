@@ -46,17 +46,17 @@ class MessageService {
       }
 
       console.log('[SERVICE] Messages before validation:', {
-        type: typeof messages,
+        count: Array.isArray(messages) ? messages.length : 0,
         isArray: Array.isArray(messages),
-        length: messages?.length,
-        firstMessage: messages?.[0]
+        sample: Array.isArray(messages) ? messages[0] : messages
       })
 
+      // ✅ Validar y normalizar mensajes
       const validatedMessages = MessageValidator.validateBackendResponse(messages)
       
       console.log('[SERVICE] Messages after validation:', {
-        count: validatedMessages.length,
-        validatedMessages
+        validCount: validatedMessages.length,
+        invalidCount: Array.isArray(messages) ? messages.length - validatedMessages.length : 0
       })
 
       logger.success('Messages fetched successfully', {
@@ -65,9 +65,127 @@ class MessageService {
       }, 'messages_fetch_success')
 
       return validatedMessages
+
     } catch (error) {
-      console.error('[SERVICE] Error in getMessages:', error)
+      console.error('[SERVICE] messageService.getMessages error:', error)
       logger.error('Failed to fetch messages', { conversationId, error }, 'messages_fetch_error')
+      throw error
+    }
+  }
+
+  /**
+   * ✅ Obtener mensajes con paginación para scroll infinito
+   */
+  async getMessagesWithPagination(
+    conversationId: string, 
+    options: { page?: number; limit?: number } = {}
+  ): Promise<{
+    messages: CanonicalMessage[]
+    hasMore: boolean
+    nextPage: number | null
+    total: number
+    currentPage: number
+  }> {
+    try {
+      const { page = 1, limit = 20 } = options
+      
+      console.log('[SERVICE] messageService.getMessagesWithPagination called with:', {
+        conversationId,
+        page,
+        limit
+      })
+      
+      logger.info('Fetching messages with pagination', { 
+        conversationId, 
+        page, 
+        limit 
+      }, 'messages_fetch_paginated_start')
+
+      // Construir URL con parámetros de paginación
+      const endpoint = `${API_ENDPOINTS.CONVERSATIONS.MESSAGES(conversationId)}?page=${page}&limit=${limit}`
+      const response = await apiClient.get(endpoint)
+      
+      console.log('[SERVICE] Paginated response from API:', {
+        status: response?.status,
+        hasData: !!response?.data,
+        dataKeys: response?.data ? Object.keys(response.data) : [],
+      })
+
+      // ✅ Manejo robusto de respuesta vacía
+      if (!response || !response.data) {
+        console.log('[SERVICE] Empty paginated response, returning empty result')
+        return {
+          messages: [],
+          hasMore: false,
+          nextPage: null,
+          total: 0,
+          currentPage: page
+        }
+      }
+
+      // ✅ Manejar diferentes estructuras de respuesta de paginación
+      let messages = []
+      let total = 0
+      let hasMore = false
+
+      if (response.data.data && Array.isArray(response.data.data)) {
+        // Estructura: { data: [...], pagination: {...} }
+        messages = response.data.data
+        total = response.data.pagination?.total || 0
+        hasMore = response.data.pagination?.hasNextPage || false
+      } else if (response.data.messages && Array.isArray(response.data.messages)) {
+        // Estructura: { messages: [...], total: X, hasMore: boolean }
+        messages = response.data.messages
+        total = response.data.total || 0
+        hasMore = response.data.hasMore || false
+      } else if (Array.isArray(response.data)) {
+        // Estructura simple: [mensaje1, mensaje2, ...]
+        messages = response.data
+        total = messages.length
+        hasMore = messages.length === limit // Asumir que hay más si recibimos el límite exacto
+      }
+
+      console.log('[SERVICE] Paginated messages before validation:', {
+        count: messages.length,
+        total,
+        hasMore,
+        page
+      })
+
+      // ✅ Validar y normalizar mensajes
+      const validatedMessages = MessageValidator.validateBackendResponse(messages)
+      
+      console.log('[SERVICE] Paginated messages after validation:', {
+        validCount: validatedMessages.length,
+        invalidCount: messages.length - validatedMessages.length
+      })
+
+      const result = {
+        messages: validatedMessages,
+        hasMore,
+        nextPage: hasMore ? page + 1 : null,
+        total,
+        currentPage: page
+      }
+
+      logger.success('Paginated messages fetched successfully', {
+        conversationId,
+        page,
+        limit,
+        count: validatedMessages.length,
+        total,
+        hasMore
+      }, 'messages_fetch_paginated_success')
+
+      return result
+
+    } catch (error) {
+      console.error('[SERVICE] messageService.getMessagesWithPagination error:', error)
+      logger.error('Failed to fetch paginated messages', { 
+        conversationId, 
+        options, 
+        error 
+      }, 'messages_fetch_paginated_error')
       throw error
     }
   }

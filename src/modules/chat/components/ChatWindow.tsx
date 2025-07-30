@@ -176,8 +176,8 @@ export function ChatWindow({
         </div>
       </div>
 
-      {/* Área de mensajes mejorada - CON ALTURA FLEXIBLE */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-4 space-y-4 min-h-0">
+      {/* Área de mensajes mejorada - CON ALTURA FLEXIBLE Y SCROLLBAR PERSONALIZADA */}
+      <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-4 space-y-4 min-h-0 chat-messages-container">
         {messages.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
@@ -216,7 +216,7 @@ export function ChatWindow({
       </div>
 
       {/* Input de mensaje mejorado - CON ALTURA FIJA */}
-      <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex-shrink-0">
+      <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 flex-shrink-0 message-input-container">
         <div className="flex items-end space-x-3">
           {/* Botón adjuntar */}
           <Button

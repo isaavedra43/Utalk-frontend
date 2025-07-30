@@ -41,19 +41,21 @@ export function MessageInput({ conversationId: _conversationId, onSendMessage, d
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-      <form onSubmit={handleSubmit} className="flex items-end space-x-3">
-        {/* Botón adjuntar archivo */}
+      {/* ✅ CORREGIDO: Alineación perfecta con flex y centrado vertical */}
+      <form onSubmit={handleSubmit} className="flex items-center gap-3">
+        {/* Botón adjuntar archivo - CORREGIDO: Tamaño consistente */}
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          className="w-10 h-10 p-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 
+                    rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 flex-shrink-0"
           title="Adjuntar archivo"
         >
           <Paperclip className="w-5 h-5" />
         </Button>
 
-        {/* Input de mensaje */}
+        {/* Input de mensaje - CORREGIDO: Mejor alineación y espaciado */}
         <div className="flex-1 relative">
           <Input
             value={message}
@@ -61,16 +63,19 @@ export function MessageInput({ conversationId: _conversationId, onSendMessage, d
             onKeyDown={handleKeyDown}
             placeholder="Escribe un mensaje..."
             disabled={disabled}
-            className="pr-16 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+            className="pr-20 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 
+                      rounded-2xl h-12 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                      transition-all duration-200"
           />
           
-          {/* Botones dentro del input */}
-          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
+          {/* Botones dentro del input - CORREGIDO: Mejor posicionamiento */}
+          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="p-1 h-auto text-gray-500 hover:text-gray-700"
+              className="w-8 h-8 p-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200
+                        rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200"
               title="Emoji"
             >
               <Smile className="w-4 h-4" />
@@ -79,7 +84,8 @@ export function MessageInput({ conversationId: _conversationId, onSendMessage, d
               type="button"
               variant="ghost"
               size="sm"
-              className="p-1 h-auto text-gray-500 hover:text-gray-700"
+              className="w-8 h-8 p-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200
+                        rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200"
               title="Mensaje de voz"
             >
               <Mic className="w-4 h-4" />
@@ -87,14 +93,15 @@ export function MessageInput({ conversationId: _conversationId, onSendMessage, d
           </div>
         </div>
         
-        {/* Botón enviar */}
+        {/* Botón enviar - CORREGIDO: Tamaño consistente y mejor diseño */}
         <Button 
           type="submit" 
           disabled={!message.trim() || disabled}
-          className="bg-[#4880ff] hover:bg-[#3968cc] text-white"
-          size="sm"
+          className="w-12 h-12 p-0 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 
+                    text-white rounded-full shadow-md hover:shadow-lg transition-all duration-200
+                    disabled:cursor-not-allowed flex-shrink-0"
         >
-          <Send className="w-4 h-4" />
+          <Send className="w-5 h-5" />
         </Button>
       </form>
       

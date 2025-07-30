@@ -103,7 +103,7 @@ export function ConversationList({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto conversation-list-container">
       <div className="divide-y divide-gray-100 dark:divide-gray-700">
         {conversations.map((conversation) => (
           <ConversationItem

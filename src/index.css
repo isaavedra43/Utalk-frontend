@@ -103,3 +103,278 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground));
 } 
+
+/* ✅ SCROLLBARS PERSONALIZADAS ELEGANTES */
+/* Para WebKit browsers (Chrome, Safari, Edge) */
+.chat-messages-container::-webkit-scrollbar,
+.conversation-list-container::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.chat-messages-container::-webkit-scrollbar-track,
+.conversation-list-container::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.chat-messages-container::-webkit-scrollbar-thumb,
+.conversation-list-container::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
+  background-color: #cbd5e0;
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.chat-messages-container::-webkit-scrollbar-thumb:hover,
+.conversation-list-container::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #a0aec0;
+}
+
+/* Dark mode scrollbars */
+.dark .chat-messages-container::-webkit-scrollbar-thumb,
+.dark .conversation-list-container::-webkit-scrollbar-thumb,
+.dark *::-webkit-scrollbar-thumb {
+  background-color: #4a5568;
+}
+
+.dark .chat-messages-container::-webkit-scrollbar-thumb:hover,
+.dark .conversation-list-container::-webkit-scrollbar-thumb:hover,
+.dark *::-webkit-scrollbar-thumb:hover {
+  background-color: #718096;
+}
+
+/* Para Firefox */
+.chat-messages-container,
+.conversation-list-container,
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 transparent;
+}
+
+.dark .chat-messages-container,
+.dark .conversation-list-container,
+.dark * {
+  scrollbar-color: #4a5568 transparent;
+}
+
+/* ✅ CLASES UTILITIES PERSONALIZADAS */
+
+/* Entrada de mensaje con sombra elegante */
+.message-input-container {
+  background: #ffffff;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  border-top: 1px solid #e2e8f0;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+.dark .message-input-container {
+  background: #1a202c;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+  border-top: 1px solid #2d3748;
+}
+
+/* Botones de acción mejorados */
+.icon-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.icon-button:hover {
+  transform: scale(1.05);
+}
+
+.icon-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.icon-button:active::before {
+  width: 100%;
+  height: 100%;
+}
+
+/* Sidebar colapsado mejorado */
+.sidebar-collapsed .nav-item {
+  justify-content: center;
+  padding: 12px;
+  min-height: 48px;
+  width: 48px;
+  margin: 0 auto 8px auto;
+}
+
+.sidebar-collapsed .nav-icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* Animaciones suaves */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Mejoras para focus y accesibilidad */
+.focus-ring {
+  transition: all 0.2s ease;
+}
+
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+}
+
+/* Chat bubble improvements */
+.message-bubble {
+  word-wrap: break-word;
+  word-break: break-word;
+  max-width: 70%;
+}
+
+.message-bubble-own {
+  margin-left: auto;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.message-bubble-other {
+  margin-right: auto;
+  background: #f1f5f9;
+}
+
+.dark .message-bubble-other {
+  background: #334155;
+}
+
+/* Loading states */
+.loading-skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+.dark .loading-skeleton {
+  background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Typing indicator */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #9ca3af;
+  animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes typing {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .message-bubble {
+    max-width: 85%;
+  }
+  
+  .sidebar-collapsed {
+    width: 60px;
+  }
+  
+  .sidebar-collapsed .nav-item {
+    width: 40px;
+    min-height: 40px;
+  }
+  
+  .sidebar-collapsed .nav-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Custom selection colors */
+::selection {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.dark ::selection {
+  background-color: #60a5fa;
+  color: #1e293b;
+} 
