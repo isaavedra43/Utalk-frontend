@@ -9,12 +9,11 @@ import type { CanonicalMessage } from '@/types/canonical'
 
 interface MessageBubbleProps {
   message: CanonicalMessage
-  isOwn: boolean
-  showAvatar: boolean
+  isOwnMessage: boolean
   className?: string
 }
 
-export function MessageBubble({ message, isOwn, showAvatar, className }: MessageBubbleProps) {
+export function MessageBubble({ message, isOwnMessage, className }: MessageBubbleProps) {
   // ✅ Formatear tiempo del mensaje
   const formatMessageTime = (timestamp: Date | string) => {
     const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp
@@ -72,11 +71,11 @@ export function MessageBubble({ message, isOwn, showAvatar, className }: Message
   return (
     <div className={cn(
       "flex gap-3 p-4",
-      isOwn ? "flex-row-reverse" : "flex-row",
+      isOwnMessage ? "flex-row-reverse" : "flex-row",
       className
     )}>
       {/* Avatar */}
-      {showAvatar && !isOwn && (
+      {!isOwnMessage && (
         <Avatar
           name={message.sender.name || message.sender.email}
           size="sm"
@@ -86,10 +85,10 @@ export function MessageBubble({ message, isOwn, showAvatar, className }: Message
       {/* Contenido del mensaje */}
       <div className={cn(
         "flex flex-col max-w-xs lg:max-w-md",
-        isOwn ? "items-end" : "items-start"
+        isOwnMessage ? "items-end" : "items-start"
       )}>
         {/* Información del remitente */}
-        {!isOwn && showAvatar && (
+        {!isOwnMessage && (
           <div className="flex items-center gap-2 mb-1">
             <span className="text-xs font-medium text-gray-700">
               {message.sender.name || message.sender.email}
@@ -100,7 +99,7 @@ export function MessageBubble({ message, isOwn, showAvatar, className }: Message
         {/* Burbuja del mensaje */}
         <div className={cn(
           "relative px-4 py-2 rounded-2xl shadow-sm",
-          isOwn 
+          isOwnMessage 
             ? "bg-blue-500 text-white" 
             : "bg-white border border-gray-200 text-gray-900",
           // Ajustar padding para mensajes con archivos
@@ -112,13 +111,13 @@ export function MessageBubble({ message, isOwn, showAvatar, className }: Message
         {/* Metadatos del mensaje */}
         <div className={cn(
           "flex items-center gap-2 mt-1 text-xs text-gray-500",
-          isOwn ? "flex-row-reverse" : "flex-row"
+          isOwnMessage ? "flex-row-reverse" : "flex-row"
         )}>
           {/* Timestamp */}
           <span>{formatMessageTime(message.timestamp)}</span>
           
           {/* Estado del mensaje (solo para mensajes propios) */}
-          {isOwn && (
+          {isOwnMessage && (
             <MessageStatus 
               status={message.status} 
               error={message.metadata?.error}

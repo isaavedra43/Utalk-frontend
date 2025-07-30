@@ -50,6 +50,18 @@ export function ChatWindow({
   // ✅ Typing indicators para esta conversación
   const typingUsers = useTypingIndicators(conversationId)
 
+  // ✅ DEBUG: Logging detallado de mensajes
+  useEffect(() => {
+    console.log('[CHAT-WINDOW] Messages state updated:', {
+      conversationId,
+      messagesCount: messages?.length,
+      messages: messages?.slice(-3), // Últimos 3 mensajes
+      isLoading: messagesLoading,
+      isFetching,
+      isConnected
+    })
+  }, [messages, messagesLoading, isFetching, isConnected, conversationId])
+
   // ✅ Estados para archivos y audio
   const [showFileUpload, setShowFileUpload] = useState(false)
   const [showAudioRecorder, setShowAudioRecorder] = useState(false)
@@ -541,9 +553,9 @@ export function ChatWindow({
                   )}
                   <div className={`flex-1 ${isOwn ? 'flex justify-end' : ''}`}>
                     <MessageBubble
+                      key={message.id}
                       message={message}
-                      isOwn={isOwn}
-                      showAvatar={showAvatar}
+                      isOwnMessage={isOwn}
                     />
                   </div>
                 </div>

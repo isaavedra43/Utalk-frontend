@@ -85,6 +85,29 @@ export function useSocket() {
   const handleNewMessageEvent = useCallback((data: { message: CanonicalMessage; conversationId: string; timestamp: number }) => {
     const { message } = data
     
+    console.log('[SOCKET] Received new message event:', {
+      messageId: message.id,
+      conversationId: message.conversationId,
+      content: message.content,
+      sender: message.sender,
+      structure: {
+        hasId: !!message.id,
+        hasConversationId: !!message.conversationId,
+        hasContent: !!message.content,
+        hasSender: !!message.sender
+      }
+    })
+
+    // ✅ CORREGIDO: Validar estructura mínima requerida
+    if (!message.id || !message.conversationId || !message.content) {
+      console.error('[SOCKET] Invalid message structure:', message)
+      logger.error('Invalid message structure received from WebSocket', {
+        message,
+        requiredFields: ['id', 'conversationId', 'content']
+      }, 'socket_invalid_message_structure')
+      return
+    }
+
     // Verificar si el cache está inicializado
     const currentCache = queryClient.getQueryData(messageKeys.conversations(message.conversationId))
     
@@ -101,20 +124,58 @@ export function useSocket() {
     console.log('[SOCKET] Processing new message immediately:', message.id)
 
     try {
+      // ✅ CORREGIDO: Normalizar estructura del mensaje
+      const normalizedMessage: CanonicalMessage = {
+        id: message.id,
+        conversationId: message.conversationId,
+        content: message.content,
+        type: message.type || 'text',
+        direction: message.direction || 'outbound',
+        timestamp: message.timestamp || new Date().toISOString(),
+        status: message.status || 'sent',
+        sender: {
+          email: message.sender?.email || (message as any).senderIdentifier || 'unknown',
+          name: message.sender?.name || 'Unknown User',
+          avatar: message.sender?.avatar,
+          type: message.sender?.type || 'agent'
+        },
+        recipient: {
+          email: message.recipient?.email || (message as any).recipientIdentifier || 'unknown',
+          name: message.recipient?.name || 'Unknown User',
+          avatar: message.recipient?.avatar,
+          type: message.recipient?.type || 'contact'
+        },
+        metadata: message.metadata || {},
+        isRead: message.isRead || false,
+        isDelivered: message.isDelivered || false,
+        isImportant: message.isImportant || false
+      }
+
       // Actualizar cache de React Query con el nuevo mensaje
       queryClient.setQueryData(
         messageKeys.conversations(message.conversationId),
         (old: CanonicalMessage[] | undefined) => {
-          if (!old) return [message]
+          if (!old) return [normalizedMessage]
           
           // Evitar duplicados
-          const exists = old.some(msg => msg.id === message.id)
+          const exists = old.some(msg => msg.id === normalizedMessage.id)
           if (exists) {
-            console.log('[SOCKET] Message already exists, skipping:', message.id)
+            console.log('[SOCKET] Message already exists, skipping:', normalizedMessage.id)
             return old
           }
           
-          return [...old, message]
+          // ✅ CORREGIDO: Ordenar por timestamp
+          const updatedMessages = [...old, normalizedMessage].sort((a, b) => 
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          )
+          
+          console.log('[SOCKET] Message added to cache:', {
+            messageId: normalizedMessage.id,
+            totalMessages: updatedMessages.length,
+            conversationId: normalizedMessage.conversationId
+          })
+          
+          return updatedMessages
         }
       )
 
@@ -125,11 +186,13 @@ export function useSocket() {
           if (!old) return old
           const newPages = [...old.pages]
           if (newPages.length > 0) {
-            const exists = newPages[0].messages.some((msg: CanonicalMessage) => msg.id === message.id)
+            const exists = newPages[0].messages.some((msg: CanonicalMessage) => msg.id === normalizedMessage.id)
             if (!exists) {
               newPages[0] = {
                 ...newPages[0],
-                messages: [...newPages[0].messages, message]
+                messages: [...newPages[0].messages, normalizedMessage].sort((a, b) => 
+                  new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+                )
               }
             }
           }
@@ -138,9 +201,10 @@ export function useSocket() {
       )
 
       logger.success('New message processed via WebSocket', {
-        messageId: message.id,
-        conversationId: message.conversationId,
-        senderEmail: message.sender.email
+        messageId: normalizedMessage.id,
+        conversationId: normalizedMessage.conversationId,
+        senderEmail: normalizedMessage.sender.email,
+        content: normalizedMessage.content
       }, 'socket_new_message')
 
     } catch (error) {
@@ -265,9 +329,9 @@ export function useSocket() {
       forceNew: true,
       timeout: 20000,
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000
+      reconnectionAttempts: 10, // ✅ AUMENTADO: Más intentos
+      reconnectionDelay: 500, // ✅ REDUCIDO: Reconexión más rápida
+      reconnectionDelayMax: 3000 // ✅ REDUCIDO: Máximo más bajo
     })
 
     const socket = socketRef.current
