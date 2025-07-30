@@ -28,7 +28,7 @@ export function InfoPanel({
   const { conversation: conversationData, isLoading } = useConversationData(conversationId)
   
   // Usar datos del hook si están disponibles, sino usar props
-  const contact = conversationData?.contact || initialContact
+  const contact = conversationData?.contact || initialContact || { name: 'Contacto Sin Nombre', phone: 'N/A', email: 'unknown@email.com', tags: [] }
   const conversation = conversationData || initialConversation
 
   const handleSaveContact = () => {

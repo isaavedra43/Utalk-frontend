@@ -277,7 +277,7 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
         <div className={`${isMobile ? 'w-full' : 'flex-1'} flex`}>
           <div className={`${showInfoPanel && !isMobile ? 'flex-1' : 'w-full'}`}>
             <ChatWindow
-              conversation={conversations.find(c => c.id === selectedConversationId)}
+              conversation={conversations.find(c => c.id === selectedConversationId) || null}
               onSendMessage={(data: any) => handleSendMessage(data.content, data.type)}
             />
           </div>
@@ -286,7 +286,7 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
           {showInfoPanel && !isMobile && (
             <div className="w-80 border-l border-gray-200 bg-white">
               <InfoPanel
-                conversation={conversations.find(c => c.id === selectedConversationId)}
+                conversation={conversations.find(c => c.id === selectedConversationId) || null}
               />
             </div>
           )}
