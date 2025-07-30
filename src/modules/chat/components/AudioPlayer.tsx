@@ -1,5 +1,5 @@
 // Componente de reproductor de audio con metadatos
-import React, { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Play, Pause, Download, FileAudio } from 'lucide-react'

@@ -4,7 +4,11 @@ import { apiClient } from '@/services/apiClient'
 import { logger } from '@/lib/logger'
 import { MessageValidator } from '@/lib/validation'
 import { API_ENDPOINTS, FILTER_PARAMS } from '@/lib/constants'
-import type { CanonicalMessage, CanonicalUser } from '@/types/canonical'
+import type { 
+  CanonicalMessage, 
+  CanonicalConversation,
+  ValidationResult 
+} from '@/types/canonical'
 import type { SendMessageData } from '../types'
 
 /**

@@ -1,53 +1,36 @@
-// Página de registro - Funcionalidad no disponible en UTalk
-// Los usuarios son creados por administradores en Firebase Console
+// Los usuarios son creados por administradores en el backend
+import React from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 
 export function RegisterPage() {
   return (
-    <Card>
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Registro No Disponible</CardTitle>
-        <p className="text-muted-foreground">
-          Los usuarios son creados por administradores del sistema
-        </p>
-      </CardHeader>
-      <CardContent className="text-center space-y-6">
-        <div className="space-y-4">
-          <div className="bg-muted p-4 rounded-lg">
-            <h3 className="font-semibold mb-2">¿Necesitas acceso a UTalk?</h3>
-            <p className="text-sm text-muted-foreground">
-              Los administradores del sistema crean cuentas de usuario directamente 
-              en Firebase Console con los permisos y roles apropiados.
-            </p>
-          </div>
-          
-          <div className="space-y-2">
-            <p className="text-sm">
-              <strong>Para solicitar acceso:</strong>
-            </p>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• Contacta a tu administrador de sistema</li>
-              <li>• Proporciona tu email corporativo</li>
-              <li>• Especifica el rol que necesitas (admin/agent/viewer)</li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <Button asChild className="w-full">
-            <Link to="/auth/login">
-              Ir al Login
-            </Link>
-          </Button>
-          
-          <p className="text-xs text-muted-foreground">
-            ¿Ya tienes una cuenta? Inicia sesión con tus credenciales
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold text-center">
+            Registro de Usuario
+          </CardTitle>
+          <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+            El registro de usuarios está deshabilitado
           </p>
-        </div>
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-center space-y-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Los usuarios son creados por administradores en el backend
+              con los permisos y roles apropiados.
+            </p>
+            <Link to="/auth/login">
+              <Button className="w-full">
+                Volver al Login
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 

@@ -1,20 +1,9 @@
 // Componente para renderizar archivos multimedia
-import React, { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { Download, FileText, FileAudio, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { 
-  Download, 
-  Play, 
-  Pause, 
-  Volume2, 
-  FileText, 
-  Image, 
-  Video, 
-  FileAudio,
-  ExternalLink,
-  Eye,
-  X
-} from 'lucide-react'
+import { cn } from '@/lib/utils'
 import type { CanonicalFileAttachment } from '@/types/canonical'
 
 interface FileRendererProps {
@@ -102,7 +91,7 @@ export function FileRenderer({ file, className = '' }: FileRendererProps) {
                 onClick={handleImagePreview}
               />
               <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
-                <Eye className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                <ExternalLink className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </div>
             
@@ -210,7 +199,7 @@ export function FileRenderer({ file, className = '' }: FileRendererProps) {
               size="sm"
               className="absolute top-4 right-4 bg-white bg-opacity-90"
             >
-              <X className="w-4 h-4" />
+              <ExternalLink className="w-4 h-4" />
             </Button>
           </div>
         </div>

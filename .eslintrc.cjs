@@ -10,7 +10,7 @@ module.exports = {
   ],
   ignorePatterns: ['dist', '.eslintrc.cjs'],
   parser: '@typescript-eslint/parser',
-  plugins: ['react-refresh', '@typescript-eslint'],
+  plugins: ['react-refresh', '@typescript-eslint', 'css'],
   settings: {
     react: {
       version: 'detect',
@@ -19,16 +19,38 @@ module.exports = {
   rules: {
     'react-refresh/only-export-components': [
       'warn',
-      { allowConstantExport: true },
-    ],
-    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-    '@typescript-eslint/no-explicit-any': 'off', // Permitir any en el proyecto base
-    'prefer-const': 'error',
-    'no-var': 'error',
-    'react/prop-types': 'off', // No necesario con TypeScript
-    'react-refresh/only-export-components': [
-      'warn',
       { allowConstantExport: true, allowExportNames: ['metadata'] },
     ],
+    '@typescript-eslint/no-unused-vars': ['warn', { 
+      argsIgnorePattern: '^_',
+      varsIgnorePattern: '^_',
+      ignoreRestSiblings: true 
+    }],
+    '@typescript-eslint/no-explicit-any': 'off',
+    'prefer-const': 'error',
+    'no-var': 'error',
+    'react/prop-types': 'off',
+    'react-hooks/exhaustive-deps': 'warn',
   },
+  overrides: [
+    {
+      files: ['*.css', '*.scss', '*.sass'],
+      plugins: ['css'],
+      rules: {
+        'css/unknownAtRules': 'off',
+        'css/no-unknown-property': 'off',
+        'css/no-unknown-selector': 'off',
+      },
+    },
+    {
+      files: ['*.ts', '*.tsx'],
+      rules: {
+        '@typescript-eslint/no-unused-vars': ['warn', { 
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          ignoreRestSiblings: true 
+        }],
+      },
+    },
+  ],
 } 

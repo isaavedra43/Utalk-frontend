@@ -1,5 +1,5 @@
 // Componente de burbuja de mensaje con soporte multimedia
-import React from 'react'
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Avatar } from './Avatar'
 import { MessageStatus } from './MessageStatus'

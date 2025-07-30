@@ -1,15 +1,18 @@
 // Ventana de chat principal con WebSockets y scroll automático
-import { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { Send, Paperclip, Mic, Smile, MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { MessageBubble } from './MessageBubble'
-import { FileUpload, useFileUpload } from './FileUpload'
-import { AudioRecorder } from './AudioRecorder'
+import { Textarea } from '@/components/ui/textarea'
+import { MessageList } from './MessageList'
+import { FileUpload } from './FileUpload'
+import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { useMessages, useSendMessage } from '../hooks/useMessages'
 import { useSocket, useTypingIndicators } from '../hooks/useSocket'
 import type { SendMessageData } from '../types'
 import type { CanonicalMessage } from '@/types/canonical'
-import { X } from 'lucide-react'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { MessageBubble } from './MessageBubble'
 
 export function ChatWindow({
   conversation,
@@ -493,19 +496,29 @@ export function ChatWindow({
           </div>
         ) : (
           <>
-            {messages.map((message: CanonicalMessage, index: number) => {
-              const isOwn = message.sender?.email === user?.email || message.direction === 'outbound'
+            {messages?.map((message, index) => {
               const prevMessage = index > 0 ? messages[index - 1] : null
+              const isOwn = message.sender?.email === user?.email || message.direction === 'outbound'
               const isGrouped = prevMessage?.sender?.email === message.sender?.email
               const showAvatar = !isGrouped
 
               return (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                  isOwn={isOwn}
-                  showAvatar={showAvatar}
-                />
+                <div key={message.id} className="flex space-x-2">
+                  {showAvatar && !isOwn && (
+                    <Avatar className="w-8 h-8">
+                      <AvatarFallback>
+                        {message.sender?.name?.charAt(0) || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
+                  <div className={`flex-1 ${isOwn ? 'flex justify-end' : ''}`}>
+                    <MessageBubble
+                      message={message}
+                      isOwn={isOwn}
+                      showAvatar={showAvatar}
+                    />
+                  </div>
+                </div>
               )
             })}
             <div ref={messagesEndRef} />

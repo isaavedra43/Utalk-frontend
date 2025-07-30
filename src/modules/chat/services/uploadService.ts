@@ -1,6 +1,10 @@
 // Servicio de subida de archivos multimedia
 import { apiClient } from '@/services/apiClient'
 import { logger } from '@/lib/logger'
+import type { 
+  CanonicalFileAttachment,
+  ValidationResult 
+} from '@/types/canonical'
 
 // ✅ TIPO PARA ARCHIVO DE SUBIDA
 interface UploadFile {
