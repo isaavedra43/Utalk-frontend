@@ -338,6 +338,61 @@ export function useSocket() {
     }
   }, [])
 
+  // ✅ EFECTO PARA MANEJAR CICLO DE VIDA DEL SOCKET
+  useEffect(() => {
+    // Si no hay socket, no hacemos nada.
+    if (!socket) {
+      logger.socket('useEffect cleanup - no socket instance to manage.')
+      return
+    }
+
+    const handleConnect = () => {
+      logger.success('SOCKET', `Conectado exitosamente: ${socket.id}`)
+      setSocketState(prev => ({
+        ...prev,
+        isConnected: true,
+        connectionError: null
+      }))
+    }
+
+    const handleDisconnect = (reason: Socket.DisconnectReason) => {
+      logger.warn('SOCKET', `Desconectado: ${reason}`)
+      setSocketState(prev => ({
+        ...prev,
+        isConnected: false,
+        currentRoom: null
+      }))
+      if (reason === 'io server disconnect') {
+        socket.connect()
+      }
+    }
+
+    const handleError = (error: Error) => {
+      logger.error('SOCKET', 'Error de Socket.IO', {
+        error: error.message,
+        name: error.name,
+      })
+      setSocketState(prev => ({
+        ...prev,
+        connectionError: error.message
+      }))
+    }
+
+    socket.on('connect', handleConnect)
+    socket.on('disconnect', handleDisconnect)
+    socket.on('connect_error', handleError)
+
+    // ✅ FUNCIÓN DE LIMPIEZA CORREGIDA
+    return () => {
+      if (socket) {
+        socket.off('connect')
+        socket.off('disconnect')
+        socket.off('connect_error')
+        socket.disconnect()
+      }
+    }
+  }, [socket]) // ✅ DEPENDENCIA CORRECTA
+
   return {
     socket: socketRef.current,
     isConnected: socketState.isConnected,
