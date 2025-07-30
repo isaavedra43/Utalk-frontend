@@ -198,13 +198,63 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
     )
   }
 
-  // ✅ VALIDACIÓN DE CONVERSACIÓN SELECCIONADA
-  if (!selectedConversationId) {
+  // ✅ VALIDACIÓN DE CONVERSACIONES CARGADAS
+  if (conversationsLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <LoadingSpinner text="Cargando conversaciones..." />
+      </div>
+    )
+  }
+
+  // ✅ VALIDACIÓN DE ERROR EN CONVERSACIONES
+  if (conversationsError) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Selecciona una conversación</h2>
-          <p className="text-gray-600">Elige una conversación para comenzar a chatear.</p>
+          <h2 className="text-xl font-semibold mb-2">Error cargando conversaciones</h2>
+          <p className="text-gray-600">No se pudieron cargar las conversaciones.</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ✅ VALIDACIÓN DE CONVERSACIONES VACÍAS
+  if (!Array.isArray(conversations) || conversations.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">No hay conversaciones</h2>
+          <p className="text-gray-600">No tienes conversaciones activas.</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ✅ VALIDACIÓN DE CONVERSACIÓN SELECCIONADA - SOLO PARA CHAT WINDOW
+  if (!selectedConversationId) {
+    // ✅ MOSTRAR LISTA DE CONVERSACIONES EN LUGAR DE MENSAJE
+    return (
+      <div className={`flex h-full bg-gray-50 ${className}`}>
+        {/* ✅ LISTA DE CONVERSACIONES - SIEMPRE VISIBLE */}
+        <div className={`${isMobile ? 'w-full' : 'w-80'} border-r border-gray-200 bg-white`}>
+          <ConversationList
+            conversations={conversations}
+            selectedConversationId={selectedConversationId}
+            onSelect={handleSelectConversation}
+            searchQuery=""
+            onSearchChange={() => {}}
+            isLoading={conversationsLoading}
+            error={conversationsError ? String(conversationsError) : null}
+          />
+        </div>
+
+        {/* ✅ MENSAJE PARA SELECCIONAR CONVERSACIÓN */}
+        <div className={`${isMobile ? 'hidden' : 'flex-1'} flex items-center justify-center`}>
+          <div className="text-center">
+            <h2 className="text-xl font-semibold mb-2">Selecciona una conversación</h2>
+            <p className="text-gray-600">Elige una conversación para comenzar a chatear.</p>
+          </div>
         </div>
       </div>
     )

@@ -30,12 +30,13 @@ export function useMessages(conversationId: string, enablePagination = false) {
   const queryClient = useQueryClient()
   
   // ✅ VALIDACIÓN SUAVIZADA - NO TAN AGRESIVA PARA EVITAR ARRAYS VACÍOS
-  if (!conversationId || typeof conversationId !== 'string') {
-    logger.info('VALIDATION', 'ID de conversación inválido, retornando estado vacío', {
+  if (!conversationId || typeof conversationId !== 'string' || conversationId.trim() === '') {
+    logger.info('VALIDATION', 'ID de conversación inválido o vacío, retornando estado vacío', {
       conversationId,
       type: typeof conversationId,
       isEmpty: !conversationId,
-      isString: typeof conversationId === 'string'
+      isString: typeof conversationId === 'string',
+      isTrimmedEmpty: conversationId?.trim() === ''
     })
     
     return {
