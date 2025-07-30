@@ -177,9 +177,9 @@ export function ResponsiveInbox({
             <>
               {/* Botón volver en móvil */}
               {isMobile && (
-                <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0">
-                  <Button 
-                    variant="ghost" 
+                <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                  <Button
+                    variant="ghost"
                     size="sm"
                     onClick={() => setSelectedConversationId(undefined)}
                     className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
@@ -191,16 +191,11 @@ export function ResponsiveInbox({
                   </Button>
                 </div>
               )}
-              
-              {/* Ventana de chat mejorada - ALTURA COMPLETA SIN CORTES */}
-              <div className="flex-1 flex flex-col min-h-0 h-full">
+              {/* Ventana de chat mejorada */}
+              <div className="flex-1 flex flex-col h-full min-h-0">
                 <ChatWindow
                   conversation={selectedConversation}
-                  messages={messages}
-                  isLoading={messagesLoading}
                   onSendMessage={handleSendMessage}
-                  currentUserEmail={user?.email || ''}
-                  typingUsers={[]}
                 />
               </div>
             </>

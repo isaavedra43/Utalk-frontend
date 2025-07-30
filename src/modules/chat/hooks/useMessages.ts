@@ -272,7 +272,7 @@ export function useMarkMessageAsRead() {
   const { user } = useAuth()
 
   return useMutation({
-    mutationFn: async ({ messageId, conversationId }: { messageId: string, conversationId: string }) => {
+    mutationFn: async ({ messageId }: { messageId: string, conversationId: string }) => {
       if (!user?.email) {
         throw new Error('Usuario no autenticado')
       }

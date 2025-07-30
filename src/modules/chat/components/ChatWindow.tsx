@@ -1,57 +1,185 @@
-// Ventana de chat principal
-import { useState, useRef, useEffect } from 'react'
+// Ventana de chat principal con WebSockets y scroll automático
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { MessageBubble } from './MessageBubble'
 import { useAuth } from '@/contexts/AuthContext'
-import type { ChatWindowProps, SendMessageData } from '../types'
+import { useMessages, useSendMessage } from '../hooks/useMessages'
+import { useSocket, useTypingIndicators } from '../hooks/useSocket'
+import type { SendMessageData } from '../types'
 import type { CanonicalMessage } from '@/types/canonical'
 
 export function ChatWindow({
   conversation,
-  messages,
-  isLoading,
-  onSendMessage,
-  typingUsers = []
-}: ChatWindowProps) {
+  onSendMessage
+}: {
+  conversation?: any
+  onSendMessage?: (data: SendMessageData) => void
+}) {
   const [messageText, setMessageText] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { user } = useAuth()
   
   const conversationId = conversation?.id
-  const conversationData = conversation
+  
+  // ✅ Hooks para mensajes y WebSocket
+  const { 
+    data: messages = [], 
+    isLoading: messagesLoading,
+    isFetching
+  } = useMessages(conversationId, false) // Sin paginación por ahora
+  
+  const sendMessageMutation = useSendMessage()
+  const { 
+    isConnected,
+    joinConversation, 
+    leaveConversation, 
+    sendTyping, 
+    sendStopTyping 
+  } = useSocket()
+  
+  // ✅ Typing indicators para esta conversación
+  const typingUsers = useTypingIndicators(conversationId)
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
+  // ✅ Scroll automático al final cuando llegan nuevos mensajes
+  const scrollToBottom = useCallback((behavior: 'smooth' | 'auto' = 'smooth') => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior })
+    }
+  }, [])
 
+  // ✅ Detectar si el usuario está cerca del final para auto-scroll
+  const isNearBottom = useCallback(() => {
+    const container = messagesContainerRef.current
+    if (!container) return true
+    
+    const threshold = 100 // px from bottom
+    return container.scrollHeight - container.scrollTop - container.clientHeight < threshold
+  }, [])
+
+  // ✅ Scroll automático cuando cambian los mensajes
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    const shouldAutoScroll = isNearBottom()
+    if (shouldAutoScroll) {
+      scrollToBottom('smooth')
+    }
+  }, [messages, scrollToBottom, isNearBottom])
 
-  const handleSendMessage = (content: string) => {
-    if (!content.trim() || !conversationId || !user?.email) return
+  // ✅ Scroll automático al cambiar de conversación
+  useEffect(() => {
+    if (conversationId) {
+      // Pequeño delay para que los mensajes se carguen
+      setTimeout(() => scrollToBottom('auto'), 100)
+    }
+  }, [conversationId, scrollToBottom])
+
+  // ✅ Manejo de rooms WebSocket
+  useEffect(() => {
+    if (conversationId && isConnected) {
+      console.log('[CHAT] Joining conversation room:', conversationId)
+      joinConversation(conversationId)
+      
+      return () => {
+        console.log('[CHAT] Leaving conversation room:', conversationId)
+        leaveConversation(conversationId)
+      }
+    }
+  }, [conversationId, isConnected, joinConversation, leaveConversation])
+
+  // ✅ Envío de mensajes
+  const handleSendMessage = useCallback(async (content: string) => {
+    if (!content.trim() || !conversationId || !user?.email) {
+      console.log('[CHAT] Cannot send message: missing data')
+      return
+    }
 
     const messageData: SendMessageData = {
       conversationId,
       content: content.trim(),
       type: 'text',
       senderEmail: user.email,
-      recipientEmail: conversationData?.contact?.email || '',
+      recipientEmail: conversation?.contact?.email || conversation?.contact?.phone || '',
     }
 
-    onSendMessage(messageData)
-    setMessageText('')
-  }
+    try {
+      // Enviar mensaje via mutation (con optimistic update)
+      await sendMessageMutation.mutateAsync(messageData)
+      
+      // Llamar callback si existe
+      if (onSendMessage) {
+        onSendMessage(messageData)
+      }
+      
+      // Stop typing si estaba escribiendo
+      if (isTyping) {
+        sendStopTyping(conversationId)
+        setIsTyping(false)
+      }
+      
+      console.log('[CHAT] Message sent successfully')
+      
+    } catch (error) {
+      console.error('[CHAT] Error sending message:', error)
+    }
+  }, [conversationId, user?.email, conversation?.contact, sendMessageMutation, onSendMessage, isTyping, sendStopTyping])
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  // ✅ Manejo de input con typing indicators
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value
+    setMessageText(value)
+
+    if (!conversationId || !isConnected) return
+
+    // Enviar typing start si no estaba escribiendo
+    if (value.trim() && !isTyping) {
+      setIsTyping(true)
+      sendTyping(conversationId)
+    }
+
+    // Manejar timeout de typing
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current)
+    }
+
+    if (value.trim()) {
+      typingTimeoutRef.current = setTimeout(() => {
+        if (isTyping) {
+          sendStopTyping(conversationId)
+          setIsTyping(false)
+        }
+      }, 1000) // Stop typing después de 1 segundo de inactividad
+    } else {
+      // Si borra todo el texto, stop typing inmediatamente
+      if (isTyping) {
+        sendStopTyping(conversationId)
+        setIsTyping(false)
+      }
+    }
+  }, [conversationId, isConnected, isTyping, sendTyping, sendStopTyping])
+
+  // ✅ Manejo de teclas
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSendMessage(messageText)
+      setMessageText('')
     }
-  }
+  }, [messageText, handleSendMessage])
 
+  // ✅ Limpiar typing timeout al desmontar
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  // ✅ Renderizado de typing indicators
   const renderTypingIndicator = () => {
-    if (!typingUsers.length) return null
+    if (typingUsers.length === 0) return null
 
     return (
       <div className="px-6 py-3 bg-gray-50 dark:bg-gray-800/50">
@@ -63,7 +191,7 @@ export function ChatWindow({
           </div>
           <span className="text-sm text-gray-500 dark:text-gray-400">
             {typingUsers.length === 1
-              ? `${typingUsers[0]} está escribiendo...`
+              ? `${typingUsers[0].userName || typingUsers[0].userEmail} está escribiendo...`
               : `${typingUsers.length} usuarios están escribiendo...`}
           </span>
         </div>
@@ -71,6 +199,23 @@ export function ChatWindow({
     )
   }
 
+  // ✅ Estado de conexión WebSocket
+  const renderConnectionStatus = () => {
+    if (isConnected) return null
+
+    return (
+      <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-3">
+        <div className="flex items-center">
+          <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse mr-2"></div>
+          <span className="text-sm text-yellow-700 dark:text-yellow-300">
+            Reconectando al chat en tiempo real...
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  // ✅ Icono de canal
   const getChannelIcon = (channel: string) => {
     switch (channel) {
       case 'whatsapp':
@@ -92,6 +237,7 @@ export function ChatWindow({
     }
   }
 
+  // ✅ Estados de loading y error
   if (!conversationId) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -112,7 +258,7 @@ export function ChatWindow({
     )
   }
 
-  if (isLoading) {
+  if (messagesLoading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-white dark:bg-gray-900">
         <div className="text-center">
@@ -125,23 +271,26 @@ export function ChatWindow({
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-900">
+      {/* ✅ Estado de conexión WebSocket */}
+      {renderConnectionStatus()}
+
       {/* Header mejorado */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm flex-shrink-0">
         <div className="flex items-center space-x-3">
           {/* Avatar del contacto */}
           <div className="relative">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
-              {conversationData?.contact?.avatar ? (
+              {conversation?.contact?.avatar ? (
                 <img 
-                  src={conversationData.contact.avatar} 
-                  alt={conversationData.contact.name}
+                  src={conversation.contact.avatar} 
+                  alt={conversation.contact.name}
                   className="w-full h-full rounded-full object-cover"
                 />
               ) : (
-                conversationData?.contact?.name?.charAt(0)?.toUpperCase() || '?'
+                conversation?.contact?.name?.charAt(0)?.toUpperCase() || '?'
               )}
             </div>
-            {conversationData?.contact?.isOnline && (
+            {conversation?.contact?.isOnline && (
               <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
             )}
           </div>
@@ -150,18 +299,25 @@ export function ChatWindow({
           <div className="flex-1">
             <div className="flex items-center space-x-2">
               <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-                {conversationData?.contact?.name || 'Cliente'}
+                {conversation?.contact?.name || 'Cliente'}
               </h3>
-              {getChannelIcon(conversationData?.channel || 'whatsapp')}
+              {getChannelIcon(conversation?.channel || 'whatsapp')}
+              {/* Indicador de WebSocket */}
+              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500'}`} 
+                   title={isConnected ? 'Conectado' : 'Reconectando...'}></div>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {conversationData?.contact?.phone || conversationData?.contact?.email || 'Sin contacto'}
+              {conversation?.contact?.phone || conversation?.contact?.email || 'Sin contacto'}
             </p>
           </div>
         </div>
         
         {/* Acciones del header */}
         <div className="flex items-center space-x-2">
+          {isFetching && (
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+          )}
+          
           <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -177,7 +333,10 @@ export function ChatWindow({
       </div>
 
       {/* Área de mensajes mejorada - CON ALTURA FLEXIBLE Y SCROLLBAR PERSONALIZADA */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-4 space-y-4 min-h-0 chat-messages-container">
+      <div 
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-4 space-y-4 min-h-0 chat-messages-container"
+      >
         {messages.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
@@ -235,10 +394,10 @@ export function ChatWindow({
           <div className="flex-1 relative min-w-0">
             <textarea
               value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
+              onChange={handleInputChange}
               onKeyDown={handleKeyPress}
               placeholder="Escribe un mensaje..."
-              disabled={isLoading}
+              disabled={messagesLoading || sendMessageMutation.isPending}
               rows={1}
               className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 
                         rounded-2xl resize-none text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400
@@ -272,15 +431,19 @@ export function ChatWindow({
           {/* Botón enviar */}
           <Button 
             onClick={() => handleSendMessage(messageText)}
-            disabled={!messageText.trim() || isLoading}
+            disabled={!messageText.trim() || messagesLoading || sendMessageMutation.isPending}
             className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 
                       text-white rounded-full p-3 transition-all duration-200 shadow-md hover:shadow-lg
                       disabled:cursor-not-allowed flex-shrink-0"
             size="sm"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
+            {sendMessageMutation.isPending ? (
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            )}
           </Button>
         </div>
       </div>
