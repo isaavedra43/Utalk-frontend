@@ -21,11 +21,20 @@ export function Inbox({
   // ✅ VERIFICAR ESTADO DE AUTH
   const { isAuthReady, isAuthenticated, user, error } = useAuth()
   
+  // ✅ CORREGIDO: Validación defensiva para evitar TypeError
+  const currentUser = user || {}
+  const userEmail = (currentUser as any)?.email || 'unknown@email.com'
+  const userName = (currentUser as any)?.name || 'Usuario'
+  const userRole = (currentUser as any)?.role || 'user'
+  
   console.log('[AUTH] Inbox.tsx: Estado de autenticación:', {
     isAuthReady,
     isAuthenticated,
     hasUser: !!user,
-    error
+    error,
+    userEmail,
+    userName,
+    userRole
   })
 
   // ✅ MOSTRAR ESTADO MIENTRAS CARGA AUTH

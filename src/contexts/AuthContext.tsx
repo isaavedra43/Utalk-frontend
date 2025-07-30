@@ -55,7 +55,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const validationResponse = await apiClient.get(API_ENDPOINTS.AUTH.VALIDATE_TOKEN)
           console.log('4. Backend validation response:', validationResponse)
 
-          if (validationResponse && validationResponse.valid) {
+          // ✅ CORREGIDO: Validar correctamente la respuesta del backend
+          if (validationResponse && validationResponse.success) {
             const user: User = JSON.parse(userData)
             
             // ✅ Verificar que el usuario esté activo
@@ -75,7 +76,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               })
             }
           } else {
-            throw new Error('Token inválido')
+            // ✅ CORREGIDO: Manejar respuesta inválida del backend
+            console.error('4. ❌ Backend validation failed:', validationResponse)
+            throw new Error('Token inválido según el backend')
           }
         } else {
           console.log('2. No session found in localStorage - continuing without auth.')

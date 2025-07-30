@@ -7,6 +7,7 @@ import { useTypingIndicators } from '../hooks/useSocket'
 import { MessageBubble } from './MessageBubble'
 import { useAuth } from '@/contexts/AuthContext'
 import type { CanonicalMessage } from '@/types/canonical'
+import { useRef, useEffect, useCallback } from 'react'
 
 interface MessageListProps {
   conversationId: string
@@ -14,29 +15,35 @@ interface MessageListProps {
 
 export function MessageList({ conversationId }: MessageListProps) {
   const { user } = useAuth()
-  
-  // ✅ Obtener mensajes reales
-  const { 
-    data: messages = [], 
-    isLoading: messagesLoading,
-    error: messagesError
-  } = useMessages(conversationId)
-  
-  // ✅ Obtener typing indicators
-  const typingUsers = useTypingIndicators(conversationId)
+  const { data: messages = [], isLoading, error } = useMessages(conversationId, true) // Enable pagination
 
-  // ✅ DEBUG: Logging de debug mejorado
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [])
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages, scrollToBottom])
+
+  // ✅ CORREGIDO: Validación defensiva para evitar TypeError
+  const currentUser = user || {}
+  const userEmail = (currentUser as any)?.email || 'unknown@email.com'
+  const userName = (currentUser as any)?.name || 'Usuario'
+
   console.log('[MESSAGE-LIST] Rendering with:', {
     conversationId,
     messagesCount: messages?.length,
     messages: messages?.slice(-3), // Últimos 3 mensajes
-    isLoading: messagesLoading,
-    error: messagesError,
-    typingUsersCount: typingUsers.length,
-    hasValidMessages: messages && messages.length > 0
+    isLoading: isLoading,
+    error: error,
+    hasValidMessages: messages && messages.length > 0,
+    userEmail,
+    userName
   })
 
-  if (messagesLoading) {
+  if (isLoading) {
     return (
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         <div className="text-center text-sm text-muted-foreground py-4">
@@ -46,12 +53,12 @@ export function MessageList({ conversationId }: MessageListProps) {
     )
   }
 
-  if (messagesError) {
-    console.error('[MESSAGE-LIST] Error loading messages:', messagesError)
+  if (error) {
+    console.error('[MESSAGE-LIST] Error loading messages:', error)
     return (
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         <div className="text-center text-sm text-red-500 py-4">
-          Error al cargar mensajes: {messagesError instanceof Error ? messagesError.message : 'Error desconocido'}
+          Error al cargar mensajes: {error instanceof Error ? error.message : 'Error desconocido'}
         </div>
       </div>
     )
@@ -68,34 +75,36 @@ export function MessageList({ conversationId }: MessageListProps) {
     )
   }
 
+  let lastSenderId: string | null = null
+  let lastMessageTime: Date | null = null
+
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-      {/* ✅ Mensajes reales */}
-      {messages.map((message: CanonicalMessage) => (
-        <MessageBubble
-          key={message.id}
-          message={message}
-          isOwnMessage={message.sender.email === user?.email}
-        />
-      ))}
-      
-      {/* ✅ Typing indicators */}
-      {typingUsers.map((typingUser) => (
-        <div key={typingUser.userEmail} className="flex space-x-2">
-          <Avatar className="w-8 h-8">
-            <AvatarFallback>
-              {typingUser.userName?.charAt(0) || 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="bg-muted rounded-lg px-4 py-2">
-            <div className="flex space-x-1">
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-            </div>
-          </div>
-        </div>
-      ))}
+    <div className="flex-1 overflow-y-auto p-4 space-y-2">
+      {messages.map((message, index) => {
+        // ✅ CORREGIDO: Validación defensiva para determinar si es mensaje propio
+        const messageSenderEmail = message.sender?.email || (message as any).senderIdentifier || 'unknown'
+        const isOwnMessage = messageSenderEmail === userEmail
+        
+        // ✅ CORREGIDO: Validación defensiva para timestamp
+        const currentMessageTime = message.timestamp ? new Date(message.timestamp) : new Date()
+        const showAvatar = !isOwnMessage && (
+          messageSenderEmail !== lastSenderId ||
+          !lastMessageTime ||
+          (currentMessageTime.getTime() - lastMessageTime.getTime() > 5 * 60 * 1000) // 5 minutes
+        )
+        
+        lastSenderId = messageSenderEmail
+        lastMessageTime = currentMessageTime
+
+        return (
+          <MessageBubble
+            key={message.id}
+            message={message}
+            isOwnMessage={isOwnMessage}
+          />
+        )
+      })}
+      <div ref={messagesEndRef} />
     </div>
   )
 } 

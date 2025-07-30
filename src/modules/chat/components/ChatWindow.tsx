@@ -35,7 +35,8 @@ export function ChatWindow({
   const { 
     data: messages = [], 
     isLoading: messagesLoading,
-    isFetching
+    isFetching,
+    error
   } = useMessages(conversationId, false) // Sin paginación por ahora
   
   const sendMessageMutation = useSendMessage()
@@ -49,6 +50,48 @@ export function ChatWindow({
   
   // ✅ Typing indicators para esta conversación
   const typingUsers = useTypingIndicators(conversationId)
+
+  // ✅ CORREGIDO: Error boundary para cada componente
+  useEffect(() => {
+    const handleError = (error: ErrorEvent) => {
+      console.error('ChatWindow error:', error)
+      // setError(error.message || 'Error desconocido en el chat') // This state was removed
+    }
+
+    window.addEventListener('error', handleError)
+    return () => window.removeEventListener('error', handleError)
+  }, [])
+
+  // ✅ CORREGIDO: Validar datos antes de renderizar
+  if (!user || !user.email) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-gray-500 mb-4">Cargando usuario...</div>
+        </div>
+      </div>
+    )
+  }
+
+  // ✅ CORREGIDO: Mostrar error en lugar de pantalla en blanco
+  if (error) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">Error en el chat</div>
+          <div className="text-sm text-gray-500 mb-4">
+            {error instanceof Error ? error.message : 'Error desconocido en el chat'}
+          </div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Recargar página
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   // ✅ DEBUG: Logging detallado de mensajes
   useEffect(() => {

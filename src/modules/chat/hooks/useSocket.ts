@@ -339,12 +339,15 @@ export function useSocket() {
       },
       transports: ['polling', 'websocket'], // ✅ CORREGIDO: polling primero
       autoConnect: true,
-      forceNew: true,
+      forceNew: false, // ✅ CORREGIDO: Evitar múltiples conexiones
       timeout: 20000,
       reconnection: true,
       reconnectionAttempts: 10, // ✅ AUMENTADO: Más intentos
       reconnectionDelay: 1000, // ✅ AUMENTADO: Evitar spam
-      reconnectionDelayMax: 5000 // ✅ AUMENTADO: Máximo más alto
+      reconnectionDelayMax: 5000, // ✅ AUMENTADO: Máximo más alto
+      // ✅ ANTI-SPAM: Configuración para evitar rate limiting
+      upgrade: true,
+      rememberUpgrade: true
     })
 
     const socket = socketRef.current
