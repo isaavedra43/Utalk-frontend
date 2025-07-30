@@ -30,7 +30,7 @@ interface DebouncedJoin {
 }
 
 export function useSocket() {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, token } = useAuth()
   const socketRef = useRef<Socket | null>(null)
   const [socketState, setSocketState] = useState<SocketState>({
     isConnected: false,
@@ -50,49 +50,56 @@ export function useSocket() {
       userEmail: user?.email,
       isAuthenticated,
       wsUrl,
-      isProduction
+      isProduction,
+      hasToken: !!token
     }
   })
 
-  // ✅ INICIALIZAR SOCKET CON CONFIGURACIÓN MEJORADA
+  // ✅ CONFIGURAR SOCKET.IO CON VALIDACIÓN Y CONFIGURACIÓN ROBUSTA
   const socket = useMemo(() => {
-    if (!user?.email || !isAuthenticated) {
-      logger.warn('SOCKET', 'No se puede conectar sin usuario autenticado', context)
-      return null
-    }
-
-    const token = localStorage.getItem('auth_token')
-    if (!token) {
-      logger.error('SOCKET', 'No hay token de autenticación disponible', context)
-      return null
-    }
-
-    logger.info('SOCKET', 'Inicializando conexión Socket.IO', {
-      ...context,
-      data: {
-        ...context.data,
+    if (!token || !user?.email) {
+      logger.socket('Socket no inicializado - falta token o email', {
         hasToken: !!token,
-        tokenPreview: `${token.substring(0, 10)}...`
-      }
+        hasUser: !!user,
+        hasEmail: !!user?.email
+      })
+      return null
+    }
+
+    logger.socket('Inicializando Socket.IO', {
+      wsUrl,
+      userEmail: user.email,
+      tokenPreview: `${token.substring(0, 10)}...`
     })
 
+    // ✅ CONFIGURACIÓN COMPLETA DE SOCKET.IO PARA EVITAR ERRORES DE CONEXIÓN
     const newSocket = io(wsUrl, {
       auth: { 
         token,
         email: user.email 
       },
-      // ✅ CONFIGURACIÓN ANTI-SPAM CRÍTICA
+      // ✅ CONFIGURACIÓN ANTI-SPAM Y ROBUSTA CRÍTICA
       transports: ['polling', 'websocket'], // ✅ polling primero como especifica backend
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000, // ✅ AUMENTADO: 1 segundo mínimo
-      reconnectionDelayMax: 5000,
-      timeout: 20000,
-      forceNew: false,
+      reconnectionAttempts: 15, // ✅ AUMENTADO: más intentos de reconexión
+      reconnectionDelay: 1000, // ✅ 1 segundo mínimo
+      reconnectionDelayMax: 8000, // ✅ AUMENTADO: máximo 8 segundos
+      timeout: 30000, // ✅ AUMENTADO: 30 segundos de timeout
+      forceNew: true, // ✅ CRÍTICO: Forzar nueva conexión para evitar reutilización
       autoConnect: true,
+      // ✅ CONFIGURACIÓN ADICIONAL PARA ESTABILIDAD
+      upgrade: true,
+      rememberUpgrade: false // ✅ No recordar upgrades para evitar problemas
+    })
+
+    logger.socket('Socket.IO configurado con opciones robustas', {
+      transports: ['polling', 'websocket'],
+      reconnectionAttempts: 15,
+      timeout: 30000,
+      forceNew: true
     })
 
     return newSocket
-  }, [user?.email, isAuthenticated, wsUrl])
+  }, [token, user?.email, wsUrl])
 
   // ✅ CONFIGURAR EVENTOS DE SOCKET
   useEffect(() => {

@@ -22,15 +22,15 @@ export const messageKeys = {
 
 /**
  * ✅ Hook principal para obtener mensajes de una conversación con paginación
- * ✅ CRÍTICO: Error React #310 resuelto con validación ultra-defensiva
+ * ✅ CRÍTICO: Error React #310 resuelto con validación SUAVIZADA
  */
 export function useMessages(conversationId: string, enablePagination = false) {
   const { user, isAuthenticated } = useAuth()
   const queryClient = useQueryClient()
   
-  // ✅ VALIDACIÓN ULTRA-DEFENSIVA CRÍTICA - ERROR REACT #310
-  if (!conversationId || typeof conversationId !== 'string' || !conversationId.trim()) {
-    logger.error('VALIDATION', 'ID de conversación inválido', {
+  // ✅ VALIDACIÓN SUAVIZADA - NO TAN AGRESIVA PARA EVITAR ARRAYS VACÍOS
+  if (!conversationId || typeof conversationId !== 'string') {
+    logger.info('VALIDATION', 'ID de conversación inválido, retornando estado vacío', {
       conversationId,
       type: typeof conversationId,
       isEmpty: !conversationId,
@@ -40,7 +40,7 @@ export function useMessages(conversationId: string, enablePagination = false) {
     return {
       messages: [],
       isLoading: false,
-      error: 'Conversation ID inválido',
+      error: null, // ✅ CAMBIO: null en lugar de string para evitar errores
       hasValidMessages: false,
       isEnabled: false,
       refetch: () => Promise.resolve(),
@@ -100,15 +100,31 @@ export function useMessages(conversationId: string, enablePagination = false) {
   // ✅ SOLO CARGAR MENSAJES SI LA CONVERSACIÓN EXISTE - CRÍTICO PARA ERROR #310
   const conversationExists = Boolean(conversation && !conversationError)
 
-  // ✅ QUERY SIMPLE PARA MENSAJES
+  // ✅ QUERY SIMPLE PARA MENSAJES CON VALIDACIÓN DEFENSIVA MEJORADA
   const simpleQuery = useQuery({
     queryKey: messageKeys.conversations(conversationId),
     queryFn: async () => {
       logger.info('API', 'Fetching messages (simple)', { conversationId })
       const response = await messageService.getMessages(conversationId)
+      
+      // ✅ VALIDACIÓN DEFENSIVA PARA EVITAR ERROR DE LENGTH
+      if (!response) {
+        logger.warn('MESSAGE', 'Respuesta vacía del servidor', { conversationId })
+        return []
+      }
+
+      if (!Array.isArray(response)) {
+        logger.warn('MESSAGE', 'Respuesta no es un array', { 
+          conversationId, 
+          responseType: typeof response,
+          response: response
+        })
+        return []
+      }
+
       logger.success('MESSAGE', 'Messages fetched successfully', {
         conversationId,
-        count: response?.length || 0
+        count: response.length
       })
       return response
     },
@@ -131,6 +147,13 @@ export function useMessages(conversationId: string, enablePagination = false) {
     queryFn: async ({ pageParam = 1 }) => {
       logger.info('API', 'Fetching messages (infinite)', { conversationId, page: pageParam })
       const response = await messageService.getMessagesWithPagination(conversationId, pageParam)
+      
+      // ✅ VALIDACIÓN DEFENSIVA PARA QUERIES INFINITAS
+      if (!response) {
+        logger.warn('MESSAGE', 'Respuesta vacía en query infinita', { conversationId, pageParam })
+        return { data: [], hasNextPage: false, nextPage: null }
+      }
+
       return response
     },
     enabled: isEnabled && conversationExists && enablePagination,
@@ -146,14 +169,44 @@ export function useMessages(conversationId: string, enablePagination = false) {
 
   const messagesQuery = enablePagination ? infiniteQuery : simpleQuery
 
-  // ✅ NORMALIZACIÓN ROBUSTA DE MENSAJES
+  // ✅ NORMALIZACIÓN ROBUSTA DE MENSAJES CON VALIDACIÓN DEFENSIVA MEJORADA
   const normalizedMessages = useMemo(() => {
     try {
-      if (!messagesQuery.data) return []
+      if (!messagesQuery.data) {
+        logger.info('MESSAGE', 'No hay datos de mensajes', { conversationId })
+        return []
+      }
       
-      const rawMessages = enablePagination && messagesQuery.data && 'pages' in messagesQuery.data
-        ? messagesQuery.data.pages?.flatMap((page: any) => page.data || []) || []
-        : Array.isArray(messagesQuery.data) ? messagesQuery.data : []
+      let rawMessages: any[] = []
+
+      if (enablePagination && messagesQuery.data && 'pages' in messagesQuery.data) {
+        // ✅ VALIDACIÓN DEFENSIVA PARA PÁGINAS
+        if (Array.isArray(messagesQuery.data.pages)) {
+          rawMessages = messagesQuery.data.pages.flatMap((page: any) => {
+            if (page && page.data && Array.isArray(page.data)) {
+              return page.data
+            }
+            logger.warn('MESSAGE', 'Página con datos inválidos', { page })
+            return []
+          })
+        } else {
+          logger.warn('MESSAGE', 'Pages no es un array', { 
+            pagesType: typeof messagesQuery.data.pages 
+          })
+          return []
+        }
+      } else {
+        // ✅ VALIDACIÓN DEFENSIVA PARA ARRAY SIMPLE
+        if (Array.isArray(messagesQuery.data)) {
+          rawMessages = messagesQuery.data
+        } else {
+          logger.warn('MESSAGE', 'Data no es un array', { 
+            dataType: typeof messagesQuery.data,
+            data: messagesQuery.data
+          })
+          return []
+        }
+      }
 
       logger.info('MESSAGE', 'Normalizando mensajes', {
         conversationId,
@@ -161,16 +214,59 @@ export function useMessages(conversationId: string, enablePagination = false) {
         hasPages: enablePagination && messagesQuery.data && 'pages' in messagesQuery.data
       })
 
-      return rawMessages
-        .filter((msg: any) => msg && msg.id && typeof msg.id === 'string')
-        .map((msg: any) => normalizeMessage(msg))
+      // ✅ FILTRADO Y NORMALIZACIÓN DEFENSIVA
+      const filteredMessages = rawMessages.filter((msg: any) => {
+        if (!msg) {
+          logger.warn('MESSAGE', 'Mensaje nulo o undefined', { msg })
+          return false
+        }
+        if (!msg.id && !msg.messageId) {
+          logger.warn('MESSAGE', 'Mensaje sin ID', { msg })
+          return false
+        }
+        if (typeof msg.id !== 'string' && typeof msg.messageId !== 'string') {
+          logger.warn('MESSAGE', 'ID de mensaje inválido', { 
+            id: msg.id, 
+            messageId: msg.messageId,
+            idType: typeof msg.id,
+            messageIdType: typeof msg.messageId
+          })
+          return false
+        }
+        return true
+      })
+
+      const normalizedMessages = filteredMessages
+        .map((msg: any) => {
+          try {
+            return normalizeMessage(msg)
+          } catch (error: any) {
+            logger.error('MESSAGE', 'Error normalizando mensaje individual', {
+              messageId: msg.id || msg.messageId,
+              error: error.message,
+              msg
+            })
+            return null
+          }
+        })
+        .filter((msg: any) => msg !== null) // ✅ Filtrar mensajes que fallaron al normalizar
         .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+
+      logger.info('MESSAGE', 'Mensajes normalizados exitosamente', {
+        conversationId,
+        originalCount: rawMessages.length,
+        filteredCount: filteredMessages.length,
+        normalizedCount: normalizedMessages.length
+      })
+
+      return normalizedMessages
         
     } catch (error: any) {
-      logger.error('MESSAGE', 'Error normalizando mensajes', {
+      logger.error('MESSAGE', 'Error crítico normalizando mensajes', {
         conversationId,
         error: error.message,
-        dataType: typeof messagesQuery.data
+        dataType: typeof messagesQuery.data,
+        enablePagination
       })
       return []
     }

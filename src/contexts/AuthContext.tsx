@@ -135,32 +135,42 @@ const validateSession = async (): Promise<boolean> => {
     // ✅ VALIDAR CON BACKEND - MANEJO ROBUSTO DE ERRORES
     const response = await apiClient.get('/auth/validate-token')
     
-    if (response && response.success && response.user) {
-      // ✅ SESIÓN VÁLIDA - RESTAURAR ESTADO
+    // ✅ CORRECCIÓN CRÍTICA: VALIDAR ESTRUCTURA CORRECTA DE RESPUESTA
+    if (response && response.success && response.data && response.data.sessionValid === true) {
+      // ✅ SESIÓN VÁLIDA - RESTAURAR ESTADO CORRECTAMENTE
       const validatedUser: User = {
         ...userData,
-        ...response.user, // ✅ USAR DATOS DEL BACKEND SI ESTÁN DISPONIBLES
+        ...response.data.user, // ✅ USAR DATOS DEL BACKEND SI ESTÁN DISPONIBLES
       }
 
       localStorage.setItem('user_data', JSON.stringify(validatedUser))
       
-      logger.success('AUTH', 'Sesión validada exitosamente', {
+      logger.success('AUTH', 'Sesión validada exitosamente según backend', {
         userEmail: validatedUser.email,
-        userName: validatedUser.name
+        sessionValid: response.data.sessionValid,
+        backendValidation: true
       })
       
       return true
     } else {
-      // ✅ SESIÓN INVÁLIDA PERO NO LIMPIAR INMEDIATAMENTE
-      logger.warn('AUTH', 'Sesión inválida según backend', {
-        response: response || 'No response'
+      // ✅ SESIÓN INVÁLIDA SEGÚN BACKEND - LIMPIAR DATOS
+      logger.warn('AUTH', 'Sesión inválida según backend - limpiando datos', {
+        responseSuccess: response?.success,
+        hasData: !!response?.data,
+        sessionValid: response?.data?.sessionValid,
+        backendValidation: false
       })
+      
+      // ✅ LIMPIAR DATOS INVÁLIDOS
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('user_data')
+      apiClient.setAuthToken(null)
       
       return false
     }
 
   } catch (error: any) {
-    logger.error('AUTH', 'Error validando sesión', {
+    logger.error('AUTH', 'Error validando sesión con backend', {
       error: error.message,
       status: error.response?.status,
       url: error.config?.url
@@ -169,25 +179,24 @@ const validateSession = async (): Promise<boolean> => {
     // ✅ MANEJO ESPECÍFICO DE ERRORES DE RED - NO LIMPIAR INMEDIATAMENTE
     if (error.response?.status === 401) {
       // ✅ 401: Token expirado o inválido
-      logger.warn('AUTH', 'Token expirado, marcando sesión como inválida', {
+      logger.warn('AUTH', 'Token expirado según backend, limpiando datos', {
         status: error.response.status
       })
       
-      // ✅ NO limpiar inmediatamente, permitir reconexión
-      setTimeout(() => {
-        logger.info('AUTH', 'Limpiando datos de sesión después de timeout')
-        localStorage.removeItem('auth_token')
-        localStorage.removeItem('user_data')
-        apiClient.setAuthToken(null)
-      }, 5000) // 5 segundos para reconectar
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('user_data')
+      apiClient.setAuthToken(null)
       
     } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
-      // ✅ ERROR DE RED: Mantener datos locales y intentar reconectar
-      logger.warn('AUTH', 'Error de red, manteniendo sesión local', {
+      // ✅ ERROR DE RED: Mantener datos locales y permitir uso offline
+      logger.warn('AUTH', 'Error de red, manteniendo sesión local temporalmente', {
         error: error.message
       })
+      
+      // ✅ NO limpiar datos por error de red - permitir uso offline
+      return true
     } else {
-      // ✅ OTROS ERRORES: Marcar como no válida pero no limpiar
+      // ✅ OTROS ERRORES: Marcar como no válida pero no limpiar inmediatamente
       logger.error('AUTH', 'Error desconocido validando sesión', {
         error: error.message,
         status: error.response?.status
@@ -241,7 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  // ✅ LOGIN MEJORADO
+  // ✅ LOGIN MEJORADO CON VALIDACIÓN CORRECTA
   const login = async (email: string, password: string): Promise<boolean> => {
     dispatch({ type: 'AUTH_START' })
 
@@ -259,10 +268,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password 
       })
 
+      logger.info('AUTH', 'Respuesta de login recibida', {
+        success: response?.success,
+        hasToken: !!response?.token,
+        hasUser: !!response?.user
+      })
+
+      // ✅ VALIDACIÓN CORRECTA DE RESPUESTA DE LOGIN
       if (response && response.success && response.token && response.user) {
         const { token, user } = response
 
-        // ✅ ALMACENAR DATOS
+        // ✅ ALMACENAR DATOS CORRECTAMENTE
         localStorage.setItem('auth_token', token)
         localStorage.setItem('user_data', JSON.stringify(user))
         apiClient.setAuthToken(token)
@@ -275,26 +291,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         logger.success('AUTH', 'Login exitoso', {
           userEmail: user.email,
-          userId: user.id,
+          userName: user.name,
           hasToken: !!token
         })
 
         return true
       } else {
-        const errorMsg = response?.message || 'Login fallido'
+        const errorMsg = response?.message || 'Login fallido - respuesta inválida del servidor'
         dispatch({ type: 'AUTH_FAILURE', payload: errorMsg })
-        logger.authError('Login fallido - respuesta inválida', { response })
+        logger.error('AUTH', 'Login fallido - respuesta inválida', { 
+          response: response || 'No response',
+          expected: 'success, token, user',
+          received: {
+            success: response?.success,
+            hasToken: !!response?.token,
+            hasUser: !!response?.user
+          }
+        })
         return false
       }
 
     } catch (error: any) {
-      const errorMsg = error.response?.data?.message || error.message || 'Error de conexión'
+      const errorMsg = error.response?.data?.message || error.message || 'Error de conexión durante login'
       dispatch({ type: 'AUTH_FAILURE', payload: errorMsg })
       
-      logger.authError('Error durante login', {
+      logger.error('AUTH', 'Error durante login', {
         error: error.message,
         status: error.response?.status,
-        email
+        email,
+        url: error.config?.url
       })
       
       return false

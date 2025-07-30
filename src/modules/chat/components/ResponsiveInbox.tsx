@@ -19,7 +19,7 @@ interface ResponsiveInboxProps {
 }
 
 export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
-  const { user, isAuthenticated, isAuthLoaded } = useAuth()
+  const { user, isAuthenticated, isAuthLoaded, sessionValid } = useAuth()
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
   const [showInfoPanel, setShowInfoPanel] = useState(false)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
@@ -32,14 +32,14 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
     leaveConversation 
   } = useSocket()
 
-  // ✅ CONVERSACIONES CON VALIDACIÓN
+  // ✅ CONVERSACIONES CON VALIDACIÓN ROBUSTA
   const { 
     data: conversations = [], 
     isLoading: conversationsLoading, 
     error: conversationsError 
   } = useConversations()
 
-  // ✅ MENSAJES CON VALIDACIÓN ULTRA-DEFENSIVA - CRÍTICO PARA ERROR #310
+  // ✅ MENSAJES CON VALIDACIÓN SUAVIZADA - CRÍTICO PARA ERROR #310
   const {
     messages,
     isLoading: messagesLoading,
@@ -59,13 +59,14 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
     data: {
       selectedConversationId,
       isAuthenticated,
+      sessionValid, // ✅ AGREGAR sessionValid al contexto
       socketConnected,
       conversationsCount: conversations.length,
       messagesCount: messages.length,
       hasValidMessages,
       messagesEnabled
     }
-  }), [selectedConversationId, isAuthenticated, socketConnected, conversations.length, messages.length, hasValidMessages, messagesEnabled])
+  }), [selectedConversationId, isAuthenticated, sessionValid, socketConnected, conversations.length, messages.length, hasValidMessages, messagesEnabled])
 
   // ✅ MANEJO DE RESIZE PARA RESPONSIVIDAD
   useEffect(() => {
@@ -191,6 +192,19 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
     )
   }
 
+  // ✅ VALIDACIÓN DE SESIÓN - CRÍTICA PARA EVITAR PÉRDIDA AL REFRESCAR
+  if (!sessionValid) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <h2 className="text-lg font-semibold">Sesión expirada</h2>
+          <p className="text-gray-600">Tu sesión ha expirado. Redirigiendo al login...</p>
+          <LoadingSpinner />
+        </div>
+      </div>
+    )
+  }
+
   // ✅ RENDER PRINCIPAL
   return (
     <div className={`flex h-full bg-gray-50 ${className}`}>
@@ -203,7 +217,7 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
           searchQuery=""
           onSearchChange={() => {}}
           isLoading={conversationsLoading}
-          error={conversationsError as string}
+          error={conversationsError ? String(conversationsError) : null}
         />
       </div>
 
