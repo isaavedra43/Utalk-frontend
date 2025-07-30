@@ -1,7 +1,0 @@
-{
-  "css.validate": false,
-  "scss.validate": false,
-  "less.validate": false,
-  "typescript.preferences.includePackageJsonAutoImports": "on",
-  "typescript.suggest.autoImports": true
-} 
