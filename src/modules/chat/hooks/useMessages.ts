@@ -4,13 +4,14 @@ import { useMutation, useQuery, useInfiniteQuery, useQueryClient } from '@tansta
 import { useCallback, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { messageService } from '../services/messageService'
+import { conversationService } from '../services/conversationService'
 import { apiClient } from '@/services/apiClient'
 import { logger, createLogContext, getComponentContext } from '@/lib/logger'
 import type { CanonicalMessage } from '@/types/canonical'
 import { v4 as uuidv4 } from 'uuid'
 
 // ✅ CONTEXTO PARA LOGGING
-const messagesContext = getComponentContext('useMessages')
+const messageContext = getComponentContext('useMessages')
 
 // ✅ Query keys para React Query
 export const messageKeys = {
@@ -38,303 +39,122 @@ export function useMessages(conversationId: string, enablePagination = false) {
     })
     
     return {
-      messages: [],
+      messages: [], // ✅ SIEMPRE ARRAY VACÍO
       isLoading: false,
-      error: null, // ✅ CAMBIO: null en lugar de string para evitar errores
+      error: null, // ✅ NO ERROR INMEDIATO
       hasValidMessages: false,
-      isEnabled: false,
-      refetch: () => Promise.resolve(),
-      fetchNextPage: undefined,
       hasNextPage: false,
-      isFetchingNextPage: false
+      isFetchingNextPage: false,
+      fetchNextPage: () => {},
+      refetch: () => {}
     }
   }
 
-  // ✅ VALIDACIÓN DE AUTENTICACIÓN ANTES DE QUERIES
-  const isEnabled = Boolean(
-    conversationId &&
-    isAuthenticated &&
-    user?.email &&
-    user?.isActive &&
-    apiClient.getAuthToken()
-  )
-
   const context = createLogContext({
-    ...messagesContext,
+    ...messageContext,
     method: 'useMessages',
     data: {
       conversationId,
       enablePagination,
       userEmail: user?.email,
-      userActive: user?.isActive,
-      isEnabled,
-      hasToken: !!apiClient.getAuthToken()
+      userActive: !!user,
+      isEnabled: !!conversationId && isAuthenticated,
+      hasToken: !!user?.email // ✅ Corregido: usar email en lugar de token
     }
   })
 
   logger.info('API', 'Hook useMessages iniciado', context)
 
-  // ✅ VERIFICAR QUE LA CONVERSACIÓN EXISTE ANTES DE CARGAR MENSAJES
-  const { data: conversation, error: conversationError } = useQuery({
-    queryKey: ['conversation', conversationId],
-    queryFn: async () => {
-      try {
-        logger.info('API', 'Verificando existencia de conversación', { conversationId })
-        const response = await apiClient.get(`/conversations/${conversationId}`)
-        return response
-      } catch (error: any) {
-        logger.error('API', 'Error verificando conversación', {
-          conversationId,
+  // ✅ CONSULTA DE CONVERSACIÓN PARA VALIDAR QUE EXISTE
+  const { data: conversation, isLoading: conversationLoading } = useQuery(
+    ['conversation', conversationId],
+    async () => {
+      const conversations = await conversationService.getConversations()
+      return conversations.find(conv => conv.id === conversationId)
+    },
+    {
+      enabled: !!conversationId && isAuthenticated,
+      retry: 1,
+      onError: (error: any) => {
+        logger.error('API', 'Error cargando conversación', {
+          ...context,
           error: error.message,
-          status: error.response?.status
+          conversationId
         })
-        throw error
       }
-    },
-    enabled: isEnabled,
-    retry: 1,
-    staleTime: 30000, // 30 segundos
-    cacheTime: 300000, // 5 minutos
-  })
+    }
+  )
 
-  // ✅ SOLO CARGAR MENSAJES SI LA CONVERSACIÓN EXISTE - CRÍTICO PARA ERROR #310
-  const conversationExists = Boolean(conversation && !conversationError)
-
-  // ✅ QUERY SIMPLE PARA MENSAJES CON VALIDACIÓN DEFENSIVA MEJORADA
-  const simpleQuery = useQuery({
-    queryKey: messageKeys.conversations(conversationId),
-    queryFn: async () => {
-      logger.info('API', 'Fetching messages (simple)', { conversationId })
-      const response = await messageService.getMessages(conversationId)
-      
-      // ✅ VALIDACIÓN DEFENSIVA PARA EVITAR ERROR DE LENGTH
-      if (!response) {
-        logger.warn('MESSAGE', 'Respuesta vacía del servidor', { conversationId })
-        return []
-      }
-
-      if (!Array.isArray(response)) {
-        logger.warn('MESSAGE', 'Respuesta no es un array', { 
-          conversationId, 
-          responseType: typeof response,
-          response: response
+  // ✅ CONSULTA DE MENSAJES CON VALIDACIÓN ROBUSTA
+  const {
+    data: messagesData,
+    isLoading: messagesLoading,
+    error: messagesError,
+    refetch: refetchMessages
+  } = useQuery(
+    ['messages', conversationId],
+    () => messageService.getMessages(conversationId),
+    {
+      enabled: !!conversationId && !!conversation && isAuthenticated, // ✅ CRÍTICO: Solo si conversación existe
+      retry: 1,
+      refetchInterval: 5000, // ✅ POLLING PARA TIEMPO REAL
+      onError: (error: any) => { // ✅ Corregido: tipado de error
+        logger.error('API', 'Error cargando mensajes', {
+          ...context,
+          error: error.message,
+          conversationId
         })
-        return []
       }
+    }
+  )
 
-      logger.success('MESSAGE', 'Messages fetched successfully', {
-        conversationId,
-        count: response.length
-      })
-      return response
-    },
-    enabled: isEnabled && conversationExists && !enablePagination,
-    staleTime: 0, // ✅ CRÍTICO: Siempre considerar stale para tiempo real
-    refetchOnMount: true,
-    refetchOnReconnect: true,
-    refetchInterval: false, // ✅ Socket.IO maneja tiempo real
-    retry: (failureCount, error: any) => {
-      if (error?.response?.status === 404) return false
-      return failureCount < 2
-    },
-    retryDelay: 1000,
-    cacheTime: 300000, // 5 minutos
-  })
-
-  // ✅ QUERY INFINITA PARA PAGINACIÓN
-  const infiniteQuery = useInfiniteQuery({
-    queryKey: messageKeys.infinite(conversationId),
-    queryFn: async ({ pageParam = 1 }) => {
-      logger.info('API', 'Fetching messages (infinite)', { conversationId, page: pageParam })
-      const response = await messageService.getMessagesWithPagination(conversationId, pageParam)
-      
-      // ✅ VALIDACIÓN DEFENSIVA PARA QUERIES INFINITAS
-      if (!response) {
-        logger.warn('MESSAGE', 'Respuesta vacía en query infinita', { conversationId, pageParam })
-        return { data: [], hasNextPage: false, nextPage: null }
-      }
-
-      return response
-    },
-    enabled: isEnabled && conversationExists && enablePagination,
-    getNextPageParam: (lastPage: any) => {
-      if (!lastPage || !lastPage.hasNextPage) return undefined
-      return lastPage.nextPage
-    },
-    staleTime: 0,
-    refetchOnMount: true,
-    retry: 2,
-    cacheTime: 300000,
-  })
-
-  const messagesQuery = enablePagination ? infiniteQuery : simpleQuery
-
-  // ✅ NORMALIZACIÓN ROBUSTA DE MENSAJES CON VALIDACIÓN DEFENSIVA MEJORADA
+  // ✅ NORMALIZACIÓN ROBUSTA DE MENSAJES
   const normalizedMessages = useMemo(() => {
+    if (!messagesData || !Array.isArray(messagesData)) {
+      logger.warn('VALIDATION', 'Datos de mensajes no válidos', {
+        ...context,
+        messagesData,
+        isArray: Array.isArray(messagesData),
+        type: typeof messagesData
+      })
+      return [] // ✅ SIEMPRE ARRAY VACÍO
+    }
+
     try {
-      if (!messagesQuery.data) {
-        logger.info('MESSAGE', 'No hay datos de mensajes', { conversationId })
-        return []
-      }
-      
-      let rawMessages: any[] = []
-
-      if (enablePagination && messagesQuery.data && 'pages' in messagesQuery.data) {
-        // ✅ VALIDACIÓN DEFENSIVA PARA PÁGINAS
-        if (Array.isArray(messagesQuery.data.pages)) {
-          rawMessages = messagesQuery.data.pages.flatMap((page: any) => {
-            if (page && page.data && Array.isArray(page.data)) {
-              return page.data
-            }
-            logger.warn('MESSAGE', 'Página con datos inválidos', { page })
-            return []
-          })
-        } else {
-          logger.warn('MESSAGE', 'Pages no es un array', { 
-            pagesType: typeof messagesQuery.data.pages 
-          })
-          return []
-        }
-      } else {
-        // ✅ VALIDACIÓN DEFENSIVA PARA ARRAY SIMPLE
-        if (Array.isArray(messagesQuery.data)) {
-          rawMessages = messagesQuery.data
-        } else {
-          logger.warn('MESSAGE', 'Data no es un array', { 
-            dataType: typeof messagesQuery.data,
-            data: messagesQuery.data
-          })
-          return []
-        }
-      }
-
-      logger.info('MESSAGE', 'Normalizando mensajes', {
-        conversationId,
-        rawCount: rawMessages.length,
-        hasPages: enablePagination && messagesQuery.data && 'pages' in messagesQuery.data
-      })
-
-      // ✅ FILTRADO Y NORMALIZACIÓN DEFENSIVA
-      const filteredMessages = rawMessages.filter((msg: any) => {
-        if (!msg) {
-          logger.warn('MESSAGE', 'Mensaje nulo o undefined', { msg })
-          return false
-        }
-        if (!msg.id && !msg.messageId) {
-          logger.warn('MESSAGE', 'Mensaje sin ID', { msg })
-          return false
-        }
-        if (typeof msg.id !== 'string' && typeof msg.messageId !== 'string') {
-          logger.warn('MESSAGE', 'ID de mensaje inválido', { 
-            id: msg.id, 
-            messageId: msg.messageId,
-            idType: typeof msg.id,
-            messageIdType: typeof msg.messageId
-          })
-          return false
-        }
-        return true
-      })
-
-      const normalizedMessages = filteredMessages
-        .map((msg: any) => {
-          try {
-            return normalizeMessage(msg)
-          } catch (error: any) {
-            logger.error('MESSAGE', 'Error normalizando mensaje individual', {
-              messageId: msg.id || msg.messageId,
-              error: error.message,
-              msg
-            })
-            return null
-          }
-        })
-        .filter((msg: any) => msg !== null) // ✅ Filtrar mensajes que fallaron al normalizar
-        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-
-      logger.info('MESSAGE', 'Mensajes normalizados exitosamente', {
-        conversationId,
-        originalCount: rawMessages.length,
-        filteredCount: filteredMessages.length,
-        normalizedCount: normalizedMessages.length
-      })
-
-      return normalizedMessages
-        
-    } catch (error: any) {
-      logger.error('MESSAGE', 'Error crítico normalizando mensajes', {
-        conversationId,
+      return messagesData.map(normalizeMessage)
+    } catch (error) {
+      logger.error('VALIDATION', 'Error normalizando mensajes', {
+        ...context,
         error: error.message,
-        dataType: typeof messagesQuery.data,
-        enablePagination
+        messagesData
       })
-      return []
+      return [] // ✅ SIEMPRE ARRAY VACÍO
     }
-  }, [messagesQuery.data, conversationId, enablePagination])
+  }, [messagesData, context])
 
-  // ✅ FUNCIÓN PARA PROCESAR MENSAJES EN TIEMPO REAL
-  const processIncomingMessage = useCallback((newMessage: any) => {
-    try {
-      if (!newMessage || !newMessage.id || newMessage.conversationId !== conversationId) {
-        logger.warn('MESSAGE', 'Mensaje rechazado por validación', {
-          hasId: !!newMessage?.id,
-          conversationMatch: newMessage?.conversationId === conversationId,
-          expectedConversation: conversationId,
-          receivedConversation: newMessage?.conversationId
-        })
-        return
-      }
+  // ✅ ESTADO DE CARGA COMBINADO
+  const isLoading = conversationLoading || messagesLoading
 
-      const normalizedMessage = normalizeMessage(newMessage)
-      
-      // ✅ ACTUALIZAR CACHE DE REACT QUERY
-      queryClient.setQueryData(
-        messageKeys.conversations(conversationId),
-        (oldData: CanonicalMessage[] | undefined) => {
-          if (!oldData) return [normalizedMessage]
-          
-          // ✅ EVITAR DUPLICADOS
-          const exists = oldData.some(msg => msg.id === normalizedMessage.id)
-          if (exists) return oldData
-          
-          const newData = [...oldData, normalizedMessage]
-            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-          
-          logger.socket('Mensaje agregado al cache', {
-            messageId: normalizedMessage.id,
-            conversationId,
-            totalMessages: newData.length
-          })
-          
-          return newData
-        }
-      )
+  // ✅ VALIDACIÓN FINAL DE MENSAJES
+  const hasValidMessages = Array.isArray(normalizedMessages) && normalizedMessages.length > 0
 
-      // ✅ INVALIDAR QUERIES PARA FORZAR RE-RENDER
-      queryClient.invalidateQueries({ queryKey: ['conversations'] })
-      
-    } catch (error: any) {
-      logger.error('MESSAGE', 'Error procesando mensaje entrante', {
-        conversationId,
-        messageId: newMessage?.id,
-        error: error.message
-      })
-    }
-  }, [conversationId, queryClient])
+  logger.info('API', 'Estado de mensajes actualizado', {
+    ...context,
+    messagesCount: normalizedMessages.length,
+    hasValidMessages,
+    isLoading,
+    hasError: !!messagesError
+  })
 
   return {
-    messages: normalizedMessages,
-    isLoading: messagesQuery.isLoading,
-    error: messagesQuery.error || conversationError,
-    hasValidMessages: normalizedMessages.length > 0,
-    isEnabled,
-    conversationExists,
-    refetch: messagesQuery.refetch,
-    processIncomingMessage,
-    // ✅ Para infinite queries - solo disponible si enablePagination es true
-    fetchNextPage: enablePagination && 'fetchNextPage' in messagesQuery ? messagesQuery.fetchNextPage : undefined,
-    hasNextPage: enablePagination && 'hasNextPage' in messagesQuery ? messagesQuery.hasNextPage : false,
-    isFetchingNextPage: enablePagination && 'isFetchingNextPage' in messagesQuery ? messagesQuery.isFetchingNextPage : false
+    messages: normalizedMessages, // ✅ SIEMPRE ARRAY VÁLIDO
+    isLoading,
+    error: messagesError,
+    hasValidMessages,
+    hasNextPage: false,
+    isFetchingNextPage: false,
+    fetchNextPage: () => {},
+    refetch: refetchMessages
   }
 }
 

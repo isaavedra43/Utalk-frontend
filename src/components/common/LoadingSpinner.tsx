@@ -13,23 +13,31 @@ export function LoadingSpinner({
   className, 
   text 
 }: LoadingSpinnerProps) {
+  // ✅ VALIDACIÓN DEFENSIVA PARA EVITAR ERRORES
+  const safeSize = size || 'md'
+  const safeClassName = className || ''
+  const safeText = text || ''
+
   const sizeClasses = {
     sm: 'h-4 w-4',
     md: 'h-8 w-8',
     lg: 'h-12 w-12'
   }
 
+  // ✅ VALIDACIÓN DE SIZE
+  const sizeClass = sizeClasses[safeSize] || sizeClasses.md
+
   return (
-    <div className={cn('flex flex-col items-center space-y-2', className)}>
+    <div className={cn('flex flex-col items-center space-y-2', safeClassName)}>
       <div 
         className={cn(
           'animate-spin rounded-full border-2 border-muted border-t-primary',
-          sizeClasses[size]
+          sizeClass
         )}
       />
-      {text && (
+      {safeText && (
         <p className="text-sm text-muted-foreground">
-          {text}
+          {safeText}
         </p>
       )}
     </div>

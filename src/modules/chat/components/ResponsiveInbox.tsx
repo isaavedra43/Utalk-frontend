@@ -39,16 +39,17 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
     error: conversationsError 
   } = useConversations()
 
-  // ✅ MENSAJES CON VALIDACIÓN SUAVIZADA - CRÍTICO PARA ERROR #310
-  const {
-    messages,
-    isLoading: messagesLoading,
-    error: messagesError,
-    hasValidMessages,
-    isEnabled: messagesEnabled,
-    conversationExists,
-    processIncomingMessage
-  } = useMessages(selectedConversationId || '', false) // ✅ CRÍTICO: Pasar string vacío si es null
+  // ✅ MENSAJES CON VALIDACIÓN ROBUSTA
+  const { 
+    messages = [], // ✅ Default array vacío
+    isLoading: messagesLoading = false, 
+    error: messagesError = null,
+    hasValidMessages = false 
+  } = useMessages(selectedConversationId || '')
+
+  // ✅ VALIDACIÓN ADICIONAL PARA EVITAR ERRORES
+  const safeMessages = Array.isArray(messages) ? messages : []
+  const messagesEnabled = !!selectedConversationId && isAuthenticated
 
   // ✅ ENVÍO DE MENSAJES
   const sendMessageMutation = useSendMessage()
@@ -105,10 +106,11 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
           conversationId
         })
         
-        // ✅ PROCESAR MENSAJE USANDO EL HOOK
-        if (processIncomingMessage) {
-          processIncomingMessage(message)
-        }
+        // ✅ LOS MENSAJES SE ACTUALIZAN AUTOMÁTICAMENTE VÍA REACT QUERY
+        logger.info('CHAT', 'Nuevo mensaje recibido para conversación seleccionada', {
+          messageId: message.id,
+          conversationId
+        })
       }
     }
 
@@ -117,7 +119,7 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
     return () => {
       window.removeEventListener('socket-new-message', handleNewMessage as EventListener)
     }
-  }, [selectedConversationId, processIncomingMessage])
+  }, [selectedConversationId])
 
   // ✅ FUNCIÓN PARA SELECCIONAR CONVERSACIÓN
   const handleSelectConversation = useCallback((conversationId: string) => {
@@ -171,35 +173,54 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
     }
   }, [selectedConversationId, sendMessageMutation, context])
 
-  // ✅ VALIDACIÓN DE ESTADO ANTES DEL RENDER
+  // ✅ VALIDACIÓN DE SESIÓN Y AUTENTICACIÓN
   if (!isAuthLoaded) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <LoadingSpinner />
-        <span className="ml-2">Cargando autenticación...</span>
-      </div>
-    )
+    logger.info('RENDER', 'Auth not loaded yet, showing loading', {
+      isAuthLoaded,
+      isAuthenticated,
+      sessionValid
+    })
+    return <LoadingSpinner />
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !sessionValid) {
+    logger.info('RENDER', 'Usuario no autenticado o sesión inválida', {
+      isAuthenticated,
+      sessionValid
+    })
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <h2 className="text-lg font-semibold">No autenticado</h2>
-          <p className="text-gray-600">Por favor, inicia sesión para acceder al chat</p>
+          <h2 className="text-xl font-semibold mb-2">Sesión expirada</h2>
+          <p className="text-gray-600">Por favor, inicia sesión nuevamente.</p>
         </div>
       </div>
     )
   }
 
-  // ✅ VALIDACIÓN DE SESIÓN - CRÍTICA PARA EVITAR PÉRDIDA AL REFRESCAR
-  if (!sessionValid) {
+  // ✅ VALIDACIÓN DE CONVERSACIÓN SELECCIONADA
+  if (!selectedConversationId) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <h2 className="text-lg font-semibold">Sesión expirada</h2>
-          <p className="text-gray-600">Tu sesión ha expirado. Redirigiendo al login...</p>
-          <LoadingSpinner />
+          <h2 className="text-xl font-semibold mb-2">Selecciona una conversación</h2>
+          <p className="text-gray-600">Elige una conversación para comenzar a chatear.</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ✅ VALIDACIÓN DE MENSAJES
+  if (!Array.isArray(safeMessages)) {
+    logger.warn('RENDER', 'Messages no es un array válido', {
+      messages: safeMessages,
+      type: typeof safeMessages
+    })
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Error cargando mensajes</h2>
+          <p className="text-gray-600">No se pudieron cargar los mensajes.</p>
         </div>
       </div>
     )
