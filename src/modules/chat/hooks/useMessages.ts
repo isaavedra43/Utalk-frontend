@@ -1,14 +1,13 @@
 // Hook para gestión de mensajes con React Query
 // ✅ OPTIMIZADO: Caching inteligente, optimistic updates y paginación
-import { useQuery, useInfiniteQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { v4 as uuidv4 } from 'uuid'
-import { messageService } from '../services/messageService'
+import { useMutation, useQuery, useInfiniteQuery, useQueryClient, QueryClient } from '@tanstack/react-query'
+import { useCallback, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
+import { messageService } from '../services/messageService'
 import { apiClient } from '@/services/apiClient'
 import { logger } from '@/lib/logger'
-import type { SendMessageData } from '../types'
 import type { CanonicalMessage } from '@/types/canonical'
-import { useCallback } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 
 // ✅ Query keys para React Query
 export const messageKeys = {
@@ -138,7 +137,7 @@ export function useSendMessage() {
   const { user } = useAuth()
 
   return useMutation({
-    mutationFn: async (messageData: SendMessageData) => {
+    mutationFn: async (messageData: any) => { // Changed type to any as SendMessageData is removed
       console.log('[HOOK] useSendMessage: Sending message:', messageData)
       
       if (!user?.email) {
@@ -153,7 +152,7 @@ export function useSendMessage() {
       const messageId = messageData.messageId || uuidv4()
 
       // Agregar email del usuario si no está presente
-      const enrichedData: SendMessageData = {
+      const enrichedData: any = { // Changed type to any
         ...messageData,
         messageId, // ✅ OBLIGATORIO: Asegurar que existe messageId
         senderEmail: messageData.senderEmail || user.email,
@@ -339,109 +338,109 @@ export function useSearchMessages(query: {
   })
 } 
 
-/**
- * ✅ Hook para procesar mensajes entrantes con normalización
- */
-export function useProcessIncomingMessage() {
-  const queryClient = useQueryClient()
+// ✅ CORREGIR: Función de normalización de mensajes MEJORADA
+export const normalizeMessage = (message: any): CanonicalMessage => {
+  // ✅ VALIDACIÓN BÁSICA
+  if (!message) {
+    throw new Error('Message object is required')
+  }
 
-  // ✅ CORREGIDO: Normalizar estructura del mensaje con manejo de campos faltantes
-  const normalizeMessage = useCallback((message: any): CanonicalMessage => {
-    return {
-      id: message.id || message.messageId || `msg_${Date.now()}_${Math.random()}`,
+  console.log('[MESSAGES] Normalizing message:', {
+    messageId: message.id || message.messageId,
+    hasContent: !!message.content,
+    hasSender: !!message.sender,
+    hasTimestamp: !!message.timestamp,
+    rawStructure: Object.keys(message)
+  })
+
+  return {
+    id: message.id || message.messageId || `msg_${Date.now()}_${Math.random()}`,
+    conversationId: message.conversationId,
+    content: message.content || message.text || '',
+    type: message.type || 'text',
+    direction: message.direction || 'outbound',
+    timestamp: message.timestamp || new Date().toISOString(),
+    status: message.status || 'sent',
+    
+    // ✅ CORREGIDO: Estructura anidada para compatibilidad
+    sender: {
+      email: message.sender?.email || 
+             message.sender?.identifier || 
+             (message as any).senderIdentifier || 
+             'unknown',
+      name: message.sender?.name || 'Unknown User',
+      avatar: message.sender?.avatar,
+      type: message.sender?.type || 'agent'
+    },
+    recipient: {
+      email: message.recipient?.email || 
+             message.recipient?.identifier || 
+             (message as any).recipientIdentifier || 
+             'unknown',
+      name: message.recipient?.name || 'Unknown User',
+      avatar: message.recipient?.avatar,
+      type: message.recipient?.type || 'customer'
+    },
+    
+    // ✅ CORREGIDO: Campos opcionales con defaults
+    mediaUrl: message.mediaUrl || null,
+    metadata: message.metadata || {},
+    isRead: message.isRead || false,
+    isDelivered: message.isDelivered || false,
+    isImportant: message.isImportant || false,
+    attachments: message.attachments || []
+  }
+}
+
+// ✅ CORREGIR: Función para procesar mensajes entrantes y actualizar cache
+export const processIncomingMessage = (
+  queryClient: QueryClient,
+  message: CanonicalMessage
+) => {
+  try {
+    console.log('[MESSAGES] Processing incoming message:', {
+      messageId: message.id,
       conversationId: message.conversationId,
-      content: message.content || message.text || '',
-      type: message.type || 'text',
-      direction: message.direction || 'outbound',
-      timestamp: message.timestamp || new Date().toISOString(),
-      status: message.status || 'sent',
-      
-      // ✅ CORREGIDO: Estructura anidada para compatibilidad
-      sender: {
-        email: message.sender?.email || (message as any).senderIdentifier || 'unknown',
-        name: message.sender?.name || 'Unknown User',
-        avatar: message.sender?.avatar,
-        type: message.sender?.type || 'agent'
-      },
-      recipient: {
-        email: message.recipient?.email || (message as any).recipientIdentifier || 'unknown',
-        name: message.recipient?.name || 'Unknown User',
-        avatar: message.recipient?.avatar,
-        type: message.recipient?.type || 'customer'
-      },
-      
-      metadata: message.metadata || {},
-      isRead: message.isRead || false,
-      isDelivered: message.isDelivered || false,
-      isImportant: message.isImportant || false,
-      attachments: message.attachments || []
-    }
-  }, [])
+      content: message.content?.substring(0, 50) + '...',
+      timestamp: message.timestamp
+    })
 
-  // ✅ CORREGIDO: Procesar mensajes entrantes
-  const processIncomingMessage = useCallback((newMessage: any) => {
-    try {
-      const normalizedMessage = normalizeMessage(newMessage)
-      
-      console.log('[MESSAGES] Processing incoming message:', {
-        messageId: normalizedMessage.id,
-        conversationId: normalizedMessage.conversationId,
-        content: normalizedMessage.content.substring(0, 50) + '...',
-        sender: normalizedMessage.sender.email,
-        direction: normalizedMessage.direction
-      })
-
-      // ✅ CORREGIDO: Actualizar cache de React Query
-      queryClient.setQueryData(
-        messageKeys.conversations(normalizedMessage.conversationId),
-        (old: CanonicalMessage[] | undefined) => {
-          if (!old) return [normalizedMessage]
-          
-          // ✅ CORREGIDO: Evitar duplicados
-          const exists = old.some(msg => msg.id === normalizedMessage.id)
-          if (exists) {
-            console.log('[MESSAGES] Message already exists:', normalizedMessage.id)
-            return old
-          }
-          
-          // ✅ CORREGIDO: Agregar al final y ordenar por timestamp
-          const updatedMessages = [...old, normalizedMessage]
-            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-          
-          console.log('[MESSAGES] Message added:', normalizedMessage.id, 'Total:', updatedMessages.length)
-          return updatedMessages
+    // ✅ CORREGIR: Actualizar cache de React Query
+    queryClient.setQueryData(
+      messageKeys.conversations(message.conversationId),
+      (oldData: any) => {
+        if (!oldData) {
+          console.log('[MESSAGES] No existing data, creating new array')
+          return [message]
         }
-      )
 
-      // ✅ CORREGIDO: También actualizar cache infinito si existe
-      queryClient.setQueryData(
-        messageKeys.infinite(normalizedMessage.conversationId),
-        (old: any) => {
-          if (!old) return old
-          const newPages = [...old.pages]
-          if (newPages.length > 0) {
-            const exists = newPages[0].messages.some((msg: CanonicalMessage) => msg.id === normalizedMessage.id)
-            if (!exists) {
-              newPages[0] = {
-                ...newPages[0],
-                messages: [...newPages[0].messages, normalizedMessage].sort((a, b) => 
-                  new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-                )
-              }
-            }
-          }
-          return { ...old, pages: newPages }
+        // ✅ CORREGIR: Evitar duplicados
+        const existingIndex = oldData.findIndex((m: CanonicalMessage) => m.id === message.id)
+        if (existingIndex !== -1) {
+          console.log('[MESSAGES] Message already exists, updating:', message.id)
+          const newData = [...oldData]
+          newData[existingIndex] = message
+          return newData.sort((a: CanonicalMessage, b: CanonicalMessage) => {
+            return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          })
         }
-      )
 
-    } catch (error) {
-      console.error('[MESSAGES] Error processing incoming message:', error)
-      logger.error('Failed to process incoming message', {
-        message: newMessage,
-        error
-      }, 'messages_process_error')
-    }
-  }, [normalizeMessage, queryClient])
+        // ✅ CORREGIR: Agregar nuevo mensaje y ordenar por timestamp
+        const newData = [...oldData, message].sort((a: CanonicalMessage, b: CanonicalMessage) => {
+          return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        })
 
-  return { processIncomingMessage, normalizeMessage }
+        console.log('[MESSAGES] Added new message, total count:', newData.length)
+        return newData
+      }
+    )
+
+    // ✅ CORREGIR: Invalidar queries relacionadas para refrescar UI
+    queryClient.invalidateQueries({
+      queryKey: ['conversations']
+    })
+
+  } catch (error) {
+    console.error('[MESSAGES] Error processing incoming message:', error, message)
+  }
 } 

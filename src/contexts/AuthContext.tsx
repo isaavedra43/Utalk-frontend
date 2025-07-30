@@ -31,33 +31,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let isMounted = true
     
     async function initializeAuth() {
-      console.log('--- ✅ Auth Initialization Start (EMAIL-FIRST Backend) ---')
+      console.log('[AUTH] 1. Initializing authentication...')
       
       try {
         const token = localStorage.getItem('auth_token')
         const userData = localStorage.getItem('user_data')
         
-        console.log('1. Reading from localStorage', { 
+        console.log('[AUTH] Initial state check:', {
           hasToken: !!token, 
           hasUserData: !!userData,
           tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
         })
 
         if (token && userData) {
-          console.log('2. Token and user data found. Configuring apiClient FIRST...')
+          console.log('[AUTH] 2. Token and user data found. Configuring apiClient FIRST...')
           
           // ✅ CONFIGURAR TOKEN EN APICLIENT ANTES DE CUALQUIER REQUEST
           apiClient.setAuthToken(token)
           
-          console.log('3. ApiClient configured. Now validating with backend...')
+          console.log('[AUTH] 3. ApiClient configured. Now validating with backend...')
           
-          // ✅ Validar token con backend
+          // ✅ CORREGIR: Validar token con backend con estructura correcta
           const validationResponse = await apiClient.get(API_ENDPOINTS.AUTH.VALIDATE_TOKEN)
-          console.log('4. Backend validation response:', validationResponse)
+          console.log('[AUTH] 4. Backend validation response:', validationResponse)
 
-          // ✅ CORREGIDO: Validar correctamente la respuesta del backend
-          if (validationResponse && validationResponse.success) {
-            const user: User = JSON.parse(userData)
+          // ✅ CORREGIR: Verificar estructura correcta de respuesta del backend
+          if (validationResponse?.success && validationResponse?.data?.user) {
+            const user: User = validationResponse.data.user
+            
+            console.log('[AUTH] 5. ✅ Backend validation successful:', {
+              userEmail: user.email,
+              userRole: user.role,
+              isActive: user.isActive
+            })
             
             // ✅ Verificar que el usuario esté activo
             if (!user.isActive) {
@@ -68,47 +74,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               // ✅ PRIMERO actualizar contexto
               dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } })
               
-              console.log('5. ✅ Session restored successfully.')
-              console.log('6. ✅ User authenticated:', {
+              console.log('[AUTH] 6. ✅ Session restored successfully.')
+              console.log('[AUTH] 7. ✅ User authenticated:', {
                 email: user.email,
                 role: user.role,
                 isActive: user.isActive
               })
             }
           } else {
-            // ✅ CORREGIDO: Manejar respuesta inválida del backend
-            console.error('4. ❌ Backend validation failed:', validationResponse)
+            // ✅ CORREGIR: Manejar respuesta inválida del backend
+            console.error('[AUTH] 4. ❌ Backend validation failed:', {
+              success: validationResponse?.success,
+              hasData: !!validationResponse?.data,
+              hasUser: !!validationResponse?.data?.user,
+              message: validationResponse?.message
+            })
+            
+            // ✅ LIMPIAR datos inválidos
+            localStorage.removeItem('auth_token')
+            localStorage.removeItem('user_data')
+            apiClient.setAuthToken(null)
+            
             throw new Error('Token inválido según el backend')
           }
         } else {
-          console.log('2. No session found in localStorage - continuing without auth.')
+          console.log('[AUTH] 2. No session found in localStorage - continuing without auth.')
           if (isMounted) {
             // ✅ TEMPORAL: No falla, solo marca como no autenticado pero listo
             // dispatch({ type: 'AUTH_FAILURE', payload: 'No active session' })
           }
         }
       } catch (error: any) {
-        console.error('3. ❌ Session validation failed:', error.message)
+        console.error('[AUTH] 3. ❌ Session validation failed:', error.message)
         
-        // ✅ Limpiar datos inválidos
-        localStorage.removeItem('auth_token')
-        localStorage.removeItem('user_data')
-        apiClient.setAuthToken(null)
-        
+        // ✅ LIMPIAR estado en caso de error
         if (isMounted) {
-          dispatch({ type: 'AUTH_FAILURE', payload: 'Session expired or invalid' })
+          localStorage.removeItem('auth_token')
+          localStorage.removeItem('user_data')
+          apiClient.setAuthToken(null)
+          dispatch({ type: 'AUTH_FAILURE', payload: error.message })
         }
       } finally {
         if (isMounted) {
-          // ✅ MARCAR COMO LISTO SIEMPRE AL FINAL
+          // ✅ MARCAMOS COMO LISTO SIEMPRE
           dispatch({ type: 'AUTH_READY' })
+          console.log('[AUTH] ✅ Auth initialization complete (ready=true)')
         }
-        console.log('--- Auth Initialization End ---')
       }
     }
 
     initializeAuth()
-
+    
     return () => {
       isMounted = false
     }

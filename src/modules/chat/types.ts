@@ -1,6 +1,6 @@
 // Tipos específicos del módulo de chat
 // ✅ REFACTORIZADO: Tipos simplificados sin lógica de filtrado
-import { CanonicalConversation, CanonicalMessage } from '@/types/canonical'
+import { CanonicalConversation, CanonicalMessage, CanonicalFileAttachment } from '@/types/canonical'
 
 // ✅ Tipo principal de conversación (usando el canónico)
 export type Conversation = CanonicalConversation
@@ -60,29 +60,19 @@ export interface ChatWindowProps {
   typingUsers: TypingIndicator[]
 }
 
-// ✅ DATOS PARA ENVÍO DE MENSAJES - CORREGIDO Y UNIFICADO
+// ✅ CORREGIR: Datos para enviar mensaje
 export interface SendMessageData {
-  messageId?: string // ✅ UUID único generado en frontend
-  conversationId: string
+  messageId?: string // ✅ AGREGAR: ID único del mensaje
   content: string
+  type?: MessageType
+  conversationId: string
   senderEmail: string
-  recipientEmail: string // Made required
-  type?: MessageType // Now includes 'media'
-  attachments?: Array<{
-    id: string
-    filename: string
-    url: string
-    mimeType: string
-    size: number
-    category: 'image' | 'video' | 'audio' | 'document'
-    metadata?: {
-      duration?: string
-      durationSeconds?: number
-      bitrate?: number
-      format?: string
-      transcription?: string
-    }
-  }>
+  recipientEmail: string
+  attachments?: CanonicalFileAttachment[] | File[] // ✅ CORREGIR: Permitir ambos tipos
+  metadata?: {
+    userEmail?: string
+    [key: string]: any
+  }
 }
 
 // ✅ Indicador de escritura

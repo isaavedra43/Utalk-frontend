@@ -60,9 +60,68 @@ export function useSocket() {
 
   const [typingUsers, setTypingUsers] = useState<TypingIndicator[]>([])
 
-  // ✅ ANTI-SPAM: Debouncing para join conversation
+  // ✅ ANTI-SPAM: Debouncing para join conversation con verificación robusta
   const joinConversationDebounced = useRef<NodeJS.Timeout | null>(null)
   const lastJoinAttempt = useRef<{ conversationId: string; timestamp: number } | null>(null)
+
+  // ✅ Función join conversation con debouncing robusto
+  const joinConversation = useCallback((conversationId: string) => {
+    // ✅ ANTI-SPAM: Verificar si ya está en la conversación
+    if (socketState.currentRoom === conversationId) {
+      console.log('[SOCKET] Already in conversation room:', conversationId)
+      return
+    }
+
+    // ✅ ANTI-SPAM: Verificar tiempo desde último intento
+    const now = Date.now()
+    const lastAttempt = lastJoinAttempt.current
+    
+    if (lastAttempt && 
+        lastAttempt.conversationId === conversationId && 
+        (now - lastAttempt.timestamp) < 1000) { // 1 segundo mínimo
+      console.log('[SOCKET] Join attempt too soon, debouncing:', conversationId)
+      return
+    }
+
+    // ✅ ANTI-SPAM: Limpiar timeout anterior
+    if (joinConversationDebounced.current) {
+      clearTimeout(joinConversationDebounced.current)
+      console.log('[SOCKET] Cleared previous join timeout')
+    }
+
+    // ✅ ANTI-SPAM: Debounce de 500ms
+    joinConversationDebounced.current = setTimeout(() => {
+      if (socketRef.current && socketRef.current.connected) {
+        console.log('[SOCKET] Joining conversation room (debounced):', conversationId)
+        socketRef.current.emit('join-conversation', { conversationId })
+        
+        setSocketState(prev => ({
+          ...prev,
+          currentRoom: conversationId
+        }))
+        
+        lastJoinAttempt.current = { conversationId, timestamp: Date.now() }
+        activeRoomsRef.current.add(conversationId)
+      } else {
+        console.warn('[SOCKET] Cannot join room - socket not connected')
+      }
+    }, 500)
+  }, [socketState.currentRoom])
+
+  // ✅ Función leave conversation con cleanup
+  const leaveConversation = useCallback((conversationId: string) => {
+    if (socketRef.current && socketRef.current.connected) {
+      console.log('[SOCKET] Leaving conversation room:', conversationId)
+      socketRef.current.emit('leave-conversation', { conversationId })
+      
+      setSocketState(prev => ({
+        ...prev,
+        currentRoom: prev.currentRoom === conversationId ? null : prev.currentRoom
+      }))
+      
+      activeRoomsRef.current.delete(conversationId)
+    }
+  }, [])
 
   // ✅ Procesar queue de eventos cuando cache esté listo
   const processEventQueue = useCallback(() => {
@@ -302,7 +361,7 @@ export function useSocket() {
     }
   }, [])
 
-  // ✅ Conectar WebSocket con configuración corregida
+  // ✅ Conectar WebSocket con configuración optimizada CORREGIDA
   const connect = useCallback(() => {
     if (!user?.email) {
       console.log('[SOCKET] No user email, skipping connection')
@@ -323,6 +382,7 @@ export function useSocket() {
       socketRef.current = null
     }
 
+    // ✅ CORREGIR: Configuración optimizada para evitar rate limiting
     const wsUrl = import.meta.env.VITE_WS_URL || 'http://localhost:3000'
     
     console.log('[SOCKET] Connecting to WebSocket...', {
@@ -331,30 +391,30 @@ export function useSocket() {
       hasToken: !!token
     })
 
-    // ✅ CONFIGURACIÓN CORREGIDA: polling primero para estabilidad
+    // ✅ CONFIGURACIÓN OPTIMIZADA: polling primero, debouncing, timeouts aumentados
     socketRef.current = io(wsUrl, {
       auth: {
         token,
         email: user.email
       },
-      transports: ['polling', 'websocket'], // ✅ CORREGIDO: polling primero
+      transports: ['polling', 'websocket'], // ✅ CORREGIDO: polling primero para estabilidad
       autoConnect: true,
       forceNew: false, // ✅ CORREGIDO: Evitar múltiples conexiones
-      timeout: 20000,
+      timeout: 20000, // ✅ AUMENTADO: 20 segundos
       reconnection: true,
       reconnectionAttempts: 10, // ✅ AUMENTADO: Más intentos
-      reconnectionDelay: 1000, // ✅ AUMENTADO: Evitar spam
-      reconnectionDelayMax: 5000, // ✅ AUMENTADO: Máximo más alto
-      // ✅ ANTI-SPAM: Configuración para evitar rate limiting
+      reconnectionDelay: 1000, // ✅ AUMENTADO: 1 segundo para evitar spam
+      reconnectionDelayMax: 5000, // ✅ AUMENTADO: Máximo 5 segundos
+      // ✅ ANTI-SPAM: Configuración adicional para evitar rate limiting
       upgrade: true,
       rememberUpgrade: true
     })
 
     const socket = socketRef.current
 
-    // ✅ Eventos de conexión con cleanup proper
-    socket.on(SOCKET_EVENTS.CONNECT, () => {
-      console.log('[SOCKET] Connected successfully', { socketId: socket.id })
+    // ✅ Eventos de conexión con logging mejorado
+    socket.on('connect', () => {
+      console.log('[SOCKET] ✅ Connected successfully to WebSocket')
       setSocketState(prev => ({
         ...prev,
         isConnected: true,
@@ -362,59 +422,42 @@ export function useSocket() {
         lastError: null,
         reconnectAttempts: 0
       }))
-      
-      logger.success('WebSocket connected', {
-        socketId: socket.id,
-        userEmail: user.email
-      }, 'socket_connected')
-
-      // ✅ Procesar queue y re-join rooms
-      processEventQueue()
-      rejoinActiveRooms()
     })
 
-    socket.on(SOCKET_EVENTS.DISCONNECT, (reason) => {
-      console.log('[SOCKET] Disconnected:', reason)
+    socket.on('disconnect', (reason) => {
+      console.log('[SOCKET] ❌ Disconnected from WebSocket:', reason)
       setSocketState(prev => ({
         ...prev,
         isConnected: false,
-        currentRoom: null
+        currentRoom: null,
+        lastError: `Disconnected: ${reason}`
       }))
       
-      logger.warn('WebSocket disconnected', { 
-        reason,
-        userEmail: user.email 
-      }, 'socket_disconnected')
+      // Limpiar active rooms
+      activeRoomsRef.current.clear()
     })
 
-    socket.on(SOCKET_EVENTS.CONNECT_ERROR, (error) => {
-      console.error('[SOCKET] Connection error:', error)
+    socket.on('connect_error', (error) => {
+      console.error('[SOCKET] ❌ Connection error:', error.message)
       setSocketState(prev => ({
         ...prev,
         isConnected: false,
-        lastError: error.message
+        lastError: `Connection error: ${error.message}`
       }))
-      
-      logger.error('WebSocket connection error', { 
-        error: error.message,
-        userEmail: user.email 
-      }, 'socket_connection_error')
     })
 
-    socket.on(SOCKET_EVENTS.RECONNECT, (attemptNumber) => {
-      console.log('[SOCKET] Reconnected after', attemptNumber, 'attempts')
+    socket.on('reconnect', (attemptNumber) => {
+      console.log('[SOCKET] ✅ Reconnected after', attemptNumber, 'attempts')
       setSocketState(prev => ({
         ...prev,
+        isConnected: true,
         isReconnecting: false,
         reconnectAttempts: attemptNumber
       }))
-
-      // ✅ CORREGIDO: Re-join automático después de reconectar
-      rejoinActiveRooms()
     })
 
-    socket.on(SOCKET_EVENTS.RECONNECT_ATTEMPT, (attemptNumber) => {
-      console.log('[SOCKET] Reconnection attempt', attemptNumber)
+    socket.on('reconnect_attempt', (attemptNumber) => {
+      console.log('[SOCKET] 🔄 Reconnection attempt:', attemptNumber)
       setSocketState(prev => ({
         ...prev,
         isReconnecting: true,
@@ -487,13 +530,11 @@ export function useSocket() {
     ))
 
     // ✅ EVENTO: Conversación asignada
-    socket.on(CONVERSATION_EVENTS.ASSIGNED, (data) => {
+    socket.on('conversation-assigned', (data) => {
       console.log('[SOCKET] Conversation assigned:', data)
-      // Invalidar queries relacionadas con conversaciones
-      queryClient.invalidateQueries({ queryKey: ['conversations'] })
     })
-
-  }, [user?.email, queryClient, cleanupListeners, handleNewMessageEvent, handleMessageReadEvent, processEventQueue, rejoinActiveRooms])
+    
+  }, [user?.email, handleNewMessageEvent, handleMessageReadEvent, cleanupListeners])
 
   // ✅ Desconectar WebSocket con cleanup completo
   const disconnect = useCallback(() => {
@@ -522,87 +563,6 @@ export function useSocket() {
     eventQueueRef.current = []
     
   }, [cleanupListeners])
-
-  // ✅ Unirse a room de conversación con tracking y ANTI-SPAM
-  const joinConversation = useCallback((conversationId: string) => {
-    const socket = socketRef.current
-    if (!socket || !socket.connected) {
-      console.log('[SOCKET] Cannot join room, socket not connected')
-      return
-    }
-
-    // ✅ ANTI-SPAM: Verificar si ya está en la conversación
-    if (socketState.currentRoom === conversationId) {
-      console.log('[SOCKET] Already in conversation room:', conversationId)
-      return
-    }
-
-    // ✅ ANTI-SPAM: Verificar si ya está en el set de rooms activos
-    if (activeRoomsRef.current.has(conversationId)) {
-      console.log('[SOCKET] Already in active rooms:', conversationId)
-      return
-    }
-
-    // ✅ ANTI-SPAM: Debouncing - evitar múltiples llamadas rápidas
-    const now = Date.now()
-    if (lastJoinAttempt.current && 
-        lastJoinAttempt.current.conversationId === conversationId &&
-        now - lastJoinAttempt.current.timestamp < 1000) { // 1 segundo de debounce
-      console.log('[SOCKET] Join attempt too soon, debouncing:', conversationId)
-      return
-    }
-
-    // ✅ ANTI-SPAM: Limpiar timeout anterior
-    if (joinConversationDebounced.current) {
-      clearTimeout(joinConversationDebounced.current)
-    }
-
-    // ✅ ANTI-SPAM: Debounce de 500ms para evitar spam
-    joinConversationDebounced.current = setTimeout(() => {
-      console.log('[SOCKET] Joining conversation room (debounced):', conversationId)
-      
-      // Salir del room anterior si existe
-      if (socketState.currentRoom && socketState.currentRoom !== conversationId) {
-        socket.emit(CONVERSATION_EVENTS.LEAVE, socketState.currentRoom)
-        activeRoomsRef.current.delete(socketState.currentRoom)
-        console.log('[SOCKET] Left previous room:', socketState.currentRoom)
-      }
-
-      // Unirse al nuevo room
-      socket.emit(CONVERSATION_EVENTS.JOIN, conversationId)
-      activeRoomsRef.current.add(conversationId)
-      setSocketState(prev => ({ ...prev, currentRoom: conversationId }))
-      
-      // ✅ ANTI-SPAM: Registrar intento
-      lastJoinAttempt.current = { conversationId, timestamp: Date.now() }
-      
-      logger.info('Joined conversation room', {
-        conversationId,
-        userEmail: user?.email
-      }, 'socket_join_room')
-    }, 500) // 500ms de debounce
-
-  }, [socketState.currentRoom, user?.email])
-
-  // ✅ Salir de room de conversación
-  const leaveConversation = useCallback((conversationId: string) => {
-    const socket = socketRef.current
-    if (!socket || !socket.connected) return
-
-    console.log('[SOCKET] Leaving conversation room:', conversationId)
-    socket.emit(CONVERSATION_EVENTS.LEAVE, conversationId)
-    
-    activeRoomsRef.current.delete(conversationId)
-    setSocketState(prev => ({ 
-      ...prev, 
-      currentRoom: prev.currentRoom === conversationId ? null : prev.currentRoom 
-    }))
-    
-    logger.info('Left conversation room', {
-      conversationId,
-      userEmail: user?.email
-    }, 'socket_leave_room')
-  }, [user?.email])
 
   // ✅ Enviar evento typing
   const sendTyping = useCallback((conversationId: string) => {

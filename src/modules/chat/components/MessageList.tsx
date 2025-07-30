@@ -7,7 +7,7 @@ import { useTypingIndicators } from '../hooks/useSocket'
 import { MessageBubble } from './MessageBubble'
 import { useAuth } from '@/contexts/AuthContext'
 import type { CanonicalMessage } from '@/types/canonical'
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect, useCallback, useMemo } from 'react'
 
 interface MessageListProps {
   conversationId: string
@@ -27,10 +27,11 @@ export function MessageList({ conversationId }: MessageListProps) {
     scrollToBottom()
   }, [messages, scrollToBottom])
 
-  // ✅ CORREGIDO: Validación defensiva para evitar TypeError
+  // ✅ CORREGIDO: Validación defensiva robusta para evitar TypeError
   const currentUser = user || {}
   const userEmail = (currentUser as any)?.email || 'unknown@email.com'
   const userName = (currentUser as any)?.name || 'Usuario'
+  const userRole = (currentUser as any)?.role || 'user'
 
   console.log('[MESSAGE-LIST] Rendering with:', {
     conversationId,
@@ -40,8 +41,26 @@ export function MessageList({ conversationId }: MessageListProps) {
     error: error,
     hasValidMessages: messages && messages.length > 0,
     userEmail,
-    userName
+    userName,
+    userRole,
+    userObject: {
+      hasUser: !!user,
+      userKeys: user ? Object.keys(user) : [],
+      userType: typeof user
+    }
   })
+
+  // ✅ CORREGIDO: Validación antes de renderizar
+  if (!user || !user.email) {
+    console.warn('[MESSAGE-LIST] User not properly loaded:', { user })
+    return (
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="text-center text-sm text-muted-foreground py-4">
+          Cargando usuario...
+        </div>
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (
@@ -75,14 +94,25 @@ export function MessageList({ conversationId }: MessageListProps) {
     )
   }
 
+  // ✅ CORREGIDO: Ordenar mensajes por timestamp para mostrar orden correcto
+  const sortedMessages = useMemo(() => {
+    return [...messages].sort((a, b) => {
+      const timestampA = new Date(a.timestamp || 0).getTime()
+      const timestampB = new Date(b.timestamp || 0).getTime()
+      return timestampA - timestampB
+    })
+  }, [messages])
+
   let lastSenderId: string | null = null
   let lastMessageTime: Date | null = null
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-2">
-      {messages.map((message, index) => {
+      {sortedMessages.map((message, index) => {
         // ✅ CORREGIDO: Validación defensiva para determinar si es mensaje propio
-        const messageSenderEmail = message.sender?.email || (message as any).senderIdentifier || 'unknown'
+        const messageSenderEmail = message.sender?.email || 
+                                  (message as any).senderIdentifier || 
+                                  'unknown'
         const isOwnMessage = messageSenderEmail === userEmail
         
         // ✅ CORREGIDO: Validación defensiva para timestamp
@@ -95,6 +125,14 @@ export function MessageList({ conversationId }: MessageListProps) {
         
         lastSenderId = messageSenderEmail
         lastMessageTime = currentMessageTime
+
+        console.log('[MESSAGE-LIST] Rendering message:', {
+          messageId: message.id,
+          messageSenderEmail,
+          userEmail,
+          isOwnMessage,
+          timestamp: message.timestamp
+        })
 
         return (
           <MessageBubble

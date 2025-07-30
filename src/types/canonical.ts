@@ -27,6 +27,9 @@ export interface CanonicalMessage {
   isDelivered: boolean         // Estado de entrega
   isImportant: boolean         // Marcado como importante
   
+  // ✅ MEDIA URL (OPCIONAL PERO REQUERIDO PARA COMPATIBILIDAD)
+  mediaUrl?: string | null     // URL del archivo multimedia
+  
   // ✅ ADJUNTOS (OPCIONAL PERO ESTRUCTURADO)
   attachments?: CanonicalFileAttachment[]
   
