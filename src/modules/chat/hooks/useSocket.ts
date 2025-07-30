@@ -60,6 +60,10 @@ export function useSocket() {
 
   const [typingUsers, setTypingUsers] = useState<TypingIndicator[]>([])
 
+  // ✅ ANTI-SPAM: Debouncing para join conversation
+  const joinConversationDebounced = useRef<NodeJS.Timeout | null>(null)
+  const lastJoinAttempt = useRef<{ conversationId: string; timestamp: number } | null>(null)
+
   // ✅ Procesar queue de eventos cuando cache esté listo
   const processEventQueue = useCallback(() => {
     if (eventQueueRef.current.length === 0) return
@@ -124,7 +128,7 @@ export function useSocket() {
     console.log('[SOCKET] Processing new message immediately:', message.id)
 
     try {
-      // ✅ CORREGIDO: Normalizar estructura del mensaje
+      // ✅ CORREGIDO: Normalizar estructura del mensaje con manejo de campos faltantes
       const normalizedMessage: CanonicalMessage = {
         id: message.id,
         conversationId: message.conversationId,
@@ -151,6 +155,13 @@ export function useSocket() {
         isImportant: message.isImportant || false
       }
 
+      // ✅ CORREGIDO: Validar que el mensaje normalizado sea válido
+      if (!normalizedMessage.sender.email || normalizedMessage.sender.email === 'unknown') {
+        console.warn('[SOCKET] Message has invalid sender, using fallback')
+        normalizedMessage.sender.email = user?.email || 'system'
+        normalizedMessage.sender.name = user?.name || 'System'
+      }
+
       // Actualizar cache de React Query con el nuevo mensaje
       queryClient.setQueryData(
         messageKeys.conversations(message.conversationId),
@@ -172,7 +183,9 @@ export function useSocket() {
           console.log('[SOCKET] Message added to cache:', {
             messageId: normalizedMessage.id,
             totalMessages: updatedMessages.length,
-            conversationId: normalizedMessage.conversationId
+            conversationId: normalizedMessage.conversationId,
+            sender: normalizedMessage.sender.email,
+            content: normalizedMessage.content.substring(0, 50) + '...'
           })
           
           return updatedMessages
@@ -204,7 +217,7 @@ export function useSocket() {
         messageId: normalizedMessage.id,
         conversationId: normalizedMessage.conversationId,
         senderEmail: normalizedMessage.sender.email,
-        content: normalizedMessage.content
+        content: normalizedMessage.content.substring(0, 100)
       }, 'socket_new_message')
 
     } catch (error) {
@@ -214,7 +227,7 @@ export function useSocket() {
         error
       }, 'socket_new_message_error')
     }
-  }, [queryClient])
+  }, [queryClient, user?.email, user?.name])
 
   // ✅ Manejar mensaje leído
   const handleMessageReadEvent = useCallback((data: { messageId: string; conversationId: string; readBy: string; readAt: string }) => {
@@ -330,8 +343,8 @@ export function useSocket() {
       timeout: 20000,
       reconnection: true,
       reconnectionAttempts: 10, // ✅ AUMENTADO: Más intentos
-      reconnectionDelay: 500, // ✅ REDUCIDO: Reconexión más rápida
-      reconnectionDelayMax: 3000 // ✅ REDUCIDO: Máximo más bajo
+      reconnectionDelay: 1000, // ✅ AUMENTADO: Evitar spam
+      reconnectionDelayMax: 5000 // ✅ AUMENTADO: Máximo más alto
     })
 
     const socket = socketRef.current
@@ -507,7 +520,7 @@ export function useSocket() {
     
   }, [cleanupListeners])
 
-  // ✅ Unirse a room de conversación con tracking
+  // ✅ Unirse a room de conversación con tracking y ANTI-SPAM
   const joinConversation = useCallback((conversationId: string) => {
     const socket = socketRef.current
     if (!socket || !socket.connected) {
@@ -515,24 +528,57 @@ export function useSocket() {
       return
     }
 
-    console.log('[SOCKET] Joining conversation room:', conversationId)
-    
-    // Salir del room anterior si existe
-    if (socketState.currentRoom && socketState.currentRoom !== conversationId) {
-      socket.emit(CONVERSATION_EVENTS.LEAVE, socketState.currentRoom)
-      activeRoomsRef.current.delete(socketState.currentRoom)
-      console.log('[SOCKET] Left previous room:', socketState.currentRoom)
+    // ✅ ANTI-SPAM: Verificar si ya está en la conversación
+    if (socketState.currentRoom === conversationId) {
+      console.log('[SOCKET] Already in conversation room:', conversationId)
+      return
     }
 
-    // Unirse al nuevo room
-    socket.emit(CONVERSATION_EVENTS.JOIN, conversationId)
-    activeRoomsRef.current.add(conversationId)
-    setSocketState(prev => ({ ...prev, currentRoom: conversationId }))
-    
-    logger.info('Joined conversation room', {
-      conversationId,
-      userEmail: user?.email
-    }, 'socket_join_room')
+    // ✅ ANTI-SPAM: Verificar si ya está en el set de rooms activos
+    if (activeRoomsRef.current.has(conversationId)) {
+      console.log('[SOCKET] Already in active rooms:', conversationId)
+      return
+    }
+
+    // ✅ ANTI-SPAM: Debouncing - evitar múltiples llamadas rápidas
+    const now = Date.now()
+    if (lastJoinAttempt.current && 
+        lastJoinAttempt.current.conversationId === conversationId &&
+        now - lastJoinAttempt.current.timestamp < 1000) { // 1 segundo de debounce
+      console.log('[SOCKET] Join attempt too soon, debouncing:', conversationId)
+      return
+    }
+
+    // ✅ ANTI-SPAM: Limpiar timeout anterior
+    if (joinConversationDebounced.current) {
+      clearTimeout(joinConversationDebounced.current)
+    }
+
+    // ✅ ANTI-SPAM: Debounce de 500ms para evitar spam
+    joinConversationDebounced.current = setTimeout(() => {
+      console.log('[SOCKET] Joining conversation room (debounced):', conversationId)
+      
+      // Salir del room anterior si existe
+      if (socketState.currentRoom && socketState.currentRoom !== conversationId) {
+        socket.emit(CONVERSATION_EVENTS.LEAVE, socketState.currentRoom)
+        activeRoomsRef.current.delete(socketState.currentRoom)
+        console.log('[SOCKET] Left previous room:', socketState.currentRoom)
+      }
+
+      // Unirse al nuevo room
+      socket.emit(CONVERSATION_EVENTS.JOIN, conversationId)
+      activeRoomsRef.current.add(conversationId)
+      setSocketState(prev => ({ ...prev, currentRoom: conversationId }))
+      
+      // ✅ ANTI-SPAM: Registrar intento
+      lastJoinAttempt.current = { conversationId, timestamp: Date.now() }
+      
+      logger.info('Joined conversation room', {
+        conversationId,
+        userEmail: user?.email
+      }, 'socket_join_room')
+    }, 500) // 500ms de debounce
+
   }, [socketState.currentRoom, user?.email])
 
   // ✅ Salir de room de conversación

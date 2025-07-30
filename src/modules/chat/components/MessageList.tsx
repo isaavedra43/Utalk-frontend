@@ -25,14 +25,15 @@ export function MessageList({ conversationId }: MessageListProps) {
   // ✅ Obtener typing indicators
   const typingUsers = useTypingIndicators(conversationId)
 
-  // ✅ DEBUG: Logging de mensajes
+  // ✅ DEBUG: Logging de debug mejorado
   console.log('[MESSAGE-LIST] Rendering with:', {
     conversationId,
     messagesCount: messages?.length,
     messages: messages?.slice(-3), // Últimos 3 mensajes
     isLoading: messagesLoading,
     error: messagesError,
-    typingUsersCount: typingUsers.length
+    typingUsersCount: typingUsers.length,
+    hasValidMessages: messages && messages.length > 0
   })
 
   if (messagesLoading) {
@@ -46,6 +47,7 @@ export function MessageList({ conversationId }: MessageListProps) {
   }
 
   if (messagesError) {
+    console.error('[MESSAGE-LIST] Error loading messages:', messagesError)
     return (
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         <div className="text-center text-sm text-red-500 py-4">
@@ -56,6 +58,7 @@ export function MessageList({ conversationId }: MessageListProps) {
   }
 
   if (!messages || messages.length === 0) {
+    console.log('[MESSAGE-LIST] No messages found for conversation:', conversationId)
     return (
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         <div className="text-center text-sm text-muted-foreground py-4">

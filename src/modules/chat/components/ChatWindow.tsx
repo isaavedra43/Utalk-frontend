@@ -62,6 +62,21 @@ export function ChatWindow({
     })
   }, [messages, messagesLoading, isFetching, isConnected, conversationId])
 
+  // ✅ ANTI-SPAM: Optimizar join conversation
+  useEffect(() => {
+    if (conversationId && isConnected) {
+      console.log('[CHAT-WINDOW] Joining conversation:', conversationId)
+      joinConversation(conversationId)
+    }
+
+    return () => {
+      if (conversationId) {
+        console.log('[CHAT-WINDOW] Leaving conversation:', conversationId)
+        leaveConversation(conversationId)
+      }
+    }
+  }, [conversationId, isConnected, joinConversation, leaveConversation])
+
   // ✅ Estados para archivos y audio
   const [showFileUpload, setShowFileUpload] = useState(false)
   const [showAudioRecorder, setShowAudioRecorder] = useState(false)
