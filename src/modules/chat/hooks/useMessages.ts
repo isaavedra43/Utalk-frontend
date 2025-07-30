@@ -60,7 +60,7 @@ export function useMessages(conversationId: string, enablePagination = false) {
       userEmail: user?.email,
       userActive: !!user,
       isEnabled: !!conversationId && isAuthenticated,
-      hasToken: !!user?.email // ✅ Corregido: usar email en lugar de token
+      hasToken: !!user?.email
     }
   })
 
@@ -99,7 +99,7 @@ export function useMessages(conversationId: string, enablePagination = false) {
       enabled: !!conversationId && !!conversation && isAuthenticated, // ✅ CRÍTICO: Solo si conversación existe
       retry: 1,
       refetchInterval: 5000, // ✅ POLLING PARA TIEMPO REAL
-      onError: (error: any) => { // ✅ Corregido: tipado de error
+      onError: (error: any) => {
         logger.error('API', 'Error cargando mensajes', {
           ...context,
           error: error.message,

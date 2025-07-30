@@ -60,14 +60,14 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
     data: {
       selectedConversationId,
       isAuthenticated,
-      sessionValid, // ✅ AGREGAR sessionValid al contexto
+      sessionValid,
       socketConnected,
       conversationsCount: conversations.length,
-      messagesCount: messages.length,
+      messagesCount: safeMessages.length, // ✅ Usar safeMessages
       hasValidMessages,
       messagesEnabled
     }
-  }), [selectedConversationId, isAuthenticated, sessionValid, socketConnected, conversations.length, messages.length, hasValidMessages, messagesEnabled])
+  }), [selectedConversationId, isAuthenticated, sessionValid, socketConnected, conversations.length, safeMessages.length, hasValidMessages, messagesEnabled])
 
   // ✅ MANEJO DE RESIZE PARA RESPONSIVIDAD
   useEffect(() => {
@@ -297,7 +297,7 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
         <div className={`${isMobile ? 'w-full' : 'flex-1'} flex`}>
           <div className={`${showInfoPanel && !isMobile ? 'flex-1' : 'w-full'}`}>
             <ChatWindow
-              conversation={null}
+              conversation={conversations.find(c => c.id === selectedConversationId)}
               onSendMessage={(data: any) => handleSendMessage(data.content, data.type)}
             />
           </div>
@@ -306,30 +306,19 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
           {showInfoPanel && !isMobile && (
             <div className="w-80 border-l border-gray-200 bg-white">
               <InfoPanel
-                conversationId={selectedConversationId}
+                conversation={conversations.find(c => c.id === selectedConversationId)}
               />
             </div>
           )}
         </div>
       )}
 
-      {/* ✅ PLACEHOLDER CUANDO NO HAY CONVERSACIÓN SELECCIONADA */}
+      {/* ✅ MENSAJE PARA SELECCIONAR CONVERSACIÓN */}
       {!selectedConversationId && !isMobile && (
-        <div className="flex-1 flex items-center justify-center bg-gray-50">
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">
-              Selecciona una conversación
-            </h2>
-            <p className="text-gray-500">
-              Escoge una conversación de la lista para comenzar a chatear
-            </p>
-            {!socketConnected && connectionError && (
-              <div className="mt-4 p-3 bg-red-100 border border-red-200 rounded">
-                <p className="text-red-700 text-sm">
-                  ⚠️ Sin conexión en tiempo real: {connectionError}
-                </p>
-              </div>
-            )}
+            <h2 className="text-xl font-semibold mb-2">Selecciona una conversación</h2>
+            <p className="text-gray-600">Elige una conversación para comenzar a chatear.</p>
           </div>
         </div>
       )}
