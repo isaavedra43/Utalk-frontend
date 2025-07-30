@@ -52,7 +52,7 @@ export function LoginPage() {
         currentPath: window.location.pathname
       })
 
-      logger.success('Login successful, redirecting to dashboard', {
+      logger.success('AUTH', 'Login successful, redirecting to dashboard', {
         email,
         timestamp: new Date().toISOString()
       })

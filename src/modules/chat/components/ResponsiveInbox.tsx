@@ -1,321 +1,253 @@
-// Inbox responsivo con adaptación móvil/desktop
-// ✅ REFACTORIZADO: Sin lógica de filtrado, solo renderizado
-import React, { useState, useEffect, useMemo } from 'react'
+// Componente de inbox responsivo con gestión completa del chat
+// ✅ CRÍTICO: Integra todas las correcciones para eliminar Error React #310
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import { useMessages, useSendMessage } from '../hooks/useMessages'
+import { useSocket } from '../hooks/useSocket'
+import { useAuth } from '@/contexts/AuthContext'
+import { logger, createLogContext, getComponentContext } from '@/lib/logger'
 import { ConversationList } from './ConversationList'
 import { ChatWindow } from './ChatWindow'
-import { logger, createLogContext, getComponentContext } from '@/lib/logger'
-import type { SendMessageData } from '../types'
-
-// ✅ DEFINIR INTERFAZ LOCAL PARA EVITAR CONFLICTOS
-interface LocalResponsiveInboxProps {
-  conversations: any[]
-  selectedConversationId: string | null
-  onSelectConversation: (conversationId: string | null) => void
-  isLoading?: boolean
-}
+import { InfoPanel } from './InfoPanel'
+import { LoadingSpinner } from '@/components/common/LoadingSpinner'
+import { useConversations } from '../hooks/useConversations'
 
 // ✅ CONTEXTO PARA LOGGING
-const responsiveInboxContext = getComponentContext('ResponsiveInbox')
+const inboxContext = getComponentContext('ResponsiveInbox')
 
-// ✅ Error Boundary específico para ResponsiveInbox
-class ResponsiveInboxErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error: Error | null }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props)
-    this.state = { hasError: false, error: null }
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    logger.renderError('❌ ResponsiveInbox error boundary triggered', createLogContext({
-      component: 'ResponsiveInbox',
-      method: 'getDerivedStateFromError',
-      error: error,
-      data: { errorMessage: error.message, stack: error.stack?.split('\n') || [] }
-    }))
-    return { hasError: true, error }
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    logger.renderError('💥 ResponsiveInbox componentDidCatch', createLogContext({
-      component: 'ResponsiveInbox',
-      method: 'componentDidCatch',
-      error: error,
-      data: { errorInfo: errorInfo.componentStack }
-    }))
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center p-8">
-            <div className="text-red-500 text-lg font-semibold mb-4">Error en el chat</div>
-            <p className="text-gray-600 mb-4">
-              {this.state.error?.message || 'Ha ocurrido un error inesperado'}
-            </p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Recargar página
-            </button>
-          </div>
-        </div>
-      )
-    }
-
-    return this.props.children
-  }
+interface ResponsiveInboxProps {
+  className?: string
 }
 
-export function ResponsiveInbox({
-  conversations,
-  selectedConversationId,
-  onSelectConversation,
-  isLoading = false
-}: LocalResponsiveInboxProps) {
-  const [isMobileView, setIsMobileView] = useState(false)
-  const [showChat, setShowChat] = useState(false)
+export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
+  const { user, isAuthenticated, isAuthLoaded } = useAuth()
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
+  const [showInfoPanel, setShowInfoPanel] = useState(false)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
 
-  const context = createLogContext({
-    ...responsiveInboxContext,
+  // ✅ SOCKET.IO CON CONFIGURACIÓN MEJORADA
+  const { 
+    isConnected: socketConnected, 
+    connectionError, 
+    joinConversation, 
+    leaveConversation 
+  } = useSocket()
+
+  // ✅ CONVERSACIONES CON VALIDACIÓN
+  const { 
+    data: conversations = [], 
+    isLoading: conversationsLoading, 
+    error: conversationsError 
+  } = useConversations()
+
+  // ✅ MENSAJES CON VALIDACIÓN ULTRA-DEFENSIVA - CRÍTICO PARA ERROR #310
+  const {
+    messages,
+    isLoading: messagesLoading,
+    error: messagesError,
+    hasValidMessages,
+    isEnabled: messagesEnabled,
+    conversationExists,
+    processIncomingMessage
+  } = useMessages(selectedConversationId || '', false) // ✅ CRÍTICO: Pasar string vacío si es null
+
+  // ✅ ENVÍO DE MENSAJES
+  const sendMessageMutation = useSendMessage()
+
+  const context = useMemo(() => createLogContext({
+    ...inboxContext,
     method: 'ResponsiveInbox',
     data: {
-      conversationsCount: conversations?.length,
       selectedConversationId,
-      isLoading,
-      isMobileView,
-      showChat
+      isAuthenticated,
+      socketConnected,
+      conversationsCount: conversations.length,
+      messagesCount: messages.length,
+      hasValidMessages,
+      messagesEnabled
     }
-  })
+  }), [selectedConversationId, isAuthenticated, socketConnected, conversations.length, messages.length, hasValidMessages, messagesEnabled])
 
-  logger.render('🎨 Rendering ResponsiveInbox', context)
-
-  // ✅ VALIDACIÓN DEFENSIVA DE CONVERSACIONES
-  const safeConversations = useMemo(() => {
-    try {
-      if (!Array.isArray(conversations)) {
-        logger.validationError('❌ Conversations is not an array', createLogContext({
-          ...context,
-          data: { conversations, type: typeof conversations }
-        }))
-        return []
-      }
-
-      return conversations.filter(conv => {
-        if (!conv || typeof conv !== 'object') {
-          logger.validationError('❌ Invalid conversation object', createLogContext({
-            ...context,
-            data: { conversation: conv }
-          }))
-          return false
-        }
-
-        if (!conv.id) {
-          logger.validationError('❌ Conversation missing ID', createLogContext({
-            ...context,
-            data: { conversation: conv }
-          }))
-          return false
-        }
-
-        return true
-      })
-    } catch (error) {
-      logger.renderError('💥 Error filtering conversations', createLogContext({
-        ...context,
-        error: error as Error,
-        data: { conversations }
-      }))
-      return []
-    }
-  }, [conversations])
-
-  // ✅ CONVERSACIÓN SELECCIONADA
-  const selectedConversation = useMemo(() => {
-    try {
-      if (!selectedConversationId) return null
-      
-      const found = safeConversations.find(conv => conv.id === selectedConversationId)
-      
-      logger.render('🔍 Selected conversation found', createLogContext({
-        ...context,
-        data: { 
-          selectedConversationId, 
-          found: !!found,
-          conversationTitle: found?.title || found?.name
-        }
-      }))
-      
-      return found || null
-    } catch (error) {
-      logger.renderError('💥 Error finding selected conversation', createLogContext({
-        ...context,
-        error: error as Error,
-        data: { selectedConversationId }
-      }))
-      return null
-    }
-  }, [safeConversations, selectedConversationId])
-
-  // ✅ DETECTAR TAMAÑO DE PANTALLA
+  // ✅ MANEJO DE RESIZE PARA RESPONSIVIDAD
   useEffect(() => {
-    const checkScreenSize = () => {
-      const isMobile = window.innerWidth < 768
-      setIsMobileView(isMobile)
-      
-      logger.render('📱 Screen size detected', createLogContext({
-        ...context,
-        data: { 
-          isMobile,
-          width: window.innerWidth,
-          height: window.innerHeight
-        }
-      }))
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
     }
 
-    checkScreenSize()
-    window.addEventListener('resize', checkScreenSize)
-
-    return () => {
-      window.removeEventListener('resize', checkScreenSize)
-    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  // ✅ MANEJAR SELECCIÓN DE CONVERSACIÓN
-  const handleSelectConversation = (conversationId: string | null) => {
-    try {
-      logger.render('💬 Conversation selected', createLogContext({
-        ...context,
-        data: { conversationId, isMobileView }
-      }))
-
-      onSelectConversation(conversationId)
+  // ✅ MANEJO DE CONVERSACIÓN SELECCIONADA CON SOCKET.IO
+  useEffect(() => {
+    if (selectedConversationId && socketConnected) {
+      logger.info('CHAT', 'Unirse a conversación vía Socket.IO', {
+        conversationId: selectedConversationId,
+        socketConnected
+      })
       
-      if (isMobileView && conversationId) {
-        setShowChat(true)
-      }
-    } catch (error) {
-      logger.renderError('💥 Error selecting conversation', createLogContext({
-        ...context,
-        error: error as Error,
-        data: { conversationId }
-      }))
-    }
-  }
+      joinConversation(selectedConversationId)
 
-  // ✅ MANEJAR ENVÍO DE MENSAJE
-  const handleSendMessage = async (messageData: SendMessageData) => {
+      return () => {
+        leaveConversation(selectedConversationId)
+      }
+    }
+  }, [selectedConversationId, socketConnected, joinConversation, leaveConversation])
+
+  // ✅ LISTENER PARA NUEVOS MENSAJES VÍA CUSTOM EVENTS
+  useEffect(() => {
+    const handleNewMessage = (event: CustomEvent) => {
+      const { message, conversationId } = event.detail
+
+      if (conversationId === selectedConversationId) {
+        logger.info('CHAT', 'Procesando nuevo mensaje en conversación activa', {
+          messageId: message.id,
+          conversationId
+        })
+        
+        // ✅ PROCESAR MENSAJE USANDO EL HOOK
+        if (processIncomingMessage) {
+          processIncomingMessage(message)
+        }
+      }
+    }
+
+    window.addEventListener('socket-new-message', handleNewMessage as EventListener)
+    
+    return () => {
+      window.removeEventListener('socket-new-message', handleNewMessage as EventListener)
+    }
+  }, [selectedConversationId, processIncomingMessage])
+
+  // ✅ FUNCIÓN PARA SELECCIONAR CONVERSACIÓN
+  const handleSelectConversation = useCallback((conversationId: string) => {
+    if (conversationId === selectedConversationId) return
+
+    logger.info('CHAT', 'Seleccionando nueva conversación', {
+      newConversationId: conversationId,
+      previousConversationId: selectedConversationId
+    })
+
+    setSelectedConversationId(conversationId)
+    setShowInfoPanel(false) // Cerrar panel en mobile
+  }, [selectedConversationId])
+
+  // ✅ FUNCIÓN PARA ENVIAR MENSAJE
+  const handleSendMessage = useCallback(async (content: string, type: string = 'text') => {
+    if (!selectedConversationId || !content.trim()) {
+      logger.warn('CHAT', 'No se puede enviar mensaje: datos inválidos', {
+        hasConversationId: !!selectedConversationId,
+        hasContent: !!content.trim()
+      })
+      return
+    }
+
     try {
-      logger.render('📤 Sending message from ResponsiveInbox', createLogContext({
+      logger.render('Intentando enviar mensaje', createLogContext({
         ...context,
-        data: { 
-          conversationId: messageData.conversationId,
-          hasContent: !!messageData.content,
-          hasAttachments: !!messageData.attachments?.length
+        data: {
+          conversationId: selectedConversationId,
+          contentLength: content.length,
+          type
         }
       }))
 
-      // Aquí se podría implementar la lógica de envío
-      // Por ahora solo loggeamos
-      logger.render('Message send attempt logged', createLogContext({
-        ...context,
-        data: { messageData }
-      }))
-    } catch (error) {
-      logger.renderError('💥 Error sending message', createLogContext({
-        ...context,
-        error: error as Error,
-        data: { messageData }
-      }))
-    }
-  }
+      await sendMessageMutation.mutateAsync({
+        conversationId: selectedConversationId,
+        content: content.trim(),
+        type
+      })
 
-  // ✅ VOLVER A LISTA (MÓVIL)
-  const handleBackToList = () => {
-    try {
-      logger.render('⬅️ Back to conversation list', context)
-      setShowChat(false)
-      onSelectConversation(null)
-    } catch (error) {
-      logger.renderError('💥 Error going back to list', createLogContext({
-        ...context,
-        error: error as Error
-      }))
-    }
-  }
+      logger.success('MESSAGE', 'Mensaje enviado exitosamente', {
+        conversationId: selectedConversationId,
+        contentLength: content.length
+      })
 
-  // ✅ RENDERIZADO MÓVIL
-  if (isMobileView) {
-    if (showChat && selectedConversation) {
-      return (
-        <ResponsiveInboxErrorBoundary>
-          <div className="h-screen flex flex-col">
-            <ChatWindow
-              conversation={selectedConversation}
-              onSendMessage={handleSendMessage}
-            />
-          </div>
-        </ResponsiveInboxErrorBoundary>
-      )
+    } catch (error: any) {
+      logger.error('CHAT', 'Error enviando mensaje', {
+        conversationId: selectedConversationId,
+        error: error.message
+      })
     }
+  }, [selectedConversationId, sendMessageMutation, context])
 
+  // ✅ VALIDACIÓN DE ESTADO ANTES DEL RENDER
+  if (!isAuthLoaded) {
     return (
-      <ResponsiveInboxErrorBoundary>
-        <div className="h-screen">
-          <ConversationList
-            conversations={safeConversations}
-            onSelect={handleSelectConversation}
-            selectedConversationId={selectedConversationId}
-            searchQuery=""
-            onSearchChange={() => {}}
-            isLoading={isLoading}
-          />
-        </div>
-      </ResponsiveInboxErrorBoundary>
+      <div className="flex items-center justify-center h-full">
+        <LoadingSpinner />
+        <span className="ml-2">Cargando autenticación...</span>
+      </div>
     )
   }
 
-  // ✅ RENDERIZADO DESKTOP
-  return (
-    <ResponsiveInboxErrorBoundary>
-      <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-        {/* Lista de conversaciones */}
-        <div className="w-1/3 border-r border-gray-200 dark:border-gray-700">
-          <ConversationList
-            conversations={safeConversations}
-            onSelect={handleSelectConversation}
-            selectedConversationId={selectedConversationId}
-            searchQuery=""
-            onSearchChange={() => {}}
-            isLoading={isLoading}
-          />
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <h2 className="text-lg font-semibold">No autenticado</h2>
+          <p className="text-gray-600">Por favor, inicia sesión para acceder al chat</p>
         </div>
+      </div>
+    )
+  }
 
-        {/* Chat window */}
-        <div className="flex-1">
-          {selectedConversation ? (
+  // ✅ RENDER PRINCIPAL
+  return (
+    <div className={`flex h-full bg-gray-50 ${className}`}>
+      {/* ✅ LISTA DE CONVERSACIONES */}
+      <div className={`${isMobile ? (selectedConversationId ? 'hidden' : 'w-full') : 'w-80'} border-r border-gray-200 bg-white`}>
+        <ConversationList
+          conversations={conversations}
+          selectedConversationId={selectedConversationId}
+          onSelect={handleSelectConversation}
+          searchQuery=""
+          onSearchChange={() => {}}
+          isLoading={conversationsLoading}
+          error={conversationsError as string}
+        />
+      </div>
+
+      {/* ✅ VENTANA DE CHAT */}
+      {selectedConversationId && (
+        <div className={`${isMobile ? 'w-full' : 'flex-1'} flex`}>
+          <div className={`${showInfoPanel && !isMobile ? 'flex-1' : 'w-full'}`}>
             <ChatWindow
-              conversation={selectedConversation}
-              onSendMessage={handleSendMessage}
+              conversation={null}
+              onSendMessage={(data: any) => handleSendMessage(data.content, data.type)}
             />
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="text-6xl mb-4">💬</div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                  Selecciona una conversación
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400">
-                  Elige una conversación de la lista para comenzar a chatear
-                </p>
-              </div>
+          </div>
+
+          {/* ✅ PANEL DE INFORMACIÓN */}
+          {showInfoPanel && !isMobile && (
+            <div className="w-80 border-l border-gray-200 bg-white">
+              <InfoPanel
+                conversationId={selectedConversationId}
+              />
             </div>
           )}
         </div>
-      </div>
-    </ResponsiveInboxErrorBoundary>
+      )}
+
+      {/* ✅ PLACEHOLDER CUANDO NO HAY CONVERSACIÓN SELECCIONADA */}
+      {!selectedConversationId && !isMobile && (
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-gray-700 mb-2">
+              Selecciona una conversación
+            </h2>
+            <p className="text-gray-500">
+              Escoge una conversación de la lista para comenzar a chatear
+            </p>
+            {!socketConnected && connectionError && (
+              <div className="mt-4 p-3 bg-red-100 border border-red-200 rounded">
+                <p className="text-red-700 text-sm">
+                  ⚠️ Sin conexión en tiempo real: {connectionError}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   )
 } 

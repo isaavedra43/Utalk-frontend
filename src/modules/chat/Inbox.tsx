@@ -89,11 +89,6 @@ export function Inbox() {
   }))
 
   return (
-    <ResponsiveInbox
-      conversations={conversations}
-      selectedConversationId={selectedConversationId}
-      onSelectConversation={setSelectedConversationId}
-      isLoading={isLoading}
-    />
+    <ResponsiveInbox />
   )
 } 

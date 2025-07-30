@@ -1,396 +1,344 @@
-// Hook de WebSocket REFACTORIZADO - SOLUCIÓN COMPLETA
-// ✅ Elimina doble conexión, race conditions, memory leaks y mejora robustez
-import { useEffect, useRef, useCallback } from 'react'
+// Hook para gestión de Socket.IO con tiempo real
+// ✅ CRÍTICO: Configuración mejorada para eliminar errores de tiempo real
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { io, Socket } from 'socket.io-client'
 import { useAuth } from '@/contexts/AuthContext'
-import { useQueryClient } from '@tanstack/react-query'
-import { logger, createLogContext, getComponentContext } from '@/lib/logger'
-import { normalizeMessage } from './useMessages'
-import type { CanonicalMessage } from '@/types/canonical'
-import {
-  validateMessageEvent,
-  validateMessageReadEvent,
-  validateTypingEvent,
-  validateUserEvent,
-  validateSocketEvent
-} from '../validators/socketValidators'
+import { logger, createLogContext, socketContext } from '@/lib/logger'
 
-// ✅ CONTEXTO PARA LOGGING
-const socketContext = getComponentContext('useSocket')
+// ✅ CONFIGURACIÓN DINÁMICA DE URL
+const isProduction = typeof window !== 'undefined' &&
+  window.location.hostname !== 'localhost' &&
+  window.location.hostname !== '127.0.0.1'
 
-// ✅ CONSTANTES DE EVENTOS
-const MESSAGE_EVENTS = {
-  NEW_MESSAGE: 'new-message',
-  MESSAGE_READ: 'message-read',
-  MESSAGE_TYPING: 'typing'
-} as const
+const wsUrl = import.meta.env.VITE_WS_URL ||
+  (isProduction
+    ? 'https://utalk-backend-production.up.railway.app'
+    : 'http://localhost:3000')
 
-const TYPING_EVENTS = {
-  START: 'typing-start',
-  STOP: 'typing-stop'
-} as const
-
-const CONVERSATION_EVENTS = {
-  USER_JOINED: 'user-joined',
-  USER_LEFT: 'user-left'
-} as const
-
-// ✅ FUNCIÓN PARA PROCESAR MENSAJES ENTRANTES
-const processIncomingMessage = (queryClient: any, message: CanonicalMessage) => {
-  try {
-    // ✅ Actualizar cache de mensajes
-    queryClient.setQueryData(['messages'], (oldData: CanonicalMessage[] | undefined) => {
-      if (!oldData) return [message]
-      
-      // Evitar duplicados
-      const exists = oldData.some(msg => msg.id === message.id)
-      if (exists) return oldData
-      
-      return [...oldData, message].sort((a, b) => 
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      )
-    })
-
-    // ✅ Invalidar queries relacionadas
-    queryClient.invalidateQueries({ queryKey: ['conversations'] })
-    queryClient.invalidateQueries({ queryKey: ['messages'] })
-
-    logger.socket('New message processed via WebSocket', {
-      messageId: message.id,
-      conversationId: message.conversationId,
-      senderEmail: message.sender.email
-    })
-  } catch (error) {
-    logger.socketError('💥 Failed to process incoming message', {
-      error: error as Error,
-      messageId: message.id
-    })
-  }
+// ✅ ESTADO DE SOCKET
+interface SocketState {
+  isConnected: boolean
+  connectionError: string | null
+  currentRoom: string | null
+  lastActivity: number
 }
 
-// ✅ FUNCIÓN SEGURA PARA MANEJAR EVENTOS
-const safeEventHandler = <T>(
-  validator: (data: any) => boolean,
-  handler: (data: T) => void,
-  eventName: string
-) => {
-  return (data: any) => {
-    try {
-      if (!validator(data)) {
-        logger.validationError(`❌ Invalid ${eventName} event data`, {
-          eventName,
-          data
-        })
-        return
-      }
-      
-      handler(data as T)
-    } catch (error) {
-      logger.socketError(`💥 Error handling ${eventName} event`, {
-        error: error as Error,
-        eventName,
-        data
-      })
-    }
-  }
+// ✅ DEBOUNCING PARA ANTI-SPAM
+interface DebouncedJoin {
+  conversationId: string
+  timestamp: number
 }
 
 export function useSocket() {
   const { user, isAuthenticated } = useAuth()
-  const queryClient = useQueryClient()
   const socketRef = useRef<Socket | null>(null)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [socketState, setSocketState] = useState<SocketState>({
+    isConnected: false,
+    connectionError: null,
+    currentRoom: null,
+    lastActivity: Date.now()
+  })
+
+  // ✅ ANTI-SPAM: Referencias para debouncing
+  const joinConversationDebounced = useRef<NodeJS.Timeout | null>(null)
+  const lastJoinAttempt = useRef<DebouncedJoin | null>(null)
 
   const context = createLogContext({
     ...socketContext,
     method: 'useSocket',
     data: {
-      isAuthenticated,
       userEmail: user?.email,
-      isActive: user?.isActive
+      isAuthenticated,
+      wsUrl,
+      isProduction
     }
   })
 
-  logger.socket('🔌 Hook useSocket iniciado', context)
+  // ✅ INICIALIZAR SOCKET CON CONFIGURACIÓN MEJORADA
+  const socket = useMemo(() => {
+    if (!user?.email || !isAuthenticated) {
+      logger.warn('SOCKET', 'No se puede conectar sin usuario autenticado', context)
+      return null
+    }
 
-  // ✅ MANEJAR NUEVO MENSAJE
-  const handleNewMessageEvent = useCallback((data: { message: CanonicalMessage; conversationId: string; timestamp: number }) => {
-    const messageContext = createLogContext({
+    const token = localStorage.getItem('auth_token')
+    if (!token) {
+      logger.error('SOCKET', 'No hay token de autenticación disponible', context)
+      return null
+    }
+
+    logger.info('SOCKET', 'Inicializando conexión Socket.IO', {
       ...context,
-      method: 'handleNewMessageEvent',
       data: {
-        messageId: data.message.id,
-        conversationId: data.conversationId,
-        timestamp: data.timestamp
+        ...context.data,
+        hasToken: !!token,
+        tokenPreview: `${token.substring(0, 10)}...`
       }
     })
 
-    logger.socket('📨 New message received', messageContext)
-
-    try {
-      // ✅ VALIDAR ESTRUCTURA DEL MENSAJE
-      if (!data.message || !data.conversationId) {
-        logger.socketError('❌ Invalid message structure received from WebSocket', {
-          receivedData: data
-        })
-        return
-      }
-
-      // ✅ NORMALIZAR Y PROCESAR MENSAJE
-      const normalizedMessage = normalizeMessage(data.message)
-      processIncomingMessage(queryClient, normalizedMessage)
-      
-      logger.socket('New message processed successfully', createLogContext({
-        ...messageContext,
-        data: {
-          messageId: normalizedMessage.id,
-          conversationId: normalizedMessage.conversationId
-        }
-      }))
-    } catch (error) {
-      logger.socketError('💥 Failed to process new message from WebSocket', {
-        error: error as Error,
-        receivedData: data
-      })
-    }
-  }, [queryClient])
-
-  // ✅ MANEJAR MENSAJE LEÍDO
-  const handleMessageReadEvent = useCallback((data: { messageId: string; conversationId: string; readBy: string; readAt: string }) => {
-    const readContext = createLogContext({
-      ...context,
-      method: 'handleMessageReadEvent',
-      data: {
-        messageId: data.messageId,
-        conversationId: data.conversationId,
-        readBy: data.readBy
-      }
+    const newSocket = io(wsUrl, {
+      auth: { 
+        token,
+        email: user.email 
+      },
+      // ✅ CONFIGURACIÓN ANTI-SPAM CRÍTICA
+      transports: ['polling', 'websocket'], // ✅ polling primero como especifica backend
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000, // ✅ AUMENTADO: 1 segundo mínimo
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
+      forceNew: false,
+      autoConnect: true,
     })
 
-    logger.socket('📝 Message read event received', readContext)
+    return newSocket
+  }, [user?.email, isAuthenticated, wsUrl])
 
-    try {
-      // ✅ ACTUALIZAR CACHE
-      queryClient.setQueryData(['messages'], (oldData: any) => {
-        if (!oldData || !Array.isArray(oldData)) return oldData
-        
-        return oldData.map((message: any) => {
-          if (message.id === data.messageId) {
-            return { ...message, status: 'read', readAt: data.readAt, readBy: data.readBy }
-          }
-          return message
-        })
-      })
-
-      logger.socket('Message read status updated via WebSocket', createLogContext({
-        ...readContext,
-        data: {
-          messageId: data.messageId,
-          readBy: data.readBy
-        }
-      }))
-    } catch (error) {
-      logger.socketError('💥 Failed to process message read from WebSocket', {
-        error: error as Error,
-        receivedData: data
-      })
-    }
-  }, [queryClient])
-
-  // ✅ CONECTAR SOCKET
-  const connectSocket = useCallback(() => {
-    if (!isAuthenticated || !user?.email || !user?.isActive) {
-      logger.socket('⚠️ Cannot connect socket - user not authenticated', createLogContext({
-        ...context,
-        data: {
-          isAuthenticated,
-          hasEmail: !!user?.email,
-          isActive: user?.isActive
-        }
-      }))
-      return
-    }
-
-    if (socketRef.current?.connected) {
-      logger.socket('ℹ️ Socket already connected', context)
-      return
-    }
-
-    try {
-      // ✅ Configuración dinámica de URL
-      const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
-      const wsUrl = import.meta.env.VITE_WS_URL || 
-                    (isProduction 
-                      ? 'https://utalk-backend-production.up.railway.app' 
-                      : 'http://localhost:3000')
-
-      logger.socket('🔌 Connecting to WebSocket...', createLogContext({
-        ...context,
-        data: {
-          url: wsUrl,
-          userEmail: user.email,
-          isProduction
-        }
-      }))
-
-      // ✅ Crear conexión Socket.IO
-      const socket = io(wsUrl, {
-        auth: {
-          token: localStorage.getItem('auth_token'),
-          email: user.email
-        },
-        transports: ['polling', 'websocket'],
-        autoConnect: true,
-        forceNew: false,
-        timeout: 20000,
-        reconnection: true,
-        reconnectionAttempts: 10,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000
-      })
-
-      // ✅ EVENTOS DE CONEXIÓN
-      socket.on('connect', () => {
-        logger.socket('✅ Socket connected successfully', createLogContext({
-          ...context,
-          data: { socketId: socket.id, userEmail: user.email }
-        }))
-      })
-
-      socket.on('disconnect', (reason) => {
-        logger.socket('🔌 Socket disconnected', createLogContext({
-          ...context,
-          data: { reason, userEmail: user.email }
-        }))
-      })
-
-      socket.on('connect_error', (error) => {
-        logger.socketError('💥 Socket connection error', {
-          error: error as Error,
-          userEmail: user.email
-        })
-      })
-
-      // ✅ EVENTOS DE MENSAJES
-      socket.on(MESSAGE_EVENTS.NEW_MESSAGE, safeEventHandler(
-        validateMessageEvent,
-        handleNewMessageEvent,
-        'new-message'
-      ))
-
-      socket.on(MESSAGE_EVENTS.MESSAGE_READ, safeEventHandler(
-        validateMessageReadEvent,
-        handleMessageReadEvent,
-        'message-read'
-      ))
-
-      // ✅ EVENTOS DE TYPING
-      socket.on(TYPING_EVENTS.START, safeEventHandler(
-        validateTypingEvent,
-        (data: { userEmail: string; userName?: string; conversationId: string }) => {
-          logger.socket('⌨️ User started typing', {
-            userEmail: data.userEmail,
-            conversationId: data.conversationId
-          })
-        },
-        'typing-start'
-      ))
-
-      socket.on(TYPING_EVENTS.STOP, safeEventHandler(
-        validateTypingEvent,
-        (data: { userEmail: string; conversationId: string }) => {
-          logger.socket('⌨️ User stopped typing', {
-            userEmail: data.userEmail,
-            conversationId: data.conversationId
-          })
-        },
-        'typing-stop'
-      ))
-
-      // ✅ EVENTOS DE USUARIOS
-      socket.on(CONVERSATION_EVENTS.USER_JOINED, safeEventHandler(
-        validateUserEvent,
-        (data: unknown) => {
-          logger.socket('👤 User joined conversation', { data })
-        },
-        'user-joined'
-      ))
-
-      socket.on(CONVERSATION_EVENTS.USER_LEFT, safeEventHandler(
-        validateUserEvent,
-        (data: unknown) => {
-          logger.socket('👤 User left conversation', { data })
-        },
-        'user-left'
-      ))
-
-      socketRef.current = socket
-
-    } catch (error) {
-      logger.socketError('💥 Error creating socket connection', {
-        error: error as Error,
-        userEmail: user.email
-      })
-    }
-  }, [isAuthenticated, user, handleNewMessageEvent, handleMessageReadEvent])
-
-  // ✅ DESCONECTAR SOCKET
-  const disconnectSocket = useCallback(() => {
-    if (socketRef.current) {
-      logger.socket('🔌 Disconnecting socket', context)
-      socketRef.current.disconnect()
-      socketRef.current = null
-    }
-
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current)
-      reconnectTimeoutRef.current = null
-    }
-  }, [])
-
-  // ✅ EFFECT PRINCIPAL
+  // ✅ CONFIGURAR EVENTOS DE SOCKET
   useEffect(() => {
-    if (isAuthenticated && user?.email && user?.isActive) {
-      connectSocket()
-    } else {
-      disconnectSocket()
+    if (!socket) return
+
+    const handleConnect = () => {
+      logger.success('SOCKET', 'Conectado exitosamente', {
+        ...context,
+        data: {
+          ...context.data,
+          socketId: socket.id,
+          transport: socket.io.engine.transport.name
+        }
+      })
+      
+      setSocketState(prev => ({
+        ...prev,
+        isConnected: true,
+        connectionError: null,
+        lastActivity: Date.now()
+      }))
     }
 
+    const handleDisconnect = (reason: string) => {
+      logger.warn('SOCKET', 'Desconectado', {
+        ...context,
+        data: {
+          ...context.data,
+          reason,
+          wasConnected: socketState.isConnected
+        }
+      })
+      
+      setSocketState(prev => ({
+        ...prev,
+        isConnected: false,
+        currentRoom: null
+      }))
+    }
+
+    const handleConnectError = (error: any) => {
+      logger.error('SOCKET', 'Error de conexión', {
+        ...context,
+        data: {
+          ...context.data,
+          error: error.message,
+          type: error.type
+        }
+      })
+      
+      setSocketState(prev => ({
+        ...prev,
+        isConnected: false,
+        connectionError: error.message
+      }))
+    }
+
+    // ✅ HANDLER PARA NUEVOS MENSAJES - CRÍTICO
+    const handleNewMessage = (data: any) => {
+      try {
+        logger.socket('Nuevo mensaje recibido vía Socket.IO', {
+          messageId: data.message?.id,
+          conversationId: data.conversationId,
+          type: data.type,
+          hasMessage: !!data.message
+        })
+
+        // ✅ VALIDAR ESTRUCTURA ANTES DE PROCESAR
+        if (!data.message || !data.message.id || !data.conversationId) {
+          logger.warn('SOCKET', 'Mensaje con estructura incompleta', {
+            hasMessage: !!data.message,
+            hasId: !!data.message?.id,
+            hasConversationId: !!data.conversationId,
+            dataKeys: Object.keys(data)
+          })
+          return
+        }
+
+        // ✅ NORMALIZAR ESTRUCTURA PARA FRONTEND
+        const normalizedMessage = {
+          ...data.message,
+          // ✅ MAPEAR CAMPOS SEGÚN ESPECIFICACIÓN BACKEND
+          senderIdentifier: data.message.senderIdentifier || data.message.sender?.identifier,
+          recipientIdentifier: data.message.recipientIdentifier || data.message.recipient?.identifier,
+          isDelivered: data.message.isDelivered ?? true,
+          isImportant: data.message.isImportant || false
+        }
+
+        // ✅ EMITIR EVENTO PERSONALIZADO PARA COMPONENTES
+        const customEvent = new CustomEvent('socket-new-message', {
+          detail: {
+            message: normalizedMessage,
+            conversationId: data.conversationId,
+            timestamp: data.timestamp
+          }
+        })
+        
+        window.dispatchEvent(customEvent)
+
+        logger.socket('Mensaje procesado y emitido como evento personalizado', {
+          messageId: normalizedMessage.id,
+          conversationId: data.conversationId
+        })
+
+      } catch (error: any) {
+        logger.error('SOCKET', 'Error procesando mensaje entrante', {
+          error: error.message,
+          dataReceived: data
+        })
+      }
+    }
+
+    // ✅ REGISTRAR TODOS LOS EVENTOS
+    socket.on('connect', handleConnect)
+    socket.on('disconnect', handleDisconnect)
+    socket.on('connect_error', handleConnectError)
+    socket.on('new-message', handleNewMessage)
+    socket.on('message-notification', handleNewMessage)
+    socket.on('incoming-message-notification', handleNewMessage)
+
+    // ✅ CLEANUP AL DESMONTAR
     return () => {
-      disconnectSocket()
+      socket.off('connect', handleConnect)
+      socket.off('disconnect', handleDisconnect)
+      socket.off('connect_error', handleConnectError)
+      socket.off('new-message', handleNewMessage)
+      socket.off('message-notification', handleNewMessage)
+      socket.off('incoming-message-notification', handleNewMessage)
+      
+      if (socket.connected) {
+        socket.disconnect()
+      }
     }
-  }, [isAuthenticated, user?.email, user?.isActive, connectSocket, disconnectSocket])
+  }, [socket, user?.email, context, socketState.isConnected])
 
-  // ✅ FUNCIÓN PARA ENVIAR EVENTOS
-  const emitEvent = useCallback((event: string, data: any) => {
-    if (!socketRef.current?.connected) {
-      logger.socketError('❌ Cannot emit event - socket not connected', {
-        event,
-        data
-      })
-      return false
+  // ✅ FUNCIÓN PARA UNIRSE A CONVERSACIÓN CON DEBOUNCING CRÍTICO
+  const joinConversation = useCallback((conversationId: string) => {
+    if (!socket || !socket.connected) {
+      logger.warn('SOCKET', 'No se puede unir: socket no conectado', { conversationId })
+      return
     }
 
-    try {
-      socketRef.current.emit(event, data)
-      logger.socket(`📤 Event emitted: ${event}`, { event, data })
-      return true
-    } catch (error) {
-      logger.socketError(`💥 Error emitting event: ${event}`, {
-        error: error as Error,
-        event,
-        data
+    // ✅ ANTI-SPAM: Verificar si ya está en la conversación
+    if (socketState.currentRoom === conversationId) {
+      logger.info('SOCKET', 'Ya está en la conversación', { conversationId })
+      return
+    }
+
+    // ✅ ANTI-SPAM: Verificar último intento
+    const now = Date.now()
+    const lastAttempt = lastJoinAttempt.current
+    
+    if (lastAttempt && 
+        lastAttempt.conversationId === conversationId && 
+        (now - lastAttempt.timestamp) < 1000) { // 1 segundo mínimo
+      logger.warn('SOCKET', 'Join attempt too soon, debouncing', { 
+        conversationId,
+        timeSinceLastAttempt: now - lastAttempt.timestamp
       })
-      return false
+      return
+    }
+
+    // ✅ ANTI-SPAM: Limpiar timeout anterior
+    if (joinConversationDebounced.current) {
+      clearTimeout(joinConversationDebounced.current)
+    }
+
+    // ✅ ANTI-SPAM: Debounce de 500ms
+    joinConversationDebounced.current = setTimeout(() => {
+      if (socket && socket.connected) {
+        // ✅ SALIR DE CONVERSACIÓN ANTERIOR SI EXISTE
+        if (socketState.currentRoom && socketState.currentRoom !== conversationId) {
+          socket.emit('leave-conversation', { conversationId: socketState.currentRoom })
+          logger.info('SOCKET', 'Saliendo de conversación anterior', { 
+            previousRoom: socketState.currentRoom 
+          })
+        }
+
+        socket.emit('join-conversation', { conversationId })
+        
+        setSocketState(prev => ({
+          ...prev,
+          currentRoom: conversationId,
+          lastActivity: Date.now()
+        }))
+
+        lastJoinAttempt.current = { conversationId, timestamp: Date.now() }
+        
+        logger.info('SOCKET', 'Unido a conversación (debounced)', { 
+          conversationId,
+          socketId: socket.id
+        })
+      }
+    }, 500) // 500ms debounce según especificación backend
+
+  }, [socket, socketState.currentRoom])
+
+  // ✅ FUNCIÓN PARA SALIR DE CONVERSACIÓN
+  const leaveConversation = useCallback((conversationId: string) => {
+    if (!socket || !socket.connected) return
+
+    socket.emit('leave-conversation', { conversationId })
+    
+    setSocketState(prev => ({
+      ...prev,
+      currentRoom: prev.currentRoom === conversationId ? null : prev.currentRoom
+    }))
+
+    logger.info('SOCKET', 'Saliendo de conversación', { conversationId })
+  }, [socket])
+
+  // ✅ FUNCIÓN GENÉRICA PARA EMITIR EVENTOS
+  const emitEvent = useCallback((eventName: string, data: any) => {
+    if (!socket || !socket.connected) {
+      logger.warn('SOCKET', 'No se puede emitir evento: socket no conectado', { 
+        eventName, 
+        hasData: !!data 
+      })
+      return
+    }
+
+    socket.emit(eventName, data)
+    
+    logger.info('SOCKET', 'Evento emitido', { 
+      eventName, 
+      dataKeys: data ? Object.keys(data) : []
+    })
+  }, [socket])
+
+  // ✅ CLEANUP AL DESMONTAR EL HOOK
+  useEffect(() => {
+    return () => {
+      if (joinConversationDebounced.current) {
+        clearTimeout(joinConversationDebounced.current)
+      }
     }
   }, [])
 
   return {
     socket: socketRef.current,
-    isConnected: socketRef.current?.connected || false,
-    emitEvent,
-    connectSocket,
-    disconnectSocket
+    isConnected: socketState.isConnected,
+    connectionError: socketState.connectionError,
+    currentRoom: socketState.currentRoom,
+    joinConversation,
+    leaveConversation,
+    emitEvent
   }
 }
 

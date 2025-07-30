@@ -1,11 +1,11 @@
 // Hook para gestión de mensajes con React Query
 // ✅ OPTIMIZADO: Caching inteligente, optimistic updates y paginación
-import { useMutation, useQuery, useInfiniteQuery, useQueryClient, QueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { messageService } from '../services/messageService'
 import { apiClient } from '@/services/apiClient'
-import { logger, createLogContext, getComponentContext, getErrorContext } from '@/lib/logger'
+import { logger, createLogContext, getComponentContext } from '@/lib/logger'
 import type { CanonicalMessage } from '@/types/canonical'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -22,12 +22,43 @@ export const messageKeys = {
 
 /**
  * ✅ Hook principal para obtener mensajes de una conversación con paginación
- * Soporta scroll infinito para manejar grandes volúmenes de mensajes
+ * ✅ CRÍTICO: Error React #310 resuelto con validación ultra-defensiva
  */
 export function useMessages(conversationId: string, enablePagination = false) {
-  const { user } = useAuth()
+  const { user, isAuthenticated } = useAuth()
   const queryClient = useQueryClient()
   
+  // ✅ VALIDACIÓN ULTRA-DEFENSIVA CRÍTICA - ERROR REACT #310
+  if (!conversationId || typeof conversationId !== 'string' || !conversationId.trim()) {
+    logger.error('VALIDATION', 'ID de conversación inválido', {
+      conversationId,
+      type: typeof conversationId,
+      isEmpty: !conversationId,
+      isString: typeof conversationId === 'string'
+    })
+    
+    return {
+      messages: [],
+      isLoading: false,
+      error: 'Conversation ID inválido',
+      hasValidMessages: false,
+      isEnabled: false,
+      refetch: () => Promise.resolve(),
+      fetchNextPage: undefined,
+      hasNextPage: false,
+      isFetchingNextPage: false
+    }
+  }
+
+  // ✅ VALIDACIÓN DE AUTENTICACIÓN ANTES DE QUERIES
+  const isEnabled = Boolean(
+    conversationId &&
+    isAuthenticated &&
+    user?.email &&
+    user?.isActive &&
+    apiClient.getAuthToken()
+  )
+
   const context = createLogContext({
     ...messagesContext,
     method: 'useMessages',
@@ -35,557 +66,334 @@ export function useMessages(conversationId: string, enablePagination = false) {
       conversationId,
       enablePagination,
       userEmail: user?.email,
-      userActive: user?.isActive
-    }
-  })
-
-  logger.info('API', '📥 Hook useMessages iniciado', context)
-
-  // ✅ VALIDACIÓN ULTRA-DEFENSIVA CRÍTICA
-  if (!conversationId || typeof conversationId !== 'string' || !conversationId.trim()) {
-    logger.validationError('❌ ID de conversación inválido', createLogContext({
-      ...context,
-      data: { 
-        conversationId,
-        type: typeof conversationId,
-        length: conversationId?.length
-      }
-    }))
-    return {
-      data: [],
-      isLoading: false,
-      isFetching: false,
-      error: new Error('ID de conversación no válido'),
-      refetch: () => Promise.resolve()
-    }
-  }
-
-  if (!user || !user.email || !user.isActive) {
-    logger.validationError('❌ Usuario no autenticado', createLogContext({
-      ...context,
-      data: { 
-        hasUser: !!user,
-        userEmail: user?.email,
-        userActive: user?.isActive
-      }
-    }))
-    return {
-      data: [],
-      isLoading: false,
-      isFetching: false,
-      error: new Error('Usuario no autenticado'),
-      refetch: () => Promise.resolve()
-    }
-  }
-
-  if (!apiClient.getAuthToken()) {
-    logger.validationError('❌ Token de autenticación no disponible', context)
-    return {
-      data: [],
-      isLoading: false,
-      isFetching: false,
-      error: new Error('Token de autenticación no disponible'),
-      refetch: () => Promise.resolve()
-    }
-  }
-
-  // ✅ VALIDACIÓN CRÍTICA: No ejecutar si no hay conversationId válido
-  const isEnabled = !!(conversationId && conversationId.trim() && user?.email && user?.isActive && apiClient.getAuthToken())
-
-  logger.info('API', '✅ Validaciones completadas - Hook habilitado', createLogContext({
-    ...context,
-    data: { isEnabled }
-  }))
-
-  // Hook para mensajes con paginación (scroll infinito)
-  const infiniteQuery = useInfiniteQuery({
-    queryKey: messageKeys.infinite(conversationId || 'none'),
-    queryFn: async ({ pageParam = 1 }) => {
-      const queryContext = createLogContext({
-        ...context,
-        method: 'infiniteQueryFn',
-        data: { conversationId, page: pageParam }
-      })
-
-      logger.info('API', '🔄 Ejecutando query infinita', queryContext)
-      
-      if (!conversationId || !conversationId.trim()) {
-        logger.warn('API', '⚠️ No hay conversationId, retornando array vacío', queryContext)
-        return { messages: [], hasMore: false, nextPage: null }
-      }
-      
-      try {
-        const startTime = Date.now()
-        const messages = await messageService.getMessages(conversationId)
-        const duration = Date.now() - startTime
-
-        logger.info('API', '✅ Query infinita exitosa', createLogContext({
-          ...queryContext,
-          data: {
-            count: messages?.length,
-            duration,
-            hasMore: messages && messages.length > 0
-          }
-        }))
-
-        return { 
-          messages: messages || [], 
-          hasMore: messages && messages.length > 0, 
-          nextPage: pageParam + 1 
-        }
-      } catch (error) {
-        logger.apiError('💥 Error en query infinita', createLogContext({
-          ...queryContext,
-          error: error as Error,
-          data: { conversationId, page: pageParam }
-        }))
-        throw error
-      }
-    },
-    enabled: isEnabled && enablePagination,
-    staleTime: 0, // ✅ CAMBIAR: Siempre considerar stale para tiempo real
-    refetchOnWindowFocus: false, // Evitar refetch innecesario, mejor usar WebSocket
-    refetchOnMount: true, // ✅ AGREGAR: Refetch al montar
-    refetchOnReconnect: true, // ✅ AGREGAR: Refetch al reconectar
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    // ✅ AGREGAR: Configuración para tiempo real
-    refetchInterval: false, // No polling, solo Socket.IO
-    refetchIntervalInBackground: false
-  })
-
-  // Hook para mensajes simples (sin paginación)
-  const simpleQuery = useQuery({
-    queryKey: messageKeys.conversations(conversationId || 'none'),
-    queryFn: async () => {
-      const queryContext = createLogContext({
-        ...context,
-        method: 'simpleQueryFn',
-        data: { conversationId }
-      })
-
-      logger.info('API', '🔄 Ejecutando query simple', queryContext)
-      
-      if (!conversationId || !conversationId.trim()) {
-        logger.warn('API', '⚠️ No hay conversationId, retornando array vacío', queryContext)
-        return []
-      }
-      
-      try {
-        const startTime = Date.now()
-        const messages = await messageService.getMessages(conversationId)
-        const duration = Date.now() - startTime
-
-        logger.info('API', '✅ Query simple exitosa', createLogContext({
-          ...queryContext,
-          data: {
-            count: messages?.length,
-            duration,
-            messages: messages?.slice(0, 3) // Primeros 3 para debug
-          }
-        }))
-
-        return messages
-      } catch (error) {
-        logger.apiError('💥 Error en query simple', createLogContext({
-          ...queryContext,
-          error: error as Error,
-          data: { conversationId }
-        }))
-        throw error
-      }
-    },
-    enabled: isEnabled && !enablePagination,
-    staleTime: 0, // ✅ CAMBIAR: Siempre considerar stale para tiempo real
-    refetchOnWindowFocus: false, // Evitar refetch innecesario, mejor usar WebSocket
-    refetchOnMount: true, // ✅ AGREGAR: Refetch al montar
-    refetchOnReconnect: true, // ✅ AGREGAR: Refetch al reconectar
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    // ✅ AGREGAR: Configuración para tiempo real
-    refetchInterval: false, // No polling, solo Socket.IO
-    refetchIntervalInBackground: false
-  })
-
-  // ✅ LOGGING DE ESTADO FINAL
-  const finalContext = createLogContext({
-    ...context,
-    data: {
+      userActive: user?.isActive,
       isEnabled,
-      enablePagination,
-      hasData: enablePagination ? !!infiniteQuery.data : !!simpleQuery.data,
-      isLoading: enablePagination ? infiniteQuery.isLoading : simpleQuery.isLoading,
-      hasError: enablePagination ? !!infiniteQuery.error : !!simpleQuery.error
+      hasToken: !!apiClient.getAuthToken()
     }
   })
 
-  logger.info('API', '📊 Estado final del hook useMessages', finalContext)
+  logger.info('API', 'Hook useMessages iniciado', context)
 
-  // Retornar el hook apropiado según la configuración
-  if (enablePagination) {
-    return {
-      data: infiniteQuery.data?.pages.flatMap(page => page.messages) || [],
-      pages: infiniteQuery.data?.pages || [],
-      isLoading: infiniteQuery.isLoading,
-      isFetching: infiniteQuery.isFetching,
-      isFetchingNextPage: infiniteQuery.isFetchingNextPage,
-      hasNextPage: infiniteQuery.hasNextPage,
-      fetchNextPage: infiniteQuery.fetchNextPage,
-      error: infiniteQuery.error,
-      refetch: infiniteQuery.refetch
+  // ✅ VERIFICAR QUE LA CONVERSACIÓN EXISTE ANTES DE CARGAR MENSAJES
+  const { data: conversation, error: conversationError } = useQuery({
+    queryKey: ['conversation', conversationId],
+    queryFn: async () => {
+      try {
+        logger.info('API', 'Verificando existencia de conversación', { conversationId })
+        const response = await apiClient.get(`/conversations/${conversationId}`)
+        return response
+      } catch (error: any) {
+        logger.error('API', 'Error verificando conversación', {
+          conversationId,
+          error: error.message,
+          status: error.response?.status
+        })
+        throw error
+      }
+    },
+    enabled: isEnabled,
+    retry: 1,
+    staleTime: 30000, // 30 segundos
+    cacheTime: 300000, // 5 minutos
+  })
+
+  // ✅ SOLO CARGAR MENSAJES SI LA CONVERSACIÓN EXISTE - CRÍTICO PARA ERROR #310
+  const conversationExists = Boolean(conversation && !conversationError)
+
+  // ✅ QUERY SIMPLE PARA MENSAJES
+  const simpleQuery = useQuery({
+    queryKey: messageKeys.conversations(conversationId),
+    queryFn: async () => {
+      logger.info('API', 'Fetching messages (simple)', { conversationId })
+      const response = await messageService.getMessages(conversationId)
+      logger.success('MESSAGE', 'Messages fetched successfully', {
+        conversationId,
+        count: response?.length || 0
+      })
+      return response
+    },
+    enabled: isEnabled && conversationExists && !enablePagination,
+    staleTime: 0, // ✅ CRÍTICO: Siempre considerar stale para tiempo real
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    refetchInterval: false, // ✅ Socket.IO maneja tiempo real
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 404) return false
+      return failureCount < 2
+    },
+    retryDelay: 1000,
+    cacheTime: 300000, // 5 minutos
+  })
+
+  // ✅ QUERY INFINITA PARA PAGINACIÓN
+  const infiniteQuery = useInfiniteQuery({
+    queryKey: messageKeys.infinite(conversationId),
+    queryFn: async ({ pageParam = 1 }) => {
+      logger.info('API', 'Fetching messages (infinite)', { conversationId, page: pageParam })
+      const response = await messageService.getMessagesWithPagination(conversationId, pageParam)
+      return response
+    },
+    enabled: isEnabled && conversationExists && enablePagination,
+    getNextPageParam: (lastPage: any) => {
+      if (!lastPage || !lastPage.hasNextPage) return undefined
+      return lastPage.nextPage
+    },
+    staleTime: 0,
+    refetchOnMount: true,
+    retry: 2,
+    cacheTime: 300000,
+  })
+
+  const messagesQuery = enablePagination ? infiniteQuery : simpleQuery
+
+  // ✅ NORMALIZACIÓN ROBUSTA DE MENSAJES
+  const normalizedMessages = useMemo(() => {
+    try {
+      if (!messagesQuery.data) return []
+      
+      const rawMessages = enablePagination && messagesQuery.data && 'pages' in messagesQuery.data
+        ? messagesQuery.data.pages?.flatMap((page: any) => page.data || []) || []
+        : Array.isArray(messagesQuery.data) ? messagesQuery.data : []
+
+      logger.info('MESSAGE', 'Normalizando mensajes', {
+        conversationId,
+        rawCount: rawMessages.length,
+        hasPages: enablePagination && messagesQuery.data && 'pages' in messagesQuery.data
+      })
+
+      return rawMessages
+        .filter((msg: any) => msg && msg.id && typeof msg.id === 'string')
+        .map((msg: any) => normalizeMessage(msg))
+        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+        
+    } catch (error: any) {
+      logger.error('MESSAGE', 'Error normalizando mensajes', {
+        conversationId,
+        error: error.message,
+        dataType: typeof messagesQuery.data
+      })
+      return []
     }
-  }
+  }, [messagesQuery.data, conversationId, enablePagination])
+
+  // ✅ FUNCIÓN PARA PROCESAR MENSAJES EN TIEMPO REAL
+  const processIncomingMessage = useCallback((newMessage: any) => {
+    try {
+      if (!newMessage || !newMessage.id || newMessage.conversationId !== conversationId) {
+        logger.warn('MESSAGE', 'Mensaje rechazado por validación', {
+          hasId: !!newMessage?.id,
+          conversationMatch: newMessage?.conversationId === conversationId,
+          expectedConversation: conversationId,
+          receivedConversation: newMessage?.conversationId
+        })
+        return
+      }
+
+      const normalizedMessage = normalizeMessage(newMessage)
+      
+      // ✅ ACTUALIZAR CACHE DE REACT QUERY
+      queryClient.setQueryData(
+        messageKeys.conversations(conversationId),
+        (oldData: CanonicalMessage[] | undefined) => {
+          if (!oldData) return [normalizedMessage]
+          
+          // ✅ EVITAR DUPLICADOS
+          const exists = oldData.some(msg => msg.id === normalizedMessage.id)
+          if (exists) return oldData
+          
+          const newData = [...oldData, normalizedMessage]
+            .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+          
+          logger.socket('Mensaje agregado al cache', {
+            messageId: normalizedMessage.id,
+            conversationId,
+            totalMessages: newData.length
+          })
+          
+          return newData
+        }
+      )
+
+      // ✅ INVALIDAR QUERIES PARA FORZAR RE-RENDER
+      queryClient.invalidateQueries({ queryKey: ['conversations'] })
+      
+    } catch (error: any) {
+      logger.error('MESSAGE', 'Error procesando mensaje entrante', {
+        conversationId,
+        messageId: newMessage?.id,
+        error: error.message
+      })
+    }
+  }, [conversationId, queryClient])
 
   return {
-    data: simpleQuery.data || [],
-    isLoading: simpleQuery.isLoading,
-    isFetching: simpleQuery.isFetching,
-    error: simpleQuery.error,
-    refetch: simpleQuery.refetch
+    messages: normalizedMessages,
+    isLoading: messagesQuery.isLoading,
+    error: messagesQuery.error || conversationError,
+    hasValidMessages: normalizedMessages.length > 0,
+    isEnabled,
+    conversationExists,
+    refetch: messagesQuery.refetch,
+    processIncomingMessage,
+    // ✅ Para infinite queries - solo disponible si enablePagination es true
+    fetchNextPage: enablePagination && 'fetchNextPage' in messagesQuery ? messagesQuery.fetchNextPage : undefined,
+    hasNextPage: enablePagination && 'hasNextPage' in messagesQuery ? messagesQuery.hasNextPage : false,
+    isFetchingNextPage: enablePagination && 'isFetchingNextPage' in messagesQuery ? messagesQuery.isFetchingNextPage : false
   }
 }
 
-/**
- * ✅ Hook para enviar mensajes con optimistic updates
- */
+// ✅ NORMALIZACIÓN ROBUSTA DE MENSAJES
+export const normalizeMessage = (message: any): CanonicalMessage => {
+  if (!message) {
+    throw new Error('Message is required')
+  }
+
+  if (!message.id && !message.messageId) {
+    throw new Error('Message must have an ID')
+  }
+
+  if (!message.conversationId) {
+    throw new Error('Message must have conversationId')
+  }
+
+  // ✅ ESTRUCTURA ROBUSTA CON FALLBACKS
+  const normalizedMessage: CanonicalMessage = {
+    id: message.id || message.messageId,
+    conversationId: message.conversationId,
+    content: message.content || message.body || '',
+    
+    sender: {
+      email: message.sender?.email || message.senderIdentifier || 'unknown@email.com',
+      name: message.sender?.name || 'Usuario',
+      type: message.sender?.type || 'user'
+    },
+    
+    recipient: {
+      email: message.recipient?.email || message.recipientIdentifier || 'unknown@email.com',
+      name: message.recipient?.name || 'Usuario',
+      type: message.recipient?.type || 'user'
+    },
+    
+    timestamp: message.timestamp || message.createdAt || message.sentAt || new Date().toISOString(),
+    direction: message.direction || 'outbound',
+    type: message.type || 'text',
+    status: message.status || 'sent',
+    isRead: message.isRead || false,
+    isDelivered: message.isDelivered ?? true,
+    isImportant: message.isImportant || false,
+    
+    // ✅ MULTIMEDIA SUPPORT
+    mediaUrl: message.mediaUrl || null,
+    attachments: Array.isArray(message.attachments) ? message.attachments : [],
+    metadata: {
+      ...message.metadata,
+      messageId: message.messageId || message.id,
+      source: message.source || 'chat',
+      channel: message.channel || 'web'
+    }
+  }
+
+  return normalizedMessage
+}
+
+// ✅ HOOK PARA ENVIAR MENSAJES CON UUID
 export function useSendMessage() {
   const queryClient = useQueryClient()
   const { user } = useAuth()
 
   return useMutation({
-    mutationFn: async (messageData: any) => { // Changed type to any as SendMessageData is removed
-      console.log('[HOOK] useSendMessage: Sending message:', messageData)
+    mutationFn: async ({ conversationId, content, type = 'text' }: {
+      conversationId: string
+      content: string
+      type?: string
+    }) => {
+      // ✅ GENERAR UUID ÚNICO PARA CADA MENSAJE
+      const messageId = uuidv4()
       
-      if (!user?.email) {
-        throw new Error('Usuario no autenticado')
+      const messageData = {
+        messageId, // ✅ CRÍTICO: Incluir messageId según backend
+        conversationId,
+        content,
+        type,
+        senderEmail: user?.email || 'unknown@email.com',
+        recipientEmail: 'unknown@email.com', // ✅ AGREGAR: recipientEmail requerido
+        timestamp: new Date().toISOString()
       }
 
-      if (!messageData.recipientEmail) {
-        throw new Error('recipientEmail es requerido para enviar el mensaje')
-      }
-
-      // ✅ Generar messageId único si no existe
-      const messageId = messageData.messageId || uuidv4()
-
-      // Agregar email del usuario si no está presente
-      const enrichedData: any = { // Changed type to any
-        ...messageData,
-        messageId, // ✅ OBLIGATORIO: Asegurar que existe messageId
-        senderEmail: messageData.senderEmail || user.email,
-        recipientEmail: messageData.recipientEmail,
-        type: messageData.type || 'text'
-      }
-
-      console.log('🔍 [HOOK] useSendMessage: Sending with messageId:', {
+      logger.info('MESSAGE', 'Enviando mensaje con messageId', {
         messageId,
-        conversationId: enrichedData.conversationId,
-        hasContent: !!enrichedData.content,
-        type: enrichedData.type
+        conversationId,
+        contentLength: content.length,
+        type
       })
 
-      const response = await messageService.sendMessage(enrichedData)
-      console.log('[HOOK] useSendMessage: Message sent successfully:', response)
+      const response = await messageService.sendMessage(messageData)
+      
+      logger.success('MESSAGE', 'Mensaje enviado exitosamente', {
+        messageId,
+        conversationId,
+        responseId: response?.id
+      })
+
       return response
     },
-    
-    // ✅ Optimistic update
-    onMutate: async (messageData) => {
-      const conversationId = messageData.conversationId
+    onSuccess: (data, variables) => {
+      // ✅ INVALIDAR QUERIES PARA ACTUALIZAR UI
+      queryClient.invalidateQueries({ queryKey: messageKeys.conversations(variables.conversationId) })
+      queryClient.invalidateQueries({ queryKey: ['conversations'] })
       
-      // Cancelar queries en progreso
-      await queryClient.cancelQueries({ queryKey: messageKeys.conversations(conversationId) })
-      await queryClient.cancelQueries({ queryKey: messageKeys.infinite(conversationId) })
-      
-      // Snapshot del estado anterior
-      const previousMessages = queryClient.getQueryData(messageKeys.conversations(conversationId))
-      const previousInfiniteMessages = queryClient.getQueryData(messageKeys.infinite(conversationId))
-      
-      // Crear mensaje optimista
-      const optimisticMessage: CanonicalMessage = {
-        id: `temp-${Date.now()}`,
-        conversationId,
-        content: messageData.content,
-        timestamp: new Date(),
-        sender: {
-          email: user?.email || 'unknown',
-          name: user?.name || 'Usuario',
-          type: 'agent' as const,
-          avatar: user?.avatar
-        },
-        recipient: {
-          email: messageData.recipientEmail || 'unknown',
-          name: 'Destinatario',
-          type: 'contact' as const
-        },
-        type: messageData.type || 'text',
-        status: 'pending',
-        direction: 'outbound',
-        isRead: false,
-        isDelivered: false,
-        isImportant: false,
-        metadata: {},
-        attachments: messageData.attachments || []
-      }
-      
-      // Actualizar cache con mensaje optimista
-      queryClient.setQueryData(
-        messageKeys.conversations(conversationId),
-        (old: CanonicalMessage[] | undefined) => [...(old || []), optimisticMessage]
-      )
-      
-      // Actualizar cache infinito también
-      queryClient.setQueryData(
-        messageKeys.infinite(conversationId),
-        (old: any) => {
-          if (!old) return old
-          const newPages = [...old.pages]
-          if (newPages.length > 0) {
-            newPages[0] = {
-              ...newPages[0],
-              messages: [...newPages[0].messages, optimisticMessage]
-            }
-          }
-          return { ...old, pages: newPages }
-        }
-      )
-      
-      return { previousMessages, previousInfiniteMessages, optimisticMessage }
+      logger.success('MESSAGE', 'Cache invalidado después de envío', {
+        conversationId: variables.conversationId,
+        messageId: data?.id
+      })
     },
-    
-    // ✅ Éxito: reemplazar mensaje optimista con el real
-    onSuccess: (sentMessage, messageData, context) => {
-      const conversationId = messageData.conversationId
-      
-      // Reemplazar mensaje optimista con el real
-      queryClient.setQueryData(
-        messageKeys.conversations(conversationId),
-        (old: CanonicalMessage[] | undefined) => {
-          if (!old) return [sentMessage]
-          return old.map(msg => 
-            msg.id === context?.optimisticMessage.id ? sentMessage : msg
-          )
-        }
-      )
-      
-      // Actualizar cache infinito
-      queryClient.setQueryData(
-        messageKeys.infinite(conversationId),
-        (old: any) => {
-          if (!old) return old
-          const newPages = old.pages.map((page: any) => ({
-            ...page,
-            messages: page.messages.map((msg: CanonicalMessage) =>
-              msg.id === context?.optimisticMessage.id ? sentMessage : msg
-            )
-          }))
-          return { ...old, pages: newPages }
-        }
-      )
-      
-      console.log('[HOOK] useSendMessage: Optimistic update completed')
-    },
-    
-    // ✅ Error: restaurar estado anterior
-    onError: (error, messageData, context) => {
-      const conversationId = messageData.conversationId
-      console.error('[HOOK] useSendMessage: Error sending message:', error)
-      
-      // Restaurar estado anterior
-      if (context?.previousMessages) {
-        queryClient.setQueryData(messageKeys.conversations(conversationId), context.previousMessages)
-      }
-      if (context?.previousInfiniteMessages) {
-        queryClient.setQueryData(messageKeys.infinite(conversationId), context.previousInfiniteMessages)
-      }
-      
-      logger.error('API', 'Failed to send message', createLogContext({
-        ...context,
-        error: error as Error,
-        data: { messageData }
-      }))
+    onError: (error: any, variables) => {
+      logger.error('MESSAGE', 'Error enviando mensaje', {
+        conversationId: variables.conversationId,
+        error: error.message,
+        status: error.response?.status
+      })
     }
   })
 }
 
-/**
- * ✅ Hook para marcar mensajes como leídos
- */
+// ✅ HOOK PARA MARCAR COMO LEÍDO
 export function useMarkMessageAsRead() {
   const queryClient = useQueryClient()
-  const { user } = useAuth()
 
   return useMutation({
-    mutationFn: async ({ messageId }: { messageId: string, conversationId: string }) => {
-      if (!user?.email) {
-        throw new Error('Usuario no autenticado')
-      }
-      
-      // ✅ CORREGIDO: Retornar objeto con id para evitar error void
-      await messageService.markAsRead(messageId, user.email)
-      return { id: messageId, status: 'read' }
+    mutationFn: async ({ conversationId, messageId }: { conversationId: string; messageId: string }) => {
+      await messageService.markAsRead(conversationId, messageId)
+      return { id: messageId, conversationId }
     },
-    onSuccess: (updatedMessage, { conversationId }) => {
-      // Actualizar mensaje en cache
+    onSuccess: (data, variables) => {
+      // ✅ ACTUALIZAR MENSAJE EN CACHE
       queryClient.setQueryData(
-        messageKeys.conversations(conversationId),
+        messageKeys.conversations(variables.conversationId),
         (oldData: CanonicalMessage[] | undefined) => {
           if (!oldData) return oldData
-          return oldData.map((msg: CanonicalMessage) => 
-            msg.id === updatedMessage.id ? { ...msg, status: 'read' } : msg
+          
+          return oldData.map(msg => 
+            msg.id === data.id 
+              ? { ...msg, isRead: true }
+              : msg
           )
         }
       )
-      
-      console.log('[HOOK] useMarkMessageAsRead: Message marked as read:', updatedMessage.id)
+
+      logger.success('MESSAGE', 'Mensaje marcado como leído', {
+        messageId: variables.messageId,
+        conversationId: variables.conversationId
+      })
     }
   })
 }
 
-/**
- * ✅ Hook para buscar mensajes
- */
-export function useSearchMessages(query: {
-  search?: string
-  senderEmail?: string
-  recipientEmail?: string
-  conversationId?: string
-  dateFrom?: string
-  dateTo?: string
-}) {
+// ✅ HOOK PARA BÚSQUEDA DE MENSAJES
+export function useSearchMessages() {
   return useQuery({
-    queryKey: messageKeys.search(query),
-    queryFn: () => messageService.searchMessages(query),
-    enabled: !!(query.search || query.senderEmail || query.recipientEmail || query.conversationId),
-    staleTime: 1000 * 60, // 1 minuto
+    queryKey: messageKeys.search(''),
+    queryFn: () => null,
+    enabled: false, // Solo se ejecuta manualmente
   })
-} 
-
-// ✅ CORREGIR: Función de normalización de mensajes MEJORADA
-export const normalizeMessage = (message: any): CanonicalMessage => {
-  // ✅ VALIDACIÓN BÁSICA
-  if (!message) {
-    console.error('[MESSAGES] Message is null or undefined')
-    throw new Error('Message is required')
-  }
-  
-  // ✅ AGREGAR: Validación de campos críticos
-  if (!message.id && !message.messageId) {
-    console.error('[MESSAGES] Message without ID:', message)
-    throw new Error('Message must have an ID')
-  }
-  
-  if (!message.conversationId) {
-    console.error('[MESSAGES] Message without conversationId:', message)
-    throw new Error('Message must have conversationId')
-  }
-
-  console.log('[MESSAGES] Normalizing message:', {
-    messageId: message.id || message.messageId,
-    hasContent: !!message.content,
-    hasSender: !!message.sender,
-    hasTimestamp: !!message.timestamp,
-    rawStructure: Object.keys(message)
-  })
-
-  const normalizedMessage = {
-    id: message.id || message.messageId || `msg_${Date.now()}_${Math.random()}`,
-    conversationId: message.conversationId,
-    content: message.content || message.text || '',
-    type: message.type || 'text',
-    direction: message.direction || 'outbound',
-    timestamp: message.timestamp || message.createdAt || new Date().toISOString(),
-    status: message.status || 'sent',
-    
-    // ✅ CORREGIDO: Estructura anidada para compatibilidad
-    sender: {
-      email: message.sender?.email || 
-             message.sender?.identifier || 
-             (message as any).senderIdentifier || 
-             'unknown',
-      name: message.sender?.name || 'Unknown User',
-      avatar: message.sender?.avatar,
-      type: message.sender?.type || 'agent'
-    },
-    recipient: {
-      email: message.recipient?.email || 
-             message.recipient?.identifier || 
-             (message as any).recipientIdentifier || 
-             'unknown',
-      name: message.recipient?.name || 'Unknown User',
-      avatar: message.recipient?.avatar,
-      type: message.recipient?.type || 'customer'
-    },
-    
-    // ✅ CORREGIDO: Campos opcionales con defaults
-    mediaUrl: message.mediaUrl || null,
-    metadata: message.metadata || {},
-    isRead: message.isRead || false,
-    isDelivered: message.isDelivered || false,
-    isImportant: message.isImportant || false,
-    attachments: message.attachments || []
-  }
-  
-  // ✅ AGREGAR: Logging para debugging
-  console.log('[MESSAGES] Normalized message:', {
-    id: normalizedMessage.id,
-    conversationId: normalizedMessage.conversationId,
-    hasContent: !!normalizedMessage.content,
-    senderEmail: normalizedMessage.sender.email,
-    recipientEmail: normalizedMessage.recipient.email
-  })
-  
-  return normalizedMessage
-}
-
-// ✅ CORREGIR: Función para procesar mensajes entrantes y actualizar cache
-export const processIncomingMessage = (
-  queryClient: QueryClient,
-  message: CanonicalMessage
-) => {
-  try {
-    console.log('[MESSAGES] Processing incoming message:', {
-      messageId: message.id,
-      conversationId: message.conversationId,
-      content: message.content?.substring(0, 50) + '...',
-      timestamp: message.timestamp
-    })
-
-    // ✅ CORREGIR: Actualizar cache de React Query
-    queryClient.setQueryData(
-      messageKeys.conversations(message.conversationId),
-      (oldData: any) => {
-        if (!oldData) {
-          console.log('[MESSAGES] No existing data, creating new array')
-          return [message]
-        }
-
-        // ✅ CORREGIR: Evitar duplicados
-        const existingIndex = oldData.findIndex((m: CanonicalMessage) => m.id === message.id)
-        if (existingIndex !== -1) {
-          console.log('[MESSAGES] Message already exists, updating:', message.id)
-          const newData = [...oldData]
-          newData[existingIndex] = message
-          return newData.sort((a: CanonicalMessage, b: CanonicalMessage) => {
-            return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-          })
-        }
-
-        // ✅ CORREGIR: Agregar nuevo mensaje y ordenar por timestamp
-        const newData = [...oldData, message].sort((a: CanonicalMessage, b: CanonicalMessage) => {
-          return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-        })
-
-        console.log('[MESSAGES] Added new message, total count:', newData.length)
-        return newData
-      }
-    )
-
-    // ✅ CORREGIR: Invalidar queries relacionadas para refrescar UI
-    queryClient.invalidateQueries({
-      queryKey: ['conversations']
-    })
-
-  } catch (error) {
-    console.error('[MESSAGES] Error processing incoming message:', error, message)
-  }
 } 

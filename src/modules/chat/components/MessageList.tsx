@@ -90,7 +90,7 @@ export function MessageList({ conversationId }: MessageListProps) {
     )
   }
 
-  const { data: messages = [], isLoading, error } = useMessages(conversationId, false) // Usar simple query por defecto
+  const { messages, isLoading, error } = useMessages(conversationId, false) // Usar simple query por defecto
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // ✅ VALIDACIÓN DEFENSIVA ROBUSTA PARA EVITAR TYPEOF
