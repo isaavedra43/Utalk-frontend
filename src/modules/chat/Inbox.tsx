@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { ResponsiveInbox } from './components/ResponsiveInbox'
 import { useConversations } from './hooks/useConversations'
-import { AuthWrapper } from '@/components/common/AuthWrapper'
+import { useAuth } from '@/contexts/AuthContext'
 import type { InboxProps } from './types'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 
@@ -12,19 +12,54 @@ export function Inbox({
   onSelectConversation
 }: InboxProps) {
   console.log('[COMPONENT] Inbox.tsx: Componente renderizado')
-  console.log('[PROP] Inbox.tsx: Props recibidas:')
-  console.log('[PROP] - initialConversationId:', initialConversationId, 'Type:', typeof initialConversationId)
-  console.log('[PROP] - onSendMessage:', typeof onSendMessage)
-  console.log('[PROP] - onSelectConversation:', typeof onSelectConversation)
+  console.log('[PROP] Inbox.tsx: Props recibidas:', {
+    initialConversationId,
+    onSendMessage: typeof onSendMessage,
+    onSelectConversation: typeof onSelectConversation
+  })
 
+  // ✅ VERIFICAR ESTADO DE AUTH
+  const { isAuthReady, isAuthenticated, user, error } = useAuth()
+  
+  console.log('[AUTH] Inbox.tsx: Estado de autenticación:', {
+    isAuthReady,
+    isAuthenticated,
+    hasUser: !!user,
+    error
+  })
+
+  // ✅ MOSTRAR ESTADO MIENTRAS CARGA AUTH
+  if (!isAuthReady) {
+    console.log('[RENDER] Inbox.tsx: Auth no lista, mostrando loading')
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <LoadingSpinner />
+        <span className="ml-2">Inicializando autenticación...</span>
+      </div>
+    )
+  }
+
+  // ✅ MOSTRAR MENSAJE SI NO ESTÁ AUTENTICADO
+  if (!isAuthenticated || !user) {
+    console.log('[RENDER] Inbox.tsx: Usuario no autenticado')
+    return (
+      <div className="flex h-full w-full items-center justify-center flex-col">
+        <div className="text-gray-500 mb-4">⚠️ No autenticado</div>
+        <div className="text-sm text-gray-400">
+          {error || 'Necesitas iniciar sesión para ver las conversaciones'}
+        </div>
+      </div>
+    )
+  }
+
+  // ✅ RENDERIZAR CONTENIDO AUTENTICADO
+  console.log('[RENDER] Inbox.tsx: Usuario autenticado, renderizando InboxContent')
   return (
-    <AuthWrapper fallback={<div className="flex h-full w-full items-center justify-center"><LoadingSpinner /></div>}>
-      <InboxContent 
-        initialConversationId={initialConversationId}
-        onSendMessage={onSendMessage}
-        onSelectConversation={onSelectConversation}
-      />
-    </AuthWrapper>
+    <InboxContent 
+      initialConversationId={initialConversationId}
+      onSendMessage={onSendMessage}
+      onSelectConversation={onSelectConversation}
+    />
   )
 }
 
@@ -37,7 +72,7 @@ function InboxContent({
     initialConversationId
   )
   
-  console.log('[STATE] Inbox.tsx: selectedConversationId inicial:', selectedConversationId)
+  console.log('[STATE] InboxContent: selectedConversationId inicial:', selectedConversationId)
 
   const { 
     data: conversations = [], 
@@ -45,73 +80,51 @@ function InboxContent({
     error: conversationsError,
   } = useConversations()
 
-  console.log('[HOOK-RESULT] Inbox.tsx: Resultado de useConversations:')
-  console.log('[HOOK-RESULT] - conversations:', conversations)
-  console.log('[HOOK-RESULT] - Tipo de conversations:', typeof conversations)
-  console.log('[HOOK-RESULT] - Es array:', Array.isArray(conversations))
-  console.log('[HOOK-RESULT] - Longitud:', conversations?.length)
-  console.log('[HOOK-RESULT] - isLoading:', conversationsLoading)
-  console.log('[HOOK-RESULT] - error:', conversationsError)
-  
-  if (conversations && Array.isArray(conversations)) {
-    console.log('[HOOK-RESULT] Inbox.tsx: Detalle de conversaciones recibidas:')
-    conversations.forEach((conv, index) => {
-      console.log(`[HOOK-RESULT] Conversación ${index + 1}:`, {
-        id: conv?.id,
-        hasContact: !!conv?.contact,
-        contactName: conv?.contact?.name,
-        hasLastMessage: !!conv?.lastMessage,
-        status: conv?.status
-      })
-    })
-  } else {
-    console.warn('[HOOK-RESULT] Inbox.tsx: conversations no es un array válido:', conversations)
-  }
+  console.log('[HOOK-RESULT] InboxContent: Resultado de useConversations:', {
+    conversations,
+    isArray: Array.isArray(conversations),
+    length: conversations?.length,
+    isLoading: conversationsLoading,
+    error: conversationsError
+  })
 
   useEffect(() => {
-    console.log('[EFFECT] Inbox.tsx: useEffect ejecutado por cambio en initialConversationId')
-    console.log('[EFFECT] - initialConversationId:', initialConversationId)
-    console.log('[EFFECT] - selectedConversationId actual:', selectedConversationId)
-    
+    console.log('[EFFECT] InboxContent: useEffect ejecutado por cambio en initialConversationId')
     if (initialConversationId && initialConversationId !== selectedConversationId) {
-      console.log('[EFFECT] Inbox.tsx: Actualizando selectedConversationId')
+      console.log('[EFFECT] InboxContent: Actualizando selectedConversationId')
       setSelectedConversationId(initialConversationId)
     }
   }, [initialConversationId])
   
   const handleSelectConversation = (conversationId: string) => {
-    console.log('[HANDLER] Inbox.tsx: handleSelectConversation llamado')
-    console.log('[HANDLER] - conversationId:', conversationId, 'Type:', typeof conversationId)
-    
+    console.log('[HANDLER] InboxContent: handleSelectConversation llamado:', conversationId)
     setSelectedConversationId(conversationId)
-    console.log('[HANDLER] - selectedConversationId actualizado a:', conversationId)
-    
-    if (onSelectConversation) {
-      console.log('[HANDLER] - Llamando callback onSelectConversation')
-      onSelectConversation(conversationId)
-    } else {
-      console.log('[HANDLER] - No hay callback onSelectConversation')
-    }
+    onSelectConversation?.(conversationId)
   }
 
   if (conversationsLoading) {
-    console.log('[RENDER] Inbox.tsx: Renderizando estado de carga')
-    return <div className="flex h-full w-full items-center justify-center"><LoadingSpinner /></div>
+    console.log('[RENDER] InboxContent: Renderizando estado de carga')
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <LoadingSpinner />
+        <span className="ml-2">Cargando conversaciones...</span>
+      </div>
+    )
   }
 
   if (conversationsError) {
-    console.log('[RENDER] Inbox.tsx: Renderizando estado de error')
-    console.log('[ERROR] - conversationsError:', conversationsError)
-    return <div className="flex h-full w-full items-center justify-center text-red-500">Error al cargar las conversaciones.</div>
+    console.log('[RENDER] InboxContent: Renderizando estado de error:', conversationsError)
+    return (
+      <div className="flex h-full w-full items-center justify-center text-red-500 flex-col">
+        <div>❌ Error al cargar las conversaciones</div>
+        <div className="text-sm mt-2 text-gray-600">
+          {conversationsError instanceof Error ? conversationsError.message : 'Error desconocido'}
+        </div>
+      </div>
+    )
   }
 
-  console.log('[RENDER] Inbox.tsx: Renderizando ResponsiveInbox con props:')
-  console.log('[RENDER] - conversations:', conversations)
-  console.log('[RENDER] - conversations length:', conversations?.length)
-  console.log('[RENDER] - selectedConversationId:', selectedConversationId)
-  console.log('[RENDER] - onSendMessage:', typeof onSendMessage)
-  console.log('[RENDER] - handleSelectConversation:', typeof handleSelectConversation)
-
+  console.log('[RENDER] InboxContent: Renderizando ResponsiveInbox')
   return (
     <div className="h-full bg-gray-50 dark:bg-gray-900">
       <ResponsiveInbox

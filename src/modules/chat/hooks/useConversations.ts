@@ -22,6 +22,18 @@ export function useConversations() {
   // ✅ VALIDAR AUTENTICACIÓN ANTES DE HACER QUERIES
   const { isAuthenticated, isAuthReady, user } = useAuth()
   
+  // ✅ TEMPORAL: Datos mock si no está autenticado para probar renderizado
+  if (!isAuthenticated || !user) {
+    console.log('[HOOK] useConversations: No autenticado, devolviendo datos mock')
+    return {
+      data: [],
+      isLoading: false,
+      error: null,
+      refetch: () => Promise.resolve(),
+      isRefetching: false
+    }
+  }
+  
   return useQuery({
     queryKey: conversationKeys.list(),
     queryFn: async () => {

@@ -6,9 +6,10 @@ import { LoadingSpinner } from './LoadingSpinner'
 interface AuthWrapperProps {
   children: React.ReactNode
   fallback?: React.ReactNode
+  requireAuth?: boolean // ✅ NUEVO: Opcional para requerir autenticación
 }
 
-export function AuthWrapper({ children, fallback }: AuthWrapperProps) {
+export function AuthWrapper({ children, fallback, requireAuth = false }: AuthWrapperProps) {
   const { isAuthReady, isAuthenticated, user } = useAuth()
 
   // ✅ MOSTRAR LOADING HASTA QUE AUTH ESTÉ COMPLETAMENTE LISTA
@@ -17,12 +18,16 @@ export function AuthWrapper({ children, fallback }: AuthWrapperProps) {
     return fallback || <LoadingSpinner />
   }
 
-  // ✅ SI NO ESTÁ AUTENTICADO, NO RENDERIZAR CONTENIDO PROTEGIDO
-  if (!isAuthenticated || !user) {
-    console.log('[AUTH_WRAPPER] Usuario no autenticado, no renderizando contenido protegido')
+  // ✅ SI REQUIERE AUTH Y NO ESTÁ AUTENTICADO, NO RENDERIZAR
+  if (requireAuth && (!isAuthenticated || !user)) {
+    console.log('[AUTH_WRAPPER] Requiere auth pero usuario no autenticado, no renderizando contenido protegido')
     return null
   }
 
-  console.log('[AUTH_WRAPPER] ✅ Auth lista y usuario autenticado, renderizando contenido')
+  console.log('[AUTH_WRAPPER] ✅ Auth lista, renderizando contenido', {
+    isAuthenticated,
+    hasUser: !!user,
+    requireAuth
+  })
   return <>{children}</>
 } 

@@ -78,9 +78,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             throw new Error('Token inválido')
           }
         } else {
-          console.log('2. No session found in localStorage.')
+          console.log('2. No session found in localStorage - continuing without auth.')
           if (isMounted) {
-            dispatch({ type: 'AUTH_FAILURE', payload: 'No active session' })
+            // ✅ TEMPORAL: No falla, solo marca como no autenticado pero listo
+            // dispatch({ type: 'AUTH_FAILURE', payload: 'No active session' })
           }
         }
       } catch (error: any) {
