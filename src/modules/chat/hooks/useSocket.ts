@@ -395,12 +395,20 @@ export function useSocket() {
     }
 
     // ✅ CORREGIR: Configuración optimizada para evitar rate limiting
-    const wsUrl = import.meta.env.VITE_WS_URL || 'https://utalk-backend-production.up.railway.app'
+    // Detectar automáticamente el entorno y usar la URL apropiada
+    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+    const wsUrl = import.meta.env.VITE_WS_URL || 
+                  (isProduction 
+                    ? 'https://utalk-backend-production.up.railway.app' 
+                    : 'http://localhost:3000')
     
     console.log('[SOCKET] Connecting to WebSocket...', {
       url: wsUrl,
       userEmail: user.email,
-      hasToken: !!token
+      hasToken: !!token,
+      isProduction,
+      hostname: window.location.hostname,
+      envVar: import.meta.env.VITE_WS_URL
     })
 
     // ✅ CONFIGURACIÓN OPTIMIZADA: polling primero, debouncing, timeouts aumentados

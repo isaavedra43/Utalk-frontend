@@ -8,6 +8,7 @@ export function ConversationList({
   conversations,
   selectedConversationId,
   onSelect,
+  onSelectConversation,
   isLoading,
   error,
   searchQuery,
@@ -26,102 +27,136 @@ export function ConversationList({
   console.log('[PROP] - searchQuery:', searchQuery, 'Type:', typeof searchQuery)
   console.log('[PROP] - onSearchChange:', typeof onSearchChange)
 
+  // ✅ VALIDACIÓN DEFENSIVA ULTRA-ROBUSTA
+  const safeConversations = Array.isArray(conversations) ? conversations : []
+  const hasValidConversations = safeConversations.length > 0
+
+  console.log('[VALIDATION] ConversationList validation:', {
+    originalLength: conversations?.length,
+    safeLength: safeConversations.length,
+    hasValidConversations,
+    isLoading,
+    hasError: !!error
+  })
+
   if (conversations && Array.isArray(conversations)) {
     console.log('[PROP] ConversationList.tsx: Detalle de conversaciones recibidas:')
     conversations.forEach((conv, index) => {
       console.log(`[PROP] Conversación ${index + 1}:`, {
         id: conv?.id,
+        title: conv?.title,
         hasContact: !!conv?.contact,
         contactName: conv?.contact?.name,
-        hasLastMessage: !!conv?.lastMessage,
-        lastMessageContent: conv?.lastMessage?.content?.substring(0, 50),
         status: conv?.status,
-        channel: conv?.channel
+        lastMessageContent: conv?.lastMessage?.content?.substring(0, 50)
       })
     })
-  } else {
-    console.warn('[PROP] ConversationList.tsx: conversations no es un array válido:', conversations)
   }
 
-  useEffect(() => {
-    console.log('[EFFECT] ConversationList.tsx: useEffect ejecutado por cambios en props')
-    console.log('[EFFECT] - conversations length:', conversations?.length)
-    console.log('[EFFECT] - searchQuery:', searchQuery)
-    console.log('[EFFECT] - selectedConversationId:', selectedConversationId)
-  }, [conversations, searchQuery, selectedConversationId])
-
-  // ✅ Renderizado condicional mejorado
+  // ✅ ESTADO DE CARGA
   if (isLoading) {
+    console.log('[RENDER] ConversationList.tsx: Renderizando estado de carga')
     return (
       <div className="flex items-center justify-center p-8">
-        <LoadingSpinner size="lg" />
+        <LoadingSpinner />
+        <span className="ml-2 text-gray-600 dark:text-gray-400">Cargando conversaciones...</span>
       </div>
     )
   }
 
+  // ✅ ESTADO DE ERROR
   if (error) {
+    console.log('[RENDER] ConversationList.tsx: Renderizando estado de error:', error)
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
-            <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            Error al cargar conversaciones
-          </h3>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
-            {error}
-          </p>
+      <div className="p-4 text-center">
+        <div className="text-red-500 mb-2">❌ Error al cargar conversaciones</div>
+        <div className="text-sm text-gray-600 dark:text-gray-400">
+          {typeof error === 'string' ? error : 'Error desconocido'}
+        </div>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-3 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+        >
+          Recargar
+        </button>
+      </div>
+    )
+  }
+
+  // ✅ ESTADO SIN CONVERSACIONES
+  if (!hasValidConversations) {
+    console.log('[RENDER] ConversationList.tsx: Renderizando estado sin conversaciones')
+    return (
+      <div className="p-6 text-center">
+        <div className="text-gray-400 text-6xl mb-4">💬</div>
+        <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+          No hay conversaciones
+        </h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+          Las conversaciones aparecerán aquí cuando recibas mensajes de tus clientes.
+        </p>
+        {/* Debug info */}
+        <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded text-xs text-left">
+          <div className="font-semibold mb-1">Debug Info:</div>
+          <div>Conversations type: {typeof conversations}</div>
+          <div>Is array: {Array.isArray(conversations) ? 'Yes' : 'No'}</div>
+          <div>Length: {conversations?.length || 0}</div>
+          <div>Loading: {isLoading ? 'Yes' : 'No'}</div>
+          <div>Error: {error ? 'Yes' : 'No'}</div>
         </div>
       </div>
     )
   }
 
-  if (!conversations || !Array.isArray(conversations) || conversations.length === 0) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            {searchQuery ? 'No se encontraron conversaciones' : 'No hay conversaciones'}
-          </h3>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
-            {searchQuery 
-              ? `No se encontraron conversaciones que coincidan con "${searchQuery}"`
-              : 'Aún no tienes conversaciones activas'
-            }
-          </p>
-        </div>
-      </div>
-    )
-  }
+  // ✅ RENDERIZADO PRINCIPAL
+  console.log('[RENDER] ConversationList.tsx: Renderizando lista de conversaciones')
+  console.log('[RENDER] - Total conversations to render:', safeConversations.length)
 
   return (
-    <div className="flex-1 overflow-y-auto conversation-list-container">
-      <div className="divide-y divide-gray-100 dark:divide-gray-700">
-        {conversations.map((conversation) => (
-          <ConversationItem
-            key={conversation.id}
-            conversation={conversation}
-            isSelected={conversation.id === selectedConversationId}
-            onSelect={onSelect}
-            showAvatar={true}
-          />
-        ))}
-      </div>
-      
-      {/* Footer con contador */}
-      <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-        <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-          {conversations.length} conversación{conversations.length !== 1 ? 'es' : ''}
-        </p>
-      </div>
+    <div className="h-full overflow-y-auto">
+      {safeConversations.map((conversation, index) => {
+        console.log(`[RENDER] Rendering conversation ${index + 1}:`, {
+          id: conversation?.id,
+          title: conversation?.title,
+          isSelected: conversation?.id === selectedConversationId
+        })
+
+        // ✅ VALIDACIÓN POR CONVERSACIÓN
+        if (!conversation || !conversation.id) {
+          console.warn(`[RENDER] Skipping invalid conversation at index ${index}:`, conversation)
+          return (
+            <div key={`invalid-${index}`} className="p-4 border-b border-gray-200 bg-yellow-50">
+              <div className="text-yellow-600 text-sm">
+                ⚠️ Conversación inválida #{index + 1}
+              </div>
+            </div>
+          )
+        }
+
+        try {
+          return (
+            <ConversationItem
+              key={conversation.id}
+              conversation={conversation}
+              isSelected={conversation.id === selectedConversationId}
+              onSelect={onSelect}
+              showAvatar={true}
+            />
+          )
+        } catch (error) {
+          console.error(`[RENDER] Error rendering conversation ${conversation.id}:`, error)
+          return (
+            <div key={`error-${conversation.id}`} className="p-4 border-b border-gray-200 bg-red-50">
+              <div className="text-red-600 text-sm">
+                ❌ Error renderizando conversación: {conversation.id}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {error instanceof Error ? error.message : 'Error desconocido'}
+              </div>
+            </div>
+          )
+        }
+      })}
     </div>
   )
 } 

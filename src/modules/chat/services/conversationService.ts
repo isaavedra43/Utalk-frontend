@@ -180,35 +180,98 @@ class ConversationService {
         endpoint: API_ENDPOINTS.CONVERSATIONS.LIST
       })
 
+      console.log('🌐 [CONVERSATIONS] Making API request to:', API_ENDPOINTS.CONVERSATIONS.LIST)
       const response = await apiClient.get(API_ENDPOINTS.CONVERSATIONS.LIST)
 
       // ✅ LOG EXPLÍCITO DE AUDITORÍA - RESPUESTA CRUDA
-      console.log("Conversaciones recibidas (raw):", response)
+      console.log("📥 [CONVERSATIONS] Raw response received:")
+      console.log("📥 [CONVERSATIONS] Response type:", typeof response)
+      console.log("📥 [CONVERSATIONS] Response is array:", Array.isArray(response))
+      console.log("📥 [CONVERSATIONS] Response:", response)
+      
+      if (response && typeof response === 'object' && !Array.isArray(response)) {
+        console.log("📥 [CONVERSATIONS] Response keys:", Object.keys(response))
+        console.log("📥 [CONVERSATIONS] Response.data type:", typeof response.data)
+        console.log("📥 [CONVERSATIONS] Response.data is array:", Array.isArray(response.data))
+        if (response.data) {
+          console.log("📥 [CONVERSATIONS] Response.data:", response.data)
+        }
+      }
 
       // ✅ El backend entrega SIEMPRE el array de conversaciones directamente en response
       // Nunca usar response.data.data ni response.data.conversations
       if (!response) {
-        console.log('[SERVICE] Empty response, returning empty array')
+        console.log('❌ [CONVERSATIONS] Empty response, returning empty array')
         return []
       }
 
       let conversations: any = []
 
-      // El response puede ser directamente el array o un objeto que contiene el array
+      // ✅ ESTRATEGIA ROBUSTA: Probar múltiples estructuras posibles
       if (Array.isArray(response)) {
         conversations = response
-        console.log('✅ [SUCCESS] Response is array directly')
+        console.log('✅ [CONVERSATIONS] Response is array directly, length:', response.length)
       } else if (response && typeof response === 'object') {
         // Buscar array en las propiedades más comunes
         if (Array.isArray(response.data)) {
           conversations = response.data
-          console.log('✅ [SUCCESS] Found array in response.data')
+          console.log('✅ [CONVERSATIONS] Found array in response.data, length:', response.data.length)
         } else if (Array.isArray(response.conversations)) {
           conversations = response.conversations
-          console.log('✅ [SUCCESS] Found array in response.conversations')
+          console.log('✅ [CONVERSATIONS] Found array in response.conversations, length:', response.conversations.length)
+        } else if (Array.isArray(response.results)) {
+          conversations = response.results
+          console.log('✅ [CONVERSATIONS] Found array in response.results, length:', response.results.length)
+        } else if (Array.isArray(response.items)) {
+          conversations = response.items
+          console.log('✅ [CONVERSATIONS] Found array in response.items, length:', response.items.length)
         } else {
-          console.log('⚠️ [WARNING] No array found in response object')
-          conversations = []
+          console.log('⚠️ [CONVERSATIONS] No array found in response object')
+          console.log('⚠️ [CONVERSATIONS] Available properties:', Object.keys(response))
+          
+          // ✅ ÚLTIMA ESTRATEGIA: Si la respuesta parece ser de mensajes en lugar de conversaciones
+          if (response.messages || (response.data && response.data.messages)) {
+            console.log('🔄 [CONVERSATIONS] Response seems to be messages, trying to extract conversations from messages')
+            const messages = response.messages || response.data.messages
+            if (Array.isArray(messages)) {
+              console.log('🔄 [CONVERSATIONS] Converting messages to conversations...')
+              // Agrupar mensajes por conversationId para crear conversaciones
+              const conversationMap = new Map()
+              messages.forEach((msg: any) => {
+                if (msg.conversationId) {
+                  if (!conversationMap.has(msg.conversationId)) {
+                    conversationMap.set(msg.conversationId, {
+                      id: msg.conversationId,
+                      title: msg.sender?.name || msg.senderIdentifier || 'Conversación',
+                      contact: {
+                        id: msg.senderIdentifier || msg.sender?.identifier,
+                        name: msg.sender?.name || msg.senderIdentifier,
+                        phone: msg.senderIdentifier,
+                        avatar: null,
+                        isOnline: false
+                      },
+                      lastMessage: {
+                        id: msg.id,
+                        content: msg.content,
+                        timestamp: msg.timestamp || msg.createdAt,
+                        senderName: msg.sender?.name || 'Usuario'
+                      },
+                      status: 'open',
+                      channel: 'whatsapp',
+                      unreadCount: 0,
+                      messageCount: 1,
+                      createdAt: msg.timestamp || msg.createdAt,
+                      updatedAt: msg.timestamp || msg.createdAt
+                    })
+                  }
+                }
+              })
+              conversations = Array.from(conversationMap.values())
+              console.log('✅ [CONVERSATIONS] Created conversations from messages, count:', conversations.length)
+            }
+          } else {
+            conversations = []
+          }
         }
       }
 
@@ -225,6 +288,11 @@ class ConversationService {
         return []
       }
 
+      if (conversations.length === 0) {
+        console.log('⚠️ [CONVERSATIONS] No conversations found in response')
+        return []
+      }
+
       console.log('🔧 [NORMALIZE] Iniciando normalización de conversaciones...')
       console.log('🔧 [NORMALIZE] Conversaciones originales del backend:', conversations)
 
@@ -235,14 +303,19 @@ class ConversationService {
         const originalConv = conversations[i]
         console.log(`🔧 [NORMALIZE] Procesando conversación ${i + 1}/${conversations.length}:`, originalConv)
         
-        // ✅ NORMALIZAR (solo falla si no hay ID)
-        const normalized = normalizeConversation(originalConv)
-        
-        if (normalized) {
-          console.log(`✅ [NORMALIZE] Conversación ${i + 1} normalizada exitosamente:`, normalized.id)
-          processedConversations.push(normalized)
-        } else {
-          console.warn(`⚠️ [NORMALIZE] Conversación ${i + 1} descartada por falta de ID`)
+        try {
+          // ✅ NORMALIZAR (solo falla si no hay ID)
+          const normalized = normalizeConversation(originalConv)
+          
+          if (normalized) {
+            console.log(`✅ [NORMALIZE] Conversación ${i + 1} normalizada exitosamente:`, normalized.id)
+            processedConversations.push(normalized)
+          } else {
+            console.warn(`⚠️ [NORMALIZE] Conversación ${i + 1} descartada por falta de ID`)
+          }
+        } catch (error) {
+          console.error(`❌ [NORMALIZE] Error procesando conversación ${i + 1}:`, error)
+          console.error(`❌ [NORMALIZE] Conversación problemática:`, originalConv)
         }
       }
 

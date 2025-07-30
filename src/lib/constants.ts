@@ -34,7 +34,7 @@ export const API_ENDPOINTS = {
     ROLES: (email: string) => `/users/${encodeURIComponent(email)}/roles`
   },
   
-  // ✅ Conversaciones usando EMAIL para asignación
+  // ✅ Conversaciones usando EMAIL como identificador principal
   CONVERSATIONS: {
     LIST: '/conversations',
     CREATE: '/conversations',

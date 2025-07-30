@@ -308,7 +308,22 @@ class ApiClient {
 }
 
 // Instancia singleton del cliente API
-export const apiClient = new ApiClient(
-  import.meta.env.VITE_API_URL || 'https://utalk-backend-production.up.railway.app/api'
-)
+// ✅ Detectar automáticamente el entorno
+const isProduction = typeof window !== 'undefined' && 
+                    window.location.hostname !== 'localhost' && 
+                    window.location.hostname !== '127.0.0.1'
+
+const baseURL = import.meta.env.VITE_API_URL || 
+               (isProduction 
+                 ? 'https://utalk-backend-production.up.railway.app/api' 
+                 : 'http://localhost:3000/api')
+
+console.log('[API-CLIENT] Initializing with:', {
+  baseURL,
+  isProduction,
+  hostname: typeof window !== 'undefined' ? window.location.hostname : 'server',
+  envVar: import.meta.env.VITE_API_URL
+})
+
+export const apiClient = new ApiClient(baseURL)
 export default apiClient 
