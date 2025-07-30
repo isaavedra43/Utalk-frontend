@@ -140,7 +140,7 @@ export function useSocket() {
       logger.success('New message processed via WebSocket', {
         messageId: message.id,
         conversationId: message.conversationId,
-        senderEmail: message.sender.id
+        senderEmail: message.sender.email
       }, 'socket_new_message')
 
     } catch (error) {

@@ -1,254 +1,132 @@
-// Burbuja de mensaje individual con soporte completo de archivos y estados
-import { useState } from 'react'
+// Componente de burbuja de mensaje con soporte multimedia
+import React from 'react'
+import { cn } from '@/lib/utils'
+import { Avatar } from './Avatar'
+import { MessageStatus } from './MessageStatus'
 import { FileRenderer } from './FileRenderer'
-import { MessageStatus, useMessageStatus } from './MessageStatus'
-import { useSendMessage } from '../hooks/useMessages'
-import Avatar from './Avatar'
+import { AudioPlayer } from './AudioPlayer'
 import type { CanonicalMessage } from '@/types/canonical'
 
-// ✅ Renderizar contenido del mensaje
-function renderMessageContent(message: CanonicalMessage) {
-  // Si el mensaje tiene archivos adjuntos
-  if (message.attachments && message.attachments.length > 0) {
-    return (
-      <div className="space-y-2">
-        {/* Texto del mensaje si existe */}
-        {message.content && message.content.trim() && (
-          <div className="whitespace-pre-wrap break-words">
-            {renderTextWithLinks(message.content)}
-          </div>
-        )}
-        
-        {/* Archivos adjuntos */}
-        {message.attachments.map((attachment, index) => (
-          <FileRenderer
-            key={attachment.id || index}
-            file={{
-              id: attachment.id || `${message.id}-${index}`,
-              url: attachment.url,
-              filename: attachment.filename || `archivo_${index + 1}`,
-              size: attachment.size || 0,
-              mimeType: attachment.mimeType || 'application/octet-stream',
-              category: attachment.category || 'document'
-            }}
-            className="max-w-sm"
-          />
-        ))}
-      </div>
-    )
-  }
-
-  // Mensaje de texto normal
-  return (
-    <div className="whitespace-pre-wrap break-words">
-      {renderTextWithLinks(message.content)}
-    </div>
-  )
-}
-
-// ✅ Renderizar texto con enlaces clickeables
-function renderTextWithLinks(text: string) {
-  const urlRegex = /(https?:\/\/[^\s]+)/g
-  const parts = text.split(urlRegex)
-  
-  return parts.map((part: string, index: number) => {
-    if (urlRegex.test(part)) {
-      return (
-        <a 
-          key={index}
-          href={part} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-blue-200 hover:text-blue-100 underline"
-        >
-          {part}
-        </a>
-      )
-    }
-    return part
-  })
-}
-
-// ✅ Componente principal MessageBubble mejorado
-export function MessageBubble({ 
-  message, 
-  isOwn = false,
-  showAvatar = false, 
-  isGrouped = false 
-}: {
+interface MessageBubbleProps {
   message: CanonicalMessage
-  isOwn?: boolean
-  showAvatar?: boolean
-  isGrouped?: boolean
-}) {
-  const [isRetrying, setIsRetrying] = useState(false)
-  const sendMessageMutation = useSendMessage()
-  const { handleRetry } = useMessageStatus()
+  isOwn: boolean
+  showAvatar: boolean
+  className?: string
+}
 
-  // ✅ Determinar tipo de usuario - CORREGIDO
-  const isAgent = message.sender?.type === 'agent' || isOwn
-  const isBot = message.sender?.type === 'bot'
-  const isCustomer = message.sender?.type === 'customer'
-
-  // ✅ Manejar reintento de mensaje fallido
-  const handleRetryMessage = async () => {
-    if (isRetrying || message.status !== 'failed') return
-
-    await handleRetry(message.id, async () => {
-      setIsRetrying(true)
-      try {
-        // Intentar reenviar el mensaje - CORREGIDO TIPO
-        const messageType = message.type === 'sticker' ? 'text' as const : message.type
-        await sendMessageMutation.mutateAsync({
-          conversationId: message.conversationId,
-          content: message.content,
-          type: messageType,
-          senderEmail: message.sender?.id || '',
-          recipientEmail: '', // Se puede obtener del contexto
-          attachments: message.attachments?.map(att => ({
-            id: att.id,
-            filename: att.filename,
-            url: att.url,
-            mimeType: att.mimeType,
-            size: att.size,
-            category: att.category
-          }))
-        })
-      } finally {
-        setIsRetrying(false)
-      }
+export function MessageBubble({ message, isOwn, showAvatar, className }: MessageBubbleProps) {
+  // ✅ Formatear tiempo del mensaje
+  const formatMessageTime = (timestamp: Date | string) => {
+    const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp
+    return date.toLocaleTimeString('es-ES', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
     })
   }
 
-  // ✅ Obtener colores según el tipo de usuario
-  const getBubbleStyles = () => {
-    if (isAgent || isOwn) {
-      // Mensajes del agente (propios)
-      return {
-        bubble: 'bg-[#4880ff] text-white',
-        text: 'text-white',
-        align: 'justify-end items-end'
-      }
-    } else if (isBot) {
-      // Mensajes del bot
-      return {
-        bubble: 'bg-purple-100 text-purple-900 dark:bg-purple-900 dark:text-purple-100',
-        text: 'text-purple-900 dark:text-purple-100',
-        align: 'justify-start items-start'
-      }
-    } else {
-      // Mensajes del cliente
-      return {
-        bubble: 'bg-[#222837] text-white dark:bg-gray-700',
-        text: 'text-white',
-        align: 'justify-start items-start'
-      }
+  // ✅ Renderizar contenido según tipo de mensaje
+  const renderMessageContent = () => {
+    // ✅ Verificar si tiene archivos adjuntos
+    if (message.attachments && message.attachments.length > 0) {
+      return (
+        <div className="space-y-2">
+          {/* Texto del mensaje si existe */}
+          {message.content && message.content.trim() && (
+            <p className="text-sm">{message.content}</p>
+          )}
+          
+          {/* Renderizar archivos */}
+          {message.attachments.map((file, index) => {
+            // Usar AudioPlayer especializado para archivos de audio
+            if (file.category === 'audio') {
+              return (
+                <AudioPlayer
+                  key={file.id || index}
+                  file={file}
+                  metadata={file.metadata}
+                />
+              )
+            }
+            
+            // Usar FileRenderer para otros tipos
+            return (
+              <FileRenderer
+                key={file.id || index}
+                file={file}
+              />
+            )
+          })}
+        </div>
+      )
     }
+
+    // Mensaje de texto normal
+    return (
+      <p className="text-sm whitespace-pre-wrap break-words">
+        {message.content}
+      </p>
+    )
   }
 
-  const styles = getBubbleStyles()
-
   return (
-    <div className={`flex ${styles.align} mb-2 group`}>
-      <div className={`flex max-w-[80%] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
-        {/* Avatar (solo si no está agrupado y no es el agente) */}
-        {showAvatar && !isOwn && !isGrouped && (
-          <div className="flex-shrink-0 mr-2">
-            <Avatar 
-              src={message.sender?.avatar}
-              name={message.sender?.name || 'Usuario'}
-              size="sm"
-            />
+    <div className={cn(
+      "flex gap-3 p-4",
+      isOwn ? "flex-row-reverse" : "flex-row",
+      className
+    )}>
+      {/* Avatar */}
+      {showAvatar && !isOwn && (
+        <Avatar
+          name={message.sender.name || message.sender.email}
+          size="sm"
+        />
+      )}
+
+      {/* Contenido del mensaje */}
+      <div className={cn(
+        "flex flex-col max-w-xs lg:max-w-md",
+        isOwn ? "items-end" : "items-start"
+      )}>
+        {/* Información del remitente */}
+        {!isOwn && showAvatar && (
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-medium text-gray-700">
+              {message.sender.name || message.sender.email}
+            </span>
           </div>
         )}
 
-        {/* Espaciador cuando no hay avatar pero el mensaje está agrupado */}
-        {!showAvatar && !isOwn && isGrouped && (
-          <div className="w-6 mr-2 flex-shrink-0" />
-        )}
+        {/* Burbuja del mensaje */}
+        <div className={cn(
+          "relative px-4 py-2 rounded-2xl shadow-sm",
+          isOwn 
+            ? "bg-blue-500 text-white" 
+            : "bg-white border border-gray-200 text-gray-900",
+          // Ajustar padding para mensajes con archivos
+          message.attachments?.length ? "p-2" : "px-4 py-2"
+        )}>
+          {renderMessageContent()}
+        </div>
 
-        {/* Contenido del mensaje */}
-        <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
-          {/* Nombre del remitente (solo si no está agrupado y no es propio) */}
-          {!isGrouped && !isOwn && (
-            <div className="flex items-center space-x-2 mb-1">
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
-                {message.sender?.name || 'Usuario'}
-              </span>
-              {isBot && (
-                <span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">
-                  BOT
-                </span>
-              )}
-              {isCustomer && (
-                <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded">
-                  CLIENTE
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Burbuja del mensaje */}
-          <div
-            className={`
-              px-3 py-2 rounded-lg max-w-full relative
-              ${styles.bubble}
-              ${isGrouped && !isOwn ? 'rounded-tl-sm' : ''}
-              ${isGrouped && isOwn ? 'rounded-tr-sm' : ''}
-              ${message.status === 'failed' ? 'border-2 border-red-300 dark:border-red-600' : ''}
-              ${message.status === 'pending' ? 'opacity-70' : ''}
-              transition-all duration-200
-            `}
-          >
-            {/* Indicador de mensaje siendo reenviado */}
-            {isRetrying && (
-              <div className="absolute inset-0 bg-black bg-opacity-10 rounded-lg flex items-center justify-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              </div>
-            )}
-
-            {/* Contenido del mensaje */}
-            <div className={styles.text}>
-              {renderMessageContent(message)}
-            </div>
-          </div>
-
-          {/* Información del mensaje y estado */}
-          <div className={`flex items-center space-x-2 mt-1 ${isOwn ? 'flex-row-reverse' : ''}`}>
-            {/* Estado del mensaje */}
-            <MessageStatus
-              status={message.status || 'sent'}
-              timestamp={message.timestamp}
+        {/* Metadatos del mensaje */}
+        <div className={cn(
+          "flex items-center gap-2 mt-1 text-xs text-gray-500",
+          isOwn ? "flex-row-reverse" : "flex-row"
+        )}>
+          {/* Timestamp */}
+          <span>{formatMessageTime(message.timestamp)}</span>
+          
+          {/* Estado del mensaje (solo para mensajes propios) */}
+          {isOwn && (
+            <MessageStatus 
+              status={message.status} 
               error={message.metadata?.error}
-              onRetry={message.status === 'failed' ? handleRetryMessage : undefined}
-              showTimestamp={true}
+              timestamp={message.timestamp}
             />
-
-            {/* Indicador de mensaje importante */}
-            {message.isImportant && (
-              <span className="text-xs text-yellow-500" title="Mensaje importante">
-                ⭐
-              </span>
-            )}
-
-            {/* Indicador de archivo adjunto */}
-            {message.attachments && message.attachments.length > 0 && (
-              <span className="text-xs text-gray-400" title={`${message.attachments.length} archivo(s)`}>
-                📎
-              </span>
-            )}
-          </div>
-
-          {/* Error de mensaje (si existe) */}
-          {message.status === 'failed' && message.metadata?.error && (
-            <div className="mt-1 text-xs text-red-500 dark:text-red-400 max-w-xs">
-              Error: {message.metadata.error}
-            </div>
           )}
         </div>
       </div>
     </div>
   )
 }
-
-export default MessageBubble

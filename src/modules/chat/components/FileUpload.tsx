@@ -1,110 +1,128 @@
-// Componente de subida de archivos con drag & drop tipo WhatsApp
-import { useState, useRef, useCallback } from 'react'
+// Componente de carga de archivos con progreso y validación mejorada
+import React, { useState, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { X, Image, Video, Music, FileText } from 'lucide-react'
+import { Progress } from '@/components/ui/progress'
+import { Card, CardContent } from '@/components/ui/card'
+import { 
+  Upload, 
+  X, 
+  File, 
+  Image, 
+  Video, 
+  FileAudio, 
+  FileText,
+  AlertCircle,
+  CheckCircle2,
+  Loader2
+} from 'lucide-react'
+import { uploadService } from '../services/uploadService'
 
-// ✅ Tipos de archivo permitidos
-export const ALLOWED_FILE_TYPES = {
-  image: {
-    mimes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'],
-    extensions: ['.jpg', '.jpeg', '.png', '.webp', '.gif'],
-    maxSize: 10 * 1024 * 1024, // 10MB
-    icon: Image,
-    color: 'text-green-500'
-  },
-  video: {
-    mimes: ['video/mp4', 'video/webm', 'video/quicktime'],
-    extensions: ['.mp4', '.webm', '.mov'],
-    maxSize: 50 * 1024 * 1024, // 50MB
-    icon: Video,
-    color: 'text-blue-500'
-  },
-  audio: {
-    mimes: ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg'],
-    extensions: ['.mp3', '.wav', '.ogg'],
-    maxSize: 20 * 1024 * 1024, // 20MB
-    icon: Music,
-    color: 'text-purple-500'
-  },
-  document: {
-    mimes: [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'text/plain'
-    ],
-    extensions: ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt'],
-    maxSize: 25 * 1024 * 1024, // 25MB
-    icon: FileText,
-    color: 'text-orange-500'
-  }
+// ✅ TIPOS DE ARCHIVO PERMITIDOS
+const ALLOWED_FILE_TYPES: Record<string, 'image' | 'video' | 'audio' | 'document'> = {
+  // Imágenes
+  'image/jpeg': 'image',
+  'image/png': 'image',
+  'image/gif': 'image',
+  'image/webp': 'image',
+  
+  // Videos
+  'video/mp4': 'video',
+  'video/webm': 'video',
+  'video/ogg': 'video',
+  
+  // Audio
+  'audio/mp3': 'audio',
+  'audio/mpeg': 'audio',
+  'audio/wav': 'audio',
+  'audio/ogg': 'audio',
+  'audio/webm': 'audio',
+  'audio/m4a': 'audio',
+  
+  // Documentos
+  'application/pdf': 'document',
+  'text/plain': 'document',
+  'application/msword': 'document',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'document'
 }
 
-export interface FileWithPreview extends File {
+// ✅ LÍMITES DE TAMAÑO POR TIPO
+const MAX_FILE_SIZES = {
+  image: 10 * 1024 * 1024,   // 10MB
+  video: 100 * 1024 * 1024,  // 100MB
+  audio: 50 * 1024 * 1024,   // 50MB
+  document: 25 * 1024 * 1024 // 25MB
+}
+
+interface FileUploadItem {
   id: string
+  file: File
+  category: 'image' | 'video' | 'audio' | 'document'
   preview?: string
-  category: keyof typeof ALLOWED_FILE_TYPES
-  uploadProgress?: number
-  uploadError?: string
+  progress: number
+  status: 'pending' | 'uploading' | 'completed' | 'error'
+  error?: string
+  uploadedData?: any
 }
 
 interface FileUploadProps {
-  onFilesSelected: (files: FileWithPreview[]) => void
-  onFileRemove: (fileId: string) => void
-  selectedFiles: FileWithPreview[]
+  onFilesUploaded: (files: any[]) => void
+  conversationId: string
   maxFiles?: number
   disabled?: boolean
+  className?: string
 }
 
-export function FileUpload({
-  onFilesSelected,
-  onFileRemove,
-  selectedFiles,
+export function FileUpload({ 
+  onFilesUploaded, 
+  conversationId, 
   maxFiles = 5,
-  disabled = false
+  disabled = false,
+  className = '' 
 }: FileUploadProps) {
-  const [isDragOver, setIsDragOver] = useState(false)
-  const [validationErrors, setValidationErrors] = useState<string[]>([])
+  const [files, setFiles] = useState<FileUploadItem[]>([])
+  const [dragActive, setDragActive] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // ✅ Detectar categoría de archivo
-  const getFileCategory = (file: File): keyof typeof ALLOWED_FILE_TYPES | null => {
-    for (const [category, config] of Object.entries(ALLOWED_FILE_TYPES)) {
-      if (config.mimes.includes(file.type)) {
-        return category as keyof typeof ALLOWED_FILE_TYPES
-      }
+  // ✅ Formatear tamaño de archivo
+  const formatFileSize = useCallback((bytes: number): string => {
+    const units = ['B', 'KB', 'MB', 'GB']
+    let size = bytes
+    let unitIndex = 0
+    
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024
+      unitIndex++
     }
-    return null
-  }
+    
+    return `${size.toFixed(1)} ${units[unitIndex]}`
+  }, [])
 
   // ✅ Validar archivo
-  const validateFile = (file: File): { isValid: boolean; error?: string } => {
-    const category = getFileCategory(file)
-    
+  const validateFile = useCallback((file: File): { valid: boolean; error?: string; category?: string } => {
+    // Verificar tipo
+    const category = ALLOWED_FILE_TYPES[file.type]
     if (!category) {
       return {
-        isValid: false,
+        valid: false,
         error: `Tipo de archivo no permitido: ${file.type}`
       }
     }
 
-    const config = ALLOWED_FILE_TYPES[category]
-    
-    if (file.size > config.maxSize) {
-      const maxSizeMB = (config.maxSize / (1024 * 1024)).toFixed(1)
+    // Verificar tamaño
+    const maxSize = MAX_FILE_SIZES[category]
+    if (file.size > maxSize) {
       return {
-        isValid: false,
-        error: `Archivo muy grande. Máximo ${maxSizeMB}MB para ${category}`
+        valid: false,
+        error: `Archivo demasiado grande. Máximo ${formatFileSize(maxSize)} para ${category}`
       }
     }
 
-    return { isValid: true }
-  }
+    return { valid: true, category }
+  }, [formatFileSize])
 
-  // ✅ Crear preview de archivo
-  const createFilePreview = useCallback((file: File, category: keyof typeof ALLOWED_FILE_TYPES): Promise<string | undefined> => {
+  // ✅ Crear preview para imágenes
+  const createPreview = useCallback((file: File, category: string): Promise<string | undefined> => {
     return new Promise((resolve) => {
       if (category === 'image') {
         const reader = new FileReader()
@@ -117,343 +135,318 @@ export function FileUpload({
     })
   }, [])
 
-  // ✅ Procesar archivos seleccionados
-  const processFiles = useCallback(async (fileList: FileList) => {
-    const errors: string[] = []
-    const validFiles: FileWithPreview[] = []
+  // ✅ Agregar archivos
+  const addFiles = useCallback(async (newFiles: File[]) => {
+    if (disabled || isUploading) return
 
-    // Verificar límite de archivos
-    if (selectedFiles.length + fileList.length > maxFiles) {
-      errors.push(`Máximo ${maxFiles} archivos permitidos`)
-      setValidationErrors(errors)
-      return
-    }
+    const validatedFiles: FileUploadItem[] = []
 
-    for (let i = 0; i < fileList.length; i++) {
-      const file = fileList[i]
+    for (const file of newFiles) {
+      // Verificar límite de archivos
+      if (files.length + validatedFiles.length >= maxFiles) {
+        console.warn(`[FILE-UPLOAD] Maximum ${maxFiles} files allowed`)
+        break
+      }
+
+      // Validar archivo
       const validation = validateFile(file)
-      
-      if (!validation.isValid) {
-        errors.push(validation.error!)
+      if (!validation.valid) {
+        console.error('[FILE-UPLOAD] Invalid file:', validation.error)
         continue
       }
 
-      const category = getFileCategory(file)!
-      const preview = await createFilePreview(file, category)
+      // Crear preview
+      const preview = await createPreview(file, validation.category!)
 
-      const fileWithPreview: FileWithPreview = Object.assign(file, {
-        id: `${Date.now()}-${i}-${file.name}`,
+      const fileItem: FileUploadItem = {
+        id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        file,
+        category: validation.category as any,
         preview,
-        category,
-        uploadProgress: 0
-      })
+        progress: 0,
+        status: 'pending'
+      }
 
-      validFiles.push(fileWithPreview)
+      validatedFiles.push(fileItem)
     }
 
-    if (errors.length > 0) {
-      setValidationErrors(errors)
-      setTimeout(() => setValidationErrors([]), 5000)
+    if (validatedFiles.length > 0) {
+      setFiles(prev => [...prev, ...validatedFiles])
+      console.log('[FILE-UPLOAD] Added files:', validatedFiles.length)
+    }
+  }, [files.length, maxFiles, disabled, isUploading, validateFile, createPreview])
+
+  // ✅ Remover archivo
+  const removeFile = useCallback((fileId: string) => {
+    if (isUploading) return
+    
+    setFiles(prev => prev.filter(f => f.id !== fileId))
+    console.log('[FILE-UPLOAD] Removed file:', fileId)
+  }, [isUploading])
+
+  // ✅ Subir todos los archivos
+  const uploadFiles = useCallback(async () => {
+    const pendingFiles = files.filter(f => f.status === 'pending')
+    if (pendingFiles.length === 0) return
+
+    setIsUploading(true)
+    console.log('[FILE-UPLOAD] Starting upload of', pendingFiles.length, 'files')
+
+    const uploadedFiles: any[] = []
+
+    for (const fileItem of pendingFiles) {
+      try {
+        // Actualizar estado a "uploading"
+        setFiles(prev => prev.map(f => 
+          f.id === fileItem.id 
+            ? { ...f, status: 'uploading' as const, progress: 0 }
+            : f
+        ))
+
+                 // Subir archivo
+         const uploadedData = await uploadService.uploadFile(
+           fileItem.file,
+           (progress) => {
+             setFiles(prev => prev.map(f => 
+               f.id === fileItem.id 
+                 ? { ...f, progress }
+                 : f
+             ))
+           }
+         )
+
+        // Marcar como completado
+        setFiles(prev => prev.map(f => 
+          f.id === fileItem.id 
+            ? { ...f, status: 'completed' as const, progress: 100, uploadedData }
+            : f
+        ))
+
+        uploadedFiles.push(uploadedData)
+        console.log('[FILE-UPLOAD] File uploaded successfully:', uploadedData)
+
+      } catch (error) {
+        console.error('[FILE-UPLOAD] Error uploading file:', error)
+        
+        // Marcar como error
+        setFiles(prev => prev.map(f => 
+          f.id === fileItem.id 
+            ? { 
+                ...f, 
+                status: 'error' as const, 
+                error: error instanceof Error ? error.message : 'Error desconocido'
+              }
+            : f
+        ))
+      }
     }
 
-    if (validFiles.length > 0) {
-      onFilesSelected([...selectedFiles, ...validFiles])
-    }
-  }, [selectedFiles, maxFiles, onFilesSelected, createFilePreview])
+    setIsUploading(false)
 
-  // ✅ Handlers de drag & drop
+    // Llamar callback con archivos subidos
+    if (uploadedFiles.length > 0) {
+      onFilesUploaded(uploadedFiles)
+      
+      // Limpiar archivos completados después de un delay
+      setTimeout(() => {
+        setFiles(prev => prev.filter(f => f.status !== 'completed'))
+      }, 2000)
+    }
+  }, [files, conversationId, onFilesUploaded])
+
+  // ✅ Manejar selección de archivos
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || [])
+    if (selectedFiles.length > 0) {
+      addFiles(selectedFiles)
+    }
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }, [addFiles])
+
+  // ✅ Manejar drag & drop
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragActive(false)
+    
+    const droppedFiles = Array.from(e.dataTransfer.files)
+    if (droppedFiles.length > 0) {
+      addFiles(droppedFiles)
+    }
+  }, [addFiles])
+
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
-    if (!disabled) {
-      setIsDragOver(true)
-    }
-  }, [disabled])
+    setDragActive(true)
+  }, [])
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault()
-    setIsDragOver(false)
+    setDragActive(false)
   }, [])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
-    
-    if (disabled) return
-
-    const files = e.dataTransfer.files
-    if (files.length > 0) {
-      processFiles(files)
+  // ✅ Obtener icono por categoría
+  const getFileIcon = (category: string) => {
+    switch (category) {
+      case 'image': return <Image className="w-5 h-5 text-blue-500" />
+      case 'video': return <Video className="w-5 h-5 text-purple-500" />
+      case 'audio': return <FileAudio className="w-5 h-5 text-green-500" />
+      case 'document': return <FileText className="w-5 h-5 text-orange-500" />
+      default: return <File className="w-5 h-5 text-gray-500" />
     }
-  }, [disabled, processFiles])
-
-  // ✅ Click handler
-  const handleClick = useCallback(() => {
-    if (!disabled && fileInputRef.current) {
-      fileInputRef.current.click()
-    }
-  }, [disabled])
-
-  // ✅ Input change handler
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (files && files.length > 0) {
-      processFiles(files)
-    }
-    // Reset input
-    e.target.value = ''
-  }, [processFiles])
-
-  // ✅ Formatear tamaño de archivo
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 B'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
   }
 
-  // ✅ Renderizar preview de archivo
-  const renderFilePreview = (file: FileWithPreview) => {
-    const config = ALLOWED_FILE_TYPES[file.category]
-    const Icon = config.icon
-
-    return (
-      <div
-        key={file.id}
-        className="relative bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 shadow-sm"
-      >
-        {/* Botón remover */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onFileRemove(file.id)}
-          className="absolute -top-2 -right-2 w-6 h-6 p-0 bg-red-500 hover:bg-red-600 text-white rounded-full"
-        >
-          <X className="w-3 h-3" />
-        </Button>
-
-        {/* Contenido del archivo */}
-        <div className="flex items-start space-x-3">
-          {/* Preview/Icono */}
-          <div className="flex-shrink-0">
-            {file.preview ? (
-              <img
-                src={file.preview}
-                alt={file.name}
-                className="w-12 h-12 object-cover rounded"
-              />
-            ) : (
-              <div className={`w-12 h-12 rounded bg-gray-100 dark:bg-gray-700 flex items-center justify-center ${config.color}`}>
-                <Icon className="w-6 h-6" />
-              </div>
-            )}
-          </div>
-
-          {/* Info del archivo */}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-              {file.name}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {formatFileSize(file.size)} • {file.category}
-            </p>
-            
-            {/* Barra de progreso */}
-            {file.uploadProgress !== undefined && file.uploadProgress < 100 && (
-              <div className="mt-2">
-                <div className="w-full bg-gray-200 rounded-full h-1.5">
-                  <div
-                    className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
-                    style={{ width: `${file.uploadProgress}%` }}
-                  ></div>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">{file.uploadProgress}%</p>
-              </div>
-            )}
-
-            {/* Error de upload */}
-            {file.uploadError && (
-              <p className="text-xs text-red-500 mt-1">{file.uploadError}</p>
-            )}
-          </div>
-        </div>
-      </div>
-    )
+  // ✅ Obtener icono de estado
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'uploading': return <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+      case 'completed': return <CheckCircle2 className="w-4 h-4 text-green-500" />
+      case 'error': return <AlertCircle className="w-4 h-4 text-red-500" />
+      default: return null
+    }
   }
+
+  const hasPendingFiles = files.some(f => f.status === 'pending')
 
   return (
-    <div className="space-y-3">
-      {/* Área de drag & drop */}
+    <div className={`space-y-4 ${className}`}>
+      {/* Área de drop */}
       <div
-        className={`
-          relative border-2 border-dashed rounded-lg p-6 transition-all duration-200
-          ${isDragOver
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10'
-            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-          }
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-        `}
+        onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={handleClick}
+        className={`
+          border-2 border-dashed rounded-lg p-6 text-center transition-colors
+          ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}
+          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-gray-400'}
+        `}
+        onClick={() => !disabled && fileInputRef.current?.click()}
       >
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          onChange={handleInputChange}
-          className="hidden"
-          accept={Object.values(ALLOWED_FILE_TYPES).flatMap(config => config.extensions).join(',')}
-          disabled={disabled}
-        />
-
-        <div className="text-center">
-          <div className="mx-auto w-12 h-12 mb-3 text-gray-400">
-            <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-          </div>
-          
-          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
-            Arrastra archivos aquí o haz click para seleccionar
-          </p>
-          
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Imágenes, videos, audios y documentos
-          </p>
-          
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-            Máximo {maxFiles} archivos • Hasta 50MB por archivo
-          </p>
-        </div>
+        <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+        <p className="text-sm text-gray-600 mb-1">
+          Arrastra archivos aquí o haz clic para seleccionar
+        </p>
+        <p className="text-xs text-gray-500">
+          Máximo {maxFiles} archivos • Imágenes, videos, audios y documentos
+        </p>
       </div>
 
-      {/* Errores de validación */}
-      {validationErrors.length > 0 && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-          <div className="flex items-start">
-            <div className="flex-shrink-0">
-              <X className="w-4 h-4 text-red-400 mt-0.5" />
-            </div>
-            <div className="ml-2">
-              <h4 className="text-sm font-medium text-red-800 dark:text-red-400">
-                Error al subir archivos:
-              </h4>
-              <ul className="mt-1 text-xs text-red-700 dark:text-red-300 space-y-1">
-                {validationErrors.map((error, index) => (
-                  <li key={index}>• {error}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
+      {/* Input oculto */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept={Object.keys(ALLOWED_FILE_TYPES).join(',')}
+        onChange={handleFileSelect}
+        disabled={disabled}
+        className="hidden"
+      />
+
+      {/* Lista de archivos */}
+      {files.length > 0 && (
+        <div className="space-y-2">
+          {files.map((fileItem) => (
+            <Card key={fileItem.id} className="p-3">
+              <div className="flex items-center gap-3">
+                {/* Preview o icono */}
+                <div className="flex-shrink-0">
+                  {fileItem.preview ? (
+                    <img 
+                      src={fileItem.preview} 
+                      alt="Preview" 
+                      className="w-10 h-10 object-cover rounded"
+                    />
+                  ) : (
+                    getFileIcon(fileItem.category)
+                  )}
+                </div>
+
+                {/* Info del archivo */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {fileItem.file.name}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {formatFileSize(fileItem.file.size)} • {fileItem.category}
+                  </p>
+                  
+                  {/* Error */}
+                  {fileItem.error && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {fileItem.error}
+                    </p>
+                  )}
+                </div>
+
+                {/* Progreso */}
+                {fileItem.status === 'uploading' && (
+                  <div className="flex-1 max-w-32">
+                    <Progress value={fileItem.progress} className="h-2" />
+                    <p className="text-xs text-center mt-1 text-gray-500">
+                      {fileItem.progress}%
+                    </p>
+                  </div>
+                )}
+
+                {/* Estado */}
+                <div className="flex items-center gap-2">
+                  {getStatusIcon(fileItem.status)}
+                  
+                  {/* Botón eliminar */}
+                  {!isUploading && fileItem.status !== 'completed' && (
+                    <Button
+                      onClick={() => removeFile(fileItem.id)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </Card>
+          ))}
         </div>
       )}
 
-      {/* Preview de archivos seleccionados */}
-      {selectedFiles.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Archivos seleccionados ({selectedFiles.length})
-          </h4>
-          <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
-            {selectedFiles.map(renderFilePreview)}
-          </div>
-        </div>
+      {/* Botón subir */}
+      {hasPendingFiles && (
+        <Button
+          onClick={uploadFiles}
+          disabled={isUploading || disabled}
+          className="w-full"
+        >
+          {isUploading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Subiendo archivos...
+            </>
+          ) : (
+            <>
+              <Upload className="w-4 h-4 mr-2" />
+              Subir {files.filter(f => f.status === 'pending').length} archivo(s)
+            </>
+          )}
+        </Button>
       )}
     </div>
   )
 }
 
-// ✅ Hook para usar FileUpload
+// ✅ Hook personalizado para usar FileUpload
 export function useFileUpload() {
-  const [selectedFiles, setSelectedFiles] = useState<FileWithPreview[]>([])
-  const [isUploading, setIsUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
-
-  const addFiles = useCallback((files: FileWithPreview[]) => {
-    setSelectedFiles(prev => [...prev, ...files])
-  }, [])
-
-  const removeFile = useCallback((fileId: string) => {
-    setSelectedFiles(prev => prev.filter(file => file.id !== fileId))
-  }, [])
-
-  const handleFilesSelected = useCallback((files: FileWithPreview[]) => {
-    setSelectedFiles(files)
-  }, [])
-
-  const handleFileRemove = useCallback((fileId: string) => {
-    setSelectedFiles(prev => prev.filter(file => file.id !== fileId))
-  }, [])
-
-  const clearFiles = useCallback(() => {
-    setSelectedFiles([])
-  }, [])
-
-  const updateFileProgress = useCallback((fileId: string, progress: number) => {
-    setSelectedFiles(prev => prev.map(file =>
-      file.id === fileId ? { ...file, uploadProgress: progress } : file
-    ))
-    setUploadProgress(prev => ({ ...prev, [fileId]: progress }))
-  }, [])
-
-  const updateFileError = useCallback((fileId: string, error: string) => {
-    setSelectedFiles(prev => prev.map(file =>
-      file.id === fileId ? { ...file, uploadError: error } : file
-    ))
-  }, [])
-
-  const uploadFiles = useCallback(async () => {
-    if (selectedFiles.length === 0) return []
-
-    setIsUploading(true)
-    
-    try {
-      // Importar el servicio de upload dinámicamente
-      const { uploadService } = await import('../services/uploadService')
-      
-      const uploadPromises = selectedFiles.map(async (file) => {
-        try {
-          const result = await uploadService.uploadFile(file, (progress) => {
-            updateFileProgress(file.id, progress.progress)
-          })
-          
-          return result
-        } catch (error) {
-          console.error(`Error uploading file ${file.name}:`, error)
-          updateFileError(file.id, 'Error al subir archivo')
-          return null
-        }
-      })
-
-      const results = await Promise.all(uploadPromises)
-      const successfulUploads = results.filter(result => result !== null)
-      
-      // Limpiar archivos después de subir
-      setSelectedFiles([])
-      setUploadProgress({})
-      
-      return successfulUploads
-    } catch (error) {
-      console.error('Error uploading files:', error)
-      return []
-    } finally {
-      setIsUploading(false)
-    }
-  }, [selectedFiles, updateFileProgress, updateFileError])
-
+  const [isOpen, setIsOpen] = useState(false)
+  
   return {
-    selectedFiles,
-    addFiles,
-    removeFile,
-    handleFilesSelected,
-    handleFileRemove,
-    clearFiles,
-    updateFileProgress,
-    updateFileError,
-    uploadFiles,
-    isUploading,
-    uploadProgress
+    isOpen,
+    open: () => setIsOpen(true),
+    close: () => setIsOpen(false),
+    toggle: () => setIsOpen(!isOpen)
   }
 }
+
+export default FileUpload

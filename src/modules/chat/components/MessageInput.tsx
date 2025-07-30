@@ -1,118 +1,258 @@
-// Entrada de mensajes con soporte para texto, archivos y emojis
-// Maneja el envío de mensajes y indicadores de escritura
-import { useState } from 'react'
+// Componente de entrada de mensajes con soporte multimedia
+import React, { useState, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Paperclip, Smile, Mic, Send } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
+import { Send, Paperclip, Mic, X } from 'lucide-react'
+import { FileUpload } from './FileUpload'
+import { AudioRecorder } from './AudioRecorder'
+import type { SendMessageData } from '../types'
 
 interface MessageInputProps {
-  conversationId: string
-  onSendMessage?: (message: string) => void
+  onSendMessage: (data: SendMessageData) => void
+  conversationId?: string
   disabled?: boolean
+  placeholder?: string
 }
 
-export function MessageInput({ conversationId: _conversationId, onSendMessage, disabled }: MessageInputProps) {
+export function MessageInput({
+  onSendMessage,
+  conversationId,
+  disabled = false,
+  placeholder = "Escribe un mensaje..."
+}: MessageInputProps) {
   const [message, setMessage] = useState('')
+  const [showFileUpload, setShowFileUpload] = useState(false)
+  const [showAudioRecorder, setShowAudioRecorder] = useState(false)
+  const [isSending, setIsSending] = useState(false)
+  
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // TODO: Implementar funcionalidades
-  // - Envío de mensajes de texto
-  // - Subida de archivos/imágenes
-  // - Selector de emojis
-  // - Indicador de escritura (typing)
-  // - Autocompletado de menciones
-  // - Soporte para markdown/formato
-  // - Grabación de mensajes de voz
-  // - Shortcuts de teclado (Ctrl+Enter)
+  // ✅ Enviar mensaje de texto
+  const handleSendMessage = useCallback(async () => {
+    if (!message.trim() || !conversationId || disabled || isSending) return
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (message.trim() && onSendMessage) {
-      onSendMessage(message.trim())
+    try {
+      setIsSending(true)
+      
+      await onSendMessage({
+        conversationId,
+        content: message.trim(),
+        senderEmail: '', // Se llenará en el hook
+        recipientEmail: '', // Se llenará en el hook
+        type: 'text'
+      })
+      
       setMessage('')
+      
+      // Reset textarea height
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto'
+      }
+      
+    } catch (error) {
+      console.error('[MESSAGE-INPUT] Error sending message:', error)
+    } finally {
+      setIsSending(false)
     }
-  }
+  }, [message, conversationId, disabled, isSending, onSendMessage])
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  // ✅ Manejar archivos subidos
+  const handleFilesUploaded = useCallback(async (uploadedFiles: any[]) => {
+    if (!conversationId || uploadedFiles.length === 0) return
+
+    try {
+      setIsSending(true)
+
+      // Crear mensaje con archivos
+      const attachments = uploadedFiles.map(file => ({
+        id: file.fileId,
+        filename: file.originalName,
+        url: file.mediaUrl,
+        mimeType: file.metadata?.format || 'application/octet-stream',
+        size: file.sizeBytes,
+        category: file.category,
+        metadata: file.metadata
+      }))
+
+      await onSendMessage({
+        conversationId,
+        content: message.trim() || 'Archivo adjunto',
+        senderEmail: '', // Se llenará en el hook
+        recipientEmail: '', // Se llenará en el hook
+        type: 'media',
+        attachments
+      })
+
+      setMessage('')
+      setShowFileUpload(false)
+      
+    } catch (error) {
+      console.error('[MESSAGE-INPUT] Error sending files:', error)
+    } finally {
+      setIsSending(false)
+    }
+  }, [conversationId, message, onSendMessage])
+
+  // ✅ Manejar audio grabado
+  const handleAudioUploaded = useCallback(async (uploadedAudio: any) => {
+    if (!conversationId) return
+
+    try {
+      setIsSending(true)
+
+      const audioAttachment = {
+        id: uploadedAudio.fileId,
+        filename: uploadedAudio.originalName,
+        url: uploadedAudio.mediaUrl,
+        mimeType: uploadedAudio.metadata?.format || 'audio/webm',
+        size: uploadedAudio.sizeBytes,
+        category: 'audio' as const,
+        metadata: uploadedAudio.metadata
+      }
+
+      await onSendMessage({
+        conversationId,
+        content: 'Mensaje de audio',
+        senderEmail: '', // Se llenará en el hook
+        recipientEmail: '', // Se llenará en el hook
+        type: 'media',
+        attachments: [audioAttachment]
+      })
+
+      setShowAudioRecorder(false)
+      
+    } catch (error) {
+      console.error('[MESSAGE-INPUT] Error sending audio:', error)
+    } finally {
+      setIsSending(false)
+    }
+  }, [conversationId, onSendMessage])
+
+  // ✅ Manejar teclas
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSubmit(e)
+      handleSendMessage()
     }
-  }
+  }, [handleSendMessage])
+
+  // ✅ Auto-resize textarea
+  const handleTextareaChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value)
+    
+    // Auto-resize
+    const textarea = e.target
+    textarea.style.height = 'auto'
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`
+  }, [])
+
+  // ✅ Toggle file upload
+  const toggleFileUpload = useCallback(() => {
+    setShowFileUpload(!showFileUpload)
+    setShowAudioRecorder(false) // Cerrar audio recorder si está abierto
+  }, [showFileUpload])
+
+  // ✅ Toggle audio recorder
+  const toggleAudioRecorder = useCallback(() => {
+    setShowAudioRecorder(!showAudioRecorder)
+    setShowFileUpload(false) // Cerrar file upload si está abierto
+  }, [showAudioRecorder])
+
+  const canSend = message.trim().length > 0 && !disabled && !isSending
 
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-      {/* ✅ CORREGIDO: Alineación perfecta con flex y centrado vertical */}
-      <form onSubmit={handleSubmit} className="flex items-center gap-3">
-        {/* Botón adjuntar archivo - CORREGIDO: Tamaño consistente */}
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="w-10 h-10 p-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 
-                    rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 flex-shrink-0"
-          title="Adjuntar archivo"
-        >
-          <Paperclip className="w-5 h-5" />
-        </Button>
-
-        {/* Input de mensaje - CORREGIDO: Mejor alineación y espaciado */}
-        <div className="flex-1 relative">
-          <Input
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Escribe un mensaje..."
-            disabled={disabled}
-            className="pr-20 bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 
-                      rounded-2xl h-12 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                      transition-all duration-200"
-          />
-          
-          {/* Botones dentro del input - CORREGIDO: Mejor posicionamiento */}
-          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+    <div className="border-t bg-white p-4 space-y-3">
+      {/* File Upload Modal */}
+      {showFileUpload && conversationId && (
+        <div className="border rounded-lg p-4 bg-gray-50">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-medium text-gray-900">Adjuntar Archivos</h3>
             <Button
-              type="button"
+              onClick={() => setShowFileUpload(false)}
               variant="ghost"
               size="sm"
-              className="w-8 h-8 p-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200
-                        rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200"
-              title="Emoji"
             >
-              <Smile className="w-4 h-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="w-8 h-8 p-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200
-                        rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200"
-              title="Mensaje de voz"
-            >
-              <Mic className="w-4 h-4" />
+              <X className="w-4 h-4" />
             </Button>
           </div>
+          
+          <FileUpload
+            onFilesUploaded={handleFilesUploaded}
+            conversationId={conversationId}
+            maxFiles={3}
+            disabled={isSending}
+          />
         </div>
-        
-        {/* Botón enviar - CORREGIDO: Tamaño consistente y mejor diseño */}
-        <Button 
-          type="submit" 
-          disabled={!message.trim() || disabled}
-          className="w-12 h-12 p-0 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 
-                    text-white rounded-full shadow-md hover:shadow-lg transition-all duration-200
-                    disabled:cursor-not-allowed flex-shrink-0"
+      )}
+
+      {/* Audio Recorder Modal */}
+      {showAudioRecorder && conversationId && (
+        <AudioRecorder
+          onUpload={handleAudioUploaded}
+          onCancel={() => setShowAudioRecorder(false)}
+          conversationId={conversationId}
+        />
+      )}
+
+      {/* Input Principal */}
+      <div className="flex items-end gap-2">
+        {/* Botones de acciones */}
+        <div className="flex gap-1">
+          <Button
+            onClick={toggleFileUpload}
+            variant="ghost"
+            size="sm"
+            className="h-10 w-10 p-0"
+            disabled={disabled || isSending}
+            title="Adjuntar archivo"
+          >
+            <Paperclip className="w-5 h-5" />
+          </Button>
+          
+          <Button
+            onClick={toggleAudioRecorder}
+            variant="ghost"
+            size="sm"
+            className="h-10 w-10 p-0"
+            disabled={disabled || isSending}
+            title="Grabar audio"
+          >
+            <Mic className="w-5 h-5" />
+          </Button>
+        </div>
+
+        {/* Textarea */}
+        <div className="flex-1 relative">
+          <Textarea
+            ref={textareaRef}
+            value={message}
+            onChange={handleTextareaChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            disabled={disabled || isSending}
+            className="min-h-[40px] max-h-[120px] resize-none pr-12 py-2"
+            rows={1}
+          />
+        </div>
+
+        {/* Botón enviar */}
+        <Button
+          onClick={handleSendMessage}
+          disabled={!canSend}
+          size="sm"
+          className="h-10 w-10 p-0 bg-blue-600 hover:bg-blue-700"
         >
           <Send className="w-5 h-5" />
         </Button>
-      </form>
-      
-      {/* TODO: Mostrar indicador de usuarios escribiendo */}
-      {/* {isTyping && (
-        <div className="text-xs text-muted-foreground mt-1">
-          Usuario está escribiendo...
+      </div>
+
+      {/* Estado de envío */}
+      {isSending && (
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <span>Enviando mensaje...</span>
         </div>
-      )} */}
+      )}
     </div>
   )
-}
-
-export default MessageInput 
+} 

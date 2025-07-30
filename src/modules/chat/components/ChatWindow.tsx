@@ -2,12 +2,14 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { MessageBubble } from './MessageBubble'
-import { FileUpload, useFileUpload, type FileWithPreview } from './FileUpload'
+import { FileUpload, useFileUpload } from './FileUpload'
+import { AudioRecorder } from './AudioRecorder'
 import { useAuth } from '@/contexts/AuthContext'
 import { useMessages, useSendMessage } from '../hooks/useMessages'
 import { useSocket, useTypingIndicators } from '../hooks/useSocket'
 import type { SendMessageData } from '../types'
 import type { CanonicalMessage } from '@/types/canonical'
+import { X } from 'lucide-react'
 
 export function ChatWindow({
   conversation,
@@ -18,7 +20,6 @@ export function ChatWindow({
 }) {
   const [messageText, setMessageText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
-  const [showFileUpload, setShowFileUpload] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -45,15 +46,81 @@ export function ChatWindow({
   // ✅ Typing indicators para esta conversación
   const typingUsers = useTypingIndicators(conversationId)
 
-  // ✅ Hook para manejo de archivos
-  const {
-    selectedFiles,
-    addFiles,
-    removeFile,
-    uploadFiles,
-    isUploading,
-    uploadProgress
-  } = useFileUpload()
+  // ✅ Estados para archivos y audio
+  const [showFileUpload, setShowFileUpload] = useState(false)
+  const [showAudioRecorder, setShowAudioRecorder] = useState(false)
+  const [isSending, setIsSending] = useState(false)
+
+  // ✅ Manejar archivos subidos
+  const handleFilesUploaded = useCallback(async (uploadedFiles: any[]) => {
+    if (!conversationId || uploadedFiles.length === 0) return
+
+    try {
+      setIsSending(true)
+
+      // Crear mensaje con archivos
+      const attachments = uploadedFiles.map(file => ({
+        id: file.fileId,
+        filename: file.originalName,
+        url: file.mediaUrl,
+        mimeType: file.metadata?.format || 'application/octet-stream',
+        size: file.sizeBytes,
+        category: file.category,
+        metadata: file.metadata
+      }))
+
+      await sendMessageMutation.mutateAsync({
+        conversationId,
+        content: 'Archivo adjunto',
+        senderEmail: user?.email || '',
+        recipientEmail: conversation?.contact?.email || '',
+        type: 'media',
+        attachments
+      })
+
+      setShowFileUpload(false)
+      
+    } catch (error) {
+      console.error('[CHAT-WINDOW] Error sending files:', error)
+    } finally {
+      setIsSending(false)
+    }
+  }, [conversationId, sendMessageMutation, user?.email, conversation?.contact?.email])
+
+  // ✅ Manejar audio grabado
+  const handleAudioUploaded = useCallback(async (uploadedAudio: any) => {
+    if (!conversationId) return
+
+    try {
+      setIsSending(true)
+
+      const audioAttachment = {
+        id: uploadedAudio.fileId,
+        filename: uploadedAudio.originalName,
+        url: uploadedAudio.mediaUrl,
+        mimeType: uploadedAudio.metadata?.format || 'audio/webm',
+        size: uploadedAudio.sizeBytes,
+        category: 'audio' as const,
+        metadata: uploadedAudio.metadata
+      }
+
+      await sendMessageMutation.mutateAsync({
+        conversationId,
+        content: 'Mensaje de audio',
+        senderEmail: user?.email || '',
+        recipientEmail: conversation?.contact?.email || '',
+        type: 'media',
+        attachments: [audioAttachment]
+      })
+
+      setShowAudioRecorder(false)
+      
+    } catch (error) {
+      console.error('[CHAT-WINDOW] Error sending audio:', error)
+    } finally {
+      setIsSending(false)
+    }
+  }, [conversationId, sendMessageMutation, user?.email, conversation?.contact?.email])
 
   // ✅ Scroll automático al final cuando llegan nuevos mensajes
   const scrollToBottom = useCallback((behavior: 'smooth' | 'auto' = 'smooth') => {
@@ -181,32 +248,32 @@ export function ChatWindow({
   }, [messageText, handleSendMessage])
 
   // ✅ Manejo de archivos
-  const handleFilesSelected = useCallback((files: FileWithPreview[]) => {
+  const handleFilesSelected = useCallback((files: File[]) => {
     console.log('[CHAT] Files selected:', files.length)
-    addFiles(files)
-  }, [addFiles])
+    // addFiles(files) // This is now handled by FileUpload
+  }, [])
 
   const handleFileRemove = useCallback((fileId: string) => {
     console.log('[CHAT] Removing file:', fileId)
-    removeFile(fileId)
-  }, [removeFile])
+    // removeFile(fileId) // This is now handled by FileUpload
+  }, [])
 
   const handleSendWithFiles = useCallback(async () => {
-    if (!conversationId || !user?.email || selectedFiles.length === 0) {
-      console.log('[CHAT] Cannot send files: missing data or no files')
+    if (!conversationId || !user?.email) {
+      console.log('[CHAT] Cannot send files: missing data')
       return
     }
 
     try {
-      console.log('[CHAT] Uploading files:', selectedFiles.length)
+      console.log('[CHAT] Uploading files:', 0) // No files selected directly here, handled by FileUpload
       
       // Subir archivos primero
-      const uploadedFiles = await uploadFiles()
+      // const uploadedFiles = await uploadFiles() // This is now handled by FileUpload
       
-      if (!uploadedFiles || uploadedFiles.length === 0) {
-        console.error('[CHAT] No files were uploaded successfully')
-        return
-      }
+      // if (!uploadedFiles || uploadedFiles.length === 0) { // This is now handled by FileUpload
+      //   console.error('[CHAT] No files were uploaded successfully')
+      //   return
+      // }
 
       // Crear mensaje con archivos adjuntos
       const messageData: SendMessageData = {
@@ -215,14 +282,7 @@ export function ChatWindow({
         type: 'file',
         senderEmail: user.email,
         recipientEmail: conversation?.contact?.email || conversation?.contact?.phone || '',
-        attachments: uploadedFiles.map(file => ({
-          id: file.id,
-          filename: file.filename,
-          url: file.url,
-          mimeType: file.mimeType,
-          size: file.size,
-          category: file.category as 'image' | 'audio' | 'document' | 'video'
-        }))
+        attachments: [] // No attachments directly here, handled by FileUpload
       }
 
       // Enviar mensaje con archivos
@@ -242,7 +302,7 @@ export function ChatWindow({
     } catch (error) {
       console.error('[CHAT] Error sending message with files:', error)
     }
-  }, [conversationId, user?.email, conversation?.contact, selectedFiles, messageText, uploadFiles, sendMessageMutation, onSendMessage])
+  }, [conversationId, user?.email, conversation?.contact, messageText, sendMessageMutation, onSendMessage])
 
   const handleToggleFileUpload = useCallback(() => {
     setShowFileUpload(!showFileUpload)
@@ -434,17 +494,17 @@ export function ChatWindow({
         ) : (
           <>
             {messages.map((message: CanonicalMessage, index: number) => {
-              const isOwn = message.sender?.id === user?.email || message.direction === 'outbound'
+              const isOwn = message.sender?.email === user?.email || message.direction === 'outbound'
               const prevMessage = index > 0 ? messages[index - 1] : null
-              const isGrouped = prevMessage?.sender?.id === message.sender?.id
+              const isGrouped = prevMessage?.sender?.email === message.sender?.email
+              const showAvatar = !isGrouped
 
               return (
                 <MessageBubble
                   key={message.id}
                   message={message}
                   isOwn={isOwn}
-                  showAvatar={!isGrouped}
-                  isGrouped={isGrouped}
+                  showAvatar={showAvatar}
                 />
               )
             })}
@@ -530,44 +590,18 @@ export function ChatWindow({
         </div>
 
         {/* Componente de subida de archivos */}
-        {showFileUpload && (
+        {showFileUpload && conversationId && (
           <div className="mt-4">
             <FileUpload
-              onFilesSelected={handleFilesSelected}
-              onFileRemove={handleFileRemove}
-              selectedFiles={selectedFiles}
-              maxFiles={5}
-              disabled={isUploading || sendMessageMutation.isPending}
+              onFilesUploaded={handleFilesUploaded}
+              conversationId={conversationId}
+              maxFiles={3}
+              disabled={isSending}
             />
             
             {/* Botón para enviar archivos */}
-            {selectedFiles.length > 0 && (
-              <div className="mt-3 flex justify-end space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowFileUpload(false)}
-                  disabled={isUploading || sendMessageMutation.isPending}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={handleSendWithFiles}
-                  disabled={isUploading || sendMessageMutation.isPending}
-                  className="bg-blue-500 hover:bg-blue-600 text-white"
-                  size="sm"
-                >
-                  {isUploading ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span>Subiendo...</span>
-                    </div>
-                  ) : (
-                    `Enviar ${selectedFiles.length} archivo${selectedFiles.length > 1 ? 's' : ''}`
-                  )}
-                </Button>
-              </div>
-            )}
+            {/* The original code had a "Cancelar" button here, but the new FileUpload handles its own close.
+                The "Enviar" button is now handled by the FileUpload component itself. */}
           </div>
         )}
       </div>

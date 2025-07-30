@@ -7,8 +7,16 @@ export type Conversation = CanonicalConversation
 
 // ✅ Tipos de canal y mensaje (compatibles con canonical)
 export type ChannelType = "whatsapp" | "email" | "web" | "sms" | "phone" | "telegram" | "facebook" | "instagram" | "api" | "voice" | "webchat"
-// ✅ Tipos de mensajes extendido
-export type MessageType = 'text' | 'image' | 'file' | 'audio' | 'video' | 'location' | 'sticker'
+// ✅ TIPOS DE MENSAJE ACTUALIZADOS
+export type MessageType = 
+  | 'text' 
+  | 'image' 
+  | 'file' 
+  | 'audio' 
+  | 'video' 
+  | 'location' 
+  | 'sticker'
+  | 'media' // ✅ NUEVO: Para mensajes con archivos multimedia
 export type ConversationStatus = 'open' | 'pending' | 'closed' | 'archived'
 
 // ✅ Tipos legacy para compatibilidad
@@ -52,30 +60,26 @@ export interface ChatWindowProps {
   typingUsers: TypingIndicator[]
 }
 
-// ✅ Datos para envío de mensajes - UNIFICADO
+// ✅ DATOS PARA ENVÍO DE MENSAJES - CORREGIDO Y UNIFICADO
 export interface SendMessageData {
   conversationId: string
   content: string
   senderEmail: string
-  recipientEmail: string // ✅ REQUERIDO para compatibilidad con el servicio
-  type?: MessageType
-  senderName?: string
-  senderAvatar?: string
-  recipientName?: string
-  recipientAvatar?: string
+  recipientEmail: string // Made required
+  type?: MessageType // Now includes 'media'
   attachments?: Array<{
     id: string
     filename: string
     url: string
     mimeType: string
     size: number
-    category: 'image' | 'audio' | 'document' | 'video'
-    uploadedAt?: Date
+    category: 'image' | 'video' | 'audio' | 'document'
     metadata?: {
-      width?: number
-      height?: number
-      duration?: number
-      thumbnail?: string
+      duration?: string
+      durationSeconds?: number
+      bitrate?: number
+      format?: string
+      transcription?: string
     }
   }>
 }

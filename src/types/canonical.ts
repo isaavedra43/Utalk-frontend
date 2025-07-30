@@ -11,19 +11,15 @@ export interface CanonicalMessage {
   id: string                    // ID único del mensaje
   conversationId: string        // ID de la conversación
   content: string              // Contenido del mensaje
-  timestamp: Date              // Timestamp SIEMPRE Date, nunca string
+  timestamp: Date | string    // Timestamp SIEMPRE Date, nunca string
   
   // ✅ REMITENTE OBLIGATORIO
-  sender: {
-    id: string                 // ID único del remitente (EMAIL)
-    name: string               // Nombre completo
-    type: 'contact' | 'agent' | 'bot' | 'system' | 'customer'  // Tipo estricto
-    avatar?: string            // URL del avatar (opcional)
-  }
+  sender: CanonicalUser
+  recipient: CanonicalUser
   
   // ✅ TIPO Y ESTADO OBLIGATORIOS
-  type: 'text' | 'image' | 'video' | 'audio' | 'file' | 'location' | 'sticker'
-  status: 'pending' | 'sent' | 'delivered' | 'read' | 'failed'
+  type: 'text' | 'image' | 'video' | 'audio' | 'file' | 'location' | 'sticker' | 'media' // ✅ AGREGADO 'media'
+  status: 'sent' | 'pending' | 'delivered' | 'read' | 'failed'
   direction: 'inbound' | 'outbound'
   
   // ✅ CAMPOS BOOLEANOS CON DEFAULTS
@@ -32,21 +28,7 @@ export interface CanonicalMessage {
   isImportant: boolean         // Marcado como importante
   
   // ✅ ADJUNTOS (OPCIONAL PERO ESTRUCTURADO)
-  attachments?: Array<{
-    id: string                 // ID único del adjunto
-    filename: string           // Nombre del archivo
-    url: string                // URL del archivo
-    mimeType: string           // MIME type
-    size: number               // Tamaño en bytes
-    category: 'image' | 'video' | 'audio' | 'document' // Categoría del archivo
-    uploadedAt?: Date          // Fecha de subida
-    metadata?: {
-      width?: number           // Ancho (imágenes/videos)
-      height?: number          // Alto (imágenes/videos)
-      duration?: number        // Duración (audio/video)
-      thumbnail?: string       // URL thumbnail
-    }
-  }>
+  attachments?: CanonicalFileAttachment[]
   
   // ✅ METADATOS (OPCIONAL)
   metadata?: {
@@ -155,43 +137,10 @@ export interface CanonicalContact {
  * Estructura estricta para usuarios del sistema
  */
 export interface CanonicalUser {
-  // ✅ IDENTIFICACIÓN EMAIL-FIRST
-  email: string                // EMAIL como identificador único
-  name: string                 // Nombre completo
-  
-  // ✅ AUTENTICACIÓN Y AUTORIZACIÓN
-  isActive: boolean            // Usuario activo
-  role: string                 // Rol del usuario
-  permissions: string[]        // Permisos específicos
-  department: string           // Departamento
-  
-  // ✅ INFORMACIÓN PERSONAL (OPCIONAL)
-  avatar?: string              // URL del avatar
-  phone?: string               // Teléfono
-  
-  // ✅ TIMESTAMPS
-  createdAt: Date
-  updatedAt: Date
-  lastLoginAt?: Date           // ✅ Último login (OPCIONAL)
-  
-  // ✅ CONFIGURACIÓN PERSONAL
-  preferences: {
-    language: string           // Idioma preferido
-    timezone: string           // Zona horaria
-    theme: 'light' | 'dark' | 'system' // Tema preferido
-    notifications: {
-      email: boolean           // Notificaciones por email
-      push: boolean            // Notificaciones push
-      desktop: boolean         // Notificaciones de escritorio
-    }
-  }
-  
-  // ✅ METADATOS ADICIONALES
-  metadata?: {
-    firstLogin?: Date          // Primer login
-    sessionCount?: number      // Contador de sesiones
-    customFields?: Record<string, any>
-  }
+  email: string // ✅ CAMBIADO: usar email como identificador principal
+  name: string
+  type: 'agent' | 'system' | 'contact' | 'bot' | 'customer'
+  avatar?: string
 }
 
 /**
@@ -282,4 +231,25 @@ export interface ValidationResult {
   isValid: boolean
   error?: string
   warnings?: string[]
+}
+
+// ✅ TIPO PARA ARCHIVOS MULTIMEDIA
+export interface CanonicalFileAttachment {
+  id: string
+  filename: string
+  url: string
+  mimeType: string
+  size: number
+  category: 'image' | 'video' | 'audio' | 'document'
+  metadata?: {
+    duration?: string
+    durationSeconds?: number
+    bitrate?: number
+    format?: string
+    transcription?: string
+    width?: number
+    height?: number
+    processed?: boolean
+  }
+  expiresAt?: Date | string
 }

@@ -1,5 +1,5 @@
 // Índice principal del módulo de chat
-// ✅ SOLUCIÓN COMPLETA: Exportaciones actualizadas
+// ✅ SOPORTE MULTIMEDIA COMPLETO: Exportaciones actualizadas
 
 // Componentes principales
 export { Inbox } from './Inbox'
@@ -15,15 +15,22 @@ export { ChannelBadge } from './components/ChannelBadge'
 export { Avatar } from './components/Avatar'
 export { MessageInput } from './components/MessageInput'
 export { MessageStatus } from './components/MessageStatus'
+
+// ✅ NUEVOS: Componentes multimedia
 export { FileUpload, useFileUpload } from './components/FileUpload'
 export { FileRenderer } from './components/FileRenderer'
+export { AudioPlayer } from './components/AudioPlayer'
+export { AudioRecorder } from './components/AudioRecorder'
 
 // Hooks
 export { useConversations } from './hooks/useConversations'
 export { useMessages, useSendMessage } from './hooks/useMessages'
 export { useSocket, useTypingIndicators } from './hooks/useSocket'
 
-// ✅ NUEVO: Constantes y validadores Socket.IO
+// ✅ NUEVOS: Hooks multimedia
+export { useTemporaryUrl, useFileUrl } from './hooks/useTemporaryUrl'
+
+// Constantes y validadores Socket.IO
 export { 
   SOCKET_EVENTS, 
   CONNECTION_EVENTS, 

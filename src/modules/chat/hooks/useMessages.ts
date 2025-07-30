@@ -177,10 +177,15 @@ export function useSendMessage() {
         content: messageData.content,
         timestamp: new Date(),
         sender: {
-          id: user?.email || 'unknown',
+          email: user?.email || 'unknown',
           name: user?.name || 'Usuario',
-          type: 'agent',
+          type: 'agent' as const,
           avatar: user?.avatar
+        },
+        recipient: {
+          email: messageData.recipientEmail || 'unknown',
+          name: 'Destinatario',
+          type: 'contact' as const
         },
         type: messageData.type || 'text',
         status: 'pending',
@@ -188,10 +193,8 @@ export function useSendMessage() {
         isRead: false,
         isDelivered: false,
         isImportant: false,
-        attachments: [],
-        metadata: {
-          userEmail: user?.email
-        }
+        metadata: {},
+        attachments: messageData.attachments || []
       }
       
       // Actualizar cache con mensaje optimista
