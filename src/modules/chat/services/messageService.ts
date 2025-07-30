@@ -4,8 +4,26 @@ import { apiClient } from '@/services/apiClient'
 import { logger } from '@/lib/logger'
 import { MessageValidator } from '@/lib/validation'
 import { API_ENDPOINTS, FILTER_PARAMS } from '@/lib/constants'
-import type { CanonicalMessage } from '@/types/canonical'
+import type { CanonicalMessage, CanonicalUser } from '@/types/canonical'
 import type { SendMessageData } from '../types'
+
+/**
+ * ✅ CONTRATO DE API - MENSAJES CORREGIDO
+ * 
+ * ESTRUCTURA ESTÁNDAR DEL BACKEND:
+ * - Mensajes simples: response.data = [mensaje1, mensaje2, ...]
+ * - Mensajes con paginación: response.data = { data: [...], pagination: {...} }
+ * 
+ * ENDPOINTS DE MENSAJES:
+ * - GET /api/conversations/:id/messages -> response.data = [mensaje1, mensaje2, ...]
+ * - GET /api/conversations/:id/messages?page=1&limit=50 -> response.data = { data: [...], pagination: {...} }
+ * - GET /api/messages/search -> response.data = [mensaje1, mensaje2, ...]
+ * - POST /api/messages/send -> response.data = mensaje_creado
+ * 
+ * ✅ ESTRUCTURA CORREGIDA PARA PAGINACIÓN:
+ * El backend entrega: { data: [...], pagination: { hasMore, nextCursor, totalResults } }
+ * El frontend accede a: response.data.data (no response.data.messages)
+ */
 
 /**
  * ✅ Servicio singleton para mensajes usando EMAIL como identificador
@@ -21,34 +39,33 @@ class MessageService {
 
       const response = await apiClient.get(API_ENDPOINTS.CONVERSATIONS.MESSAGES(conversationId))
       
-      console.log('[SERVICE] Raw response from API:', {
+      // ✅ LOG EXPLÍCITO DE AUDITORÍA - RESPUESTA CRUDA
+      console.log("Mensajes recibidos (raw):", response.data)
+      console.log('[SERVICE] Raw response metadata:', {
         status: response?.status,
-        data: response?.data,
         dataType: typeof response?.data,
         isArray: Array.isArray(response?.data),
         length: response?.data?.length
       })
 
-      // ✅ Manejo robusto de respuesta vacía
+      // ✅ El backend entrega SIEMPRE el array de mensajes directamente en response.data
+      // Nunca usar response.data.data ni response.data.messages
       if (!response || !response.data) {
         console.log('[SERVICE] Empty response, returning empty array')
         return []
       }
 
-      // ✅ Manejar diferentes estructuras de respuesta
-      let messages = response.data
-      if (Array.isArray(response.data?.data)) {
-        messages = response.data.data
-        console.log('[SERVICE] Using nested data structure')
-      } else if (Array.isArray(response.data?.messages)) {
-        messages = response.data.messages
-        console.log('[SERVICE] Using messages property')
+      // ✅ Acceso directo al array de mensajes
+      const messages = response.data
+
+      if (!Array.isArray(messages)) {
+        console.warn('[SERVICE] Response.data is not an array, returning empty array. Received:', typeof messages)
+        return []
       }
 
       console.log('[SERVICE] Messages before validation:', {
-        count: Array.isArray(messages) ? messages.length : 0,
-        isArray: Array.isArray(messages),
-        sample: Array.isArray(messages) ? messages[0] : messages
+        count: messages.length,
+        sample: messages[0] || null
       })
 
       // ✅ Validar y normalizar mensajes
@@ -56,7 +73,7 @@ class MessageService {
       
       console.log('[SERVICE] Messages after validation:', {
         validCount: validatedMessages.length,
-        invalidCount: Array.isArray(messages) ? messages.length - validatedMessages.length : 0
+        invalidCount: messages.length - validatedMessages.length
       })
 
       logger.success('Messages fetched successfully', {
@@ -111,6 +128,9 @@ class MessageService {
         dataKeys: response?.data ? Object.keys(response.data) : [],
       })
 
+      // ✅ LOG EXPLÍCITO DE AUDITORÍA - RESPUESTA CRUDA DE PAGINACIÓN
+      console.log("Mensajes paginados recibidos (raw):", response.data)
+      
       // ✅ Manejo robusto de respuesta vacía
       if (!response || !response.data) {
         console.log('[SERVICE] Empty paginated response, returning empty result')
@@ -123,26 +143,26 @@ class MessageService {
         }
       }
 
-      // ✅ Manejar diferentes estructuras de respuesta de paginación
+      // ✅ ESTRUCTURA CORREGIDA: El backend entrega la estructura estándar
+      // response.data contiene el objeto con: { data: [...], pagination: {...} }
       let messages = []
       let total = 0
       let hasMore = false
 
-      if (response.data.data && Array.isArray(response.data.data)) {
-        // Estructura: { data: [...], pagination: {...} }
-        messages = response.data.data
-        total = response.data.pagination?.total || 0
-        hasMore = response.data.pagination?.hasNextPage || false
-      } else if (response.data.messages && Array.isArray(response.data.messages)) {
-        // Estructura: { messages: [...], total: X, hasMore: boolean }
-        messages = response.data.messages
-        total = response.data.total || 0
-        hasMore = response.data.hasMore || false
+      if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+        // Estructura estándar del backend: { data: [...], pagination: {...} }
+        if (Array.isArray(response.data.data)) {
+          messages = response.data.data
+          total = response.data.pagination?.totalResults || 0
+          hasMore = response.data.pagination?.hasMore || false
+          console.log('[SERVICE] Using standard backend structure: response.data.data')
+        }
       } else if (Array.isArray(response.data)) {
-        // Estructura simple: [mensaje1, mensaje2, ...]
+        // Fallback: Array directo (por compatibilidad)
         messages = response.data
         total = messages.length
-        hasMore = messages.length === limit // Asumir que hay más si recibimos el límite exacto
+        hasMore = messages.length === limit
+        console.log('[SERVICE] Using direct array structure for pagination')
       }
 
       console.log('[SERVICE] Paginated messages before validation:', {

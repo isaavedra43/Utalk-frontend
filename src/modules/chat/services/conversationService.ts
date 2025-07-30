@@ -166,43 +166,40 @@ function normalizeConversation(conv: any): any {
  */
 class ConversationService {
   /**
-   * ✅ Obtener TODAS las conversaciones del backend
+   * ✅ Obtener todas las conversaciones
    * Robusto ante cualquier estructura de respuesta
    */
   async getConversations(): Promise<CanonicalConversation[]> {
     try {
       const response = await apiClient.get(API_ENDPOINTS.CONVERSATIONS.LIST)
 
-      // ✅ LOGS CRÍTICOS: apiClient.get() ya procesó la respuesta
-      console.log('[CRITICAL-FIX] Response from apiClient.get():', response)
-      console.log('[CRITICAL-FIX] typeof response:', typeof response)
-      console.log('[CRITICAL-FIX] Array.isArray(response):', Array.isArray(response))
-      
-      if (response && typeof response === 'object' && !Array.isArray(response)) {
-        console.log('[CRITICAL-FIX] Response object keys:', Object.keys(response))
-        for (const key of Object.keys(response)) {
-          console.log(`[CRITICAL-FIX] response.${key}:`, response[key])
-          console.log(`[CRITICAL-FIX] Array.isArray(response.${key}):`, Array.isArray(response[key]))
-        }
+      // ✅ LOG EXPLÍCITO DE AUDITORÍA - RESPUESTA CRUDA
+      console.log("Conversaciones recibidas (raw):", response)
+
+      // ✅ El backend entrega SIEMPRE el array de conversaciones directamente en response
+      // Nunca usar response.data.data ni response.data.conversations
+      if (!response) {
+        console.log('[SERVICE] Empty response, returning empty array')
+        return []
       }
 
-      // ✅ NUEVA LÓGICA: apiClient.get() ya extrajo el array
       let conversations: any = []
 
-      // CASO 1: apiClient.get() retornó el array directamente
+      // El response puede ser directamente el array o un objeto que contiene el array
       if (Array.isArray(response)) {
         conversations = response
-        console.log('✅ [SUCCESS] apiClient returned array directly')
-      }
-      // CASO 2: apiClient.get() retornó un objeto con el array en alguna propiedad
-      else if (response && typeof response === 'object') {
-        // Buscar array en cualquier propiedad del objeto
-        for (const key of Object.keys(response)) {
-          if (Array.isArray(response[key])) {
-            conversations = response[key]
-            console.log(`✅ [SUCCESS] Found array in response.${key}`)
-            break
-          }
+        console.log('✅ [SUCCESS] Response is array directly')
+      } else if (response && typeof response === 'object') {
+        // Buscar array en las propiedades más comunes
+        if (Array.isArray(response.data)) {
+          conversations = response.data
+          console.log('✅ [SUCCESS] Found array in response.data')
+        } else if (Array.isArray(response.conversations)) {
+          conversations = response.conversations
+          console.log('✅ [SUCCESS] Found array in response.conversations')
+        } else {
+          console.log('⚠️ [WARNING] No array found in response object')
+          conversations = []
         }
       }
 

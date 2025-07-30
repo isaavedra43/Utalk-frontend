@@ -145,19 +145,19 @@ class ApiClient {
   async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.axiosInstance.get<ApiResponse<T>>(url, config)
     
-    // ✅ MANEJO ROBUSTO: Verificar formato de respuesta como en POST
-    // Compatibilidad con estructura canónica y formato ApiResponse<T>
-    if (response.data && typeof response.data === 'object' && 'data' in response.data) {
-      // Patrón ApiResponse<T> estándar: { data: {...} }
-      return response.data.data
-    } else {
-      // Respuesta directa (estructura canónica): {...} 
-      return response.data as T
-    }
+    // ✅ LOG EXPLÍCITO DE AUDITORÍA - RESPUESTA CRUDA
+    console.log(`[API-CLIENT] GET ${url} - Raw response:`, response.data)
+    
+    // ✅ Retornar response.data directamente sin extraer .data.data
+    // Cada servicio debe manejar su propia estructura de datos
+    return response.data as T
   }
 
   async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.axiosInstance.post<ApiResponse<T>>(url, data, config)
+    
+    // ✅ LOG EXPLÍCITO DE AUDITORÍA - RESPUESTA CRUDA  
+    console.log(`[API-CLIENT] POST ${url} - Raw response:`, response.data)
     
     // ✅ LOGS CRÍTICOS: Verificar estructura de respuesta antes de retornar
     logger.info('🔍 API POST Response Debug', {
@@ -166,35 +166,42 @@ class ApiClient {
       hasData: !!response.data,
       dataType: typeof response.data,
       dataKeys: response.data ? Object.keys(response.data) : [],
-      hasDataData: response.data?.data !== undefined,
-      dataDataType: typeof response.data?.data,
       responseStructure: JSON.stringify(response.data, null, 2).substring(0, 500)
     }, 'api_post_response_debug')
     
-    // ✅ ACTUALIZADO: El backend UTalk usa patrón estándar para todos los endpoints
-    // Verificar si la respuesta es del tipo ApiResponse<T> o directa
-    if (response.data && typeof response.data === 'object' && 'data' in response.data) {
-      // Patrón ApiResponse<T> estándar
-      return response.data.data
-    } else {
-      // Respuesta directa (algunos endpoints especiales como login)
-      return response.data as T
-    }
+    // ✅ Retornar response.data directamente sin extraer .data.data
+    // Cada servicio debe manejar su propia estructura de datos
+    return response.data as T
   }
 
   async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.axiosInstance.put<ApiResponse<T>>(url, data, config)
-    return response.data.data
+    
+    // ✅ LOG EXPLÍCITO DE AUDITORÍA - RESPUESTA CRUDA
+    console.log(`[API-CLIENT] PUT ${url} - Raw response:`, response.data)
+    
+    // ✅ Retornar response.data directamente sin extraer .data.data
+    return response.data as T
   }
 
   async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.axiosInstance.patch<ApiResponse<T>>(url, data, config)
-    return response.data.data
+    
+    // ✅ LOG EXPLÍCITO DE AUDITORÍA - RESPUESTA CRUDA
+    console.log(`[API-CLIENT] PATCH ${url} - Raw response:`, response.data)
+    
+    // ✅ Retornar response.data directamente sin extraer .data.data
+    return response.data as T
   }
 
   async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.axiosInstance.delete<ApiResponse<T>>(url, config)
-    return response.data.data
+    
+    // ✅ LOG EXPLÍCITO DE AUDITORÍA - RESPUESTA CRUDA
+    console.log(`[API-CLIENT] DELETE ${url} - Raw response:`, response.data)
+    
+    // ✅ Retornar response.data directamente sin extraer .data.data
+    return response.data as T
   }
 
   // Método para subir archivos
@@ -215,7 +222,12 @@ class ApiClient {
     }
 
     const response = await this.axiosInstance.post<ApiResponse<T>>(url, formData, config)
-    return response.data.data
+    
+    // ✅ LOG EXPLÍCITO DE AUDITORÍA - RESPUESTA CRUDA
+    console.log(`[API-CLIENT] UPLOAD ${url} - Raw response:`, response.data)
+    
+    // ✅ Retornar response.data directamente sin extraer .data.data
+    return response.data as T
   }
 
   // Método para configurar headers personalizados

@@ -141,10 +141,16 @@ export function useSendMessage() {
         throw new Error('Usuario no autenticado')
       }
 
+      if (!messageData.recipientEmail) {
+        throw new Error('recipientEmail es requerido para enviar el mensaje')
+      }
+
       // Agregar email del usuario si no está presente
-      const enrichedData = {
+      const enrichedData: SendMessageData = {
         ...messageData,
-        senderEmail: messageData.senderEmail || user.email
+        senderEmail: messageData.senderEmail || user.email,
+        recipientEmail: messageData.recipientEmail,
+        type: messageData.type || 'text'
       }
 
       const response = await messageService.sendMessage(enrichedData)

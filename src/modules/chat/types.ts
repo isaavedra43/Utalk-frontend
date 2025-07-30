@@ -7,7 +7,8 @@ export type Conversation = CanonicalConversation
 
 // ✅ Tipos de canal y mensaje (compatibles con canonical)
 export type ChannelType = "whatsapp" | "email" | "web" | "sms" | "phone" | "telegram" | "facebook" | "instagram" | "api" | "voice" | "webchat"
-export type MessageType = 'text' | 'image' | 'video' | 'audio' | 'file' | 'location' | 'sticker'
+// ✅ Tipos de mensajes extendido
+export type MessageType = 'text' | 'image' | 'file' | 'audio' | 'video' | 'location' | 'sticker'
 export type ConversationStatus = 'open' | 'pending' | 'closed' | 'archived'
 
 // ✅ Tipos legacy para compatibilidad
@@ -51,20 +52,31 @@ export interface ChatWindowProps {
   typingUsers: TypingIndicator[]
 }
 
-// ✅ Datos para envío de mensajes - CORREGIDO
+// ✅ Datos para envío de mensajes - UNIFICADO
 export interface SendMessageData {
   conversationId: string
   content: string
   senderEmail: string
-  recipientEmail?: string
+  recipientEmail: string // ✅ REQUERIDO para compatibilidad con el servicio
   type?: MessageType
+  senderName?: string
+  senderAvatar?: string
+  recipientName?: string
+  recipientAvatar?: string
   attachments?: Array<{
     id: string
     filename: string
     url: string
     mimeType: string
     size: number
-    category: 'image' | 'video' | 'audio' | 'document'
+    category: 'image' | 'audio' | 'document' | 'video'
+    uploadedAt?: Date
+    metadata?: {
+      width?: number
+      height?: number
+      duration?: number
+      thumbnail?: string
+    }
   }>
 }
 
