@@ -108,7 +108,7 @@ export function MessageList({ conversationId }: MessageListProps) {
   }, [])
 
   useEffect(() => {
-    if (messages && messages.length > 0) {
+    if (Array.isArray(messages) && messages.length > 0) {
       const timer = setTimeout(scrollToBottom, 100)
       return () => clearTimeout(timer)
     }
@@ -116,7 +116,7 @@ export function MessageList({ conversationId }: MessageListProps) {
 
   console.log('[MESSAGE-LIST] Rendering with:', {
     conversationId,
-    messagesCount: messages?.length || 0,
+    messagesCount: Array.isArray(messages) ? messages.length : 0,
     isLoading: isLoading,
     error: error ? (error as any).message : null,
     hasValidMessages: Array.isArray(messages) && messages.length > 0,
