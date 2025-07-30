@@ -39,17 +39,16 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
     error: conversationsError 
   } = useConversations()
 
-  // ✅ MENSAJES CON VALIDACIÓN ROBUSTA
+  // ✅ MENSAJES CON VALIDACIÓN MÍNIMA
   const { 
-    messages = [], // ✅ Default array vacío
+    messages = [], 
     isLoading: messagesLoading = false, 
     error: messagesError = null,
     hasValidMessages = false 
   } = useMessages(selectedConversationId || '')
 
-  // ✅ VALIDACIÓN ADICIONAL PARA EVITAR ERRORES
+  // ✅ VALIDACIÓN DEFENSIVA SIMPLE
   const safeMessages = Array.isArray(messages) ? messages : []
-  const messagesEnabled = !!selectedConversationId && isAuthenticated
 
   // ✅ ENVÍO DE MENSAJES
   const sendMessageMutation = useSendMessage()
@@ -63,11 +62,10 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
       sessionValid,
       socketConnected,
       conversationsCount: conversations.length,
-      messagesCount: safeMessages.length, // ✅ Usar safeMessages
-      hasValidMessages,
-      messagesEnabled
+      messagesCount: safeMessages.length,
+      hasValidMessages
     }
-  }), [selectedConversationId, isAuthenticated, sessionValid, socketConnected, conversations.length, safeMessages.length, hasValidMessages, messagesEnabled])
+  }), [selectedConversationId, isAuthenticated, sessionValid, socketConnected, conversations.length, safeMessages.length, hasValidMessages])
 
   // ✅ MANEJO DE RESIZE PARA RESPONSIVIDAD
   useEffect(() => {
@@ -233,10 +231,9 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
 
   // ✅ VALIDACIÓN DE CONVERSACIÓN SELECCIONADA - SOLO PARA CHAT WINDOW
   if (!selectedConversationId) {
-    // ✅ MOSTRAR LISTA DE CONVERSACIONES EN LUGAR DE MENSAJE
+    // ✅ MOSTRAR LISTA DE CONVERSACIONES SIN VALIDACIONES COMPLEJAS
     return (
       <div className={`flex h-full bg-gray-50 ${className}`}>
-        {/* ✅ LISTA DE CONVERSACIONES - SIEMPRE VISIBLE */}
         <div className={`${isMobile ? 'w-full' : 'w-80'} border-r border-gray-200 bg-white`}>
           <ConversationList
             conversations={conversations}
@@ -249,7 +246,6 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
           />
         </div>
 
-        {/* ✅ MENSAJE PARA SELECCIONAR CONVERSACIÓN */}
         <div className={`${isMobile ? 'hidden' : 'flex-1'} flex items-center justify-center`}>
           <div className="text-center">
             <h2 className="text-xl font-semibold mb-2">Selecciona una conversación</h2>
@@ -260,23 +256,7 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
     )
   }
 
-  // ✅ VALIDACIÓN DE MENSAJES
-  if (!Array.isArray(safeMessages)) {
-    logger.warn('RENDER', 'Messages no es un array válido', {
-      messages: safeMessages,
-      type: typeof safeMessages
-    })
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Error cargando mensajes</h2>
-          <p className="text-gray-600">No se pudieron cargar los mensajes.</p>
-        </div>
-      </div>
-    )
-  }
-
-  // ✅ RENDER PRINCIPAL
+  // ✅ RENDER PRINCIPAL SIMPLIFICADO
   return (
     <div className={`flex h-full bg-gray-50 ${className}`}>
       {/* ✅ LISTA DE CONVERSACIONES */}
@@ -310,16 +290,6 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
               />
             </div>
           )}
-        </div>
-      )}
-
-      {/* ✅ MENSAJE PARA SELECCIONAR CONVERSACIÓN */}
-      {!selectedConversationId && !isMobile && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold mb-2">Selecciona una conversación</h2>
-            <p className="text-gray-600">Elige una conversación para comenzar a chatear.</p>
-          </div>
         </div>
       )}
     </div>

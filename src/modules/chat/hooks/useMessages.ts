@@ -29,20 +29,18 @@ export function useMessages(conversationId: string, enablePagination = false) {
   const { user, isAuthenticated } = useAuth()
   const queryClient = useQueryClient()
   
-  // ✅ VALIDACIÓN SUAVIZADA - NO TAN AGRESIVA PARA EVITAR ARRAYS VACÍOS
-  if (!conversationId || typeof conversationId !== 'string' || conversationId.trim() === '') {
-    logger.info('VALIDATION', 'ID de conversación inválido o vacío, retornando estado vacío', {
+  // ✅ VALIDACIÓN MÍNIMA - SOLO PARA CASOS REALMENTE INVÁLIDOS
+  if (!conversationId || conversationId.trim() === '') {
+    logger.info('VALIDATION', 'ID de conversación vacío, retornando estado vacío', {
       conversationId,
-      type: typeof conversationId,
       isEmpty: !conversationId,
-      isString: typeof conversationId === 'string',
       isTrimmedEmpty: conversationId?.trim() === ''
     })
     
     return {
       messages: [], // ✅ SIEMPRE ARRAY VACÍO
       isLoading: false,
-      error: null, // ✅ NO ERROR INMEDIATO
+      error: null,
       hasValidMessages: false,
       hasNextPage: false,
       isFetchingNextPage: false,
@@ -66,27 +64,7 @@ export function useMessages(conversationId: string, enablePagination = false) {
 
   logger.info('API', 'Hook useMessages iniciado', context)
 
-  // ✅ CONSULTA DE CONVERSACIÓN PARA VALIDAR QUE EXISTE
-  const { data: conversation, isLoading: conversationLoading } = useQuery(
-    ['conversation', conversationId],
-    async () => {
-      const conversations = await conversationService.getConversations()
-      return conversations.find(conv => conv.id === conversationId)
-    },
-    {
-      enabled: !!conversationId && isAuthenticated,
-      retry: 1,
-      onError: (error: any) => {
-        logger.error('API', 'Error cargando conversación', {
-          ...context,
-          error: error.message,
-          conversationId
-        })
-      }
-    }
-  )
-
-  // ✅ CONSULTA DE MENSAJES CON VALIDACIÓN ROBUSTA
+  // ✅ CONSULTA DE MENSAJES DIRECTA - SIN VALIDAR CONVERSACIÓN PRIMERO
   const {
     data: messagesData,
     isLoading: messagesLoading,
@@ -96,9 +74,9 @@ export function useMessages(conversationId: string, enablePagination = false) {
     ['messages', conversationId],
     () => messageService.getMessages(conversationId),
     {
-      enabled: !!conversationId && !!conversation && isAuthenticated, // ✅ CRÍTICO: Solo si conversación existe
-      retry: 1,
-      refetchInterval: 5000, // ✅ POLLING PARA TIEMPO REAL
+      enabled: !!conversationId && isAuthenticated, // ✅ SOLO VALIDAR LO MÍNIMO
+      retry: 2,
+      refetchInterval: 5000,
       onError: (error: any) => {
         logger.error('API', 'Error cargando mensajes', {
           ...context,
@@ -111,30 +89,42 @@ export function useMessages(conversationId: string, enablePagination = false) {
 
   // ✅ NORMALIZACIÓN ROBUSTA DE MENSAJES
   const normalizedMessages = useMemo(() => {
-    if (!messagesData || !Array.isArray(messagesData)) {
-      logger.warn('VALIDATION', 'Datos de mensajes no válidos', {
+    // ✅ SI NO HAY DATOS, RETORNAR ARRAY VACÍO
+    if (!messagesData) {
+      logger.info('VALIDATION', 'No hay datos de mensajes, retornando array vacío', {
+        ...context,
+        messagesData
+      })
+      return []
+    }
+
+    // ✅ SI NO ES ARRAY, RETORNAR ARRAY VACÍO
+    if (!Array.isArray(messagesData)) {
+      logger.warn('VALIDATION', 'Datos de mensajes no es un array', {
         ...context,
         messagesData,
-        isArray: Array.isArray(messagesData),
         type: typeof messagesData
       })
-      return [] // ✅ SIEMPRE ARRAY VACÍO
+      return []
     }
 
     try {
-      return messagesData.map(normalizeMessage)
+      const normalized = messagesData.map(normalizeMessage)
+      logger.info('VALIDATION', 'Mensajes normalizados exitosamente', {
+        ...context,
+        originalCount: messagesData.length,
+        normalizedCount: normalized.length
+      })
+      return normalized
     } catch (error) {
       logger.error('VALIDATION', 'Error normalizando mensajes', {
         ...context,
         error: error.message,
         messagesData
       })
-      return [] // ✅ SIEMPRE ARRAY VACÍO
+      return []
     }
   }, [messagesData, context])
-
-  // ✅ ESTADO DE CARGA COMBINADO
-  const isLoading = conversationLoading || messagesLoading
 
   // ✅ VALIDACIÓN FINAL DE MENSAJES
   const hasValidMessages = Array.isArray(normalizedMessages) && normalizedMessages.length > 0
@@ -143,13 +133,13 @@ export function useMessages(conversationId: string, enablePagination = false) {
     ...context,
     messagesCount: normalizedMessages.length,
     hasValidMessages,
-    isLoading,
+    isLoading: messagesLoading,
     hasError: !!messagesError
   })
 
   return {
     messages: normalizedMessages, // ✅ SIEMPRE ARRAY VÁLIDO
-    isLoading,
+    isLoading: messagesLoading,
     error: messagesError,
     hasValidMessages,
     hasNextPage: false,
