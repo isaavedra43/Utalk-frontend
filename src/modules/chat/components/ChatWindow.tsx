@@ -87,7 +87,7 @@ export function ChatWindow({
     }
   }, [conversationId, scrollToBottom])
 
-  // ✅ Manejo de rooms WebSocket
+  // ✅ Manejo de rooms WebSocket con nueva implementación
   useEffect(() => {
     if (conversationId && isConnected) {
       console.log('[CHAT] Joining conversation room:', conversationId)

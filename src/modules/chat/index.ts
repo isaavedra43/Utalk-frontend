@@ -1,49 +1,64 @@
-// Punto de entrada principal del módulo de chat
-// ✅ REFACTORIZADO: Exportaciones limpias y simplificadas
+// Índice principal del módulo de chat
+// ✅ SOLUCIÓN COMPLETA: Exportaciones actualizadas
 
 // Componentes principales
 export { Inbox } from './Inbox'
-
-// Componentes de conversación
-export { ConversationItem } from './components/ConversationItem'
-export { ConversationList } from './components/ConversationList'
-
-// Componentes de chat
+export { ResponsiveInbox } from './components/ResponsiveInbox'
 export { ChatWindow } from './components/ChatWindow'
 export { MessageBubble } from './components/MessageBubble'
-export { MessageInput } from './components/MessageInput'
+export { ConversationItem } from './components/ConversationItem'
+export { ConversationList } from './components/ConversationList'
 export { MessageList } from './components/MessageList'
-
-// Componentes de UI
-export { Avatar } from './components/Avatar'
-export { ChannelBadge } from './components/ChannelBadge'
 export { InfoPanel } from './components/InfoPanel'
 export { IAPanel } from './components/IAPanel'
-export { ResponsiveInbox } from './components/ResponsiveInbox'
+export { ChannelBadge } from './components/ChannelBadge'
+export { Avatar } from './components/Avatar'
+export { MessageInput } from './components/MessageInput'
+export { MessageStatus } from './components/MessageStatus'
+export { FileUpload, useFileUpload } from './components/FileUpload'
+export { FileRenderer } from './components/FileRenderer'
 
 // Hooks
 export { useConversations } from './hooks/useConversations'
 export { useMessages, useSendMessage } from './hooks/useMessages'
-export { useSocket } from './hooks/useSocket'
+export { useSocket, useTypingIndicators } from './hooks/useSocket'
+
+// ✅ NUEVO: Constantes y validadores Socket.IO
+export { 
+  SOCKET_EVENTS, 
+  CONNECTION_EVENTS, 
+  CONVERSATION_EVENTS, 
+  MESSAGE_EVENTS, 
+  TYPING_EVENTS, 
+  STATUS_EVENTS 
+} from './constants/socketEvents'
+
+export {
+  validateNewMessageEvent,
+  validateMessageReadEvent,
+  validateTypingEvent,
+  validateUserEvent,
+  safeEventHandler
+} from './validators/socketValidators'
+
+// Servicios
+export { messageService } from './services/messageService'
+export { conversationService } from './services/conversationService'
+export { contactService } from './services/contactService'
+export { uploadService } from './services/uploadService'
 
 // Tipos
 export type {
-  // Tipos principales
+  Message,
   Conversation,
+  Contact,
   MessageType,
   ChannelType,
   ConversationStatus,
   SendMessageData,
   TypingIndicator,
-  
-  // Props de componentes
-  InboxProps,
-  ResponsiveInboxProps,
-  ConversationListProps,
-  ChatWindowProps,
-  ConversationItemProps,
   MessageBubbleProps,
-  AvatarProps,
+  ConversationItemProps
 } from './types'
 
 // Rutas del módulo

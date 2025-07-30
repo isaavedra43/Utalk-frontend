@@ -3,7 +3,6 @@
 // Manejo del estado de usuario, login, logout y protección de rutas
 import React, { useReducer, useEffect, createContext, useContext } from 'react'
 import { apiClient } from '@/services/apiClient'
-import { socketClient } from '@/services/socketClient'
 import {
   User,
   AuthState,
@@ -64,9 +63,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (isMounted) {
               dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } })
-              
-              // ✅ Conectar WebSocket con JWT y EMAIL
-              socketClient.connectWithToken(token, user.email)
               
               console.log('4. ✅ Session restored successfully.')
             }
@@ -157,17 +153,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // ✅ Invalidar queries de React Query
       queryClient.invalidateQueries()
-
-      // ✅ Conectar WebSocket con JWT y EMAIL
-      try {
-        socketClient.connectWithToken(token, user.email)
-        logger.success('WebSocket connected after login', { 
-          hasToken: !!token, 
-          userEmail: user.email 
-        }, 'socket_connected')
-      } catch (socketError) {
-        logger.warn('Failed to connect WebSocket after login', socketError, 'socket_connection_failed')
-      }
       
       logger.endPerformance(perfId, `EMAIL-FIRST login completed for ${email}`)
       
@@ -223,9 +208,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // ✅ Limpiar apiClient
     apiClient.setAuthToken(null)
-    
-    // ✅ Desconectar WebSocket
-    socketClient.disconnectSocket()
     
     // ✅ Limpiar contexto
     dispatch({ type: 'AUTH_LOGOUT' })
