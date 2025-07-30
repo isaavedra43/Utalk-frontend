@@ -1,360 +1,301 @@
 // Analizador de proyecto para UTalk Frontend
 // Identifica módulos completos, mocks, endpoints y estado general
 
-import { logger, debugLogs } from './logger'
+import { logger, createLogContext, getComponentContext, debugLogs } from './logger'
+import { apiClient } from '@/services/apiClient'
+import { existsSync, readFileSync } from 'fs'
+import { join } from 'path'
 
-interface ModuleAnalysis {
+// ✅ CONTEXTO PARA LOGGING
+const projectAnalyzerContext = getComponentContext('projectAnalyzer')
+
+interface ModuleStatus {
   name: string
-  status: 'complete' | 'partial' | 'empty' | 'ui-only'
-  completionPercentage: number
-  hasUI: boolean
-  hasLogic: boolean
-  hasAPIConnection: boolean
-  mockUsage: string[]
-  missingFeatures: string[]
-  files: {
-    components: string[]
-    hooks: string[]
-    services: string[]
-    types: string[]
-  }
+  status: 'active' | 'empty' | 'partial' | 'missing'
+  description: string
+  components: number
+  hooks: number
+  services: number
+  types: number
 }
 
 interface ProjectAnalysis {
-  overallCompletion: number
-  modules: ModuleAnalysis[]
-  globalIssues: string[]
-  mocksFound: string[]
-  endpointStatus: Record<string, 'connected' | 'mock' | 'missing'>
+  modules: ModuleStatus[]
+  totalComponents: number
+  totalHooks: number
+  totalServices: number
+  codebaseHealth: 'excellent' | 'good' | 'needs-attention' | 'critical'
   recommendations: string[]
+  lastAnalyzed: string
 }
 
 class ProjectAnalyzer {
-  private analysis: ProjectAnalysis = {
-    overallCompletion: 0,
-    modules: [],
-    globalIssues: [],
-    mocksFound: [],
-    endpointStatus: {},
-    recommendations: []
+  private baseModulePath: string
+
+  constructor() {
+    this.baseModulePath = join(process.cwd(), 'src', 'modules')
   }
 
   async analyzeProject(): Promise<ProjectAnalysis> {
-    const perfId = logger.startPerformance('project_analysis')
+    const performanceId = logger.startPerformance('project_analysis')
     
-    logger.info('🔍 Starting comprehensive project analysis...', null, 'analysis_start')
+    logger.info('PERFORMANCE', '🔍 Starting comprehensive project analysis...', createLogContext({
+      ...projectAnalyzerContext,
+      method: 'analyzeProject'
+    }))
 
-    // Analizar módulos específicos
-    await this.analyzeModule('auth', '/pages/auth', '/contexts/AuthContext.tsx')
-    await this.analyzeModule('chat', '/modules/chat')
-    await this.analyzeModule('crm', '/modules/crm')
-    await this.analyzeModule('campaigns', '/modules/campaigns')
-    await this.analyzeModule('dashboard', '/pages/DashboardPage.tsx')
-    await this.analyzeModule('team', '/modules/team')
-    await this.analyzeModule('knowledge', '/modules/knowledge')
-    await this.analyzeModule('settings', '/modules/settings')
+    try {
+      const modules = await this.analyzeModules()
+      const analysis = this.generateAnalysis(modules)
 
-    // Análisis de configuración global
-    this.analyzeGlobalConfiguration()
+      logger.endPerformance(performanceId)
 
-    // Análisis de endpoints
-    this.analyzeEndpoints()
+      logger.success('API', 'Project analysis completed successfully', createLogContext({
+        ...projectAnalyzerContext,
+        method: 'analyzeProject',
+        data: {
+          modulesCount: modules.length,
+          totalComponents: analysis.totalComponents,
+          codebaseHealth: analysis.codebaseHealth
+        }
+      }))
 
-    // Calcular completion general
-    this.calculateOverallCompletion()
-
-    // Generar recomendaciones
-    this.generateRecommendations()
-
-    logger.endPerformance(perfId, 'Project analysis completed')
-
-    return this.analysis
+      return analysis
+    } catch (error) {
+      logger.endPerformance(performanceId)
+      
+      logger.error('PERFORMANCE', 'Failed to analyze project', createLogContext({
+        ...projectAnalyzerContext,
+        method: 'analyzeProject',
+        error: error as Error
+      }))
+      
+      throw error
+    }
   }
 
-  private async analyzeModule(name: string, ...paths: string[]): Promise<void> {
-    const moduleAnalysis: ModuleAnalysis = {
-      name,
-      status: 'empty',
-      completionPercentage: 0,
-      hasUI: false,
-      hasLogic: false,
-      hasAPIConnection: false,
-      mockUsage: [],
-      missingFeatures: [],
-      files: {
-        components: [],
-        hooks: [],
-        services: [],
-        types: []
-      }
-    }
+  private async analyzeModules(): Promise<ModuleStatus[]> {
+    const modules = [
+      'agents', 'campaigns', 'chat', 'crm', 'dashboard', 
+      'knowledge', 'settings', 'team'
+    ]
 
-    // Analizar cada path del módulo
-    for (const path of paths) {
-      await this.analyzeModulePath(moduleAnalysis, path)
-    }
-
-    // Determinar estado del módulo
-    this.determineModuleStatus(moduleAnalysis)
-
-    this.analysis.modules.push(moduleAnalysis)
-
-    // Log específico del módulo
-    debugLogs.moduleStatus(name, moduleAnalysis.status, 
-      `${moduleAnalysis.completionPercentage}% - UI: ${moduleAnalysis.hasUI}, Logic: ${moduleAnalysis.hasLogic}, API: ${moduleAnalysis.hasAPIConnection}`
+    const moduleAnalyses = await Promise.all(
+      modules.map(moduleName => this.analyzeModule(moduleName))
     )
-  }
 
-  private async analyzeModulePath(module: ModuleAnalysis, path: string): Promise<void> {
-    // Simular análisis de archivos (en producción sería recursivo)
-    
-    // Análisis específico por módulo
-    switch (module.name) {
-      case 'auth':
-        this.analyzeAuthModule(module)
-        break
-      case 'chat':
-        this.analyzeChatModule(module)
-        break
-      case 'crm':
-        this.analyzeCRMModule(module)
-        break
-      default:
-        this.analyzeGenericModule(module, path)
-    }
-  }
-
-  private analyzeAuthModule(module: ModuleAnalysis): void {
-    // El módulo de auth está implementado
-    module.hasUI = true // LoginPage existe
-    module.hasLogic = true // AuthContext implementado
-    module.hasAPIConnection = true // Conectado con /api/auth
-
-    module.files.components = ['LoginPage.tsx', 'RegisterPage.tsx']
-    module.files.hooks = ['useAuth.ts']
-    module.files.services = ['Integrado en AuthContext']
-    module.files.types = ['auth-types.ts']
-
-    module.completionPercentage = 95
-    module.missingFeatures = ['Password reset', 'Remember me', 'Two-factor auth']
-
-          debugLogs.endpointStatus('/auth/login', 'connected')
-    debugLogs.endpointStatus('/api/auth/me', 'connected')
-    debugLogs.endpointStatus('/api/auth/logout', 'connected')
-  }
-
-  private analyzeChatModule(module: ModuleAnalysis): void {
-    module.hasUI = true // Todos los componentes UI están
-    module.hasLogic = true // Hooks implementados
-    module.hasAPIConnection = true // Servicios conectados
-
-    module.files.components = [
-      'Inbox.tsx', 'ChatWindow.tsx', 'ConversationList.tsx', 
-      'MessageInput.tsx', 'MessageBubble.tsx', 'IAPanel.tsx', 'InfoPanel.tsx'
-    ]
-    module.files.hooks = [
-      'useConversations.ts', 'useMessages.ts', 'useSocket.ts'
-    ]
-    module.files.services = [
-      'conversationService.ts', 'messageService.ts', 'contactService.ts'
-    ]
-    module.files.types = ['types.ts']
-
-    // Verificar si aún hay mocks
-    const hasMockData = this.checkForMocks([
-      'mockConversations', 'mockMessages', 'mockSuggestions'
-    ])
-
-    if (hasMockData.length > 0) {
-      module.mockUsage = hasMockData
-      module.completionPercentage = 85
-      debugLogs.mockUsage('Inbox.tsx', 'IA suggestions and summary')
-    } else {
-      module.completionPercentage = 95
-    }
-
-    module.missingFeatures = ['File upload', 'Voice messages', 'Read receipts sync']
-
-    debugLogs.endpointStatus('/api/conversations', 'connected')
-    debugLogs.endpointStatus('/api/messages', 'connected')
-    debugLogs.endpointStatus('Socket.IO events', 'connected')
-  }
-
-  private analyzeCRMModule(module: ModuleAnalysis): void {
-    // CRM parece estar parcialmente implementado
-    module.hasUI = false // No hay componentes principales visibles
-    module.hasLogic = false // No hay hooks principales
-    module.hasAPIConnection = false // No hay servicios implementados
-
-    module.files.services = ['contactService.ts'] // Existe pero básico
-
-    module.completionPercentage = 15
-    module.status = 'empty'
-    module.missingFeatures = [
-      'Contact list UI', 'Contact details', 'Contact forms',
-      'Search and filters', 'Bulk operations', 'Import/Export'
-    ]
-
-    debugLogs.endpointStatus('/api/contacts', 'missing')
-  }
-
-  private analyzeGenericModule(module: ModuleAnalysis, path: string): void {
-    // Módulos sin implementar
-    module.hasUI = false
-    module.hasLogic = false  
-    module.hasAPIConnection = false
-    module.completionPercentage = 0
-    module.status = 'empty'
-    module.missingFeatures = [`Complete ${module.name} module implementation`]
-
-    debugLogs.moduleStatus(module.name, 'empty', `Path: ${path}`)
-  }
-
-  private determineModuleStatus(module: ModuleAnalysis): void {
-    if (module.completionPercentage >= 90) {
-      module.status = 'complete'
-    } else if (module.completionPercentage >= 50) {
-      module.status = 'partial'
-    } else if (module.hasUI && !module.hasLogic) {
-      module.status = 'ui-only'
-    } else {
-      module.status = 'empty'
-    }
-  }
-
-  private checkForMocks(_mockNames: string[]): string[] {
-    // En un análisis real, buscaría en archivos
-    // Por ahora, sabemos que el IA Panel tiene mocks
-    return ['mockSuggestions', 'mockSummary']
-  }
-
-  private analyzeGlobalConfiguration(): void {
-    const issues: string[] = []
-
-    // Verificar variables de entorno
-    const envVars = [
-      'VITE_API_URL', 'VITE_WS_URL', 'VITE_FIREBASE_API_KEY'
-    ]
-
-    envVars.forEach(envVar => {
-      const value = import.meta.env[envVar]
-      if (!value || value.includes('tu-') || value.includes('your-')) {
-        issues.push(`Environment variable ${envVar} not properly configured`)
-      }
+    // ✅ Logging simplificado para módulos
+    moduleAnalyses.forEach(moduleAnalysis => {
+      logger.info('PERFORMANCE', `📊 Module ${moduleAnalysis.name}: ${moduleAnalysis.status}`, createLogContext({
+        ...projectAnalyzerContext,
+        method: 'analyzeModules',
+        data: {
+          module: moduleAnalysis.name,
+          status: moduleAnalysis.status,
+          components: moduleAnalysis.components,
+          hooks: moduleAnalysis.hooks,
+          services: moduleAnalysis.services
+        }
+      }))
     })
 
-    // Verificar configuración de routing
-    if (!window.location.pathname.includes('/chat')) {
-      issues.push('Chat routes may not be properly registered')
+    return moduleAnalyses
+  }
+
+  private async analyzeModule(name: string): Promise<ModuleStatus> {
+    const modulePath = join(this.baseModulePath, name)
+    
+    if (!existsSync(modulePath)) {
+      return {
+        name,
+        status: 'missing',
+        description: 'Module directory not found',
+        components: 0,
+        hooks: 0,
+        services: 0,
+        types: 0
+      }
     }
 
-    this.analysis.globalIssues = issues
-  }
+    // ✅ Análisis simplificado - solo contar archivos principales
+    const componentCount = this.countFiles(join(modulePath, 'components'))
+    const hookCount = this.countFiles(join(modulePath, 'hooks'))
+    const serviceCount = this.countFiles(join(modulePath, 'services'))
+    const typeCount = this.hasTypeFile(modulePath) ? 1 : 0
 
-  private analyzeEndpoints(): void {
-    this.analysis.endpointStatus = {
-      '/auth/login': 'connected',
-      '/api/auth/me': 'connected', 
-      '/api/auth/logout': 'connected',
-      '/api/conversations': 'connected',
-      '/api/messages': 'connected',
-      '/api/contacts': 'missing',
-      '/api/campaigns': 'missing',
-      '/api/team': 'missing',
-      '/api/knowledge': 'missing',
-      '/api/dashboard': 'missing',
-      'Socket.IO': 'connected'
+    const status = this.determineModuleStatus(componentCount, hookCount, serviceCount)
+
+    // ✅ Logging específico de endpoints
+    if (name === 'chat') {
+      logger.info('NETWORK', '📡 Chat endpoints status', createLogContext({
+        ...projectAnalyzerContext,
+        method: 'analyzeModule',
+        data: {
+          module: name,
+          endpoints: {
+            conversations: 'connected',
+            messages: 'connected',
+            socketIO: 'connected'
+          }
+        }
+      }))
+    }
+
+    if (name === 'crm') {
+      logger.warn('NETWORK', '⚠️ CRM endpoints status', createLogContext({
+        ...projectAnalyzerContext,
+        method: 'analyzeModule',
+        data: {
+          module: name,
+          endpoints: {
+            contacts: 'missing'
+          }
+        }
+      }))
+    }
+
+    return {
+      name,
+      status,
+      description: this.getModuleDescription(name, status),
+      components: componentCount,
+      hooks: hookCount,
+      services: serviceCount,
+      types: typeCount
     }
   }
 
-  private calculateOverallCompletion(): void {
-    const totalCompletion = this.analysis.modules.reduce(
-      (sum, module) => sum + module.completionPercentage, 0
-    )
-    this.analysis.overallCompletion = Math.round(totalCompletion / this.analysis.modules.length)
+  private countFiles(dirPath: string): number {
+    try {
+      if (!existsSync(dirPath)) return 0
+      
+      const fs = require('fs')
+      const files = fs.readdirSync(dirPath)
+      return files.filter((file: string) => 
+        file.endsWith('.tsx') || file.endsWith('.ts')
+      ).length
+    } catch {
+      return 0
+    }
   }
 
-  private generateRecommendations(): void {
+  private hasTypeFile(modulePath: string): boolean {
+    return existsSync(join(modulePath, 'types.ts'))
+  }
+
+  private determineModuleStatus(components: number, hooks: number, services: number): ModuleStatus['status'] {
+    const total = components + hooks + services
+    
+    if (total === 0) return 'empty'
+    if (total >= 5) return 'active'
+    if (total >= 2) return 'partial'
+    return 'missing'
+  }
+
+  private getModuleDescription(name: string, status: ModuleStatus['status']): string {
+    const descriptions = {
+      'agents': 'AI agent management and configuration',
+      'campaigns': 'Marketing campaign management',
+      'chat': 'Real-time messaging and communication',
+      'crm': 'Customer relationship management',
+      'dashboard': 'Analytics and overview dashboard',
+      'knowledge': 'Knowledge base and documentation',
+      'settings': 'Application configuration',
+      'team': 'Team management and collaboration'
+    }
+
+    const baseDescription = descriptions[name as keyof typeof descriptions] || `${name} module`
+    
+    if (status === 'empty') {
+      logger.info('PERFORMANCE', `📁 Module ${name}: empty`, createLogContext({
+        ...projectAnalyzerContext,
+        method: 'getModuleDescription',
+        data: { module: name, status }
+      }))
+    }
+
+    return baseDescription
+  }
+
+  private generateAnalysis(modules: ModuleStatus[]): ProjectAnalysis {
+    const totalComponents = modules.reduce((sum, m) => sum + m.components, 0)
+    const totalHooks = modules.reduce((sum, m) => sum + m.hooks, 0)
+    const totalServices = modules.reduce((sum, m) => sum + m.services, 0)
+
+    const activeModules = modules.filter(m => m.status === 'active').length
+    const totalModules = modules.length
+
+    let codebaseHealth: ProjectAnalysis['codebaseHealth']
+    if (activeModules >= totalModules * 0.8) codebaseHealth = 'excellent'
+    else if (activeModules >= totalModules * 0.6) codebaseHealth = 'good'
+    else if (activeModules >= totalModules * 0.4) codebaseHealth = 'needs-attention'
+    else codebaseHealth = 'critical'
+
+    const recommendations = this.generateRecommendations(modules, codebaseHealth)
+
+    return {
+      modules,
+      totalComponents,
+      totalHooks,
+      totalServices,
+      codebaseHealth,
+      recommendations,
+      lastAnalyzed: new Date().toISOString()
+    }
+  }
+
+  private generateRecommendations(modules: ModuleStatus[], health: ProjectAnalysis['codebaseHealth']): string[] {
     const recommendations: string[] = []
 
-    // Basado en módulos incompletos
-    const incompleteModules = this.analysis.modules.filter(m => m.status !== 'complete')
-    
-    if (incompleteModules.length > 0) {
-      recommendations.push(`Priority: Complete ${incompleteModules.slice(0, 2).map(m => m.name).join(', ')} modules`)
+    const emptyModules = modules.filter(m => m.status === 'empty')
+    if (emptyModules.length > 0) {
+      recommendations.push(`Develop ${emptyModules.map(m => m.name).join(', ')} modules`)
     }
 
-    // Basado en mocks
-    if (this.analysis.mocksFound.length > 0) {
-      recommendations.push('Remove remaining mock data and connect to real APIs')
+    const partialModules = modules.filter(m => m.status === 'partial')
+    if (partialModules.length > 0) {
+      recommendations.push(`Complete ${partialModules.map(m => m.name).join(', ')} modules`)
     }
 
-    // Basado en configuración
-    if (this.analysis.globalIssues.length > 0) {
-      recommendations.push('Configure environment variables for production deployment')
+    if (health === 'critical') {
+      recommendations.push('Priority: Focus on core chat and CRM functionality')
     }
 
-    this.analysis.recommendations = recommendations
-  }
-
-  printConsoleReport(): void {
-    console.log('\n🎯 =================== UTALK PROJECT ANALYSIS ===================')
-    
-    // Estado general
-    console.log(`\n📊 OVERALL COMPLETION: ${this.analysis.overallCompletion}%`)
-    
-    // Tabla de módulos
-    console.log('\n📋 MODULE STATUS:')
-    console.table(this.analysis.modules.map(m => ({
-      Module: m.name.toUpperCase(),
-      Status: m.status.toUpperCase(),
-      'Completion %': `${m.completionPercentage}%`,
-      UI: m.hasUI ? '✅' : '❌',
-      Logic: m.hasLogic ? '✅' : '❌',
-      API: m.hasAPIConnection ? '✅' : '❌'
-    })))
-
-    // Endpoints
-    console.log('\n🔗 ENDPOINT STATUS:')
-    Object.entries(this.analysis.endpointStatus).forEach(([endpoint, status]) => {
-      const icon = status === 'connected' ? '✅' : status === 'mock' ? '⚠️' : '❌'
-      console.log(`${icon} ${endpoint}: ${status.toUpperCase()}`)
-    })
-
-    // Issues
-    if (this.analysis.globalIssues.length > 0) {
-      console.log('\n⚠️ GLOBAL ISSUES:')
-      this.analysis.globalIssues.forEach(issue => console.log(`  • ${issue}`))
-    }
-
-    // Recomendaciones
-    console.log('\n💡 RECOMMENDATIONS:')
-    this.analysis.recommendations.forEach(rec => console.log(`  🎯 ${rec}`))
-
-    console.log('\n=================== END ANALYSIS ===================\n')
+    return recommendations
   }
 }
 
+// ✅ Instancia global
 export const projectAnalyzer = new ProjectAnalyzer()
 
-// Auto-ejecutar análisis si estamos en development
-if (import.meta.env.DEV) {
-  // Ejecutar después de que la app se monte
-  setTimeout(async () => {
-    try {
-      const analysis = await projectAnalyzer.analyzeProject()
-      projectAnalyzer.printConsoleReport()
-      
-      // Guardar reporte en localStorage para debugging
-      localStorage.setItem('utalk_project_analysis', JSON.stringify(analysis, null, 2))
-      
-      logger.success('Project analysis completed and saved to localStorage', {
-        overallCompletion: analysis.overallCompletion,
-        totalModules: analysis.modules.length
-      }, 'project_analysis_complete')
-      
-    } catch (error) {
-      logger.error('Failed to analyze project', error, 'project_analysis_error')
-    }
-  }, 2000) // 2 segundos después del mount
+// ✅ Función de análisis simplificada
+export async function analyzeProjectStructure(): Promise<ProjectAnalysis> {
+  const context = createLogContext({
+    ...projectAnalyzerContext,
+    method: 'analyzeProjectStructure'
+  })
+
+  logger.info('PERFORMANCE', '🔍 Starting project structure analysis', context)
+
+  try {
+    const analysis = await projectAnalyzer.analyzeProject()
+    
+    logger.success('ANALYSIS', 'Project structure analysis completed', createLogContext({
+      ...context,
+      data: {
+        modulesAnalyzed: analysis.modules.length,
+        codebaseHealth: analysis.codebaseHealth,
+        recommendations: analysis.recommendations.length
+      }
+    }))
+
+    return analysis
+  } catch (error) {
+    logger.error('PERFORMANCE', 'Failed to analyze project structure', createLogContext({
+      ...context,
+      error: error as Error
+    }))
+    
+    throw error
+  }
 } 

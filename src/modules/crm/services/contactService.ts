@@ -1,8 +1,12 @@
 // Servicio para gestión de contactos
 // Abstrae las llamadas a la API REST para operaciones CRUD de contactos
-import apiClient from '@/services/apiClient'
+import { apiClient } from '@/services/apiClient'
+import { logger, createLogContext, getComponentContext } from '@/lib/logger'
 import { Contact, PaginatedResponse } from '@/types'
 import { ContactData } from '@/lib/validations'
+
+// ✅ CONTEXTO PARA LOGGING
+const contactServiceContext = getComponentContext('contactService')
 
 export interface ContactFilters {
   search?: string

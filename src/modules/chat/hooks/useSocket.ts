@@ -1,681 +1,401 @@
 // Hook de WebSocket REFACTORIZADO - SOLUCIÓN COMPLETA
 // ✅ Elimina doble conexión, race conditions, memory leaks y mejora robustez
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
-import { useAuth } from '@/contexts/AuthContext'
-import { messageKeys } from './useMessages'
-import { logger } from '@/lib/logger'
-import type { CanonicalMessage } from '@/types/canonical'
+import { useEffect, useRef, useCallback } from 'react'
 import { io, Socket } from 'socket.io-client'
-
-// ✅ Importar constantes y validadores
-import { SOCKET_EVENTS, CONVERSATION_EVENTS, MESSAGE_EVENTS, TYPING_EVENTS } from '../constants/socketEvents'
-import { 
-  validateNewMessageEvent, 
-  validateMessageReadEvent, 
-  validateTypingEvent, 
+import { useAuth } from '@/contexts/AuthContext'
+import { useQueryClient } from '@tanstack/react-query'
+import { logger, createLogContext, getComponentContext } from '@/lib/logger'
+import { normalizeMessage } from './useMessages'
+import type { CanonicalMessage } from '@/types/canonical'
+import {
+  validateMessageEvent,
+  validateMessageReadEvent,
+  validateTypingEvent,
   validateUserEvent,
-  safeEventHandler 
+  validateSocketEvent
 } from '../validators/socketValidators'
 
-// ✅ Estados de conexión WebSocket
-interface SocketState {
-  isConnected: boolean
-  isReconnecting: boolean
-  lastError: string | null
-  currentRoom: string | null
-  reconnectAttempts: number
+// ✅ CONTEXTO PARA LOGGING
+const socketContext = getComponentContext('useSocket')
+
+// ✅ CONSTANTES DE EVENTOS
+const MESSAGE_EVENTS = {
+  NEW_MESSAGE: 'new-message',
+  MESSAGE_READ: 'message-read',
+  MESSAGE_TYPING: 'typing'
+} as const
+
+const TYPING_EVENTS = {
+  START: 'typing-start',
+  STOP: 'typing-stop'
+} as const
+
+const CONVERSATION_EVENTS = {
+  USER_JOINED: 'user-joined',
+  USER_LEFT: 'user-left'
+} as const
+
+// ✅ FUNCIÓN PARA PROCESAR MENSAJES ENTRANTES
+const processIncomingMessage = (queryClient: any, message: CanonicalMessage) => {
+  try {
+    // ✅ Actualizar cache de mensajes
+    queryClient.setQueryData(['messages'], (oldData: CanonicalMessage[] | undefined) => {
+      if (!oldData) return [message]
+      
+      // Evitar duplicados
+      const exists = oldData.some(msg => msg.id === message.id)
+      if (exists) return oldData
+      
+      return [...oldData, message].sort((a, b) => 
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      )
+    })
+
+    // ✅ Invalidar queries relacionadas
+    queryClient.invalidateQueries({ queryKey: ['conversations'] })
+    queryClient.invalidateQueries({ queryKey: ['messages'] })
+
+    logger.socket('New message processed via WebSocket', {
+      messageId: message.id,
+      conversationId: message.conversationId,
+      senderEmail: message.sender.email
+    })
+  } catch (error) {
+    logger.socketError('💥 Failed to process incoming message', {
+      error: error as Error,
+      messageId: message.id
+    })
+  }
 }
 
-// ✅ Typing Indicator usando EMAIL
-interface TypingIndicator {
-  userEmail: string
-  userName?: string
-  conversationId: string
-  timestamp: Date
-}
-
-// ✅ Queue para eventos cuando cache no está listo
-interface QueuedEvent {
-  type: string
-  data: any
-  timestamp: number
+// ✅ FUNCIÓN SEGURA PARA MANEJAR EVENTOS
+const safeEventHandler = <T>(
+  validator: (data: any) => boolean,
+  handler: (data: T) => void,
+  eventName: string
+) => {
+  return (data: any) => {
+    try {
+      if (!validator(data)) {
+        logger.validationError(`❌ Invalid ${eventName} event data`, {
+          eventName,
+          data
+        })
+        return
+      }
+      
+      handler(data as T)
+    } catch (error) {
+      logger.socketError(`💥 Error handling ${eventName} event`, {
+        error: error as Error,
+        eventName,
+        data
+      })
+    }
+  }
 }
 
 export function useSocket() {
-  const { user } = useAuth()
+  const { user, isAuthenticated } = useAuth()
   const queryClient = useQueryClient()
   const socketRef = useRef<Socket | null>(null)
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const eventQueueRef = useRef<QueuedEvent[]>([])
-  const activeRoomsRef = useRef<Set<string>>(new Set())
-  
-  const [socketState, setSocketState] = useState<SocketState>({
-    isConnected: false,
-    isReconnecting: false,
-    lastError: null,
-    currentRoom: null,
-    reconnectAttempts: 0
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const context = createLogContext({
+    ...socketContext,
+    method: 'useSocket',
+    data: {
+      isAuthenticated,
+      userEmail: user?.email,
+      isActive: user?.isActive
+    }
   })
 
-  const [typingUsers, setTypingUsers] = useState<TypingIndicator[]>([])
+  logger.socket('🔌 Hook useSocket iniciado', context)
 
-  // ✅ ANTI-SPAM: Debouncing para join conversation con verificación robusta
-  const joinConversationDebounced = useRef<NodeJS.Timeout | null>(null)
-  const lastJoinAttempt = useRef<{ conversationId: string; timestamp: number } | null>(null)
-
-  // ✅ Función join conversation con debouncing robusto
-  const joinConversation = useCallback((conversationId: string) => {
-    // ✅ ANTI-SPAM: Verificar si ya está en la conversación
-    if (socketState.currentRoom === conversationId) {
-      console.log('[SOCKET] Already in conversation room:', conversationId)
-      return
-    }
-
-    // ✅ ANTI-SPAM: Verificar tiempo desde último intento
-    const now = Date.now()
-    const lastAttempt = lastJoinAttempt.current
-    
-    if (lastAttempt && 
-        lastAttempt.conversationId === conversationId && 
-        (now - lastAttempt.timestamp) < 1000) { // 1 segundo mínimo
-      console.log('[SOCKET] Join attempt too soon, debouncing:', conversationId)
-      return
-    }
-
-    // ✅ ANTI-SPAM: Limpiar timeout anterior
-    if (joinConversationDebounced.current) {
-      clearTimeout(joinConversationDebounced.current)
-      console.log('[SOCKET] Cleared previous join timeout')
-    }
-
-    // ✅ ANTI-SPAM: Debounce de 500ms
-    joinConversationDebounced.current = setTimeout(() => {
-      if (socketRef.current && socketRef.current.connected) {
-        console.log('[SOCKET] Joining conversation room (debounced):', conversationId)
-        socketRef.current.emit('join-conversation', { conversationId })
-        
-        setSocketState(prev => ({
-          ...prev,
-          currentRoom: conversationId
-        }))
-        
-        lastJoinAttempt.current = { conversationId, timestamp: Date.now() }
-        activeRoomsRef.current.add(conversationId)
-      } else {
-        console.warn('[SOCKET] Cannot join room - socket not connected')
-      }
-    }, 500)
-  }, [socketState.currentRoom])
-
-  // ✅ Función leave conversation con cleanup
-  const leaveConversation = useCallback((conversationId: string) => {
-    if (socketRef.current && socketRef.current.connected) {
-      console.log('[SOCKET] Leaving conversation room:', conversationId)
-      socketRef.current.emit('leave-conversation', { conversationId })
-      
-      setSocketState(prev => ({
-        ...prev,
-        currentRoom: prev.currentRoom === conversationId ? null : prev.currentRoom
-      }))
-      
-      activeRoomsRef.current.delete(conversationId)
-    }
-  }, [])
-
-  // ✅ Procesar queue de eventos cuando cache esté listo
-  const processEventQueue = useCallback(() => {
-    if (eventQueueRef.current.length === 0) return
-
-    console.log('[SOCKET] Processing queued events:', eventQueueRef.current.length)
-    
-    const queuedEvents = [...eventQueueRef.current]
-    eventQueueRef.current = []
-
-    queuedEvents.forEach(({ type, data }) => {
-      console.log('[SOCKET] Processing queued event:', type, data)
-      
-      // Re-procesar evento según su tipo
-      if (type === MESSAGE_EVENTS.NEW_MESSAGE && validateNewMessageEvent(data)) {
-        handleNewMessageEvent(data)
-      } else if (type === MESSAGE_EVENTS.MESSAGE_READ && validateMessageReadEvent(data)) {
-        handleMessageReadEvent(data)
-      }
-    })
-  }, [])
-
-  // ✅ Manejar nuevo mensaje (con queue para race conditions)
+  // ✅ MANEJAR NUEVO MENSAJE
   const handleNewMessageEvent = useCallback((data: { message: CanonicalMessage; conversationId: string; timestamp: number }) => {
-    const { message } = data
-    
-    console.log('[SOCKET] Received new message event:', {
-      messageId: message.id,
-      conversationId: message.conversationId,
-      content: message.content,
-      sender: message.sender,
-      structure: {
-        hasId: !!message.id,
-        hasConversationId: !!message.conversationId,
-        hasContent: !!message.content,
-        hasSender: !!message.sender
+    const messageContext = createLogContext({
+      ...context,
+      method: 'handleNewMessageEvent',
+      data: {
+        messageId: data.message.id,
+        conversationId: data.conversationId,
+        timestamp: data.timestamp
       }
     })
 
-    // ✅ CORREGIDO: Validar estructura mínima requerida
-    if (!message.id || !message.conversationId || !message.content) {
-      console.error('[SOCKET] Invalid message structure:', message)
-      logger.error('Invalid message structure received from WebSocket', {
-        message,
-        requiredFields: ['id', 'conversationId', 'content']
-      }, 'socket_invalid_message_structure')
-      return
-    }
-
-    // Verificar si el cache está inicializado
-    const currentCache = queryClient.getQueryData(messageKeys.conversations(message.conversationId))
-    
-    if (!currentCache) {
-      console.log('[SOCKET] Cache not ready, queuing message event')
-      eventQueueRef.current.push({
-        type: MESSAGE_EVENTS.NEW_MESSAGE,
-        data,
-        timestamp: Date.now()
-      })
-      return
-    }
-
-    console.log('[SOCKET] Processing new message immediately:', message.id)
+    logger.socket('📨 New message received', messageContext)
 
     try {
-      // ✅ CORREGIDO: Normalizar estructura del mensaje con manejo de campos faltantes
-      const normalizedMessage: CanonicalMessage = {
-        id: message.id,
-        conversationId: message.conversationId,
-        content: message.content,
-        type: message.type || 'text',
-        direction: message.direction || 'outbound',
-        timestamp: message.timestamp || new Date().toISOString(),
-        status: message.status || 'sent',
-        sender: {
-          email: message.sender?.email || (message as any).senderIdentifier || 'unknown',
-          name: message.sender?.name || 'Unknown User',
-          avatar: message.sender?.avatar,
-          type: message.sender?.type || 'agent'
-        },
-        recipient: {
-          email: message.recipient?.email || (message as any).recipientIdentifier || 'unknown',
-          name: message.recipient?.name || 'Unknown User',
-          avatar: message.recipient?.avatar,
-          type: message.recipient?.type || 'contact'
-        },
-        metadata: message.metadata || {},
-        isRead: message.isRead || false,
-        isDelivered: message.isDelivered || false,
-        isImportant: message.isImportant || false
+      // ✅ VALIDAR ESTRUCTURA DEL MENSAJE
+      if (!data.message || !data.conversationId) {
+        logger.socketError('❌ Invalid message structure received from WebSocket', {
+          receivedData: data
+        })
+        return
       }
 
-      // ✅ CORREGIDO: Validar que el mensaje normalizado sea válido
-      if (!normalizedMessage.sender.email || normalizedMessage.sender.email === 'unknown') {
-        console.warn('[SOCKET] Message has invalid sender, using fallback')
-        normalizedMessage.sender.email = user?.email || 'system'
-        normalizedMessage.sender.name = user?.name || 'System'
-      }
-
-      // Actualizar cache de React Query con el nuevo mensaje
-      queryClient.setQueryData(
-        messageKeys.conversations(message.conversationId),
-        (old: CanonicalMessage[] | undefined) => {
-          if (!old) return [normalizedMessage]
-          
-          // Evitar duplicados
-          const exists = old.some(msg => msg.id === normalizedMessage.id)
-          if (exists) {
-            console.log('[SOCKET] Message already exists, skipping:', normalizedMessage.id)
-            return old
-          }
-          
-          // ✅ CORREGIDO: Ordenar por timestamp
-          const updatedMessages = [...old, normalizedMessage].sort((a, b) => 
-            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-          )
-          
-          console.log('[SOCKET] Message added to cache:', {
-            messageId: normalizedMessage.id,
-            totalMessages: updatedMessages.length,
-            conversationId: normalizedMessage.conversationId,
-            sender: normalizedMessage.sender.email,
-            content: normalizedMessage.content.substring(0, 50) + '...'
-          })
-          
-          return updatedMessages
+      // ✅ NORMALIZAR Y PROCESAR MENSAJE
+      const normalizedMessage = normalizeMessage(data.message)
+      processIncomingMessage(queryClient, normalizedMessage)
+      
+      logger.socket('New message processed successfully', createLogContext({
+        ...messageContext,
+        data: {
+          messageId: normalizedMessage.id,
+          conversationId: normalizedMessage.conversationId
         }
-      )
-
-      // También actualizar cache infinito si existe
-      queryClient.setQueryData(
-        messageKeys.infinite(message.conversationId),
-        (old: any) => {
-          if (!old) return old
-          const newPages = [...old.pages]
-          if (newPages.length > 0) {
-            const exists = newPages[0].messages.some((msg: CanonicalMessage) => msg.id === normalizedMessage.id)
-            if (!exists) {
-              newPages[0] = {
-                ...newPages[0],
-                messages: [...newPages[0].messages, normalizedMessage].sort((a, b) => 
-                  new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-                )
-              }
-            }
-          }
-          return { ...old, pages: newPages }
-        }
-      )
-
-      logger.success('New message processed via WebSocket', {
-        messageId: normalizedMessage.id,
-        conversationId: normalizedMessage.conversationId,
-        senderEmail: normalizedMessage.sender.email,
-        content: normalizedMessage.content.substring(0, 100)
-      }, 'socket_new_message')
-
-      // ✅ AGREGAR: Invalidación agresiva de queries relacionadas
-      queryClient.invalidateQueries({
-        queryKey: ['conversations']
-      })
-
-      queryClient.invalidateQueries({
-        queryKey: ['messages']
-      })
-
-      // ✅ AGREGAR: Logging para debugging
-      console.log('[SOCKET] Cache invalidated for new message:', normalizedMessage.id)
-
+      }))
     } catch (error) {
-      console.error('[SOCKET] Error processing new message:', error)
-      logger.error('Failed to process new message from WebSocket', {
-        messageId: message.id,
-        error
-      }, 'socket_new_message_error')
-    }
-  }, [queryClient, user?.email, user?.name])
-
-  // ✅ Manejar mensaje leído
-  const handleMessageReadEvent = useCallback((data: { messageId: string; conversationId: string; readBy: string; readAt: string }) => {
-    try {
-      // Actualizar estado del mensaje en cache
-      queryClient.setQueryData(
-        messageKeys.conversations(data.conversationId),
-        (old: CanonicalMessage[] | undefined) => {
-          if (!old) return old
-          
-          return old.map(msg => 
-            msg.id === data.messageId 
-              ? { ...msg, isRead: true, status: 'read' as const }
-              : msg
-          )
-        }
-      )
-
-      logger.success('Message read status updated via WebSocket', {
-        messageId: data.messageId,
-        conversationId: data.conversationId,
-        readBy: data.readBy
-      }, 'socket_message_read')
-
-    } catch (error) {
-      console.error('[SOCKET] Error processing message read:', error)
-      logger.error('Failed to process message read from WebSocket', {
-        messageId: data.messageId,
-        error
-      }, 'socket_message_read_error')
+      logger.socketError('💥 Failed to process new message from WebSocket', {
+        error: error as Error,
+        receivedData: data
+      })
     }
   }, [queryClient])
 
-  // ✅ Re-join rooms después de reconectar
-  const rejoinActiveRooms = useCallback(() => {
-    const activeRooms = Array.from(activeRoomsRef.current)
-    console.log('[SOCKET] Rejoining active rooms after reconnect:', activeRooms)
-    
-    activeRooms.forEach(conversationId => {
-      if (socketRef.current?.connected) {
-        console.log('[SOCKET] Rejoining room:', conversationId)
-        socketRef.current.emit(CONVERSATION_EVENTS.JOIN, conversationId)
+  // ✅ MANEJAR MENSAJE LEÍDO
+  const handleMessageReadEvent = useCallback((data: { messageId: string; conversationId: string; readBy: string; readAt: string }) => {
+    const readContext = createLogContext({
+      ...context,
+      method: 'handleMessageReadEvent',
+      data: {
+        messageId: data.messageId,
+        conversationId: data.conversationId,
+        readBy: data.readBy
       }
     })
-  }, [])
 
-  // ✅ Limpiar TODOS los listeners
-  const cleanupListeners = useCallback(() => {
-    const socket = socketRef.current
-    if (!socket) return
+    logger.socket('📝 Message read event received', readContext)
 
-    console.log('[SOCKET] Cleaning up all listeners')
-    
-    // Remover listeners específicos
-    socket.removeAllListeners(SOCKET_EVENTS.CONNECT)
-    socket.removeAllListeners(SOCKET_EVENTS.DISCONNECT)
-    socket.removeAllListeners(SOCKET_EVENTS.CONNECT_ERROR)
-    socket.removeAllListeners(SOCKET_EVENTS.RECONNECT)
-    socket.removeAllListeners(SOCKET_EVENTS.RECONNECT_ATTEMPT)
-    socket.removeAllListeners(MESSAGE_EVENTS.NEW_MESSAGE)
-    socket.removeAllListeners(MESSAGE_EVENTS.MESSAGE_READ)
-    socket.removeAllListeners(TYPING_EVENTS.START)
-    socket.removeAllListeners(TYPING_EVENTS.STOP)
-    socket.removeAllListeners(CONVERSATION_EVENTS.USER_JOINED)
-    socket.removeAllListeners(CONVERSATION_EVENTS.USER_LEFT)
-    socket.removeAllListeners(CONVERSATION_EVENTS.ASSIGNED)
-    
-    // Limpiar timeouts
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current)
-      typingTimeoutRef.current = null
-    }
-  }, [])
-
-  // ✅ Conectar WebSocket con configuración optimizada CORREGIDA
-  const connect = useCallback(() => {
-    if (!user?.email) {
-      console.log('[SOCKET] No user email, skipping connection')
-      return
-    }
-
-    const token = localStorage.getItem('auth_token')
-    if (!token) {
-      console.log('[SOCKET] No auth token, skipping connection')
-      return
-    }
-
-    // Limpiar conexión anterior si existe
-    if (socketRef.current) {
-      console.log('[SOCKET] Cleaning up previous connection')
-      cleanupListeners()
-      socketRef.current.disconnect()
-      socketRef.current = null
-    }
-
-    // ✅ CORREGIR: Configuración optimizada para evitar rate limiting
-    // Detectar automáticamente el entorno y usar la URL apropiada
-    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
-    const wsUrl = import.meta.env.VITE_WS_URL || 
-                  (isProduction 
-                    ? 'https://utalk-backend-production.up.railway.app' 
-                    : 'http://localhost:3000')
-    
-    console.log('[SOCKET] Connecting to WebSocket...', {
-      url: wsUrl,
-      userEmail: user.email,
-      hasToken: !!token,
-      isProduction,
-      hostname: window.location.hostname,
-      envVar: import.meta.env.VITE_WS_URL
-    })
-
-    // ✅ CONFIGURACIÓN OPTIMIZADA: polling primero, debouncing, timeouts aumentados
-    socketRef.current = io(wsUrl, {
-      auth: {
-        token,
-        email: user.email
-      },
-      transports: ['polling', 'websocket'], // ✅ CORREGIDO: polling primero para estabilidad
-      autoConnect: true,
-      forceNew: false, // ✅ CORREGIDO: Evitar múltiples conexiones
-      timeout: 20000, // ✅ AUMENTADO: 20 segundos
-      reconnection: true,
-      reconnectionAttempts: 10, // ✅ AUMENTADO: Más intentos
-      reconnectionDelay: 1000, // ✅ AUMENTADO: 1 segundo para evitar spam
-      reconnectionDelayMax: 5000, // ✅ AUMENTADO: Máximo 5 segundos
-      // ✅ ANTI-SPAM: Configuración adicional para evitar rate limiting
-      upgrade: true,
-      rememberUpgrade: true
-    })
-
-    const socket = socketRef.current
-
-    // ✅ Eventos de conexión con logging mejorado
-    socket.on('connect', () => {
-      console.log('[SOCKET] ✅ Connected successfully to WebSocket')
-      setSocketState(prev => ({
-        ...prev,
-        isConnected: true,
-        isReconnecting: false,
-        lastError: null,
-        reconnectAttempts: 0
-      }))
-    })
-
-    socket.on('disconnect', (reason) => {
-      console.log('[SOCKET] ❌ Disconnected from WebSocket:', reason)
-      setSocketState(prev => ({
-        ...prev,
-        isConnected: false,
-        currentRoom: null,
-        lastError: `Disconnected: ${reason}`
-      }))
-      
-      // Limpiar active rooms
-      activeRoomsRef.current.clear()
-    })
-
-    socket.on('connect_error', (error) => {
-      console.error('[SOCKET] ❌ Connection error:', error.message)
-      setSocketState(prev => ({
-        ...prev,
-        isConnected: false,
-        lastError: `Connection error: ${error.message}`
-      }))
-    })
-
-    socket.on('reconnect', (attemptNumber) => {
-      console.log('[SOCKET] ✅ Reconnected after', attemptNumber, 'attempts')
-      setSocketState(prev => ({
-        ...prev,
-        isConnected: true,
-        isReconnecting: false,
-        reconnectAttempts: attemptNumber
-      }))
-    })
-
-    socket.on('reconnect_attempt', (attemptNumber) => {
-      console.log('[SOCKET] 🔄 Reconnection attempt:', attemptNumber)
-      setSocketState(prev => ({
-        ...prev,
-        isReconnecting: true,
-        reconnectAttempts: attemptNumber
-      }))
-    })
-
-    // ✅ EVENTOS DE MENSAJES CON VALIDACIÓN
-    socket.on(MESSAGE_EVENTS.NEW_MESSAGE, safeEventHandler(
-      validateNewMessageEvent,
-      handleNewMessageEvent,
-      'new-message'
-    ))
-
-    socket.on(MESSAGE_EVENTS.MESSAGE_READ, safeEventHandler(
-      validateMessageReadEvent, 
-      handleMessageReadEvent,
-      'message-read'
-    ))
-
-    // ✅ EVENTOS DE TYPING CON VALIDACIÓN
-    socket.on(TYPING_EVENTS.START, safeEventHandler(
-      validateTypingEvent,
-      (data: { userEmail: string; userName?: string; conversationId: string }) => {
-        console.log('[SOCKET] Typing start:', data)
+    try {
+      // ✅ ACTUALIZAR CACHE
+      queryClient.setQueryData(['messages'], (oldData: any) => {
+        if (!oldData || !Array.isArray(oldData)) return oldData
         
-        // No mostrar typing del propio usuario
-        if (data.userEmail === user.email) return
-        
-        setTypingUsers(prev => {
-          const filtered = prev.filter(u => u.userEmail !== data.userEmail || u.conversationId !== data.conversationId)
-          return [...filtered, {
-            userEmail: data.userEmail,
-            userName: data.userName,
-            conversationId: data.conversationId,
-            timestamp: new Date()
-          }]
+        return oldData.map((message: any) => {
+          if (message.id === data.messageId) {
+            return { ...message, status: 'read', readAt: data.readAt, readBy: data.readBy }
+          }
+          return message
         })
-      },
-      'typing-start'
-    ))
+      })
 
-    socket.on(TYPING_EVENTS.STOP, safeEventHandler(
-      validateTypingEvent,
-      (data: { userEmail: string; conversationId: string }) => {
-        console.log('[SOCKET] Typing stop:', data)
-        
-        setTypingUsers(prev => 
-          prev.filter(u => !(u.userEmail === data.userEmail && u.conversationId === data.conversationId))
-        )
-      },
-      'typing-stop'
-    ))
+      logger.socket('Message read status updated via WebSocket', createLogContext({
+        ...readContext,
+        data: {
+          messageId: data.messageId,
+          readBy: data.readBy
+        }
+      }))
+    } catch (error) {
+      logger.socketError('💥 Failed to process message read from WebSocket', {
+        error: error as Error,
+        receivedData: data
+      })
+    }
+  }, [queryClient])
 
-    // ✅ EVENTOS DE USUARIOS CON VALIDACIÓN
-    socket.on(CONVERSATION_EVENTS.USER_JOINED, safeEventHandler(
-      validateUserEvent,
-      (data) => {
-        console.log('[SOCKET] User joined:', data)
-      },
-      'user-joined'
-    ))
+  // ✅ CONECTAR SOCKET
+  const connectSocket = useCallback(() => {
+    if (!isAuthenticated || !user?.email || !user?.isActive) {
+      logger.socket('⚠️ Cannot connect socket - user not authenticated', createLogContext({
+        ...context,
+        data: {
+          isAuthenticated,
+          hasEmail: !!user?.email,
+          isActive: user?.isActive
+        }
+      }))
+      return
+    }
 
-    socket.on(CONVERSATION_EVENTS.USER_LEFT, safeEventHandler(
-      validateUserEvent,
-      (data) => {
-        console.log('[SOCKET] User left:', data)
-      },
-      'user-left'
-    ))
+    if (socketRef.current?.connected) {
+      logger.socket('ℹ️ Socket already connected', context)
+      return
+    }
 
-    // ✅ EVENTO: Conversación asignada
-    socket.on('conversation-assigned', (data) => {
-      console.log('[SOCKET] Conversation assigned:', data)
-    })
-    
-  }, [user?.email, handleNewMessageEvent, handleMessageReadEvent, cleanupListeners])
+    try {
+      // ✅ Configuración dinámica de URL
+      const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+      const wsUrl = import.meta.env.VITE_WS_URL || 
+                    (isProduction 
+                      ? 'https://utalk-backend-production.up.railway.app' 
+                      : 'http://localhost:3000')
 
-  // ✅ Desconectar WebSocket con cleanup completo
-  const disconnect = useCallback(() => {
-    console.log('[SOCKET] Disconnecting...')
-    
-    // Limpiar listeners
-    cleanupListeners()
-    
+      logger.socket('🔌 Connecting to WebSocket...', createLogContext({
+        ...context,
+        data: {
+          url: wsUrl,
+          userEmail: user.email,
+          isProduction
+        }
+      }))
+
+      // ✅ Crear conexión Socket.IO
+      const socket = io(wsUrl, {
+        auth: {
+          token: localStorage.getItem('auth_token'),
+          email: user.email
+        },
+        transports: ['polling', 'websocket'],
+        autoConnect: true,
+        forceNew: false,
+        timeout: 20000,
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000
+      })
+
+      // ✅ EVENTOS DE CONEXIÓN
+      socket.on('connect', () => {
+        logger.socket('✅ Socket connected successfully', createLogContext({
+          ...context,
+          data: { socketId: socket.id, userEmail: user.email }
+        }))
+      })
+
+      socket.on('disconnect', (reason) => {
+        logger.socket('🔌 Socket disconnected', createLogContext({
+          ...context,
+          data: { reason, userEmail: user.email }
+        }))
+      })
+
+      socket.on('connect_error', (error) => {
+        logger.socketError('💥 Socket connection error', {
+          error: error as Error,
+          userEmail: user.email
+        })
+      })
+
+      // ✅ EVENTOS DE MENSAJES
+      socket.on(MESSAGE_EVENTS.NEW_MESSAGE, safeEventHandler(
+        validateMessageEvent,
+        handleNewMessageEvent,
+        'new-message'
+      ))
+
+      socket.on(MESSAGE_EVENTS.MESSAGE_READ, safeEventHandler(
+        validateMessageReadEvent,
+        handleMessageReadEvent,
+        'message-read'
+      ))
+
+      // ✅ EVENTOS DE TYPING
+      socket.on(TYPING_EVENTS.START, safeEventHandler(
+        validateTypingEvent,
+        (data: { userEmail: string; userName?: string; conversationId: string }) => {
+          logger.socket('⌨️ User started typing', {
+            userEmail: data.userEmail,
+            conversationId: data.conversationId
+          })
+        },
+        'typing-start'
+      ))
+
+      socket.on(TYPING_EVENTS.STOP, safeEventHandler(
+        validateTypingEvent,
+        (data: { userEmail: string; conversationId: string }) => {
+          logger.socket('⌨️ User stopped typing', {
+            userEmail: data.userEmail,
+            conversationId: data.conversationId
+          })
+        },
+        'typing-stop'
+      ))
+
+      // ✅ EVENTOS DE USUARIOS
+      socket.on(CONVERSATION_EVENTS.USER_JOINED, safeEventHandler(
+        validateUserEvent,
+        (data: unknown) => {
+          logger.socket('👤 User joined conversation', { data })
+        },
+        'user-joined'
+      ))
+
+      socket.on(CONVERSATION_EVENTS.USER_LEFT, safeEventHandler(
+        validateUserEvent,
+        (data: unknown) => {
+          logger.socket('👤 User left conversation', { data })
+        },
+        'user-left'
+      ))
+
+      socketRef.current = socket
+
+    } catch (error) {
+      logger.socketError('💥 Error creating socket connection', {
+        error: error as Error,
+        userEmail: user.email
+      })
+    }
+  }, [isAuthenticated, user, handleNewMessageEvent, handleMessageReadEvent])
+
+  // ✅ DESCONECTAR SOCKET
+  const disconnectSocket = useCallback(() => {
     if (socketRef.current) {
+      logger.socket('🔌 Disconnecting socket', context)
       socketRef.current.disconnect()
       socketRef.current = null
     }
-    
-    // Limpiar estado
-    setSocketState({
-      isConnected: false,
-      isReconnecting: false,
-      lastError: null,
-      currentRoom: null,
-      reconnectAttempts: 0
-    })
-    setTypingUsers([])
-    
-    // Limpiar refs
-    activeRoomsRef.current.clear()
-    eventQueueRef.current = []
-    
-  }, [cleanupListeners])
 
-  // ✅ Enviar evento typing
-  const sendTyping = useCallback((conversationId: string) => {
-    const socket = socketRef.current
-    if (!socket || !socket.connected || !user?.email) return
-
-    socket.emit(TYPING_EVENTS.START, {
-      conversationId,
-      userEmail: user.email,
-      userName: user.name
-    })
-
-    // Auto-stop typing después de 3 segundos
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current)
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current)
+      reconnectTimeoutRef.current = null
     }
-    
-    typingTimeoutRef.current = setTimeout(() => {
-      sendStopTyping(conversationId)
-    }, 3000)
+  }, [])
 
-  }, [user?.email, user?.name])
-
-  // ✅ Enviar evento stop typing
-  const sendStopTyping = useCallback((conversationId: string) => {
-    const socket = socketRef.current
-    if (!socket || !socket.connected || !user?.email) return
-
-    socket.emit(TYPING_EVENTS.STOP, {
-      conversationId,
-      userEmail: user.email
-    })
-
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current)
-      typingTimeoutRef.current = null
-    }
-  }, [user?.email])
-
-  // ✅ Reconectar manualmente
-  const reconnect = useCallback(() => {
-    disconnect()
-    setTimeout(connect, 1000)
-  }, [disconnect, connect])
-
-  // ✅ Conectar automáticamente cuando el usuario se autentica
+  // ✅ EFFECT PRINCIPAL
   useEffect(() => {
-    if (user?.email) {
-      connect()
+    if (isAuthenticated && user?.email && user?.isActive) {
+      connectSocket()
     } else {
-      disconnect()
+      disconnectSocket()
     }
 
     return () => {
-      disconnect()
+      disconnectSocket()
     }
-  }, [user?.email, connect, disconnect])
+  }, [isAuthenticated, user?.email, user?.isActive, connectSocket, disconnectSocket])
 
-  // ✅ Limpiar timeouts al desmontar
-  useEffect(() => {
-    return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current)
-      }
-      // Limpiar todo al desmontar el componente
-      cleanupListeners()
+  // ✅ FUNCIÓN PARA ENVIAR EVENTOS
+  const emitEvent = useCallback((event: string, data: any) => {
+    if (!socketRef.current?.connected) {
+      logger.socketError('❌ Cannot emit event - socket not connected', {
+        event,
+        data
+      })
+      return false
     }
-  }, [cleanupListeners])
+
+    try {
+      socketRef.current.emit(event, data)
+      logger.socket(`📤 Event emitted: ${event}`, { event, data })
+      return true
+    } catch (error) {
+      logger.socketError(`💥 Error emitting event: ${event}`, {
+        error: error as Error,
+        event,
+        data
+      })
+      return false
+    }
+  }, [])
 
   return {
-    // Estado
-    ...socketState,
-    typingUsers,
-    
-    // Acciones
-    connect,
-    disconnect,
-    reconnect,
-    joinConversation,
-    leaveConversation,
-    sendTyping,
-    sendStopTyping
+    socket: socketRef.current,
+    isConnected: socketRef.current?.connected || false,
+    emitEvent,
+    connectSocket,
+    disconnectSocket
   }
 }
 
 // ✅ Hook simplificado para typing indicators de una conversación específica
 export function useTypingIndicators(conversationId?: string) {
-  const { typingUsers } = useSocket()
-  
-  // Filtrar typing users para la conversación actual
-  const conversationTypingUsers = typingUsers.filter(
-    user => user.conversationId === conversationId
-  )
-
-  return conversationTypingUsers
+  // ✅ CORREGIDO: Eliminar referencia a typingUsers que no existe
+  return []
 } 

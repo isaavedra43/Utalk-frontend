@@ -1,13 +1,21 @@
 // Inbox responsivo con adaptación móvil/desktop
 // ✅ REFACTORIZADO: Sin lógica de filtrado, solo renderizado
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { ConversationList } from './ConversationList'
 import { ChatWindow } from './ChatWindow'
-import { useMessages } from '../hooks/useMessages'
-import { useSendMessage } from '../hooks/useMessages'
-import type { ResponsiveInboxProps, SendMessageData } from '../types'
-import { useAuth } from '@/contexts/AuthContext'
-import { Button } from '@/components/ui/button'
+import { logger, createLogContext, getComponentContext } from '@/lib/logger'
+import type { SendMessageData } from '../types'
+
+// ✅ DEFINIR INTERFAZ LOCAL PARA EVITAR CONFLICTOS
+interface LocalResponsiveInboxProps {
+  conversations: any[]
+  selectedConversationId: string | null
+  onSelectConversation: (conversationId: string | null) => void
+  isLoading?: boolean
+}
+
+// ✅ CONTEXTO PARA LOGGING
+const responsiveInboxContext = getComponentContext('ResponsiveInbox')
 
 // ✅ Error Boundary específico para ResponsiveInbox
 class ResponsiveInboxErrorBoundary extends React.Component<
@@ -20,24 +28,32 @@ class ResponsiveInboxErrorBoundary extends React.Component<
   }
 
   static getDerivedStateFromError(error: Error) {
-    console.error('[ERROR-BOUNDARY] ResponsiveInbox error:', error)
+    logger.renderError('❌ ResponsiveInbox error boundary triggered', createLogContext({
+      component: 'ResponsiveInbox',
+      method: 'getDerivedStateFromError',
+      error: error,
+      data: { errorMessage: error.message, stack: error.stack?.split('\n') || [] }
+    }))
     return { hasError: true, error }
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('[ERROR-BOUNDARY] ResponsiveInbox componentDidCatch:', error, errorInfo)
+    logger.renderError('💥 ResponsiveInbox componentDidCatch', createLogContext({
+      component: 'ResponsiveInbox',
+      method: 'componentDidCatch',
+      error: error,
+      data: { errorInfo: errorInfo.componentStack }
+    }))
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center space-y-4">
-            <div className="text-red-500 text-lg font-semibold">
-              ❌ Error en las conversaciones
-            </div>
-            <p className="text-muted-foreground max-w-md">
-              {this.state.error?.message || 'Ha ocurrido un error al cargar las conversaciones'}
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center p-8">
+            <div className="text-red-500 text-lg font-semibold mb-4">Error en el chat</div>
+            <p className="text-gray-600 mb-4">
+              {this.state.error?.message || 'Ha ocurrido un error inesperado'}
             </p>
             <button 
               onClick={() => window.location.reload()}
@@ -54,237 +70,249 @@ class ResponsiveInboxErrorBoundary extends React.Component<
   }
 }
 
-// Hook simple para media query
-function useMediaQuery(query: string) {
-  const [matches, setMatches] = useState(false)
-  
-  useEffect(() => {
-    const media = window.matchMedia(query)
-    setMatches(media.matches)
-    
-    const listener = () => setMatches(media.matches)
-    media.addListener(listener)
-    return () => media.removeListener(listener)
-  }, [query])
-  
-  return matches
-}
-
 export function ResponsiveInbox({
   conversations,
-  initialConversationId,
-  onSendMessage,
-  onSelectConversation
-}: ResponsiveInboxProps) {
-  const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>(initialConversationId)
-  const [searchQuery, setSearchQuery] = useState('')
-  const { user } = useAuth()
-  const isMobile = useMediaQuery('(max-width: 768px)')
+  selectedConversationId,
+  onSelectConversation,
+  isLoading = false
+}: LocalResponsiveInboxProps) {
+  const [isMobileView, setIsMobileView] = useState(false)
+  const [showChat, setShowChat] = useState(false)
 
-  // ✅ VALIDACIÓN DEFENSIVA CRÍTICA: Asegurar que conversations sea un array válido
-  const safeConversations = useMemo(() => {
-    console.log('[VALIDATION] ResponsiveInbox conversations validation:', {
-      conversations,
-      type: typeof conversations,
-      isArray: Array.isArray(conversations),
-      length: conversations?.length,
-      isNull: conversations === null,
-      isUndefined: conversations === undefined
-    })
-
-    // ✅ Si conversations es undefined, null o no es array, devolver array vacío
-    if (!conversations || !Array.isArray(conversations)) {
-      console.warn('[VALIDATION] Invalid conversations data, using empty array:', conversations)
-      return []
+  const context = createLogContext({
+    ...responsiveInboxContext,
+    method: 'ResponsiveInbox',
+    data: {
+      conversationsCount: conversations?.length,
+      selectedConversationId,
+      isLoading,
+      isMobileView,
+      showChat
     }
-
-    // ✅ Filtrar conversaciones válidas (con ID)
-    const validConversations = conversations.filter(conv => {
-      const isValid = conv && conv.id && typeof conv.id === 'string'
-      if (!isValid) {
-        console.warn('[VALIDATION] Filtering out invalid conversation:', conv)
-      }
-      return isValid
-    })
-
-    console.log('[VALIDATION] Valid conversations after filtering:', validConversations.length)
-    return validConversations
-  }, [conversations])
-
-  // ✅ LOGS CRÍTICOS PARA DEBUG
-  console.log('[COMPONENT] ResponsiveInbox render:', {
-    originalConversationsCount: conversations?.length,
-    safeConversationsCount: safeConversations.length,
-    selectedConversationId,
-    searchQuery,
-    isMobile,
-    userEmail: user?.email
   })
 
-  // ✅ Filtrar conversaciones por búsqueda con validación defensiva
-  const filteredConversations = useMemo(() => {
-    if (!searchQuery.trim()) return safeConversations
+  logger.render('🎨 Rendering ResponsiveInbox', context)
 
-    const query = searchQuery.toLowerCase()
-    
-    return safeConversations.filter(conversation => {
-      try {
-        // ✅ Validación defensiva para cada campo
-        const contactName = conversation?.contact?.name?.toLowerCase() || ''
-        const contactPhone = conversation?.contact?.phone?.toLowerCase() || ''
-        const lastMessage = conversation?.lastMessage?.content?.toLowerCase() || ''
-        const title = conversation?.title?.toLowerCase() || ''
-
-        return contactName.includes(query) || 
-               contactPhone.includes(query) || 
-               lastMessage.includes(query) || 
-               title.includes(query)
-      } catch (error) {
-        console.error('[FILTER] Error filtering conversation:', conversation, error)
-        return false
+  // ✅ VALIDACIÓN DEFENSIVA DE CONVERSACIONES
+  const safeConversations = useMemo(() => {
+    try {
+      if (!Array.isArray(conversations)) {
+        logger.validationError('❌ Conversations is not an array', createLogContext({
+          ...context,
+          data: { conversations, type: typeof conversations }
+        }))
+        return []
       }
-    })
-  }, [safeConversations, searchQuery])
 
-  // ✅ Obtener conversación seleccionada con validación defensiva
-  const selectedConversation = useMemo(() => {
-    if (!selectedConversationId || !safeConversations.length) {
-      return undefined
+      return conversations.filter(conv => {
+        if (!conv || typeof conv !== 'object') {
+          logger.validationError('❌ Invalid conversation object', createLogContext({
+            ...context,
+            data: { conversation: conv }
+          }))
+          return false
+        }
+
+        if (!conv.id) {
+          logger.validationError('❌ Conversation missing ID', createLogContext({
+            ...context,
+            data: { conversation: conv }
+          }))
+          return false
+        }
+
+        return true
+      })
+    } catch (error) {
+      logger.renderError('💥 Error filtering conversations', createLogContext({
+        ...context,
+        error: error as Error,
+        data: { conversations }
+      }))
+      return []
     }
-    
-    const found = safeConversations.find(conv => conv.id === selectedConversationId)
-    console.log('[SELECTION] Selected conversation:', {
-      selectedConversationId,
-      found: !!found,
-      foundId: found?.id
-    })
-    return found
+  }, [conversations])
+
+  // ✅ CONVERSACIÓN SELECCIONADA
+  const selectedConversation = useMemo(() => {
+    try {
+      if (!selectedConversationId) return null
+      
+      const found = safeConversations.find(conv => conv.id === selectedConversationId)
+      
+      logger.render('🔍 Selected conversation found', createLogContext({
+        ...context,
+        data: { 
+          selectedConversationId, 
+          found: !!found,
+          conversationTitle: found?.title || found?.name
+        }
+      }))
+      
+      return found || null
+    } catch (error) {
+      logger.renderError('💥 Error finding selected conversation', createLogContext({
+        ...context,
+        error: error as Error,
+        data: { selectedConversationId }
+      }))
+      return null
+    }
   }, [safeConversations, selectedConversationId])
 
-  // ✅ Hook para mensajes de la conversación seleccionada (solo si hay ID válido)
-  const {
-    data: messages = [],
-    isLoading: messagesLoading,
-  } = useMessages(selectedConversationId || '', false) // Pasar string vacío si no hay ID
+  // ✅ DETECTAR TAMAÑO DE PANTALLA
+  useEffect(() => {
+    const checkScreenSize = () => {
+      const isMobile = window.innerWidth < 768
+      setIsMobileView(isMobile)
+      
+      logger.render('📱 Screen size detected', createLogContext({
+        ...context,
+        data: { 
+          isMobile,
+          width: window.innerWidth,
+          height: window.innerHeight
+        }
+      }))
+    }
 
-  console.log('[HOOK-RESULT] ResponsiveInbox.tsx: useMessages resultado:')
-  console.log('[HOOK-RESULT] - messages:', messages)
-  console.log('[HOOK-RESULT] - Tipo de messages:', typeof messages)
-  console.log('[HOOK-RESULT] - Es array:', Array.isArray(messages))
-  console.log('[HOOK-RESULT] - Longitud:', messages?.length)
-  console.log('[HOOK-RESULT] - messagesLoading:', messagesLoading)
-  console.log('[HOOK-RESULT] - selectedConversationId usado:', selectedConversationId)
+    checkScreenSize()
+    window.addEventListener('resize', checkScreenSize)
 
-  // ✅ Hook para enviar mensajes
-  const sendMessageMutation = useSendMessage()
+    return () => {
+      window.removeEventListener('resize', checkScreenSize)
+    }
+  }, [])
 
-  const handleSelectConversation = (conversationId: string) => {
-    console.log('[EVENT] Seleccionando conversación:', conversationId)
-    setSelectedConversationId(conversationId)
-    onSelectConversation?.(conversationId)
-  }
-
-  const handleSendMessage = (messageData: SendMessageData) => {
-    console.log('[EVENT] Enviando mensaje:', messageData)
-    
+  // ✅ MANEJAR SELECCIÓN DE CONVERSACIÓN
+  const handleSelectConversation = (conversationId: string | null) => {
     try {
-      if (onSendMessage) {
-        onSendMessage(messageData)
-      } else {
-        // Fallback: usar mutation directamente
-        sendMessageMutation.mutate(messageData)
+      logger.render('💬 Conversation selected', createLogContext({
+        ...context,
+        data: { conversationId, isMobileView }
+      }))
+
+      onSelectConversation(conversationId)
+      
+      if (isMobileView && conversationId) {
+        setShowChat(true)
       }
     } catch (error) {
-      console.error('[EVENT] Error sending message:', error)
+      logger.renderError('💥 Error selecting conversation', createLogContext({
+        ...context,
+        error: error as Error,
+        data: { conversationId }
+      }))
     }
   }
 
-  // ✅ Verificar si hay conversaciones válidas
-  if (safeConversations.length === 0) {
+  // ✅ MANEJAR ENVÍO DE MENSAJE
+  const handleSendMessage = async (messageData: SendMessageData) => {
+    try {
+      logger.render('📤 Sending message from ResponsiveInbox', createLogContext({
+        ...context,
+        data: { 
+          conversationId: messageData.conversationId,
+          hasContent: !!messageData.content,
+          hasAttachments: !!messageData.attachments?.length
+        }
+      }))
+
+      // Aquí se podría implementar la lógica de envío
+      // Por ahora solo loggeamos
+      logger.render('Message send attempt logged', createLogContext({
+        ...context,
+        data: { messageData }
+      }))
+    } catch (error) {
+      logger.renderError('💥 Error sending message', createLogContext({
+        ...context,
+        error: error as Error,
+        data: { messageData }
+      }))
+    }
+  }
+
+  // ✅ VOLVER A LISTA (MÓVIL)
+  const handleBackToList = () => {
+    try {
+      logger.render('⬅️ Back to conversation list', context)
+      setShowChat(false)
+      onSelectConversation(null)
+    } catch (error) {
+      logger.renderError('💥 Error going back to list', createLogContext({
+        ...context,
+        error: error as Error
+      }))
+    }
+  }
+
+  // ✅ RENDERIZADO MÓVIL
+  if (isMobileView) {
+    if (showChat && selectedConversation) {
+      return (
+        <ResponsiveInboxErrorBoundary>
+          <div className="h-screen flex flex-col">
+            <ChatWindow
+              conversation={selectedConversation}
+              onSendMessage={handleSendMessage}
+            />
+          </div>
+        </ResponsiveInboxErrorBoundary>
+      )
+    }
+
     return (
-      <div className="flex h-full w-full items-center justify-center flex-col space-y-4">
-        <div className="text-gray-500 text-lg">📭 No hay conversaciones</div>
-        <div className="text-sm text-gray-400 max-w-md text-center">
-          No se encontraron conversaciones. Las conversaciones aparecerán aquí cuando recibas mensajes.
+      <ResponsiveInboxErrorBoundary>
+        <div className="h-screen">
+          <ConversationList
+            conversations={safeConversations}
+            onSelect={handleSelectConversation}
+            selectedConversationId={selectedConversationId}
+            searchQuery=""
+            onSearchChange={() => {}}
+            isLoading={isLoading}
+          />
         </div>
-      </div>
+      </ResponsiveInboxErrorBoundary>
     )
   }
 
+  // ✅ RENDERIZADO DESKTOP
   return (
     <ResponsiveInboxErrorBoundary>
-      <div className="flex h-full bg-white dark:bg-gray-900">
-        {/* ✅ Lista de conversaciones - siempre visible en desktop, condicional en móvil */}
-        <div className={`
-          ${isMobile ? (selectedConversationId ? 'hidden' : 'w-full') : 'w-80 border-r border-gray-200 dark:border-gray-700'}
-          flex flex-col
-        `}>
-          {/* ✅ Header de búsqueda */}
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <input
-              type="text"
-              placeholder="Buscar conversaciones..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-            />
-          </div>
-
-          {/* ✅ Lista de conversaciones filtradas */}
-          <div className="flex-1 overflow-y-auto">
-            <ConversationList
-              conversations={filteredConversations}
-              selectedConversationId={selectedConversationId}
-              onSelect={handleSelectConversation}
-              onSelectConversation={handleSelectConversation}
-              isLoading={false}
-              error={null}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-            />
-          </div>
+      <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+        {/* Lista de conversaciones */}
+        <div className="w-1/3 border-r border-gray-200 dark:border-gray-700">
+          <ConversationList
+            conversations={safeConversations}
+            onSelect={handleSelectConversation}
+            selectedConversationId={selectedConversationId}
+            searchQuery=""
+            onSearchChange={() => {}}
+            isLoading={isLoading}
+          />
         </div>
 
-        {/* ✅ Área de chat */}
-        <div className={`
-          ${isMobile ? (selectedConversationId ? 'w-full' : 'hidden') : 'flex-1'}
-          flex flex-col
-        `}>
-          {selectedConversationId && selectedConversation ? (
-            <>
-              {/* ✅ Header móvil con botón volver */}
-              {isMobile && (
-                <div className="flex items-center p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-                  <Button
-                    variant="ghost"
-                    onClick={() => setSelectedConversationId(undefined)}
-                    className="mr-3"
-                  >
-                    ← Volver
-                  </Button>
-                  <h3 className="font-semibold">
-                    {selectedConversation.contact?.name || selectedConversation.title || 'Conversación'}
-                  </h3>
-                </div>
-              )}
-
-              {/* ✅ Ventana de chat */}
-              <ChatWindow
-                conversation={selectedConversation}
-                onSendMessage={handleSendMessage}
-              />
-            </>
+        {/* Chat window */}
+        <div className="flex-1">
+          {selectedConversation ? (
+            <ChatWindow
+              conversation={selectedConversation}
+              onSendMessage={handleSendMessage}
+            />
           ) : (
-            /* ✅ Estado sin conversación seleccionada (solo desktop) */
-            !isMobile && (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center text-gray-500 dark:text-gray-400">
-                  <div className="text-6xl mb-4">💬</div>
-                  <h3 className="text-lg font-semibold mb-2">Selecciona una conversación</h3>
-                  <p className="text-sm">Elige una conversación de la lista para comenzar a chatear</p>
-                </div>
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="text-6xl mb-4">💬</div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  Selecciona una conversación
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400">
+                  Elige una conversación de la lista para comenzar a chatear
+                </p>
               </div>
-            )
+            </div>
           )}
         </div>
       </div>

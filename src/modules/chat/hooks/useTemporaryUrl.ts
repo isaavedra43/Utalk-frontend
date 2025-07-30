@@ -1,7 +1,10 @@
 // Hook para manejar URLs temporales de Firebase Storage
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { apiClient } from '@/services/apiClient'
-import { logger } from '@/lib/logger'
+import { logger, createLogContext, getComponentContext } from '@/lib/logger'
+
+// ✅ CONTEXTO PARA LOGGING
+const temporaryUrlContext = getComponentContext('useTemporaryUrl')
 
 interface UseTemporaryUrlResult {
   url: string
@@ -22,17 +25,17 @@ export function useTemporaryUrl(
   const [error, setError] = useState<string | null>(null)
 
   // ✅ Verificar si la URL ha expirado
-  const checkExpiration = useCallback(() => {
+  const checkExpiration = useRef(() => {
     if (!expiresAt) return false
 
     const expirationDate = typeof expiresAt === 'string' ? new Date(expiresAt) : expiresAt
     const now = new Date()
     
     return now >= expirationDate
-  }, [expiresAt])
+  }).current
 
   // ✅ Refrescar URL desde el backend
-  const refresh = useCallback(async () => {
+  const refresh = useRef(async () => {
     if (!fileId) {
       setError('No se puede refrescar: ID de archivo no disponible')
       return
@@ -51,10 +54,10 @@ export function useTemporaryUrl(
         setUrl(response.data.mediaUrl)
         setIsExpired(false)
         
-        logger.success('URL temporal refrescada', {
+        logger.success('URL', 'URL temporal refrescada', createLogContext({
           fileId,
-          newUrl: response.data.mediaUrl
-        }, 'temporary_url_refreshed')
+          data: { url: response.data.mediaUrl }
+        }))
         
         console.log('[TEMPORARY-URL] URL refreshed successfully')
       } else {
@@ -65,15 +68,16 @@ export function useTemporaryUrl(
       console.error('[TEMPORARY-URL] Error refreshing URL:', err)
       setError('Error al refrescar la URL del archivo')
       
-      logger.error('Error refrescando URL temporal', {
+      logger.error('API', 'Error refrescando URL temporal', createLogContext({
         fileId,
-        error: err
-      }, 'temporary_url_refresh_error')
+        error: err as Error,
+        data: { fileId }
+      }))
       
     } finally {
       setIsRefreshing(false)
     }
-  }, [fileId])
+  }).current
 
   // ✅ Verificar expiración periódicamente
   useEffect(() => {
@@ -87,11 +91,11 @@ export function useTemporaryUrl(
         setIsExpired(true)
         setError('La URL del archivo ha expirado')
         
-        logger.warn('URL temporal expirada', {
+        logger.warn('API', 'URL temporal expirada', createLogContext({
           fileId,
           expiresAt,
           currentTime: new Date().toISOString()
-        }, 'temporary_url_expired')
+        }))
       }
     }
 

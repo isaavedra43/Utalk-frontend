@@ -1,10 +1,13 @@
 // Servicio de subida de archivos multimedia
 import { apiClient } from '@/services/apiClient'
-import { logger } from '@/lib/logger'
+import { logger, createLogContext, getComponentContext } from '@/lib/logger'
 import type { 
   CanonicalFileAttachment,
   ValidationResult 
 } from '@/types/canonical'
+
+// ✅ CONTEXTO PARA LOGGING
+const uploadContext = getComponentContext('uploadService')
 
 // ✅ TIPO PARA ARCHIVO DE SUBIDA
 interface UploadFile {
@@ -25,35 +28,30 @@ export async function uploadFile(
   onProgress?: (progress: number) => void
 ): Promise<any> {
   try {
-    console.log('[UPLOAD-SERVICE] Starting file upload:', {
-      name: file.name,
-      size: file.size,
-      type: file.type
-    })
-
     const formData = new FormData()
     formData.append('file', file)
 
-    const response = await apiClient.post('/api/media/upload', formData, {
+    const response = await apiClient.post('/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      },
-      onUploadProgress: (progressEvent) => {
-        if (progressEvent.total && onProgress) {
-          const percentage = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-          onProgress(percentage)
-        }
       }
     })
 
-    console.log('[UPLOAD-SERVICE] File uploaded successfully:', response)
-    logger.success('File uploaded successfully', { fileName: file.name }, 'file_upload_success')
-
-    return response
-
+    if (response?.success && response.data?.url) {
+      logger.success('UPLOAD', 'File uploaded successfully', createLogContext({
+        ...uploadContext,
+        data: { fileName: file.name, fileSize: file.size, url: response.data.url }
+      }))
+      return response.data
+    } else {
+      throw new Error('Upload failed: Invalid response')
+    }
   } catch (error) {
-    console.error('[UPLOAD-SERVICE] Error uploading file:', error)
-    logger.error('Failed to upload file', { fileName: file.name, error }, 'file_upload_error')
+    logger.error('API', '💥 Failed to upload file', createLogContext({
+      ...uploadContext,
+      error: error as Error,
+      data: { fileName: file.name, fileSize: file.size }
+    }))
     throw error
   }
 }

@@ -31,10 +31,10 @@ export interface InboxProps {
 }
 
 export interface ResponsiveInboxProps {
-  conversations: Conversation[]
-  initialConversationId?: string
-  onSendMessage?: (messageData: SendMessageData) => void
-  onSelectConversation?: (conversationId: string) => void
+  conversations: any[]
+  selectedConversationId: string | null
+  onSelectConversation: (conversationId: string | null) => void
+  isLoading?: boolean
 }
 
 export interface ConversationListProps {

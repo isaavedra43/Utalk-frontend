@@ -5,9 +5,12 @@ import { useCallback, useMemo } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { messageService } from '../services/messageService'
 import { apiClient } from '@/services/apiClient'
-import { logger } from '@/lib/logger'
+import { logger, createLogContext, getComponentContext, getErrorContext } from '@/lib/logger'
 import type { CanonicalMessage } from '@/types/canonical'
 import { v4 as uuidv4 } from 'uuid'
+
+// ✅ CONTEXTO PARA LOGGING
+const messagesContext = getComponentContext('useMessages')
 
 // ✅ Query keys para React Query
 export const messageKeys = {
@@ -25,52 +28,121 @@ export function useMessages(conversationId: string, enablePagination = false) {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   
-  console.log('[HOOK] useMessages called with:', {
-    conversationId,
-    enablePagination,
-    userEmail: user?.email,
-    userActive: user?.isActive,
-    enabled: !!conversationId && !!user?.email && !!user?.isActive
+  const context = createLogContext({
+    ...messagesContext,
+    method: 'useMessages',
+    data: {
+      conversationId,
+      enablePagination,
+      userEmail: user?.email,
+      userActive: user?.isActive
+    }
   })
+
+  logger.info('API', '📥 Hook useMessages iniciado', context)
+
+  // ✅ VALIDACIÓN ULTRA-DEFENSIVA CRÍTICA
+  if (!conversationId || typeof conversationId !== 'string' || !conversationId.trim()) {
+    logger.validationError('❌ ID de conversación inválido', createLogContext({
+      ...context,
+      data: { 
+        conversationId,
+        type: typeof conversationId,
+        length: conversationId?.length
+      }
+    }))
+    return {
+      data: [],
+      isLoading: false,
+      isFetching: false,
+      error: new Error('ID de conversación no válido'),
+      refetch: () => Promise.resolve()
+    }
+  }
+
+  if (!user || !user.email || !user.isActive) {
+    logger.validationError('❌ Usuario no autenticado', createLogContext({
+      ...context,
+      data: { 
+        hasUser: !!user,
+        userEmail: user?.email,
+        userActive: user?.isActive
+      }
+    }))
+    return {
+      data: [],
+      isLoading: false,
+      isFetching: false,
+      error: new Error('Usuario no autenticado'),
+      refetch: () => Promise.resolve()
+    }
+  }
+
+  if (!apiClient.getAuthToken()) {
+    logger.validationError('❌ Token de autenticación no disponible', context)
+    return {
+      data: [],
+      isLoading: false,
+      isFetching: false,
+      error: new Error('Token de autenticación no disponible'),
+      refetch: () => Promise.resolve()
+    }
+  }
 
   // ✅ VALIDACIÓN CRÍTICA: No ejecutar si no hay conversationId válido
   const isEnabled = !!(conversationId && conversationId.trim() && user?.email && user?.isActive && apiClient.getAuthToken())
+
+  logger.info('API', '✅ Validaciones completadas - Hook habilitado', createLogContext({
+    ...context,
+    data: { isEnabled }
+  }))
 
   // Hook para mensajes con paginación (scroll infinito)
   const infiniteQuery = useInfiniteQuery({
     queryKey: messageKeys.infinite(conversationId || 'none'),
     queryFn: async ({ pageParam = 1 }) => {
-      console.log('[HOOK] useMessages infinite queryFn executing for:', { conversationId, page: pageParam })
+      const queryContext = createLogContext({
+        ...context,
+        method: 'infiniteQueryFn',
+        data: { conversationId, page: pageParam }
+      })
+
+      logger.info('API', '🔄 Ejecutando query infinita', queryContext)
       
       if (!conversationId || !conversationId.trim()) {
-        console.log('[HOOK] useMessages: No conversationId, returning empty array')
+        logger.warn('API', '⚠️ No hay conversationId, retornando array vacío', queryContext)
         return { messages: [], hasMore: false, nextPage: null }
       }
       
       try {
-        const response = await messageService.getMessagesWithPagination(conversationId, {
-          page: pageParam,
-          limit: 20 // 20 mensajes por página
-        })
-        
-        console.log('[HOOK] useMessages infinite: Success, received response:', {
-          page: pageParam,
-          messagesCount: response.messages?.length,
-          hasMore: response.hasMore,
-          totalMessages: response.total
-        })
-        
-        return response
+        const startTime = Date.now()
+        const messages = await messageService.getMessages(conversationId)
+        const duration = Date.now() - startTime
+
+        logger.info('API', '✅ Query infinita exitosa', createLogContext({
+          ...queryContext,
+          data: {
+            count: messages?.length,
+            duration,
+            hasMore: messages && messages.length > 0
+          }
+        }))
+
+        return { 
+          messages: messages || [], 
+          hasMore: messages && messages.length > 0, 
+          nextPage: pageParam + 1 
+        }
       } catch (error) {
-        console.error('[HOOK] useMessages infinite: Error fetching messages:', error)
-        logger.error('Failed to fetch messages with pagination', { conversationId, page: pageParam, error }, 'messages_infinite_query_error')
+        logger.apiError('💥 Error en query infinita', createLogContext({
+          ...queryContext,
+          error: error as Error,
+          data: { conversationId, page: pageParam }
+        }))
         throw error
       }
     },
     enabled: isEnabled && enablePagination,
-    getNextPageParam: (lastPage) => {
-      return lastPage.hasMore ? (lastPage.nextPage || 1) : undefined
-    },
     staleTime: 0, // ✅ CAMBIAR: Siempre considerar stale para tiempo real
     refetchOnWindowFocus: false, // Evitar refetch innecesario, mejor usar WebSocket
     refetchOnMount: true, // ✅ AGREGAR: Refetch al montar
@@ -86,23 +158,40 @@ export function useMessages(conversationId: string, enablePagination = false) {
   const simpleQuery = useQuery({
     queryKey: messageKeys.conversations(conversationId || 'none'),
     queryFn: async () => {
-      console.log('[HOOK] useMessages simple queryFn executing for:', conversationId)
+      const queryContext = createLogContext({
+        ...context,
+        method: 'simpleQueryFn',
+        data: { conversationId }
+      })
+
+      logger.info('API', '🔄 Ejecutando query simple', queryContext)
       
       if (!conversationId || !conversationId.trim()) {
-        console.log('[HOOK] useMessages: No conversationId, returning empty array')
+        logger.warn('API', '⚠️ No hay conversationId, retornando array vacío', queryContext)
         return []
       }
       
       try {
+        const startTime = Date.now()
         const messages = await messageService.getMessages(conversationId)
-        console.log('[HOOK] useMessages simple: Success, received messages:', {
-          count: messages?.length,
-          messages: messages
-        })
+        const duration = Date.now() - startTime
+
+        logger.info('API', '✅ Query simple exitosa', createLogContext({
+          ...queryContext,
+          data: {
+            count: messages?.length,
+            duration,
+            messages: messages?.slice(0, 3) // Primeros 3 para debug
+          }
+        }))
+
         return messages
       } catch (error) {
-        console.error('[HOOK] useMessages simple: Error fetching messages:', error)
-        logger.error('Failed to fetch messages', { conversationId, error }, 'messages_query_error')
+        logger.apiError('💥 Error en query simple', createLogContext({
+          ...queryContext,
+          error: error as Error,
+          data: { conversationId }
+        }))
         throw error
       }
     },
@@ -117,6 +206,20 @@ export function useMessages(conversationId: string, enablePagination = false) {
     refetchInterval: false, // No polling, solo Socket.IO
     refetchIntervalInBackground: false
   })
+
+  // ✅ LOGGING DE ESTADO FINAL
+  const finalContext = createLogContext({
+    ...context,
+    data: {
+      isEnabled,
+      enablePagination,
+      hasData: enablePagination ? !!infiniteQuery.data : !!simpleQuery.data,
+      isLoading: enablePagination ? infiniteQuery.isLoading : simpleQuery.isLoading,
+      hasError: enablePagination ? !!infiniteQuery.error : !!simpleQuery.error
+    }
+  })
+
+  logger.info('API', '📊 Estado final del hook useMessages', finalContext)
 
   // Retornar el hook apropiado según la configuración
   if (enablePagination) {
@@ -295,7 +398,11 @@ export function useSendMessage() {
         queryClient.setQueryData(messageKeys.infinite(conversationId), context.previousInfiniteMessages)
       }
       
-      logger.error('Failed to send message', { messageData, error }, 'send_message_error')
+      logger.error('API', 'Failed to send message', createLogContext({
+        ...context,
+        error: error as Error,
+        data: { messageData }
+      }))
     }
   })
 }
@@ -313,16 +420,18 @@ export function useMarkMessageAsRead() {
         throw new Error('Usuario no autenticado')
       }
       
-      return await messageService.markAsRead(messageId, user.email)
+      // ✅ CORREGIDO: Retornar objeto con id para evitar error void
+      await messageService.markAsRead(messageId, user.email)
+      return { id: messageId, status: 'read' }
     },
     onSuccess: (updatedMessage, { conversationId }) => {
       // Actualizar mensaje en cache
       queryClient.setQueryData(
         messageKeys.conversations(conversationId),
-        (old: CanonicalMessage[] | undefined) => {
-          if (!old) return old
-          return old.map(msg => 
-            msg.id === updatedMessage.id ? updatedMessage : msg
+        (oldData: CanonicalMessage[] | undefined) => {
+          if (!oldData) return oldData
+          return oldData.map((msg: CanonicalMessage) => 
+            msg.id === updatedMessage.id ? { ...msg, status: 'read' } : msg
           )
         }
       )

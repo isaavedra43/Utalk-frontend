@@ -5,29 +5,33 @@ import { LoadingSpinner } from './LoadingSpinner'
 
 interface AuthWrapperProps {
   children: React.ReactNode
-  fallback?: React.ReactNode
-  requireAuth?: boolean // ✅ NUEVO: Opcional para requerir autenticación
 }
 
-export function AuthWrapper({ children, fallback, requireAuth = false }: AuthWrapperProps) {
-  const { isAuthReady, isAuthenticated, user } = useAuth()
+export function AuthWrapper({ children }: AuthWrapperProps) {
+  const { isAuthLoaded, isAuthenticated, user } = useAuth()
 
-  // ✅ MOSTRAR LOADING HASTA QUE AUTH ESTÉ COMPLETAMENTE LISTA
-  if (!isAuthReady) {
-    console.log('[AUTH_WRAPPER] Auth no está lista, mostrando loading...')
-    return fallback || <LoadingSpinner />
+  // ✅ Mostrar loading mientras se carga la autenticación
+  if (!isAuthLoaded) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner size="lg" />
+        <span className="ml-2 text-muted-foreground">Cargando autenticación...</span>
+      </div>
+    )
   }
 
-  // ✅ SI REQUIERE AUTH Y NO ESTÁ AUTENTICADO, NO RENDERIZAR
-  if (requireAuth && (!isAuthenticated || !user)) {
-    console.log('[AUTH_WRAPPER] Requiere auth pero usuario no autenticado, no renderizando contenido protegido')
-    return null
+  // ✅ Si no está autenticado, mostrar mensaje
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold mb-2">No autenticado</h2>
+          <p className="text-muted-foreground">Debes iniciar sesión para acceder a esta página.</p>
+        </div>
+      </div>
+    )
   }
 
-  console.log('[AUTH_WRAPPER] ✅ Auth lista, renderizando contenido', {
-    isAuthenticated,
-    hasUser: !!user,
-    requireAuth
-  })
+  // ✅ Si está autenticado, mostrar contenido
   return <>{children}</>
 } 

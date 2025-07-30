@@ -3,40 +3,59 @@
 
 import type { CanonicalMessage } from '@/types/canonical'
 import { logger } from '@/lib/logger'
+import { createLogContext } from '@/lib/logger'
 
 /**
  * ✅ Validador de estructura de mensaje
  */
-export function validateNewMessageEvent(data: any): data is { message: CanonicalMessage; conversationId: string; timestamp: number } {
+export function validateMessageEvent(data: any): boolean {
   try {
+    // ✅ VALIDAR QUE SEA UN OBJETO
     if (!data || typeof data !== 'object') {
-      logger.error('Invalid message event: not an object', { data }, 'socket_validation_error')
+      logger.error('VALIDATION', '❌ Invalid message event: not an object', createLogContext({
+        data: { receivedData: data }
+      }))
       return false
     }
 
-    if (!data.message || typeof data.message !== 'object') {
-      logger.error('Invalid message event: missing message object', { data }, 'socket_validation_error')
+    // ✅ VALIDAR QUE TENGA MENSAJE
+    if (!data.message) {
+      logger.error('VALIDATION', '❌ Invalid message event: missing message object', createLogContext({
+        data: { receivedData: data }
+      }))
       return false
     }
 
-    if (!data.conversationId || typeof data.conversationId !== 'string') {
-      logger.error('Invalid message event: missing conversationId', { data }, 'socket_validation_error')
+    // ✅ VALIDAR CONVERSATIONID
+    if (!data.conversationId) {
+      logger.error('VALIDATION', '❌ Invalid message event: missing conversationId', createLogContext({
+        data: { receivedData: data }
+      }))
       return false
     }
 
-    if (!data.message.id || typeof data.message.id !== 'string') {
-      logger.error('Invalid message event: missing message.id', { data }, 'socket_validation_error')
+    // ✅ VALIDAR ID DEL MENSAJE
+    if (!data.message.id) {
+      logger.error('VALIDATION', '❌ Invalid message event: missing message.id', createLogContext({
+        data: { receivedData: data }
+      }))
       return false
     }
 
-    if (!data.message.content || typeof data.message.content !== 'string') {
-      logger.error('Invalid message event: missing message.content', { data }, 'socket_validation_error')
+    // ✅ VALIDAR CONTENIDO DEL MENSAJE
+    if (!data.message.content) {
+      logger.error('VALIDATION', '❌ Invalid message event: missing message.content', createLogContext({
+        data: { receivedData: data }
+      }))
       return false
     }
 
     return true
   } catch (error) {
-    logger.error('Error validating message event', { error, data }, 'socket_validation_error')
+    logger.error('VALIDATION', '💥 Error validating message event', createLogContext({
+      error: error as Error,
+      data: { receivedData: data }
+    }))
     return false
   }
 }
@@ -44,18 +63,22 @@ export function validateNewMessageEvent(data: any): data is { message: Canonical
 /**
  * ✅ Validador de evento de lectura
  */
-export function validateMessageReadEvent(data: any): data is { messageId: string; conversationId: string; readBy: string; readAt: string } {
+export function validateMessageReadEvent(data: any): boolean {
   try {
-    if (!data || typeof data !== 'object') return false
+    if (!data || typeof data !== 'object') {
+      return false
+    }
 
-    return (
-      typeof data.messageId === 'string' &&
-      typeof data.conversationId === 'string' &&
-      typeof data.readBy === 'string' &&
-      typeof data.readAt === 'string'
-    )
+    if (!data.messageId || !data.markedByEmail) {
+      return false
+    }
+
+    return true
   } catch (error) {
-    logger.error('Error validating message read event', { error, data }, 'socket_validation_error')
+    logger.error('VALIDATION', '💥 Error validating message read event', createLogContext({
+      error: error as Error,
+      data: { receivedData: data }
+    }))
     return false
   }
 }
@@ -63,17 +86,22 @@ export function validateMessageReadEvent(data: any): data is { messageId: string
 /**
  * ✅ Validador de eventos de typing
  */
-export function validateTypingEvent(data: any): data is { userEmail: string; userName?: string; conversationId: string } {
+export function validateTypingEvent(data: any): boolean {
   try {
-    if (!data || typeof data !== 'object') return false
+    if (!data || typeof data !== 'object') {
+      return false
+    }
 
-    return (
-      typeof data.userEmail === 'string' &&
-      typeof data.conversationId === 'string' &&
-      (data.userName === undefined || typeof data.userName === 'string')
-    )
+    if (!data.conversationId || !data.userEmail) {
+      return false
+    }
+
+    return true
   } catch (error) {
-    logger.error('Error validating typing event', { error, data }, 'socket_validation_error')
+    logger.error('VALIDATION', '💥 Error validating typing event', createLogContext({
+      error: error as Error,
+      data: { receivedData: data }
+    }))
     return false
   }
 }
@@ -81,18 +109,22 @@ export function validateTypingEvent(data: any): data is { userEmail: string; use
 /**
  * ✅ Validador de eventos de usuario
  */
-export function validateUserEvent(data: any): data is { email: string; displayName?: string; conversationId: string; timestamp: number } {
+export function validateUserEvent(data: any): boolean {
   try {
-    if (!data || typeof data !== 'object') return false
+    if (!data || typeof data !== 'object') {
+      return false
+    }
 
-    return (
-      typeof data.email === 'string' &&
-      typeof data.conversationId === 'string' &&
-      typeof data.timestamp === 'number' &&
-      (data.displayName === undefined || typeof data.displayName === 'string')
-    )
+    if (!data.userEmail) {
+      return false
+    }
+
+    return true
   } catch (error) {
-    logger.error('Error validating user event', { error, data }, 'socket_validation_error')
+    logger.error('VALIDATION', '💥 Error validating user event', createLogContext({
+      error: error as Error,
+      data: { receivedData: data }
+    }))
     return false
   }
 }
@@ -110,10 +142,50 @@ export function safeEventHandler<T>(
       try {
         handler(data)
       } catch (error) {
-        logger.error(`Error handling ${eventName} event`, { error, data }, 'socket_handler_error')
+        logger.error('SOCKET', `Error handling ${eventName} event`, createLogContext({
+          component: 'socketValidators',
+          method: 'safeEventHandler',
+          error: error as Error,
+          data: { eventName, data }
+        }))
       }
-    } else {
-      logger.warn(`Invalid ${eventName} event received`, { data }, 'socket_invalid_event')
+
+      logger.warn('SOCKET', `Invalid ${eventName} event received`, createLogContext({
+        component: 'socketValidators',
+        method: 'safeEventHandler',
+        data: { eventName, data }
+      }))
     }
+  }
+}
+
+export function validateSocketEvent(eventName: string, data: any): boolean {
+  try {
+    switch (eventName) {
+      case 'new-message':
+        return validateMessageEvent(data)
+      case 'message-read':
+        return validateMessageReadEvent(data)
+      case 'typing':
+        return validateTypingEvent(data)
+      case 'user-online':
+      case 'user-offline':
+        return validateUserEvent(data)
+      default:
+        logger.error('VALIDATION', `💥 Error handling ${eventName} event`, createLogContext({
+          error: new Error(`Unknown event type: ${eventName}`),
+          data: { receivedData: data }
+        }))
+        logger.warn('VALIDATION', `⚠️ Invalid ${eventName} event received`, createLogContext({
+          data: { receivedData: data }
+        }))
+        return false
+    }
+  } catch (error) {
+    logger.error('VALIDATION', `💥 Error handling ${eventName} event`, createLogContext({
+      error: error as Error,
+      data: { receivedData: data }
+    }))
+    return false
   }
 } 

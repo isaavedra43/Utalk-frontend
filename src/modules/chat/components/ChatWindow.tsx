@@ -67,8 +67,21 @@ export function ChatWindow({
   onSendMessage?: (data: SendMessageData) => void
 }) {
   const { user } = useAuth()
-  const { isConnected, joinConversation, leaveConversation } = useSocket()
+  const { isConnected, emitEvent } = useSocket()
   
+  // ✅ FUNCIONES DE CONVERSACIÓN
+  const joinConversation = (conversationId: string) => {
+    if (emitEvent) {
+      emitEvent('join-conversation', { conversationId })
+    }
+  }
+
+  const leaveConversation = (conversationId: string) => {
+    if (emitEvent) {
+      emitEvent('leave-conversation', { conversationId })
+    }
+  }
+
   // ✅ CORREGIR: Error boundary local para prevenir pantallas en blanco
   const [error, setError] = useState<string | null>(null)
 

@@ -1,78 +1,55 @@
-// Índice principal del módulo de chat
-// ✅ SOPORTE MULTIMEDIA COMPLETO: Exportaciones actualizadas
+// ✅ EXPORTACIONES DEL MÓDULO CHAT
 
-// Componentes principales
+// Components
+export { ConversationList } from './components/ConversationList'
+export { MessageBubble } from './components/MessageBubble'
+export { MessageInput } from './components/MessageInput'
+export { MessageList } from './components/MessageList'
+export { MessageStatus } from './components/MessageStatus'
+export { ChatWindow } from './components/ChatWindow'
+export { ConversationItem } from './components/ConversationItem'
+export { FileRenderer } from './components/FileRenderer'
+export { FileUpload } from './components/FileUpload'
 export { Inbox } from './Inbox'
 export { ResponsiveInbox } from './components/ResponsiveInbox'
-export { ChatWindow } from './components/ChatWindow'
-export { MessageBubble } from './components/MessageBubble'
-export { ConversationItem } from './components/ConversationItem'
-export { ConversationList } from './components/ConversationList'
-export { MessageList } from './components/MessageList'
+export { Avatar } from './components/Avatar'
+export { ChannelBadge } from './components/ChannelBadge'
 export { InfoPanel } from './components/InfoPanel'
 export { IAPanel } from './components/IAPanel'
-export { ChannelBadge } from './components/ChannelBadge'
-export { Avatar } from './components/Avatar'
-export { MessageInput } from './components/MessageInput'
-export { MessageStatus } from './components/MessageStatus'
-
-// ✅ NUEVOS: Componentes multimedia
-export { FileUpload, useFileUpload } from './components/FileUpload'
-export { FileRenderer } from './components/FileRenderer'
 export { AudioPlayer } from './components/AudioPlayer'
 export { AudioRecorder } from './components/AudioRecorder'
+export { TouchFeedback } from './components/TouchFeedback'
+export { LazyIAPanel } from './components/LazyPanels'
 
 // Hooks
+export { useMessages } from './hooks/useMessages'
 export { useConversations } from './hooks/useConversations'
-export { useMessages, useSendMessage } from './hooks/useMessages'
-export { useSocket, useTypingIndicators } from './hooks/useSocket'
+export { useSocket } from './hooks/useSocket'
+export { useConversationData } from './hooks/useConversationData'
+export { useTemporaryUrl } from './hooks/useTemporaryUrl'
 
-// ✅ NUEVOS: Hooks multimedia
-export { useTemporaryUrl, useFileUrl } from './hooks/useTemporaryUrl'
-
-// Constantes y validadores Socket.IO
-export { 
-  SOCKET_EVENTS, 
-  CONNECTION_EVENTS, 
-  CONVERSATION_EVENTS, 
-  MESSAGE_EVENTS, 
-  TYPING_EVENTS, 
-  STATUS_EVENTS 
-} from './constants/socketEvents'
-
-export {
-  validateNewMessageEvent,
-  validateMessageReadEvent,
-  validateTypingEvent,
-  validateUserEvent,
-  safeEventHandler
-} from './validators/socketValidators'
-
-// Servicios
+// Services
 export { messageService } from './services/messageService'
 export { conversationService } from './services/conversationService'
 export { contactService } from './services/contactService'
 export { uploadService } from './services/uploadService'
 
-// Tipos
-export type {
-  Message,
-  Conversation,
-  Contact,
-  MessageType,
-  ChannelType,
-  ConversationStatus,
-  SendMessageData,
-  TypingIndicator,
-  MessageBubbleProps,
-  ConversationItemProps
-} from './types'
+// Types - Import desde types/canonical
+export type { 
+  CanonicalMessage, 
+  CanonicalConversation, 
+  CanonicalFileAttachment as FileAttachment
+} from '@/types/canonical'
+export type { SendMessageData } from './types'
 
-// Rutas del módulo
-export const CHAT_ROUTES = {
-  index: '/chat',
-  conversation: '/chat/:conversationId',
-  newChat: '/chat/new',
-  archived: '/chat/archived',
-  settings: '/chat/settings',
-} as const 
+// Constants
+export { SOCKET_EVENTS } from './constants/socketEvents'
+
+// Validators
+export {
+  validateMessageEvent,
+  validateMessageReadEvent,
+  validateTypingEvent,
+  validateUserEvent,
+  validateSocketEvent
+} from './validators/socketValidators' 

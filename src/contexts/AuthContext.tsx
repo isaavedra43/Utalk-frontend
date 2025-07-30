@@ -1,317 +1,308 @@
 // Contexto global de autenticación
 // ✅ BACKEND EMAIL-FIRST: Solo JWT propio, sin Firebase
 // Manejo del estado de usuario, login, logout y protección de rutas
-import React, { useReducer, useEffect, createContext, useContext } from 'react'
+import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react'
 import { apiClient } from '@/services/apiClient'
-import {
-  User,
-  AuthState,
-  authReducer,
-  initialState,
-} from './auth-types'
-import { logger } from '@/lib/logger'
-import { useQueryClient } from '@tanstack/react-query'
-import { API_ENDPOINTS } from '@/lib/constants'
+import { logger, createLogContext, getComponentContext } from '@/lib/logger'
+import type { User } from './auth-types'
 
-// ✅ Contexto de autenticación
-export interface AuthContextType extends AuthState {
+// ✅ CONTEXTO PARA LOGGING
+const authContext = getComponentContext('AuthContext')
+
+interface AuthState {
+  user: User | null
+  token: string | null
+  isAuthenticated: boolean
+  isAuthLoaded: boolean
+  isLoading: boolean
+  error: string | null
+}
+
+type AuthAction =
+  | { type: 'AUTH_START' }
+  | { type: 'AUTH_SUCCESS'; payload: { user: User; token: string } }
+  | { type: 'AUTH_FAILURE'; payload: string }
+  | { type: 'AUTH_LOGOUT' }
+  | { type: 'AUTH_LOADED' }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
+
+const initialState: AuthState = {
+  user: null,
+  token: null,
+  isAuthenticated: false,
+  isAuthLoaded: false,
+  isLoading: false,
+  error: null
+}
+
+function authReducer(state: AuthState, action: AuthAction): AuthState {
+  switch (action.type) {
+    case 'AUTH_START':
+      return { ...state, isLoading: true, error: null }
+    case 'AUTH_SUCCESS':
+      return {
+        ...state,
+        user: action.payload.user,
+        token: action.payload.token,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null
+      }
+    case 'AUTH_FAILURE':
+      return {
+        ...state,
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: action.payload
+      }
+    case 'AUTH_LOGOUT':
+      return {
+        ...state,
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null
+      }
+    case 'AUTH_LOADED':
+      return { ...state, isAuthLoaded: true }
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload }
+    case 'SET_ERROR':
+      return { ...state, error: action.payload }
+    default:
+      return state
+  }
+}
+
+interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>
-  logout: () => Promise<void>
-  updateUser: (userData: Partial<User>) => void
-  clearError: () => void
+  logout: () => void
+  initializeAuth: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState)
-  const queryClient = useQueryClient()
 
-  useEffect(() => {
-    let isMounted = true
-    
-    async function initializeAuth() {
-      console.log('[AUTH] 1. Initializing authentication...')
-      
-      try {
-        const token = localStorage.getItem('auth_token')
-        const userData = localStorage.getItem('user_data')
-        
-        console.log('[AUTH] Initial state check:', {
-          hasToken: !!token, 
+  // ✅ INICIALIZACIÓN CON LOGS PROFESIONALES
+  const initializeAuth = async () => {
+    const context = createLogContext({
+      ...authContext,
+      method: 'initializeAuth'
+    })
+
+    logger.auth('🔄 Iniciando restauración de sesión', context)
+
+    try {
+      const token = localStorage.getItem('auth_token')
+      const userData = localStorage.getItem('user_data')
+
+      logger.auth('📋 Estado inicial verificado', createLogContext({
+        ...context,
+        data: {
+          hasToken: !!token,
           hasUserData: !!userData,
-          tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
-        })
+          tokenLength: token?.length || 0
+        }
+      }))
 
-        if (token && userData) {
-          console.log('[AUTH] 2. Token and user data found. Configuring apiClient FIRST...')
-          
-          // ✅ CONFIGURAR TOKEN EN APICLIENT ANTES DE CUALQUIER REQUEST
-          apiClient.setAuthToken(token)
-          
-          console.log('[AUTH] 3. ApiClient configured. Now validating with backend...')
-          
-          // ✅ CORREGIR: Validar token con backend con estructura correcta
-          const validationResponse = await apiClient.get(API_ENDPOINTS.AUTH.VALIDATE_TOKEN)
-          console.log('[AUTH] 4. Backend validation response:', validationResponse)
+      if (token && userData) {
+        logger.auth('🔧 Configurando apiClient con token existente', context)
+        apiClient.setAuthToken(token)
 
-          // ✅ CORREGIR: Verificar estructura correcta de respuesta del backend
-          if (validationResponse?.success && validationResponse?.data?.user) {
-            const user: User = validationResponse.data.user
-            
-            console.log('[AUTH] 5. ✅ Backend validation successful:', {
+        logger.auth('🌐 Validando token con backend', context)
+        const validationResponse = await apiClient.get('/auth/validate-token')
+
+        logger.auth('📡 Respuesta de validación recibida', createLogContext({
+          ...context,
+          data: {
+            success: validationResponse?.success,
+            hasData: !!validationResponse?.data,
+            hasUser: !!validationResponse?.data?.user,
+            message: validationResponse?.message
+          }
+        }))
+
+        if (validationResponse?.success && validationResponse?.data?.user) {
+          const user: User = validationResponse.data.user
+          
+          logger.auth('✅ Validación exitosa - Usuario restaurado', createLogContext({
+            ...context,
+            data: {
+              userEmail: user.email,
+              userRole: user.role,
+              isActive: user.isActive,
+              userName: user.name
+            }
+          }))
+
+          if (!user.isActive) {
+            logger.authError('❌ Usuario inactivo detectado', createLogContext({
+              ...context,
+              data: { userEmail: user.email, isActive: user.isActive }
+            }))
+            throw new Error('Usuario inactivo. Contacta al administrador.')
+          }
+
+          dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } })
+          logger.auth('🎉 Sesión restaurada exitosamente', createLogContext({
+            ...context,
+            data: {
               userEmail: user.email,
               userRole: user.role,
               isActive: user.isActive
-            })
-            
-            // ✅ Verificar que el usuario esté activo
-            if (!user.isActive) {
-              throw new Error('Usuario inactivo. Contacta al administrador.')
             }
-
-            if (isMounted) {
-              // ✅ PRIMERO actualizar contexto
-              dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } })
-              
-              console.log('[AUTH] 6. ✅ Session restored successfully.')
-              console.log('[AUTH] 7. ✅ User authenticated:', {
-                email: user.email,
-                role: user.role,
-                isActive: user.isActive
-              })
-            }
-          } else {
-            // ✅ CORREGIR: Manejar respuesta inválida del backend
-            console.error('[AUTH] 4. ❌ Backend validation failed:', {
+          }))
+        } else {
+          logger.authError('❌ Validación de token fallida', createLogContext({
+            ...context,
+            data: {
               success: validationResponse?.success,
               hasData: !!validationResponse?.data,
               hasUser: !!validationResponse?.data?.user,
               message: validationResponse?.message
-            })
-            
-            // ✅ LIMPIAR datos inválidos
-            localStorage.removeItem('auth_token')
-            localStorage.removeItem('user_data')
-            apiClient.setAuthToken(null)
-            
-            throw new Error('Token inválido según el backend')
-          }
-        } else {
-          console.log('[AUTH] 2. No session found in localStorage - continuing without auth.')
-          if (isMounted) {
-            // ✅ TEMPORAL: No falla, solo marca como no autenticado pero listo
-            // dispatch({ type: 'AUTH_FAILURE', payload: 'No active session' })
-          }
-        }
-      } catch (error: any) {
-        console.error('[AUTH] 3. ❌ Session validation failed:', error.message)
-        
-        // ✅ LIMPIAR estado en caso de error
-        if (isMounted) {
+            }
+          }))
+
+          // ✅ LIMPIEZA DE DATOS INVALIDOS
           localStorage.removeItem('auth_token')
           localStorage.removeItem('user_data')
           apiClient.setAuthToken(null)
-          dispatch({ type: 'AUTH_FAILURE', payload: error.message })
+          throw new Error('Token inválido según el backend')
         }
-      } finally {
-        if (isMounted) {
-          // ✅ MARCAMOS COMO LISTO SIEMPRE
-          dispatch({ type: 'AUTH_READY' })
-          console.log('[AUTH] ✅ Auth initialization complete (ready=true)')
-        }
+      } else {
+        logger.auth('ℹ️ No se encontraron datos de sesión', context)
       }
-    }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+      logger.authError('💥 Error durante inicialización de auth', createLogContext({
+        ...context,
+        error: error as Error,
+        data: { errorMessage }
+      }))
 
-    initializeAuth()
-    
-    return () => {
-      isMounted = false
-    }
-  }, [])
-
-  /**
-   * ✅ Login optimizado sin race conditions
-   */
-  const login = async (email: string, password: string) => {
-    const perfId = logger.startPerformance('email_first_login_flow')
-    
-    logger.info('🚀 LOGIN FLOW STARTED (EMAIL-FIRST Backend)', {
-      email,
-      timestamp: new Date().toISOString(),
-    }, 'email_first_login_flow_start')
-    
-    dispatch({ type: 'AUTH_REQUEST' })
-    
-    try {
-      // ✅ Login directo con backend EMAIL-FIRST
-      logger.info('🔑 Starting Backend Authentication...', { email }, 'backend_auth_start')
-      
-      const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, {
-        email,
-        password
-      })
-      
-      logger.info('✅ Backend Auth successful', {
-        hasUser: !!response.user,
-        hasToken: !!response.token,
-        userEmail: response.user?.email
-      }, 'backend_auth_success')
-
-      // ✅ Validar respuesta del backend
-      if (!response.user || !response.token) {
-        throw new Error('Respuesta del backend inválida: faltan user o token.')
-      }
-
-      const { user, token } = response
-
-      // ✅ Verificar que el usuario esté activo
-      if (!user.isActive) {
-        throw new Error('Tu cuenta está inactiva. Contacta al administrador.')
-      }
-
-      // ✅ PASO 1: Guardar datos localmente PRIMERO
-      logger.info('💾 Saving auth data to localStorage...', {
-        hasToken: !!token,
-        hasUser: !!user
-      }, 'saving_auth_data')
-      
-      localStorage.setItem('auth_token', token)
-      localStorage.setItem('user_data', JSON.stringify(user))
-      
-      // ✅ PASO 2: Configurar token en apiClient
-      logger.info('🔧 Configuring token in apiClient...', {
-        tokenPreview: `${token.substring(0, 20)}...`
-      }, 'configuring_api_client')
-      
-      apiClient.setAuthToken(token)
-
-      // ✅ PASO 3: Actualizar contexto
-      logger.info('🔄 Updating auth context...', {
-        userEmail: user.email,
-        userRole: user.role
-      }, 'updating_auth_context')
-      
-      dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } })
-      
-      // ✅ PASO 4: Invalidar queries DESPUÉS de todo configurado
-      logger.info('🔄 Invalidating React Query cache...', {
-        queriesToInvalidate: 'all'
-      }, 'invalidating_queries')
-      
-      queryClient.invalidateQueries()
-      
-      logger.endPerformance(perfId, `EMAIL-FIRST login completed for ${email}`)
-      
-      logger.success('✅ Complete login flow successful', {
-        userEmail: user.email,
-        userRole: user.role,
-        permissions: user.permissions
-      }, 'login_complete')
-
-    } catch (error: any) {
-      logger.error('❌ COMPLETE LOGIN ERROR', {
-        errorType: typeof error,
-        errorName: error?.name,
-        errorMessage: error?.message,
-        errorStatus: error?.status,
-        errorResponse: error?.response?.data
-      }, 'complete_login_error')
-
-      // ✅ Manejo específico de errores
-      let userMessage = 'Error de autenticación.'
-      
-      if (error?.response?.status === 401) {
-        userMessage = 'Credenciales incorrectas. Verifica tu correo y contraseña.'
-      } else if (error?.response?.status === 403) {
-        userMessage = 'Usuario inactivo. Contacta al administrador.'
-      } else if (error?.response?.status >= 500) {
-        userMessage = 'Error del servidor. Intenta nuevamente.'
-      } else if (error?.message?.includes('inactiva')) {
-        userMessage = error.message
-      }
-
-      logger.endPerformance(perfId, `Login failed for ${email}: ${userMessage}`)
-
-      dispatch({ type: 'AUTH_FAILURE', payload: userMessage })
-      throw new Error(userMessage)
+      // ✅ LIMPIEZA COMPLETA EN CASO DE ERROR
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('user_data')
+      apiClient.setAuthToken(null)
+      dispatch({ type: 'AUTH_FAILURE', payload: errorMessage })
+    } finally {
+      dispatch({ type: 'AUTH_LOADED' })
+      logger.auth('🏁 Inicialización de auth completada', createLogContext({
+        ...context,
+        data: { isAuthLoaded: true }
+      }))
     }
   }
 
-  /**
-   * ✅ Logout completo
-   */
-  const logout = async () => {
-    logger.info('🚪 Logout started', {
-      userEmail: state.user?.email
-    }, 'logout_started')
-    
-    try {
-      // ✅ Intentar logout en backend
-      await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT)
-      logger.info('✅ Backend logout successful', {}, 'backend_logout_success')
-    } catch (error) {
-      logger.warn('⚠️ Error during backend logout', error, 'logout_backend_error')
-    }
+  // ✅ LOGIN CON LOGS DETALLADOS
+  const login = async (email: string, password: string) => {
+    const context = createLogContext({
+      ...authContext,
+      method: 'login',
+      data: { email, passwordLength: password.length }
+    })
 
-    // ✅ Limpiar estado local
+    logger.auth('🔐 Iniciando proceso de login', context)
+
+    try {
+      dispatch({ type: 'AUTH_START' })
+
+      logger.auth('📡 Enviando credenciales al backend', context)
+      const response = await apiClient.post('/auth/login', { email, password })
+
+      logger.auth('📥 Respuesta de login recibida', createLogContext({
+        ...context,
+        data: {
+          success: response?.success,
+          hasToken: !!response?.data?.token,
+          hasUser: !!response?.data?.user
+        }
+      }))
+
+      if (response?.success && response?.data?.token && response?.data?.user) {
+        const { token, user } = response.data
+
+        logger.auth('💾 Guardando datos en localStorage', context)
+        localStorage.setItem('auth_token', token)
+        localStorage.setItem('user_data', JSON.stringify(user))
+
+        logger.auth('🔧 Configurando apiClient', context)
+        apiClient.setAuthToken(token)
+
+        logger.auth('✅ Login exitoso - Usuario autenticado', createLogContext({
+          ...context,
+          data: {
+            userEmail: user.email,
+            userRole: user.role,
+            isActive: user.isActive,
+            userName: user.name
+          }
+        }))
+
+        dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } })
+      } else {
+        const errorMsg = response?.message || 'Respuesta inválida del servidor'
+        logger.authError('❌ Login fallido - Respuesta inválida', createLogContext({
+          ...context,
+          data: { errorMessage: errorMsg }
+        }))
+        throw new Error(errorMsg)
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+      logger.authError('💥 Error durante login', createLogContext({
+        ...context,
+        error: error as Error,
+        data: { errorMessage }
+      }))
+      dispatch({ type: 'AUTH_FAILURE', payload: errorMessage })
+      throw error
+    }
+  }
+
+  // ✅ LOGOUT CON LOGS
+  const logout = () => {
+    const context = createLogContext({
+      ...authContext,
+      method: 'logout',
+      data: { userEmail: state.user?.email }
+    })
+
+    logger.auth('🚪 Iniciando logout', context)
+
     localStorage.removeItem('auth_token')
     localStorage.removeItem('user_data')
     apiClient.setAuthToken(null)
-    
-    // ✅ Limpiar contexto
     dispatch({ type: 'AUTH_LOGOUT' })
-    
-    // ✅ Limpiar cache de React Query
-    queryClient.clear()
-    
-    logger.success('✅ Logout completed successfully', {}, 'logout_complete')
+
+    logger.auth('✅ Logout completado', context)
   }
 
-  /**
-   * ✅ Actualizar datos de usuario
-   */
-  const updateUser = (userData: Partial<User>) => {
-    if (state.user) {
-      const updatedUser = { ...state.user, ...userData }
-      
-      // ✅ Actualizar localStorage
-      localStorage.setItem('user_data', JSON.stringify(updatedUser))
-      
-      // ✅ Actualizar contexto
-      dispatch({ type: 'UPDATE_USER', payload: updatedUser })
-      
-      logger.info('✅ User data updated', {
-        updatedFields: Object.keys(userData)
-      }, 'user_data_updated')
-    }
-  }
-
-  /**
-   * ✅ Limpiar errores
-   */
-  const clearError = () => {
-    dispatch({ type: 'CLEAR_ERROR' })
-  }
+  useEffect(() => {
+    initializeAuth()
+  }, [])
 
   const value: AuthContextType = {
     ...state,
     login,
     logout,
-    updateUser,
-    clearError,
+    initializeAuth
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-/**
- * ✅ Hook para usar el contexto de autenticación
- */
-export function useAuth(): AuthContextType {
+export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {
-    throw new Error('useAuth debe usarse dentro de un AuthProvider')
+    logger.authError('❌ useAuth debe usarse dentro de AuthProvider')
+    throw new Error('useAuth debe usarse dentro de AuthProvider')
   }
   return context
 }

@@ -29,11 +29,11 @@ export function LoginPage() {
     setError('')
 
     try {
-      logger.info('🚀 Login attempt started (EMAIL-FIRST Backend)', {
+      logger.info('AUTH', 'Login attempt started', {
         email,
         timestamp: new Date().toISOString(),
         userAgent: navigator.userAgent.substring(0, 100)
-      }, 'login_attempt')
+      })
 
       // ✅ LOGGING TEMPORAL: Verificar estado antes del login
       console.log('🔍 [LOGIN] Estado antes del login:', {
@@ -52,10 +52,10 @@ export function LoginPage() {
         currentPath: window.location.pathname
       })
 
-      logger.success('✅ Login successful, redirecting to dashboard', {
+      logger.success('Login successful, redirecting to dashboard', {
         email,
         timestamp: new Date().toISOString()
-      }, 'login_success_redirect')
+      })
 
       // ✅ Redirigir al dashboard
       navigate('/dashboard')
@@ -64,12 +64,12 @@ export function LoginPage() {
       const errorMessage = error?.message || 'Error de autenticación'
       setError(errorMessage)
       
-      logger.error('❌ Login failed', {
+      logger.error('AUTH', 'Login failed', {
         email,
         errorMessage,
         errorType: typeof error,
         timestamp: new Date().toISOString()
-      }, 'login_failed')
+      })
     } finally {
       setIsLoading(false)
     }

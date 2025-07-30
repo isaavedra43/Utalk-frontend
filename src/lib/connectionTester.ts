@@ -22,7 +22,7 @@ class ConnectionTester {
 
   // ✅ Test principal que ejecuta todas las pruebas
   async runAllTests(): Promise<ConnectionTestResult[]> {
-    logger.info('🧪 Starting connection tests...', { baseURL: this.baseURL }, 'connection_test_start')
+    logger.info('CONNECTION', 'Starting connection tests', { baseURL: this.baseURL })
 
     const tests = [
       () => this.testBaseURL(),
@@ -286,7 +286,7 @@ if (import.meta.env.DEV) {
   // Ejecutar tests después de 3 segundos
   setTimeout(() => {
     connectionTester.runAllTests().catch(error => {
-      logger.error('Connection tests failed', error, 'connection_test_error')
+      logger.error('CONNECTION', 'Connection tests failed', error)
     })
   }, 3000)
 } 

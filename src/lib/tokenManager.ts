@@ -1,168 +1,251 @@
 // Gestor de tokens para refresh automático y logout seguro
 // Maneja la rotación de tokens y expiración segura
 import { apiClient } from '@/services/apiClient'
-import { logger } from '@/lib/logger'
-import { API_ENDPOINTS } from '@/lib/constants'
+import { logger, createLogContext, getComponentContext } from './logger'
 
+// ✅ CONTEXTO PARA LOGGING
+const tokenManagerContext = getComponentContext('tokenManager')
 
+interface TokenData {
+  token: string
+  expiresAt: number
+  refreshToken?: string
+}
+
+interface RefreshResponse {
+  success: boolean
+  data?: {
+    token: string
+    expiresAt: number
+    refreshToken?: string
+  }
+  error?: string
+}
 
 class TokenManager {
-  private refreshTimeout: NodeJS.Timeout | null = null
+  private refreshTimer: NodeJS.Timeout | null = null
   private isRefreshing = false
-  private refreshPromise: Promise<string | null> | null = null
 
-  // Obtener token del localStorage
-  getToken(): string | null {
-    return localStorage.getItem('auth_token')
-  }
-
-  // Guardar token en localStorage
-  setToken(token: string, expiresIn?: number): void {
-    const expiresAt = expiresIn ? Date.now() + expiresIn * 1000 : Date.now() + 24 * 60 * 60 * 1000 // 24h por defecto
-    
-    localStorage.setItem('auth_token', token)
-    localStorage.setItem('token_expires_at', expiresAt.toString())
-    
-    // Programar refresh automático
-    this.scheduleTokenRefresh(expiresAt)
-    
-    logger.info('Token guardado y refresh programado', {
-      expiresAt: new Date(expiresAt).toISOString(),
-      expiresInMinutes: Math.round((expiresAt - Date.now()) / 60000)
+  // ✅ GUARDAR TOKEN CON REFRESH AUTOMÁTICO
+  saveToken(tokenData: TokenData) {
+    const context = createLogContext({
+      ...tokenManagerContext,
+      method: 'saveToken',
+      data: {
+        hasToken: !!tokenData.token,
+        expiresAt: new Date(tokenData.expiresAt).toISOString(),
+        hasRefreshToken: !!tokenData.refreshToken
+      }
     })
-  }
 
-  // Verificar si el token está próximo a expirar (5 minutos antes)
-  isTokenExpiringSoon(): boolean {
-    const expiresAt = localStorage.getItem('token_expires_at')
-    if (!expiresAt) return true
-    
-    const expirationTime = parseInt(expiresAt)
-    const fiveMinutesFromNow = Date.now() + 5 * 60 * 1000
-    
-    return expirationTime <= fiveMinutesFromNow
-  }
+    logger.info('AUTH', 'Token guardado y refresh programado', context)
 
-  // Verificar si el token ha expirado
-  isTokenExpired(): boolean {
-    const expiresAt = localStorage.getItem('token_expires_at')
-    if (!expiresAt) return true
+    // ✅ Guardar en localStorage
+    localStorage.setItem('auth_token', tokenData.token)
+    localStorage.setItem('token_expires_at', tokenData.expiresAt.toString())
     
-    const expirationTime = parseInt(expiresAt)
-    return Date.now() >= expirationTime
-  }
-
-  // Programar refresh automático del token
-  private scheduleTokenRefresh(expiresAt: number): void {
-    // Limpiar timeout anterior
-    if (this.refreshTimeout) {
-      clearTimeout(this.refreshTimeout)
+    if (tokenData.refreshToken) {
+      localStorage.setItem('refresh_token', tokenData.refreshToken)
     }
 
-    // Calcular tiempo para refresh (5 minutos antes de expirar)
-    const refreshTime = expiresAt - 5 * 60 * 1000
-    const delay = Math.max(0, refreshTime - Date.now())
+    // ✅ Configurar en apiClient
+    apiClient.setAuthToken(tokenData.token)
 
-    this.refreshTimeout = setTimeout(() => {
-      this.refreshToken()
-    }, delay)
-
-    logger.info('Refresh de token programado', {
-      refreshTime: new Date(refreshTime).toISOString(),
-      delayMinutes: Math.round(delay / 60000)
-    })
+    // ✅ Programar refresh automático
+    this.scheduleTokenRefresh(tokenData.expiresAt)
   }
 
-  // Refresh automático del token
-  async refreshToken(): Promise<string | null> {
-    // Evitar múltiples refreshes simultáneos
-    if (this.isRefreshing && this.refreshPromise) {
-      return this.refreshPromise
+  // ✅ PROGRAMAR REFRESH AUTOMÁTICO
+  private scheduleTokenRefresh(expiresAt: number) {
+    // ✅ Limpiar timer anterior
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer)
+    }
+
+    // ✅ Calcular tiempo hasta refresh (5 minutos antes de expirar)
+    const now = Date.now()
+    const refreshTime = expiresAt - (5 * 60 * 1000) // 5 minutos antes
+    const timeUntilRefresh = refreshTime - now
+
+    const context = createLogContext({
+      ...tokenManagerContext,
+      method: 'scheduleTokenRefresh',
+      data: {
+        expiresAt: new Date(expiresAt).toISOString(),
+        refreshTime: new Date(refreshTime).toISOString(),
+        timeUntilRefresh: Math.round(timeUntilRefresh / 1000 / 60) // minutos
+      }
+    })
+
+    logger.info('AUTH', 'Refresh de token programado', context)
+
+    if (timeUntilRefresh > 0) {
+      this.refreshTimer = setTimeout(() => {
+        this.refreshToken()
+      }, timeUntilRefresh)
+    } else {
+      // ✅ Token ya expirado o muy cerca, refrescar inmediatamente
+      this.refreshToken()
+    }
+  }
+
+  // ✅ REFRESCAR TOKEN
+  private async refreshToken() {
+    if (this.isRefreshing) {
+      logger.warn('AUTH', 'Token refresh already in progress', createLogContext({
+        ...tokenManagerContext,
+        method: 'refreshToken'
+      }))
+      return
     }
 
     this.isRefreshing = true
-    this.refreshPromise = this.performTokenRefresh()
+
+    const context = createLogContext({
+      ...tokenManagerContext,
+      method: 'refreshToken'
+    })
+
+    logger.info('AUTH', 'Iniciando refresh de token', context)
 
     try {
-      const newToken = await this.refreshPromise
-      return newToken
+      const refreshToken = localStorage.getItem('refresh_token')
+      const currentToken = localStorage.getItem('auth_token')
+
+      if (!refreshToken && !currentToken) {
+        logger.warn('AUTH', 'No refresh token or current token available', context)
+        this.handleTokenExpiration()
+        return
+      }
+
+      // ✅ Intentar refresh con refresh token o token actual
+      const response = await apiClient.post<RefreshResponse>('/auth/refresh', {
+        refreshToken: refreshToken || currentToken
+      })
+
+      if (response.success && response.data) {
+        logger.info('AUTH', 'Token refrescado exitosamente', createLogContext({
+          ...context,
+          data: {
+            newExpiresAt: new Date(response.data.expiresAt).toISOString()
+          }
+        }))
+
+        // ✅ Guardar nuevo token
+        this.saveToken({
+          token: response.data.token,
+          expiresAt: response.data.expiresAt,
+          refreshToken: response.data.refreshToken
+        })
+      } else {
+        throw new Error(response.error || 'Failed to refresh token')
+      }
+    } catch (error) {
+      logger.error('AUTH', 'Error al refrescar token', createLogContext({
+        ...context,
+        error: error as Error
+      }))
+
+      this.handleTokenExpiration()
     } finally {
       this.isRefreshing = false
-      this.refreshPromise = null
     }
   }
 
-  // Realizar refresh del token
-  private async performTokenRefresh(): Promise<string | null> {
-    try {
-      logger.info('Iniciando refresh de token')
-      
-      const response = await apiClient.post(API_ENDPOINTS.AUTH.REFRESH, {})
-      
-      if (response.token) {
-        this.setToken(response.token, response.expiresIn)
-        apiClient.setAuthToken(response.token)
-        
-        logger.info('Token refrescado exitosamente')
-        return response.token
-      } else {
-        throw new Error('No se recibió nuevo token')
-      }
-    } catch (error: any) {
-      logger.error('Error al refrescar token', { error: error.message })
-      
-      // Si falla el refresh, hacer logout
-      this.handleTokenExpiration()
-      return null
+  // ✅ MANEJAR EXPIRACIÓN DE TOKEN
+  private handleTokenExpiration() {
+    const context = createLogContext({
+      ...tokenManagerContext,
+      method: 'handleTokenExpiration'
+    })
+
+    logger.warn('AUTH', 'Token expirado, iniciando logout', context)
+
+    // ✅ Limpiar datos de sesión
+    this.clearTokenData()
+
+    // ✅ Redirigir a login
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login'
     }
   }
 
-  // Manejar expiración del token
-  handleTokenExpiration(): void {
-    logger.warn('Token expirado, iniciando logout')
-    
-    // Limpiar timeout
-    if (this.refreshTimeout) {
-      clearTimeout(this.refreshTimeout)
-      this.refreshTimeout = null
+  // ✅ LIMPIAR DATOS DE TOKEN
+  clearTokenData() {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer)
+      this.refreshTimer = null
     }
 
-    // Limpiar localStorage
     localStorage.removeItem('auth_token')
     localStorage.removeItem('token_expires_at')
+    localStorage.removeItem('refresh_token')
     localStorage.removeItem('user_data')
 
-    // Limpiar token del cliente API
     apiClient.setAuthToken(null)
 
-    // Disparar evento de logout
-    window.dispatchEvent(new CustomEvent('token-expired'))
+    logger.info('AUTH', 'Token data cleared', createLogContext({
+      ...tokenManagerContext,
+      method: 'clearTokenData'
+    }))
   }
 
-  // Verificar token periódicamente
-  startTokenMonitoring(): void {
-    // Verificar cada minuto
-    setInterval(() => {
-      if (this.isTokenExpired()) {
-        this.handleTokenExpiration()
-      } else if (this.isTokenExpiringSoon()) {
-        this.refreshToken()
-      }
-    }, 60 * 1000)
-
-    logger.info('Monitoreo de token iniciado')
+  // ✅ OBTENER TOKEN ACTUAL
+  getCurrentToken(): string | null {
+    return localStorage.getItem('auth_token')
   }
 
-  // Limpiar recursos
-  cleanup(): void {
-    if (this.refreshTimeout) {
-      clearTimeout(this.refreshTimeout)
-      this.refreshTimeout = null
+  // ✅ VERIFICAR SI TOKEN ES VÁLIDO
+  isTokenValid(): boolean {
+    const token = localStorage.getItem('auth_token')
+    const expiresAt = localStorage.getItem('token_expires_at')
+
+    if (!token || !expiresAt) {
+      return false
     }
-    this.isRefreshing = false
-    this.refreshPromise = null
+
+    const expiration = parseInt(expiresAt)
+    const now = Date.now()
+
+    return now < expiration
+  }
+
+  // ✅ INICIALIZAR MONITOREO
+  startTokenMonitoring() {
+    const context = createLogContext({
+      ...tokenManagerContext,
+      method: 'startTokenMonitoring'
+    })
+
+    logger.info('AUTH', 'Monitoreo de token iniciado', context)
+
+    const expiresAt = localStorage.getItem('token_expires_at')
+    if (expiresAt) {
+      this.scheduleTokenRefresh(parseInt(expiresAt))
+    }
+  }
+
+  // ✅ DETENER MONITOREO
+  stopTokenMonitoring() {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer)
+      this.refreshTimer = null
+    }
+
+    logger.info('AUTH', 'Monitoreo de token detenido', createLogContext({
+      ...tokenManagerContext,
+      method: 'stopTokenMonitoring'
+    }))
   }
 }
 
+// ✅ Instancia global
 export const tokenManager = new TokenManager()
-export default tokenManager 
+
+// ✅ Inicializar automáticamente si hay token
+if (typeof window !== 'undefined') {
+  const hasToken = localStorage.getItem('auth_token')
+  if (hasToken) {
+    tokenManager.startTokenMonitoring()
+  }
+} 

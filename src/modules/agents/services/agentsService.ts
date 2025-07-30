@@ -2,6 +2,7 @@
 // Gestión completa de agentes con Firebase y backend integration
 
 import { apiClient } from '@/services/apiClient'
+import { logger, createLogContext, getComponentContext } from '@/lib/logger'
 import type { 
   Agent,
   AgentFilters,
@@ -17,6 +18,9 @@ import type {
   AIAnalysis,
   MetricsTimeSeries
 } from '../types'
+
+// ✅ CONTEXTO PARA LOGGING
+const agentsServiceContext = getComponentContext('agentsService')
 
 /**
  * 🎯 SERVICIO PRINCIPAL DE AGENTES
@@ -667,6 +671,28 @@ class AgentsService {
         success: false,
         error: error instanceof Error ? error.message : 'Error al remover agente de equipo'
       }
+    }
+  }
+
+  // ✅ MÉTODO PATCH PARA AGENTS
+  async patch<T = any>(url: string, data?: any, config?: any): Promise<T> {
+    const context = createLogContext({
+      ...agentsServiceContext,
+      method: 'PATCH',
+      data: { url, dataSize: data ? JSON.stringify(data).length : 0 }
+    })
+
+    logger.info('API', `📡 PATCH request to ${url}`, context)
+
+    try {
+      const response = await apiClient.put<T>(url, data, config)
+      return response
+    } catch (error) {
+      logger.apiError(`💥 PATCH request failed: ${url}`, createLogContext({
+        ...context,
+        error: error as Error
+      }))
+      throw error
     }
   }
 }
