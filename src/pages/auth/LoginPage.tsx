@@ -35,7 +35,22 @@ export function LoginPage() {
         userAgent: navigator.userAgent.substring(0, 100)
       }, 'login_attempt')
 
+      // ✅ LOGGING TEMPORAL: Verificar estado antes del login
+      console.log('🔍 [LOGIN] Estado antes del login:', {
+        hasToken: !!localStorage.getItem('auth_token'),
+        hasUserData: !!localStorage.getItem('user_data'),
+        currentPath: window.location.pathname
+      })
+
       await login(email, password)
+
+      // ✅ LOGGING TEMPORAL: Verificar estado después del login
+      console.log('🔍 [LOGIN] Estado después del login:', {
+        hasToken: !!localStorage.getItem('auth_token'),
+        hasUserData: !!localStorage.getItem('user_data'),
+        tokenPreview: localStorage.getItem('auth_token')?.substring(0, 20) + '...',
+        currentPath: window.location.pathname
+      })
 
       logger.success('✅ Login successful, redirecting to dashboard', {
         email,

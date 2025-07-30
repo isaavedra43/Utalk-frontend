@@ -171,6 +171,15 @@ class ConversationService {
    */
   async getConversations(): Promise<CanonicalConversation[]> {
     try {
+      // ✅ LOGGING CRÍTICO: Verificar token antes de hacer request
+      const currentToken = apiClient.getAuthToken()
+      console.log('🔍 [CONVERSATIONS] Token verification before request:', {
+        hasToken: !!currentToken,
+        tokenLength: currentToken?.length || 0,
+        tokenPreview: currentToken ? `${currentToken.substring(0, 20)}...` : 'none',
+        endpoint: API_ENDPOINTS.CONVERSATIONS.LIST
+      })
+
       const response = await apiClient.get(API_ENDPOINTS.CONVERSATIONS.LIST)
 
       // ✅ LOG EXPLÍCITO DE AUDITORÍA - RESPUESTA CRUDA
@@ -258,6 +267,14 @@ class ConversationService {
       console.error('❌ [ERROR] Tipo de error:', typeof error)
       console.error('❌ [ERROR] Stack trace:', error instanceof Error ? error.stack : 'No disponible')
       
+      // ✅ LOGGING ADICIONAL PARA DEBUG DE AUTENTICACIÓN
+      const currentToken = apiClient.getAuthToken()
+      console.error('❌ [ERROR] Auth token status during error:', {
+        hasToken: !!currentToken,
+        tokenLength: currentToken?.length || 0,
+        tokenPreview: currentToken ? `${currentToken.substring(0, 20)}...` : 'none'
+      })
+      
       // En caso de error, retornar array vacío pero con conversación de emergencia
       if (process.env.NODE_ENV === 'development') {
         console.log('🚨 [EMERGENCY] Creando conversación de emergencia para desarrollo...')
@@ -270,39 +287,46 @@ class ConversationService {
           priority: 'medium' as const,
           contact: {
             id: 'emergency-contact',
-            name: 'Error en Backend',
-            phone: 'N/A',
+            name: 'Cliente de Emergencia',
+            phone: '+1234567890',
             avatar: undefined,
-            email: undefined,
+            email: 'emergency@example.com',
             isOnline: false,
-            tags: [],
+            lastSeen: undefined,
+            company: 'Empresa de Emergencia',
+            department: 'Soporte',
+            tags: ['emergency', 'test'],
             createdAt: new Date(),
             updatedAt: new Date(),
+            customFields: undefined,
             isBlocked: false,
-            preferences: { language: 'es', timezone: 'UTC', notifications: true }
+            preferences: {
+              language: 'es',
+              timezone: 'UTC',
+              notifications: true
+            }
           },
-          channel: 'web' as const,
+          channel: 'whatsapp' as const,
           createdAt: new Date(),
           updatedAt: new Date(),
           lastMessageAt: new Date(),
           lastMessage: {
-            id: 'emergency-msg',
-            content: 'Error al cargar conversaciones del backend',
+            id: 'emergency-message',
+            content: 'Este es un mensaje de emergencia para testing',
             timestamp: new Date(),
-            senderName: 'Sistema',
-            type: 'text' as const,
-            direction: 'incoming' as const,
-            status: 'delivered' as const,
-            conversationId: 'emergency-' + Date.now()
+            senderName: 'Cliente de Emergencia',
+            type: 'text' as const
           },
-          tags: ['error', 'sistema'],
-          unreadCount: 1,
+          participants: ['emergency-contact'],
+          tags: ['emergency'],
           messageCount: 1,
-          isMuted: false,
-          isArchived: false
+          unreadCount: 0,
+          metadata: {
+            source: 'emergency',
+            reason: 'API error during development'
+          }
         }
 
-        console.log('🚨 [EMERGENCY] Conversación de emergencia creada:', emergencyConversation)
         return [emergencyConversation]
       }
 

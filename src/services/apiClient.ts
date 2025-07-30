@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger'
 
 class ApiClient {
   private axiosInstance: AxiosInstance
+  private authToken: string | null = null
   
   constructor(baseURL: string) {
     // ✅ VALIDACIÓN MEJORADA: Solo advertir si realmente hay duplicación
@@ -23,11 +24,41 @@ class ApiClient {
       },
     })
 
+    // ✅ INTERCEPTOR OPTIMIZADO: No sobrescribe headers ya configurados
     this.axiosInstance.interceptors.request.use((config) => {
-      const token = localStorage.getItem('auth_token')
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`
+      // ✅ LOGGING DETALLADO PARA DEBUG
+      const currentToken = this.authToken || localStorage.getItem('auth_token')
+      
+      logger.info('🔍 Request Interceptor Debug', {
+        url: config.url,
+        method: config.method?.toUpperCase(),
+        hasAuthToken: !!currentToken,
+        tokenLength: currentToken?.length || 0,
+        tokenPreview: currentToken ? `${currentToken.substring(0, 20)}...` : 'none',
+        existingAuthHeader: !!config.headers.Authorization,
+        existingAuthValue: config.headers.Authorization ? 'present' : 'missing'
+      }, 'request_interceptor_debug')
+
+      // ✅ LÓGICA MEJORADA: Solo configurar si no existe ya
+      if (currentToken && !config.headers.Authorization) {
+        config.headers.Authorization = `Bearer ${currentToken}`
+        logger.info('✅ Authorization header set by interceptor', {
+          url: config.url,
+          method: config.method?.toUpperCase(),
+          tokenPreview: `${currentToken.substring(0, 20)}...`
+        }, 'auth_header_set')
+      } else if (currentToken && config.headers.Authorization) {
+        logger.info('ℹ️ Authorization header already present, skipping', {
+          url: config.url,
+          method: config.method?.toUpperCase()
+        }, 'auth_header_already_present')
+      } else if (!currentToken) {
+        logger.warn('⚠️ No auth token available for request', {
+          url: config.url,
+          method: config.method?.toUpperCase()
+        }, 'no_auth_token')
       }
+
       return config
     })
 
@@ -76,23 +107,30 @@ class ApiClient {
           headers: config?.headers
         })
 
-        // Manejo específico de errores
+        // ✅ MANEJO MEJORADO DE ERRORES 401
         if (status === 401) {
-          // ✅ CORREGIDO: NO redirigir automáticamente durante el proceso de login
           const isLoginEndpoint = url.includes('/auth/login')
+          const isValidateTokenEndpoint = url.includes('/auth/validate-token')
           
           logger.warn('Unauthorized request detected', {
             url,
             isLoginEndpoint,
+            isValidateTokenEndpoint,
             token: config?.headers?.Authorization ? 'present' : 'missing',
-            willRedirect: !isLoginEndpoint
+            willRedirect: !isLoginEndpoint && !isValidateTokenEndpoint
           }, 'api_unauthorized')
           
-          // Solo limpiar tokens y redirigir si NO es el endpoint de login
-          if (!isLoginEndpoint) {
-            // Limpiar token inválido solo si no estamos haciendo login
+          // ✅ SOLO LIMPIAR SI NO ES LOGIN O VALIDACIÓN
+          if (!isLoginEndpoint && !isValidateTokenEndpoint) {
+            logger.info('Clearing invalid session data', {
+              url,
+              currentPath: window.location.pathname
+            }, 'clearing_invalid_session')
+            
+            // Limpiar token inválido
             localStorage.removeItem('auth_token')
             localStorage.removeItem('user_data')
+            this.authToken = null
             
             // Redirigir a login si estamos en una página protegida
             if (window.location.pathname !== '/auth/login') {
@@ -102,8 +140,8 @@ class ApiClient {
               window.location.href = '/auth/login'
             }
           } else {
-            // Es el endpoint de login, dejar que el contexto maneje el error
-            logger.info('Login endpoint 401 - letting context handle error', {
+            // Es el endpoint de login o validación, dejar que el contexto maneje el error
+            logger.info('Login/validation endpoint 401 - letting context handle error', {
               url,
               status
             }, 'login_error_passthrough')
@@ -117,23 +155,8 @@ class ApiClient {
           logger.error('Server error detected', {
             url,
             status,
-            message: error.response?.data?.message || error.message
+            error: error.response?.data
           }, 'api_server_error')
-        } else if (error.code === 'ECONNABORTED') {
-          logger.error('Request timeout', { url, timeout: config?.timeout }, 'api_timeout')
-        } else if (error.code === 'ERR_NETWORK') {
-          logger.error('Network error - backend may be down', { 
-            url,
-            baseURL: config?.baseURL 
-          }, 'api_network_error')
-        } else {
-          // ✅ NUEVO: Log para otros tipos de errores
-          logger.error('Unknown API error', {
-            url,
-            status,
-            code: error.code,
-            message: error.message
-          }, 'api_unknown_error')
         }
 
         return Promise.reject(error)
@@ -141,7 +164,7 @@ class ApiClient {
     )
   }
 
-  // Métodos HTTP principales
+  // ✅ MÉTODO GET CON LOGGING
   async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.axiosInstance.get<ApiResponse<T>>(url, config)
     
@@ -149,14 +172,14 @@ class ApiClient {
     console.log(`[API-CLIENT] GET ${url} - Raw response:`, response.data)
     
     // ✅ Retornar response.data directamente sin extraer .data.data
-    // Cada servicio debe manejar su propia estructura de datos
     return response.data as T
   }
 
+  // ✅ MÉTODO POST CON LOGGING
   async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.axiosInstance.post<ApiResponse<T>>(url, data, config)
     
-    // ✅ LOG EXPLÍCITO DE AUDITORÍA - RESPUESTA CRUDA  
+    // ✅ LOG EXPLÍCITO DE AUDITORÍA - RESPUESTA CRUDA
     console.log(`[API-CLIENT] POST ${url} - Raw response:`, response.data)
     
     // ✅ LOGS CRÍTICOS: Verificar estructura de respuesta antes de retornar
@@ -240,13 +263,42 @@ class ApiClient {
     delete this.axiosInstance.defaults.headers.common[key]
   }
 
-  // ✅ NUEVO: Método para establecer el token de autorización explícitamente
+  // ✅ MÉTODO MEJORADO: setAuthToken con logging y sincronización
   setAuthToken(token: string | null) {
+    logger.info('🔧 setAuthToken called', {
+      hasToken: !!token,
+      tokenLength: token?.length || 0,
+      tokenPreview: token ? `${token.substring(0, 20)}...` : 'none',
+      previousToken: this.authToken ? `${this.authToken.substring(0, 20)}...` : 'none'
+    }, 'set_auth_token_called')
+
+    this.authToken = token
+
     if (token) {
-      this.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // ✅ SINCRONIZAR CON LOCALSTORAGE
+      localStorage.setItem('auth_token', token)
+      
+      // ✅ CONFIGURAR HEADER EN AXIOS
+      this.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      
+      logger.success('✅ Auth token configured successfully', {
+        tokenPreview: `${token.substring(0, 20)}...`,
+        headerSet: !!this.axiosInstance.defaults.headers.common['Authorization']
+      }, 'auth_token_configured')
     } else {
-      delete this.axiosInstance.defaults.headers.common['Authorization'];
+      // ✅ LIMPIAR TOKEN
+      localStorage.removeItem('auth_token')
+      delete this.axiosInstance.defaults.headers.common['Authorization']
+      
+      logger.info('🗑️ Auth token cleared', {
+        headerCleared: !this.axiosInstance.defaults.headers.common['Authorization']
+      }, 'auth_token_cleared')
     }
+  }
+
+  // ✅ MÉTODO PARA OBTENER TOKEN ACTUAL
+  getAuthToken(): string | null {
+    return this.authToken || localStorage.getItem('auth_token')
   }
 
   // Getter para acceso directo al cliente Axios si es necesario

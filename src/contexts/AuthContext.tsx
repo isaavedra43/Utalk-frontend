@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (token && userData) {
           console.log('2. Token and user data found. Validating with backend...')
           
-          // ✅ Configurar token en apiClient
+          // ✅ CONFIGURAR TOKEN EN APICLIENT ANTES DE VALIDAR
           apiClient.setAuthToken(token)
 
           // ✅ Validar token con backend
@@ -102,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   /**
-   * ✅ Login con backend EMAIL-FIRST
+   * ✅ Login optimizado sin race conditions
    */
   const login = async (email: string, password: string) => {
     const perfId = logger.startPerformance('email_first_login_flow')
@@ -141,17 +141,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Tu cuenta está inactiva. Contacta al administrador.')
       }
 
-      // ✅ Guardar datos localmente
+      // ✅ PASO 1: Guardar datos localmente PRIMERO
+      logger.info('💾 Saving auth data to localStorage...', {
+        hasToken: !!token,
+        hasUser: !!user
+      }, 'saving_auth_data')
+      
       localStorage.setItem('auth_token', token)
       localStorage.setItem('user_data', JSON.stringify(user))
       
-      // ✅ Configurar token en apiClient
+      // ✅ PASO 2: Configurar token en apiClient
+      logger.info('🔧 Configuring token in apiClient...', {
+        tokenPreview: `${token.substring(0, 20)}...`
+      }, 'configuring_api_client')
+      
       apiClient.setAuthToken(token)
 
-      // ✅ Actualizar contexto
+      // ✅ PASO 3: Actualizar contexto
+      logger.info('🔄 Updating auth context...', {
+        userEmail: user.email,
+        userRole: user.role
+      }, 'updating_auth_context')
+      
       dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } })
       
-      // ✅ Invalidar queries de React Query
+      // ✅ PASO 4: Invalidar queries DESPUÉS de todo configurado
+      logger.info('🔄 Invalidating React Query cache...', {
+        queriesToInvalidate: 'all'
+      }, 'invalidating_queries')
+      
       queryClient.invalidateQueries()
       
       logger.endPerformance(perfId, `EMAIL-FIRST login completed for ${email}`)
@@ -195,31 +213,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * ✅ Logout completo
    */
   const logout = async () => {
+    logger.info('🚪 Logout started', {
+      userEmail: state.user?.email
+    }, 'logout_started')
+    
     try {
       // ✅ Intentar logout en backend
       await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT)
+      logger.info('✅ Backend logout successful', {}, 'backend_logout_success')
     } catch (error) {
-      logger.warn('Error during backend logout', error, 'logout_backend_error')
+      logger.warn('⚠️ Error during backend logout', error, 'logout_backend_error')
     }
 
     // ✅ Limpiar estado local
     localStorage.removeItem('auth_token')
     localStorage.removeItem('user_data')
-    
-    // ✅ Limpiar apiClient
     apiClient.setAuthToken(null)
     
     // ✅ Limpiar contexto
     dispatch({ type: 'AUTH_LOGOUT' })
     
-    // ✅ Limpiar React Query cache
+    // ✅ Limpiar cache de React Query
     queryClient.clear()
     
-    logger.info('User logged out successfully', {}, 'logout_success')
+    logger.success('✅ Logout completed successfully', {}, 'logout_complete')
   }
 
   /**
-   * ✅ Actualizar datos del usuario
+   * ✅ Actualizar datos de usuario
    */
   const updateUser = (userData: Partial<User>) => {
     if (state.user) {
@@ -229,11 +250,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('user_data', JSON.stringify(updatedUser))
       
       // ✅ Actualizar contexto
-      dispatch({ type: 'UPDATE_USER', payload: userData })
+      dispatch({ type: 'UPDATE_USER', payload: updatedUser })
       
-      logger.info('User data updated', { 
-        updatedFields: Object.keys(userData) 
-      }, 'user_update')
+      logger.info('✅ User data updated', {
+        updatedFields: Object.keys(userData)
+      }, 'user_data_updated')
     }
   }
 
@@ -244,7 +265,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'CLEAR_ERROR' })
   }
 
-  const contextValue: AuthContextType = {
+  const value: AuthContextType = {
     ...state,
     login,
     logout,
@@ -252,11 +273,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearError,
   }
 
-  return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 /**
@@ -265,7 +282,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext)
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error('useAuth debe usarse dentro de un AuthProvider')
   }
   return context
 }
