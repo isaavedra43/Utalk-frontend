@@ -2,7 +2,7 @@
 // Incluye todos los métodos necesarios para el proyecto
 
 export type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'SUCCESS'
-export type LogCategory = 'AUTH' | 'API' | 'SOCKET' | 'RENDER' | 'VALIDATION' | 'PERFORMANCE' | 'ANALYSIS' | 'SYSTEM' | 'MODULE' | 'ENDPOINT' | 'NETWORK' | 'CONNECTION' | 'CONVERSATION' | 'MESSAGE' | 'URL' | 'UPLOAD' | 'CHAT' | 'INBOX'
+export type LogCategory = 'AUTH' | 'API' | 'RENDER' | 'VALIDATION' | 'PERFORMANCE' | 'ANALYSIS' | 'SYSTEM' | 'MODULE' | 'ENDPOINT' | 'NETWORK' | 'CONNECTION' | 'URL' | 'UPLOAD'
 
 export interface LogContext {
   [key: string]: any
@@ -144,14 +144,6 @@ class ProfessionalLogger {
     this.logInternal('ERROR', 'API', message, context)
   }
 
-  socket(message: string, context?: LogContext) {
-    this.logInternal('INFO', 'SOCKET', message, context)
-  }
-
-  socketError(message: string, context?: LogContext) {
-    this.logInternal('ERROR', 'SOCKET', message, context)
-  }
-
   render(message: string, context?: LogContext) {
     this.logInternal('INFO', 'RENDER', message, context)
   }
@@ -218,7 +210,6 @@ export const logger = ProfessionalLogger.getInstance()
 // Contextos específicos para diferentes módulos
 export const authContext = { module: 'auth' }
 export const apiContext = { module: 'api' }
-export const socketContext = { module: 'socket' }
 export const renderContext = { module: 'render' }
 export const validationContext = { module: 'validation' }
 export const performanceContext = { module: 'performance' }

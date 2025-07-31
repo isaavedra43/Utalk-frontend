@@ -57,31 +57,6 @@ export interface Contact {
 
 export type ContactStatus = 'new' | 'qualified' | 'contacted' | 'converted' | 'lost'
 
-// Mensajería y Chat
-export interface Message {
-  id: string
-  content: string
-  type: MessageType
-  senderId: string
-  recipientId: string
-  conversationId: string
-  isRead: boolean
-  sentAt: Date
-  metadata?: Record<string, any>
-}
-
-export type MessageType = 'text' | 'image' | 'file' | 'audio' | 'system'
-
-export interface Conversation {
-  id: string
-  participants: string[]
-  lastMessage?: Message
-  unreadCount: number
-  isArchived: boolean
-  createdAt: Date
-  updatedAt: Date
-}
-
 // Campañas
 export interface Campaign {
   id: string
@@ -176,13 +151,6 @@ export interface FilterOptions {
   dateTo?: Date
   tags?: string[]
   assignedTo?: string
-}
-
-// WebSocket
-export interface SocketEvent {
-  type: string
-  payload: any
-  timestamp: Date
 }
 
 // Configuración

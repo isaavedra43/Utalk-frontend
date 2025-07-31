@@ -16,9 +16,7 @@ const DashboardPage = lazy(() => import('./DashboardPage'))
 const NotFoundPage = lazy(() => import('./NotFoundPage'))
 
 // Module components (lazy loaded)
-const Inbox = lazy(() => import('@/modules/chat/Inbox').then(module => ({ default: module.Inbox })))
 const AgentsDashboard = lazy(() => import('@/modules/agents/components/AgentsDashboard').then(module => ({ default: module.AgentsDashboard })))
-const CampaignsDashboard = lazy(() => import('@/modules/campaigns/components/CampaignsDashboard').then(module => ({ default: module.CampaignsDashboard })))
 const KnowledgeDashboard = lazy(() => import('@/modules/knowledge/components/KnowledgeDashboard').then(module => ({ default: module.KnowledgeDashboard })))
 const CRMDashboard = lazy(() => import('@/modules/crm/CRM').then(module => ({ default: module.CRM })))
 
@@ -53,15 +51,6 @@ export function AppRoutes() {
         />
         
         <Route 
-          path="chat" 
-          element={
-            <Suspense fallback={<LoadingFallback />}>
-              <Inbox />
-            </Suspense>
-          } 
-        />
-        
-        <Route 
           path="crm" 
           element={
             <Suspense fallback={<LoadingFallback />}>
@@ -83,7 +72,6 @@ export function AppRoutes() {
           path="campaigns" 
           element={
             <Suspense fallback={<LoadingFallback />}>
-              <CampaignsDashboard />
             </Suspense>
           } 
         />

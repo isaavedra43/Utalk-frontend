@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { Link, useLocation, Outlet } from 'react-router-dom'
 import { 
   Home, 
-  MessageSquare, 
   Users, 
   UserCheck, 
   Megaphone, 
@@ -16,7 +15,8 @@ import {
   Sun,
   Moon,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  BarChart3
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -29,13 +29,6 @@ const navigationItems = [
     label: 'Dashboard',
     href: '/dashboard',
     description: 'Resumen y métricas'
-  },
-  {
-    icon: MessageSquare,
-    label: 'Mensajería',
-    href: '/chat',
-    description: 'Chat y conversaciones',
-    badge: '12' // Mensajes sin leer
   },
   {
     icon: Users,
@@ -97,7 +90,7 @@ export function DashboardLayout() {
           <div className="mr-4 hidden md:flex">
             <nav className="flex items-center space-x-6 text-sm font-medium">
               <Link to="/dashboard" className="flex items-center space-x-2">
-                <MessageSquare className="w-6 h-6 text-primary" />
+                <BarChart3 className="w-6 h-6 text-primary" />
                 {!sidebarCollapsed && <span className="font-bold text-xl">UTalk</span>}
               </Link>
             </nav>
@@ -186,11 +179,6 @@ export function DashboardLayout() {
                   {!sidebarCollapsed && (
                     <div className="flex-1 flex items-center justify-between">
                       <span>{item.label}</span>
-                      {item.badge && (
-                        <span className="bg-primary-foreground text-primary text-xs px-2 py-1 rounded-full">
-                          {item.badge}
-                        </span>
-                      )}
                     </div>
                   )}
                 </Link>
@@ -200,21 +188,10 @@ export function DashboardLayout() {
         </aside>
 
         {/* Contenido principal */}
-        <main className={`
-          flex-1 overflow-hidden h-full
-          ${location.pathname === '/chat' ? 'p-0' : 'p-6'}
-        `}>
-          {location.pathname === '/chat' ? (
-            // Para el chat, ocupar toda la pantalla sin padding y con altura completa
-            <div className="h-full w-full">
-              <Outlet />
-            </div>
-          ) : (
-            // Para otras páginas, mantener el padding normal
-            <div className="h-full">
-              <Outlet />
-            </div>
-          )}
+        <main className="flex-1 overflow-hidden h-full p-6">
+          <div className="h-full">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

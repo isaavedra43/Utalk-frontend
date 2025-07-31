@@ -43,7 +43,7 @@ export function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Mensajes Enviados
+              Campañas Enviadas
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -110,13 +110,13 @@ export function DashboardPage() {
                 📞 Nuevo Contacto
               </Button>
               <Button variant="outline" className="justify-start">
-                💬 Iniciar Chat
-              </Button>
-              <Button variant="outline" className="justify-start">
                 📧 Nueva Campaña
               </Button>
               <Button variant="outline" className="justify-start">
                 📊 Ver Reportes
+              </Button>
+              <Button variant="outline" className="justify-start">
+                👥 Gestionar Agentes
               </Button>
             </div>
           </CardContent>
