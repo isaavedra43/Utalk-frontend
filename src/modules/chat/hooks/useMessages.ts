@@ -23,129 +23,76 @@ export const messageKeys = {
 
 /**
  * ✅ Hook principal para obtener mensajes de una conversación con paginación
- * ✅ CRÍTICO: Error React #310 resuelto con validación SUAVIZADA
+ * ✅ VERSIÓN ULTRA-SIMPLIFICADA PARA EVITAR ERRORES
  */
 export function useMessages(conversationId: string, enablePagination = false) {
   const { user, isAuthenticated } = useAuth()
   const queryClient = useQueryClient()
   
-  // ✅ VALIDACIÓN MÍNIMA - SOLO PARA CASOS REALMENTE INVÁLIDOS
-  if (!conversationId || conversationId.trim() === '') {
-    logger.info('VALIDATION', 'ID de conversación vacío, retornando estado vacío', {
-      conversationId,
-      isEmpty: !conversationId,
-      isTrimmedEmpty: conversationId?.trim() === ''
-    })
-    
+  // ✅ VALIDACIÓN MÍNIMA - RETORNA SIEMPRE DATOS VÁLIDOS
+  if (!conversationId || !isAuthenticated) {
     return {
-      messages: [], // ✅ SIEMPRE ARRAY VACÍO
+      messages: [], 
       isLoading: false,
       error: null,
       hasValidMessages: false,
       hasNextPage: false,
       isFetchingNextPage: false,
-      fetchNextPage: () => {},
-      refetch: () => {}
+      fetchNextPage: () => Promise.resolve(),
+      refetch: () => Promise.resolve()
     }
   }
 
-  const context = createLogContext({
-    ...messageContext,
-    method: 'useMessages',
-    data: {
-      conversationId,
-      enablePagination,
-      userEmail: user?.email,
-      userActive: !!user,
-      isEnabled: !!conversationId && isAuthenticated,
-      hasToken: !!user?.email
-    }
-  })
-
-  logger.info('API', 'Hook useMessages iniciado', context)
-
-  // ✅ CONSULTA DE MENSAJES DIRECTA - SIN VALIDAR CONVERSACIÓN PRIMERO
+  // ✅ QUERY SIMPLIFICADA PARA MENSAJES
   const {
     data: messagesData,
     isLoading: messagesLoading,
     error: messagesError,
     refetch: refetchMessages
   } = useQuery(
-    ['messages', conversationId],
-    () => messageService.getMessages(conversationId),
+    messageKeys.conversations(conversationId),
+    async () => {
+      try {
+        const response = await apiClient.get(`/conversations/${conversationId}/messages`)
+        return Array.isArray(response.data) ? response.data : []
+      } catch (error) {
+        console.error('[MESSAGES] Error fetching messages:', error)
+        return [] // ✅ SIEMPRE RETORNA ARRAY
+      }
+    },
     {
-      enabled: !!conversationId && isAuthenticated, // ✅ SOLO VALIDAR LO MÍNIMO
-      retry: 2,
-      refetchInterval: 5000,
+      enabled: !!conversationId && isAuthenticated,
+      retry: 1,
+      staleTime: 1000 * 60 * 5,
+      refetchOnWindowFocus: false,
       onError: (error: any) => {
-        logger.error('API', 'Error cargando mensajes', {
-          ...context,
-          error: error.message,
-          conversationId
-        })
+        console.error('[MESSAGES] Query error:', error)
       }
     }
   )
 
-  // ✅ NORMALIZACIÓN ROBUSTA DE MENSAJES
+  // ✅ NORMALIZACIÓN ULTRA-ROBUSTA
   const normalizedMessages = useMemo(() => {
-    // ✅ SI NO HAY DATOS, RETORNAR ARRAY VACÍO
-    if (!messagesData) {
-      logger.info('VALIDATION', 'No hay datos de mensajes, retornando array vacío', {
-        ...context,
-        messagesData
-      })
-      return []
-    }
-
-    // ✅ SI NO ES ARRAY, RETORNAR ARRAY VACÍO
-    if (!Array.isArray(messagesData)) {
-      logger.warn('VALIDATION', 'Datos de mensajes no es un array', {
-        ...context,
-        messagesData,
-        type: typeof messagesData
-      })
-      return []
-    }
-
+    // ✅ SIEMPRE RETORNA ARRAY VÁLIDO
+    if (!Array.isArray(messagesData)) return []
+    
     try {
-      const normalized = messagesData.map(normalizeMessage)
-      logger.info('VALIDATION', 'Mensajes normalizados exitosamente', {
-        ...context,
-        originalCount: messagesData.length,
-        normalizedCount: normalized.length
-      })
-      return normalized
+      return messagesData.map(normalizeMessage).filter(Boolean)
     } catch (error) {
-      logger.error('VALIDATION', 'Error normalizando mensajes', {
-        ...context,
-        error: error.message,
-        messagesData
-      })
+      console.error('[MESSAGES] Error normalizing:', error)
       return []
     }
-  }, [messagesData, context])
-
-  // ✅ VALIDACIÓN FINAL DE MENSAJES
-  const hasValidMessages = Array.isArray(normalizedMessages) && normalizedMessages.length > 0
-
-  logger.info('API', 'Estado de mensajes actualizado', {
-    ...context,
-    messagesCount: normalizedMessages.length,
-    hasValidMessages,
-    isLoading: messagesLoading,
-    hasError: !!messagesError
-  })
+  }, [messagesData])
 
   return {
     messages: normalizedMessages, // ✅ SIEMPRE ARRAY VÁLIDO
-    isLoading: messagesLoading,
-    error: messagesError,
-    hasValidMessages,
+    isLoading: messagesLoading || false,
+    error: messagesError || null,
+    hasValidMessages: normalizedMessages.length > 0,
     hasNextPage: false,
     isFetchingNextPage: false,
-    fetchNextPage: () => {},
-    refetch: refetchMessages
+    fetchNextPage: () => Promise.resolve(),
+    refetch: refetchMessages || (() => Promise.resolve())
   }
 }
 

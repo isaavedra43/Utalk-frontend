@@ -4,159 +4,100 @@ import { ConversationItem } from './ConversationItem'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 import type { ConversationListProps } from '../types'
 
-export function ConversationList({
-  conversations,
-  selectedConversationId,
-  onSelect,
-  onSelectConversation,
-  isLoading,
-  error,
-  searchQuery,
+export function ConversationList({ 
+  conversations, 
+  selectedConversationId, 
+  onSelect, 
+  isLoading = false, 
+  error = null, 
+  searchQuery = '', 
   onSearchChange,
 }: ConversationListProps) {
-  console.log('[COMPONENT] ConversationList.tsx: Componente renderizado')
-  console.log('[PROP] ConversationList.tsx: Props recibidas:')
-  console.log('[PROP] - conversations:', conversations)
-  console.log('[PROP] - Tipo de conversations:', typeof conversations)
-  console.log('[PROP] - Es array:', Array.isArray(conversations))
-  console.log('[PROP] - Longitud:', conversations?.length)
-  console.log('[PROP] - selectedConversationId:', selectedConversationId, 'Type:', typeof selectedConversationId)
-  console.log('[PROP] - onSelect:', typeof onSelect)
-  console.log('[PROP] - isLoading:', isLoading, 'Type:', typeof isLoading)
-  console.log('[PROP] - error:', error, 'Type:', typeof error)
-  console.log('[PROP] - searchQuery:', searchQuery, 'Type:', typeof searchQuery)
-  console.log('[PROP] - onSearchChange:', typeof onSearchChange)
-
-  // ✅ VALIDACIÓN DEFENSIVA ULTRA-ROBUSTA
+  
+  // ✅ VALIDACIÓN DEFENSIVA ULTRA-ROBUSTA - SIN LOGS PROBLEMÁTICOS
   const safeConversations = Array.isArray(conversations) ? conversations : []
-  const hasValidConversations = safeConversations.length > 0
 
-  console.log('[VALIDATION] ConversationList validation:', {
-    originalLength: conversations?.length,
-    safeLength: safeConversations.length,
-    hasValidConversations,
-    isLoading,
-    hasError: !!error
+  // ✅ ESTADOS DE CARGA Y ERROR - SIMPLIFICADOS
+  if (isLoading) {
+    return (
+      <div className="conversation-list p-4">
+        <div className="animate-pulse space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-16 bg-gray-200 rounded-lg"></div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="conversation-list p-4 text-center">
+        <p className="text-red-600 mb-2">Error cargando conversaciones</p>
+        <p className="text-gray-500 text-sm">{String(error)}</p>
+      </div>
+    )
+  }
+
+  // ✅ ESTADO VACÍO - SIMPLIFICADO
+  if (safeConversations.length === 0) {
+    return (
+      <div className="conversation-list p-8 text-center">
+        <div className="mb-4">
+          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        </div>
+        <p className="text-gray-600 font-medium">No hay conversaciones</p>
+        <p className="text-gray-500 text-sm">Las conversaciones aparecerán aquí cuando lleguen nuevos mensajes.</p>
+      </div>
+    )
+  }
+
+  // ✅ FILTRADO SEGURO - SIN LOGS
+  const filteredConversations = safeConversations.filter(conversation => {
+    if (!searchQuery.trim()) return true
+    
+    const contactName = conversation?.contact?.name || ''
+    const lastMessageContent = conversation?.lastMessage?.content || ''
+    
+    const searchLower = searchQuery.toLowerCase()
+    return contactName.toLowerCase().includes(searchLower) ||
+           lastMessageContent.toLowerCase().includes(searchLower)
   })
 
-  if (conversations && Array.isArray(conversations)) {
-    console.log('[PROP] ConversationList.tsx: Detalle de conversaciones recibidas:')
-    conversations.forEach((conv, index) => {
-      console.log(`[PROP] Conversación ${index + 1}:`, {
-        id: conv?.id,
-        title: conv?.title,
-        hasContact: !!conv?.contact,
-        contactName: conv?.contact?.name,
-        status: conv?.status,
-        lastMessageContent: conv?.lastMessage?.content?.substring(0, 50)
-      })
-    })
-  }
-
-  // ✅ ESTADO DE CARGA
-  if (isLoading) {
-    console.log('[RENDER] ConversationList.tsx: Renderizando estado de carga')
-    return (
-      <div className="flex items-center justify-center p-8">
-        <LoadingSpinner />
-        <span className="ml-2 text-gray-600 dark:text-gray-400">Cargando conversaciones...</span>
-      </div>
-    )
-  }
-
-  // ✅ ESTADO DE ERROR
-  if (error) {
-    console.log('[RENDER] ConversationList.tsx: Renderizando estado de error:', error)
-    return (
-      <div className="p-4 text-center">
-        <div className="text-red-500 mb-2">❌ Error al cargar conversaciones</div>
-        <div className="text-sm text-gray-600 dark:text-gray-400">
-          {typeof error === 'string' ? error : 'Error desconocido'}
-        </div>
-        <button 
-          onClick={() => window.location.reload()}
-          className="mt-3 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-        >
-          Recargar
-        </button>
-      </div>
-    )
-  }
-
-  // ✅ ESTADO SIN CONVERSACIONES
-  if (!hasValidConversations) {
-    console.log('[RENDER] ConversationList.tsx: Renderizando estado sin conversaciones')
-    return (
-      <div className="p-6 text-center">
-        <div className="text-gray-400 text-6xl mb-4">💬</div>
-        <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
-          No hay conversaciones
-        </h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-          Las conversaciones aparecerán aquí cuando recibas mensajes de tus clientes.
-        </p>
-        {/* Debug info */}
-        <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded text-xs text-left">
-          <div className="font-semibold mb-1">Debug Info:</div>
-          <div>Conversations type: {typeof conversations}</div>
-          <div>Is array: {Array.isArray(conversations) ? 'Yes' : 'No'}</div>
-          <div>Length: {conversations?.length || 0}</div>
-          <div>Loading: {isLoading ? 'Yes' : 'No'}</div>
-          <div>Error: {error ? 'Yes' : 'No'}</div>
-        </div>
-      </div>
-    )
-  }
-
-  // ✅ RENDERIZADO PRINCIPAL
-  console.log('[RENDER] ConversationList.tsx: Renderizando lista de conversaciones')
-  console.log('[RENDER] - Total conversations to render:', safeConversations.length)
-
   return (
-    <div className="h-full overflow-y-auto">
-      {safeConversations.map((conversation, index) => {
-        console.log(`[RENDER] Rendering conversation ${index + 1}:`, {
-          id: conversation?.id,
-          title: conversation?.title,
-          isSelected: conversation?.id === selectedConversationId
-        })
-
-        // ✅ VALIDACIÓN POR CONVERSACIÓN
-        if (!conversation || !conversation.id) {
-          console.warn(`[RENDER] Skipping invalid conversation at index ${index}:`, conversation)
-          return (
-            <div key={`invalid-${index}`} className="p-4 border-b border-gray-200 bg-yellow-50">
-              <div className="text-yellow-600 text-sm">
-                ⚠️ Conversación inválida #{index + 1}
-              </div>
-            </div>
-          )
-        }
-
-        try {
-          return (
-            <ConversationItem
-              key={conversation.id}
-              conversation={conversation}
-              isSelected={conversation.id === selectedConversationId}
-              onSelect={onSelect}
-              showAvatar={true}
-            />
-          )
-        } catch (error) {
-          console.error(`[RENDER] Error rendering conversation ${conversation.id}:`, error)
-          return (
-            <div key={`error-${conversation.id}`} className="p-4 border-b border-gray-200 bg-red-50">
-              <div className="text-red-600 text-sm">
-                ❌ Error renderizando conversación: {conversation.id}
-              </div>
-              <div className="text-xs text-gray-500 mt-1">
-                {error instanceof Error ? error.message : 'Error desconocido'}
-              </div>
-            </div>
-          )
-        }
-      })}
+    <div className="conversation-list h-full flex flex-col bg-white">
+      
+      {/* ✅ BÚSQUEDA SIMPLE */}
+      <div className="p-4 border-b">
+        <input
+          type="text"
+          placeholder="Buscar conversaciones..."
+          value={searchQuery}
+          onChange={(e) => onSearchChange?.(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+      
+      <div className="flex-1 overflow-y-auto">
+        {filteredConversations.length === 0 ? (
+          <div className="p-4 text-center text-gray-500">
+            <p>No se encontraron conversaciones que coincidan con "{searchQuery}"</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {filteredConversations.map((conversation) => (
+              <ConversationItem
+                key={conversation?.id || `conv-${Math.random()}`}
+                conversation={conversation}
+                isSelected={selectedConversationId === conversation?.id}
+                onSelect={onSelect}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 } 

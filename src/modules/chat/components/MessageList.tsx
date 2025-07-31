@@ -171,41 +171,11 @@ export function MessageList({ conversationId }: MessageListProps) {
   }
 
   // ✅ ORDENAR MENSAJES DE FORMA ULTRA-SEGURA
-  const sortedMessages = useMemo(() => {
-    try {
-      return [...safeMessages].sort((a, b) => {
-        try {
-          // ✅ MÚLTIPLES CAMPOS DE TIMESTAMP PARA ROBUSTEZ
-          const timestampA = new Date(a.timestamp || a.createdAt || a.sentAt || 0).getTime()
-          const timestampB = new Date(b.timestamp || b.createdAt || b.sentAt || 0).getTime()
-          
-          // ✅ VALIDACIÓN DE TIMESTAMPS
-          if (isNaN(timestampA) || isNaN(timestampB)) {
-            console.warn('[MESSAGE-LIST] Invalid timestamps:', { 
-              a: { id: a.id, timestamp: a.timestamp }, 
-              b: { id: b.id, timestamp: b.timestamp } 
-            })
-            return 0
-          }
-          
-          return timestampA - timestampB
-        } catch (error) {
-          console.error('[MESSAGE-LIST] Error comparing messages:', error, { a, b })
-          return 0
-        }
-      }).filter(msg => {
-        // ✅ FILTRAR MENSAJES VÁLIDOS
-        const isValid = msg && msg.id && typeof msg.id === 'string'
-        if (!isValid) {
-          console.warn('[MESSAGE-LIST] Filtering out invalid message:', msg)
-        }
-        return isValid
-      })
-    } catch (error) {
-      console.error('[MESSAGE-LIST] Error sorting messages:', error)
-      return safeMessages
-    }
-  }, [safeMessages])
+  const sortedMessages = [...safeMessages].sort((a, b) => {
+    const timestampA = new Date(a.timestamp || 0).getTime()
+    const timestampB = new Date(b.timestamp || 0).getTime()
+    return timestampA - timestampB
+  })
 
   return (
     <MessageListErrorBoundary conversationId={conversationId}>
