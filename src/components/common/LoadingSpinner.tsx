@@ -13,31 +13,10 @@ export function LoadingSpinner({
   className, 
   text 
 }: LoadingSpinnerProps) {
-  // ✅ LOGGING CRÍTICO PARA ENCONTRAR EL ERROR
-  console.log('[LOADING-SPINNER] Props received:', {
-    size,
-    className,
-    text,
-    sizeType: typeof size,
-    classNameType: typeof className,
-    textType: typeof text,
-    hasLength: {
-      size: size?.length,
-      className: className?.length,
-      text: text?.length
-    }
-  })
-
-  // ✅ VALIDACIÓN DEFENSIVA ULTRA-ROBUSTA
+  // ✅ VALIDACIÓN DEFENSIVA PARA EVITAR ERRORES
   const safeSize = size || 'md'
   const safeClassName = className || ''
   const safeText = text || ''
-
-  console.log('[LOADING-SPINNER] Safe values:', {
-    safeSize,
-    safeClassName,
-    safeText
-  })
 
   const sizeClasses = {
     sm: 'h-4 w-4',
@@ -45,35 +24,24 @@ export function LoadingSpinner({
     lg: 'h-12 w-12'
   }
 
-  // ✅ VALIDACIÓN DE SIZE CON LOGGING
+  // ✅ VALIDACIÓN DE SIZE
   const sizeClass = sizeClasses[safeSize as keyof typeof sizeClasses] || sizeClasses.md
-  console.log('[LOADING-SPINNER] Size class selected:', sizeClass)
 
-  try {
-    return (
-      <div className={cn('flex flex-col items-center space-y-2', safeClassName)}>
-        <div 
-          className={cn(
-            'animate-spin rounded-full border-2 border-muted border-t-primary',
-            sizeClass
-          )}
-        />
-        {safeText && (
-          <p className="text-sm text-muted-foreground">
-            {safeText}
-          </p>
+  return (
+    <div className={cn('flex flex-col items-center space-y-2', safeClassName)}>
+      <div 
+        className={cn(
+          'animate-spin rounded-full border-2 border-muted border-t-primary',
+          sizeClass
         )}
-      </div>
-    )
-  } catch (error) {
-    console.error('[LOADING-SPINNER] Error during render:', error)
-    return (
-      <div className="flex flex-col items-center space-y-2">
-        <div className="animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 h-8 w-8" />
-        <p className="text-sm text-gray-500">Cargando...</p>
-      </div>
-    )
-  }
+      />
+      {safeText && (
+        <p className="text-sm text-muted-foreground">
+          {safeText}
+        </p>
+      )}
+    </div>
+  )
 }
 
 export default LoadingSpinner 

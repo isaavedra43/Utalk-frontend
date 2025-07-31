@@ -24,7 +24,7 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
   const [showInfoPanel, setShowInfoPanel] = useState(false)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
 
-  // ✅ SOCKET.IO CON CONFIGURACIÓN MEJORADA
+  // ✅ SOCKET.IO SIMPLIFICADO
   const { 
     isConnected: socketConnected, 
     connectionError, 
@@ -32,160 +32,58 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
     leaveConversation 
   } = useSocket()
 
-  // ✅ CONVERSACIONES CON VALIDACIÓN ROBUSTA
+  // ✅ CONVERSACIONES SIMPLIFICADAS
   const { 
     data: conversations = [], 
     isLoading: conversationsLoading, 
     error: conversationsError 
   } = useConversations()
 
-  // ✅ MENSAJES CON VALIDACIÓN MÍNIMA
+  // ✅ MENSAJES SIMPLIFICADOS
   const { 
     messages = [], 
     isLoading: messagesLoading = false, 
-    error: messagesError = null,
-    hasValidMessages = false 
+    error: messagesError = null
   } = useMessages(selectedConversationId || '')
 
-  // ✅ VALIDACIÓN DEFENSIVA SIMPLE
+  // ✅ VALIDACIÓN SIMPLE
+  const safeConversations = Array.isArray(conversations) ? conversations : []
   const safeMessages = Array.isArray(messages) ? messages : []
 
   // ✅ ENVÍO DE MENSAJES
   const sendMessageMutation = useSendMessage()
 
-  const context = useMemo(() => createLogContext({
-    ...inboxContext,
-    method: 'ResponsiveInbox',
-    data: {
-      selectedConversationId,
-      isAuthenticated,
-      sessionValid,
-      socketConnected,
-      conversationsCount: Array.isArray(conversations) ? conversations.length : 0,
-      messagesCount: safeMessages.length,
-      hasValidMessages
-    }
-  }), [selectedConversationId, isAuthenticated, sessionValid, socketConnected, conversations.length, safeMessages.length, hasValidMessages])
-
-  // ✅ MANEJO DE RESIZE PARA RESPONSIVIDAD
+  // ✅ MANEJO DE RESIZE
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768)
-    }
-
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  // ✅ MANEJO DE CONVERSACIÓN SELECCIONADA CON SOCKET.IO
-  useEffect(() => {
-    if (selectedConversationId && socketConnected) {
-      logger.info('CHAT', 'Unirse a conversación vía Socket.IO', {
-        conversationId: selectedConversationId,
-        socketConnected
-      })
-      
-      joinConversation(selectedConversationId)
-
-      return () => {
-        leaveConversation(selectedConversationId)
-      }
-    }
-  }, [selectedConversationId, socketConnected, joinConversation, leaveConversation])
-
-  // ✅ LISTENER PARA NUEVOS MENSAJES VÍA CUSTOM EVENTS
-  useEffect(() => {
-    const handleNewMessage = (event: CustomEvent) => {
-      const { message, conversationId } = event.detail
-
-      if (conversationId === selectedConversationId) {
-        logger.info('CHAT', 'Procesando nuevo mensaje en conversación activa', {
-          messageId: message.id,
-          conversationId
-        })
-        
-        // ✅ LOS MENSAJES SE ACTUALIZAN AUTOMÁTICAMENTE VÍA REACT QUERY
-        logger.info('CHAT', 'Nuevo mensaje recibido para conversación seleccionada', {
-          messageId: message.id,
-          conversationId
-        })
-      }
-    }
-
-    window.addEventListener('socket-new-message', handleNewMessage as EventListener)
-    
-    return () => {
-      window.removeEventListener('socket-new-message', handleNewMessage as EventListener)
-    }
-  }, [selectedConversationId])
-
   // ✅ FUNCIÓN PARA SELECCIONAR CONVERSACIÓN
   const handleSelectConversation = useCallback((conversationId: string) => {
-    if (conversationId === selectedConversationId) return
-
-    logger.info('CHAT', 'Seleccionando nueva conversación', {
-      newConversationId: conversationId,
-      previousConversationId: selectedConversationId
-    })
-
     setSelectedConversationId(conversationId)
-    setShowInfoPanel(false) // Cerrar panel en mobile
-  }, [selectedConversationId])
+    setShowInfoPanel(false)
+  }, [])
 
   // ✅ FUNCIÓN PARA ENVIAR MENSAJE
   const handleSendMessage = useCallback(async (content: string, type: string = 'text') => {
-    if (!selectedConversationId || !content.trim()) {
-      logger.warn('CHAT', 'No se puede enviar mensaje: datos inválidos', {
-        hasConversationId: !!selectedConversationId,
-        hasContent: !!content.trim()
-      })
-      return
-    }
+    if (!selectedConversationId || !content.trim()) return
 
     try {
-      logger.render('Intentando enviar mensaje', createLogContext({
-        ...context,
-        data: {
-          conversationId: selectedConversationId,
-          contentLength: content.length,
-          type
-        }
-      }))
-
       await sendMessageMutation.mutateAsync({
         conversationId: selectedConversationId,
         content: content.trim(),
         type
       })
-
-      logger.success('MESSAGE', 'Mensaje enviado exitosamente', {
-        conversationId: selectedConversationId,
-        contentLength: content.length
-      })
-
-    } catch (error: any) {
-      logger.error('CHAT', 'Error enviando mensaje', {
-        conversationId: selectedConversationId,
-        error: error.message
-      })
+    } catch (error) {
+      console.error('Error enviando mensaje:', error)
     }
-  }, [selectedConversationId, sendMessageMutation, context])
+  }, [selectedConversationId, sendMessageMutation])
 
-  // ✅ VALIDACIÓN DE SESIÓN Y AUTENTICACIÓN
-  if (!isAuthLoaded) {
-    logger.info('RENDER', 'Auth not loaded yet, showing loading', {
-      isAuthLoaded,
-      isAuthenticated,
-      sessionValid
-    })
-    return <LoadingSpinner />
-  }
-
+  // ✅ VALIDACIONES BÁSICAS
+  if (!isAuthLoaded) return <LoadingSpinner />
   if (!isAuthenticated || !sessionValid) {
-    logger.info('RENDER', 'Usuario no autenticado o sesión inválida', {
-      isAuthenticated,
-      sessionValid
-    })
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
@@ -196,7 +94,6 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
     )
   }
 
-  // ✅ VALIDACIÓN DE CONVERSACIONES CARGADAS
   if (conversationsLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -205,7 +102,6 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
     )
   }
 
-  // ✅ VALIDACIÓN DE ERROR EN CONVERSACIONES
   if (conversationsError) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -217,40 +113,12 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
     )
   }
 
-  // ✅ VALIDACIÓN DE CONVERSACIONES VACÍAS
-  if (!Array.isArray(conversations) || conversations.length === 0) {
+  if (safeConversations.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">No hay conversaciones</h2>
           <p className="text-gray-600">No tienes conversaciones activas.</p>
-        </div>
-      </div>
-    )
-  }
-
-  // ✅ VALIDACIÓN DE CONVERSACIÓN SELECCIONADA - SOLO PARA CHAT WINDOW
-  if (!selectedConversationId) {
-    // ✅ MOSTRAR LISTA DE CONVERSACIONES SIN VALIDACIONES COMPLEJAS
-    return (
-      <div className={`flex h-full bg-gray-50 ${className}`}>
-        <div className={`${isMobile ? 'w-full' : 'w-80'} border-r border-gray-200 bg-white`}>
-          <ConversationList
-            conversations={conversations}
-            selectedConversationId={selectedConversationId}
-            onSelect={handleSelectConversation}
-            searchQuery=""
-            onSearchChange={() => {}}
-            isLoading={conversationsLoading}
-            error={conversationsError ? String(conversationsError) : null}
-          />
-        </div>
-
-        <div className={`${isMobile ? 'hidden' : 'flex-1'} flex items-center justify-center`}>
-          <div className="text-center">
-            <h2 className="text-xl font-semibold mb-2">Selecciona una conversación</h2>
-            <p className="text-gray-600">Elige una conversación para comenzar a chatear.</p>
-          </div>
         </div>
       </div>
     )
@@ -262,7 +130,7 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
       {/* ✅ LISTA DE CONVERSACIONES */}
       <div className={`${isMobile ? (selectedConversationId ? 'hidden' : 'w-full') : 'w-80'} border-r border-gray-200 bg-white`}>
         <ConversationList
-          conversations={conversations}
+          conversations={safeConversations}
           selectedConversationId={selectedConversationId}
           onSelect={handleSelectConversation}
           searchQuery=""
@@ -277,16 +145,15 @@ export function ResponsiveInbox({ className = '' }: ResponsiveInboxProps) {
         <div className={`${isMobile ? 'w-full' : 'flex-1'} flex`}>
           <div className={`${showInfoPanel && !isMobile ? 'flex-1' : 'w-full'}`}>
             <ChatWindow
-              conversation={conversations.find(c => c.id === selectedConversationId) || null}
+              conversation={safeConversations.find(c => c.id === selectedConversationId) || null}
               onSendMessage={(data: any) => handleSendMessage(data.content, data.type)}
             />
           </div>
 
-          {/* ✅ PANEL DE INFORMACIÓN */}
           {showInfoPanel && !isMobile && (
             <div className="w-80 border-l border-gray-200 bg-white">
               <InfoPanel
-                conversation={conversations.find(c => c.id === selectedConversationId) || null}
+                conversation={safeConversations.find(c => c.id === selectedConversationId) || null}
               />
             </div>
           )}
