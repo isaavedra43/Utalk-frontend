@@ -1,242 +1,184 @@
-// Ventana de chat principal con WebSockets y scroll automático
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+// ✅ VERSIÓN ULTRA-SIMPLIFICADA DE CHATWINDOW QUE NO PUEDE FALLAR
+import React, { useState, useEffect } from 'react'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
-import { InfoPanel } from './InfoPanel'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
-import { useSocket } from '../hooks/useSocket'
-import { useMessages, useSendMessage } from '../hooks/useMessages'
-import { cn } from '@/lib/utils'
-import { logger } from '@/lib/logger'
-import type { CanonicalMessage } from '@/types/canonical'
-import type { SendMessageData, MessageType } from '../types'
+import { useMessages } from '../hooks/useMessages'
 
-// ✅ CORREGIR: Error Boundary para componentes críticos
-class ChatErrorBoundary extends React.Component<
+interface ChatWindowProps {
+  conversation: any
+  onSendMessage?: (data: any) => void
+}
+
+// ✅ ERROR BOUNDARY ULTRA-SIMPLE
+class SimpleChatErrorBoundary extends React.Component<
   { children: React.ReactNode },
-  { hasError: boolean; error: Error | null }
+  { hasError: boolean }
 > {
   constructor(props: { children: React.ReactNode }) {
     super(props)
-    this.state = { hasError: false, error: null }
+    this.state = { hasError: false }
   }
 
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error }
+  static getDerivedStateFromError() {
+    return { hasError: true }
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('[ERROR-BOUNDARY] Chat error:', error, errorInfo)
+  componentDidCatch(error: Error) {
+    console.error('[CHAT-ERROR]', error)
   }
 
   render() {
     if (this.state.hasError) {
       return (
         <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center space-y-4">
-            <div className="text-red-500 text-lg font-semibold">
-              Error en el chat
-            </div>
-            <p className="text-muted-foreground max-w-md">
-              {this.state.error?.message || 'Ha ocurrido un error inesperado'}
-            </p>
+          <div className="text-center">
+            <h3 className="text-lg font-semibold mb-2">Error en el chat</h3>
+            <p className="text-gray-600 mb-4">Ha ocurrido un error inesperado</p>
             <button 
               onClick={() => window.location.reload()}
               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             >
-              Recargar página
+              Recargar
             </button>
           </div>
         </div>
       )
     }
-
     return this.props.children
   }
 }
 
-export function ChatWindow({
-  conversation,
-  onSendMessage
-}: {
-  conversation?: any
-  onSendMessage?: (data: SendMessageData) => void
-}) {
+export function ChatWindow({ conversation, onSendMessage }: ChatWindowProps) {
   const { user } = useAuth()
-  const { isConnected, emitEvent } = useSocket()
-  
-  // ✅ FUNCIONES DE CONVERSACIÓN
-  const joinConversation = (conversationId: string) => {
-    if (emitEvent) {
-      emitEvent('join-conversation', { conversationId })
-    }
-  }
-
-  const leaveConversation = (conversationId: string) => {
-    if (emitEvent) {
-      emitEvent('leave-conversation', { conversationId })
-    }
-  }
-
-  // ✅ CORREGIR: Error boundary local para prevenir pantallas en blanco
   const [error, setError] = useState<string | null>(null)
 
-  // ✅ CORREGIR: Validación defensiva del usuario
-  const currentUser = user || {}
-  const userEmail = (currentUser as any)?.email || 'unknown@email.com'
-  const userName = (currentUser as any)?.name || 'Usuario'
+  // ✅ VALIDACIÓN ULTRA-DEFENSIVA
+  const safeConversation = conversation || {}
+  const conversationId = safeConversation.id || ''
+  const conversationTitle = safeConversation.title || 'Conversación'
+  const contactName = safeConversation.contact?.name || 'Usuario'
 
-  // ✅ CORREGIR: Error boundary para cada componente
+  console.log('[CHAT-WINDOW] Renderizando con:', {
+    conversationId,
+    hasConversation: !!conversation,
+    contactName
+  })
+
+  // ✅ OBTENER MENSAJES DE FORMA SEGURA
+  const { 
+    messages = [], 
+    isLoading = false, 
+    error: messagesError = null 
+  } = useMessages(conversationId)
+
+  // ✅ MANEJO DE ERRORES GLOBAL
   useEffect(() => {
-    const handleError = (errorEvent: ErrorEvent) => {
-      console.error('[CHAT-WINDOW] Component error:', errorEvent)
-      setError(errorEvent.message || 'Error desconocido en el chat')
-    }
-
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      console.error('[CHAT-WINDOW] Unhandled promise rejection:', event.reason)
-      setError('Error en operación asíncrona del chat')
+    const handleError = (event: any) => {
+      console.error('[CHAT-WINDOW] Error capturado:', event)
+      setError('Error en el chat')
     }
 
     window.addEventListener('error', handleError)
-    window.addEventListener('unhandledrejection', handleUnhandledRejection)
-    
-    return () => {
-      window.removeEventListener('error', handleError)
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection)
-    }
+    return () => window.removeEventListener('error', handleError)
   }, [])
 
-  // ✅ CORREGIR: Mostrar error en lugar de pantalla en blanco
+  // ✅ VALIDACIÓN BÁSICA
+  if (!conversationId) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold mb-2">Selecciona una conversación</h3>
+          <p className="text-gray-600">Elige una conversación de la lista para comenzar a chatear</p>
+        </div>
+      </div>
+    )
+  }
+
   if (error) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
-        <div className="text-center space-y-4">
-          <div className="text-red-500 text-lg font-semibold">
-            Error en la aplicación
-          </div>
-          <p className="text-muted-foreground max-w-md">
-            {error}
-          </p>
+        <div className="text-center">
+          <h3 className="text-lg font-semibold mb-2 text-red-600">Error</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
           <button 
-            onClick={() => {
-              setError(null)
-              window.location.reload()
-            }}
+            onClick={() => setError(null)}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
-            Recargar página
+            Reintentar
           </button>
         </div>
       </div>
     )
   }
 
-  // ✅ CORREGIR: Validar datos antes de renderizar
-  if (!user || !user.email) {
-    console.warn('[CHAT-WINDOW] User not properly loaded:', { 
-      hasUser: !!user, 
-      userEmail: user?.email,
-      userKeys: user ? Object.keys(user) : []
-    })
+  if (messagesError) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center text-muted-foreground">
-          Cargando usuario...
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold mb-2 text-red-600">Error cargando mensajes</h3>
+          <p className="text-gray-600">No se pudieron cargar los mensajes de esta conversación</p>
         </div>
       </div>
     )
   }
 
-  if (!conversation) {
+  if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center text-muted-foreground">
-          Selecciona una conversación para comenzar
-        </div>
+      <div className="flex-1 flex items-center justify-center p-8">
+        <LoadingSpinner text="Cargando conversación..." />
       </div>
     )
   }
 
-  // ✅ RESTO DEL COMPONENTE CON VALIDACIÓN DEFENSIVA
-  const conversationId = conversation.id
-  const contact = conversation.contact || { name: 'Cliente Sin Nombre', phone: 'N/A', email: 'unknown@email.com' }
-
-  console.log('[CHAT-WINDOW] Rendering with:', {
-    conversationId,
-    userEmail,
-    userName,
-    contactName: contact.name,
-    isConnected
-  })
-
-  // ✅ CORREGIR: Handler para envío de mensajes compatible con MessageInput
-  const handleMessageInput = useCallback((data: SendMessageData) => {
-    // El MessageInput ya envía datos en formato SendMessageData
-    if (onSendMessage) {
-      onSendMessage(data)
-    }
-  }, [onSendMessage])
-
-  // ✅ CORREGIR: Handler alternativo para envío simplificado
-  const handleSendMessage = useCallback((data: { content: string; type?: MessageType; attachments?: File[] }) => {
-    const messageData: SendMessageData = {
-      content: data.content,
-      type: data.type || 'text',
-      conversationId,
-      senderEmail: userEmail,
-      recipientEmail: contact.email || contact.phone || 'unknown',
-      attachments: data.attachments,
-      metadata: {
-        userEmail: userEmail
+  // ✅ FUNCIÓN SIMPLE PARA ENVIAR MENSAJES
+  const handleSendMessage = (data: any) => {
+    try {
+      console.log('[CHAT-WINDOW] Enviando mensaje:', data)
+      
+      if (onSendMessage) {
+        onSendMessage(data)
       }
+    } catch (error) {
+      console.error('[CHAT-WINDOW] Error enviando mensaje:', error)
+      setError('Error enviando mensaje')
     }
+  }
 
-    if (onSendMessage) {
-      onSendMessage(messageData)
-    }
-  }, [conversationId, userEmail, contact.email, contact.phone, onSendMessage])
-
+  // ✅ RENDER PRINCIPAL ULTRA-SIMPLIFICADO
   return (
-    <ChatErrorBoundary>
-      <div className="flex-1 flex flex-col h-full">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b bg-background">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback>
-                {contact.name?.charAt(0) || 'C'}
-              </AvatarFallback>
-            </Avatar>
+    <SimpleChatErrorBoundary>
+      <div className="flex-1 flex flex-col h-full bg-white">
+        {/* ✅ HEADER SIMPLE */}
+        <div className="border-b p-4 bg-white">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+              {contactName.charAt(0).toUpperCase()}
+            </div>
             <div>
-              <h3 className="font-semibold">{contact.name}</h3>
-              <p className="text-sm text-muted-foreground">{contact.phone}</p>
+              <h2 className="font-semibold text-gray-900">{contactName}</h2>
+              <p className="text-sm text-gray-500">{conversationTitle}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={isConnected ? 'default' : 'secondary'}>
-              {isConnected ? 'Conectado' : 'Desconectado'}
-            </Badge>
-          </div>
         </div>
 
-        {/* Messages */}
-        <MessageList conversationId={conversationId} />
+        {/* ✅ LISTA DE MENSAJES */}
+        <div className="flex-1 overflow-hidden">
+          <MessageList
+            conversationId={conversationId}
+          />
+        </div>
 
-        {/* Input */}
-        <div className="border-t bg-background p-4">
+        {/* ✅ INPUT DE MENSAJES */}
+        <div className="border-t p-4 bg-white">
           <MessageInput
             conversationId={conversationId}
-            onSendMessage={handleMessageInput}
-            disabled={!isConnected}
-            placeholder="Escribe un mensaje..."
+            onSendMessage={handleSendMessage}
+            disabled={false}
           />
         </div>
       </div>
-    </ChatErrorBoundary>
+    </SimpleChatErrorBoundary>
   )
 } 
