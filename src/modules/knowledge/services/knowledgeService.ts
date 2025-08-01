@@ -151,7 +151,7 @@ class KnowledgeService {
     try {
       const params = new URLSearchParams()
       params.append('q', query)
-      if (category) params.append('category', category)
+      if (category) {params.append('category', category)}
       params.append('sortBy', sortBy)
       params.append('page', page.toString())
       params.append('limit', limit.toString())
@@ -179,7 +179,7 @@ class KnowledgeService {
   async getFAQs(category?: string): Promise<KnowledgeFAQsResponse> {
     try {
       const params = new URLSearchParams()
-      if (category) params.append('category', category)
+      if (category) {params.append('category', category)}
 
       const response = await apiClient.get(`${this.baseUrl}/faqs?${params.toString()}`)
       return response.data
@@ -204,7 +204,7 @@ class KnowledgeService {
   async getCourses(difficulty?: string): Promise<KnowledgeCoursesResponse> {
     try {
       const params = new URLSearchParams()
-      if (difficulty) params.append('difficulty', difficulty)
+      if (difficulty) {params.append('difficulty', difficulty)}
 
       const response = await apiClient.get(`${this.baseUrl}/courses?${params.toString()}`)
       return response.data
@@ -273,4 +273,4 @@ class KnowledgeService {
   }
 }
 
-export const knowledgeService = new KnowledgeService() 
+export const knowledgeService = new KnowledgeService()

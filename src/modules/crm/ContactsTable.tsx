@@ -62,10 +62,10 @@ export function ContactsTable({
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
     const diffDays = Math.floor(diffHours / 24)
 
-    if (diffHours < 1) return 'Hace menos de 1h'
-    if (diffHours < 24) return `Hace ${diffHours}h`
-    if (diffDays === 1) return 'Ayer'
-    if (diffDays < 7) return `Hace ${diffDays} días`
+    if (diffHours < 1) {return 'Hace menos de 1h'}
+    if (diffHours < 24) {return `Hace ${diffHours}h`}
+    if (diffDays === 1) {return 'Ayer'}
+    if (diffDays < 7) {return `Hace ${diffDays} días`}
     return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit' })
   }
 
@@ -83,7 +83,7 @@ export function ContactsTable({
                     type="checkbox"
                     checked={isAllSelected}
                     ref={(el) => {
-                      if (el) el.indeterminate = isPartiallySelected
+                      if (el) {el.indeterminate = isPartiallySelected}
                     }}
                     onChange={(e) => onSelectAllContacts(e.target.checked)}
                     className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -116,9 +116,9 @@ export function ContactsTable({
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {contacts.map((contact) => {
               const isSelected = selectedContacts.includes(contact.id)
-              
+
               return (
-                <tr 
+                <tr
                   key={contact.id}
                   className={clsx(
                     'hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors',
@@ -215,7 +215,7 @@ export function ContactsTable({
                   {/* Acciones */}
                   <td className="p-4">
                     <div className="flex items-center justify-end gap-1">
-                      
+
                       <Button
                         variant="ghost"
                         size="sm"
@@ -241,8 +241,8 @@ export function ContactsTable({
                         {showActionsMenu === contact.id && (
                           <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
                             <div className="p-2 space-y-1">
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 className="w-full justify-start text-sm"
                                 onClick={() => {
                                   onEditContact?.(contact)
@@ -252,8 +252,8 @@ export function ContactsTable({
                                 <Edit className="w-4 h-4 mr-2" />
                                 Editar contacto
                               </Button>
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 className="w-full justify-start text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
                                 onClick={() => {
                                   onDeleteContact?.(contact)
@@ -282,7 +282,7 @@ export function ContactsTable({
           <div className="text-sm text-gray-600 dark:text-gray-400">
             Mostrando 1-{contacts.length} de {contacts.length} contactos
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" disabled>
               Anterior
@@ -300,4 +300,4 @@ export function ContactsTable({
   )
 }
 
-export default ContactsTable 
+export default ContactsTable

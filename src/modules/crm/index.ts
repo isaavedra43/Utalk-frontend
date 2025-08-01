@@ -16,4 +16,4 @@ export * from './mockContacts'
 
 // Tipos para consumo externo
 export type { CRMViewMode } from './CRMToolbar'
-export type { CRMFilters } from './CRMLeftSidebar' 
+export type { CRMFilters } from './CRMLeftSidebar'

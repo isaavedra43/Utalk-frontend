@@ -6,7 +6,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 import { AppRoutes } from '@/pages/AppRoutes'
 import { validateEnvironment } from '@/lib/envValidator'
 
-function App() {
+function App(): JSX.Element {
   // ✅ Validar solo variables necesarias para backend EMAIL-FIRST
   validateEnvironment()
 
@@ -34,4 +34,4 @@ function App() {
   )
 }
 
-export default App 
+export default App

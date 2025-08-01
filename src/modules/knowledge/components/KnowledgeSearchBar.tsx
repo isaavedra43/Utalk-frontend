@@ -2,7 +2,7 @@
 // Búsqueda inteligente con sugerencias y filtros rápidos
 
 import { useState, useRef, useEffect } from 'react'
-import { Search, Mic,  X, Clock, TrendingUp } from 'lucide-react'
+import { Search, Mic, X, Clock, TrendingUp } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -24,7 +24,7 @@ interface KnowledgeSearchBarProps {
 export function KnowledgeSearchBar({
   value,
   onChange,
-  placeholder = "Buscar documentos, FAQs, cursos...",
+  placeholder = 'Buscar documentos, FAQs, cursos...',
   isLoading = false,
   showSuggestions = true,
   recentSearches = [],
@@ -39,22 +39,22 @@ export function KnowledgeSearchBar({
 
   // ✅ SUGERENCIAS PREDETERMINADAS
   const defaultSuggestions = [
-    "Configuración de productos",
-    "Manual de procedimientos",
-    "Políticas de la empresa",
-    "Plantillas de contratos",
-    "Capacitación de ventas",
-    "Resolución de problemas técnicos"
+    'Configuración de productos',
+    'Manual de procedimientos',
+    'Políticas de la empresa',
+    'Plantillas de contratos',
+    'Capacitación de ventas',
+    'Resolución de problemas técnicos'
   ]
 
   // ✅ BÚSQUEDAS POPULARES PREDETERMINADAS
   const defaultPopularSearches = [
-    "Manual usuario",
-    "Configuración",
-    "Políticas",
-    "Plantillas",
-    "FAQ técnico",
-    "Capacitación"
+    'Manual usuario',
+    'Configuración',
+    'Políticas',
+    'Plantillas',
+    'FAQ técnico',
+    'Capacitación'
   ]
 
   const popularItems = popularSearches.length > 0 ? popularSearches : defaultPopularSearches
@@ -79,7 +79,7 @@ export function KnowledgeSearchBar({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
     onChange(newValue)
-    
+
     // Mostrar sugerencias si hay texto o está enfocado
     if (showSuggestions && (newValue.length > 0 || isFocused)) {
       setShowSuggestionsPanel(true)
@@ -96,11 +96,11 @@ export function KnowledgeSearchBar({
 
   // ✅ MANEJAR BÚSQUEDA POR VOZ
   const handleVoiceSearch = () => {
-    if (!onVoiceSearch) return
-    
+    if (!onVoiceSearch) {return}
+
     setIsListening(true)
     onVoiceSearch()
-    
+
     // Simular fin de grabación después de 3 segundos
     setTimeout(() => {
       setIsListening(false)
@@ -137,13 +137,13 @@ export function KnowledgeSearchBar({
 
   return (
     <div ref={containerRef} className="relative w-full">
-      
+
       {/* 🔍 BARRA DE BÚSQUEDA PRINCIPAL */}
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <Search className={`h-5 w-5 ${isLoading ? 'animate-pulse' : ''} text-gray-400`} />
         </div>
-        
+
         <Input
           ref={inputRef}
           type="text"
@@ -153,12 +153,12 @@ export function KnowledgeSearchBar({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className={`pl-10 pr-20 py-3 text-base transition-all duration-200 ${
-            isFocused 
-              ? 'ring-2 ring-blue-500 border-blue-500' 
+            isFocused
+              ? 'ring-2 ring-blue-500 border-blue-500'
               : 'border-gray-300 dark:border-gray-600'
           }`}
         />
-        
+
         <div className="absolute inset-y-0 right-0 flex items-center space-x-2 pr-3">
           {/* Botón limpiar */}
           {value && (
@@ -169,13 +169,13 @@ export function KnowledgeSearchBar({
               <X className="h-4 w-4" />
             </button>
           )}
-          
+
           {/* Botón búsqueda por voz */}
           {onVoiceSearch && (
             <button
               onClick={handleVoiceSearch}
               className={`p-2 rounded-full transition-colors ${
-                isListening 
+                isListening
                   ? 'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-400'
                   : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
@@ -191,7 +191,7 @@ export function KnowledgeSearchBar({
       {showSuggestionsPanel && (
         <Card className="absolute top-full left-0 right-0 mt-2 z-50 max-h-96 overflow-y-auto shadow-lg">
           <div className="p-4 space-y-4">
-            
+
             {/* Sugerencias basadas en texto */}
             {value && filteredSuggestions.length > 0 && (
               <div>
@@ -286,11 +286,11 @@ export function KnowledgeSearchBar({
         <div className="absolute top-full left-0 right-0 mt-2 z-50">
           <Card className="p-4">
             <div className="flex items-center justify-center space-x-3">
-              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
               <span className="text-sm text-gray-600 dark:text-gray-400">
                 Escuchando... Habla ahora
               </span>
-              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
             </div>
           </Card>
         </div>
@@ -300,4 +300,4 @@ export function KnowledgeSearchBar({
   )
 }
 
-export default KnowledgeSearchBar 
+export default KnowledgeSearchBar

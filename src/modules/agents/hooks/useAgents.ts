@@ -1,4 +1,4 @@
-// Hook para manejar agentes IA  
+// Hook para manejar agentes IA
 // Simplificado sin react-query
 import { useState, useEffect } from 'react'
 import { Agent } from '../types'
@@ -13,7 +13,7 @@ export function useAgents() {
   const loadAgents = async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
       const result = await agentsService.getAgents()
       if (result.success) {
@@ -53,8 +53,8 @@ export function useAgents() {
     try {
       const result = await agentsService.updateAgent(id, agentData)
       if (result.success && result.agent) {
-        setAgents(prev => 
-          prev.map(agent => 
+        setAgents(prev =>
+          prev.map(agent =>
             agent.id === id ? { ...agent, ...result.agent } : agent
           )
         )

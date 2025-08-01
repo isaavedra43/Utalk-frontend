@@ -134,7 +134,7 @@ export function CRMToolbar({
               <SortDesc className="w-4 h-4 mr-2" />
               Ordenar
             </Button>
-            
+
             {/* Menú de ordenamiento */}
             {showSortMenu && (
               <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
@@ -164,8 +164,8 @@ export function CRMToolbar({
               onClick={() => onViewModeChange('table')}
               className={clsx(
                 'px-3 py-1.5',
-                viewMode === 'table' 
-                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                viewMode === 'table'
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
               )}
             >
@@ -203,4 +203,4 @@ export function CRMToolbar({
   )
 }
 
-export default CRMToolbar 
+export default CRMToolbar

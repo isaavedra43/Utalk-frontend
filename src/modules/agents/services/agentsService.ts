@@ -3,9 +3,9 @@
 
 import { apiClient } from '@/services/apiClient'
 import { logger, createLogContext } from '@/lib/logger'
-import type { 
-  Agent, 
-  AgentFilters, 
+import type {
+  Agent,
+  AgentFilters,
   AIAnalysis,
   AgentsResponse,
   AgentResponse,
@@ -30,19 +30,19 @@ class AgentsService {
       const queryParams = new URLSearchParams()
 
       // Aplicar filtros
-      if (filters.search) queryParams.append('search', filters.search)
-      if (filters.department) queryParams.append('department', filters.department)
-      if (filters.role) queryParams.append('role', filters.role)
-      if (filters.isOnline !== undefined) queryParams.append('isOnline', filters.isOnline.toString())
-      if (filters.isActive !== undefined) queryParams.append('isActive', filters.isActive.toString())
-      if (filters.lastActivityFrom) queryParams.append('lastActivityFrom', filters.lastActivityFrom.toISOString())
-      if (filters.lastActivityTo) queryParams.append('lastActivityTo', filters.lastActivityTo.toISOString())
-      if (filters.minCSAT) queryParams.append('minCSAT', filters.minCSAT.toString())
-      if (filters.maxCSAT) queryParams.append('maxCSAT', filters.maxCSAT.toString())
-      if (filters.minConversionRate) queryParams.append('minConversionRate', filters.minConversionRate.toString())
-      if (filters.maxConversionRate) queryParams.append('maxConversionRate', filters.maxConversionRate.toString())
-      if (filters.minRevenue) queryParams.append('minRevenue', filters.minRevenue.toString())
-      if (filters.maxRevenue) queryParams.append('maxRevenue', filters.maxRevenue.toString())
+      if (filters.search) {queryParams.append('search', filters.search)}
+      if (filters.department) {queryParams.append('department', filters.department)}
+      if (filters.role) {queryParams.append('role', filters.role)}
+      if (filters.isOnline !== undefined) {queryParams.append('isOnline', filters.isOnline.toString())}
+      if (filters.isActive !== undefined) {queryParams.append('isActive', filters.isActive.toString())}
+      if (filters.lastActivityFrom) {queryParams.append('lastActivityFrom', filters.lastActivityFrom.toISOString())}
+      if (filters.lastActivityTo) {queryParams.append('lastActivityTo', filters.lastActivityTo.toISOString())}
+      if (filters.minCSAT) {queryParams.append('minCSAT', filters.minCSAT.toString())}
+      if (filters.maxCSAT) {queryParams.append('maxCSAT', filters.maxCSAT.toString())}
+      if (filters.minConversionRate) {queryParams.append('minConversionRate', filters.minConversionRate.toString())}
+      if (filters.maxConversionRate) {queryParams.append('maxConversionRate', filters.maxConversionRate.toString())}
+      if (filters.minRevenue) {queryParams.append('minRevenue', filters.minRevenue.toString())}
+      if (filters.maxRevenue) {queryParams.append('maxRevenue', filters.maxRevenue.toString())}
 
       // Manejar arrays de status
       if (Array.isArray(filters.status)) {
@@ -52,7 +52,7 @@ class AgentsService {
       }
 
       const response = await apiClient.get<AgentsResponse>(`${this.baseUrl}?${queryParams.toString()}`)
-      
+
       return {
         success: response.data.success,
         agents: response.data.agents || [],
@@ -83,7 +83,7 @@ class AgentsService {
   async getAgent(id: string): Promise<AgentResponse> {
     try {
       const response = await apiClient.get<AgentResponse>(`${this.baseUrl}/${id}`)
-      
+
       return {
         success: response.data.success,
         agent: response.data.agent
@@ -108,7 +108,7 @@ class AgentsService {
   async createAgent(agentData: Omit<Agent, 'id' | 'createdAt' | 'updatedAt'>): Promise<AgentResponse> {
     try {
       const response = await apiClient.post<AgentResponse>(this.baseUrl, agentData)
-      
+
       return {
         success: response.data.success,
         agent: response.data.agent
@@ -133,7 +133,7 @@ class AgentsService {
   async updateAgent(id: string, agentData: Partial<Agent>): Promise<AgentResponse> {
     try {
       const response = await apiClient.patch<AgentResponse>(`${this.baseUrl}/${id}`, agentData)
-      
+
       return {
         success: response.data.success,
         agent: response.data.agent
@@ -159,7 +159,7 @@ class AgentsService {
   async deleteAgent(id: string): Promise<AgentResponse> {
     try {
       const response = await apiClient.delete<AgentResponse>(`${this.baseUrl}/${id}`)
-      
+
       return {
         success: response.data.success,
         agent: response.data.agent
@@ -184,7 +184,7 @@ class AgentsService {
   async updateAgentStatus(id: string, status: string): Promise<AgentResponse> {
     try {
       const response = await apiClient.patch<AgentResponse>(`${this.baseUrl}/${id}/status`, { status })
-      
+
       return {
         success: response.data.success,
         agent: response.data.agent
@@ -210,7 +210,7 @@ class AgentsService {
   async updateAgentPermissions(id: string, permissions: string[]): Promise<AgentResponse> {
     try {
       const response = await apiClient.patch<AgentResponse>(`${this.baseUrl}/${id}/permissions`, { permissions })
-      
+
       return {
         success: response.data.success,
         agent: response.data.agent
@@ -237,7 +237,7 @@ class AgentsService {
     try {
       const url = agentId ? `${this.baseUrl}/${agentId}/metrics` : `${this.baseUrl}/metrics`
       const response = await apiClient.get<AgentMetricsResponse>(`${url}?period=${period}`)
-      
+
       return {
         success: response.data.success,
         metrics: response.data.metrics,
@@ -265,7 +265,7 @@ class AgentsService {
   async getAgentTeams(): Promise<AgentTeamsResponse> {
     try {
       const response = await apiClient.get<AgentTeamsResponse>(`${this.baseUrl}/teams`)
-      
+
       return {
         success: response.data.success,
         teams: response.data.teams || [],
@@ -291,7 +291,7 @@ class AgentsService {
   async getAgentRoles(): Promise<AgentRolesResponse> {
     try {
       const response = await apiClient.get<AgentRolesResponse>(`${this.baseUrl}/roles`)
-      
+
       return {
         success: response.data.success,
         roles: response.data.roles || [],
@@ -320,12 +320,12 @@ class AgentsService {
       queryParams.append('q', query)
 
       // Aplicar filtros adicionales
-      if (filters.department) queryParams.append('department', filters.department)
-      if (filters.role) queryParams.append('role', filters.role)
-      if (filters.isOnline !== undefined) queryParams.append('isOnline', filters.isOnline.toString())
+      if (filters.department) {queryParams.append('department', filters.department)}
+      if (filters.role) {queryParams.append('role', filters.role)}
+      if (filters.isOnline !== undefined) {queryParams.append('isOnline', filters.isOnline.toString())}
 
       const response = await apiClient.get<AgentsResponse>(`${this.baseUrl}/search?${queryParams.toString()}`)
-      
+
       return {
         success: response.data.success,
         agents: response.data.agents || [],
@@ -358,7 +358,7 @@ class AgentsService {
     try {
       const url = agentId ? `${this.baseUrl}/${agentId}/history` : `${this.baseUrl}/history`
       const response = await apiClient.get(`${url}?period=${period}`)
-      
+
       return response.data || []
     } catch (error) {
       logger.error('MODULE', 'Error al obtener histórico', createLogContext({
@@ -398,12 +398,12 @@ class AgentsService {
       queryParams.append('format', format)
 
       // Aplicar filtros para exportación
-      if (filters.department) queryParams.append('department', filters.department)
-      if (filters.role) queryParams.append('role', filters.role)
-      if (filters.isOnline !== undefined) queryParams.append('isOnline', filters.isOnline.toString())
+      if (filters.department) {queryParams.append('department', filters.department)}
+      if (filters.role) {queryParams.append('role', filters.role)}
+      if (filters.isOnline !== undefined) {queryParams.append('isOnline', filters.isOnline.toString())}
 
       const response = await apiClient.get(`${this.baseUrl}/export?${queryParams.toString()}`)
-      
+
       return response.data.url
     } catch (error) {
       logger.error('MODULE', 'Error al exportar agentes', createLogContext({
@@ -426,7 +426,7 @@ class AgentsService {
         agentIds,
         status
       })
-      
+
       return response.data.results || []
     } catch (error) {
       logger.error('MODULE', 'Error al actualizar estados en lote', createLogContext({
@@ -449,7 +449,7 @@ class AgentsService {
         agentIds,
         teamId
       })
-      
+
       return response.data.results || []
     } catch (error) {
       logger.error('MODULE', 'Error al asignar agentes a equipo', createLogContext({
@@ -472,7 +472,7 @@ class AgentsService {
         agentIds,
         roleId
       })
-      
+
       return response.data.results || []
     } catch (error) {
       logger.error('MODULE', 'Error al asignar roles en lote', createLogContext({

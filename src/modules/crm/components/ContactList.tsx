@@ -23,13 +23,13 @@ export function ContactList(_props: ContactListProps) {
         <h1 className="text-2xl font-bold">Contactos</h1>
         <Button>Nuevo Contacto</Button>
       </div>
-      
+
       <Card className="p-4">
         <div className="flex space-x-4 mb-4">
           <Input placeholder="Buscar contactos..." className="max-w-sm" />
           {/* TODO: Añadir filtros adicionales */}
         </div>
-        
+
         <div className="text-center py-8 text-muted-foreground">
           {/* TODO: Implementar tabla/grid de contactos */}
           Lista de contactos - Pendiente de implementación
@@ -39,4 +39,4 @@ export function ContactList(_props: ContactListProps) {
   )
 }
 
-export default ContactList 
+export default ContactList

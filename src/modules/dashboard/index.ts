@@ -7,7 +7,7 @@ export const dashboardRoutes = {
   analytics: '/dashboard/analytics',
   reports: '/dashboard/reports',
   kpis: '/dashboard/kpis',
-  realtime: '/dashboard/realtime',
+  realtime: '/dashboard/realtime'
 }
 
 // TODO: Exportar componentes cuando estén implementados
@@ -23,4 +23,4 @@ export const dashboardRoutes = {
 // export { useDashboard } from './hooks/useDashboard'
 
 // TODO: Exportar tipos cuando estén implementados
-// export type { KPI, Metric, ChartData, ReportConfig } from './types' 
+// export type { KPI, Metric, ChartData, ReportConfig } from './types'

@@ -89,26 +89,26 @@ export const CDN_CONFIG = {
 // ===== VALIDACIÓN DE CONFIGURACIÓN =====
 export function validateConfig(): { isValid: boolean; errors: string[] } {
   const errors: string[] = []
-  
+
   // Validar URLs requeridas
   if (!API_CONFIG.BASE_URL) {
     errors.push('VITE_API_URL es requerida')
   }
-  
+
   if (!WS_CONFIG.URL) {
     errors.push('VITE_WS_URL es requerida')
   }
-  
+
   // Validar configuración de tokens
   if (SECURITY_CONFIG.TOKEN_REFRESH_MINUTES >= SECURITY_CONFIG.TOKEN_EXPIRY_MINUTES) {
     errors.push('VITE_TOKEN_REFRESH_MINUTES debe ser menor que VITE_TOKEN_EXPIRY_MINUTES')
   }
-  
+
   // Validar entorno
   if (!['development', 'staging', 'production'].includes(ENV_CONFIG.VITE_ENV)) {
     errors.push('VITE_ENV debe ser: development, staging o production')
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors
@@ -135,4 +135,4 @@ if (ENV_CONFIG.IS_DEVELOPMENT) {
   if (!validation.isValid) {
     console.warn('⚠️ Configuración inválida:', validation.errors)
   }
-} 
+}

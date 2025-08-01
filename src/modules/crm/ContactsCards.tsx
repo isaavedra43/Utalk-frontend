@@ -11,10 +11,10 @@ interface ContactsCardsProps {
   onEditContact?: (contact: Contact) => void
 }
 
-export default function ContactsCards({ 
-  contacts, 
-  onContactClick, 
-  onEditContact 
+export default function ContactsCards({
+  contacts,
+  onContactClick,
+  onEditContact
 }: ContactsCardsProps) {
   const getStatusColor = (status: Contact['status']) => {
     switch (status) {
@@ -48,7 +48,7 @@ export default function ContactsCards({
   }
 
   const formatCurrency = (value?: number) => {
-    if (!value) return 'N/A'
+    if (!value) {return 'N/A'}
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
       currency: 'EUR'
@@ -58,8 +58,8 @@ export default function ContactsCards({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {contacts.map((contact) => (
-        <Card 
-          key={contact.id} 
+        <Card
+          key={contact.id}
           className="p-4 cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => onContactClick?.(contact)}
         >
@@ -149,4 +149,4 @@ export default function ContactsCards({
       ))}
     </div>
   )
-} 
+}

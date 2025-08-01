@@ -33,7 +33,7 @@ export function getErrorContext(error: any): LogContext {
 
 interface LogEntry {
   level: LogLevel
-  category: LogCategory  
+  category: LogCategory
   message: string
   context?: LogContext // Hacer opcional para compatibilidad con exactOptionalPropertyTypes
   timestamp: string
@@ -67,15 +67,15 @@ class ProfessionalLogger {
   }
 
   private logInternal(level: LogLevel, category: LogCategory, message: string, context?: LogContext) {
-    if (!this.isDev && level === 'DEBUG') return
+    if (!this.isDev && level === 'DEBUG') {return}
 
     const existing = this.logHistory.find(
-      log => log.level === level && 
-             log.category === category && 
+      log => log.level === level &&
+             log.category === category &&
              log.message === message
     )
     const now = Date.now()
-    
+
     if (existing && (now - new Date(existing.timestamp).getTime()) < this.throttleTime) {
       existing.count++
       return
@@ -84,10 +84,10 @@ class ProfessionalLogger {
     this.addLogEntry({ level, category, message, context })
 
     const colors = {
-      DEBUG: '\x1b[36m',   // Cyan
-      INFO: '\x1b[34m',    // Blue
-      WARN: '\x1b[33m',    // Yellow
-      ERROR: '\x1b[31m',   // Red
+      DEBUG: '\x1b[36m', // Cyan
+      INFO: '\x1b[34m', // Blue
+      WARN: '\x1b[33m', // Yellow
+      ERROR: '\x1b[31m', // Red
       SUCCESS: '\x1b[32m', // Green
       RESET: '\x1b[0m'
     }
@@ -95,7 +95,7 @@ class ProfessionalLogger {
     const prefix = `[${colors[level]}${level}${colors.RESET}] [${category}]`
     const contextStr = context ? ` | Context: ${JSON.stringify(context)}` : ''
     const countStr = existing?.count > 1 ? ` (${existing.count}x)` : ''
-    
+
     console.log(`${prefix} ${message}${contextStr}${countStr}`)
   }
 
@@ -170,7 +170,7 @@ class ProfessionalLogger {
 
   endPerformance(id: string): number | null {
     const entry = this.performanceMap.get(id)
-    if (!entry) return null
+    if (!entry) {return null}
 
     entry.endTime = performance.now()
     entry.duration = entry.endTime - entry.startTime
@@ -188,21 +188,21 @@ class ProfessionalLogger {
   cleanup() {
     const now = Date.now()
     const maxAge = 5 * 60 * 1000 // 5 minutos
-    
+
     this.logHistory = this.logHistory.filter(entry => now - new Date(entry.timestamp).getTime() <= maxAge)
   }
 
   private addLogEntry(entry: Omit<LogEntry, 'timestamp' | 'count'>): void {
     const timestamp = new Date().toISOString()
     const existingIndex = this.logHistory.findIndex(
-      log => log.level === entry.level && 
-             log.category === entry.category && 
+      log => log.level === entry.level &&
+             log.category === entry.category &&
              log.message === entry.message
     )
 
     if (existingIndex !== -1) {
-      this.logHistory[existingIndex]!.count++
-      this.logHistory[existingIndex]!.timestamp = timestamp
+      this.logHistory[existingIndex].count++
+      this.logHistory[existingIndex].timestamp = timestamp
     } else {
       this.logHistory.push({
         ...entry,
@@ -243,4 +243,4 @@ if (typeof window !== 'undefined') {
 }
 
 // Export default para compatibilidad
-export default logger 
+export default logger

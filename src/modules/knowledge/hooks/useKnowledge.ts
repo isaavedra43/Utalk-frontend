@@ -12,7 +12,7 @@ export function useKnowledge() {
   const loadDocuments = async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
       const result = await knowledgeService.searchDocuments('', undefined, 'date', 1, 20)
       if (result.success) {
@@ -38,4 +38,4 @@ export function useKnowledge() {
     error,
     refetch: loadDocuments
   }
-} 
+}

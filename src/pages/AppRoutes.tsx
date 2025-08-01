@@ -23,7 +23,7 @@ const CRMDashboard = lazy(() => import('@/modules/crm/CRM'))
 // Loading fallback
 const LoadingFallback = () => (
   <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
   </div>
 )
 
@@ -40,52 +40,51 @@ export function AppRoutes() {
       {/* Protected routes */}
       <Route path="/" element={<DashboardLayout />}>
         <Route index element={<Navigate to="/dashboard" replace />} />
-        
-        <Route 
-          path="dashboard" 
+
+        <Route
+          path="dashboard"
           element={
             <Suspense fallback={<LoadingFallback />}>
               <DashboardPage />
             </Suspense>
-          } 
+          }
         />
-        
-        <Route 
-          path="crm" 
+
+        <Route
+          path="crm"
           element={
             <Suspense fallback={<LoadingFallback />}>
               <CRMDashboard />
             </Suspense>
-          } 
+          }
         />
-        
-        <Route 
-          path="agents" 
+
+        <Route
+          path="agents"
           element={
             <Suspense fallback={<LoadingFallback />}>
               <AgentsDashboard />
             </Suspense>
-          } 
+          }
         />
-        
 
-        
-        <Route 
-          path="knowledge" 
+
+        <Route
+          path="knowledge"
           element={
             <Suspense fallback={<LoadingFallback />}>
               <KnowledgeDashboard />
             </Suspense>
-          } 
+          }
         />
-        
-        <Route 
-          path="*" 
+
+        <Route
+          path="*"
           element={
             <Suspense fallback={<LoadingFallback />}>
               <NotFoundPage />
             </Suspense>
-          } 
+          }
         />
       </Route>
 
@@ -93,4 +92,4 @@ export function AppRoutes() {
       <Route path="*" element={<Navigate to="/auth/login" replace />} />
     </Routes>
   )
-} 
+}

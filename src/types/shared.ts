@@ -43,27 +43,27 @@ export interface Contact extends BaseEntity {
   name: string // Nombre completo calculado
   email?: string
   phone?: string
-  
+
   // Información comercial
   company?: string
   position?: string
   value: number
   conversions: number
-  
+
   // Estado y gestión
   status: ContactStatus
   channel: ContactChannel
   owner: string
   tags: string[]
-  
+
   // Actividad
   lastInteraction: string
   lastActivity: Date
-  
+
   // IA y análisis
   iaTag: string
   iaPercentage: number
-  
+
   // UI
   avatar?: string
 }
@@ -78,11 +78,11 @@ export interface Agent extends BaseUser {
   role: string // Simplificado de AgentRole
   status: AgentStatus
   isOnline: boolean
-  
+
   // Capacidades
   maxConcurrentTickets: number
   skills: string[]
-  
+
   // Performance
   performance?: {
     totalTickets: number
@@ -235,4 +235,4 @@ export interface TableColumn {
   sortable?: boolean
   width?: string
   align?: 'left' | 'center' | 'right'
-} 
+}

@@ -55,10 +55,10 @@ interface CRMLeftSidebarProps {
   onClearFilters: () => void
 }
 
-export default function CRMLeftSidebar({ 
-  filters, 
-  onFiltersChange, 
-  onClearFilters 
+export default function CRMLeftSidebar({
+  filters,
+  onFiltersChange,
+  onClearFilters
 }: CRMLeftSidebarProps) {
   const [isExpanded, setIsExpanded] = useState(true)
 
@@ -74,11 +74,11 @@ export default function CRMLeftSidebar({
     const newValues = currentValues.includes(value)
       ? currentValues.filter(v => v !== value)
       : [...currentValues, value]
-    
+
     updateFilter(key, newValues)
   }
 
-  const hasActiveFilters = Object.values(filters).some(value => 
+  const hasActiveFilters = Object.values(filters).some(value =>
     Array.isArray(value) ? value.length > 0 : value !== ''
   )
 
@@ -97,7 +97,7 @@ export default function CRMLeftSidebar({
             {isExpanded ? '−' : '+'}
           </Button>
         </div>
-        
+
         {hasActiveFilters && (
           <div className="mt-2 flex items-center gap-2">
             <Badge variant="secondary" className="text-xs">
@@ -237,4 +237,4 @@ export default function CRMLeftSidebar({
       )}
     </div>
   )
-} 
+}

@@ -1,11 +1,11 @@
 // Componente Badge base de shadcn/ui
 // NO SOBRESCRIBIR CON GENERADORES EXTERNOS
 // Usado para etiquetas, estados y categorización
-import * as React from "react"
-import { type VariantProps } from "class-variance-authority"
+import * as React from 'react'
+import { type VariantProps } from 'class-variance-authority'
 
-import { cn } from "@/lib/utils"
-import { badgeVariants } from "./badge-variants"
+import { cn } from '@/lib/utils'
+import { badgeVariants } from './badge-variants'
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
@@ -17,4 +17,4 @@ function Badge({ className, variant, ...props }: BadgeProps) {
   )
 }
 
-export { Badge } 
+export { Badge }

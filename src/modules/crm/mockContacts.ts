@@ -98,4 +98,4 @@ export const mockCRMStats: CRMStats = {
   averageDealValue: 104167,
   conversionRate: 0.26,
   responseTime: 2.3
-} 
+}

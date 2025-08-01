@@ -2,12 +2,12 @@
 // Estructura base para todas las páginas autenticadas
 import { useState, useEffect } from 'react'
 import { Link, useLocation, Outlet } from 'react-router-dom'
-import { 
-  Home, 
-  Users, 
-  UserCheck, 
-  Megaphone, 
-  BookOpen, 
+import {
+  Home,
+  Users,
+  UserCheck,
+  Megaphone,
+  BookOpen,
   Settings,
   Search,
   Bell,
@@ -122,11 +122,11 @@ export function DashboardLayout() {
                 <Sun className="h-4 w-4" />
               )}
             </Button>
-            
+
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
               <Bell className="h-4 w-4" />
             </Button>
-            
+
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
               <User className="h-4 w-4" />
             </Button>
@@ -198,4 +198,4 @@ export function DashboardLayout() {
   )
 }
 
-export default DashboardLayout 
+export default DashboardLayout

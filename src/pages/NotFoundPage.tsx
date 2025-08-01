@@ -21,7 +21,7 @@ export function NotFoundPage() {
               Volver al Dashboard
             </Link>
           </Button>
-          
+
           <Button variant="outline" asChild className="w-full">
             <Link to="/auth/login">
               Ir al Login
@@ -37,4 +37,4 @@ export function NotFoundPage() {
   )
 }
 
-export default NotFoundPage 
+export default NotFoundPage

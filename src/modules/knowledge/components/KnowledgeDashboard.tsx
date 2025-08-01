@@ -2,13 +2,13 @@
 // Vista principal con búsqueda global, estadísticas y acceso a contenido
 
 import { useState } from 'react'
-import { 
-  Search, 
-  Upload, 
-  // Plus, 
-  BookOpen, 
-  HelpCircle, 
-  GraduationCap, 
+import {
+  Search,
+  Upload,
+  // Plus,
+  BookOpen,
+  HelpCircle,
+  GraduationCap,
   FileText,
   TrendingUp,
   Users,
@@ -33,13 +33,13 @@ export function KnowledgeDashboard() {
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [activeTab, setActiveTab] = useState<'documents' | 'faqs' | 'courses'>('documents')
   const [showFilters, setShowFilters] = useState(false)
-  
+
   // ✅ DATOS TEMPORALES (simulando hooks)
   const isLoading = false
   // const documents = []
   // const faqs = []
   // const courses = []
-  
+
   // ✅ ESTADÍSTICAS RÁPIDAS
   const quickStats = {
     totalDocuments: 0,
@@ -63,13 +63,13 @@ export function KnowledgeDashboard() {
 
   return (
     <div className="flex h-full bg-gray-50 dark:bg-gray-900">
-      
+
       {/* 📋 CONTENIDO PRINCIPAL */}
       <div className="flex-1 flex flex-col">
-        
+
         {/* 🎯 HEADER */}
         <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6">
-          
+
           {/* Título y acciones */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-4">
@@ -155,7 +155,7 @@ export function KnowledgeDashboard() {
 
           {/* KPIs rápidos */}
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-            
+
             {/* Total Documentos */}
             <Card className="p-4">
               <div className="flex items-center space-x-3">
@@ -269,7 +269,7 @@ export function KnowledgeDashboard() {
             </div>
           ) : (
             <div className="space-y-6">
-              
+
               {/* Barra de herramientas */}
               <div className="flex items-center justify-between">
                 <div className="flex space-x-2">
@@ -291,7 +291,7 @@ export function KnowledgeDashboard() {
                   >
                     <Grid className="w-4 h-4" />
                   </button>
-                  
+
                   <button
                     onClick={() => setViewMode('list')}
                     className={`p-2 ${
@@ -335,7 +335,7 @@ export function KnowledgeDashboard() {
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Formulario de upload en desarrollo...
             </p>
-            <button 
+            <button
               onClick={() => setShowUploadModal(false)}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
             >
@@ -348,4 +348,4 @@ export function KnowledgeDashboard() {
   )
 }
 
-export default KnowledgeDashboard 
+export default KnowledgeDashboard

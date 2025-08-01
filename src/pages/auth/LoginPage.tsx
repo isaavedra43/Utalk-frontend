@@ -19,7 +19,7 @@ export function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!email || !password) {
       setError('Por favor completa todos los campos')
       return
@@ -63,7 +63,7 @@ export function LoginPage() {
     } catch (error: any) {
       const errorMessage = error?.message || 'Error de autenticación'
       setError(errorMessage)
-      
+
       logger.error('AUTH', 'Login failed', {
         email,
         errorMessage,
@@ -103,7 +103,7 @@ export function LoginPage() {
                 className="w-full"
               />
             </div>
-            
+
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Contraseña
@@ -138,4 +138,4 @@ export function LoginPage() {
       </Card>
     </div>
   )
-} 
+}

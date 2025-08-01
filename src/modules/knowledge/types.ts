@@ -139,4 +139,4 @@ export interface KnowledgeStatsResponse {
   data: KnowledgeStats
 }
 
-export type DocumentSortBy = 'relevance' | 'date' | 'views' | 'rating' 
+export type DocumentSortBy = 'relevance' | 'date' | 'views' | 'rating'

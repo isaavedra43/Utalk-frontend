@@ -28,7 +28,7 @@ class ConnectionTester {
       () => this.testBaseURL(),
       () => this.testHealthEndpoint(),
       () => this.testAuthEndpoint(),
-      () => this.testCORS(),
+      () => this.testCORS()
     ]
 
     const results: ConnectionTestResult[] = []
@@ -53,13 +53,13 @@ class ConnectionTester {
   // ✅ Test 1: URL base del backend
   private async testBaseURL(): Promise<ConnectionTestResult> {
     const startTime = Date.now()
-    
+
     try {
       const response = await fetch(this.baseURL.replace('/api', ''), {
         method: 'GET',
         mode: 'cors'
       })
-      
+
       return {
         endpoint: this.baseURL.replace('/api', ''),
         status: response.ok ? 'success' : 'failed',
@@ -81,7 +81,7 @@ class ConnectionTester {
   private async testHealthEndpoint(): Promise<ConnectionTestResult> {
     const endpoint = `${this.baseURL}/health`
     const startTime = Date.now()
-    
+
     try {
       const response = await fetch(endpoint, {
         method: 'GET',
@@ -90,9 +90,9 @@ class ConnectionTester {
           'Content-Type': 'application/json'
         }
       })
-      
+
       const data = await response.json()
-      
+
       return {
         endpoint,
         status: response.ok ? 'success' : 'failed',
@@ -114,7 +114,7 @@ class ConnectionTester {
   private async testAuthEndpoint(): Promise<ConnectionTestResult> {
     const endpoint = `${this.baseURL}${API_ENDPOINTS.AUTH.LOGIN}`
     const startTime = Date.now()
-    
+
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -124,7 +124,7 @@ class ConnectionTester {
         },
         body: JSON.stringify({ idToken: 'test-token' })
       })
-      
+
       // Esperamos error 401 o 400, no 200
       return {
         endpoint,
@@ -147,7 +147,7 @@ class ConnectionTester {
   private async testCORS(): Promise<ConnectionTestResult> {
     const endpoint = this.baseURL.replace('/api', '')
     const startTime = Date.now()
-    
+
     try {
       const response = await fetch(endpoint, {
         method: 'OPTIONS',
@@ -158,13 +158,13 @@ class ConnectionTester {
           'Access-Control-Request-Headers': 'Content-Type,Authorization'
         }
       })
-      
+
       const corsHeaders = {
         'access-control-allow-origin': response.headers.get('access-control-allow-origin'),
         'access-control-allow-methods': response.headers.get('access-control-allow-methods'),
         'access-control-allow-headers': response.headers.get('access-control-allow-headers')
       }
-      
+
       return {
         endpoint: `${endpoint} (CORS)`,
         status: response.ok ? 'success' : 'failed',
@@ -186,42 +186,42 @@ class ConnectionTester {
   // ✅ Clasificar tipo de error
   private getErrorType(error: any): ConnectionTestResult['status'] {
     const message = error?.message?.toLowerCase() || ''
-    
-    if (message.includes('cors')) return 'cors_error'
-    if (message.includes('timeout')) return 'timeout'
-    if (message.includes('404') || message.includes('not found')) return 'not_found'
-    
+
+    if (message.includes('cors')) {return 'cors_error'}
+    if (message.includes('timeout')) {return 'timeout'}
+    if (message.includes('404') || message.includes('not found')) {return 'not_found'}
+
     return 'failed'
   }
 
   // ✅ Imprimir resultados en consola
   private printTestResults(results: ConnectionTestResult[]) {
     console.log('\n🧪 =================== CONNECTION TEST RESULTS ===================')
-    
+
     results.forEach((result, index) => {
       const icon = result.status === 'success' ? '✅' : '❌'
       const time = result.responseTime ? `(${result.responseTime}ms)` : ''
-      
+
       console.log(`${icon} Test ${index + 1}: ${result.endpoint} ${time}`)
       console.log(`   Status: ${result.status.toUpperCase()}`)
-      
+
       if (result.statusCode) {
         console.log(`   HTTP: ${result.statusCode}`)
       }
-      
+
       if (result.error) {
         console.log(`   Error: ${result.error}`)
       }
-      
+
       console.log('')
     })
-    
+
     const successCount = results.filter(r => r.status === 'success').length
     const totalCount = results.length
-    
+
     console.log(`📊 Summary: ${successCount}/${totalCount} tests passed`)
     console.log('=================== END TEST RESULTS ===================\n')
-    
+
     // Guardar en localStorage para debugging
     localStorage.setItem('utalk_connection_tests', JSON.stringify(results, null, 2))
   }
@@ -237,4 +237,4 @@ if (import.meta.env.DEV) {
       logger.error('CONNECTION', 'Connection tests failed', error)
     })
   }, 3000)
-} 
+}

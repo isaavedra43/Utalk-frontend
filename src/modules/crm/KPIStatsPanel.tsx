@@ -38,7 +38,7 @@ const StatCard = ({ title, value, subtitle, icon: Icon, trend, badge, iconColor 
           </div>
           <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</h3>
         </div>
-        
+
         <div className="space-y-1">
           <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
           {subtitle && (
@@ -46,10 +46,10 @@ const StatCard = ({ title, value, subtitle, icon: Icon, trend, badge, iconColor 
           )}
         </div>
       </div>
-      
+
       <div className="flex flex-col items-end gap-2">
         {badge && (
-          <Badge 
+          <Badge
             variant={badge.variant === 'success' ? 'default' : 'secondary'}
             className={clsx(
               'text-xs',
@@ -61,7 +61,7 @@ const StatCard = ({ title, value, subtitle, icon: Icon, trend, badge, iconColor 
             {badge.text}
           </Badge>
         )}
-        
+
         {trend && (
           <div className={clsx(
             'flex items-center gap-1 text-sm',
@@ -223,4 +223,4 @@ export function KPIStatsPanel({ stats = mockCRMStats, className }: KPIStatsProps
   )
 }
 
-export default KPIStatsPanel 
+export default KPIStatsPanel

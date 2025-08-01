@@ -170,4 +170,4 @@ export interface NotificationSettings {
 export interface PrivacySettings {
   showOnlineStatus: boolean
   shareAnalytics: boolean
-} 
+}

@@ -1,7 +1,7 @@
 // 🧪 DATOS MOCK - Módulo de Agentes y Performance
 // Datos de prueba realistas para desarrollo y testing
 
-import type { 
+import type {
   Agent,
   AgentRole,
   AgentTeam,
@@ -202,7 +202,7 @@ export const mockTeams: AgentTeam[] = [
     createdAt: new Date('2024-01-01T00:00:00Z'),
     updatedAt: new Date('2024-11-20T15:45:00Z')
   },
-  
+
   {
     id: 'team_002',
     name: 'Equipo de Soporte',
@@ -268,4 +268,4 @@ export const mockAgentStats = {
     tickets: [45, 52, 48, 56, 61, 58, 67],
     revenue: [12450, 14230, 13800, 15670, 16890, 16240, 18950]
   }
-} 
+}

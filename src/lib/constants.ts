@@ -5,7 +5,7 @@ export const APP_CONFIG = {
   name: 'UTalk',
   version: '1.0.0',
   description: 'Plataforma de comunicación empresarial',
-  author: 'UTalk Team',
+  author: 'UTalk Team'
 } as const
 
 // Constantes centralizadas para endpoints de la API
@@ -21,7 +21,7 @@ export const API_ENDPOINTS = {
     VALIDATE_TOKEN: '/auth/validate-token',
     REFRESH: '/auth/refresh'
   },
-  
+
   // ✅ Usuarios usando EMAIL como identificador
   USERS: {
     LIST: '/users',
@@ -33,11 +33,11 @@ export const API_ENDPOINTS = {
     PERMISSIONS: (email: string) => `/users/${encodeURIComponent(email)}/permissions`,
     ROLES: (email: string) => `/users/${encodeURIComponent(email)}/roles`
   },
-  
+
   // ✅ Conversaciones usando EMAIL como identificador principal
-  
+
   // ✅ Mensajes usando EMAIL para identificación
-  
+
   // ✅ Contactos
   CONTACTS: {
     LIST: '/contacts',
@@ -47,7 +47,7 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `/contacts/${id}`,
     SEARCH: '/contacts/search'
   },
-  
+
   // ✅ Campañas con asignación por EMAIL
   CAMPAIGNS: {
     LIST: '/campaigns',
@@ -58,7 +58,7 @@ export const API_ENDPOINTS = {
     STATS: (id: string) => `/campaigns/${id}/stats`,
     BY_ASSIGNED: (email: string) => `/campaigns/assigned/${encodeURIComponent(email)}`
   },
-  
+
   // ✅ Agentes IA usando EMAIL
   AGENTS: {
     LIST: '/agents',
@@ -69,7 +69,7 @@ export const API_ENDPOINTS = {
     ANALYTICS: (id: string) => `/agents/${id}/analytics`,
     BY_CREATOR: (email: string) => `/agents/creator/${encodeURIComponent(email)}`
   },
-  
+
   // ✅ Base de conocimientos
   KNOWLEDGE: {
     LIST: '/knowledge',
@@ -81,7 +81,7 @@ export const API_ENDPOINTS = {
     CATEGORIES: '/knowledge/categories',
     BY_CREATOR: (email: string) => `/knowledge/creator/${encodeURIComponent(email)}`
   },
-  
+
   // ✅ Sistema y utilidades
   SYSTEM: {
     HEALTH: '/health',
@@ -99,16 +99,16 @@ export const FILTER_PARAMS = {
   CHANNEL: 'channel',
   DATE_FROM: 'dateFrom',
   DATE_TO: 'dateTo',
-  
+
   // ✅ Filtros para conversaciones con EMAIL
-  
+
   // ✅ Filtros para mensajes con EMAIL
-  
+
   // ✅ Campos comunes usando EMAIL
   SENDER_EMAIL: 'senderEmail',
   RECIPIENT_EMAIL: 'recipientEmail',
   CUSTOMER_EMAIL: 'customerEmail',
-  AGENT_EMAIL: 'agentEmail',
+  AGENT_EMAIL: 'agentEmail'
 } as const
 
 // Tipos para TypeScript
@@ -124,12 +124,12 @@ export type SystemEndpoint = typeof API_ENDPOINTS.SYSTEM
 // Función helper para construir URLs completas
 export function buildApiUrl(endpoint: string): string {
   const baseURL = import.meta.env.VITE_API_URL
-  
+
   // Validar que no haya duplicación de /api
   if (baseURL.endsWith('/api') && endpoint.startsWith('/api')) {
     console.warn(`⚠️ Potential URL duplication: ${baseURL} + ${endpoint}`)
   }
-  
+
   return `${baseURL}${endpoint}`
 }
 
@@ -137,12 +137,12 @@ export function buildApiUrl(endpoint: string): string {
 export function validateEndpoint(endpoint: string): boolean {
   // Verificar que el endpoint no empiece con /api si la base URL ya lo incluye
   const baseURL = import.meta.env.VITE_API_URL
-  
+
   if (baseURL.endsWith('/api') && endpoint.startsWith('/api')) {
     console.error(`❌ Endpoint duplication detected: ${endpoint}`)
     return false
   }
-  
+
   return true
 }
 
@@ -154,28 +154,28 @@ export const ROUTES = {
   campaigns: '/campaigns',
   team: '/team',
   knowledge: '/knowledge',
-  settings: '/settings',
+  settings: '/settings'
 } as const
 
 export const PAGINATION = {
   defaultPageSize: 20,
-  maxPageSize: 100,
+  maxPageSize: 100
 } as const
 
 export const UPLOAD = {
   maxFileSize: 10 * 1024 * 1024, // 10MB
   allowedImageTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-  allowedDocumentTypes: ['application/pdf', 'application/msword', 'text/plain'],
+  allowedDocumentTypes: ['application/pdf', 'application/msword', 'text/plain']
 } as const
 
 export const VALIDATION = {
   minPasswordLength: 8,
   maxNameLength: 50,
-  maxEmailLength: 100,
+  maxEmailLength: 100
 } as const
 
 export const UI = {
   sidebarWidth: 280,
   headerHeight: 64,
-  mobileBreakpoint: 768,
-} as const 
+  mobileBreakpoint: 768
+} as const

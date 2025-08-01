@@ -10,15 +10,11 @@ export const settingsRoutes = {
   integrations: '/settings/integrations',
   appearance: '/settings/appearance',
   security: '/settings/security',
-  billing: '/settings/billing',
+  billing: '/settings/billing'
 }
 
-// TODO: Exportar componentes cuando estén implementados
-// export { SettingsLayout } from './components/SettingsLayout'
-// export { ProfileSettings } from './components/ProfileSettings'
-// export { NotificationSettings } from './components/NotificationSettings'
-// export { IntegrationSettings } from './components/IntegrationSettings'
-// export { AppearanceSettings } from './components/AppearanceSettings'
+// Componentes del módulo
+export { Settings } from './Settings'
 
 // TODO: Exportar servicios cuando estén implementados
 // export { settingsService } from './services/settingsService'
@@ -27,4 +23,4 @@ export const settingsRoutes = {
 // export { useSettings } from './hooks/useSettings'
 
 // TODO: Exportar tipos cuando estén implementados
-// export type { UserSettings, AppSettings, Integration, Notification } from './types' 
+// export type { UserSettings, AppSettings, Integration, Notification } from './types'

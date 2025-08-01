@@ -10,12 +10,12 @@ export default function AgentsDashboard() {
   const {
     agents,
     loading,
-    error,
-    
+    error
+
   } = useAgents()
 
-  if (loading) return <LoadingSpinner />
-  if (error) return <div className="text-red-500">Error: {error}</div>
+  if (loading) {return <LoadingSpinner />}
+  if (error) {return <div className="text-red-500">Error: {error}</div>}
 
   return (
     <div className="p-6">
@@ -62,11 +62,11 @@ export default function AgentsDashboard() {
           <h2 className="text-lg font-semibold">Lista de Agentes</h2>
           <Button>Nuevo Agente</Button>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {agents.map((agent) => (
-            <Card 
-              key={agent.id} 
+            <Card
+              key={agent.id}
               className="p-4 cursor-pointer hover:shadow-md transition-shadow"
               onClick={() => {}}
             >
@@ -83,23 +83,23 @@ export default function AgentsDashboard() {
                   </p>
                 </div>
               </div>
-              
+
               <div className="mt-3 flex justify-between items-center">
                 <span className={`px-2 py-1 text-xs rounded-full ${
-                  agent.isActive 
-                    ? 'bg-green-100 text-green-800' 
+                  agent.isActive
+                    ? 'bg-green-100 text-green-800'
                     : 'bg-gray-100 text-gray-800'
                 }`}>
                   {agent.isActive ? 'Activo' : 'Inactivo'}
                 </span>
                 <span className={`w-2 h-2 rounded-full ${
                   agent.isOnline ? 'bg-green-500' : 'bg-gray-300'
-                }`}></span>
+                }`} />
               </div>
             </Card>
           ))}
         </div>
-        
+
         {agents.length === 0 && (
           <div className="text-center py-8 text-gray-500">
             No hay agentes configurados aún

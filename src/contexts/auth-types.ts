@@ -40,7 +40,7 @@ export const initialState: AuthState = {
   isLoading: false,
   isAuthReady: false,
   isAuthLoaded: false,
-  error: null,
+  error: null
 }
 
 export function authReducer(state: AuthState, action: AuthAction): AuthState {
@@ -49,7 +49,7 @@ export function authReducer(state: AuthState, action: AuthAction): AuthState {
       return {
         ...state,
         isLoading: true,
-        error: null,
+        error: null
       }
     case 'AUTH_SUCCESS':
       return {
@@ -58,7 +58,7 @@ export function authReducer(state: AuthState, action: AuthAction): AuthState {
         isAuthenticated: true,
         user: action.payload.user,
         token: action.payload.token,
-        error: null,
+        error: null
       }
     case 'AUTH_FAILURE':
       return {
@@ -67,7 +67,7 @@ export function authReducer(state: AuthState, action: AuthAction): AuthState {
         isAuthenticated: false,
         user: null,
         token: null,
-        error: action.payload,
+        error: action.payload
       }
     case 'AUTH_LOGOUT':
       return {
@@ -75,24 +75,24 @@ export function authReducer(state: AuthState, action: AuthAction): AuthState {
         isAuthenticated: false,
         user: null,
         token: null,
-        error: null,
+        error: null
       }
     case 'AUTH_READY':
       return {
         ...state,
-        isAuthReady: true,
+        isAuthReady: true
       }
     case 'UPDATE_USER':
       return {
         ...state,
-        user: state.user ? { ...state.user, ...action.payload } : null,
+        user: state.user ? { ...state.user, ...action.payload } : null
       }
     case 'CLEAR_ERROR':
       return {
         ...state,
-        error: null,
+        error: null
       }
     default:
       return state
   }
-} 
+}

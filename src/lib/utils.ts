@@ -1,7 +1,7 @@
 // Utilidades principales de la aplicación
 // Funciones helper, formatters y utilities globales
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from 'clsx'
+import { twMerge } from 'tailwind-merge'
 
 /**
  * Combina clases de Tailwind CSS de manera eficiente
@@ -18,9 +18,9 @@ export function formatDate(date: Date | string, options?: Intl.DateTimeFormatOpt
   const defaultOptions: Intl.DateTimeFormatOptions = {
     year: 'numeric',
     month: 'long',
-    day: 'numeric',
+    day: 'numeric'
   }
-  
+
   return new Intl.DateTimeFormat('es-ES', { ...defaultOptions, ...options }).format(
     typeof date === 'string' ? new Date(date) : date
   )
@@ -60,7 +60,7 @@ export function isValidEmail(email: string): boolean {
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('es-ES', {
     style: 'currency',
-    currency: 'EUR',
+    currency: 'EUR'
   }).format(amount)
 }
 
@@ -76,4 +76,4 @@ export function capitalize(str: string): string {
  */
 export function truncate(str: string, length: number): string {
   return str.length > length ? str.substring(0, length) + '...' : str
-} 
+}

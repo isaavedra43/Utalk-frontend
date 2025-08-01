@@ -40,17 +40,17 @@ export function ContactForm({ contactId, onSuccess: _onSuccess, onCancel }: Cont
               <Input placeholder="Apellido del contacto" />
             </div>
           </div>
-          
+
           <div>
             <label className="text-sm font-medium">Email</label>
             <Input type="email" placeholder="email@ejemplo.com" />
           </div>
-          
+
           <div>
             <label className="text-sm font-medium">Teléfono</label>
             <Input placeholder="+34 123 456 789" />
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium">Empresa</label>
@@ -61,16 +61,16 @@ export function ContactForm({ contactId, onSuccess: _onSuccess, onCancel }: Cont
               <Input placeholder="Cargo o posición" />
             </div>
           </div>
-          
+
           <div>
             <label className="text-sm font-medium">Notas</label>
-            <textarea 
+            <textarea
               className="w-full p-2 border rounded-md"
               rows={3}
               placeholder="Notas adicionales..."
             />
           </div>
-          
+
           <div className="flex justify-end space-x-2">
             <Button variant="outline" type="button" onClick={onCancel}>
               Cancelar
@@ -85,4 +85,4 @@ export function ContactForm({ contactId, onSuccess: _onSuccess, onCancel }: Cont
   )
 }
 
-export default ContactForm 
+export default ContactForm

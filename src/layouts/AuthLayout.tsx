@@ -36,7 +36,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
           </div>
 
           {children || <Outlet />}
-          
+
           {/* Footer */}
           <div className="mt-8 text-center text-sm text-muted-foreground">
             <p>© 2024 UTalk. Todos los derechos reservados.</p>
@@ -47,4 +47,4 @@ export function AuthLayout({ children }: AuthLayoutProps) {
   )
 }
 
-export default AuthLayout 
+export default AuthLayout

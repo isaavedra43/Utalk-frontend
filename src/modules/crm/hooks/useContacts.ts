@@ -35,4 +35,4 @@ export function useContacts() {
     error,
     refetch: fetchContacts
   }
-} 
+}

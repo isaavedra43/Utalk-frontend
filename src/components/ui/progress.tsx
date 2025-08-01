@@ -13,7 +13,7 @@ export function Progress({ value = 0, max = 100, className, ...props }: Progress
   return (
     <div
       className={cn(
-        "relative h-2 w-full overflow-hidden rounded-full bg-gray-200",
+        'relative h-2 w-full overflow-hidden rounded-full bg-gray-200',
         className
       )}
       {...props}
@@ -24,4 +24,4 @@ export function Progress({ value = 0, max = 100, className, ...props }: Progress
       />
     </div>
   )
-} 
+}

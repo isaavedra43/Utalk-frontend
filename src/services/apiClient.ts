@@ -11,8 +11,8 @@ class ApiClient {
       baseURL: CONFIG.API.BASE_URL,
       timeout: CONFIG.API.TIMEOUT,
       headers: {
-        'Content-Type': 'application/json',
-      },
+        'Content-Type': 'application/json'
+      }
     })
 
     // Interceptor para agregar token de autenticación
@@ -84,4 +84,4 @@ class ApiClient {
 }
 
 // Instancia singleton
-export const apiClient = new ApiClient() 
+export const apiClient = new ApiClient()

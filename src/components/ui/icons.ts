@@ -2,7 +2,7 @@
 // Importa solo los iconos necesarios para reducir bundle size
 
 // ===== IMPORTACIONES INDIVIDUALES (TREE-SHAKING) =====
-import { 
+import {
   // Layout y navegación
   Home,
   Users,
@@ -16,7 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
-  
+
   // Acciones CRUD
   Plus,
   Edit,
@@ -26,7 +26,7 @@ import {
   Upload,
   Copy,
   RefreshCw,
-  
+
   // Estados y notificaciones
   Check,
   CheckCircle,
@@ -36,7 +36,7 @@ import {
   Activity,
   TrendingUp,
   TrendingDown,
-  
+
   // Contactos y CRM
   Phone,
   Mail,
@@ -46,21 +46,21 @@ import {
   UserPlus,
   UserX,
   Building,
-  
+
   // UI y feedback
   Eye,
   EyeOff,
   Star,
   Heart,
   ThumbsUp,
-  
+
   // Sistema
   Lock,
   Unlock,
   Shield,
   Key,
   LogOut,
-  
+
   // Media
   Image,
   FileText,
@@ -165,4 +165,4 @@ export const iconSizes = {
   '2xl': 40
 } as const
 
-export type IconSize = keyof typeof iconSizes 
+export type IconSize = keyof typeof iconSizes

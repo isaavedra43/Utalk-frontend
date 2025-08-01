@@ -31,7 +31,7 @@ export function CRM() {
     // Filtro por búsqueda
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
-      result = result.filter(contact => 
+      result = result.filter(contact =>
         contact.name.toLowerCase().includes(query) ||
         contact.email.toLowerCase().includes(query) ||
         contact.phone.includes(query) ||
@@ -57,8 +57,8 @@ export function CRM() {
 
     // Filtro por tags
     if (filters.tags && filters.tags.length > 0) {
-      result = result.filter(contact => 
-        filters.tags!.some(tag => contact.tags.includes(tag))
+      result = result.filter(contact =>
+        filters.tags.some(tag => contact.tags.includes(tag))
       )
     }
 
@@ -72,7 +72,7 @@ export function CRM() {
 
   // Handlers para acciones de contactos
   const handleSelectContact = (contactId: string) => {
-    setSelectedContacts(prev => 
+    setSelectedContacts(prev =>
       prev.includes(contactId)
         ? prev.filter(id => id !== contactId)
         : [...prev, contactId]
@@ -139,7 +139,7 @@ export function CRM() {
         {/* Sidebar de filtros (colapsible) */}
         {showFilters && (
           <div className="hidden lg:block flex-shrink-0">
-            <CRMLeftSidebar 
+            <CRMLeftSidebar
               filters={filters}
               onFiltersChange={handleFiltersChange}
               onClearFilters={() => setFilters({
@@ -236,7 +236,7 @@ export function CRM() {
               </button>
             </div>
             <div className="h-full overflow-y-auto">
-              <CRMLeftSidebar 
+              <CRMLeftSidebar
                 filters={filters}
                 onFiltersChange={handleFiltersChange}
                 onClearFilters={() => setFilters({
@@ -256,4 +256,4 @@ export function CRM() {
   )
 }
 
-export default CRM 
+export default CRM

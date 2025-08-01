@@ -43,7 +43,7 @@ class TokenManager {
     // ✅ Guardar en localStorage
     localStorage.setItem('auth_token', tokenData.token)
     localStorage.setItem('token_expires_at', tokenData.expiresAt.toString())
-    
+
     if (tokenData.refreshToken) {
       localStorage.setItem('refresh_token', tokenData.refreshToken)
     }
@@ -249,4 +249,4 @@ if (typeof window !== 'undefined') {
   if (hasToken) {
     tokenManager.startTokenMonitoring()
   }
-} 
+}

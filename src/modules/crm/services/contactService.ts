@@ -49,17 +49,17 @@ class ContactService {
   async getContacts(filters?: ContactFilters, page = 1, limit = 20): Promise<ContactResponse> {
     try {
       const params = new URLSearchParams()
-      
-      if (filters?.search) params.append('search', filters.search)
-      if (filters?.status) params.append('status', filters.status.join(','))
-      if (filters?.channel) params.append('channel', filters.channel.join(','))
-      if (filters?.owner) params.append('owner', filters.owner.join(','))
-      if (filters?.tags) params.append('tags', filters.tags.join(','))
+
+      if (filters?.search) {params.append('search', filters.search)}
+      if (filters?.status) {params.append('status', filters.status.join(','))}
+      if (filters?.channel) {params.append('channel', filters.channel.join(','))}
+      if (filters?.owner) {params.append('owner', filters.owner.join(','))}
+      if (filters?.tags) {params.append('tags', filters.tags.join(','))}
       if (filters?.dateRange) {
         params.append('from', filters.dateRange.from)
         params.append('to', filters.dateRange.to)
       }
-      
+
       params.append('page', page.toString())
       params.append('limit', limit.toString())
 
@@ -129,12 +129,12 @@ class ContactService {
   async exportContacts(filters?: ContactFilters): Promise<Blob> {
     try {
       const params = new URLSearchParams()
-      
-      if (filters?.search) params.append('search', filters.search)
-      if (filters?.status) params.append('status', filters.status.join(','))
-      if (filters?.channel) params.append('channel', filters.channel.join(','))
-      if (filters?.owner) params.append('owner', filters.owner.join(','))
-      if (filters?.tags) params.append('tags', filters.tags.join(','))
+
+      if (filters?.search) {params.append('search', filters.search)}
+      if (filters?.status) {params.append('status', filters.status.join(','))}
+      if (filters?.channel) {params.append('channel', filters.channel.join(','))}
+      if (filters?.owner) {params.append('owner', filters.owner.join(','))}
+      if (filters?.tags) {params.append('tags', filters.tags.join(','))}
       if (filters?.dateRange) {
         params.append('from', filters.dateRange.from)
         params.append('to', filters.dateRange.to)
@@ -151,4 +151,4 @@ class ContactService {
   }
 }
 
-export const contactService = new ContactService() 
+export const contactService = new ContactService()

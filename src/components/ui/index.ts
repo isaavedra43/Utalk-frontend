@@ -12,9 +12,9 @@ export { Avatar, AvatarImage, AvatarFallback } from './avatar'
 
 // Nota: Para añadir más componentes shadcn/ui, usar:
 // npx shadcn-ui@latest add [component-name]
-// 
+//
 // Componentes comunes que se pueden añadir:
 // - Dialog: npx shadcn-ui@latest add dialog
 // - DropdownMenu: npx shadcn-ui@latest add dropdown-menu
 // - Select: npx shadcn-ui@latest add select
-// - Toast: npx shadcn-ui@latest add toast 
+// - Toast: npx shadcn-ui@latest add toast

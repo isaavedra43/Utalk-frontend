@@ -8,10 +8,10 @@ export interface LoadingSpinnerProps {
   text?: string
 }
 
-export function LoadingSpinner({ 
-  size = 'md', 
-  className, 
-  text 
+export function LoadingSpinner({
+  size = 'md',
+  className,
+  text
 }: LoadingSpinnerProps) {
   // ✅ VALIDACIÓN DEFENSIVA PARA EVITAR ERRORES
   const safeSize = size || 'md'
@@ -29,7 +29,7 @@ export function LoadingSpinner({
 
   return (
     <div className={cn('flex flex-col items-center space-y-2', safeClassName)}>
-      <div 
+      <div
         className={cn(
           'animate-spin rounded-full border-2 border-muted border-t-primary',
           sizeClass
@@ -44,4 +44,4 @@ export function LoadingSpinner({
   )
 }
 
-export default LoadingSpinner 
+export default LoadingSpinner

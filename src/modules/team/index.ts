@@ -9,7 +9,7 @@ export const teamRoutes = {
   permissions: '/team/permissions',
   performance: '/team/performance',
   create: '/team/create',
-  edit: '/team/:id/edit',
+  edit: '/team/:id/edit'
 }
 
 // TODO: Exportar componentes cuando estén implementados
@@ -25,4 +25,4 @@ export const teamRoutes = {
 // export { useTeam } from './hooks/useTeam'
 
 // TODO: Exportar tipos cuando estén implementados
-// export type { TeamMember, Role, Permission, Performance } from './types' 
+// export type { TeamMember, Role, Permission, Performance } from './types'

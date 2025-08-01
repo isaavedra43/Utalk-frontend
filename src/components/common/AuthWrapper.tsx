@@ -7,7 +7,7 @@ interface AuthWrapperProps {
   children: React.ReactNode
 }
 
-export function AuthWrapper({ children }: AuthWrapperProps) {
+export function AuthWrapper({ children }: AuthWrapperProps): JSX.Element {
   const { isAuthLoaded, isAuthenticated, user } = useAuth()
 
   // ✅ Mostrar loading mientras se carga la autenticación
@@ -34,4 +34,4 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
 
   // ✅ Si está autenticado, mostrar contenido
   return <>{children}</>
-} 
+}

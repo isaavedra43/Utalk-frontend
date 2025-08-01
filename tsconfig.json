@@ -64,10 +64,6 @@
   "exclude": [
     "node_modules",
     "dist",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/*.spec.ts",
-    "**/*.spec.tsx",
     "vite.config.ts",
     "postcss.config.js",
     "tailwind.config.js",

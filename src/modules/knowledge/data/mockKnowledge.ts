@@ -1,10 +1,10 @@
 // Datos mock para el módulo Knowledge
-import { 
-  KnowledgeDocument, 
-  KnowledgeFAQ, 
-  KnowledgeCourse, 
+import {
+  KnowledgeDocument,
+  KnowledgeFAQ,
+  KnowledgeCourse,
   CourseLesson,
-  KnowledgeStats 
+  KnowledgeStats
 } from '../types'
 
 export const mockKnowledgeDocuments: KnowledgeDocument[] = [
@@ -143,4 +143,4 @@ export const mockKnowledgeStats: KnowledgeStats = {
   totalViews: 15678,
   averageRating: 4.6,
   searchQueries: 2340
-} 
+}
