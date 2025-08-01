@@ -208,15 +208,7 @@ export default defineConfig(({ command, mode }) => {
     // ===== CONFIGURACIÓN DE ESBUILD =====
     esbuild: {
       target: 'es2020',
-      logOverride: { 'this-is-undefined-in-esm': 'silent' },
-      
-      // Optimizaciones para producción
-      ...(mode === 'production' && {
-        drop: ['console', 'debugger'],
-        minifyIdentifiers: true,
-        minifySyntax: true,
-        minifyWhitespace: true
-      })
+      logOverride: { 'this-is-undefined-in-esm': 'silent' }
     },
 
     // ===== CONFIGURACIÓN CSS =====

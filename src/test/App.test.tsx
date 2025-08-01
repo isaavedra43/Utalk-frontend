@@ -24,7 +24,7 @@ describe('App', () => {
         <App />
       </TestWrapper>
     )
-    
+
     // Verificar que la aplicación se renderiza
     expect(document.body).toBeTruthy()
   })
@@ -35,9 +35,9 @@ describe('App', () => {
         <App />
       </TestWrapper>
     )
-    
+
     // Verificar elementos básicos
     expect(document.querySelector('html')).toBeTruthy()
     expect(document.querySelector('body')).toBeTruthy()
   })
-}) 
+})
