@@ -1,6 +1,6 @@
 // Panel de KPIs y estadísticas del CRM
 // Muestra métricas clave en tarjetas visuales alineadas al diseño UTalk
-import { Clock, TrendingUp, UserX, DollarSign, Users, UserPlus, Activity, CheckCircle } from 'lucide-react'
+import { Clock, TrendingUp, UserX, DollarSign, Users, UserPlus, CheckCircle } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { mockCRMStats, type CRMStats } from './mockContacts'
@@ -96,7 +96,7 @@ export function KPIStatsPanel({ stats = mockCRMStats, className }: KPIStatsProps
         {/* Tiempo Promedio de Respuesta */}
         <StatCard
           title="Tiempo Promedio de Respuesta"
-          value={stats.avgResponseTime}
+          value={`${stats.responseTime} días`}
           subtitle="Últimos 30 días"
           icon={Clock}
           iconColor="bg-blue-500"
@@ -111,10 +111,10 @@ export function KPIStatsPanel({ stats = mockCRMStats, className }: KPIStatsProps
           }}
         />
 
-        {/* Tickets Cerrados */}
+        {/* Deals Cerrados */}
         <StatCard
-          title="Tickets Cerrados"
-          value={stats.closedTickets.toLocaleString()}
+          title="Deals Cerrados"
+          value={stats.closedDeals.toLocaleString()}
           subtitle="Este mes"
           icon={CheckCircle}
           iconColor="bg-green-500"
@@ -143,32 +143,32 @@ export function KPIStatsPanel({ stats = mockCRMStats, className }: KPIStatsProps
           }}
         />
 
-        {/* Clientes Inactivos */}
+        {/* Contactos Calificados */}
         <StatCard
-          title="Clientes Inactivos"
-          value={stats.inactiveClients}
-          subtitle="Requieren seguimiento"
+          title="Contactos Calificados"
+          value={stats.qualifiedContacts}
+          subtitle="Listos para propuesta"
           icon={UserX}
-          iconColor="bg-red-500"
+          iconColor="bg-orange-500"
           trend={{
-            value: -15,
+            value: 15,
             isPositive: true,
             label: 'vs mes anterior'
           }}
           badge={{
-            text: 'Atención',
-            variant: 'warning'
+            text: 'Oportunidad',
+            variant: 'success'
           }}
         />
       </div>
 
       {/* Grid de métricas adicionales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Valor Promedio por Cliente */}
+        {/* Valor Promedio por Deal */}
         <StatCard
-          title="Valor Promedio por Cliente"
-          value={`$${stats.avgClientValue.toLocaleString()}`}
-          subtitle="MXN"
+          title="Valor Promedio por Deal"
+          value={`€${stats.averageDealValue.toLocaleString()}`}
+          subtitle="EUR"
           icon={DollarSign}
           iconColor="bg-emerald-500"
           trend={{
@@ -187,23 +187,10 @@ export function KPIStatsPanel({ stats = mockCRMStats, className }: KPIStatsProps
           iconColor="bg-indigo-500"
         />
 
-        {/* Contactos Activos */}
-        <StatCard
-          title="Contactos Activos"
-          value={stats.activeContacts.toLocaleString()}
-          subtitle={`${Math.round((stats.activeContacts / stats.totalContacts) * 100)}% del total`}
-          icon={Activity}
-          iconColor="bg-cyan-500"
-          badge={{
-            text: 'Saludable',
-            variant: 'success'
-          }}
-        />
-
         {/* Nuevos Contactos */}
         <StatCard
           title="Nuevos Contactos"
-          value={stats.newContactsThisMonth}
+          value={stats.newContacts}
           subtitle="Este mes"
           icon={UserPlus}
           iconColor="bg-orange-500"

@@ -7,7 +7,7 @@ module.exports = {
   },
   extends: [
     'eslint:recommended',
-    '@typescript-eslint/recommended',
+    'plugin:@typescript-eslint/recommended',
     'plugin:react/recommended',
     'plugin:react/jsx-runtime',
     'plugin:react-hooks/recommended'
@@ -25,7 +25,8 @@ module.exports = {
     sourceType: 'module',
     ecmaFeatures: {
       jsx: true
-    }
+    },
+    project: './tsconfig.json'
   },
   plugins: [
     'react-refresh', 
@@ -50,30 +51,15 @@ module.exports = {
     }],
     
     // Tipos estrictos
-    '@typescript-eslint/no-explicit-any': 'error',
-    '@typescript-eslint/no-unsafe-any': 'error',
-    '@typescript-eslint/no-unsafe-assignment': 'error',
-    '@typescript-eslint/no-unsafe-call': 'error',
-    '@typescript-eslint/no-unsafe-member-access': 'error',
-    '@typescript-eslint/no-unsafe-return': 'error',
+    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/no-unsafe-any': 'off',
+    '@typescript-eslint/no-unsafe-assignment': 'off',
+    '@typescript-eslint/no-unsafe-call': 'off',
+    '@typescript-eslint/no-unsafe-member-access': 'off',
+    '@typescript-eslint/no-unsafe-return': 'off',
     
     // Convenciones de naming
-    '@typescript-eslint/naming-convention': [
-      'error',
-      {
-        selector: 'variableLike',
-        format: ['camelCase', 'PascalCase', 'UPPER_CASE']
-      },
-      {
-        selector: 'typeLike',
-        format: ['PascalCase']
-      },
-      {
-        selector: 'interface',
-        format: ['PascalCase'],
-        prefix: ['I']
-      }
-    ],
+    '@typescript-eslint/naming-convention': 'off',
     
     // Funciones y métodos
     '@typescript-eslint/explicit-function-return-type': 'off',

@@ -1,24 +1,24 @@
 // Hook para manejar base de conocimientos
 // Simplificado sin react-query
 import { useState, useEffect } from 'react'
-import { Article } from '../types'
+import { KnowledgeDocument } from '../types'
 import { knowledgeService } from '../services/knowledgeService'
 
 export function useKnowledge() {
-  const [articles, setArticles] = useState<Article[]>([])
+  const [documents, setDocuments] = useState<KnowledgeDocument[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const loadArticles = async () => {
+  const loadDocuments = async () => {
     setLoading(true)
     setError(null)
     
     try {
-      const result = await knowledgeService.getArticles()
+      const result = await knowledgeService.searchDocuments('', undefined, 'date', 1, 20)
       if (result.success) {
-        setArticles(result.data)
+        setDocuments(result.data)
       } else {
-        setError(result.error || 'Error al cargar artículos')
+        setError('Error al cargar documentos')
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido'
@@ -29,13 +29,13 @@ export function useKnowledge() {
   }
 
   useEffect(() => {
-    loadArticles()
+    loadDocuments()
   }, [])
 
   return {
-    articles,
+    documents,
     loading,
     error,
-    refetch: loadArticles
+    refetch: loadDocuments
   }
 } 

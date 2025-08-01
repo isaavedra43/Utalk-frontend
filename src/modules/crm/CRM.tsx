@@ -170,10 +170,8 @@ export function CRM() {
             ) : (
               <ContactsCards
                 contacts={filteredContacts}
-                selectedContacts={selectedContacts}
-                onSelectContact={handleSelectContact}
+                onContactClick={(contact) => handleSelectContact(contact.id)}
                 onEditContact={handleEditContact}
-                onDeleteContact={handleDeleteContact}
               />
             )}
 

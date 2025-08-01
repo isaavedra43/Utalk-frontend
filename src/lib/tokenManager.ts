@@ -123,22 +123,23 @@ class TokenManager {
         refreshToken: refreshToken || currentToken
       })
 
-      if (response.success && response.data) {
+      const responseData = response.data
+      if (responseData.success && responseData.data) {
         logger.info('AUTH', 'Token refrescado exitosamente', createLogContext({
           ...context,
           data: {
-            newExpiresAt: new Date(response.data.expiresAt).toISOString()
+            newExpiresAt: new Date(responseData.data.expiresAt).toISOString()
           }
         }))
 
         // ✅ Guardar nuevo token
         this.saveToken({
-          token: response.data.token,
-          expiresAt: response.data.expiresAt,
-          refreshToken: response.data.refreshToken
+          token: responseData.data.token,
+          expiresAt: responseData.data.expiresAt,
+          refreshToken: responseData.data.refreshToken
         })
       } else {
-        throw new Error(response.error || 'Failed to refresh token')
+        throw new Error(responseData.error || 'Failed to refresh token')
       }
     } catch (error) {
       logger.error('AUTH', 'Error al refrescar token', createLogContext({

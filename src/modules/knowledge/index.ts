@@ -5,7 +5,6 @@ export { knowledgeService } from './services/knowledgeService'
 // Tipos
 export type {
   KnowledgeDocument,
-  KnowledgeCategory,
   KnowledgeFAQ,
   KnowledgeCourse,
   CourseLesson,
@@ -13,8 +12,6 @@ export type {
   QuizAttempt,
   KnowledgeFeedback,
   KnowledgeSearchHistory,
-  KnowledgeSearchResult,
-  KnowledgeAnalytics,
   KnowledgeStats,
   KnowledgeActivity,
   ActivityType,
@@ -30,10 +27,8 @@ export type {
 
 // Datos mock
 export {
-  mockDocuments,
-  mockCategories,
-  mockFAQs,
-  mockCourses,
-  mockActivities,
-  mockStats
+  mockKnowledgeDocuments,
+  mockKnowledgeFAQs,
+  mockKnowledgeCourses,
+  mockKnowledgeStats
 } from './data/mockKnowledge'

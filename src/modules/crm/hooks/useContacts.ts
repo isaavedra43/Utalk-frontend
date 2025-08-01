@@ -1,7 +1,7 @@
 // Hook para manejar contactos del CRM
 // Simplificado sin react-query
 import { useState, useEffect } from 'react'
-import { Contact } from '@/types/shared'
+import { Contact } from '../mockContacts'
 import { contactService } from '../services/contactService'
 
 export function useContacts() {
@@ -16,7 +16,7 @@ export function useContacts() {
       if (result.success) {
         setContacts(result.data || [])
       } else {
-        setError(result.error || 'Error al cargar contactos')
+        setError('Error al cargar contactos')
       }
     } catch (err) {
       setError('Error al cargar contactos')

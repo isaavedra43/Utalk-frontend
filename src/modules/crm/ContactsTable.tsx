@@ -5,13 +5,32 @@ import { Edit, Trash2, MoreHorizontal, Clock, Phone, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
-import { 
-  Contact, 
-  getStatusColor, 
-  getChannelIcon, 
-  getIAPercentageColor 
-} from './mockContacts'
+import { Contact } from './mockContacts'
 import clsx from 'clsx'
+
+// Funciones helper para el CRM
+const getStatusColor = (status: Contact['status']) => {
+  switch (status) {
+    case 'new': return 'bg-blue-100 text-blue-800'
+    case 'contacted': return 'bg-yellow-100 text-yellow-800'
+    case 'qualified': return 'bg-green-100 text-green-800'
+    case 'proposal': return 'bg-purple-100 text-purple-800'
+    case 'negotiation': return 'bg-orange-100 text-orange-800'
+    case 'closed': return 'bg-gray-100 text-gray-800'
+    default: return 'bg-gray-100 text-gray-800'
+  }
+}
+
+const getChannelIcon = (channel: Contact['channel']) => {
+  switch (channel) {
+    case 'email': return '📧'
+    case 'phone': return '📞'
+    case 'linkedin': return '💼'
+    case 'website': return '🌐'
+    case 'referral': return '👥'
+    default: return '📧'
+  }
+}
 
 interface ContactsTableProps {
   contacts: Contact[]
