@@ -67,15 +67,7 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     plugins: [
-      react({
-        // Configuración optimizada para React
-        babel: {
-          plugins: [
-            // Plugin para optimización en producción
-            ...(mode === 'production' ? [['babel-plugin-transform-remove-console']] : [])
-          ]
-        }
-      }),
+      react(),
       
       // Bundle analyzer (solo en análisis)
       ...(command === 'build' && env.ANALYZE === 'true' ? [
