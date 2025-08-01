@@ -1,7 +1,7 @@
-import { Contact } from '@/types/shared'
 // Componente principal del módulo CRM de UTalk
 // Integra todos los subcomponentes: KPIs, filtros, tabla/tarjetas, toolbar
 import { useState, useMemo } from 'react'
+import { Contact } from './mockContacts'
 import KPIStatsPanel from './KPIStatsPanel'
 import CRMToolbar, { type CRMViewMode } from './CRMToolbar'
 import ContactsTable from './ContactsTable'
@@ -16,8 +16,12 @@ export function CRM() {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([])
   const [showFilters, setShowFilters] = useState(true)
   const [filters, setFilters] = useState<CRMFilters>({
-    status: 'all',
-    channel: 'all'
+    search: '',
+    status: [],
+    channel: [],
+    owner: [],
+    dateRange: '',
+    tags: []
   })
 
   // Filtrar contactos basado en los filtros aplicados
@@ -37,18 +41,18 @@ export function CRM() {
     }
 
     // Filtro por estado
-    if (filters.status && filters.status !== 'all') {
-      result = result.filter(contact => contact.status === filters.status)
+    if (filters.status && filters.status.length > 0) {
+      result = result.filter(contact => filters.status.includes(contact.status))
     }
 
     // Filtro por canal
-    if (filters.channel && filters.channel !== 'all') {
-      result = result.filter(contact => contact.channel === filters.channel)
+    if (filters.channel && filters.channel.length > 0) {
+      result = result.filter(contact => filters.channel.includes(contact.channel))
     }
 
     // Filtro por owner
-    if (filters.owner) {
-      result = result.filter(contact => contact.owner === filters.owner)
+    if (filters.owner && filters.owner.length > 0) {
+      result = result.filter(contact => filters.owner.includes(contact.owner))
     }
 
     // Filtro por tags
@@ -58,13 +62,9 @@ export function CRM() {
       )
     }
 
-    // Filtro por rango de fechas
+    // Filtro por rango de fechas (simplificado)
     if (filters.dateRange) {
-      result = result.filter(contact => {
-        const activityDate = contact.lastActivity
-        return activityDate >= filters.dateRange!.from && 
-               activityDate <= filters.dateRange!.to
-      })
+      // TODO: Implementar filtro de fechas más complejo
     }
 
     return result
@@ -139,7 +139,18 @@ export function CRM() {
         {/* Sidebar de filtros (colapsible) */}
         {showFilters && (
           <div className="hidden lg:block flex-shrink-0">
-            <CRMLeftSidebar onFilterChange={handleFiltersChange} />
+            <CRMLeftSidebar 
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              onClearFilters={() => setFilters({
+                search: '',
+                status: [],
+                channel: [],
+                owner: [],
+                dateRange: '',
+                tags: []
+              })}
+            />
           </div>
         )}
 
@@ -184,7 +195,14 @@ export function CRM() {
                   <button
                     onClick={() => {
                       setSearchQuery('')
-                      setFilters({ status: 'all', channel: 'all' })
+                      setFilters({
+                        search: '',
+                        status: [],
+                        channel: [],
+                        owner: [],
+                        dateRange: '',
+                        tags: []
+                      })
                     }}
                     className="text-blue-600 hover:text-blue-700 font-medium"
                   >
@@ -220,7 +238,18 @@ export function CRM() {
               </button>
             </div>
             <div className="h-full overflow-y-auto">
-              <CRMLeftSidebar onFilterChange={handleFiltersChange} className="w-full border-0" />
+              <CRMLeftSidebar 
+                filters={filters}
+                onFiltersChange={handleFiltersChange}
+                onClearFilters={() => setFilters({
+                  search: '',
+                  status: [],
+                  channel: [],
+                  owner: [],
+                  dateRange: '',
+                  tags: []
+                })}
+              />
             </div>
           </div>
         </div>

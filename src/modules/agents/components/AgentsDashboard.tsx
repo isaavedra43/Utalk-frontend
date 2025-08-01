@@ -1,13 +1,11 @@
 // Dashboard principal de agentes IA
 // Versión simplificada sin dependencias de chat
-import {  } from 'react'
 import { useAgents } from '../hooks/useAgents'
-import {  } from '../types'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/common/LoadingSpinner'
 
-export default function sDashboard() {
+export default function AgentsDashboard() {
   // ✅ HOOKS PRINCIPALES
   const {
     agents,
@@ -23,7 +21,7 @@ export default function sDashboard() {
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          Dashboard de es
+          Dashboard de Agentes
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
           Gestiona tus agentes IA y su rendimiento
@@ -33,7 +31,7 @@ export default function sDashboard() {
       {/* KPIs básicos */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <Card className="p-4">
-          <h3 className="text-sm font-medium text-gray-500">Total es</h3>
+          <h3 className="text-sm font-medium text-gray-500">Total Agentes</h3>
           <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             {agents.length}
           </p>
@@ -61,8 +59,8 @@ export default function sDashboard() {
       {/* Lista de agentes */}
       <Card className="p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">Lista de es</h2>
-          <Button>Nuevo e</Button>
+          <h2 className="text-lg font-semibold">Lista de Agentes</h2>
+          <Button>Nuevo Agente</Button>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

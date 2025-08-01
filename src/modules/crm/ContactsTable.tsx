@@ -135,7 +135,7 @@ export function ContactsTable({
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-gray-900 dark:text-gray-100">
-                          {contact.name}
+                          {contact.firstName} {contact.lastName}
                         </span>
                         <span className="text-lg">
                           {getChannelIcon(contact.channel)}
@@ -162,11 +162,12 @@ export function ContactsTable({
                   {/* Estado */}
                   <td className="p-4">
                     <Badge className={clsx('text-xs', getStatusColor(contact.status))}>
-                      {contact.status === 'active' && 'Activo'}
-                      {contact.status === 'customer' && 'Cliente'}
-                      {contact.status === 'prospect' && 'Prospecto'}
-                      {contact.status === 'lead' && 'Lead'}
-                      {contact.status === 'inactive' && 'Inactivo'}
+                      {contact.status === 'new' && 'Nuevo'}
+                      {contact.status === 'contacted' && 'Contactado'}
+                      {contact.status === 'qualified' && 'Calificado'}
+                      {contact.status === 'proposal' && 'Propuesta'}
+                      {contact.status === 'negotiation' && 'Negociación'}
+                      {contact.status === 'closed' && 'Cerrado'}
                     </Badge>
                   </td>
 
@@ -175,19 +176,19 @@ export function ContactsTable({
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4 text-gray-400" />
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {formatLastActivity(contact.lastActivity)}
+                        {formatLastActivity(new Date(contact.lastActivity))}
                       </span>
                     </div>
                   </td>
 
-                  {/* IA Tag */}
+                  {/* Valor */}
                   <td className="p-4">
                     <div className="space-y-1">
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {contact.iaTag}
+                        {contact.value ? `€${contact.value.toLocaleString()}` : 'N/A'}
                       </div>
-                      <div className={clsx('text-xs font-medium', getIAPercentageColor(contact.iaPercentage))}>
-                        {contact.iaPercentage}% confianza
+                      <div className="text-xs text-gray-500">
+                        {contact.probability ? `${Math.round(contact.probability * 100)}% prob.` : 'N/A'}
                       </div>
                     </div>
                   </td>

@@ -118,27 +118,27 @@ class TokenManager {
         return
       }
 
-      // Intentar refresh con refresh token o token actual
+      // ✅ Intentar refresh con refresh token o token actual
       const response = await apiClient.post<RefreshResponse>('/auth/refresh', {
         refreshToken: refreshToken || currentToken
       })
 
-      if (response.data && response.data.success && response.data.data) {
+      if (response.success && response.data) {
         logger.info('AUTH', 'Token refrescado exitosamente', createLogContext({
           ...context,
           data: {
-            newExpiresAt: new Date(response.data.data.expiresAt).toISOString()
+            newExpiresAt: new Date(response.data.expiresAt).toISOString()
           }
         }))
 
-        // Guardar nuevo token
+        // ✅ Guardar nuevo token
         this.saveToken({
-          token: response.data.data.token,
-          expiresAt: response.data.data.expiresAt,
-          refreshToken: response.data.data.refreshToken
+          token: response.data.token,
+          expiresAt: response.data.expiresAt,
+          refreshToken: response.data.refreshToken
         })
       } else {
-        throw new Error(response.data?.error || 'Failed to refresh token')
+        throw new Error(response.error || 'Failed to refresh token')
       }
     } catch (error) {
       logger.error('AUTH', 'Error al refrescar token', createLogContext({

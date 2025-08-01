@@ -69,7 +69,6 @@ export default defineConfig(({ command, mode }) => {
     plugins: [
       react({
         // Configuración optimizada para React
-        jsxImportSource: '@emotion/react',
         babel: {
           plugins: [
             // Plugin para optimización en producción
