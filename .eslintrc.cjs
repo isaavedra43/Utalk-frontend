@@ -1,56 +1,170 @@
 module.exports = {
   root: true,
-  env: { browser: true, es2020: true },
+  env: { 
+    browser: true, 
+    es2022: true, 
+    node: true 
+  },
   extends: [
     'eslint:recommended',
-    'plugin:@typescript-eslint/recommended',
+    '@typescript-eslint/recommended',
     'plugin:react/recommended',
     'plugin:react/jsx-runtime',
-    'plugin:react-hooks/recommended',
+    'plugin:react-hooks/recommended'
   ],
-  ignorePatterns: ['dist', '.eslintrc.cjs'],
+  ignorePatterns: [
+    'dist', 
+    '.eslintrc.cjs', 
+    'vite.config.ts',
+    'postcss.config.js',
+    'tailwind.config.js'
+  ],
   parser: '@typescript-eslint/parser',
-  plugins: ['react-refresh', '@typescript-eslint', 'css'],
+  parserOptions: {
+    ecmaVersion: 'latest',
+    sourceType: 'module',
+    ecmaFeatures: {
+      jsx: true
+    }
+  },
+  plugins: [
+    'react-refresh', 
+    '@typescript-eslint', 
+    'react',
+    'react-hooks'
+  ],
   settings: {
     react: {
       version: 'detect',
-    },
+    }
   },
   rules: {
-    'react-refresh/only-export-components': [
-      'warn',
-      { allowConstantExport: true, allowExportNames: ['metadata'] },
-    ],
-    '@typescript-eslint/no-unused-vars': ['warn', { 
+    /* ===== REGLAS ENTERPRISE DE TYPESCRIPT ===== */
+    
+    // Variables y parámetros no utilizados
+    '@typescript-eslint/no-unused-vars': ['error', { 
       argsIgnorePattern: '^_',
       varsIgnorePattern: '^_',
-      ignoreRestSiblings: true 
+      ignoreRestSiblings: true,
+      destructuredArrayIgnorePattern: '^_'
     }],
-    '@typescript-eslint/no-explicit-any': 'off',
+    
+    // Tipos estrictos
+    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/no-unsafe-any': 'error',
+    '@typescript-eslint/no-unsafe-assignment': 'error',
+    '@typescript-eslint/no-unsafe-call': 'error',
+    '@typescript-eslint/no-unsafe-member-access': 'error',
+    '@typescript-eslint/no-unsafe-return': 'error',
+    
+    // Convenciones de naming
+    '@typescript-eslint/naming-convention': [
+      'error',
+      {
+        selector: 'variableLike',
+        format: ['camelCase', 'PascalCase', 'UPPER_CASE']
+      },
+      {
+        selector: 'typeLike',
+        format: ['PascalCase']
+      },
+      {
+        selector: 'interface',
+        format: ['PascalCase'],
+        prefix: ['I']
+      }
+    ],
+    
+    // Funciones y métodos
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'warn',
+    '@typescript-eslint/prefer-nullish-coalescing': 'error',
+    '@typescript-eslint/prefer-optional-chain': 'error',
+    '@typescript-eslint/no-non-null-assertion': 'error',
+    '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+    
+    /* ===== REGLAS DE REACT ENTERPRISE ===== */
+    
+    // Componentes y JSX
+    'react-refresh/only-export-components': [
+      'warn',
+      { allowConstantExport: true, allowExportNames: ['metadata'] }
+    ],
+    'react/prop-types': 'off',
+    'react/react-in-jsx-scope': 'off',
+    'react/jsx-uses-react': 'off',
+    'react/jsx-key': 'error',
+    'react/jsx-no-duplicate-props': 'error',
+    'react/jsx-no-undef': 'error',
+    'react/jsx-pascal-case': 'error',
+    'react/no-deprecated': 'error',
+    'react/no-direct-mutation-state': 'error',
+    'react/no-is-mounted': 'error',
+    'react/no-unknown-property': 'error',
+    'react/self-closing-comp': 'error',
+    
+    // Hooks de React
+    'react-hooks/rules-of-hooks': 'error',
+    'react-hooks/exhaustive-deps': 'error',
+    
+    /* ===== REGLAS GENERALES DE CALIDAD ===== */
+    
+    // Código limpio
     'prefer-const': 'error',
     'no-var': 'error',
-    'react/prop-types': 'off',
-    'react-hooks/exhaustive-deps': 'warn',
+    'no-console': 'warn',
+    'no-debugger': 'error',
+    'no-alert': 'error',
+    'no-eval': 'error',
+    'no-implied-eval': 'error',
+    'no-new-func': 'error',
+    
+    // Mejores prácticas
+    'eqeqeq': ['error', 'always'],
+    'curly': ['error', 'all'],
+    'no-multi-spaces': 'error',
+    'no-trailing-spaces': 'error',
+    'no-multiple-empty-lines': ['error', { max: 2, maxEOF: 1 }],
+    'comma-dangle': ['error', 'never'],
+    'quotes': ['error', 'single', { avoidEscape: true }],
+    'semi': ['error', 'never']
   },
+  
   overrides: [
     {
-      files: ['*.css', '*.scss', '*.sass'],
-      plugins: ['css'],
+      // Configuración específica para archivos de configuración
+      files: ['*.config.js', '*.config.ts', 'vite.config.ts'],
       rules: {
-        'css/unknownAtRules': 'off',
-        'css/no-unknown-property': 'off',
-        'css/no-unknown-selector': 'off',
-      },
+        '@typescript-eslint/no-var-requires': 'off',
+        'import/no-default-export': 'off'
+      }
     },
     {
-      files: ['*.ts', '*.tsx'],
+      // Configuración específica para archivos de tipos
+      files: ['*.d.ts'],
       rules: {
-        '@typescript-eslint/no-unused-vars': ['warn', { 
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-          ignoreRestSiblings: true 
-        }],
-      },
+        '@typescript-eslint/no-unused-vars': 'off',
+        'import/no-duplicates': 'off'
+      }
     },
-  ],
+    {
+      // Configuración específica para tests
+      files: ['**/__tests__/**/*', '**/*.test.*', '**/*.spec.*'],
+      env: {
+        jest: true
+      },
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-non-null-assertion': 'off'
+      }
+    },
+    {
+      // Configuración específica para archivos mock
+      files: ['**/mock*.ts', '**/mock*.tsx'],
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
+        'import/no-default-export': 'off'
+      }
+    }
+  ]
 } 

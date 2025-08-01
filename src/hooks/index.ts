@@ -1,12 +1,14 @@
 // Exportaciones centralizadas de hooks personalizados
-// Facilita las importaciones de hooks desde un solo punto
+// Solo hooks actualmente utilizados en la aplicación
 
 export { useAuth } from './useAuth'
 export { useTheme } from './useTheme'
-export { useLocalStorage } from './useLocalStorage'
-export { useDebounce, useDebouncedCallback } from './useDebounce'
 
-// TODO: Añadir más hooks según se vayan creando
-// export { useSocket } from './useSocket'
+// ❌ HOOKS REMOVIDOS POR NO ESTAR EN USO:
+// - useLocalStorage: 0 usos detectados
+// - useDebounce: 0 usos detectados  
+// - useDebouncedCallback: 0 usos detectados
+
+// TODO: Añadir hooks conforme se vayan necesitando
 // export { usePermissions } from './usePermissions'
 // export { useNotifications } from './useNotifications' 

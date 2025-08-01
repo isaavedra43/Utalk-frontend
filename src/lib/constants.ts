@@ -35,31 +35,8 @@ export const API_ENDPOINTS = {
   },
   
   // ✅ Conversaciones usando EMAIL como identificador principal
-  CONVERSATIONS: {
-    LIST: '/conversations',
-    CREATE: '/conversations',
-    GET: (id: string) => `/conversations/${id}`,
-    UPDATE: (id: string) => `/conversations/${id}`,
-    DELETE: (id: string) => `/conversations/${id}`,
-    MESSAGES: (id: string) => `/conversations/${id}/messages`,
-    BY_ASSIGNED: (email: string) => `/conversations/assigned/${encodeURIComponent(email)}`,
-    BY_PARTICIPANT: (email: string) => `/conversations/participant/${encodeURIComponent(email)}`,
-    ASSIGN: (id: string) => `/conversations/${id}/assign`,
-    UNASSIGN: (id: string) => `/conversations/${id}/unassign`
-  },
   
   // ✅ Mensajes usando EMAIL para identificación
-  MESSAGES: {
-    LIST: '/messages',
-    CREATE: '/messages',
-    GET: (id: string) => `/messages/${id}`,
-    UPDATE: (id: string) => `/messages/${id}`,
-    DELETE: (id: string) => `/messages/${id}`,
-    BY_SENDER: (email: string) => `/messages/sender/${encodeURIComponent(email)}`,
-    BY_RECIPIENT: (email: string) => `/messages/recipient/${encodeURIComponent(email)}`,
-    MARK_READ: (id: string) => `/messages/${id}/read`,
-    SEARCH: '/messages/search'
-  },
   
   // ✅ Contactos
   CONTACTS: {
@@ -124,25 +101,8 @@ export const FILTER_PARAMS = {
   DATE_TO: 'dateTo',
   
   // ✅ Filtros para conversaciones con EMAIL
-  CONVERSATIONS: {
-    ASSIGNED_TO: 'assignedTo',
-    PARTICIPANT_EMAIL: 'participantEmail',
-    CUSTOMER_EMAIL: 'customerEmail',
-    AGENT_EMAIL: 'agentEmail',
-    STATUS: 'status',
-    CHANNEL: 'channel',
-    DATE_FROM: 'dateFrom',
-    DATE_TO: 'dateTo',
-  },
   
   // ✅ Filtros para mensajes con EMAIL
-  MESSAGES: {
-    SENDER_EMAIL: 'senderEmail',
-    RECIPIENT_EMAIL: 'recipientEmail',
-    CONVERSATION_ID: 'conversationId',
-    DATE_FROM: 'dateFrom',
-    DATE_TO: 'dateTo',
-  },
   
   // ✅ Campos comunes usando EMAIL
   SENDER_EMAIL: 'senderEmail',
@@ -155,7 +115,6 @@ export const FILTER_PARAMS = {
 export type ApiEndpoint = typeof API_ENDPOINTS
 export type AuthEndpoint = typeof API_ENDPOINTS.AUTH
 export type UsersEndpoint = typeof API_ENDPOINTS.USERS
-export type ConversationsEndpoint = typeof API_ENDPOINTS.CONVERSATIONS
 export type ContactsEndpoint = typeof API_ENDPOINTS.CONTACTS
 export type CampaignsEndpoint = typeof API_ENDPOINTS.CAMPAIGNS
 export type AgentsEndpoint = typeof API_ENDPOINTS.AGENTS
@@ -192,7 +151,6 @@ export const ROUTES = {
   login: '/login',
   dashboard: '/dashboard',
   crm: '/crm',
-  chat: '/chat',
   campaigns: '/campaigns',
   team: '/team',
   knowledge: '/knowledge',
@@ -214,7 +172,6 @@ export const VALIDATION = {
   minPasswordLength: 8,
   maxNameLength: 50,
   maxEmailLength: 100,
-  maxMessageLength: 2000,
 } as const
 
 export const UI = {

@@ -1,6 +1,6 @@
 // Panel de KPIs y estadísticas del CRM
 // Muestra métricas clave en tarjetas visuales alineadas al diseño UTalk
-import { Clock, MessageCircle, TrendingUp, UserX, DollarSign, Users, UserPlus, Activity } from 'lucide-react'
+import { Clock, TrendingUp, UserX, DollarSign, Users, UserPlus, Activity, CheckCircle } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { mockCRMStats, type CRMStats } from './mockContacts'
@@ -111,12 +111,12 @@ export function KPIStatsPanel({ stats = mockCRMStats, className }: KPIStatsProps
           }}
         />
 
-        {/* Chats Cerrados */}
+        {/* Tickets Cerrados */}
         <StatCard
-          title="Chats Cerrados"
-          value={stats.closedChats.toLocaleString()}
+          title="Tickets Cerrados"
+          value={stats.closedTickets.toLocaleString()}
           subtitle="Este mes"
-          icon={MessageCircle}
+          icon={CheckCircle}
           iconColor="bg-green-500"
           trend={{
             value: 23,

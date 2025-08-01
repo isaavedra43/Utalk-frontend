@@ -1,14 +1,12 @@
 // Contexto global de autenticación
 // ✅ BACKEND EMAIL-FIRST: Solo JWT propio, sin Firebase
 // Manejo del estado de usuario, login, logout y protección de rutas
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useReducer, useEffect, ReactNode } from 'react'
 import { apiClient } from '@/services/apiClient'
-import { logger, createLogContext, getComponentContext } from '@/lib/logger'
-import type { User } from './auth-types'
+import { logger } from '@/lib/logger'
+import { User } from '@/types/shared'
 
-// ✅ CONTEXTO PARA LOGGING
-const authContext = getComponentContext('AuthContext')
-
+// Tipos para el estado de autenticación
 interface AuthState {
   user: User | null
   token: string | null
@@ -29,6 +27,7 @@ type AuthAction =
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'SET_SESSION_VALID'; payload: boolean }
 
+// Estado inicial
 const initialState: AuthState = {
   user: null,
   token: null,
@@ -39,10 +38,12 @@ const initialState: AuthState = {
   sessionValid: false
 }
 
+// Reducer para manejar acciones de autenticación
 function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
     case 'AUTH_START':
       return { ...state, isLoading: true, error: null }
+    
     case 'AUTH_SUCCESS':
       return {
         ...state,
@@ -50,8 +51,10 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         token: action.payload.token,
         isAuthenticated: true,
         isLoading: false,
-        error: null
+        error: null,
+        sessionValid: true
       }
+    
     case 'AUTH_FAILURE':
       return {
         ...state,
@@ -59,8 +62,10 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         token: null,
         isAuthenticated: false,
         isLoading: false,
-        error: action.payload
+        error: action.payload,
+        sessionValid: false
       }
+    
     case 'AUTH_LOGOUT':
       return {
         ...state,
@@ -68,21 +73,28 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         token: null,
         isAuthenticated: false,
         isLoading: false,
-        error: null
+        error: null,
+        sessionValid: false
       }
+    
     case 'AUTH_LOADED':
       return { ...state, isAuthLoaded: true }
+    
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload }
+    
     case 'SET_ERROR':
       return { ...state, error: action.payload }
+    
     case 'SET_SESSION_VALID':
       return { ...state, sessionValid: action.payload }
+    
     default:
       return state
   }
 }
 
+// Contexto de autenticación
 interface AuthContextType {
   user: User | null
   token: string | null
@@ -98,33 +110,32 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// ✅ VALIDACIÓN DE SESIÓN MEJORADA - CRÍTICA PARA EVITAR PÉRDIDA AL REFRESCAR
+// Función para validar sesión con el backend
 const validateSession = async (): Promise<boolean> => {
   try {
-    const token = localStorage.getItem('auth_token')
+    const token = localStorage.getItem('authToken')
     const userDataStr = localStorage.getItem('user_data')
-    
+
     if (!token || !userDataStr) {
-      logger.warn('AUTH', 'No hay datos de sesión almacenados', {
-        hasToken: !!token,
-        hasUserData: !!userDataStr
-      })
+      logger.warn('AUTH', 'No hay datos de sesión en localStorage')
       return false
     }
 
-    // ✅ PARSEAR DATOS DE USUARIO LOCALES
     let userData: User
     try {
       userData = JSON.parse(userDataStr)
-    } catch (parseError) {
-      logger.error('AUTH', 'Error parseando datos de usuario', { 
-        error: parseError.message 
-      })
+    } catch (error) {
+      logger.error('AUTH', 'Error parseando datos de usuario', { error })
       localStorage.removeItem('user_data')
       return false
     }
 
-    // ✅ CONFIGURAR TOKEN EN API CLIENT ANTES DE VALIDAR
+    if (!userData.email) {
+      logger.warn('AUTH', 'Datos de usuario incompletos')
+      return false
+    }
+
+    // Configurar token en API client
     apiClient.setAuthToken(token)
 
     logger.info('AUTH', 'Validando sesión con backend', {
@@ -132,15 +143,15 @@ const validateSession = async (): Promise<boolean> => {
       tokenPreview: `${token.substring(0, 10)}...`
     })
 
-    // ✅ VALIDAR CON BACKEND - MANEJO ROBUSTO DE ERRORES
+    // Validar con backend
     const response = await apiClient.get('/auth/validate-token')
     
-    // ✅ CORRECCIÓN CRÍTICA: VALIDAR ESTRUCTURA CORRECTA DE RESPUESTA
-    if (response && response.success && response.data && response.data.sessionValid === true) {
-      // ✅ SESIÓN VÁLIDA - RESTAURAR ESTADO CORRECTAMENTE
+    // Verificar estructura de respuesta correcta
+    if (response && response.data && response.data.success && response.data.sessionValid === true) {
+      // Sesión válida
       const validatedUser: User = {
         ...userData,
-        ...response.data.user, // ✅ USAR DATOS DEL BACKEND SI ESTÁN DISPONIBLES
+        ...response.data.user,
       }
 
       localStorage.setItem('user_data', JSON.stringify(validatedUser))
@@ -153,53 +164,54 @@ const validateSession = async (): Promise<boolean> => {
       
       return true
     } else {
-      // ✅ SESIÓN INVÁLIDA SEGÚN BACKEND - LIMPIAR DATOS
+      // Sesión inválida según backend
       logger.warn('AUTH', 'Sesión inválida según backend - limpiando datos', {
-        responseSuccess: response?.success,
+        responseSuccess: response?.data?.success,
         hasData: !!response?.data,
         sessionValid: response?.data?.sessionValid,
         backendValidation: false
       })
       
-      // ✅ LIMPIAR DATOS INVÁLIDOS
-      localStorage.removeItem('auth_token')
+      // Limpiar datos inválidos
+      localStorage.removeItem('authToken')
       localStorage.removeItem('user_data')
       apiClient.setAuthToken(null)
       
       return false
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
     logger.error('AUTH', 'Error validando sesión con backend', {
-      error: error.message,
-      status: error.response?.status,
-      url: error.config?.url
+      error: errorMessage,
+      status: (error as any)?.response?.status,
+      url: (error as any)?.config?.url
     })
 
-    // ✅ MANEJO ESPECÍFICO DE ERRORES DE RED - NO LIMPIAR INMEDIATAMENTE
-    if (error.response?.status === 401) {
-      // ✅ 401: Token expirado o inválido
+    // Manejo específico de errores de red
+    if ((error as any)?.response?.status === 401) {
+      // 401: Token expirado o inválido
       logger.warn('AUTH', 'Token expirado según backend, limpiando datos', {
-        status: error.response.status
+        status: (error as any).response.status
       })
       
-      localStorage.removeItem('auth_token')
+      localStorage.removeItem('authToken')
       localStorage.removeItem('user_data')
       apiClient.setAuthToken(null)
       
-    } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
-      // ✅ ERROR DE RED: Mantener datos locales y permitir uso offline
+    } else if ((error as any)?.code === 'NETWORK_ERROR' || (error as any)?.message?.includes('Network Error')) {
+      // Error de red: Mantener datos locales y permitir uso offline
       logger.warn('AUTH', 'Error de red, manteniendo sesión local temporalmente', {
-        error: error.message
+        error: errorMessage
       })
       
-      // ✅ NO limpiar datos por error de red - permitir uso offline
+      // NO limpiar datos por error de red - permitir uso offline
       return true
     } else {
-      // ✅ OTROS ERRORES: Marcar como no válida pero no limpiar inmediatamente
+      // Otros errores: Marcar como no válida pero no limpiar inmediatamente
       logger.error('AUTH', 'Error desconocido validando sesión', {
-        error: error.message,
-        status: error.response?.status
+        error: errorMessage,
+        status: (error as any)?.response?.status
       })
     }
 
@@ -210,142 +222,109 @@ const validateSession = async (): Promise<boolean> => {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState)
 
-  const context = createLogContext({
-    ...authContext,
-    method: 'AuthProvider',
-    data: {
-      isAuthenticated: state.isAuthenticated,
-      hasUser: !!state.user,
-      hasToken: !!state.token,
-      sessionValid: state.sessionValid
-    }
-  })
-
-  // ✅ INICIALIZAR AUTENTICACIÓN
-  const initializeAuth = async () => {
-    logger.auth('🔐 Inicializando autenticación', context)
-    dispatch({ type: 'AUTH_START' })
-
-    try {
-      const isValid = await validateSession()
-      
-      if (isValid) {
-        const token = localStorage.getItem('auth_token')
-        const userData = localStorage.getItem('user_data')
+  // Inicializar autenticación al cargar
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        dispatch({ type: 'SET_LOADING', payload: true })
         
-        if (token && userData) {
-          const user = JSON.parse(userData)
-          dispatch({ type: 'AUTH_SUCCESS', payload: { user, token } })
-          dispatch({ type: 'SET_SESSION_VALID', payload: true })
+        const isValid = await validateSession()
+        
+        if (isValid) {
+          const token = localStorage.getItem('authToken')
+          const userDataStr = localStorage.getItem('user_data')
+          
+          if (token && userDataStr) {
+            const userData = JSON.parse(userDataStr)
+            dispatch({ 
+              type: 'AUTH_SUCCESS', 
+              payload: { user: userData, token } 
+            })
+          }
         }
+        
+        dispatch({ type: 'AUTH_LOADED' })
+        
+      } catch (error) {
+        logger.error('AUTH', 'Error inicializando autenticación', { error })
+        dispatch({ type: 'AUTH_FAILURE', payload: 'Error inicializando autenticación' })
+      } finally {
+        dispatch({ type: 'SET_LOADING', payload: false })
       }
-      
-      dispatch({ type: 'AUTH_LOADED' })
-      logger.auth('✅ Autenticación inicializada', context)
-    } catch (error) {
-      logger.authError('❌ Error inicializando autenticación', {
-        error: error as Error
-      })
-      dispatch({ type: 'AUTH_LOADED' })
     }
-  }
 
-  // ✅ LOGIN MEJORADO CON VALIDACIÓN CORRECTA
+    initializeAuth()
+  }, [])
+
+  // Función de login
   const login = async (email: string, password: string): Promise<boolean> => {
-    dispatch({ type: 'AUTH_START' })
-
-    const loginContext = createLogContext({
-      ...context,
-      method: 'login',
-      data: { email }
-    })
-
-    logger.info('AUTH', 'Iniciando proceso de login', loginContext)
-
     try {
-      const response = await apiClient.post('/auth/login', { 
-        email, 
-        password 
-      })
-
-      logger.info('AUTH', 'Respuesta de login recibida', {
-        success: response?.success,
-        hasToken: !!response?.token,
-        hasUser: !!response?.user
-      })
-
-      // ✅ VALIDACIÓN CORRECTA DE RESPUESTA DE LOGIN
-      if (response && response.success && response.token && response.user) {
-        const { token, user } = response
-
-        // ✅ ALMACENAR DATOS CORRECTAMENTE
-        localStorage.setItem('auth_token', token)
-        localStorage.setItem('user_data', JSON.stringify(user))
+      dispatch({ type: 'AUTH_START' })
+      
+      logger.info('AUTH', 'Iniciando login', { email })
+      
+      const response = await apiClient.post('/auth/login', { email, password })
+      
+      // Verificar estructura de respuesta correcta
+      if (response && response.data && response.data.success && response.data.token) {
+        const { token, user } = response.data
+        
+        // Configurar token en API client
         apiClient.setAuthToken(token)
-
+        
+        // Guardar datos en localStorage
+        localStorage.setItem('authToken', token)
+        localStorage.setItem('user_data', JSON.stringify(user))
+        
         dispatch({ 
           type: 'AUTH_SUCCESS', 
           payload: { user, token } 
         })
-        dispatch({ type: 'SET_SESSION_VALID', payload: true })
-
-        logger.success('AUTH', 'Login exitoso', {
+        
+        logger.success('AUTH', 'Login exitoso', { 
           userEmail: user.email,
-          userName: user.name,
-          hasToken: !!token
+          tokenPreview: `${token.substring(0, 10)}...`
         })
-
+        
         return true
       } else {
-        const errorMsg = response?.message || 'Login fallido - respuesta inválida del servidor'
+        const errorMsg = response?.data?.message || 'Respuesta inválida del servidor'
         dispatch({ type: 'AUTH_FAILURE', payload: errorMsg })
-        logger.error('AUTH', 'Login fallido - respuesta inválida', { 
-          response: response || 'No response',
-          expected: 'success, token, user',
-          received: {
-            success: response?.success,
-            hasToken: !!response?.token,
-            hasUser: !!response?.user
-          }
+        logger.error('AUTH', 'Login falló - respuesta inválida', { 
+          response: response?.data 
         })
         return false
       }
-
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.message || error.message || 'Error de conexión durante login'
-      dispatch({ type: 'AUTH_FAILURE', payload: errorMsg })
       
-      logger.error('AUTH', 'Error durante login', {
-        error: error.message,
-        status: error.response?.status,
-        email,
-        url: error.config?.url
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+      dispatch({ type: 'AUTH_FAILURE', payload: errorMessage })
+      
+      logger.error('AUTH', 'Error en login', { 
+        error: errorMessage,
+        status: (error as any)?.response?.status 
       })
       
       return false
     }
   }
 
-  // ✅ LOGOUT MEJORADO
+  // Función de logout
   const logout = () => {
-    logger.info('AUTH', 'Cerrando sesión de usuario')
+    logger.info('AUTH', 'Cerrando sesión')
     
-    localStorage.removeItem('auth_token')
+    // Limpiar datos locales
+    localStorage.removeItem('authToken')
     localStorage.removeItem('user_data')
+    
+    // Limpiar token en API client
     apiClient.setAuthToken(null)
     
     dispatch({ type: 'AUTH_LOGOUT' })
     
-    logger.success('AUTH', 'Sesión cerrada exitosamente')
+    // Redirigir a login
+    window.location.href = '/auth/login'
   }
-
-  // ✅ VALIDAR SESIÓN AL CARGAR LA APLICACIÓN
-  useEffect(() => {
-    if (!state.isAuthLoaded) {
-      logger.info('AUTH', 'Validando sesión al cargar aplicación')
-      initializeAuth()
-    }
-  }, [state.isAuthLoaded])
 
   const value: AuthContextType = {
     user: state.user,
@@ -360,14 +339,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     validateSession
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
+// Hook para usar el contexto de autenticación
 export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {
-    logger.authError('❌ useAuth debe usarse dentro de AuthProvider')
-    throw new Error('useAuth debe usarse dentro de AuthProvider')
+    throw new Error('useAuth debe ser usado dentro de un AuthProvider')
   }
   return context
 }

@@ -1,7 +1,7 @@
 // Tabla de contactos del CRM
-// Vista tabular con columnas: Owner, Name, Email, Phone, Status, Last Message, Date/Time, IA Tag, Actions
+// Vista tabular con columnas: Owner, Name, Email, Phone, Status, Date/Time, IA Tag, Actions
 import { useState } from 'react'
-import { Edit, MessageCircle, Trash2, MoreHorizontal, Clock, Phone, Mail } from 'lucide-react'
+import { Edit, Trash2, MoreHorizontal, Clock, Phone, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -20,7 +20,6 @@ interface ContactsTableProps {
   onSelectAllContacts: (selected: boolean) => void
   onEditContact?: (contact: Contact) => void
   onDeleteContact?: (contact: Contact) => void
-  onSendMessage?: (contact: Contact) => void
   className?: string
 }
 
@@ -31,7 +30,6 @@ export function ContactsTable({
   onSelectAllContacts,
   onEditContact,
   onDeleteContact,
-  onSendMessage,
   className
 }: ContactsTableProps) {
   const [showActionsMenu, setShowActionsMenu] = useState<string | null>(null)
@@ -50,10 +48,6 @@ export function ContactsTable({
     if (diffDays === 1) return 'Ayer'
     if (diffDays < 7) return `Hace ${diffDays} días`
     return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit' })
-  }
-
-  const formatLastMessage = (message: string): string => {
-    return message.length > 50 ? `${message.substring(0, 50)}...` : message
   }
 
   return (
@@ -86,9 +80,6 @@ export function ContactsTable({
               </th>
               <th className="text-left p-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                 Estado
-              </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-900 dark:text-gray-100">
-                Último Mensaje
               </th>
               <th className="text-left p-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                 Actividad
@@ -179,19 +170,6 @@ export function ContactsTable({
                     </Badge>
                   </td>
 
-                  {/* Último Mensaje */}
-                  <td className="p-4 max-w-xs">
-                    <div className="space-y-1">
-                      <p className="text-sm text-gray-900 dark:text-gray-100">
-                        {formatLastMessage(contact.lastMessage)}
-                      </p>
-                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                        <MessageCircle className="w-3 h-3" />
-                        vía {contact.channel}
-                      </div>
-                    </div>
-                  </td>
-
                   {/* Actividad */}
                   <td className="p-4">
                     <div className="flex items-center gap-2">
@@ -217,14 +195,6 @@ export function ContactsTable({
                   {/* Acciones */}
                   <td className="p-4">
                     <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onSendMessage?.(contact)}
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                      </Button>
                       
                       <Button
                         variant="ghost"
@@ -261,17 +231,6 @@ export function ContactsTable({
                               >
                                 <Edit className="w-4 h-4 mr-2" />
                                 Editar contacto
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                className="w-full justify-start text-sm"
-                                onClick={() => {
-                                  onSendMessage?.(contact)
-                                  setShowActionsMenu(null)
-                                }}
-                              >
-                                <MessageCircle className="w-4 h-4 mr-2" />
-                                Enviar mensaje
                               </Button>
                               <Button 
                                 variant="ghost" 

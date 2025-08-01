@@ -1,70 +1,39 @@
-// 📚 MÓDULO DE CENTRO DE CONOCIMIENTO - UTalk Frontend
-// Exportaciones principales del módulo
-
-// ✅ COMPONENTES PRINCIPALES
-export { default as KnowledgeDashboard } from './components/KnowledgeDashboard'
-export { default as KnowledgeSearchBar } from './components/KnowledgeSearchBar'
-
-// ✅ HOOKS
-export { 
-  useKnowledgeDocuments, 
-  useKnowledgeDocument, 
-  useKnowledgeFAQs, 
-  useKnowledgeCourses, 
-  useKnowledgeStats,
-  useKnowledgeCategories 
-} from './hooks/useKnowledge'
-
-// ✅ SERVICIOS
+// Módulo de Conocimiento - Exportaciones principales
+export { useKnowledge } from './hooks/useKnowledge'
 export { knowledgeService } from './services/knowledgeService'
 
-// ✅ TIPOS
+// Tipos
 export type {
   KnowledgeDocument,
+  KnowledgeCategory,
   KnowledgeFAQ,
   KnowledgeCourse,
-  KnowledgeCategory,
-  DocumentType,
-  DocumentStatus,
-  KnowledgeFilters,
+  CourseLesson,
+  QuizQuestion,
+  QuizAttempt,
+  KnowledgeFeedback,
+  KnowledgeSearchHistory,
+  KnowledgeSearchResult,
+  KnowledgeAnalytics,
   KnowledgeStats,
   KnowledgeActivity,
   ActivityType,
-  CourseProgress,
-  CourseLesson,
-  CourseQuiz,
-  QuizQuestion,
-  QuizResult,
-  DocumentVersion,
-  KnowledgeModuleConfig,
   KnowledgeDocumentsResponse,
   KnowledgeDocumentResponse,
   KnowledgeFAQsResponse,
-  KnowledgeCoursesResponse,
   KnowledgeCategoriesResponse,
+  KnowledgeCoursesResponse,
+  KnowledgeAnalyticsResponse,
   KnowledgeStatsResponse,
-  KnowledgeAction,
-  KnowledgeEvent
+  DocumentSortBy
 } from './types'
 
-// ✅ CONSTANTES
+// Datos mock
 export {
-  DOCUMENT_TYPE_LABELS,
-  DOCUMENT_TYPE_ICONS,
-  DOCUMENT_STATUS_LABELS,
-  DIFFICULTY_LABELS,
-  MIME_TYPE_MAPPINGS
-} from './types'
-
-// TODO: Los siguientes componentes se implementarán como archivos separados:
-// - KnowledgeSidebar
-// - KnowledgeList  
-// - KnowledgeCard
-// - KnowledgeDocumentViewer
-// - KnowledgeUploadModal
-// - KnowledgeFAQPanel
-// - KnowledgeStatsPanel
-// - KnowledgeCourseList
-// - KnowledgeCourseDetail
-// - KnowledgeCourseProgress
-// - KnowledgeActivityFeed 
+  mockDocuments,
+  mockCategories,
+  mockFAQs,
+  mockCourses,
+  mockActivities,
+  mockStats
+} from './data/mockKnowledge'

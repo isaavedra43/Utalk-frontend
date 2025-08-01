@@ -2,7 +2,7 @@
 // Incluye todos los métodos necesarios para el proyecto
 
 export type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'SUCCESS'
-export type LogCategory = 'AUTH' | 'API' | 'RENDER' | 'VALIDATION' | 'PERFORMANCE' | 'ANALYSIS' | 'SYSTEM' | 'MODULE' | 'ENDPOINT' | 'NETWORK' | 'CONNECTION' | 'URL' | 'UPLOAD'
+export type LogCategory = 'AUTH' | 'API' | 'RENDER' | 'VALIDATION' | 'PERFORMANCE' | 'ANALYSIS' | 'SYSTEM' | 'MODULE' | 'ENDPOINT' | 'NETWORK' | 'CONNECTION' | 'URL' | 'UPLOAD' | 'AGENTS' | 'CRM' | 'KNOWLEDGE'
 
 export interface LogContext {
   [key: string]: any
@@ -33,9 +33,9 @@ export function getErrorContext(error: any): LogContext {
 
 interface LogEntry {
   level: LogLevel
-  category: LogCategory
+  category: LogCategory  
   message: string
-  context?: LogContext
+  context?: LogContext // Hacer opcional para compatibilidad con exactOptionalPropertyTypes
   timestamp: string
   count: number
 }
@@ -49,10 +49,11 @@ interface PerformanceEntry {
 
 class ProfessionalLogger {
   private static instance: ProfessionalLogger
-  private logHistory: Map<string, LogEntry> = new Map()
+  private logHistory: LogEntry[] = []
   private performanceMap: Map<string, PerformanceEntry> = new Map()
   private isDev: boolean
   private throttleTime: number = 3000
+  private maxLogs: number = 1000 // Nuevo límite para el historial de logs
 
   constructor() {
     this.isDev = import.meta.env.DEV || import.meta.env.NODE_ENV === 'development'
@@ -68,10 +69,11 @@ class ProfessionalLogger {
   private logInternal(level: LogLevel, category: LogCategory, message: string, context?: LogContext) {
     if (!this.isDev && level === 'DEBUG') return
 
-    const timestamp = new Date().toISOString()
-    const logKey = `${level}_${category}_${message}`
-    
-    const existing = this.logHistory.get(logKey)
+    const existing = this.logHistory.find(
+      log => log.level === level && 
+             log.category === category && 
+             log.message === message
+    )
     const now = Date.now()
     
     if (existing && (now - new Date(existing.timestamp).getTime()) < this.throttleTime) {
@@ -79,16 +81,7 @@ class ProfessionalLogger {
       return
     }
 
-    const entry: LogEntry = {
-      level,
-      category,
-      message,
-      context,
-      timestamp,
-      count: existing ? existing.count + 1 : 1
-    }
-
-    this.logHistory.set(logKey, entry)
+    this.addLogEntry({ level, category, message, context })
 
     const colors = {
       DEBUG: '\x1b[36m',   // Cyan
@@ -101,7 +94,7 @@ class ProfessionalLogger {
 
     const prefix = `[${colors[level]}${level}${colors.RESET}] [${category}]`
     const contextStr = context ? ` | Context: ${JSON.stringify(context)}` : ''
-    const countStr = entry.count > 1 ? ` (${entry.count}x)` : ''
+    const countStr = existing?.count > 1 ? ` (${existing.count}x)` : ''
     
     console.log(`${prefix} ${message}${contextStr}${countStr}`)
   }
@@ -196,10 +189,32 @@ class ProfessionalLogger {
     const now = Date.now()
     const maxAge = 5 * 60 * 1000 // 5 minutos
     
-    for (const [key, entry] of this.logHistory.entries()) {
-      if (now - new Date(entry.timestamp).getTime() > maxAge) {
-        this.logHistory.delete(key)
-      }
+    this.logHistory = this.logHistory.filter(entry => now - new Date(entry.timestamp).getTime() <= maxAge)
+  }
+
+  private addLogEntry(entry: Omit<LogEntry, 'timestamp' | 'count'>): void {
+    const timestamp = new Date().toISOString()
+    const existingIndex = this.logHistory.findIndex(
+      log => log.level === entry.level && 
+             log.category === entry.category && 
+             log.message === entry.message
+    )
+
+    if (existingIndex !== -1) {
+      this.logHistory[existingIndex]!.count++
+      this.logHistory[existingIndex]!.timestamp = timestamp
+    } else {
+      this.logHistory.push({
+        ...entry,
+        context: entry.context || undefined, // Asegurar que sea undefined si no hay context
+        timestamp,
+        count: 1
+      })
+    }
+
+    // Limpiar logs antiguos
+    if (this.logHistory.length > this.maxLogs) {
+      this.logHistory = this.logHistory.slice(-this.maxLogs)
     }
   }
 }
@@ -220,21 +235,7 @@ export const agentsServiceContext = { module: 'agentsService' }
 export const uploadContext = { module: 'upload' }
 
 // debugLogs para compatibilidad con projectAnalyzer
-export const debugLogs = {
-  moduleStatus: (moduleName: string, status: string, details?: string) => {
-    logger.info('MODULE', `${moduleName}: ${status.toUpperCase()}`, { details })
-  },
-  mockUsage: (location: string, mockType: string) => {
-    logger.warn('MODULE', `Mock data found: ${mockType} in ${location}`)
-  },
-  endpointStatus: (endpoint: string, status: string) => {
-    if (status === 'connected') {
-      logger.success('ENDPOINT', `${endpoint}: REAL API connected`)
-    } else {
-      logger.warn('ENDPOINT', `${endpoint}: ${status.toUpperCase()}`)
-    }
-  }
-}
+export const debugLogs = false // Cambiar a true para debugging verbose
 
 // Auto-cleanup cada 5 minutos
 if (typeof window !== 'undefined') {

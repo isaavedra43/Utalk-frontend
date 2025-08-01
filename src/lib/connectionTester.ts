@@ -29,7 +29,6 @@ class ConnectionTester {
       () => this.testHealthEndpoint(),
       () => this.testAuthEndpoint(),
       () => this.testCORS(),
-      () => this.testWebSocketURL()
     ]
 
     const results: ConnectionTestResult[] = []
@@ -183,57 +182,6 @@ class ConnectionTester {
     }
   }
 
-  // ✅ Test 5: WebSocket URL
-  private async testWebSocketURL(): Promise<ConnectionTestResult> {
-    const wsURL = import.meta.env.VITE_WS_URL || 'http://localhost:8000'
-    
-    return new Promise((resolve) => {
-      const startTime = Date.now()
-      
-      try {
-        // Intentar conexión WebSocket básica
-        const ws = new WebSocket(wsURL.replace('http', 'ws'))
-        
-        const timeout = setTimeout(() => {
-          ws.close()
-          resolve({
-            endpoint: wsURL,
-            status: 'timeout',
-            responseTime: Date.now() - startTime,
-            error: 'WebSocket connection timeout'
-          })
-        }, 5000)
-        
-        ws.onopen = () => {
-          clearTimeout(timeout)
-          ws.close()
-          resolve({
-            endpoint: wsURL,
-            status: 'success',
-            responseTime: Date.now() - startTime,
-            details: { note: 'WebSocket connection successful' }
-          })
-        }
-        
-        ws.onerror = (_error) => {
-          clearTimeout(timeout)
-          resolve({
-            endpoint: wsURL,
-            status: 'failed',
-            responseTime: Date.now() - startTime,
-            error: 'WebSocket connection failed'
-          })
-        }
-      } catch (error) {
-        resolve({
-          endpoint: wsURL,
-          status: 'failed',
-          responseTime: Date.now() - startTime,
-          error: error instanceof Error ? error.message : 'WebSocket error'
-        })
-      }
-    })
-  }
 
   // ✅ Clasificar tipo de error
   private getErrorType(error: any): ConnectionTestResult['status'] {

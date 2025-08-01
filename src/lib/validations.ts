@@ -53,13 +53,6 @@ export const contactSchema = z.object({
   notes: z.string().max(500, "Las notas no pueden exceder 500 caracteres").optional(),
 })
 
-// Esquemas de mensaje
-export const messageSchema = z.object({
-  content: z.string().min(1, "El mensaje no puede estar vacío").max(2000, "El mensaje no puede exceder 2000 caracteres"),
-  recipientId: z.string().min(1, "Destinatario es requerido"),
-  type: z.enum(["text", "image", "file", "audio"]).default("text"),
-})
-
 // Esquemas de campaña
 export const campaignSchema = z.object({
   name: z.string().min(1, "Nombre de campaña es requerido").max(100),
@@ -73,5 +66,4 @@ export const campaignSchema = z.object({
 export type LoginData = z.infer<typeof loginSchema>
 export type RegisterData = z.infer<typeof registerSchema>
 export type ContactData = z.infer<typeof contactSchema>
-export type MessageData = z.infer<typeof messageSchema>
 export type CampaignData = z.infer<typeof campaignSchema> 

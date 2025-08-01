@@ -1,3 +1,4 @@
+import { Contact } from '@/types/shared'
 // Componente principal del módulo CRM de UTalk
 // Integra todos los subcomponentes: KPIs, filtros, tabla/tarjetas, toolbar
 import { useState, useMemo } from 'react'
@@ -6,7 +7,7 @@ import CRMToolbar, { type CRMViewMode } from './CRMToolbar'
 import ContactsTable from './ContactsTable'
 import ContactsCards from './ContactsCards'
 import CRMLeftSidebar, { type CRMFilters } from './CRMLeftSidebar'
-import { mockContacts, type Contact } from './mockContacts'
+
 
 export function CRM() {
   // Estados del CRM
@@ -21,7 +22,7 @@ export function CRM() {
 
   // Filtrar contactos basado en los filtros aplicados
   const filteredContacts = useMemo(() => {
-    let result = [...mockContacts]
+    let result = [...[]]
 
     // Filtro por búsqueda
     if (searchQuery) {
@@ -97,11 +98,6 @@ export function CRM() {
     // TODO: Implementar confirmación y eliminación
   }
 
-  const handleSendMessage = (contact: Contact) => {
-    console.log('Enviar mensaje a:', contact)
-    // TODO: Integrar con módulo de chat
-  }
-
   const handleExportCSV = () => {
     console.log('Exportar CSV de contactos filtrados')
     // TODO: Implementar exportación a CSV
@@ -159,7 +155,6 @@ export function CRM() {
                 onSelectAllContacts={handleSelectAllContacts}
                 onEditContact={handleEditContact}
                 onDeleteContact={handleDeleteContact}
-                onSendMessage={handleSendMessage}
               />
             ) : (
               <ContactsCards
@@ -168,7 +163,6 @@ export function CRM() {
                 onSelectContact={handleSelectContact}
                 onEditContact={handleEditContact}
                 onDeleteContact={handleDeleteContact}
-                onSendMessage={handleSendMessage}
               />
             )}
 

@@ -96,10 +96,10 @@ export interface Permission {
 }
 
 export interface TeamPerformance {
-  messagesCount: number
   responseTime: number
   satisfactionScore: number
   tasksCompleted: number
+  contactsManaged: number
   period: 'day' | 'week' | 'month'
 }
 
@@ -120,7 +120,6 @@ export interface Article {
 // API y respuestas
 export interface ApiResponse<T = any> {
   data: T
-  message?: string
   success: boolean
   timestamp: Date
 }
@@ -170,6 +169,5 @@ export interface NotificationSettings {
 
 export interface PrivacySettings {
   showOnlineStatus: boolean
-  allowDirectMessages: boolean
   shareAnalytics: boolean
 } 
