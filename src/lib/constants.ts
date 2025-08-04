@@ -3,8 +3,8 @@
  */
 
 // URLs del backend (se configurarán con variables de entorno)
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-export const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3001';
+export const API_BASE_URL = import.meta.env['VITE_API_URL'] || 'http://localhost:3001';
+export const WS_BASE_URL = import.meta.env['VITE_WS_URL'] || 'ws://localhost:3001';
 
 // Configuración de la aplicación
 export const APP_CONFIG = {
@@ -23,7 +23,18 @@ export const MESSAGE_CONFIG = {
     audio: ['audio/mpeg', 'audio/wav', 'audio/ogg'],
     video: ['video/mp4', 'video/webm', 'video/quicktime'],
     document: ['application/pdf', 'text/plain', 'application/msword']
-  }
+  },
+  TYPING_TIMEOUT: 3000, // ms
+  RECONNECT_ATTEMPTS: 5,
+  RECONNECT_DELAY: 1000 // ms
+} as const;
+
+// Roles de usuario
+export const USER_ROLES = {
+  VIEWER: 'viewer',
+  AGENT: 'agent',
+  ADMIN: 'admin',
+  SUPERADMIN: 'superadmin'
 } as const;
 
 // Estados de mensaje
@@ -35,25 +46,20 @@ export const MESSAGE_STATUS = {
   FAILED: 'failed'
 } as const;
 
-// Roles de usuario
-export const USER_ROLES = {
-  VIEWER: 'viewer',
-  AGENT: 'agent',
-  ADMIN: 'admin',
-  SUPERADMIN: 'superadmin'
+// Canales de comunicación
+export const CHANNELS = {
+  INTERNAL: 'internal',
+  WHATSAPP: 'whatsapp',
+  SMS: 'sms',
+  EMAIL: 'email',
+  WEBCHAT: 'webchat'
 } as const;
 
-// Configuración de Socket.IO
-export const SOCKET_CONFIG = {
-  TIMEOUT: 5000,
-  RETRIES: 3,
-  RETRY_DELAY: 1000,
-  TYPING_DEBOUNCE: 500
-} as const;
-
-// Rate limiting
-export const RATE_LIMITS = {
-  TYPING_INTERVAL: 500,
-  MESSAGE_INTERVAL: 100,
-  JOIN_CONVERSATION_INTERVAL: 1000
+// Configuración de UI
+export const UI_CONFIG = {
+  SIDEBAR_WIDTH: 280,
+  CHAT_INPUT_MAX_HEIGHT: 120,
+  MESSAGE_BUBBLE_MAX_WIDTH: 600,
+  TOAST_DURATION: 4000,
+  DEBOUNCE_SEARCH: 300
 } as const;

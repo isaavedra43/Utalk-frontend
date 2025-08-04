@@ -23,7 +23,7 @@ UTalk Frontend es la interfaz de usuario para el sistema de mensajería multican
 | -------------------- | ------- | ------------------------ |
 | **SvelteKit**        | ^2.22.0 | Framework principal      |
 | **TypeScript**       | ^5.0.0  | Tipado estático          |
-| **Tailwind CSS**     | ^4.1.11 | Sistema de estilos       |
+| **Tailwind CSS**     | ^3.4.17 | Sistema de estilos       |
 | **shadcn-svelte**    | ^1.0.6  | Componentes UI           |
 | **Axios**            | ^1.7.8  | Cliente HTTP             |
 | **Socket.IO Client** | ^4.8.1  | Comunicación tiempo real |
@@ -39,6 +39,7 @@ UTalk Frontend es la interfaz de usuario para el sistema de mensajería multican
 - **Node.js** >= 18.x
 - **npm** >= 9.x
 - **Git** >= 2.30
+- **VS Code** (recomendado) con extensiones sugeridas
 
 ### Instalación
 
@@ -58,6 +59,22 @@ npm run dev
 ```
 
 El servidor estará disponible en [http://localhost:5173](http://localhost:5173)
+
+### 🔧 Configuración del Editor
+
+**Para VS Code (recomendado):**
+
+1. **Extensiones automáticas**: Al abrir el proyecto, VS Code sugerirá instalar las extensiones recomendadas
+2. **Configuración automática**: Las configuraciones de formato y lint están preconfiguradas
+3. **Tailwind CSS**: Autocompletado y validación incluidos
+
+**Extensiones esenciales:**
+
+- Svelte para VS Code
+- Tailwind CSS IntelliSense
+- ESLint
+- Prettier - Code formatter
+- Error Lens (para ver errores inline)
 
 ## 📁 Estructura del Proyecto
 
@@ -82,6 +99,9 @@ utalk-frontend/
 │       └── e2e/                  # Tests end-to-end
 ├── static/                       # Archivos estáticos
 ├── .github/workflows/            # CI/CD con GitHub Actions
+├── .vscode/                      # Configuraciones de VS Code
+│   ├── extensions.json          # Extensiones recomendadas
+│   └── settings.json            # Configuraciones del editor
 └── scripts/                      # Scripts de utilidad
 ```
 
@@ -97,6 +117,7 @@ npm run preview           # Vista previa del build
 npm test                  # Tests en modo watch
 npm run test:run          # Tests una sola vez
 npm run test:ui           # Tests con interfaz visual
+npm run test:coverage     # Tests con coverage
 
 # Calidad de código
 npm run lint              # Ejecutar ESLint
@@ -106,11 +127,18 @@ npm run format:check      # Verificar formato sin cambios
 
 # Verificación completa
 npm run validate          # Lint + Format + TypeCheck + Tests
+npm run validate:full     # Validación completa con reinstall y build
 npm run type-check        # Verificación de tipos TypeScript
 npm run check             # Verificación de Svelte
 
-# Utilidades
+# Auditoría y mantenimiento
+npm run audit:security    # Audit de seguridad
+npm run audit:deps        # Verificar dependencias desactualizadas
 npm run clean             # Limpiar archivos generados
+
+# Hooks (ejecutados automáticamente)
+npm run precommit         # Hook pre-commit (lint-staged)
+npm run prepush           # Hook pre-push (validación + build)
 ```
 
 ## 🔧 Configuración
@@ -171,7 +199,7 @@ Utilizamos shadcn-svelte para componentes base:
   import { Input } from '$lib/components/ui/input';
 </script>
 
-<Button variant="primary">Click me</Button>
+<Button variant="default">Click me</Button>
 <Input placeholder="Escribe aquí..." />
 ```
 
@@ -180,7 +208,7 @@ Utilizamos shadcn-svelte para componentes base:
 ### ✅ Configuración Base
 
 - [x] SvelteKit con TypeScript
-- [x] Tailwind CSS configurado
+- [x] Tailwind CSS v3 configurado
 - [x] shadcn-svelte integrado
 - [x] ESLint + Prettier configurados
 - [x] Husky + lint-staged
@@ -189,6 +217,8 @@ Utilizamos shadcn-svelte para componentes base:
 - [x] Axios para HTTP requests
 - [x] Socket.IO para tiempo real
 - [x] TanStack Query para estado
+- [x] TypeScript modo estricto
+- [x] Configuración VS Code
 
 ### 🔜 Por Implementar (Roadmap)
 
@@ -212,6 +242,9 @@ npm run test:run
 
 # Tests con interfaz visual
 npm run test:ui
+
+# Tests con coverage
+npm run test:coverage
 ```
 
 ### Estructura de Tests
@@ -238,6 +271,14 @@ Automáticamente se ejecutan antes de cada commit:
 - ✅ Prettier (formateo)
 - ✅ Type checking
 
+### Pre-push Hooks
+
+Antes de cada push se verifica:
+
+- ✅ Validación completa (lint + format + types + tests)
+- ✅ Build exitoso
+- ✅ Audit de seguridad
+
 ### CI/CD Pipeline
 
 En cada push/PR se verifica:
@@ -245,9 +286,10 @@ En cada push/PR se verifica:
 1. **Lint** - Calidad de código
 2. **Format** - Formateo consistente
 3. **Type Check** - Verificación de tipos
-4. **Tests** - Tests unitarios
-5. **Build** - Compilación exitosa
-6. **Security Audit** - Vulnerabilidades
+4. **Svelte Check** - Validación de Svelte
+5. **Tests** - Tests unitarios
+6. **Build** - Compilación exitosa
+7. **Security Audit** - Vulnerabilidades
 
 ## 🤝 Contribución
 
@@ -309,6 +351,13 @@ npm run type-check
 ```bash
 # Corregir automáticamente
 npm run lint:fix
+```
+
+**Error: Unknown at-rule warnings en VS Code**
+
+```bash
+# Instalar extensión Tailwind CSS IntelliSense
+# Asegurar que VS Code usa las configuraciones del proyecto
 ```
 
 ## 📄 Licencia

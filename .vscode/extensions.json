@@ -1,0 +1,17 @@
+{
+  "recommendations": [
+    "svelte.svelte-vscode",
+    "bradlc.vscode-tailwindcss",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-eslint",
+    "ms-vscode.vscode-typescript-next",
+    "usernamehw.errorlens",
+    "streetsidesoftware.code-spell-checker",
+    "ms-vscode.vscode-json",
+    "christian-kohler.path-intellisense",
+    "formulahendry.auto-rename-tag",
+    "ms-vscode.test-adapter-converter",
+    "ms-vscode.vscode-github-issue-notebooks"
+  ],
+  "unwantedRecommendations": ["ms-vscode.vscode-css-peek", "hookyqr.beautify"]
+}

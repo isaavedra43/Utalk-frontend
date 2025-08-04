@@ -1,4 +1,23 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-npm run test 
+echo "🚀 Running pre-push checks..."
+
+# Ejecutar validación completa
+if ! npm run validate; then
+  echo "❌ Validation failed. Please fix all issues before pushing."
+  exit 1
+fi
+
+# Ejecutar build para verificar que compila
+if ! npm run build; then
+  echo "❌ Build failed. Please fix build issues before pushing."
+  exit 1
+fi
+
+# Ejecutar audit de seguridad
+if ! npm run audit:security; then
+  echo "⚠️  Security vulnerabilities found. Please review and fix if critical."
+fi
+
+echo "✅ Pre-push checks passed!" 
