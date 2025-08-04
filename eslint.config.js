@@ -8,13 +8,12 @@ import prettier from 'eslint-config-prettier';
 export default [
   js.configs.recommended,
   {
-    files: ['**/*.{js,ts,svelte}'],
+    files: ['**/*.{js,ts}'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
         sourceType: 'module',
-        ecmaVersion: 2020,
-        extraFileExtensions: ['.svelte']
+        ecmaVersion: 2020
       },
       globals: {
         console: 'readonly',
@@ -43,7 +42,8 @@ export default [
       'no-duplicate-imports': 'error',
 
       // Reglas de TypeScript
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-explicit-any': 'warn'
     }
   },
   {
@@ -53,6 +53,15 @@ export default [
       parserOptions: {
         parser: tsParser,
         extraFileExtensions: ['.svelte']
+      },
+      globals: {
+        console: 'readonly',
+        window: 'readonly',
+        document: 'readonly',
+        HTMLElement: 'readonly',
+        HTMLDivElement: 'readonly',
+        HTMLParagraphElement: 'readonly',
+        FileList: 'readonly'
       }
     },
     plugins: {
@@ -66,14 +75,6 @@ export default [
     }
   },
   {
-    files: ['**/*.ts'],
-    rules: {
-      // Reglas específicas para TypeScript
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-non-null-assertion': 'warn'
-    }
-  },
-  {
     ignores: [
       '*.cjs',
       'dist/',
@@ -81,9 +82,7 @@ export default [
       '.svelte-kit/',
       'node_modules/',
       'coverage/',
-      '**/.DS_Store',
-      // Excluir componentes de shadcn-svelte
-      'src/lib/components/ui/**'
+      '**/.DS_Store'
     ]
   },
   prettier

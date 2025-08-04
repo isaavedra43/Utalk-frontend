@@ -62,9 +62,13 @@
     "tailwind-merge": "^3.3.1",
     "tailwind-variants": "^1.0.0",
     "tailwindcss": "^4.1.11",
-    "tw-animate-css": "^1.3.6",
     "typescript": "^5.0.0",
     "vite": "^7.0.4",
     "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@tanstack/svelte-query": "^5.61.5",
+    "axios": "^1.7.8",
+    "socket.io-client": "^4.8.1"
   }
 }

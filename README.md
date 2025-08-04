@@ -19,15 +19,18 @@ UTalk Frontend es la interfaz de usuario para el sistema de mensajería multican
 
 ## 🛠️ Stack Tecnológico
 
-| Tecnología        | Versión | Propósito           |
-| ----------------- | ------- | ------------------- |
-| **SvelteKit**     | ^2.22.0 | Framework principal |
-| **TypeScript**    | ^5.0.0  | Tipado estático     |
-| **Tailwind CSS**  | ^4.1.11 | Sistema de estilos  |
-| **shadcn-svelte** | ^1.0.6  | Componentes UI      |
-| **Vitest**        | ^3.2.4  | Testing framework   |
-| **ESLint**        | ^9.32.0 | Linting             |
-| **Prettier**      | ^3.6.2  | Formateo de código  |
+| Tecnología           | Versión | Propósito                |
+| -------------------- | ------- | ------------------------ |
+| **SvelteKit**        | ^2.22.0 | Framework principal      |
+| **TypeScript**       | ^5.0.0  | Tipado estático          |
+| **Tailwind CSS**     | ^4.1.11 | Sistema de estilos       |
+| **shadcn-svelte**    | ^1.0.6  | Componentes UI           |
+| **Axios**            | ^1.7.8  | Cliente HTTP             |
+| **Socket.IO Client** | ^4.8.1  | Comunicación tiempo real |
+| **TanStack Query**   | ^5.61.5 | Gestión estado servidor  |
+| **Vitest**           | ^3.2.4  | Testing framework        |
+| **ESLint**           | ^9.32.0 | Linting                  |
+| **Prettier**         | ^3.6.2  | Formateo de código       |
 
 ## 🚀 Inicio Rápido
 
@@ -183,6 +186,9 @@ Utilizamos shadcn-svelte para componentes base:
 - [x] Husky + lint-staged
 - [x] Vitest para testing
 - [x] CI/CD con GitHub Actions
+- [x] Axios para HTTP requests
+- [x] Socket.IO para tiempo real
+- [x] TanStack Query para estado
 
 ### 🔜 Por Implementar (Roadmap)
 
