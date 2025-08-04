@@ -32,7 +32,7 @@
       <Button
         variant="default"
         size="lg"
-        onclick="window.location.href='/login'"
+        on:click={() => (window.location.href = '/login')}
         className="font-semibold"
       >
         Ir al Login

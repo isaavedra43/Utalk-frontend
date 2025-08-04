@@ -84,10 +84,10 @@
   }
 
   // Función para obtener variante de alerta según tipo de error
-  function getErrorVariant(error: string): 'default' | 'destructive' | 'warning' | 'success' {
+  function getErrorVariant(error: string): 'default' | 'destructive' {
     switch (error) {
       case 'RATE_LIMIT_EXCEEDED':
-        return 'warning';
+        return 'default'; // Usar default para warnings
       case 'SERVER_ERROR':
       case 'NETWORK_ERROR':
         return 'destructive';

@@ -48,14 +48,14 @@
               <a
                 href="/conversations"
                 class="text-secondary-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                class:active={$pageStore.url.startsWith('/conversations')}
+                class:active={$pageStore.url?.startsWith('/conversations') ?? false}
               >
                 Conversaciones
               </a>
               <a
                 href="/contacts"
                 class="text-secondary-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                class:active={$pageStore.url.startsWith('/contacts')}
+                class:active={$pageStore.url?.startsWith('/contacts') ?? false}
               >
                 Contactos
               </a>
@@ -131,14 +131,14 @@
         <a
           href="/conversations"
           class="whitespace-nowrap text-secondary-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-          class:active={$pageStore.url.startsWith('/conversations')}
+          class:active={$pageStore.url?.startsWith('/conversations') ?? false}
         >
           Conversaciones
         </a>
         <a
           href="/contacts"
           class="whitespace-nowrap text-secondary-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-          class:active={$pageStore.url.startsWith('/contacts')}
+          class:active={$pageStore.url?.startsWith('/contacts') ?? false}
         >
           Contactos
         </a>

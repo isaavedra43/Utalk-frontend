@@ -24,7 +24,7 @@ export interface ButtonProps extends BaseProps {
 }
 
 // Alert Component Types
-export type AlertVariant = 'default' | 'destructive' | 'warning' | 'success';
+export type AlertVariant = 'default' | 'destructive';
 
 export interface AlertProps extends BaseProps {
   variant?: AlertVariant;

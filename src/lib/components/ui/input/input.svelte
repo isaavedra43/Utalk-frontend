@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { InputType } from '$lib/types/ui';
   import { cn } from '$lib/utils';
+  import type { HTMLInputAttributes } from 'svelte/elements';
 
   // Props del componente
   export let type: InputType = 'text';
@@ -9,7 +10,7 @@
   export let disabled = false;
   export let readonly = false;
   export let required = false;
-  export let autocomplete = undefined;
+  export let autocomplete: HTMLInputAttributes['autocomplete'] = undefined;
   export let className = '';
 
   // Clases CSS para el input
