@@ -9,7 +9,6 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,
@@ -21,10 +20,8 @@
     "allowUnusedLabels": false,
     "allowUnreachableCode": false,
     "noImplicitThis": true,
-    "useUnknownInCatchVariables": true,
-    "types": ["svelte"]
-  },
-  "include": ["src/**/*.d.ts", "src/**/*.ts", "src/**/*.svelte"]
+    "useUnknownInCatchVariables": true
+  }
   // Path aliases are handled by https://svelte.dev/docs/kit/configuration#alias
   // except $lib which is handled by https://svelte.dev/docs/kit/configuration#files
   //
