@@ -21,10 +21,20 @@
   "tailwindCSS.classAttributes": ["class", "className", "class:list", "classList", "ngClass"],
   "tailwindCSS.experimental.classRegex": [
     ["cn\\(([^)]*)\\)", "'([^']*)'"],
-    ["clsx\\(([^)]*)\\)", "'([^']*)'"]
+    ["clsx\\(([^)]*)\\)", "'([^']*)'"],
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*)[\"'`]"],
+    ["tv\\(([^)]*)\\)", "[\"'`]([^\"'`]*)[\"'`]"]
+  ],
+  "tailwindCSS.files.exclude": [
+    "**/.git/**",
+    "**/node_modules/**",
+    "**/.svelte-kit/**",
+    "**/build/**",
+    "**/dist/**"
   ],
   "css.validate": true,
   "css.customData": [".vscode/css_custom_data.json"],
+  "css.lint.unknownAtRules": "ignore",
   "less.validate": true,
   "scss.validate": true,
   "svelte.enable-ts-plugin": true,

@@ -30,6 +30,42 @@
           "url": "https://tailwindcss.com/docs/functions-and-directives#apply"
         }
       ]
+    },
+    {
+      "name": "@variants",
+      "description": "Generate variants for utilities using the @variants directive.",
+      "references": [
+        {
+          "name": "Tailwind Documentation",
+          "url": "https://tailwindcss.com/docs/functions-and-directives#variants"
+        }
+      ]
+    },
+    {
+      "name": "@screen",
+      "description": "Create media queries that reference your breakpoints by name using the @screen directive.",
+      "references": [
+        {
+          "name": "Tailwind Documentation",
+          "url": "https://tailwindcss.com/docs/functions-and-directives#screen"
+        }
+      ]
+    },
+    {
+      "name": "@responsive",
+      "description": "Generate responsive variants for utilities.",
+      "references": [
+        {
+          "name": "Tailwind Documentation",
+          "url": "https://tailwindcss.com/docs/functions-and-directives#responsive"
+        }
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "name": "--tw-*",
+      "description": "Tailwind CSS custom properties for internal use."
     }
   ]
 }

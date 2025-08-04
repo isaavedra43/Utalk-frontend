@@ -18,7 +18,6 @@
     "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
-    "noUncheckedSideEffectImports": false,
     "allowUnusedLabels": false,
     "allowUnreachableCode": false,
     "noImplicitThis": true,

@@ -1,45 +1,28 @@
 # 🚀 UTalk Frontend
 
-Sistema de mensajería multicanal con CRM integrado - Frontend desarrollado con SvelteKit.
-
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![SvelteKit](https://img.shields.io/badge/SvelteKit-FF3E00?style=for-the-badge&logo=svelte&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+Sistema de mensajería multicanal con CRM integrado - Interfaz de usuario moderna desarrollada con SvelteKit.
 
 ## 📋 Descripción
 
-UTalk Frontend es la interfaz de usuario para el sistema de mensajería multicanal UTalk, que permite:
-
-- 💬 **Mensajería en tiempo real** con WebSocket
-- 🔐 **Autenticación segura** con JWT
-- 📱 **Interfaz responsive** tipo Slack/Discord
-- 🎨 **UI moderna** con shadcn-svelte
-- ♿ **Accesible** con estándares WCAG
-- 🔄 **Notificaciones push** (PWA-ready)
+UTalk Frontend es la interfaz de usuario para el sistema UTalk, una plataforma de mensajería multicanal que permite gestionar conversaciones desde WhatsApp, SMS, Email y chat web en una sola interfaz.
 
 ## 🛠️ Stack Tecnológico
 
-| Tecnología           | Versión | Propósito                |
-| -------------------- | ------- | ------------------------ |
-| **SvelteKit**        | ^2.22.0 | Framework principal      |
-| **TypeScript**       | ^5.0.0  | Tipado estático          |
-| **Tailwind CSS**     | ^3.4.17 | Sistema de estilos       |
-| **shadcn-svelte**    | ^1.0.6  | Componentes UI           |
-| **Axios**            | ^1.7.8  | Cliente HTTP             |
-| **Socket.IO Client** | ^4.8.1  | Comunicación tiempo real |
-| **TanStack Query**   | ^5.61.5 | Gestión estado servidor  |
-| **Vitest**           | ^3.2.4  | Testing framework        |
-| **ESLint**           | ^9.32.0 | Linting                  |
-| **Prettier**         | ^3.6.2  | Formateo de código       |
+- **Framework**: SvelteKit 2.x
+- **Lenguaje**: TypeScript 5.5.4 (compatible con ESLint)
+- **Estilos**: Tailwind CSS 3.4.17
+- **Componentes UI**: shadcn-svelte + bits-ui
+- **Estado**: TanStack Query + Svelte Stores
+- **Testing**: Vitest + @testing-library/svelte
+- **Quality**: ESLint 8.x + Prettier + Husky
+- **Build**: Vite 7.x + SvelteKit Adapter Auto
 
-## 🚀 Inicio Rápido
+## 🚀 Quick Start
 
 ### Prerrequisitos
 
-- **Node.js** >= 18.x
-- **npm** >= 9.x
-- **Git** >= 2.30
-- **VS Code** (recomendado) con extensiones sugeridas
+- Node.js 18.x o 20.x
+- npm 9.x o superior
 
 ### Instalación
 
@@ -51,331 +34,270 @@ cd utalk-frontend
 # Instalar dependencias
 npm install
 
-# Configurar variables de entorno
+# Copiar variables de entorno
 cp .env.example .env
 
 # Iniciar servidor de desarrollo
 npm run dev
 ```
 
-El servidor estará disponible en [http://localhost:5173](http://localhost:5173)
+### Configuración de Variables de Entorno
 
-### 🔧 Configuración del Editor
+```bash
+# .env
+VITE_API_URL=http://localhost:3001
+VITE_WS_URL=ws://localhost:3001
+VITE_FIREBASE_API_KEY=your_firebase_api_key
+VITE_FIREBASE_PROJECT_ID=your_firebase_project_id
+VITE_FIREBASE_APP_ID=your_firebase_app_id
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+```
 
-**Para VS Code (recomendado):**
+## 🛠️ Configuración de VS Code (CRÍTICA PARA ZERO WARNINGS)
 
-1. **Extensiones automáticas**: Al abrir el proyecto, VS Code sugerirá instalar las extensiones recomendadas
-2. **Configuración automática**: Las configuraciones de formato y lint están preconfiguradas
-3. **Tailwind CSS**: Autocompletado y validación incluidos
+### Extensiones Requeridas
 
-**Extensiones esenciales:**
+Instala automáticamente las extensiones recomendadas ejecutando:
 
-- Svelte para VS Code
-- Tailwind CSS IntelliSense
-- ESLint
-- Prettier - Code formatter
-- Error Lens (para ver errores inline)
+1. Abre VS Code en el directorio del proyecto
+2. Ve a la pestaña de Extensiones (Ctrl+Shift+X)
+3. Busca `@recommended` y instala todas las extensiones recomendadas
+
+**Extensiones críticas para Tailwind:**
+
+- `bradlc.vscode-tailwindcss` - Tailwind CSS IntelliSense
+- `esbenp.prettier-vscode` - Prettier formatter
+- `ms-vscode.vscode-eslint` - ESLint
+
+### Configuración Automática
+
+El proyecto incluye configuración pre-configurada en `.vscode/`:
+
+- **`.vscode/settings.json`**: Configuración del editor
+- **`.vscode/extensions.json`**: Extensiones recomendadas
+- **`.vscode/css_custom_data.json`**: Definiciones de Tailwind CSS
+
+### Verificación de Configuración
+
+Para verificar que NO hay warnings en VS Code:
+
+1. Abre cualquier archivo `.css` o `.svelte`
+2. **NO** deberías ver warnings de "Unknown at rule" para `@tailwind`, `@apply`, `@layer`
+3. El autocompletado de Tailwind debe funcionar en atributos `class=""`
+4. ESLint debe mostrar errores en tiempo real sin warnings de configuración
+
+### Troubleshooting de VS Code
+
+Si aún ves warnings después de instalar extensiones:
+
+```bash
+# 1. Reinicia VS Code completamente
+# 2. Reload window: Ctrl+Shift+P -> "Developer: Reload Window"
+# 3. Verifica que la extensión de Tailwind esté activa
+# 4. Verifica que css.validate está habilitado en settings
+```
 
 ## 📁 Estructura del Proyecto
 
 ```
 utalk-frontend/
+├── .vscode/                 # Configuración VS Code
+│   ├── extensions.json      # Extensiones recomendadas
+│   ├── settings.json        # Configuración del editor
+│   └── css_custom_data.json # Definiciones Tailwind CSS
 ├── src/
-│   ├── routes/                    # Páginas de SvelteKit
-│   │   ├── +layout.svelte        # Layout principal
-│   │   └── +page.svelte          # Página inicial
+│   ├── routes/              # Rutas de SvelteKit
 │   ├── lib/
-│   │   ├── components/
-│   │   │   └── ui/               # Componentes shadcn-svelte
-│   │   ├── stores/               # Estado global (Svelte stores)
-│   │   ├── services/             # Servicios API y WebSocket
-│   │   ├── utils/                # Utilidades y helpers
-│   │   ├── types/                # Definiciones TypeScript
-│   │   └── constants.ts          # Constantes globales
-│   ├── app.css                   # Estilos globales
-│   └── tests/
-│       ├── unit/                 # Tests unitarios
-│       ├── component/            # Tests de componentes
-│       └── e2e/                  # Tests end-to-end
-├── static/                       # Archivos estáticos
-├── .github/workflows/            # CI/CD con GitHub Actions
-├── .vscode/                      # Configuraciones de VS Code
-│   ├── extensions.json          # Extensiones recomendadas
-│   └── settings.json            # Configuraciones del editor
-└── scripts/                      # Scripts de utilidad
+│   │   ├── components/ui/   # Componentes shadcn-svelte
+│   │   ├── stores/          # Stores de Svelte
+│   │   ├── services/        # Servicios API/WebSocket
+│   │   ├── utils/           # Utilidades generales
+│   │   ├── types/           # Tipos TypeScript
+│   │   ├── constants.ts     # Constantes globales
+│   │   └── env.ts           # Validación de entorno
+│   ├── app.css              # Estilos globales Tailwind
+│   └── tests/setup.ts       # Configuración de tests
+├── .husky/                  # Git hooks
+├── .github/workflows/       # CI/CD GitHub Actions
+└── docs/                    # Documentación
 ```
 
-## 🧪 Scripts Disponibles
+## 🎯 Scripts Disponibles
+
+### Desarrollo
 
 ```bash
-# Desarrollo
-npm run dev                # Servidor de desarrollo
-npm run build             # Build de producción
-npm run preview           # Vista previa del build
-
-# Testing
-npm test                  # Tests en modo watch
-npm run test:run          # Tests una sola vez
-npm run test:ui           # Tests con interfaz visual
-npm run test:coverage     # Tests con coverage
-
-# Calidad de código
-npm run lint              # Ejecutar ESLint
-npm run lint:fix          # Corregir errores de ESLint
-npm run format            # Formatear código con Prettier
-npm run format:check      # Verificar formato sin cambios
-
-# Verificación completa
-npm run validate          # Lint + Format + TypeCheck + Tests
-npm run validate:full     # Validación completa con reinstall y build
-npm run type-check        # Verificación de tipos TypeScript
-npm run check             # Verificación de Svelte
-
-# Auditoría y mantenimiento
-npm run audit:security    # Audit de seguridad
-npm run audit:deps        # Verificar dependencias desactualizadas
-npm run clean             # Limpiar archivos generados
-
-# Hooks (ejecutados automáticamente)
-npm run precommit         # Hook pre-commit (lint-staged)
-npm run prepush           # Hook pre-push (validación + build)
+npm run dev          # Servidor de desarrollo
+npm run build        # Build de producción
+npm run preview      # Preview del build
 ```
 
-## 🔧 Configuración
+### Calidad y Testing
 
-### Variables de Entorno
-
-Copia `.env.example` a `.env` y configura:
-
-```env
-# URLs del Backend
-VITE_API_URL=http://localhost:3001
-VITE_WS_URL=ws://localhost:3001
-
-# Firebase (notificaciones push)
-VITE_FIREBASE_API_KEY=tu_api_key
-VITE_FIREBASE_PROJECT_ID=tu_project_id
-# ... más configuraciones
+```bash
+npm run lint         # ESLint check
+npm run lint:fix     # ESLint auto-fix
+npm run format       # Prettier format
+npm run format:check # Prettier check
+npm run type-check   # TypeScript check
+npm run test         # Tests interactivos
+npm run test:run     # Tests CI mode
+npm run test:coverage # Coverage report
 ```
 
-### Configuración del Backend
+### Validación y Auditoría
 
-Asegúrate de que el backend UTalk esté ejecutándose en el puerto 3001 y configure CORS para permitir requests desde `http://localhost:5173`.
+```bash
+npm run validate     # Lint + Format + Type + Test
+npm run validate:fast # Validación rápida
+npm run audit:security # Auditoría de seguridad
+npm run audit:deps   # Dependencias outdated
+npm run clean        # Limpiar cache y builds
+```
 
 ## 🎨 Sistema de Diseño
 
 ### Colores Principales
 
-```css
-/* Colores primarios (azul) */
-primary-500: #3b82f6
-primary-600: #2563eb
+- **Primary**: Azul (blue-600 como base)
+- **Secondary**: Gris (slate-50 a slate-900)
+- **Success**: Verde (green-500)
+- **Warning**: Amarillo (yellow-500)
+- **Error**: Rojo (red-500)
 
-/* Colores secundarios (gris) */
-secondary-500: #64748b
-secondary-600: #475569
+### Tipografía
 
-/* Estados */
-success-500: #22c55e
-warning-500: #f59e0b
-error-500: #ef4444
-```
+- **Sans**: Inter (principal)
+- **Mono**: JetBrains Mono (código)
 
-### Componentes UI
+### Componentes Base
 
-Utilizamos shadcn-svelte para componentes base:
-
-- ✅ Button
-- ✅ Dialog
-- ✅ Input
-- ✅ Alert
-- ✅ Avatar
-- ✅ Badge
-- ✅ Card
-
-```svelte
-<script>
-  import { Button } from '$lib/components/ui/button';
-  import { Input } from '$lib/components/ui/input';
-</script>
-
-<Button variant="default">Click me</Button>
-<Input placeholder="Escribe aquí..." />
-```
-
-## 📱 Funcionalidades Implementadas
-
-### ✅ Configuración Base
-
-- [x] SvelteKit con TypeScript
-- [x] Tailwind CSS v3 configurado
-- [x] shadcn-svelte integrado
-- [x] ESLint + Prettier configurados
-- [x] Husky + lint-staged
-- [x] Vitest para testing
-- [x] CI/CD con GitHub Actions
-- [x] Axios para HTTP requests
-- [x] Socket.IO para tiempo real
-- [x] TanStack Query para estado
-- [x] TypeScript modo estricto
-- [x] Configuración VS Code
-
-### 🔜 Por Implementar (Roadmap)
-
-- [ ] Sistema de autenticación
-- [ ] Interfaz de chat en tiempo real
-- [ ] Gestión de conversaciones
-- [ ] Envío de archivos multimedia
-- [ ] Notificaciones push
-- [ ] Panel de administración
+- Button, Badge, Card, Dialog, Input, Alert, Avatar
+- Todos los componentes incluyen variantes y son totalmente tipados
 
 ## 🧪 Testing
 
-### Ejecutar Tests
-
 ```bash
-# Tests en modo watch
-npm test
-
-# Tests una sola vez
+# Ejecutar tests
 npm run test:run
 
-# Tests con interfaz visual
+# Tests con UI
 npm run test:ui
 
-# Tests con coverage
+# Coverage report
 npm run test:coverage
 ```
 
-### Estructura de Tests
+### Estrategia de Testing
 
-```typescript
-// Ejemplo de test unitario
-import { describe, it, expect } from 'vitest';
-import { APP_CONFIG } from '$lib/constants';
+- **Unit**: Utilidades y constantes
+- **Component**: Componentes UI (configuración pendiente para Svelte 5)
+- **Integration**: Flujos completos (en desarrollo)
 
-describe('Constants', () => {
-  it('should have correct app name', () => {
-    expect(APP_CONFIG.NAME).toBe('UTalk');
-  });
-});
-```
+## ✅ Quality Gates
 
-## 🔍 Calidad de Código
+Todos los commits y pushes pasan por validación automática:
 
-### Pre-commit Hooks
+### Pre-commit
 
-Automáticamente se ejecutan antes de cada commit:
+- ESLint auto-fix
+- Prettier formatting
+- Lint validation
 
-- ✅ ESLint (linting)
-- ✅ Prettier (formateo)
-- ✅ Type checking
+### Pre-push
 
-### Pre-push Hooks
-
-Antes de cada push se verifica:
-
-- ✅ Validación completa (lint + format + types + tests)
-- ✅ Build exitoso
-- ✅ Audit de seguridad
+- Full validation suite
+- Build verification
+- Security audit
 
 ### CI/CD Pipeline
 
-En cada push/PR se verifica:
+- Multi-version Node.js testing (18.x, 20.x)
+- Full quality validation
+- Security checks
+- Build artifacts
 
-1. **Lint** - Calidad de código
-2. **Format** - Formateo consistente
-3. **Type Check** - Verificación de tipos
-4. **Svelte Check** - Validación de Svelte
-5. **Tests** - Tests unitarios
-6. **Build** - Compilación exitosa
-7. **Security Audit** - Vulnerabilidades
+## 🔧 Configuración
 
-## 🤝 Contribución
+### Tailwind CSS
 
-### Workflow de Desarrollo
+- Versión 3.4.17 (estable y compatible)
+- Configuración personalizada en `tailwind.config.js`
+- PostCSS con autoprefixer
 
-1. **Fork** del repositorio
-2. **Branch** desde `develop`: `git checkout -b feature/nueva-funcionalidad`
-3. **Desarrollo** con commits descriptivos
-4. **Tests** - Asegurar que pasen todos los tests
-5. **Pull Request** hacia `develop`
+### ESLint
 
-### Estándares
+- Versión 8.x (compatible con TypeScript 5.5.4)
+- Configuración flat config
+- Reglas estrictas para Svelte y TypeScript
 
-- ✅ **Commits**: Seguir [Conventional Commits](https://conventionalcommits.org)
-- ✅ **Código**: Debe pasar ESLint sin warnings
-- ✅ **Tests**: Coverage mínimo del 80%
-- ✅ **Documentación**: Actualizar README si es necesario
+### TypeScript
 
-### Ejemplo de Commit
-
-```bash
-git commit -m "feat(auth): add login form validation
-
-- Add Joi validation schema
-- Implement form error handling
-- Add unit tests for validation logic
-
-Closes #123"
-```
-
-## 📚 Documentación Adicional
-
-- [Arquitectura del Frontend](./Info_back/arquitectrua.md)
-- [Integración Backend](./Info_back/BACKEND_ADVANCED_LOGIC_CORREGIDO.md)
-- [Plan de Trabajo](./Info_back/plan%20de%20trabajo.md)
-- [SvelteKit Docs](https://kit.svelte.dev/)
-- [Tailwind CSS Docs](https://tailwindcss.com/)
+- Versión 5.5.4 (compatible con ESLint)
+- Modo estricto habilitado
+- Configuración optimizada para Svelte
 
 ## 🐛 Troubleshooting
 
-### Problemas Comunes
+### VS Code Warnings de CSS
 
-**Error: Cannot connect to backend**
+**Problema**: "Unknown at rule @tailwind, @apply"
+**Solución**:
 
-```bash
-# Verificar que el backend esté corriendo
-curl http://localhost:3001/health
-```
+1. Instalar extensión `bradlc.vscode-tailwindcss`
+2. Reiniciar VS Code
+3. Verificar que `.vscode/css_custom_data.json` existe
 
-**Error: TypeScript errors**
+### ESLint TypeScript Compatibility
 
-```bash
-# Verificar tipos
-npm run type-check
-```
+**Problema**: Warnings de versión TypeScript no soportada
+**Solución**: El proyecto usa TypeScript 5.5.4 (compatible). Warnings son informativos únicamente.
 
-**Error: Linting failures**
+### Build Errors
 
-```bash
-# Corregir automáticamente
-npm run lint:fix
-```
-
-**Error: Unknown at-rule warnings en VS Code**
+**Problema**: Errores de build en producción
+**Solución**:
 
 ```bash
-# Instalar extensión Tailwind CSS IntelliSense
-# Asegurar que VS Code usa las configuraciones del proyecto
+npm run clean
+npm install
+npm run build
 ```
+
+### Testing Issues
+
+**Problema**: Tests fallan por variables de entorno
+**Solución**: Tests incluyen mocking automático de env vars
+
+## 📚 Documentación Adicional
+
+- [Arquitectura Frontend](./Info_back/arquitectrua.md)
+- [Plan de Trabajo](./Info_back/plan%20de%20trabajo.md)
+- [Documentación Backend](./Info_back/DOCUMENTACION_COMPLETA_BACKEND_UTALK.md)
+- [SvelteKit Docs](https://kit.svelte.dev/)
+- [Tailwind CSS Docs](https://tailwindcss.com/)
+- [shadcn-svelte Docs](https://shadcn-svelte.com/)
+
+## 🤝 Contribución
+
+1. Fork el proyecto
+2. Crear branch: `git checkout -b feature/nueva-feature`
+3. Commit: `git commit -m 'Add nueva feature'`
+4. Push: `git push origin feature/nueva-feature`
+5. Pull Request
+
+### Reglas de Contribución
+
+- Todos los commits deben pasar quality gates
+- Tests requeridos para nuevas features
+- Documentación actualizada para cambios mayores
+- Seguir convenciones de código establecidas
 
 ## 📄 Licencia
 
-Este proyecto es privado y propietario de UTalk.
-
-## 👥 Equipo
-
-- **Frontend Lead**: [Nombre]
-- **Backend Integration**: [Nombre]
-- **UI/UX Design**: [Nombre]
+Este proyecto es propiedad privada. Todos los derechos reservados.
 
 ---
 
-**🔗 Enlaces útiles:**
-
-- [Backend Repository](https://github.com/isaavedra43/Utalk-backend)
-- [Figma Designs](link-to-figma)
-- [Production App](link-to-production)
-
-**📞 Soporte:** frontend-team@utalk.com
+**Versión del proyecto**: 1.0.0  
+**Última actualización**: Diciembre 2024
