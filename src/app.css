@@ -6,22 +6,16 @@
  * Estilos base para UTalk Frontend
  */
 
-/* Variables CSS personalizadas - Usadas por Tailwind y componentes */
-:root {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
-}
-
 /* Reset y configuración base */
 html {
-  font-family: var(--font-sans);
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
   scroll-behavior: smooth;
 }
 
 body {
   @apply bg-secondary-50 text-secondary-900 antialiased;
   min-height: 100vh;
-  font-family: var(--font-sans);
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Focus styles accesibles */
@@ -34,18 +28,13 @@ input,
 textarea,
 select {
   @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500;
-  font-family: var(--font-sans);
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Estilos para código */
 code,
 pre {
-  font-family: var(--font-mono);
-}
-
-/* Estilos para botones deshabilitados */
-button:disabled {
-  @apply opacity-50 cursor-not-allowed;
+  font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
 }
 
 /* Estilos para scrollbars (webkit) */
@@ -78,42 +67,5 @@ button:disabled {
 
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
-  }
-
-  .font-mono {
-    font-family: var(--font-mono);
-  }
-}
-
-/* Componentes base */
-@layer components {
-  .btn {
-    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors;
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
-    @apply disabled:pointer-events-none disabled:opacity-50;
-    font-family: var(--font-sans);
-  }
-
-  .btn-primary {
-    @apply btn bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-500;
-  }
-
-  .btn-secondary {
-    @apply btn bg-secondary-200 text-secondary-900 hover:bg-secondary-300 focus-visible:ring-secondary-500;
-  }
-
-  .btn-ghost {
-    @apply btn hover:bg-secondary-100 focus-visible:ring-secondary-500;
-  }
-
-  .input {
-    @apply flex w-full rounded-md border border-secondary-200 bg-white px-3 py-2 text-sm;
-    @apply placeholder:text-secondary-500 focus:border-primary-500 focus:ring-primary-500;
-    @apply disabled:cursor-not-allowed disabled:opacity-50;
-    font-family: var(--font-sans);
-  }
-
-  .card {
-    @apply rounded-lg border border-secondary-200 bg-white p-6 shadow-sm;
   }
 }

@@ -1,51 +1,30 @@
 <script lang="ts">
-  import type { HTMLInputAttributes, HTMLInputTypeAttribute } from 'svelte/elements';
-  import { cn, type WithElementRef } from '$lib/utils.js';
+  import type { InputType } from '$lib/types/ui';
+  import { cn } from '$lib/utils';
 
-  type InputType = Exclude<HTMLInputTypeAttribute, 'file'>;
+  // Props del componente
+  export let type: InputType = 'text';
+  export let placeholder: string | undefined = undefined;
+  export let value: string = '';
+  export let disabled = false;
+  export let readonly = false;
+  export let required = false;
+  export let autocomplete = undefined;
+  export let className = '';
 
-  type Props = WithElementRef<
-    Omit<HTMLInputAttributes, 'type'> &
-      ({ type: 'file'; files?: FileList } | { type?: InputType; files?: undefined })
-  >;
-
-  let {
-    ref = $bindable(null),
-    value = $bindable(),
-    type,
-    files = $bindable(),
-    class: className,
-    ...restProps
-  }: Props = $props();
+  // Clases CSS para el input
+  const inputClasses =
+    'flex h-10 w-full rounded-md border border-secondary-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-secondary-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
 </script>
 
-{#if type === 'file'}
-  <input
-    bind:this={ref}
-    data-slot="input"
-    class={cn(
-      'selection:bg-primary dark:bg-input/30 selection:text-primary-foreground border-input ring-offset-background placeholder:text-muted-foreground shadow-xs flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 pt-1.5 text-sm font-medium outline-none transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
-      'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
-      'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
-      className
-    )}
-    type="file"
-    bind:files
-    bind:value
-    {...restProps}
-  />
-{:else}
-  <input
-    bind:this={ref}
-    data-slot="input"
-    class={cn(
-      'border-input bg-background selection:bg-primary dark:bg-input/30 selection:text-primary-foreground ring-offset-background placeholder:text-muted-foreground shadow-xs flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base outline-none transition-[color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
-      'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
-      'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
-      className
-    )}
-    {type}
-    bind:value
-    {...restProps}
-  />
-{/if}
+<input
+  class={cn(inputClasses, className)}
+  {type}
+  {placeholder}
+  bind:value
+  {disabled}
+  {readonly}
+  {required}
+  {autocomplete}
+  {...$$restProps}
+/>

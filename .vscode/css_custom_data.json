@@ -3,21 +3,11 @@
   "atDirectives": [
     {
       "name": "@tailwind",
-      "description": "Inject Tailwind's base, components, utilities and screens styles into your CSS.",
+      "description": "Inject Tailwind's base, components, utilities styles into your CSS.",
       "references": [
         {
           "name": "Tailwind Documentation",
           "url": "https://tailwindcss.com/docs/functions-and-directives#tailwind"
-        }
-      ]
-    },
-    {
-      "name": "@layer",
-      "description": "Use the @layer directive to tell Tailwind which 'bucket' a set of custom styles belong to.",
-      "references": [
-        {
-          "name": "Tailwind Documentation",
-          "url": "https://tailwindcss.com/docs/functions-and-directives#layer"
         }
       ]
     },
@@ -32,12 +22,12 @@
       ]
     },
     {
-      "name": "@variants",
-      "description": "Generate variants for utilities using the @variants directive.",
+      "name": "@layer",
+      "description": "Use the @layer directive to tell Tailwind which 'bucket' a set of custom styles belong to.",
       "references": [
         {
           "name": "Tailwind Documentation",
-          "url": "https://tailwindcss.com/docs/functions-and-directives#variants"
+          "url": "https://tailwindcss.com/docs/functions-and-directives#layer"
         }
       ]
     },
@@ -52,20 +42,14 @@
       ]
     },
     {
-      "name": "@responsive",
-      "description": "Generate responsive variants for utilities.",
+      "name": "@variants",
+      "description": "Generate variants for utilities using the @variants directive.",
       "references": [
         {
           "name": "Tailwind Documentation",
-          "url": "https://tailwindcss.com/docs/functions-and-directives#responsive"
+          "url": "https://tailwindcss.com/docs/functions-and-directives#variants"
         }
       ]
-    }
-  ],
-  "properties": [
-    {
-      "name": "--tw-*",
-      "description": "Tailwind CSS custom properties for internal use."
     }
   ]
 }

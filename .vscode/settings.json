@@ -1,12 +1,12 @@
 {
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit",
     "source.organizeImports": "explicit"
   },
   "files.associations": {
-    "*.svelte": "svelte"
+    "*.svelte": "svelte",
+    "*.css": "tailwindcss"
   },
   "emmet.includeLanguages": {
     "svelte": "html"
@@ -18,13 +18,7 @@
   "tailwindCSS.includeLanguages": {
     "svelte": "html"
   },
-  "tailwindCSS.classAttributes": ["class", "className", "class:list", "classList", "ngClass"],
-  "tailwindCSS.experimental.classRegex": [
-    ["cn\\(([^)]*)\\)", "'([^']*)'"],
-    ["clsx\\(([^)]*)\\)", "'([^']*)'"],
-    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*)[\"'`]"],
-    ["tv\\(([^)]*)\\)", "[\"'`]([^\"'`]*)[\"'`]"]
-  ],
+  "tailwindCSS.classAttributes": ["class", "className", "class:list", "classList"],
   "tailwindCSS.files.exclude": [
     "**/.git/**",
     "**/node_modules/**",
@@ -33,8 +27,6 @@
     "**/dist/**"
   ],
   "css.validate": true,
-  "css.customData": [".vscode/css_custom_data.json"],
-  "css.lint.unknownAtRules": "ignore",
   "less.validate": true,
   "scss.validate": true,
   "svelte.enable-ts-plugin": true,
