@@ -11,7 +11,7 @@
   export let className = '';
 
   // Referencia al elemento
-  let buttonElement: any;
+  let buttonElement: unknown;
 
   // Función para crear clases CSS
   function getButtonClasses(variant: ButtonVariant, size: ButtonSize): string {
@@ -50,12 +50,11 @@
     aria-disabled={disabled}
     role={disabled ? 'link' : undefined}
     tabindex={disabled ? -1 : undefined}
-    {...$$restProps}
   >
     <slot />
   </a>
 {:else}
-  <button bind:this={buttonElement} class={buttonClasses} {type} {disabled} {...$$restProps}>
+  <button bind:this={buttonElement} class={buttonClasses} {type} {disabled}>
     <slot />
   </button>
 {/if}

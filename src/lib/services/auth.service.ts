@@ -1,132 +1,69 @@
 /**
  * Servicio de Autenticación para UTalk Frontend
- * Maneja la comunicación con el backend para login y gestión de sesiones
+ * Maneja login, logout y refresh de tokens de manera segura
  *
- * Basado en la documentación backend:
+ * Basado en la documentación del backend:
  * - BACKEND_ADVANCED_LOGIC_CORREGIDO.md
  * - BACKEND_ADVANCED_LOGIC.md
  * - DOCUMENTACION_COMPLETA_BACKEND_UTALK.md
  */
 
-import type { AxiosError } from 'axios';
+import type { LoginResponse } from '$lib/types/auth';
+import type { ApiError } from '$lib/types/http';
 import { apiClient } from './axios';
 
-// Tipos basados en la documentación del backend
-export interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
-  user: {
-    email: string;
-    name: string;
-    role: string;
-    avatarUrl?: string;
-    status: string;
-    permissions: string[];
-    isOnline: boolean;
-    lastSeen: string;
-  };
-}
-
-export interface LoginRequest {
+export interface LoginCredentials {
   email: string;
   password: string;
 }
 
-// Errores específicos del backend según documentación
-export interface ApiErrorResponse {
-  error: string;
-  message: string;
-  code?: string;
-  details?: {
-    retryAfter?: number;
-    operation?: string;
-  };
-}
-
 /**
- * Función principal de login
- *
- * Según la documentación del backend:
- * - Endpoint: POST /api/auth/login
- * - Payload: { email, password }
- * - Respuesta exitosa: { accessToken, refreshToken, user }
- * - Errores específicos: 401 (invalid credentials), 429 (rate limit), 500 (server error)
+ * Función de login
+ * Autentica un usuario con email y password
+ * Los tokens se manejan automáticamente vía cookies HttpOnly
  */
-export async function login(email: string, password: string): Promise<LoginResponse> {
+export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
   try {
-    // Usar el cliente Axios existente que ya tiene configurado:
-    // - Base URL desde environment variables
-    // - Timeouts apropiados
-    // - Headers correctos
-    // - Interceptors para logging
+    // Validación básica de credentials
+    if (!credentials.email || !credentials.password) {
+      throw new Error('Email y contraseña son requeridos');
+    }
+
+    // Realizar request de login al backend
     const response = await apiClient.post<LoginResponse>('/api/auth/login', {
-      email: email.toLowerCase().trim(), // Normalizar email según backend
-      password
-    } as LoginRequest);
+      email: credentials.email.toLowerCase().trim(),
+      password: credentials.password
+    });
 
-    // Validar respuesta según documentación backend
-    const { accessToken, refreshToken, user } = response.data;
-
-    if (!accessToken || !refreshToken || !user) {
+    // Validar respuesta del backend
+    if (!response.data || !response.data.accessToken || !response.data.user) {
       throw new Error('Respuesta inválida del servidor');
     }
 
     return response.data;
   } catch (error) {
-    // Manejo de errores específicos según documentación backend
-    const axiosError = error as AxiosError<ApiErrorResponse>;
+    // Convertir errores de Axios a errores estructurados
+    const apiError = error as ApiError;
 
-    if (axiosError.response) {
-      const status = axiosError.response.status;
-      const errorData = axiosError.response.data;
-
-      switch (status) {
-        case 401:
-          // Credenciales inválidas - según BACKEND_ADVANCED_LOGIC_CORREGIDO.md línea 185-190
-          throw new Error('Correo o contraseña incorrectos');
-
-        case 429: {
-          // Rate limiting - según BACKEND_ADVANCED_LOGIC_CORREGIDO.md línea 334-356
-          const retryAfter = axiosError.response.headers['x-ratelimit-reset'];
-          if (retryAfter) {
-            throw new Error(
-              `Demasiados intentos. Intenta nuevamente en ${Math.ceil(parseInt(retryAfter) / 60)} minutos.`
-            );
-          }
-          throw new Error('Demasiados intentos de login. Intenta más tarde.');
-        }
-
-        case 400:
-          // Validación - credenciales faltantes según documentación
-          if (errorData?.error === 'MISSING_CREDENTIALS') {
-            throw new Error('Email y contraseña son requeridos');
-          }
-          throw new Error('Datos de login inválidos');
-
-        case 500:
-        case 502:
-        case 503:
-        case 504:
-          // Errores del servidor - según documentación
-          throw new Error('El servidor no está disponible, intenta más tarde');
-
-        default:
-          // Otros errores no documentados
-          throw new Error('Error inesperado al iniciar sesión');
-      }
+    if (apiError.response?.status === 401) {
+      throw new Error('Correo o contraseña incorrectos');
     }
 
-    // Error de red o conexión
-    if (axiosError.code === 'NETWORK_ERROR' || axiosError.message?.includes('Network Error')) {
-      throw new Error('Error de conexión. Verifica tu internet e intenta nuevamente.');
+    if (apiError.response?.status === 429) {
+      const retryAfter = apiError.response.headers?.['retry-after'];
+      const waitTime = retryAfter ? parseInt(retryAfter as string) : 60;
+      throw new Error(`Demasiados intentos de login. Espera ${waitTime} segundos.`);
     }
 
-    // Error de timeout
-    if (axiosError.code === 'ECONNABORTED') {
-      throw new Error('La solicitud tardó demasiado. Intenta nuevamente.');
+    if (apiError.response?.status === 500) {
+      throw new Error('El servidor no está disponible temporalmente');
     }
 
-    // Error genérico
+    if (!apiError.response) {
+      throw new Error('Error de conexión. Verifica tu conexión a internet.');
+    }
+
+    // Error genérico para casos no manejados
     throw new Error('Error inesperado al iniciar sesión');
   }
 }
@@ -163,14 +100,14 @@ export async function refreshToken(): Promise<LoginResponse> {
 
     return response.data;
   } catch (error) {
-    const axiosError = error as any;
+    const apiError = error as ApiError;
 
-    if (axiosError.response?.status === 401) {
+    if (apiError.response?.status === 401) {
       // Refresh token expirado o inválido
       throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
     }
 
-    if (axiosError.response?.status === 403) {
+    if (apiError.response?.status === 403) {
       // Token family comprometido según documentación (línea 204-208)
       throw new Error('Sesión comprometida. Por favor, inicia sesión nuevamente.');
     }

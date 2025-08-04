@@ -4,6 +4,7 @@
   import Button from '$lib/components/ui/button/button.svelte';
   import Input from '$lib/components/ui/input/input.svelte';
   import { pageStore } from '$lib/stores/page.store';
+  import type { PageFormData } from '$lib/types/auth';
 
   // Estado del formulario
   let email = '';
@@ -12,7 +13,7 @@
   let errors: Record<string, string> = {};
 
   // Obtener datos del formulario después del submit y parámetros de redirect
-  $: formData = $pageStore.form as any;
+  $: formData = $pageStore.form as PageFormData;
   $: redirectTo = $pageStore.url ? new URL($pageStore.url).searchParams.get('redirect') : null;
 
   $: if (formData) {
@@ -48,19 +49,16 @@
   $: isFormValid =
     email.length > 0 && password.length >= 6 && Object.keys(errors).length === 0 && !loading;
 
-  // Manejar envío del formulario con mejor UX
-  function handleSubmit(event: any) {
-    event.preventDefault();
+  // Función para manejar el submit del formulario
+  function handleSubmit() {
+    // Marcar como loading para mostrar spinner
+    loading = true;
 
     if (!isFormValid || loading) {
       return;
     }
 
-    // Establecer estado de loading
-    loading = true;
-
     // El form se enviará de manera tradicional a la action
-    // El loading se mantendrá hasta que la página recargue o haya error
   }
 
   // Función para mostrar mensaje de error amigable

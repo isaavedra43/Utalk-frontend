@@ -1,16 +1,12 @@
 // See https://kit.svelte.dev/docs/types#app
 // for information about these interfaces
+import type { User } from '$lib/types/auth';
+
 declare global {
   namespace App {
     // interface Error {}
     interface Locals {
-      user?: {
-        email: string;
-        name: string;
-        role: string;
-        permissions: string[];
-        isAuthenticated: boolean;
-      };
+      user?: User;
     }
     // interface PageData {}
     // interface PageState {}

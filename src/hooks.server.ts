@@ -8,8 +8,8 @@
  * - DOCUMENTACION_COMPLETA_BACKEND_UTALK.md
  */
 
-import { authStore } from '$lib/stores/auth.store';
-import { redirect, type Handle } from '@sveltejs/kit';
+import type { User } from '$lib/types/auth';
+import { redirect, type Cookies, type Handle, type HandleServerError } from '@sveltejs/kit';
 
 /**
  * Lista de rutas públicas que no requieren autenticación
@@ -74,7 +74,7 @@ function isPrivateRoute(pathname: string): boolean {
 /**
  * Verificar si el usuario está autenticado mediante cookies
  */
-function isAuthenticated(cookies: any): boolean {
+function isAuthenticated(cookies: Cookies): boolean {
   const sessionCookie = cookies.get('session');
   const userInfoCookie = cookies.get('user_info');
 
@@ -85,143 +85,167 @@ function isAuthenticated(cookies: any): boolean {
 /**
  * Obtener información del usuario desde cookies
  */
-function getUserFromCookies(cookies: any): any {
+function getUserFromCookies(cookies: Cookies): User | null {
   try {
     const userInfoCookie = cookies.get('user_info');
     if (!userInfoCookie) return null;
 
-    const userData = JSON.parse(userInfoCookie);
+    const userData = JSON.parse(userInfoCookie) as Record<string, unknown>;
 
     // Validar que tenemos los campos mínimos requeridos
-    if (userData.email && userData.name && userData.role) {
-      return {
-        email: userData.email,
-        name: userData.name,
-        role: userData.role,
-        permissions: userData.permissions || [],
+    if (
+      typeof userData['email'] === 'string' &&
+      typeof userData['name'] === 'string' &&
+      typeof userData['role'] === 'string'
+    ) {
+      const user: User = {
+        email: userData['email'],
+        name: userData['name'],
+        role: userData['role'] as User['role'],
         isAuthenticated: true
       };
+
+      // Agregar campos opcionales solo si existen y son válidos
+      if (typeof userData['avatarUrl'] === 'string') {
+        user.avatarUrl = userData['avatarUrl'];
+      }
+
+      if (Array.isArray(userData['permissions'])) {
+        user.permissions = userData['permissions'].filter(
+          (p): p is string => typeof p === 'string'
+        );
+      }
+
+      return user;
     }
 
     return null;
   } catch (error) {
+    // Cookie corrupta o inválida
     // eslint-disable-next-line no-console
-    console.error('Error al parsear información del usuario:', error);
+    console.warn('Error parsing user_info cookie:', error);
     return null;
   }
 }
 
 /**
- * Handle principal - Middleware global
+ * Limpiar cookies corruptas o inválidas
  */
-export const handle: Handle = async ({ event, resolve }) => {
-  const { url, cookies } = event;
-  const pathname = url.pathname;
-
-  // ✅ 1. VERIFICAR ESTADO DE AUTENTICACIÓN
-  const authenticated = isAuthenticated(cookies);
-  const userData = getUserFromCookies(cookies);
-
-  // ✅ 2. ESTABLECER USUARIO EN LOCALS PARA SSR
-  if (authenticated && userData) {
-    event.locals.user = userData;
-
-    // Inicializar el store desde el servidor
-    authStore.initFromServer(event);
-  } else {
-    // No asignar undefined explícitamente
-    delete event.locals.user;
-  }
-
-  // ✅ 3. LÓGICA DE PROTECCIÓN DE RUTAS
-
-  // Si el usuario está autenticado e intenta acceder a /login
-  if (authenticated && pathname === '/login') {
-    // Redirigir al dashboard en lugar de login
-    throw redirect(302, '/dashboard');
-  }
-
-  // Si el usuario NO está autenticado e intenta acceder a ruta privada
-  if (!authenticated && isPrivateRoute(pathname)) {
-    // Guardar la URL original para redirigir después del login
-    const redirectTo = encodeURIComponent(pathname + url.search);
-
-    // Redirigir a login con parámetro de retorno
-    throw redirect(302, `/login?redirect=${redirectTo}`);
-  }
-
-  // ✅ 4. LOGGING DE ACCESO (solo en desarrollo)
-  if (import.meta.env.DEV) {
-    // eslint-disable-next-line no-console
-    console.log(
-      `${authenticated ? '🔐' : '🔓'} ${event.request.method} ${pathname} ${authenticated ? `[${userData?.email}]` : '[anonymous]'}`
-    );
-  }
-
-  // ✅ 5. HEADERS DE SEGURIDAD
-  const response = await resolve(event, {
-    transformPageChunk: ({ html }) => {
-      // Inyectar headers de seguridad en el HTML si es necesario
-      return html;
-    }
+function clearInvalidCookies(cookies: Cookies): void {
+  cookies.set('session', '', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0
   });
 
-  // Agregar headers de seguridad a todas las respuestas
-  response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  response.headers.set('X-XSS-Protection', '1; mode=block');
+  cookies.set('refresh_token', '', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'strict',
+    path: '/api/auth',
+    maxAge: 0
+  });
 
-  // CSP básico para desarrollo
-  if (import.meta.env.DEV) {
-    response.headers.set(
-      'Content-Security-Policy',
-      "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: ws: wss:; img-src 'self' data: blob: https:;"
-    );
+  cookies.set('user_info', '', {
+    httpOnly: false,
+    secure: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0
+  });
+}
+
+/**
+ * Hook principal del servidor - maneja autenticación y protección de rutas
+ */
+export const handle: Handle = async ({ event, resolve }) => {
+  const { url, cookies, locals } = event;
+  const pathname = url.pathname;
+
+  try {
+    // 1. VERIFICAR SI LA RUTA REQUIERE AUTENTICACIÓN
+    if (isPrivateRoute(pathname)) {
+      // 2. VERIFICAR AUTENTICACIÓN
+      if (!isAuthenticated(cookies)) {
+        // Usuario no autenticado - redirigir a login con redirect param
+        const redirectParam = encodeURIComponent(pathname + url.search);
+        throw redirect(302, `/login?redirect=${redirectParam}`);
+      }
+
+      // 3. OBTENER INFORMACIÓN DEL USUARIO
+      const user = getUserFromCookies(cookies);
+      if (!user) {
+        // Cookie corrupta - limpiar y redirigir
+        clearInvalidCookies(cookies);
+        const redirectParam = encodeURIComponent(pathname + url.search);
+        throw redirect(302, `/login?redirect=${redirectParam}`);
+      }
+
+      // 4. ESTABLECER USUARIO EN LOCALS PARA SSR
+      locals.user = user;
+    } else if (pathname === '/login') {
+      // 5. MANEJAR RUTA DE LOGIN
+      if (isAuthenticated(cookies)) {
+        // Usuario ya autenticado - redirigir según redirect param o dashboard
+        const redirectTo = url.searchParams.get('redirect') || '/dashboard';
+        throw redirect(302, redirectTo);
+      }
+    }
+
+    // 6. RESOLVER REQUEST CON CONFIGURACIÓN DE HEADERS
+    const response = await resolve(event, {
+      filterSerializedResponseHeaders(name) {
+        // Mantener headers de seguridad y CORS
+        return name === 'content-range' || name === 'x-custom-header';
+      }
+    });
+
+    // 7. AGREGAR HEADERS DE SEGURIDAD
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-XSS-Protection', '1; mode=block');
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+    return response;
+  } catch (error) {
+    // Si es un redirect, re-lanzarlo
+    if (error && typeof error === 'object' && 'status' in error && error.status === 302) {
+      throw error;
+    }
+
+    // Para otros errores, log y redirigir a error page
+    // eslint-disable-next-line no-console
+    console.error('Error in hooks.server.ts:', error);
+
+    // Limpiar cookies por seguridad en caso de error
+    clearInvalidCookies(cookies);
+
+    throw redirect(302, '/login');
   }
-
-  return response;
 };
 
 /**
- * Hook para manejo de errores del servidor
+ * Manejo de errores del servidor
  */
-export async function handleError({ error, event }: { error: any; event: any }) {
-  // Log del error real en servidor
+export const handleError: HandleServerError = async ({ error, event }) => {
+  const errorId = Date.now(); // Changed from randomUUID() to Date.now()
+
+  // Log estructurado del error (solo en servidor)
   // eslint-disable-next-line no-console
-  console.error('Server error:', {
-    error: error?.message || 'Unknown error',
+  console.error('Server Error:', {
+    errorId,
+    message: error instanceof Error ? error.message : 'Unknown error',
+    stack: error instanceof Error ? error.stack : undefined,
     url: event.url.pathname,
-    user: event.locals.user?.email || 'anonymous',
+    userAgent: event.request.headers.get('user-agent'),
     timestamp: new Date().toISOString()
   });
 
-  // NO exponer detalles del error al cliente
+  // Retornar error sanitizado para el cliente
   return {
-    message: 'Error interno del servidor'
-  } as any;
-}
-
-/**
- * Hook para fetch del servidor - Interceptor para requests del servidor
- */
-export async function handleFetch({
-  request,
-  fetch,
-  event
-}: {
-  request: any;
-  fetch: any;
-  event: any;
-}) {
-  // Si la request es hacia nuestra API, agregar headers de autenticación
-  if (request.url.includes('/api/') && event.locals.user) {
-    // Agregar cookie de sesión a requests internos
-    const sessionCookie = event.cookies.get('session');
-    if (sessionCookie) {
-      request.headers.set('Cookie', `session=${sessionCookie}`);
-    }
-  }
-
-  return fetch(request);
-}
+    message: 'Ocurrió un error interno del servidor',
+    errorId
+  };
+};

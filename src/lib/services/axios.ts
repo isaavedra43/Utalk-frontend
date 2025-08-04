@@ -1,16 +1,20 @@
 /**
- * Cliente HTTP Axios configurado para UTalk Frontend
- * Configuración centralizada para todas las peticiones API
+ * Cliente HTTP configurado para UTalk Frontend
+ * Incluye configuración de base URL, timeouts, headers y manejo de errores
+ *
+ * Configuración basada en DOCUMENTACION_COMPLETA_BACKEND_UTALK.md
  */
 
-import { browser } from '$app/environment';
 import { API_BASE_URL } from '$lib/env';
+import type { QueueItem } from '$lib/types/http';
+import { browser } from '$lib/utils/browser';
 import axios from 'axios';
 
-// Crear instancia de Axios con configuración base
+// Configuración del cliente Axios
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000, // 10 segundos
+  timeout: 15000, // 15 segundos timeout según documentación
+  withCredentials: true, // Enviar cookies automáticamente
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json'
@@ -20,14 +24,6 @@ export const apiClient = axios.create({
 // Interceptor para requests
 apiClient.interceptors.request.use(
   config => {
-    // Agregar token de autenticación si existe (solo en browser)
-    if (browser && typeof window !== 'undefined') {
-      const token = window.localStorage.getItem('auth_token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-
     // Log en desarrollo
     if (import.meta.env.DEV && typeof console !== 'undefined') {
       // eslint-disable-next-line no-console
@@ -37,20 +33,18 @@ apiClient.interceptors.request.use(
     return config;
   },
   error => {
-    if (import.meta.env.DEV && typeof console !== 'undefined') {
-      // eslint-disable-next-line no-console
-      console.error('❌ API Request Error:', error);
-    }
+    // eslint-disable-next-line no-console
+    console.error('❌ Request Error:', error);
     return Promise.reject(error);
   }
 );
 
 // Variable para evitar múltiples intentos de refresh simultáneos
 let isRefreshing = false;
-let failedQueue: Array<{ resolve: (value: any) => void; reject: (error: any) => void }> = [];
+let failedQueue: QueueItem[] = [];
 
 // Función para procesar la cola de requests después del refresh
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach(({ resolve, reject }) => {
     if (error) {
       reject(error);

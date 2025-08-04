@@ -7,6 +7,7 @@ export interface ApiError {
     status: number;
     statusText: string;
     data?: Record<string, unknown>;
+    headers?: Record<string, string | string[]>;
   };
   request?: unknown;
   message: string;

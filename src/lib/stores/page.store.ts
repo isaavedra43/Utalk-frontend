@@ -1,10 +1,11 @@
+import type { PageFormData } from '$lib/types/auth';
 import { writable } from 'svelte/store';
 
 export interface PageData {
   status?: number;
-  error?: any;
+  error?: unknown;
   url?: string;
-  form?: any;
+  form?: PageFormData | null;
 }
 
 export const pageStore = writable<PageData>({
@@ -25,6 +26,6 @@ export function setCurrentUrl(url: string) {
 }
 
 // Función para actualizar form data
-export function setFormData(form: any) {
+export function setFormData(form: PageFormData | null) {
   pageStore.update(state => ({ ...state, form }));
 }

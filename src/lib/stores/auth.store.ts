@@ -8,22 +8,12 @@
  * - DOCUMENTACION_COMPLETA_BACKEND_UTALK.md
  */
 
-import { browser } from '$app/environment';
+import type { User } from '$lib/types/auth';
+import { browser } from '$lib/utils/browser';
 import type { RequestEvent } from '@sveltejs/kit';
 import { derived, writable } from 'svelte/store';
 
 // Tipos basados en la documentación del backend
-export interface User {
-  email: string;
-  name: string;
-  role: string;
-  avatarUrl?: string;
-  status: string;
-  permissions: string[];
-  isOnline: boolean;
-  lastSeen: string;
-}
-
 export interface AuthState {
   user: User | null;
   loading: boolean;
@@ -70,7 +60,7 @@ function createAuthStore() {
             event.locals.user = {
               email: userData.email,
               name: userData.name,
-              role: userData.role,
+              role: userData.role as User['role'],
               permissions: userData.permissions || [],
               isAuthenticated: true
             };
@@ -257,7 +247,7 @@ export function hasSpecificPermission(permission: string): boolean {
 
   if (!currentState.user) return false;
 
-  return currentState.user.permissions.includes(permission);
+  return currentState.user.permissions?.includes(permission) ?? false;
 }
 
 /**

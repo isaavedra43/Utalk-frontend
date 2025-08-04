@@ -55,7 +55,7 @@ export const actions: Actions = {
 
     try {
       // Usar el servicio de autenticación que maneja toda la lógica
-      const loginResponse = await authLogin(email, password);
+      const loginResponse = await authLogin({ email, password });
 
       const { accessToken, refreshToken, user } = loginResponse;
 
