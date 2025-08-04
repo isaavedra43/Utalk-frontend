@@ -2,9 +2,8 @@
  * Constantes globales para UTalk Frontend
  */
 
-// URLs del backend (se configurarán con variables de entorno)
-export const API_BASE_URL = import.meta.env['VITE_API_URL'] || 'http://localhost:3001';
-export const WS_BASE_URL = import.meta.env['VITE_WS_URL'] || 'ws://localhost:3001';
+// URLs del backend (validadas desde env.ts)
+export { API_BASE_URL, WS_BASE_URL } from './env.js';
 
 // Configuración de la aplicación
 export const APP_CONFIG = {
@@ -29,14 +28,6 @@ export const MESSAGE_CONFIG = {
   RECONNECT_DELAY: 1000 // ms
 } as const;
 
-// Roles de usuario
-export const USER_ROLES = {
-  VIEWER: 'viewer',
-  AGENT: 'agent',
-  ADMIN: 'admin',
-  SUPERADMIN: 'superadmin'
-} as const;
-
 // Estados de mensaje
 export const MESSAGE_STATUS = {
   SENDING: 'sending',
@@ -44,6 +35,14 @@ export const MESSAGE_STATUS = {
   DELIVERED: 'delivered',
   READ: 'read',
   FAILED: 'failed'
+} as const;
+
+// Roles de usuario
+export const USER_ROLES = {
+  VIEWER: 'viewer',
+  AGENT: 'agent',
+  ADMIN: 'admin',
+  SUPERADMIN: 'superadmin'
 } as const;
 
 // Canales de comunicación

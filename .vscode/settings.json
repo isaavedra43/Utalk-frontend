@@ -19,9 +19,14 @@
     "svelte": "html"
   },
   "tailwindCSS.classAttributes": ["class", "className", "class:list", "classList", "ngClass"],
-  "css.validate": false,
-  "less.validate": false,
-  "scss.validate": false,
+  "tailwindCSS.experimental.classRegex": [
+    ["cn\\(([^)]*)\\)", "'([^']*)'"],
+    ["clsx\\(([^)]*)\\)", "'([^']*)'"]
+  ],
+  "css.validate": true,
+  "css.customData": [".vscode/css_custom_data.json"],
+  "less.validate": true,
+  "scss.validate": true,
   "svelte.enable-ts-plugin": true,
   "search.exclude": {
     "**/node_modules": true,

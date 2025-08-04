@@ -1,3 +1,13 @@
-export { default as Alert } from './alert.svelte';
-export { default as AlertDescription } from './alert-description.svelte';
-export { default as AlertTitle } from './alert-title.svelte';
+import Description from './alert-description.svelte';
+import Title from './alert-title.svelte';
+import Root from './alert.svelte';
+
+export {
+  //
+  Root as Alert,
+  Description as AlertDescription,
+  Title as AlertTitle,
+  Description,
+  Root,
+  Title
+};

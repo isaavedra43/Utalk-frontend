@@ -1,9 +1,9 @@
 import js from '@eslint/js';
 import ts from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
+import prettier from 'eslint-config-prettier';
 import svelte from 'eslint-plugin-svelte';
 import svelteParser from 'svelte-eslint-parser';
-import prettier from 'eslint-config-prettier';
 
 export default [
   js.configs.recommended,
@@ -24,15 +24,15 @@ export default [
         HTMLElement: 'readonly',
         HTMLDivElement: 'readonly',
         HTMLParagraphElement: 'readonly',
-        FileList: 'readonly'
+        FileList: 'readonly',
+        URL: 'readonly'
       }
     },
     plugins: {
       '@typescript-eslint': ts
     },
     rules: {
-      // Reglas generales de calidad
-      'no-console': 'warn',
+      'no-console': 'error',
       'no-debugger': 'error',
       'no-unused-vars': 'off',
       'prefer-const': 'error',
@@ -40,8 +40,7 @@ export default [
       eqeqeq: ['error', 'always'],
       curly: ['error', 'all'],
       'no-duplicate-imports': 'error',
-
-      // Reglas de TypeScript
+      'no-constant-binary-expression': 'warn',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn'
     }
@@ -61,7 +60,8 @@ export default [
         HTMLElement: 'readonly',
         HTMLDivElement: 'readonly',
         HTMLParagraphElement: 'readonly',
-        FileList: 'readonly'
+        FileList: 'readonly',
+        URL: 'readonly'
       }
     },
     plugins: {
@@ -69,9 +69,15 @@ export default [
     },
     rules: {
       ...svelte.configs.recommended.rules,
-      // Reglas específicas para Svelte
       'svelte/no-target-blank': 'error',
-      'svelte/button-has-type': 'error'
+      'svelte/button-has-type': 'error',
+      'no-console': 'error'
+    }
+  },
+  {
+    files: ['**/*.test.{js,ts}', '**/*.spec.{js,ts}'],
+    rules: {
+      'no-constant-binary-expression': 'off'
     }
   },
   {
@@ -82,7 +88,8 @@ export default [
       '.svelte-kit/',
       'node_modules/',
       'coverage/',
-      '**/.DS_Store'
+      '**/.DS_Store',
+      'src/tests/setup.ts'
     ]
   },
   prettier

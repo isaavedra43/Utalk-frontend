@@ -1,1 +1,3 @@
-export { default as Badge } from './badge.svelte';
+import Root from './badge.svelte';
+
+export { Root as Badge, Root };
