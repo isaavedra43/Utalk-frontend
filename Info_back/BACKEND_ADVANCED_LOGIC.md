@@ -139,9 +139,9 @@
 // En MessageController.createMessageInConversation()
 if (!content && !mediaUrl) {
   throw new ApiError(
-    "MISSING_CONTENT",
-    "Debes proporcionar contenido o un archivo multimedia",
-    400,
+    'MISSING_CONTENT',
+    'Debes proporcionar contenido o un archivo multimedia',
+    400
   );
 }
 ```
@@ -169,8 +169,8 @@ if (!conversation) {
 **Edge Case: Usuario sin permisos**
 
 ```javascript
-if (req.user.role === "viewer") {
-  throw CommonErrors.USER_NOT_AUTHORIZED("enviar mensajes", conversationId);
+if (req.user.role === 'viewer') {
+  throw CommonErrors.USER_NOT_AUTHORIZED('enviar mensajes', conversationId);
 }
 ```
 
@@ -180,11 +180,11 @@ if (req.user.role === "viewer") {
 
 ```javascript
 // En authMiddleware
-if (jwtError.name === "TokenExpiredError") {
+if (jwtError.name === 'TokenExpiredError') {
   return res.status(401).json({
-    error: "Token inválido",
-    message: "El token ha expirado. Por favor, inicia sesión de nuevo.",
-    code: "TOKEN_EXPIRED",
+    error: 'Token inválido',
+    message: 'El token ha expirado. Por favor, inicia sesión de nuevo.',
+    code: 'TOKEN_EXPIRED'
   });
 }
 ```
@@ -204,7 +204,7 @@ if (jwtError.name === "TokenExpiredError") {
 if (token.used) {
   // Invalidar toda la familia de tokens (security breach detection)
   await this.invalidateTokenFamily(token.family);
-  throw new Error("Token family compromised");
+  throw new Error('Token family compromised');
 }
 ```
 
@@ -224,8 +224,8 @@ socket.emit('sync-state', { conversationIds: [...] });
 // En EnterpriseSocketManager
 const RATE_LIMITS = {
   typing: 500, // 0.5 segundos entre eventos
-  "new-message": 100, // 0.1 segundos
-  "join-conversation": 1000, // 1 segundo
+  'new-message': 100, // 0.1 segundos
+  'join-conversation': 1000 // 1 segundo
 };
 ```
 
@@ -233,7 +233,7 @@ const RATE_LIMITS = {
 
 ```javascript
 // Cleanup automático implementado
-socket.on("disconnect", () => {
+socket.on('disconnect', () => {
   this.cleanupUserSession(userEmail);
   // Remueve todos los listeners y maps entries
 });
@@ -289,12 +289,12 @@ setTimeout(async () => {
 
 ```javascript
 // memoryManager events
-memoryManager.on("warning-alert", (alert) => {
-  logger.warn("Memory warning", alert);
+memoryManager.on('warning-alert', alert => {
+  logger.warn('Memory warning', alert);
 });
 
 // healthService events
-healthService.on("service-down", (serviceName) => {
+healthService.on('service-down', serviceName => {
   // Notificar a admins vía WebSocket
 });
 ```
@@ -307,14 +307,14 @@ setInterval(
   () => {
     this.performMemoryCleanup();
   },
-  2 * 60 * 1000,
+  2 * 60 * 1000
 ); // Cada 2 minutos
 
 setInterval(
   () => {
     this.performMemoryLeakDetection();
   },
-  5 * 60 * 1000,
+  5 * 60 * 1000
 ); // Cada 5 minutos
 ```
 
@@ -336,7 +336,7 @@ setInterval(
 **Tipos de mensaje permitidos:**
 
 ```javascript
-const validTypes = ["text", "image", "audio", "video", "document", "system"];
+const validTypes = ['text', 'image', 'audio', 'video', 'document', 'system'];
 // Validado en Joi schema en routes/messages.js
 ```
 
@@ -345,10 +345,10 @@ const validTypes = ["text", "image", "audio", "video", "document", "system"];
 ```javascript
 // En MediaUploadController
 const allowedMimeTypes = {
-  image: ["image/jpeg", "image/png", "image/gif", "image/webp"],
-  audio: ["audio/mpeg", "audio/wav", "audio/ogg"],
-  video: ["video/mp4", "video/webm", "video/quicktime"],
-  document: ["application/pdf", "text/plain", "application/msword"],
+  image: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+  audio: ['audio/mpeg', 'audio/wav', 'audio/ogg'],
+  video: ['video/mp4', 'video/webm', 'video/quicktime'],
+  document: ['application/pdf', 'text/plain', 'application/msword']
 };
 ```
 
@@ -366,7 +366,7 @@ const allowedMimeTypes = {
 ```javascript
 // En ConversationController.assignConversation()
 if (!agent.isActive) {
-  throw new ApiError("AGENT_INACTIVE", "El agente está inactivo", 400);
+  throw new ApiError('AGENT_INACTIVE', 'El agente está inactivo', 400);
 }
 
 if (conversation.assignedTo === assignedTo) {
@@ -380,7 +380,7 @@ if (conversation.assignedTo === assignedTo) {
 
 ```javascript
 // Implementado en middleware/auth.js
-const roleHierarchy = ["viewer", "agent", "admin", "superadmin"];
+const roleHierarchy = ['viewer', 'agent', 'admin', 'superadmin'];
 
 // Permisos por rol:
 // - viewer: solo lectura básica
@@ -562,16 +562,16 @@ logger.admin('user_role_change', { targetUser, newRole, ... });
 ```javascript
 // En logger.js y enhancedErrorHandler.js
 const sensitiveFields = [
-  "password",
-  "token",
-  "authorization",
-  "secret",
-  "key",
-  "auth",
-  "credential",
-  "jwt",
-  "refresh_token",
-  "api-key",
+  'password',
+  'token',
+  'authorization',
+  'secret',
+  'key',
+  'auth',
+  'credential',
+  'jwt',
+  'refresh_token',
+  'api-key'
 ];
 // Automáticamente filtrados como '[FILTERED]'
 ```
@@ -592,7 +592,7 @@ ERROR_TYPES = {
   EXTERNAL_SERVICE: 502,
   DATABASE: 503,
   INTERNAL: 500,
-  SECURITY: 403,
+  SECURITY: 403
 };
 ```
 
@@ -602,8 +602,8 @@ ERROR_TYPES = {
 // Prevenir spam de errores idénticos
 if (this.isErrorRateLimited(errorContext)) {
   return res.status(429).json({
-    error: "Too many similar errors",
-    message: "Rate limit exceeded for error reporting",
+    error: 'Too many similar errors',
+    message: 'Rate limit exceeded for error reporting'
   });
 }
 ```
@@ -726,13 +726,13 @@ const socket = io(WS_URL, {
   auth: { token },
   timeout: 5000,
   retries: 3,
-  retryDelay: 1000,
+  retryDelay: 1000
 });
 
 // Listener obligatorio para sync después de reconexión
-socket.on("connect", () => {
-  socket.emit("sync-state", {
-    conversationIds: getActiveConversationIds(),
+socket.on('connect', () => {
+  socket.emit('sync-state', {
+    conversationIds: getActiveConversationIds()
   });
 });
 ```
@@ -742,17 +742,14 @@ socket.on("connect", () => {
 ```javascript
 // Interceptor HTTP para auto-refresh
 axios.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (
-      error.response?.status === 401 &&
-      error.response?.data?.code === "TOKEN_EXPIRED"
-    ) {
+  response => response,
+  async error => {
+    if (error.response?.status === 401 && error.response?.data?.code === 'TOKEN_EXPIRED') {
       await refreshToken();
       return axios.request(error.config);
     }
     throw error;
-  },
+  }
 );
 ```
 

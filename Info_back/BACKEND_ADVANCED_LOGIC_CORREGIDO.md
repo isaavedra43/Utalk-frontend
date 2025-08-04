@@ -88,8 +88,8 @@ attachments: Joi.array()
     Joi.object({
       url: Joi.string().uri().required(),
       type: Joi.string().required(),
-      name: Joi.string().optional(),
-    }),
+      name: Joi.string().optional()
+    })
   )
   .max(10)
   .optional();
@@ -391,8 +391,8 @@ match /knowledge/{knowledgeId} {
 // Además de Firestore Rules, hay validaciones en controladores:
 
 // MessageController.createMessageInConversation():
-if (req.user.role === "viewer") {
-  throw CommonErrors.USER_NOT_AUTHORIZED("enviar mensajes", conversationId);
+if (req.user.role === 'viewer') {
+  throw CommonErrors.USER_NOT_AUTHORIZED('enviar mensajes', conversationId);
   // ⚠️ HTTP 403 incluso con token válido
 }
 
@@ -403,8 +403,8 @@ if (conversation.assignedTo === assignedTo) {
 }
 
 // CampaignController - En 6 métodos diferentes:
-if (req.user.role !== "admin" && campaign.createdBy !== req.user.id) {
-  return res.status(403).json({ error: "Sin permisos" });
+if (req.user.role !== 'admin' && campaign.createdBy !== req.user.id) {
+  return res.status(403).json({ error: 'Sin permisos' });
   // ⚠️ Solo admin o creador pueden modificar campañas
 }
 ```
@@ -522,10 +522,10 @@ if (userData.password && userData.password === passwordInput) {
 // Información sensible en logs:
 
 // AuthController.login() línea 20-24:
-req.logger.auth("login_attempt", {
+req.logger.auth('login_attempt', {
   email, // ⚠️ Email en logs
   ip: req.ip,
-  userAgent: req.headers["user-agent"]?.substring(0, 100),
+  userAgent: req.headers['user-agent']?.substring(0, 100)
 });
 
 // ⚠️ PROBLEMA: Los logs pueden contener:
@@ -541,12 +541,12 @@ req.logger.auth("login_attempt", {
 // src/config/cors.js - En desarrollo permite TODO:
 
 development: [
-  "http://localhost:3000",
-  "http://localhost:3001",
-  "http://localhost:5173",
-  "http://localhost:8080",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:3001",
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:5173',
+  'http://localhost:8080',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001'
 ];
 
 // ⚠️ PROBLEMA: No hay validación de subdominios

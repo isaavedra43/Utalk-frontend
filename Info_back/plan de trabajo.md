@@ -378,8 +378,9 @@ Asegurarse de importar `app.css` en el entrypoint de SvelteKit. En `src/routes/+
 
 ```svelte
 <script>
-  import "../app.css";
+  import '../app.css';
 </script>
+
 <slot />
 ```
 
@@ -424,10 +425,10 @@ Incluir "overrides" para archivos Svelte:
 ```javascript
 overrides: [
   {
-    files: ["*.svelte"],
-    parser: "svelte-eslint-parser",
-    parserOptions: { parser: "@typescript-eslint/parser" },
-  },
+    files: ['*.svelte'],
+    parser: 'svelte-eslint-parser',
+    parserOptions: { parser: '@typescript-eslint/parser' }
+  }
 ];
 ```
 
@@ -509,7 +510,7 @@ VITE_WS_URL=wss://api.utalk.com/chat
 SvelteKit maneja variables de entorno en build y runtime. Usaremos `$env/static/public` para variables con prefijo `VITE_`:
 
 ```javascript
-import { PUBLIC_API_URL } from "$env/static/public";
+import { PUBLIC_API_URL } from '$env/static/public';
 ```
 
 Para variables privadas (ej. claves secretas para usar en server), usar `$env/static/private`.
@@ -527,16 +528,16 @@ npm install -D vitest @testing-library/svelte @testing-library/jest-dom jsdom
 Configurar en `vite.config.ts`:
 
 ```typescript
-import { sveltekit } from "@sveltejs/kit/vite";
-import { defineConfig } from "vite";
+import { sveltekit } from '@sveltejs/kit/vite';
+import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [sveltekit()],
   test: {
-    environment: "jsdom",
+    environment: 'jsdom',
     globals: true,
-    include: ["src/**/*.{test,spec}.{js,ts}"],
-  },
+    include: ['src/**/*.{test,spec}.{js,ts}']
+  }
 });
 ```
 
@@ -735,10 +736,10 @@ Suponiendo uso de JWT de duración limitada, implementaremos la lógica de refre
 Utilizar el hook `src/hooks.server.ts` de SvelteKit para autenticar en cada request:
 
 ```typescript
-import { decodeJWT, getUserData } from "$lib/server/auth"; // funciones backend or library
+import { decodeJWT, getUserData } from '$lib/server/auth'; // funciones backend or library
 
 export const handle: Handle = async ({ event, resolve }) => {
-  const token = event.cookies.get("session");
+  const token = event.cookies.get('session');
   if (token) {
     try {
       const userData = decodeJWT(token); // valida firma JWT (o llama backend to verify)
@@ -760,8 +761,8 @@ De esta forma, cualquier ruta puede saber si `event.locals.user` existe para det
 Con la estrategia anterior, podemos crear un guard global en el hook:
 
 ```typescript
-if (!event.locals.user && event.url.pathname.startsWith("/chat")) {
-  throw redirect(303, "/login");
+if (!event.locals.user && event.url.pathname.startsWith('/chat')) {
+  throw redirect(303, '/login');
 }
 ```
 
@@ -1280,7 +1281,7 @@ El objetivo es que incluso una **inteligencia artificial de asistencia** (como C
 Este store global mantiene el **estado de la sesión de usuario** (datos básicos y estado de login). Emplea un `writable` de Svelte y expone funciones para actualizar la sesión de forma consistente. Los comentarios explican cada parte del código:
 
 ```typescript
-import { writable } from "svelte/store";
+import { writable } from 'svelte/store';
 
 /** Datos del usuario autenticado */
 interface User {
@@ -1301,7 +1302,7 @@ interface AuthState {
 const initialState: AuthState = {
   user: null,
   token: null,
-  isAuthenticated: false,
+  isAuthenticated: false
 };
 
 /**
@@ -1326,11 +1327,11 @@ function createAuthStore() {
 
     /** Actualiza parcialmente el usuario (ej. cambio de perfil) */
     updateUser: (newUserData: Partial<User>) => {
-      update((state) => {
+      update(state => {
         if (!state.user) return state;
         return { ...state, user: { ...state.user, ...newUserData } };
       });
-    },
+    }
   };
 }
 
@@ -1350,9 +1351,9 @@ export const authStore = createAuthStore();
 Ejemplo simplificado del servicio de chat, encargándose de **conectar con el WebSocket** y gestionar envío/recepción de mensajes. Incluye comentarios paso a paso:
 
 ```typescript
-import { io, Socket } from "socket.io-client";
-import { chatStore } from "$lib/stores/chat.store";
-import { PUBLIC_WS_URL } from "$env/static/public"; // URL del servidor de WebSocket
+import { io, Socket } from 'socket.io-client';
+import { chatStore } from '$lib/stores/chat.store';
+import { PUBLIC_WS_URL } from '$env/static/public'; // URL del servidor de WebSocket
 
 let socket: Socket | null = null;
 
@@ -1363,45 +1364,45 @@ let socket: Socket | null = null;
 export function connectChatSocket(token: string): void {
   socket = io(PUBLIC_WS_URL, {
     auth: { token },
-    autoConnect: false, // preferimos conectar manualmente
+    autoConnect: false // preferimos conectar manualmente
   });
 
   // Intentamos conectar
   socket.connect();
 
-  socket.on("connect", () => {
-    console.log("🟢 Socket conectado al servidor de chat");
-    chatStore.setConnectionStatus("connected");
+  socket.on('connect', () => {
+    console.log('🟢 Socket conectado al servidor de chat');
+    chatStore.setConnectionStatus('connected');
     // Opcional: fetch de mensajes recientes si es reconexión
   });
 
-  socket.on("disconnect", (reason) => {
-    console.warn("⚠️ Socket desconectado:", reason);
-    chatStore.setConnectionStatus("disconnected");
+  socket.on('disconnect', reason => {
+    console.warn('⚠️ Socket desconectado:', reason);
+    chatStore.setConnectionStatus('disconnected');
     // Socket.io reintentará automáticamente a menos que reason sea "io client disconnect"
   });
 
-  socket.on("connect_error", (err) => {
-    console.error("🔴 Error conectando socket:", err.message);
+  socket.on('connect_error', err => {
+    console.error('🔴 Error conectando socket:', err.message);
     // Podemos actualizar estado a "error" si deseamos manejar distinto a disconnect normal
-    chatStore.setConnectionStatus("error");
+    chatStore.setConnectionStatus('error');
   });
 
   // Manejar evento personalizado 'message' de nuevo mensaje entrante
-  socket.on("message", (msg) => {
+  socket.on('message', msg => {
     // Se asume msg tiene estructura { id, content, senderId, timestamp, ... }
     chatStore.addMessage(msg);
     // Podríamos agregar lógica de notificación aquí si la conversación actual no está en foco
   });
 
   // Manejar confirmación de entrega de mensaje enviado (ACK)
-  socket.on("message_ack", (ack) => {
+  socket.on('message_ack', ack => {
     // ack podría contener el id temporal y el nuevo id asignado
     chatStore.confirmMessageSent(ack.tempId, ack.finalId, ack.timestamp);
   });
 
   // Manejar evento de usuario escribiendo
-  socket.on("typing", ({ conversationId, userId, isTyping }) => {
+  socket.on('typing', ({ conversationId, userId, isTyping }) => {
     chatStore.setUserTyping(conversationId, userId, isTyping);
   });
 }
@@ -1410,20 +1411,17 @@ export function connectChatSocket(token: string): void {
  * Envía un mensaje de texto a través del socket.
  * Retorna el ID temporal asignado al mensaje mientras se confirma.
  */
-export function sendMessage(
-  conversationId: string,
-  content: string,
-): string | null {
+export function sendMessage(conversationId: string, content: string): string | null {
   if (!socket || !socket.connected) {
-    console.error("No se pudo enviar, socket desconectado");
+    console.error('No se pudo enviar, socket desconectado');
     return null;
   }
 
   // Creamos un ID temporal para el mensaje
   const tempId = `temp-${Date.now()}`;
-  const messagePayload = { tempId, conversationId, content, type: "text" };
+  const messagePayload = { tempId, conversationId, content, type: 'text' };
 
-  socket.emit("message", messagePayload);
+  socket.emit('message', messagePayload);
 
   // Registramos el mensaje en el store con estado "sending"
   chatStore.addMessage({
@@ -1432,7 +1430,7 @@ export function sendMessage(
     content,
     senderId: chatStore.currentUserId(),
     timestamp: new Date().toISOString(),
-    status: "sending",
+    status: 'sending'
   });
 
   return tempId;
@@ -1441,7 +1439,7 @@ export function sendMessage(
 /** Envia notificación de "estoy escribiendo" al servidor */
 export function sendTyping(conversationId: string, isTyping: boolean): void {
   if (!socket) return;
-  socket.emit("typing", { conversationId, isTyping });
+  socket.emit('typing', { conversationId, isTyping });
 }
 
 /** Cierra la conexión del socket de chat (por ejemplo, al hacer logout) */
@@ -1472,32 +1470,46 @@ Un fragmento de cómo sería el **componente Svelte para el formulario de login*
 
   export let form; // resultado del action (éxito o error)
 
-  let email: string = "";
-  let password: string = "";
+  let email: string = '';
+  let password: string = '';
 
   // Opcional: derivar error desde form si vino con error del servidor
   $: loginError = form?.error ? form.error.message : null;
 </script>
 
 <main class="min-h-screen flex items-center justify-center bg-gray-50">
-  <form method="POST" action="?/login"
-        class="bg-white p-6 rounded shadow-sm w-full max-w-md"
-        on:submit={() => invalidate('login')}>
-
+  <form
+    method="POST"
+    action="?/login"
+    class="bg-white p-6 rounded shadow-sm w-full max-w-md"
+    on:submit={() => invalidate('login')}
+  >
     <h1 class="text-2xl font-bold mb-4 text-center">Iniciar Sesión</h1>
 
     <!-- Campo de Email -->
     <div class="mb-3">
       <label for="email" class="block text-sm font-medium mb-1">Email</label>
-      <input id="email" name="email" bind:value={email} type="email" required
-             class="input bg-gray-50 border border-gray-300 rounded w-full px-3 py-2" />
+      <input
+        id="email"
+        name="email"
+        bind:value={email}
+        type="email"
+        required
+        class="input bg-gray-50 border border-gray-300 rounded w-full px-3 py-2"
+      />
     </div>
 
     <!-- Campo de Contraseña -->
     <div class="mb-4">
       <label for="password" class="block text-sm font-medium mb-1">Contraseña</label>
-      <input id="password" name="password" bind:value={password} type="password" required
-             class="input bg-gray-50 border border-gray-300 rounded w-full px-3 py-2" />
+      <input
+        id="password"
+        name="password"
+        bind:value={password}
+        type="password"
+        required
+        class="input bg-gray-50 border border-gray-300 rounded w-full px-3 py-2"
+      />
     </div>
 
     <!-- Mensaje de error si existe -->
@@ -1508,16 +1520,17 @@ Un fragmento de cómo sería el **componente Svelte para el formulario de login*
     {/if}
 
     <!-- Botón Submit -->
-    <button type="submit"
-            class="btn bg-blue-600 text-white w-full py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-            disabled={form?.pending}>
+    <button
+      type="submit"
+      class="btn bg-blue-600 text-white w-full py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+      disabled={form?.pending}
+    >
       {#if form?.pending}
         Entrando... <!-- texto cambia si estamos enviando -->
       {:else}
         Entrar
       {/if}
     </button>
-
   </form>
 </main>
 ```
@@ -1536,54 +1549,52 @@ Incluimos un ejemplo de **prueba para el servicio de chat**, demostrando cómo a
 
 ```typescript
 /// <reference types="vitest" />
-import { describe, it, expect, vi } from "vitest";
-import * as chatService from "$lib/services/chat.service";
-import { chatStore } from "$lib/stores/chat.store";
+import { describe, it, expect, vi } from 'vitest';
+import * as chatService from '$lib/services/chat.service';
+import { chatStore } from '$lib/stores/chat.store';
 
-describe("Chat Service", () => {
-  it("should not send message if socket is disconnected", () => {
+describe('Chat Service', () => {
+  it('should not send message if socket is disconnected', () => {
     // Aseguramos que no hay socket conectado
     // (chatService.socket es interno; podríamos exponer un método isConnected o simular desconexión)
     chatService.disconnectChatSocket();
 
-    const result = chatService.sendMessage("conv123", "Hola");
+    const result = chatService.sendMessage('conv123', 'Hola');
 
     expect(result).toBeNull();
 
     // Además, el store no debería tener mensajes añadidos
     let messages;
-    chatStore.messages.subscribe((value) => (messages = value))();
+    chatStore.messages.subscribe(value => (messages = value))();
     expect(messages).toEqual([]);
   });
 
-  it("should add temp message and call socket.emit on sendMessage when connected", () => {
+  it('should add temp message and call socket.emit on sendMessage when connected', () => {
     // Simulamos socket conectado usando un mock
     const fakeSocket = { emit: vi.fn(), connected: true };
 
     // Suplantamos el socket interno (asumiendo chatService expone internamente o vía DI)
     (chatService as any).socket = fakeSocket;
 
-    const tempId = chatService.sendMessage("conv123", "Prueba de envío");
+    const tempId = chatService.sendMessage('conv123', 'Prueba de envío');
 
-    expect(typeof tempId).toBe("string");
-    expect(tempId?.startsWith("temp-")).toBe(true);
+    expect(typeof tempId).toBe('string');
+    expect(tempId?.startsWith('temp-')).toBe(true);
 
     // verificar que socket.emit fue llamado con los datos correctos
     expect(fakeSocket.emit).toHaveBeenCalledWith(
-      "message",
+      'message',
       expect.objectContaining({
-        conversationId: "conv123",
-        content: "Prueba de envío",
-      }),
+        conversationId: 'conv123',
+        content: 'Prueba de envío'
+      })
     );
 
     // verificar que el store contiene el mensaje temporal
     let lastMessage;
-    chatStore.messages.subscribe(
-      (msgs) => (lastMessage = msgs[msgs.length - 1]),
-    )();
-    expect(lastMessage.content).toBe("Prueba de envío");
-    expect(lastMessage.status).toBe("sending");
+    chatStore.messages.subscribe(msgs => (lastMessage = msgs[msgs.length - 1]))();
+    expect(lastMessage.content).toBe('Prueba de envío');
+    expect(lastMessage.status).toBe('sending');
   });
 });
 ```
