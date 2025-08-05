@@ -6,25 +6,21 @@ console.log('🚨 LOGIN SERVER ACTION - ARCHIVO CARGADO:', {
   status: 'LOADED'
 });
 
-import { API_BASE_URL } from '$lib/env';
-import { login as authLogin } from '$lib/services/auth.service';
 import type { Actions } from './$types';
 
 // ⚠️ LOG CRÍTICO POST-IMPORT - Debe aparecer SIEMPRE
 // eslint-disable-next-line no-console
 console.log('🚨 LOGIN SERVER ACTION - IMPORTS COMPLETADOS:', {
   timestamp: new Date().toISOString(),
-  API_BASE_URL: API_BASE_URL ? 'LOADED' : 'FAILED',
-  authLogin: typeof authLogin === 'function' ? 'LOADED' : 'FAILED'
+  status: 'IMPORTS_LOADED'
 });
 
 export const actions: Actions = {
-  default: async ({ request, cookies: _cookies }) => {
+  default: async ({ request }) => {
     // ⚠️ LOG CRÍTICO PARA DEBUGGING VERCEL 500
     // eslint-disable-next-line no-console
     console.log('🔍 SERVER ACTION INICIADO:', {
       timestamp: new Date().toISOString(),
-      API_BASE_URL,
       context: 'vercel-serverless-function'
     });
 
@@ -63,6 +59,22 @@ export const actions: Actions = {
           error: 'Email y contraseña son requeridos'
         };
       }
+
+      // ⚠️ LOG ANTES DE IMPORTAR SERVICIOS
+      // eslint-disable-next-line no-console
+      console.log('📋 Intentando importar servicios...');
+
+      // Importación dinámica para evitar errores de carga
+      const { API_BASE_URL } = await import('$lib/env');
+      const authService = await import('$lib/services/auth.service');
+      const authLogin = authService.login;
+
+      // ⚠️ LOG DESPUÉS DE IMPORTAR SERVICIOS
+      // eslint-disable-next-line no-console
+      console.log('✅ Servicios importados:', {
+        API_BASE_URL: API_BASE_URL ? 'LOADED' : 'FAILED',
+        authLogin: typeof authLogin === 'function' ? 'LOADED' : 'FAILED'
+      });
 
       if (!API_BASE_URL || API_BASE_URL.includes('localhost')) {
         // eslint-disable-next-line no-console

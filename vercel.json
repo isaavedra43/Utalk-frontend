@@ -2,7 +2,12 @@
   "framework": "sveltekit",
   "build": {
     "env": {
-      "NODE_VERSION": "20.18.0"
+      "NODE_VERSION": "18.19.0"
+    }
+  },
+  "functions": {
+    "src/routes/login/+page.server.ts": {
+      "maxDuration": 30
     }
   },
   "headers": [
