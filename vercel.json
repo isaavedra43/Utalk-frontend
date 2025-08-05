@@ -1,16 +1,8 @@
 {
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm ci",
   "framework": "sveltekit",
   "build": {
     "env": {
       "NODE_VERSION": "20"
-    }
-  },
-  "functions": {
-    "src/routes/api/**/*.ts": {
-      "runtime": "nodejs20.x"
     }
   },
   "headers": [
@@ -31,6 +23,5 @@
         }
       ]
     }
-  ],
-  "crons": []
+  ]
 }
