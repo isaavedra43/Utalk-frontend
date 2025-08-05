@@ -6,18 +6,13 @@ console.log('🚨 LOGIN SERVER ACTION - ARCHIVO CARGADO:', {
   status: 'LOADED'
 });
 
-import { API_BASE_URL } from '$lib/env';
-import { logger } from '$lib/logger';
-import { login as authLogin } from '$lib/services/auth.service';
 import type { Actions } from './$types';
 
 // ⚠️ LOG CRÍTICO POST-IMPORT - Debe aparecer SIEMPRE
 // eslint-disable-next-line no-console
 console.log('🚨 LOGIN SERVER ACTION - IMPORTS COMPLETADOS:', {
   timestamp: new Date().toISOString(),
-  API_BASE_URL: API_BASE_URL ? 'LOADED' : 'FAILED',
-  logger: typeof logger === 'object' ? 'LOADED' : 'FAILED',
-  authLogin: typeof authLogin === 'function' ? 'LOADED' : 'FAILED'
+  status: 'IMPORTS_LOADED'
 });
 
 export const actions: Actions = {
@@ -26,20 +21,31 @@ export const actions: Actions = {
     // eslint-disable-next-line no-console
     console.log('🔍 SERVER ACTION INICIADO:', {
       timestamp: new Date().toISOString(),
-      API_BASE_URL,
-      environment: {
-        NODE_ENV: process.env['NODE_ENV'],
-        VERCEL: process.env['VERCEL'],
-        API_URL: process.env['API_URL'] ? 'SET' : 'UNDEFINED',
-        VITE_API_URL: process.env['VITE_API_URL'] ? 'SET' : 'UNDEFINED'
-      },
       context: 'vercel-serverless-function'
     });
 
     try {
+      // ⚠️ LOG ANTES DE FORM DATA
+      // eslint-disable-next-line no-console
+      console.log('📋 Intentando obtener formData...');
+
       const formData = await request.formData();
+
+      // ⚠️ LOG DESPUÉS DE FORM DATA
+      // eslint-disable-next-line no-console
+      console.log('✅ FormData obtenido exitosamente');
+
       const email = formData.get('email') as string;
       const password = formData.get('password') as string;
+
+      // ⚠️ LOG DE DATOS OBTENIDOS
+      // eslint-disable-next-line no-console
+      console.log('📋 Datos del formulario:', {
+        hasEmail: !!email,
+        hasPassword: !!password,
+        emailLength: email?.length || 0,
+        passwordLength: password?.length || 0
+      });
 
       // ⚠️ VALIDACIÓN CRÍTICA ANTES DE LLAMAR AL BACKEND
       if (!email || !password) {
@@ -54,13 +60,27 @@ export const actions: Actions = {
         };
       }
 
+      // ⚠️ LOG ANTES DE IMPORTAR SERVICIOS
+      // eslint-disable-next-line no-console
+      console.log('📋 Intentando importar servicios...');
+
+      // Importación dinámica para evitar errores de carga
+      const { API_BASE_URL } = await import('$lib/env');
+      const authService = await import('$lib/services/auth.service');
+      const authLogin = authService.login;
+
+      // ⚠️ LOG DESPUÉS DE IMPORTAR SERVICIOS
+      // eslint-disable-next-line no-console
+      console.log('✅ Servicios importados:', {
+        API_BASE_URL: API_BASE_URL ? 'LOADED' : 'FAILED',
+        authLogin: typeof authLogin === 'function' ? 'LOADED' : 'FAILED'
+      });
+
       if (!API_BASE_URL || API_BASE_URL.includes('localhost')) {
         // eslint-disable-next-line no-console
         console.error('🚨 PROBLEMA CRÍTICO: API_BASE_URL incorrecta en serverless');
         // eslint-disable-next-line no-console
         console.error('📋 API_BASE_URL actual:', API_BASE_URL);
-        // eslint-disable-next-line no-console
-        console.error('📋 Expected URL:', 'https://utalk-backend-production.up.railway.app/api');
 
         return {
           success: false,
@@ -93,13 +113,6 @@ export const actions: Actions = {
       });
 
       if (result.accessToken && result.user) {
-        logger.info('Login exitoso desde server action', {
-          module: 'LoginPageServer',
-          function: 'default',
-          userEmail: email,
-          userAction: 'login_success'
-        });
-
         return {
           success: true,
           user: result.user,
@@ -130,23 +143,15 @@ export const actions: Actions = {
                 stack: error.stack?.substring(0, 500)
               }
             : String(error),
-        API_BASE_URL,
         duration: `${duration}ms`,
         context: 'vercel-serverless-error',
         possibleCauses: [
+          'Error de importación de módulos',
           'Variables de entorno no resueltas',
           'Timeout de conexión a Railway',
           'Error en auth.service.ts',
           'Problema con Axios configuration'
         ]
-      });
-
-      logger.error('Error en login server action', error as Error, {
-        module: 'LoginPageServer',
-        function: 'default',
-        userAction: 'login_server_error',
-        API_BASE_URL,
-        errorType: error instanceof Error ? error.name : 'unknown'
       });
 
       // ⚠️ RESPUESTA ESTRUCTURADA PARA DEBUGGING
@@ -155,7 +160,6 @@ export const actions: Actions = {
         error: 'Error interno del servidor. Revisar logs de Vercel.',
         debug: {
           timestamp: new Date().toISOString(),
-          API_BASE_URL: API_BASE_URL?.substring(0, 30) + '...',
           errorMessage: error instanceof Error ? error.message : 'Unknown error',
           suggestion: 'Verificar configuración de variables de entorno en Vercel'
         }
