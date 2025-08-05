@@ -55,8 +55,7 @@
   }
 
   // Verificar si el formulario es válido
-  $: isFormValid =
-    email.length > 0 && password.length >= 6 && Object.keys(errors).length === 0 && !loading;
+  $: isFormValid = email.length > 0 && password.length >= 6 && Object.keys(errors).length === 0;
 
   // Función para manejar el submit del formulario
   function handleSubmit() {
@@ -67,26 +66,40 @@
       userEmail: email
     });
 
-    // Marcar como loading para mostrar spinner
-    loading = true;
-
-    if (!isFormValid || loading) {
+    // ✅ CORREGIDO: Validar ANTES de establecer loading
+    if (
+      !email ||
+      !password ||
+      email.length === 0 ||
+      password.length < 6 ||
+      Object.keys(errors).length > 0
+    ) {
       logger.warn('Formulario de login inválido', {
         module: 'LoginPage',
         function: 'handleSubmit',
         userAction: 'login_form_validation_failed',
-        errors: Object.keys(errors)
+        errors: Object.keys(errors),
+        hasEmail: !!email,
+        hasPassword: !!password,
+        passwordLength: password.length
       });
       return;
     }
 
+    // ✅ CORREGIDO: Establecer loading DESPUÉS de la validación
+    loading = true;
+
     // El form se enviará de manera tradicional a la action
-    logger.debug('Enviando formulario de login al servidor', {
+    logger.info('✅ FORMULARIO VÁLIDO - Enviando al backend', {
       module: 'LoginPage',
       function: 'handleSubmit',
       userAction: 'login_form_sent',
       hasEmail: !!email,
-      hasPassword: !!password
+      hasPassword: !!password,
+      emailLength: email.length,
+      passwordLength: password.length,
+      errorsCount: Object.keys(errors).length,
+      isFormValid: true
     });
   }
 
