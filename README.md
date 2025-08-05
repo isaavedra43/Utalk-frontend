@@ -23,7 +23,15 @@ Sistema de chat profesional tipo Slack construido con SvelteKit + TypeScript.
 
 ## 🛠️ Instalación
 
+### Requisitos del Sistema
+
+- **Node.js**: >= 20.0.0 (recomendado: 20.x LTS)
+- **npm**: >= 8.0.0
+
 ```bash
+# Verificar versión de Node.js
+node --version  # Debe ser >= 20.0.0
+
 # Clonar el repositorio
 git clone https://github.com/tu-usuario/utalk-frontend.git
 cd utalk-frontend

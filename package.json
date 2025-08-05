@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Sistema de mensajería multicanal con CRM integrado - Frontend",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
