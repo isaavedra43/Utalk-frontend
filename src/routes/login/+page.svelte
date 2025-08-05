@@ -185,6 +185,7 @@
     <!-- Formulario de login mejorado -->
     <form
       method="POST"
+      action="?/default"
       on:submit={handleSubmit}
       class="mt-8 space-y-6 bg-white p-8 rounded-lg shadow-md border border-secondary-200"
       novalidate
