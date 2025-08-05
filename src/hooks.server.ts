@@ -164,6 +164,17 @@ export const handle: Handle = async ({ event, resolve }) => {
   const { url, cookies, locals } = event;
   const pathname = url.pathname;
 
+  // Log para debug
+  // eslint-disable-next-line no-console
+  console.log('🔍 Hook Server - Request:', {
+    pathname,
+    isPublic: isPublicRoute(pathname),
+    isPrivate: isPrivateRoute(pathname),
+    isAuthenticated: isAuthenticated(cookies),
+    hasSessionCookie: !!cookies.get('session'),
+    hasUserInfoCookie: !!cookies.get('user_info')
+  });
+
   try {
     // 1. VERIFICAR SI LA RUTA REQUIERE AUTENTICACIÓN
     if (isPrivateRoute(pathname)) {
@@ -186,12 +197,13 @@ export const handle: Handle = async ({ event, resolve }) => {
       // 4. ESTABLECER USUARIO EN LOCALS PARA SSR
       locals.user = user;
     } else if (pathname === '/login') {
-      // 5. MANEJAR RUTA DE LOGIN
-      if (isAuthenticated(cookies)) {
-        // Usuario ya autenticado - redirigir según redirect param o dashboard
-        const redirectTo = url.searchParams.get('redirect') || '/dashboard';
-        throw redirect(302, redirectTo);
-      }
+      // 5. MANEJAR RUTA DE LOGIN - PERMITIR ACCESO LIBRE TEMPORALMENTE
+      // Comentado temporalmente para debug
+      // if (isAuthenticated(cookies)) {
+      //   // Usuario ya autenticado - redirigir según redirect param o dashboard
+      //   const redirectTo = url.searchParams.get('redirect') || '/dashboard';
+      //   throw redirect(302, redirectTo);
+      // }
     }
 
     // 6. RESOLVER REQUEST CON CONFIGURACIÓN DE HEADERS

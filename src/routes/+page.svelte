@@ -4,6 +4,7 @@
   import Button from '$lib/components/ui/button/button.svelte';
   import Input from '$lib/components/ui/input/input.svelte';
   import { logger } from '$lib/logger';
+  import { browser } from '$lib/utils/browser';
 
   let inputValue = '';
 
@@ -23,7 +24,52 @@
       targetUrl: '/login'
     });
 
-    goto('/login');
+    try {
+      logger.debug('Iniciando navegación SPA a /login', {
+        module: 'LandingPage',
+        function: 'handleLoginClick',
+        userAction: 'spa_navigation_start',
+        browser: browser
+      });
+
+      if (!browser) {
+        logger.warn('No estamos en el browser, usando window.location', {
+          module: 'LandingPage',
+          function: 'handleLoginClick',
+          userAction: 'fallback_browser_check'
+        });
+        return;
+      }
+
+      goto('/login');
+
+      logger.info('Navegación SPA iniciada exitosamente', {
+        module: 'LandingPage',
+        function: 'handleLoginClick',
+        userAction: 'spa_navigation_success'
+      });
+    } catch (error) {
+      logger.error(
+        'Error en navegación SPA',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          module: 'LandingPage',
+          function: 'handleLoginClick',
+          userAction: 'spa_navigation_error',
+          errorType: 'goto_error'
+        }
+      );
+
+      // Fallback: usar window.location si goto falla
+      if (browser) {
+        logger.warn('Usando fallback window.location.href', {
+          module: 'LandingPage',
+          function: 'handleLoginClick',
+          userAction: 'fallback_navigation'
+        });
+        window.location.href = '/login';
+      }
+    }
   }
 </script>
 
@@ -50,9 +96,26 @@
         El sistema de autenticación está completo y funcional. Prueba el flujo de login integrado
         con el backend.
       </p>
-      <Button variant="default" size="lg" on:click={handleLoginClick} className="font-semibold">
-        Ir al Login
-      </Button>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <Button variant="default" size="lg" on:click={handleLoginClick} className="font-semibold">
+          Ir al Login (SPA)
+        </Button>
+        <Button
+          variant="outline"
+          size="lg"
+          on:click={() => {
+            logger.info('Prueba de navegación directa', {
+              module: 'LandingPage',
+              function: 'directNavigation',
+              userAction: 'direct_navigation_test'
+            });
+            window.location.href = '/login';
+          }}
+          className="font-semibold"
+        >
+          Ir al Login (Directo)
+        </Button>
+      </div>
     </div>
   </header>
 
