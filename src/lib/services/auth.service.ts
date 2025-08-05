@@ -1,3 +1,11 @@
+// ⚠️ LOG CRÍTICO INMEDIATO - AUTH.SERVICE.TS CARGADO
+// eslint-disable-next-line no-console
+console.log('🚨 AUTH.SERVICE.TS - ARCHIVO CARGADO:', {
+  timestamp: new Date().toISOString(),
+  module: 'AuthService',
+  status: 'LOADED'
+});
+
 /**
  * Servicio de autenticación para UTalk Frontend
  * Maneja login, logout, refresh token y comunicación con el backend

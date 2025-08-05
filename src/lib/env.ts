@@ -1,3 +1,11 @@
+// ⚠️ LOG CRÍTICO INMEDIATO - ENV.TS CARGADO
+// eslint-disable-next-line no-console
+console.log('🚨 ENV.TS - ARCHIVO CARGADO:', {
+  timestamp: new Date().toISOString(),
+  module: 'EnvironmentConfig',
+  status: 'LOADED'
+});
+
 /**
  * Variables de entorno para UTalk Frontend
  * Configuración centralizada para URLs de API y WebSocket

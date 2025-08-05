@@ -1,7 +1,24 @@
+// ⚠️ LOG CRÍTICO INMEDIATO - Debe aparecer SIEMPRE
+// eslint-disable-next-line no-console
+console.log('🚨 LOGIN SERVER ACTION - ARCHIVO CARGADO:', {
+  timestamp: new Date().toISOString(),
+  module: 'LoginPageServer',
+  status: 'LOADED'
+});
+
 import { API_BASE_URL } from '$lib/env';
 import { logger } from '$lib/logger';
 import { login as authLogin } from '$lib/services/auth.service';
 import type { Actions } from './$types';
+
+// ⚠️ LOG CRÍTICO POST-IMPORT - Debe aparecer SIEMPRE
+// eslint-disable-next-line no-console
+console.log('🚨 LOGIN SERVER ACTION - IMPORTS COMPLETADOS:', {
+  timestamp: new Date().toISOString(),
+  API_BASE_URL: API_BASE_URL ? 'LOADED' : 'FAILED',
+  logger: typeof logger === 'object' ? 'LOADED' : 'FAILED',
+  authLogin: typeof authLogin === 'function' ? 'LOADED' : 'FAILED'
+});
 
 export const actions: Actions = {
   default: async ({ request, cookies: _cookies }) => {
