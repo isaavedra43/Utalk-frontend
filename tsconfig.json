@@ -21,7 +21,9 @@
     "allowUnreachableCode": false,
     "noImplicitThis": true,
     "useUnknownInCatchVariables": true,
-    "types": ["svelte"]
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "target": "ES2020",
+    "types": ["svelte", "node"]
   },
   "include": ["src/**/*.ts", "src/**/*.svelte", ".svelte-kit/types/**/*.d.ts"]
 }
