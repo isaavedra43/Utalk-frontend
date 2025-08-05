@@ -2,7 +2,7 @@
   "framework": "sveltekit",
   "build": {
     "env": {
-      "NODE_VERSION": "20"
+      "NODE_VERSION": "20.18.0"
     }
   },
   "headers": [
