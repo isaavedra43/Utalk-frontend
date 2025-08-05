@@ -1,6 +1,6 @@
 // ⚠️ LOG CRÍTICO INMEDIATO - AUTH.SERVICE.TS CARGADO
 // eslint-disable-next-line no-console
-console.log('🚨 AUTH.SERVICE.TS - ARCHIVO CARGADO:', {
+console.log('🚨 LOG 28: AUTH.SERVICE.TS - ARCHIVO CARGADO:', {
   timestamp: new Date().toISOString(),
   module: 'AuthService',
   status: 'LOADED'
@@ -21,7 +21,6 @@ console.log('🚨 AUTH.SERVICE.TS - ARCHIVO CARGADO:', {
 
 import { logger } from '$lib/logger';
 import type { LoginResponse } from '$lib/types/auth';
-import type { ApiError } from '$lib/types/http';
 import { browser } from '$lib/utils/browser';
 import { apiClient } from './axios';
 
@@ -43,10 +42,19 @@ export interface LoginCredentials {
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
   const startTime = performance.now();
 
+  // ⚠️ LOG 29: INICIO DE LOGIN
+  // eslint-disable-next-line no-console
+  console.log('🚀 LOG 29: Iniciando función login:', {
+    timestamp: new Date().toISOString(),
+    hasEmail: !!credentials.email,
+    hasPassword: !!credentials.password,
+    emailLength: credentials.email?.length || 0
+  });
+
   // ⚠️ VALIDACIÓN CRÍTICA: Verificar configuración antes de hacer request
   const currentBaseUrl = apiClient.defaults.baseURL;
   // eslint-disable-next-line no-console
-  console.log('🔍 AUTH SERVICE DEBUG:', {
+  console.log('🔍 LOG 30: AUTH SERVICE DEBUG:', {
     baseURL: currentBaseUrl,
     hasBaseURL: !!currentBaseUrl,
     isLocalhost: currentBaseUrl?.includes('localhost'),
@@ -57,11 +65,11 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
   if (!currentBaseUrl || currentBaseUrl.includes('localhost')) {
     const railwayUrl = 'https://utalk-backend-production.up.railway.app/api';
     // eslint-disable-next-line no-console
-    console.warn('🚨 FALLBACK CRÍTICO: Usando URL hardcodeada de Railway');
+    console.warn('🚨 LOG 31: FALLBACK CRÍTICO: Usando URL hardcodeada de Railway');
     // eslint-disable-next-line no-console
-    console.warn('📋 Original baseURL:', currentBaseUrl);
+    console.warn('📋 LOG 31: Original baseURL:', currentBaseUrl);
     // eslint-disable-next-line no-console
-    console.warn('📋 Fallback URL:', railwayUrl);
+    console.warn('📋 LOG 31: Fallback URL:', railwayUrl);
 
     // Temporalmente cambiar la baseURL para esta request
     apiClient.defaults.baseURL = railwayUrl;
@@ -88,6 +96,15 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
       throw error;
     }
 
+    // ⚠️ LOG 32: ANTES DE LA LLAMADA AL BACKEND
+    // eslint-disable-next-line no-console
+    console.log('🔍 LOG 32: Preparando llamada al backend:', {
+      endpoint: '/auth/login',
+      baseURL: apiClient.defaults.baseURL,
+      email: credentials.email.substring(0, 10) + '...',
+      passwordLength: credentials.password.length
+    });
+
     logger.debug('Sending login request to backend', {
       module: 'AuthService',
       function: 'login',
@@ -96,10 +113,23 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
       note: 'Authorization header enviado vacío según requerimiento del backend'
     });
 
+    // ⚠️ LOG 33: LLAMADA CRÍTICA AL BACKEND
+    // eslint-disable-next-line no-console
+    console.log('🚀 LOG 33: Realizando llamada POST al backend...');
+
     // ⚠️ LLAMADA CRÍTICA AL BACKEND - Aquí puede fallar con 500
     const response = await apiClient.post<LoginResponse>('/auth/login', {
       email: credentials.email,
       password: credentials.password
+    });
+
+    // ⚠️ LOG 34: RESPUESTA DEL BACKEND
+    // eslint-disable-next-line no-console
+    console.log('✅ LOG 34: Respuesta del backend recibida:', {
+      status: response.status,
+      statusText: response.statusText,
+      hasData: !!response.data,
+      dataKeys: Object.keys(response.data || {})
     });
 
     const { accessToken, refreshToken, user } = response.data;
@@ -108,7 +138,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
     // ⚠️ VALIDACIÓN DE RESPUESTA ROBUSTA
     if (!accessToken || !user || !user.email) {
       // eslint-disable-next-line no-console
-      console.error('🚨 Respuesta inválida del backend:', {
+      console.error('🚨 LOG 35: Respuesta inválida del backend:', {
         hasAccessToken: !!accessToken,
         hasUser: !!user,
         hasUserEmail: !!user?.email,
@@ -125,6 +155,13 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
           localStorage.setItem('refreshToken', refreshToken);
         }
 
+        // ⚠️ LOG 36: TOKENS GUARDADOS
+        // eslint-disable-next-line no-console
+        console.log('💾 LOG 36: Tokens guardados en localStorage:', {
+          hasAccessToken: !!accessToken,
+          hasRefreshToken: !!refreshToken
+        });
+
         logger.debug('Tokens stored in localStorage', {
           module: 'AuthService',
           function: 'login',
@@ -132,6 +169,10 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
           hasRefreshToken: !!refreshToken
         });
       } catch (storageError) {
+        // ⚠️ LOG 37: ERROR AL GUARDAR TOKENS
+        // eslint-disable-next-line no-console
+        console.error('🚨 LOG 37: Error al guardar tokens en localStorage:', storageError);
+
         logger.warn('Failed to store tokens in localStorage', {
           module: 'AuthService',
           function: 'login',
@@ -139,6 +180,16 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
         });
       }
     }
+
+    // ⚠️ LOG 38: LOGIN EXITOSO
+    // eslint-disable-next-line no-console
+    console.log('🎉 LOG 38: Login exitoso:', {
+      userEmail: user.email,
+      userRole: user.role,
+      duration: Math.round(duration),
+      hasAccessToken: !!accessToken,
+      hasRefreshToken: !!refreshToken
+    });
 
     logger.info('Login successful', {
       module: 'AuthService',
@@ -150,118 +201,102 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
       resource: '/auth/login'
     });
 
-    return response.data;
+    return { accessToken, refreshToken, user };
   } catch (error) {
     const duration = performance.now() - startTime;
 
-    if (error && typeof error === 'object' && 'response' in error) {
-      const apiError = error as ApiError;
+    // ⚠️ LOG 39: ERROR EN LOGIN
+    // eslint-disable-next-line no-console
+    console.error('🚨 LOG 39: ERROR EN LOGIN CLIENTE:', {
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : String(error),
+      duration: Math.round(duration),
+      context: 'browser-client-error',
+      suggestion: 'Verificar respuesta del backend'
+    });
 
-      logger.error('Login API error', new Error(apiError.message || 'API Error'), {
-        module: 'AuthService',
-        function: 'login',
-        networkMethod: 'POST',
-        networkUrl: '/auth/login',
-        networkStatus: apiError.response?.status,
-        networkDuration: duration,
-        userAction: 'login_failed',
-        userEmail: credentials.email,
-        errorCode: apiError.response?.status,
-        backendResponse: apiError.response?.data,
-        backendHeaders: apiError.response?.headers,
-        fullError: JSON.stringify(apiError, null, 2),
-        note: 'Error tras enviar Authorization header según requerimiento del backend'
-      });
+    // Manejo específico de errores de red
+    if (error instanceof Error) {
+      if (error.message.includes('Network Error') || error.message.includes('fetch')) {
+        logger.error('Network error during login', error, {
+          module: 'AuthService',
+          function: 'login',
+          userAction: 'login_network_error',
+          errorType: 'network'
+        });
+        throw new Error('Error de conexión. Verifica tu internet e intenta nuevamente.');
+      }
 
-      // Mapear errores específicos del backend
-      switch (apiError.response?.status) {
-        case 401:
-          logger.warn('Invalid login credentials', {
-            module: 'AuthService',
-            function: 'login',
-            securityEvent: 'invalid_credentials'
-          });
-          throw new AuthError('EMAIL_OR_PASSWORD_INCORRECT', 'Credenciales incorrectas');
-        case 429: {
-          const retryAfter = apiError.response?.headers?.['retry-after'] as string;
-          logger.warn('Login rate limit exceeded', {
-            module: 'AuthService',
-            function: 'login',
-            securityEvent: 'rate_limit_exceeded',
-            retryAfter: retryAfter ? parseInt(retryAfter) : undefined
-          });
-          throw new AuthError('RATE_LIMIT_EXCEEDED', 'Demasiados intentos de login');
-        }
-        case 423:
-          logger.warn('Account locked', {
-            module: 'AuthService',
-            function: 'login',
-            securityEvent: 'account_locked'
-          });
-          throw new AuthError('ACCOUNT_LOCKED', 'Cuenta bloqueada temporalmente');
-        case 502:
-          logger.error(
-            '🚨 BACKEND BAD GATEWAY - Railway backend error',
-            new Error(`Backend 502: ${apiError.message || 'Bad Gateway'}`),
-            {
-              module: 'AuthService',
-              function: 'login',
-              errorType: 'backend_gateway_error',
-              backendUrl: 'https://utalk-backend-production.up.railway.app',
-              suggestion: 'Verificar estado del backend en Railway',
-              possibleCauses: [
-                'CORS config',
-                'Database connection',
-                'Backend env vars',
-                'Backend dependencies'
-              ]
-            }
-          );
-          throw new AuthError(
-            'BACKEND_ERROR',
-            '🚨 El backend en Railway tiene errores internos (502). Contacta al equipo de backend.'
-          );
-        case 503:
-          logger.error(
-            'Backend service unavailable',
-            new Error(`Backend 503: ${apiError.message || 'Service Unavailable'}`),
-            {
-              module: 'AuthService',
-              function: 'login',
-              errorType: 'backend_unavailable'
-            }
-          );
-          throw new AuthError(
-            'SERVICE_UNAVAILABLE',
-            'Servicio temporalmente no disponible. Intenta en unos minutos.'
-          );
-        default:
-          logger.error(
-            'Unexpected login error',
-            new Error(apiError.message || 'Unexpected API Error'),
-            {
-              module: 'AuthService',
-              function: 'login',
-              errorType: 'unexpected_api_error'
-            }
-          );
-          throw new AuthError('SERVER_ERROR', 'Error interno del servidor');
+      if (error.message.includes('timeout')) {
+        logger.error('Timeout error during login', error, {
+          module: 'AuthService',
+          function: 'login',
+          userAction: 'login_timeout_error',
+          errorType: 'timeout'
+        });
+        throw new Error('Timeout de conexión. El servidor tardó demasiado en responder.');
       }
     }
 
-    // Error de red o desconocido
-    logger.error(
-      'Network or unknown login error',
-      error instanceof Error ? error : new Error(String(error)),
-      {
-        module: 'AuthService',
-        function: 'login',
-        errorType: 'network_error',
-        duration
-      }
-    );
+    // Manejo de errores de respuesta HTTP
+    if (error && typeof error === 'object' && 'response' in error) {
+      const httpError = error as {
+        response?: { status?: number; statusText?: string; data?: unknown };
+        config?: { url?: string };
+      };
+      const status = httpError.response?.status;
+      const data = httpError.response?.data;
 
-    throw new AuthError('NETWORK_ERROR', 'Error de conexión');
+      // ⚠️ LOG 40: ERROR HTTP ESPECÍFICO
+      // eslint-disable-next-line no-console
+      console.error('🚨 LOG 40: Error HTTP específico:', {
+        status,
+        statusText: httpError.response?.statusText,
+        data,
+        url: httpError.config?.url
+      });
+
+      logger.error(
+        'HTTP error during login',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          module: 'AuthService',
+          function: 'login',
+          userAction: 'login_http_error',
+          status,
+          data
+        }
+      );
+
+      // Manejo específico por código de estado
+      switch (status) {
+        case 401:
+          throw new Error('Credenciales incorrectas. Verifica tu email y contraseña.');
+        case 429:
+          throw new Error('Demasiados intentos. Espera unos minutos antes de intentar nuevamente.');
+        case 502:
+          // eslint-disable-next-line no-console
+          console.error('🚨 LOG 41: Error 502 - Bad Gateway:', {
+            backendUrl: apiClient.defaults.baseURL,
+            suggestion: 'El backend puede estar caído o sobrecargado'
+          });
+          throw new Error('Error del servidor. Intenta nuevamente en unos minutos.');
+        case 500:
+          throw new Error('Error interno del servidor. Contacta soporte si el problema persiste.');
+        default:
+          throw new Error(`Error del servidor (${status}). Intenta nuevamente.`);
+      }
+    }
+
+    // Error genérico
+    logger.error('Unexpected error during login', error as Error, {
+      module: 'AuthService',
+      function: 'login',
+      userAction: 'login_unexpected_error',
+      errorType: error instanceof Error ? error.name : typeof error
+    });
+
+    throw new Error('Error inesperado al iniciar sesión. Intenta nuevamente.');
   }
 }
 
@@ -451,18 +486,5 @@ export async function validateSession(): Promise<boolean> {
     return response.status === 200;
   } catch (error) {
     return false;
-  }
-}
-
-/**
- * Clase para errores de autenticación personalizados
- */
-class AuthError extends Error {
-  public code: string;
-
-  constructor(code: string, message: string) {
-    super(message);
-    this.name = 'AuthError';
-    this.code = code;
   }
 }

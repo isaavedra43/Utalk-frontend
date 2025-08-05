@@ -7,6 +7,15 @@
   import { pageStore } from '$lib/stores/page.store';
   import type { PageFormData } from '$lib/types/auth';
 
+  // ⚠️ LOG 42: PÁGINA DE LOGIN CARGADA
+  // eslint-disable-next-line no-console
+  console.log('🚨 LOG 42: PÁGINA DE LOGIN CARGADA:', {
+    timestamp: new Date().toISOString(),
+    module: 'LoginPage',
+    status: 'LOADED',
+    url: window.location.href
+  });
+
   // Log al montar la página de login
   logger.info('Página de login cargada', {
     module: 'LoginPage',
@@ -21,11 +30,30 @@
   let loading = false;
   let errors: Record<string, string> = {};
 
+  // ⚠️ LOG 43: ESTADO INICIAL DEL FORMULARIO
+  // eslint-disable-next-line no-console
+  console.log('📋 LOG 43: Estado inicial del formulario:', {
+    email: email ? email.substring(0, 10) + '...' : 'vacío',
+    password: password ? '***' + password.length + '***' : 'vacío',
+    loading,
+    errorsCount: Object.keys(errors).length
+  });
+
   // Obtener datos del formulario después del submit y parámetros de redirect
   $: formData = $pageStore.form as PageFormData;
   $: redirectTo = $pageStore.url ? new URL($pageStore.url).searchParams.get('redirect') : null;
 
   $: if (formData) {
+    // ⚠️ LOG 44: DATOS DEL FORMULARIO RECIBIDOS
+    // eslint-disable-next-line no-console
+    console.log('📋 LOG 44: Datos del formulario recibidos del servidor:', {
+      hasFormData: !!formData,
+      hasError: !!formData.error,
+      errorType: formData.error,
+      hasEmail: !!formData['email'],
+      hasSuccess: !!formData.success
+    });
+
     // Preservar email en caso de error
     if (formData['email']) {
       email = formData['email'];
@@ -52,13 +80,43 @@
     if (password && password.length > 0 && password.length < 6) {
       errors['password'] = 'La contraseña debe tener al menos 6 caracteres';
     }
+
+    // ⚠️ LOG 45: VALIDACIÓN EN TIEMPO REAL
+    // eslint-disable-next-line no-console
+    console.log('🔍 LOG 45: Validación en tiempo real:', {
+      emailLength: email.length,
+      passwordLength: password.length,
+      errorsCount: Object.keys(errors).length,
+      errors: Object.keys(errors)
+    });
   }
 
   // Verificar si el formulario es válido
   $: isFormValid = email.length > 0 && password.length >= 6 && Object.keys(errors).length === 0;
 
+  // ⚠️ LOG 46: ESTADO DE VALIDACIÓN DEL FORMULARIO
+  $: {
+    // eslint-disable-next-line no-console
+    console.log('✅ LOG 46: Estado de validación del formulario:', {
+      isFormValid,
+      emailValid: email.length > 0,
+      passwordValid: password.length >= 6,
+      noErrors: Object.keys(errors).length === 0
+    });
+  }
+
   // Función para manejar el submit del formulario
   function handleSubmit() {
+    // ⚠️ LOG 47: SUBMIT DEL FORMULARIO INICIADO
+    // eslint-disable-next-line no-console
+    console.log('🚀 LOG 47: Submit del formulario iniciado:', {
+      timestamp: new Date().toISOString(),
+      email: email ? email.substring(0, 10) + '...' : 'vacío',
+      passwordLength: password.length,
+      isFormValid,
+      errorsCount: Object.keys(errors).length
+    });
+
     logger.info('Usuario inició proceso de login', {
       module: 'LoginPage',
       function: 'handleSubmit',
@@ -74,6 +132,17 @@
       password.length < 6 ||
       Object.keys(errors).length > 0
     ) {
+      // ⚠️ LOG 48: FORMULARIO INVÁLIDO
+      // eslint-disable-next-line no-console
+      console.warn('⚠️ LOG 48: Formulario inválido - submit cancelado:', {
+        hasEmail: !!email,
+        hasPassword: !!password,
+        emailLength: email.length,
+        passwordLength: password.length,
+        errorsCount: Object.keys(errors).length,
+        errors: Object.keys(errors)
+      });
+
       logger.warn('Formulario de login inválido', {
         module: 'LoginPage',
         function: 'handleSubmit',
@@ -88,6 +157,16 @@
 
     // ✅ CORREGIDO: Establecer loading DESPUÉS de la validación
     loading = true;
+
+    // ⚠️ LOG 49: FORMULARIO VÁLIDO - ENVIANDO
+    // eslint-disable-next-line no-console
+    console.log('✅ LOG 49: Formulario válido - enviando al servidor:', {
+      email: email.substring(0, 10) + '...',
+      passwordLength: password.length,
+      loading: true,
+      formAction: '?/default',
+      method: 'POST'
+    });
 
     // El form se enviará de manera tradicional a la action
     logger.info('✅ FORMULARIO VÁLIDO - Enviando al backend', {
@@ -105,6 +184,13 @@
 
   // Función para mostrar mensaje de error amigable
   function getErrorMessage(error: string): string {
+    // ⚠️ LOG 50: PROCESANDO ERROR PARA MOSTRAR
+    // eslint-disable-next-line no-console
+    console.log('🔍 LOG 50: Procesando error para mostrar:', {
+      error,
+      errorType: typeof error
+    });
+
     switch (error) {
       case 'INVALID_CREDENTIALS':
         return 'Email o contraseña incorrectos. Verifica tus datos e intenta nuevamente.';
