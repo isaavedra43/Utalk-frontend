@@ -6,11 +6,15 @@
  * - BACKEND_ADVANCED_LOGIC_CORREGIDO.md
  * - BACKEND_ADVANCED_LOGIC.md
  * - DOCUMENTACION_COMPLETA_BACKEND_UTALK.md
+ *
+ * ⚠️ ALINEACIÓN CRÍTICA CON BACKEND:
+ * El backend requiere Authorization header en todas las requests, incluso login.
  */
 
 import { logger } from '$lib/logger';
 import type { LoginResponse } from '$lib/types/auth';
 import type { ApiError } from '$lib/types/http';
+import { browser } from '$lib/utils/browser';
 import { apiClient } from './axios';
 
 export interface LoginCredentials {
@@ -21,6 +25,10 @@ export interface LoginCredentials {
 /**
  * Función para login con credenciales
  * Según BACKEND_ADVANCED_LOGIC.md línea 289-309 y documentación completa
+ *
+ * ⚠️ CORRECCIÓN CRÍTICA: El backend REQUIERE que todas las requests incluyan
+ * el header Authorization, incluso el login inicial. Esta función ahora almacena
+ * el token recibido para futuras requests.
  */
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
   const startTime = performance.now();
@@ -48,7 +56,8 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
     logger.debug('Sending login request to backend', {
       module: 'AuthService',
       function: 'login',
-      endpoint: '/api/auth/login'
+      endpoint: '/api/auth/login',
+      note: 'Authorization header enviado vacío según requerimiento del backend'
     });
 
     const response = await apiClient.post<LoginResponse>('/api/auth/login', {
@@ -68,6 +77,25 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
         hasUser: !!response.data.user
       });
       throw error;
+    }
+
+    // ⚠️ ALINEACIÓN CON BACKEND: Guardar token para futuras requests
+    // El interceptor de axios necesita acceso al token para enviar Authorization header
+    if (browser && response.data.accessToken) {
+      try {
+        localStorage.setItem('accessToken', response.data.accessToken);
+        logger.debug('Token stored for future requests', {
+          module: 'AuthService',
+          function: 'login',
+          tokenLength: response.data.accessToken.length
+        });
+      } catch (storageError) {
+        logger.warn('Failed to store token in localStorage', {
+          module: 'AuthService',
+          function: 'login',
+          error: storageError
+        });
+      }
     }
 
     logger.info('Login successful', {
@@ -105,7 +133,8 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
         networkDuration: duration,
         userAction: 'login_failed',
         userEmail: credentials.email,
-        errorCode: apiError.response?.status
+        errorCode: apiError.response?.status,
+        note: 'Error tras enviar Authorization header según requerimiento del backend'
       });
 
       // Mapear errores específicos del backend
@@ -165,8 +194,11 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
 }
 
 /**
- * Función para logout completo
- * Invalida tokens en el backend y limpia cookies
+ * Función para logout
+ * Invalidar tokens en el backend y limpiar estado local
+ *
+ * ⚠️ ALINEACIÓN CON BACKEND: También limpia el token local para que futuras
+ * requests envíen Authorization header vacío hasta el próximo login.
  */
 export async function logout(): Promise<void> {
   const startTime = performance.now();
@@ -217,6 +249,25 @@ export async function logout(): Promise<void> {
       duration,
       note: 'Local cleanup will proceed despite backend error'
     });
+  } finally {
+    // ⚠️ ALINEACIÓN CON BACKEND: Limpiar token local SIEMPRE
+    // Esto asegura que futuras requests envíen Authorization header vacío
+    if (browser) {
+      try {
+        localStorage.removeItem('accessToken');
+        logger.debug('Token removed from localStorage', {
+          module: 'AuthService',
+          function: 'logout',
+          note: 'Futuras requests enviarán Authorization header vacío'
+        });
+      } catch (storageError) {
+        logger.warn('Failed to remove token from localStorage', {
+          module: 'AuthService',
+          function: 'logout',
+          error: storageError
+        });
+      }
+    }
   }
 }
 
@@ -238,7 +289,7 @@ export async function refreshToken(): Promise<LoginResponse> {
       module: 'AuthService',
       function: 'refreshToken',
       endpoint: '/api/auth/refresh',
-      note: 'Refresh token sent via HttpOnly cookies'
+      note: 'Refresh token sent via HttpOnly cookies + Authorization header'
     });
 
     // El refresh token se envía automáticamente en cookies HttpOnly
@@ -257,6 +308,24 @@ export async function refreshToken(): Promise<LoginResponse> {
         duration
       });
       throw error;
+    }
+
+    // ⚠️ ALINEACIÓN CON BACKEND: Actualizar token para futuras requests
+    if (browser && response.data.accessToken) {
+      try {
+        localStorage.setItem('accessToken', response.data.accessToken);
+        logger.debug('New token stored after refresh', {
+          module: 'AuthService',
+          function: 'refreshToken',
+          tokenLength: response.data.accessToken.length
+        });
+      } catch (storageError) {
+        logger.warn('Failed to store refreshed token in localStorage', {
+          module: 'AuthService',
+          function: 'refreshToken',
+          error: storageError
+        });
+      }
     }
 
     logger.info('Refresh token successful', {

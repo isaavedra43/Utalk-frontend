@@ -3,6 +3,11 @@
  * Incluye configuración de base URL, timeouts, headers y manejo de errores
  *
  * Configuración basada en DOCUMENTACION_COMPLETA_BACKEND_UTALK.md
+ *
+ * ⚠️ ALINEACIÓN CRÍTICA CON BACKEND:
+ * Según BACKEND_ADVANCED_LOGIC_CORREGIDO.md y DOCUMENTACION_COMPLETA_BACKEND_UTALK.md,
+ * el backend REQUIERE el header 'Authorization: Bearer ' en TODAS las requests,
+ * incluso en el login inicial donde aún no hay token.
  */
 
 import { API_BASE_URL } from '$lib/env';
@@ -21,13 +26,39 @@ export const apiClient = axios.create({
   }
 });
 
-// Interceptor para requests
+// Función para obtener token actual (desde cookies o storage)
+function getCurrentToken(): string | null {
+  if (!browser) return null;
+
+  try {
+    // Intentar obtener token de localStorage como fallback
+    return localStorage.getItem('accessToken') || null;
+  } catch {
+    return null;
+  }
+}
+
+// Interceptor para requests - CRÍTICO: SIEMPRE envía Authorization header
 apiClient.interceptors.request.use(
   config => {
+    // ⚠️ ALINEACIÓN CON BACKEND: Authorization header OBLIGATORIO
+    // Según la documentación del backend, ALL requests requieren este header,
+    // incluso el login inicial donde el token está vacío
+    const token = getCurrentToken();
+
+    // SIEMPRE enviar Authorization header, incluso si está vacío
+    config.headers.Authorization = `Bearer ${token || ''}`;
+
     // Log en desarrollo
     if (import.meta.env.DEV && typeof console !== 'undefined') {
       // eslint-disable-next-line no-console
-      console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+      console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`, {
+        hasToken: !!token,
+        headers: {
+          'Content-Type': config.headers['Content-Type'],
+          Authorization: config.headers.Authorization?.substring(0, 20) + '...' // Log parcial para seguridad
+        }
+      });
     }
 
     return config;

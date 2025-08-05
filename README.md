@@ -12,6 +12,38 @@ Sistema de chat profesional tipo Slack construido con SvelteKit + TypeScript.
 - ✅ **Testing** con Vitest y Testing Library
 - ✅ **Validación automática** con ESLint, Prettier y Husky
 
+## ⚠️ **ALINEACIÓN CRÍTICA CON BACKEND**
+
+**IMPORTANTE:** Este frontend está específicamente alineado con el backend UTalk desplegado en Railway. Se han realizado correcciones críticas para asegurar compatibilidad total:
+
+### 🔧 **Corrección Header Authorization (v1.1.0)**
+
+**Problema resuelto:** El backend requiere el header `Authorization: Bearer` en **TODAS** las requests, incluso en el login inicial donde aún no hay token.
+
+**Solución implementada:**
+
+- ✅ Interceptor Axios configurado para enviar **SIEMPRE** `Authorization: Bearer {token|''}`
+- ✅ Token almacenado en `localStorage` tras login exitoso
+- ✅ Token limpiado en logout para enviar header vacío
+- ✅ Refresh token actualiza automáticamente el token almacenado
+
+**Archivos modificados:**
+
+- `src/lib/services/axios.ts` - Interceptor con header obligatorio
+- `src/lib/services/auth.service.ts` - Almacenamiento/limpieza de token
+
+**Referencia:** Basado en `BACKEND_ADVANCED_LOGIC_CORREGIDO.md` y `DOCUMENTACION_COMPLETA_BACKEND_UTALK.md`
+
+**Verificación:**
+
+```bash
+# El login debe funcionar correctamente con estas credenciales:
+# Email: admin@company.com
+# Password: 123456
+npm run dev
+# Navegar a /login y probar autenticación
+```
+
 ## 📋 Tabla de Contenidos
 
 - [Instalación](#instalación)
