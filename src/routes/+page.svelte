@@ -1,9 +1,30 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
   import Badge from '$lib/components/ui/badge/badge.svelte';
   import Button from '$lib/components/ui/button/button.svelte';
   import Input from '$lib/components/ui/input/input.svelte';
+  import { logger } from '$lib/logger';
 
   let inputValue = '';
+
+  // Log al montar la página
+  logger.info('Página de inicio cargada', {
+    module: 'LandingPage',
+    function: 'onMount',
+    userAction: 'page_load',
+    url: '/'
+  });
+
+  function handleLoginClick() {
+    logger.info('Usuario hizo clic en "Ir al Login"', {
+      module: 'LandingPage',
+      function: 'handleLoginClick',
+      userAction: 'login_button_click',
+      targetUrl: '/login'
+    });
+
+    goto('/login');
+  }
 </script>
 
 <svelte:head>
@@ -29,12 +50,7 @@
         El sistema de autenticación está completo y funcional. Prueba el flujo de login integrado
         con el backend.
       </p>
-      <Button
-        variant="default"
-        size="lg"
-        on:click={() => (window.location.href = '/login')}
-        className="font-semibold"
-      >
+      <Button variant="default" size="lg" on:click={handleLoginClick} className="font-semibold">
         Ir al Login
       </Button>
     </div>

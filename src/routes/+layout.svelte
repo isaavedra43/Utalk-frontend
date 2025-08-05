@@ -1,17 +1,45 @@
 <script lang="ts">
   import Button from '$lib/components/ui/button/button.svelte';
+  import { logger } from '$lib/logger';
   import { authStore, currentUser, isAuthenticated } from '$lib/stores/auth.store';
   import { pageStore } from '$lib/stores/page.store';
   import { browser } from '$lib/utils/browser';
   import '../app.css';
 
+  // Inicializar logger globalmente
+  logger.info('Aplicación UTalk iniciada', {
+    module: 'Layout',
+    function: 'onMount',
+    userAction: 'app_start',
+    url: $pageStore.url || '/'
+  });
+
   // Función para hacer logout
   async function handleLogout() {
+    logger.info('Usuario inició logout', {
+      module: 'Layout',
+      function: 'handleLogout',
+      userAction: 'logout_attempt',
+      userId: $currentUser?.email || 'unknown'
+    });
+
     try {
       await authStore.logout();
+      logger.info('Logout exitoso', {
+        module: 'Layout',
+        function: 'handleLogout',
+        userAction: 'logout_success'
+      });
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Error durante logout:', error);
+      logger.error(
+        'Error durante logout',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          module: 'Layout',
+          function: 'handleLogout',
+          userAction: 'logout_error'
+        }
+      );
       // Incluso si hay error, redirigir a login
       if (browser) {
         window.location.href = '/login';

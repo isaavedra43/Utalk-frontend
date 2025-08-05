@@ -3,8 +3,17 @@
   import Alert from '$lib/components/ui/alert/alert.svelte';
   import Button from '$lib/components/ui/button/button.svelte';
   import Input from '$lib/components/ui/input/input.svelte';
+  import { logger } from '$lib/logger';
   import { pageStore } from '$lib/stores/page.store';
   import type { PageFormData } from '$lib/types/auth';
+
+  // Log al montar la página de login
+  logger.info('Página de login cargada', {
+    module: 'LoginPage',
+    function: 'onMount',
+    userAction: 'login_page_load',
+    url: '/login'
+  });
 
   // Estado del formulario
   let email = '';
@@ -51,14 +60,34 @@
 
   // Función para manejar el submit del formulario
   function handleSubmit() {
+    logger.info('Usuario inició proceso de login', {
+      module: 'LoginPage',
+      function: 'handleSubmit',
+      userAction: 'login_form_submit',
+      userEmail: email
+    });
+
     // Marcar como loading para mostrar spinner
     loading = true;
 
     if (!isFormValid || loading) {
+      logger.warn('Formulario de login inválido', {
+        module: 'LoginPage',
+        function: 'handleSubmit',
+        userAction: 'login_form_validation_failed',
+        errors: Object.keys(errors)
+      });
       return;
     }
 
     // El form se enviará de manera tradicional a la action
+    logger.debug('Enviando formulario de login al servidor', {
+      module: 'LoginPage',
+      function: 'handleSubmit',
+      userAction: 'login_form_sent',
+      hasEmail: !!email,
+      hasPassword: !!password
+    });
   }
 
   // Función para mostrar mensaje de error amigable
