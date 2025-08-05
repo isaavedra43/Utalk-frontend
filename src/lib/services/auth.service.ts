@@ -134,6 +134,9 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
         userAction: 'login_failed',
         userEmail: credentials.email,
         errorCode: apiError.response?.status,
+        backendResponse: apiError.response?.data,
+        backendHeaders: apiError.response?.headers,
+        fullError: JSON.stringify(apiError, null, 2),
         note: 'Error tras enviar Authorization header según requerimiento del backend'
       });
 
@@ -163,6 +166,42 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
             securityEvent: 'account_locked'
           });
           throw new AuthError('ACCOUNT_LOCKED', 'Cuenta bloqueada temporalmente');
+        case 502:
+          logger.error(
+            '🚨 BACKEND BAD GATEWAY - Railway backend error',
+            new Error(`Backend 502: ${apiError.message || 'Bad Gateway'}`),
+            {
+              module: 'AuthService',
+              function: 'login',
+              errorType: 'backend_gateway_error',
+              backendUrl: 'https://utalk-backend-production.up.railway.app',
+              suggestion: 'Verificar estado del backend en Railway',
+              possibleCauses: [
+                'CORS config',
+                'Database connection',
+                'Backend env vars',
+                'Backend dependencies'
+              ]
+            }
+          );
+          throw new AuthError(
+            'BACKEND_ERROR',
+            '🚨 El backend en Railway tiene errores internos (502). Contacta al equipo de backend.'
+          );
+        case 503:
+          logger.error(
+            'Backend service unavailable',
+            new Error(`Backend 503: ${apiError.message || 'Service Unavailable'}`),
+            {
+              module: 'AuthService',
+              function: 'login',
+              errorType: 'backend_unavailable'
+            }
+          );
+          throw new AuthError(
+            'SERVICE_UNAVAILABLE',
+            'Servicio temporalmente no disponible. Intenta en unos minutos.'
+          );
         default:
           logger.error(
             'Unexpected login error',
