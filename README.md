@@ -71,12 +71,51 @@ cd utalk-frontend
 # Instalar dependencias
 npm install
 
-# Configurar variables de entorno
-cp .env.example .env
+# Configurar variables de entorno para desarrollo local
+cp .env.example .env.local
 
 # Iniciar servidor de desarrollo
 npm run dev
 ```
+
+### ⚠️ **CONFIGURACIÓN CRÍTICA DE VARIABLES DE ENTORNO EN VERCEL**
+
+**Para que el login funcione en producción, DEBES configurar estas variables en Vercel Dashboard:**
+
+#### **1. Variables para el Cliente (VITE\_\*):**
+
+```
+VITE_API_URL = https://utalk-backend-production.up.railway.app/api
+VITE_WS_URL = wss://utalk-backend-production.up.railway.app
+```
+
+#### **2. Variables para el Servidor (sin VITE\_\*):**
+
+```
+API_URL = https://utalk-backend-production.up.railway.app/api
+WS_URL = wss://utalk-backend-production.up.railway.app
+```
+
+#### **3. Pasos para configurar en Vercel:**
+
+1. Ve a tu proyecto en [Vercel Dashboard](https://vercel.com/dashboard)
+2. Settings → Environment Variables
+3. Agrega **AMBOS** tipos de variables (VITE*\* y sin VITE*\*)
+4. Selecciona **Production, Preview, Development** para todas
+5. **Redeploy** el proyecto después de agregar las variables
+
+#### **4. Verificación:**
+
+```bash
+# Las variables deben aparecer en los logs de build como:
+🌐 BACKEND CONFIG: {
+  API_BASE_URL: 'https://utalk-backend-production.up.railway.app/api', // ✅ CORRECTO
+  env: 'server',
+  serverEnv: { API_URL: 'https://...', VITE_API_URL: 'https://...' }  // ✅ AMBAS DISPONIBLES
+}
+```
+
+**❌ Si ves `localhost:3001` en los logs, las variables NO están configuradas correctamente.**
 
 ## 🏗️ Desarrollo
 
