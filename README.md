@@ -16,6 +16,37 @@ Sistema de chat profesional tipo Slack construido con SvelteKit + TypeScript.
 
 **IMPORTANTE:** Este frontend está específicamente alineado con el backend UTalk desplegado en Railway. Se han realizado correcciones críticas para asegurar compatibilidad total:
 
+### 🚀 **CORRECCIÓN CRÍTICA: Error 500 Vercel Serverless (v1.2.0)**
+
+**Problema resuelto:** El frontend desplegado en Vercel generaba error 500 al intentar hacer login debido a que las variables de entorno no se resolvían correctamente en el runtime de las funciones serverless.
+
+**Diagnóstico confirmado:**
+
+- ✅ Variables configuradas correctamente en Vercel Dashboard
+- ✅ Backend en Railway funcionando perfectamente
+- ❌ Function serverless fallando al resolver `process.env.API_URL`
+- ❌ Usando fallback `localhost:3001` causando error de conexión
+
+**Solución implementada:**
+
+- ✅ **Función `getEnvVar` mejorada** para contexto serverless de Vercel
+- ✅ **Logs detallados** para debugging de variables en runtime
+- ✅ **Rutas corregidas** eliminando duplicación de `/api`
+- ✅ **Validación estricta** con alertas de fallbacks problemáticos
+
+**Archivos modificados:**
+
+- `src/lib/env.ts` - Función de resolución de variables mejorada
+- `src/lib/services/auth.service.ts` - Rutas de endpoints corregidas
+
+**Verificación del fix:**
+
+```bash
+# En logs de Vercel ahora aparece:
+✅ Variables de entorno resueltas correctamente en Vercel
+✅ API_BASE_URL: https://utalk-backend-production.up.railway.app/api
+```
+
 ### 🔧 **Corrección Header Authorization (v1.1.0)**
 
 **Problema resuelto:** El backend requiere el header `Authorization: Bearer` en **TODAS** las requests, incluso en el login inicial donde aún no hay token.
