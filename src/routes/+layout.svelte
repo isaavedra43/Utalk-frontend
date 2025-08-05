@@ -1,10 +1,92 @@
 <script lang="ts">
   import Button from '$lib/components/ui/button/button.svelte';
+  import { API_BASE_URL } from '$lib/env';
   import { logger } from '$lib/logger';
   import { authStore, currentUser, isAuthenticated } from '$lib/stores/auth.store';
   import { pageStore } from '$lib/stores/page.store';
   import { browser } from '$lib/utils/browser';
   import '../app.css';
+
+  // ⚠️ PING AUTOMÁTICO AL BACKEND AL CARGAR LA APP
+  // eslint-disable-next-line no-console
+  console.log('🚀 LOG 51: Iniciando ping automático al backend...', {
+    timestamp: new Date().toISOString(),
+    API_BASE_URL,
+    environment: browser ? 'browser' : 'server'
+  });
+
+  // Función para hacer ping al backend
+  async function pingBackend() {
+    const startTime = performance.now();
+    const pingUrl = `${API_BASE_URL.replace('/api', '')}/ping`;
+
+    try {
+      // eslint-disable-next-line no-console
+      console.log('🔍 LOG 52: Realizando ping al backend:', {
+        url: pingUrl,
+        timestamp: new Date().toISOString()
+      });
+
+      const response = await fetch(pingUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const duration = performance.now() - startTime;
+      const data = await response.json();
+
+      if (response.ok) {
+        // ✅ CONEXIÓN EXITOSA
+        // eslint-disable-next-line no-console
+        console.log('✅ [BACKEND PING] Conexión exitosa con backend:', {
+          status: response.status,
+          statusText: response.statusText,
+          duration: `${Math.round(duration)}ms`,
+          timestamp: new Date().toISOString(),
+          response: data,
+          url: pingUrl
+        });
+      } else {
+        // ❌ ERROR DE CONEXIÓN
+        // eslint-disable-next-line no-console
+        console.error('❌ [BACKEND PING] Error de conexión con backend:', {
+          status: response.status,
+          statusText: response.statusText,
+          duration: `${Math.round(duration)}ms`,
+          timestamp: new Date().toISOString(),
+          error: data,
+          url: pingUrl
+        });
+      }
+    } catch (error) {
+      const duration = performance.now() - startTime;
+
+      // ❌ ERROR DE RED
+      // eslint-disable-next-line no-console
+      console.error('❌ [BACKEND PING] Error de red con backend:', {
+        error: error instanceof Error ? error.message : String(error),
+        duration: `${Math.round(duration)}ms`,
+        timestamp: new Date().toISOString(),
+        url: pingUrl,
+        suggestion: 'Verificar conectividad de red o estado del backend'
+      });
+    }
+  }
+
+  // Ejecutar ping automático al cargar la app
+  if (browser) {
+    // Ejecutar inmediatamente
+    pingBackend();
+
+    // También ejecutar después de un pequeño delay para asegurar que todo esté cargado
+    setTimeout(() => {
+      // eslint-disable-next-line no-console
+      console.log('🔄 LOG 53: Ping automático retrasado ejecutándose...');
+      pingBackend();
+    }, 1000);
+  }
 
   // Inicializar logger globalmente
   logger.info('Aplicación UTalk iniciada', {
