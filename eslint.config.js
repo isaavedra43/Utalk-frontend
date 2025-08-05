@@ -25,7 +25,22 @@ export default [
         HTMLDivElement: 'readonly',
         HTMLParagraphElement: 'readonly',
         FileList: 'readonly',
-        URL: 'readonly'
+        URL: 'readonly',
+        // Browser APIs para logger
+        performance: 'readonly',
+        localStorage: 'readonly',
+        sessionStorage: 'readonly',
+        fetch: 'readonly',
+        Request: 'readonly',
+        Response: 'readonly',
+        RequestInfo: 'readonly',
+        RequestInit: 'readonly',
+        Blob: 'readonly',
+        crypto: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        PerformanceNavigationTiming: 'readonly',
+        Sentry: 'readonly'
       }
     },
     plugins: {
@@ -61,7 +76,22 @@ export default [
         HTMLDivElement: 'readonly',
         HTMLParagraphElement: 'readonly',
         FileList: 'readonly',
-        URL: 'readonly'
+        URL: 'readonly',
+        // Browser APIs para logger
+        performance: 'readonly',
+        localStorage: 'readonly',
+        sessionStorage: 'readonly',
+        fetch: 'readonly',
+        Request: 'readonly',
+        Response: 'readonly',
+        RequestInfo: 'readonly',
+        RequestInit: 'readonly',
+        Blob: 'readonly',
+        crypto: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        PerformanceNavigationTiming: 'readonly',
+        Sentry: 'readonly'
       }
     },
     plugins: {

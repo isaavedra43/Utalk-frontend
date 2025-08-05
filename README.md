@@ -1,351 +1,320 @@
 # UTalk Frontend
 
-Sistema de mensajería multicanal con CRM integrado - Frontend desarrollado con SvelteKit y Tailwind CSS.
+Sistema de chat profesional tipo Slack construido con SvelteKit + TypeScript.
 
-## ✅ Estado Actual del Proyecto
+## 🚀 Características Principales
 
-**🟢 PROYECTO LISTO PARA PRODUCCIÓN**
+- ✅ **Autenticación segura** con JWT y HttpOnly cookies
+- ✅ **Sistema de logging ultra robusto** basado en estándares de observabilidad moderna
+- ✅ **Arquitectura limpia** con separación de responsabilidades
+- ✅ **TypeScript estricto** con tipos robustos
+- ✅ **UI moderna** con Tailwind CSS y shadcn-svelte
+- ✅ **Testing** con Vitest y Testing Library
+- ✅ **Validación automática** con ESLint, Prettier y Husky
 
-- ✅ **Tipado estricto**: Eliminados todos los usos de `any`
-- ✅ **Build limpio**: Sin errores ni warnings críticos
-- ✅ **Linting**: ESLint pasa sin errores
-- ✅ **TypeScript**: Type-check sin errores
-- ✅ **Tests**: 6 tests pasan correctamente
-- ✅ **Seguridad**: Cookies HttpOnly implementadas
-- ✅ **Autenticación**: Sistema robusto de login/logout
-- ✅ **Protección de rutas**: Middleware SSR implementado
+## 📋 Tabla de Contenidos
 
-**Última actualización**: 4 de Agosto, 2025
+- [Instalación](#instalación)
+- [Desarrollo](#desarrollo)
+- [Sistema de Logging](#sistema-de-logging)
+- [Arquitectura](#arquitectura)
+- [Testing](#testing)
+- [Producción](#producción)
 
-## 🚀 Tecnologías
-
-- **SvelteKit 2.22.0** con **Svelte 5.0.0**
-- **TypeScript 5.5.4** (modo estricto)
-- **Tailwind CSS 3.4.17** con configuración optimizada
-- **shadcn-svelte** para componentes UI
-- **Vitest** para testing
-- **ESLint + Prettier** para calidad de código
-- **Husky + lint-staged** para hooks de Git
-
-## 📋 Requisitos Previos
-
-- **Node.js 18+**
-- **npm** o **pnpm**
-- **VS Code** (recomendado)
-
-## 🛠 Instalación
-
-### 1. Clonar e Instalar
+## 🛠️ Instalación
 
 ```bash
-git clone <repository-url>
-cd Utalk-frontend
+# Clonar el repositorio
+git clone https://github.com/tu-usuario/utalk-frontend.git
+cd utalk-frontend
+
+# Instalar dependencias
 npm install
-```
 
-### 2. Configurar Variables de Entorno
-
-```bash
+# Configurar variables de entorno
 cp .env.example .env
+
+# Iniciar servidor de desarrollo
+npm run dev
 ```
 
-Edita el archivo `.env` con las URLs correctas de tu backend:
-
-```env
-VITE_API_URL=http://localhost:3001
-VITE_WS_URL=ws://localhost:3001
-```
-
-### 3. Configurar VS Code (Recomendado)
-
-Instala las siguientes extensiones **obligatorias**:
-
-- **Tailwind CSS IntelliSense** (`bradlc.vscode-tailwindcss`)
-- **Svelte for VS Code** (`svelte.svelte-vscode`)
-- **Prettier** (`esbenp.prettier-vscode`)
-- **ESLint** (`dbaeumer.vscode-eslint`)
-
-La configuración de VS Code ya está incluida en `.vscode/settings.json`.
-
-## 🎯 Scripts Disponibles
+## 🏗️ Desarrollo
 
 ```bash
-# Desarrollo
-npm run dev                # Servidor de desarrollo (localhost:5173)
+# Servidor de desarrollo
+npm run dev
 
-# Build y Producción
-npm run build             # Build de producción
-npm run preview           # Preview del build
+# Build de producción
+npm run build
 
-# Calidad de Código
-npm run lint              # Ejecutar ESLint
-npm run lint:fix          # Ejecutar ESLint con auto-fix
-npm run format            # Formatear con Prettier
-npm run format:check      # Verificar formato
-npm run type-check        # Verificar tipos TypeScript
+# Preview del build
+npm run preview
 
-# Testing
-npm run test              # Ejecutar tests
-npm run test:ui           # Tests con interfaz gráfica
-npm run test:coverage     # Tests con coverage
-
-# Validación Completa
-npm run validate          # Lint + Format + Type-check + Tests
+# Validación completa
+npm run validate
 ```
 
-## 📁 Estructura del Proyecto
+## 📊 Sistema de Logging
+
+UTalk Frontend incluye un **sistema de logging ultra robusto** basado en estándares de observabilidad moderna de empresas como Netflix, Google, Stripe y Vercel.
+
+### Características del Logger
+
+- **🎯 Logging estructurado** con niveles RFC5424 (FATAL, ERROR, WARN, INFO, DEBUG, TRACE, EVENT)
+- **🚀 Múltiples transportes** (Console, LocalStorage, Remote endpoints)
+- **⚡ Interceptores automáticos** para Axios, Fetch y Socket.io
+- **📈 Performance monitoring** integrado
+- **🍞 Error tracking** con breadcrumbs para trazabilidad
+- **🔒 Sanitización automática** de datos sensibles
+- **🛡️ Throttling** para prevenir spam de logs
+- **📊 Métricas de observabilidad** en tiempo real
+- **💾 Export/import** de logs para auditoría
+
+### Uso Básico
+
+```typescript
+import { logger } from '$lib/logger';
+
+// Logging básico
+logger.info('Usuario autenticado', { userId: '123' });
+logger.error('Error de login', error);
+logger.warn('Respuesta lenta del servidor');
+logger.debug('Datos de depuración', { data });
+
+// Logging especializado
+logger.logUserAction('login_attempt');
+logger.logPerformance('api_call', 250);
+logger.logNetwork('POST', '/api/auth/login', { status: 200 });
+
+// Event logging para analytics
+logger.event('button_click', {
+  user: {
+    action: 'cta_click',
+    component: 'hero',
+    metadata: { buttonText: 'Get Started' }
+  }
+});
+```
+
+### Configuración Avanzada
+
+```typescript
+import { configureLogger, LogLevel, setupAxiosInterceptors } from '$lib/logger';
+
+// Configurar logger personalizado
+const logger = configureLogger({
+  level: LogLevel.DEBUG,
+  enableStorage: true,
+  enableRemote: true,
+  remoteEndpoint: 'https://api.yourdomain.com/logs',
+  batchSize: 20,
+  flushInterval: 5000,
+  sensitiveFields: ['password', 'token', 'apiKey']
+});
+
+// Configurar interceptores automáticos
+setupAxiosInterceptors(axiosInstance);
+setupPerformanceMonitor();
+```
+
+### Integración con Servicios Externos
+
+El logger está preparado para integrarse con servicios de observabilidad:
+
+#### Sentry
+
+```typescript
+// El logger incluye un transport para Sentry listo para usar
+// Solo necesitas instalar e inicializar Sentry
+import * as Sentry from '@sentry/browser';
+
+Sentry.init({
+  dsn: 'YOUR_SENTRY_DSN'
+});
+
+// Los errores FATAL y ERROR se envían automáticamente a Sentry
+```
+
+#### Datadog, Elastic, Axiom
+
+```typescript
+// Configurar endpoint remoto
+const logger = configureLogger({
+  enableRemote: true,
+  remoteEndpoint: 'https://http-intake.logs.datadoghq.com/v1/input/YOUR_API_KEY',
+  batchSize: 50,
+  flushInterval: 10000
+});
+```
+
+### Métricas y Monitoreo
+
+```typescript
+import { logger } from '$lib/logger';
+
+// Obtener métricas del logger
+const metrics = logger.getMetrics();
+console.log('Total logs:', metrics.totalLogs);
+console.log('Error rate:', metrics.errorRate);
+console.log('Logs por nivel:', metrics.logsByLevel);
+
+// Exportar logs para auditoría
+const logsBlob = await logger.export();
+const url = URL.createObjectURL(logsBlob);
+const a = document.createElement('a');
+a.href = url;
+a.download = 'utalk-logs.json';
+a.click();
+```
+
+### Configuración por Entorno
+
+El logger se auto-configura según el entorno:
+
+- **Development**: Logs DEBUG+, storage habilitado, console verbose
+- **Staging**: Logs INFO+, storage habilitado, remote opcional
+- **Production**: Logs WARN+, solo remote, optimizado para performance
+
+### Interceptores Automáticos
+
+```typescript
+// Los interceptores se configuran automáticamente en desarrollo
+// Para configuración manual:
+
+// Axios
+setupAxiosInterceptors(axiosInstance, {
+  logRequests: true,
+  logResponses: true,
+  logErrors: true,
+  excludeUrls: ['/ping', '/health']
+});
+
+// Fetch nativo
+setupFetchInterceptor({
+  logPerformance: true,
+  maxBodySize: 1024
+});
+
+// Performance global
+setupPerformanceMonitor(); // Auto-detecta Long Tasks, Page Load, etc.
+```
+
+### Logging de Seguridad
+
+```typescript
+// El logger automáticamente sanitiza datos sensibles
+logger.info('Login attempt', {
+  email: 'user@example.com',
+  password: 'secret123', // Se convierte automáticamente en '[REDACTED]'
+  token: 'jwt-token' // Se convierte automáticamente en '[REDACTED]'
+});
+
+// Campos sensibles configurables
+const logger = configureLogger({
+  sensitiveFields: ['password', 'token', 'apiKey', 'secret', 'ssn', 'creditCard']
+});
+```
+
+## 🏛️ Arquitectura
+
+### Estructura del Proyecto
 
 ```
 src/
-├── routes/                 # Rutas de SvelteKit
 ├── lib/
-│   ├── components/ui/      # Componentes base (shadcn-svelte)
-│   ├── stores/            # Stores de Svelte
-│   ├── services/          # Servicios (API, WebSocket)
-│   ├── utils/             # Utilidades
-│   ├── types/             # Tipos TypeScript
-│   ├── constants.ts       # Constantes globales
-│   └── env.ts            # Validación de variables de entorno
-├── app.css               # Estilos globales y Tailwind
-└── app.html              # Template HTML base
+│   ├── logger/              # Sistema de logging
+│   │   ├── index.ts         # Logger principal
+│   │   ├── types.ts         # Tipos e interfaces
+│   │   ├── utils.ts         # Utilidades y helpers
+│   │   ├── transports.ts    # Transportes (console, storage, remote)
+│   │   └── interceptors.ts  # Interceptores automáticos
+│   ├── services/            # Servicios de negocio
+│   │   ├── auth.service.ts  # Autenticación (con logging integrado)
+│   │   ├── axios.ts         # Cliente HTTP
+│   │   └── socket.ts        # WebSocket cliente
+│   ├── stores/              # Stores de Svelte
+│   │   ├── auth.store.ts    # Estado de autenticación
+│   │   └── page.store.ts    # Estado de página
+│   ├── types/               # Tipos TypeScript
+│   │   ├── auth.ts          # Tipos de autenticación
+│   │   ├── http.ts          # Tipos HTTP/API
+│   │   └── ui.ts            # Tipos de UI
+│   └── components/          # Componentes reutilizables
+├── routes/                  # Rutas de SvelteKit
+└── tests/                   # Tests
 ```
 
-## 🎨 Sistema de Estilos
+### Principios de Logging
 
-### Tailwind CSS
+1. **Estructurado**: Todos los logs son JSON estructurados
+2. **Contextual**: Cada log incluye contexto relevante (módulo, función, usuario)
+3. **Seguro**: Datos sensibles automáticamente sanitizados
+4. **Performante**: Throttling y batching para no impactar performance
+5. **Observable**: Métricas y trazabilidad completa
+6. **Escalable**: Múltiples transportes y configuración por entorno
 
-El proyecto utiliza **Tailwind CSS 3.4.17** con configuración optimizada:
-
-- **Purge automático**: CSS final ~16kB (gzipped ~3.9kB)
-- **Colores personalizados**: `primary` y `secondary` con escalas completas
-- **Fuentes**: Inter (sans) y JetBrains Mono (mono)
-
-### Configuración de Colores
-
-```js
-// Primario (azul)
-primary: {
-  50: '#f0faff',   100: '#e0f2ff',   200: '#b9e6ff',
-  300: '#7ccfff',  400: '#36b8ff',   500: '#099cff',
-  600: '#007fff',  700: '#006aff',   800: '#0058ff',
-  900: '#004fff',  950: '#002b91'
-}
-
-// Secundario (gris-azul)
-secondary: {
-  50: '#f0f3f8',   100: '#e1e7f0',   200: '#c4d0e2',
-  300: '#a0b1ce',  400: '#7c8fb5',   500: '#60739c',
-  600: '#4e5b7f',  700: '#414b67',   800: '#384055',
-  900: '#32394a',  950: '#202531'
-}
-```
-
-## 🧩 Componentes UI
-
-El proyecto incluye componentes base de **shadcn-svelte**:
-
-- `Button` - Botones con variantes y tamaños
-- `Badge` - Etiquetas y estados
-- `Card` - Contenedores de información
-- `Dialog` - Modales y overlays
-- `Input` - Campos de formulario
-- `Alert` - Notificaciones y avisos
-- `Avatar` - Imágenes de perfil
-
-Todos los componentes están tipados con TypeScript estricto.
-
-## ⚙️ Configuración de Desarrollo
-
-### ESLint + Prettier
-
-El proyecto usa configuración estricta:
-
-- **Auto-fix** al guardar archivos
-- **Organización automática** de imports
-- **Hooks de Git** para validación pre-commit
-
-### Husky Hooks
-
-- **Pre-commit**: ESLint + Prettier en archivos modificados
-- **Pre-push**: Validación completa (lint + type-check + tests)
-
-## 🚧 Limitaciones Conocidas y Deuda Técnica
-
-### Warnings de CSS en VS Code
-
-**Problema**: VS Code muestra warnings "Unknown at rule @tailwind" y "Unknown at rule @apply".
-
-**Causa**: VS Code no reconoce nativamente las directivas de Tailwind CSS.
-
-**Solución Implementada**:
-
-- Configuración `"*.css": "tailwindcss"` en `.vscode/settings.json`
-- Uso del modo "Tailwind CSS Language Mode" del plugin oficial
-
-**Estado**: Los warnings pueden aparecer dependiendo de la versión del plugin. **NO afectan el funcionamiento** del proyecto.
-
-**Referencia**: [Documentación oficial de Tailwind CSS](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss)
-
-### Testing con Svelte 5
-
-**Limitación**: Svelte 5 introduce cambios en el sistema de tipos (`Snippet`) que pueden causar incompatibilidades con algunas librerías de testing.
-
-**Estado**: Los componentes están listos para testing, pero algunos tests complejos pueden requerir ajustes futuros.
-
-## 🔒 Seguridad
-
-### Variables de Entorno
-
-- Variables **VITE\_\*** son públicas (se incluyen en el bundle)
-- Variables sensibles deben manejarse en el backend
-- Validación automática al inicio de la aplicación
-
-### Dependencias
-
-- Sin vulnerabilidades críticas conocidas
-- Algunas vulnerabilidades de severidad baja en dependencias transitivas (sin fix disponible)
-- Configurado `audit-level=moderate` en `.npmrc`
-
-## 🚫 Prácticas Prohibidas
-
-### NO usar estos workarounds:
-
-```js
-// ❌ PROHIBIDO
-"css.lint.unknownAtRules": "ignore"
-"css.validate": false
-
-// ❌ PROHIBIDO
-/* eslint-disable */
-// @ts-ignore (sin justificación)
-
-// ❌ PROHIBIDO
-.vscode/css_custom_data.json (hacks CSS)
-```
-
-### Usar en su lugar:
-
-```js
-// ✅ CORRECTO
-"files.associations": { "*.css": "tailwindcss" }
-
-// ✅ CORRECTO
-// eslint-disable-next-line rule-name -- Justificación específica
-
-// ✅ CORRECTO
-Configuración oficial del plugin de Tailwind
-```
-
-## 📊 Métricas de Calidad
-
-- **Build CSS**: ~16kB (gzipped ~3.9kB)
-- **TypeScript**: Modo estricto habilitado
-- **ESLint**: 0 errores, 0 warnings
-- **Prettier**: Formato consistente
-- **Tests**: Configurados y listos
-
-## 🔄 Plan de Migración Futuro
-
-### Tailwind CSS v4
-
-- **Cuando**: Disponible versión estable
-- **Impacto**: Cambios en configuración y sintaxis
-- **Preparación**: Documentar diferencias de sintaxis actual
-
-### Testing Library
-
-- **Cuando**: Soporte completo para Svelte 5
-- **Impacto**: Expansión de tests de componentes
-- **Preparación**: Componentes ya tipados correctamente
-
-## 🆘 Troubleshooting
-
-### Error: "Missing environment variables"
+## 🧪 Testing
 
 ```bash
-# Solución
-cp .env.example .env
-# Editar .env con URLs correctas
+# Ejecutar todos los tests
+npm run test
+
+# Tests en modo watch
+npm run test:watch
+
+# Tests de integración
+npm run test:integration
+
+# Coverage
+npm run test:coverage
 ```
 
-### Warnings de @tailwind en VS Code
+## 🚀 Producción
 
 ```bash
-# Verificar extensión instalada
-code --list-extensions | grep bradlc.vscode-tailwindcss
-
-# Recargar VS Code
-Cmd+Shift+P -> "Developer: Reload Window"
-```
-
-### Error de tipos en componentes
-
-```bash
-# Verificar imports
-npm run type-check
-
-# Si persiste, verificar configuración TypeScript
-```
-
-### Build falla
-
-```bash
-# Limpiar cache
-npm run clean
-rm -rf node_modules package-lock.json
-npm install
+# Build optimizado
 npm run build
+
+# Validar antes de desplegar
+npm run validate
+
+# Desplegar (ejemplo con Vercel)
+vercel --prod
 ```
 
-## 📞 Soporte
+### Configuración de Producción
 
-Para problemas técnicos:
+En producción, el logger se optimiza automáticamente:
 
-1. **Verificar** este README y troubleshooting
-2. **Ejecutar** `npm run validate` para diagnosticar
-3. **Revisar** configuración de VS Code y extensiones
-4. **Consultar** documentación oficial de Tailwind y SvelteKit
+- Solo logs WARN+ para reducir volumen
+- Remote transport habilitado para centralización
+- Batching agresivo para performance
+- Métricas de error rate y performance
+
+## 📚 Recursos Adicionales
+
+- [SvelteKit Documentation](https://kit.svelte.dev/)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [shadcn-svelte](https://www.shadcn-svelte.com/)
+- [OpenTelemetry](https://opentelemetry.io/)
+- [RFC5424 - Syslog Protocol](https://tools.ietf.org/html/rfc5424)
+
+## 📝 Changelog
+
+### 2025-01-04 - v1.0.0
+
+- ✅ Sistema de autenticación completo
+- ✅ **Sistema de logging ultra robusto implementado**
+- ✅ Interceptores automáticos para monitoring
+- ✅ Performance tracking integrado
+- ✅ Error handling con breadcrumbs
+- ✅ Sanitización de datos sensibles
+- ✅ Métricas de observabilidad
+- ✅ Integración lista para servicios externos
+- ✅ Configuración automática por entorno
+- ✅ Documentación completa del logger
 
 ---
 
-## 📋 Changelog
-
-### [1.0.0] - 2025-08-04
-
-**🟢 RELEASE DE PRODUCCIÓN**
-
-#### ✅ Agregado
-
-- Sistema completo de autenticación con login/logout
-- Protección de rutas con middleware SSR
-- Cookies HttpOnly para seguridad
-- Tipos TypeScript estrictos (eliminados todos los `any`)
-- Componentes UI con shadcn-svelte
-- Tests unitarios configurados
-- Hooks de Git (Husky + lint-staged)
-
-#### 🔧 Mejorado
-
-- Build optimizado (184 módulos transformados)
-- Linting sin errores ni warnings
-- TypeScript modo estricto
-- Configuración de seguridad robusta
-- Documentación completa
-
-#### 🐛 Corregido
-
-- Imports problemáticos de SvelteKit (`$app/stores`, `$app/environment`)
-- Tipos de datos inconsistentes
-- Accesibilidad en componentes UI
-- Configuración de tests
-
-#### 🚀 Estado Final
-
-- **Build**: ✅ Sin errores
-- **Lint**: ✅ Sin warnings
-- **Type-check**: ✅ Sin errores
-- **Tests**: ✅ 6/6 pasan
-- **Seguridad**: ✅ Implementada
-- **Producción**: ✅ Listo para deploy
-
-**El proyecto está 100% funcional y listo para producción.**
+**Desarrollado con ❤️ por el equipo de UTalk**
