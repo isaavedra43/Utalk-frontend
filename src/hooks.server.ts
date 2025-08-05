@@ -15,7 +15,6 @@ import { redirect, type Cookies, type Handle, type HandleServerError } from '@sv
  * Lista de rutas públicas que no requieren autenticación
  */
 const PUBLIC_ROUTES = [
-  '/', // Homepage
   '/login', // Página de login
   '/api', // Endpoints API (maneja auth internamente)
   '/_app', // Assets de la aplicación
@@ -176,16 +175,27 @@ export const handle: Handle = async ({ event, resolve }) => {
   });
 
   try {
-    // 1. VERIFICAR SI LA RUTA REQUIERE AUTENTICACIÓN
+    // 1. REDIRECCIÓN AUTOMÁTICA DESDE LA RAÍZ
+    if (pathname === '/') {
+      if (!isAuthenticated(cookies)) {
+        // Usuario no autenticado - redirigir directamente a login
+        throw redirect(302, '/login');
+      } else {
+        // Usuario autenticado - redirigir al dashboard
+        throw redirect(302, '/dashboard');
+      }
+    }
+
+    // 2. VERIFICAR SI LA RUTA REQUIERE AUTENTICACIÓN
     if (isPrivateRoute(pathname)) {
-      // 2. VERIFICAR AUTENTICACIÓN
+      // 3. VERIFICAR AUTENTICACIÓN
       if (!isAuthenticated(cookies)) {
         // Usuario no autenticado - redirigir a login con redirect param
         const redirectParam = encodeURIComponent(pathname + url.search);
         throw redirect(302, `/login?redirect=${redirectParam}`);
       }
 
-      // 3. OBTENER INFORMACIÓN DEL USUARIO
+      // 4. OBTENER INFORMACIÓN DEL USUARIO
       const user = getUserFromCookies(cookies);
       if (!user) {
         // Cookie corrupta - limpiar y redirigir
@@ -194,10 +204,10 @@ export const handle: Handle = async ({ event, resolve }) => {
         throw redirect(302, `/login?redirect=${redirectParam}`);
       }
 
-      // 4. ESTABLECER USUARIO EN LOCALS PARA SSR
+      // 5. ESTABLECER USUARIO EN LOCALS PARA SSR
       locals.user = user;
     } else if (pathname === '/login') {
-      // 5. MANEJAR RUTA DE LOGIN - PERMITIR ACCESO LIBRE TEMPORALMENTE
+      // 6. MANEJAR RUTA DE LOGIN - PERMITIR ACCESO LIBRE TEMPORALMENTE
       // Comentado temporalmente para debug
       // if (isAuthenticated(cookies)) {
       //   // Usuario ya autenticado - redirigir según redirect param o dashboard
@@ -206,7 +216,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       // }
     }
 
-    // 6. RESOLVER REQUEST CON CONFIGURACIÓN DE HEADERS
+    // 7. RESOLVER REQUEST CON CONFIGURACIÓN DE HEADERS
     const response = await resolve(event, {
       filterSerializedResponseHeaders(name) {
         // Mantener headers de seguridad y CORS
@@ -214,7 +224,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       }
     });
 
-    // 7. AGREGAR HEADERS DE SEGURIDAD
+    // 8. AGREGAR HEADERS DE SEGURIDAD
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('X-XSS-Protection', '1; mode=block');
