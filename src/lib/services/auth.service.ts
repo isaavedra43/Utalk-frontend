@@ -56,11 +56,11 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
     logger.debug('Sending login request to backend', {
       module: 'AuthService',
       function: 'login',
-      endpoint: '/api/auth/login',
+      endpoint: '/auth/login',
       note: 'Authorization header enviado vacío según requerimiento del backend'
     });
 
-    const response = await apiClient.post<LoginResponse>('/api/auth/login', {
+    const response = await apiClient.post<LoginResponse>('/auth/login', {
       email: credentials.email,
       password: credentials.password
     });
@@ -113,7 +113,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
         metric: 'auth_login_duration',
         duration,
         threshold: 2000,
-        resource: '/api/auth/login'
+        resource: '/auth/login'
       }
     });
 
@@ -128,7 +128,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
         module: 'AuthService',
         function: 'login',
         networkMethod: 'POST',
-        networkUrl: '/api/auth/login',
+        networkUrl: '/auth/login',
         networkStatus: apiError.response?.status,
         networkDuration: duration,
         userAction: 'login_failed',
@@ -252,11 +252,11 @@ export async function logout(): Promise<void> {
     logger.debug('Sending logout request to backend', {
       module: 'AuthService',
       function: 'logout',
-      endpoint: '/api/auth/logout'
+      endpoint: '/auth/logout'
     });
 
     // Llamar al endpoint de logout del backend para invalidar tokens
-    await apiClient.post('/api/auth/logout');
+    await apiClient.post('/auth/logout');
 
     const duration = performance.now() - startTime;
 
@@ -273,7 +273,7 @@ export async function logout(): Promise<void> {
         metric: 'auth_logout_duration',
         duration,
         threshold: 1000,
-        resource: '/api/auth/logout'
+        resource: '/auth/logout'
       }
     });
   } catch (error) {
@@ -327,13 +327,13 @@ export async function refreshToken(): Promise<LoginResponse> {
     logger.trace('Sending refresh token request', {
       module: 'AuthService',
       function: 'refreshToken',
-      endpoint: '/api/auth/refresh',
+      endpoint: '/auth/refresh',
       note: 'Refresh token sent via HttpOnly cookies + Authorization header'
     });
 
     // El refresh token se envía automáticamente en cookies HttpOnly
     // No necesitamos enviarlo explícitamente en el body
-    const response = await apiClient.post<LoginResponse>('/api/auth/refresh');
+    const response = await apiClient.post<LoginResponse>('/auth/refresh');
 
     const duration = performance.now() - startTime;
 
@@ -382,7 +382,7 @@ export async function refreshToken(): Promise<LoginResponse> {
         metric: 'auth_refresh_duration',
         duration,
         threshold: 1000,
-        resource: '/api/auth/refresh'
+        resource: '/auth/refresh'
       }
     });
 
@@ -414,7 +414,7 @@ export async function refreshToken(): Promise<LoginResponse> {
 export async function validateSession(): Promise<boolean> {
   try {
     // TODO: Implementar endpoint de validación cuando esté disponible
-    const response = await apiClient.get('/api/auth/validate');
+    const response = await apiClient.get('/auth/validate');
     return response.status === 200;
   } catch (error) {
     return false;
