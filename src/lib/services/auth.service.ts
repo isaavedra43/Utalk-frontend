@@ -29,16 +29,43 @@ export interface LoginCredentials {
  * ⚠️ CORRECCIÓN CRÍTICA: El backend REQUIERE que todas las requests incluyan
  * el header Authorization, incluso el login inicial. Esta función ahora almacena
  * el token recibido para futuras requests.
+ *
+ * ⚠️ FALLBACK CRÍTICO: Si las variables de entorno fallan, usa URL hardcodeada de Railway
  */
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
   const startTime = performance.now();
+
+  // ⚠️ VALIDACIÓN CRÍTICA: Verificar configuración antes de hacer request
+  const currentBaseUrl = apiClient.defaults.baseURL;
+  // eslint-disable-next-line no-console
+  console.log('🔍 AUTH SERVICE DEBUG:', {
+    baseURL: currentBaseUrl,
+    hasBaseURL: !!currentBaseUrl,
+    isLocalhost: currentBaseUrl?.includes('localhost'),
+    timestamp: new Date().toISOString()
+  });
+
+  // ⚠️ FALLBACK DE EMERGENCIA: Si API_BASE_URL está mal, usar Railway directamente
+  if (!currentBaseUrl || currentBaseUrl.includes('localhost')) {
+    const railwayUrl = 'https://utalk-backend-production.up.railway.app/api';
+    // eslint-disable-next-line no-console
+    console.warn('🚨 FALLBACK CRÍTICO: Usando URL hardcodeada de Railway');
+    // eslint-disable-next-line no-console
+    console.warn('📋 Original baseURL:', currentBaseUrl);
+    // eslint-disable-next-line no-console
+    console.warn('📋 Fallback URL:', railwayUrl);
+
+    // Temporalmente cambiar la baseURL para esta request
+    apiClient.defaults.baseURL = railwayUrl;
+  }
 
   logger.info('Login attempt started', {
     module: 'AuthService',
     function: 'login',
     userAction: 'login_attempt',
     userEmail: credentials.email,
-    hasPassword: !!credentials.password
+    hasPassword: !!credentials.password,
+    baseURL: apiClient.defaults.baseURL
   });
 
   try {
@@ -48,7 +75,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
       logger.warn('Login validation failed', {
         module: 'AuthService',
         function: 'login',
-        errorType: 'missing_credentials'
+        validationError: 'missing_credentials'
       });
       throw error;
     }
@@ -57,40 +84,47 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
       module: 'AuthService',
       function: 'login',
       endpoint: '/auth/login',
+      baseURL: apiClient.defaults.baseURL,
       note: 'Authorization header enviado vacío según requerimiento del backend'
     });
 
+    // ⚠️ LLAMADA CRÍTICA AL BACKEND - Aquí puede fallar con 500
     const response = await apiClient.post<LoginResponse>('/auth/login', {
       email: credentials.email,
       password: credentials.password
     });
 
+    const { accessToken, refreshToken, user } = response.data;
     const duration = performance.now() - startTime;
 
-    if (!response.data.accessToken || !response.data.user) {
-      const error = new Error('Respuesta de login inválida del servidor');
-      logger.error('Invalid login response from server', error, {
-        module: 'AuthService',
-        function: 'login',
-        responseStatus: response.status,
-        hasAccessToken: !!response.data.accessToken,
-        hasUser: !!response.data.user
+    // ⚠️ VALIDACIÓN DE RESPUESTA ROBUSTA
+    if (!accessToken || !user || !user.email) {
+      // eslint-disable-next-line no-console
+      console.error('🚨 Respuesta inválida del backend:', {
+        hasAccessToken: !!accessToken,
+        hasUser: !!user,
+        hasUserEmail: !!user?.email,
+        responseData: response.data
       });
-      throw error;
+      throw new Error('Respuesta inválida del backend: datos incompletos');
     }
 
-    // ⚠️ ALINEACIÓN CON BACKEND: Guardar token para futuras requests
-    // El interceptor de axios necesita acceso al token para enviar Authorization header
-    if (browser && response.data.accessToken) {
+    // ✅ GUARDAR TOKEN EN LOCALSTORAGE según requerimiento del usuario
+    if (browser) {
       try {
-        localStorage.setItem('accessToken', response.data.accessToken);
-        logger.debug('Token stored for future requests', {
+        localStorage.setItem('accessToken', accessToken);
+        if (refreshToken) {
+          localStorage.setItem('refreshToken', refreshToken);
+        }
+
+        logger.debug('Tokens stored in localStorage', {
           module: 'AuthService',
           function: 'login',
-          tokenLength: response.data.accessToken.length
+          hasAccessToken: !!accessToken,
+          hasRefreshToken: !!refreshToken
         });
       } catch (storageError) {
-        logger.warn('Failed to store token in localStorage', {
+        logger.warn('Failed to store tokens in localStorage', {
           module: 'AuthService',
           function: 'login',
           error: storageError
@@ -101,20 +135,11 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
     logger.info('Login successful', {
       module: 'AuthService',
       function: 'login',
-      userId: response.data.user.email,
-      loginDuration: duration,
       userAction: 'login_success',
-      userRole: response.data.user.role
-    });
-
-    logger.logPerformance('Login Request', duration, {
-      module: 'AuthService',
-      performance: {
-        metric: 'auth_login_duration',
-        duration,
-        threshold: 2000,
-        resource: '/auth/login'
-      }
+      userEmail: user.email,
+      userRole: user.role,
+      duration: Math.round(duration),
+      resource: '/auth/login'
     });
 
     return response.data;
