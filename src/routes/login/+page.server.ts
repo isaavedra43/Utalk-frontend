@@ -1,16 +1,13 @@
-// ✅ IMPORTACIONES ESTÁTICAS LIMPIAS
-import { API_BASE_URL } from '$lib/env';
-import { login as authLogin } from '$lib/services/auth.service';
+// ✅ IMPORTACIONES MÍNIMAS
 import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
 
-// ✅ LOG INICIAL SIMPLE Y SERIALIZABLE
+// ✅ CONFIGURACIÓN HARDCODEADA
+const API_BASE_URL = 'https://utalk-backend-production.up.railway.app/api';
+
+// ✅ LOG INICIAL SIMPLE
 // eslint-disable-next-line no-console
-console.log('🚨 LOGIN SERVER - INICIADO:', {
-  timestamp: new Date().toISOString(),
-  hasApiUrl: !!API_BASE_URL,
-  hasAuthService: !!authLogin
-});
+console.log('🚨 LOGIN SERVER - INICIADO');
 
 export const actions: Actions = {
   default: async ({ request, cookies }) => {
@@ -52,22 +49,43 @@ export const actions: Actions = {
       // eslint-disable-next-line no-console
       console.log('🚀 BACKEND - Intentando autenticación con:', API_BASE_URL);
 
-      // Llamada al servicio de autenticación
-      const result = await authLogin({ email, password });
+      // ✅ FETCH NATIVO - SIN IMPORTS PROBLEMÁTICOS
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' // Header requerido por el backend
+        },
+        body: JSON.stringify({ email, password })
+      });
 
       // eslint-disable-next-line no-console
       console.log('📥 BACKEND - Respuesta recibida:', {
-        hasResult: !!result,
-        hasToken: !!result?.accessToken,
-        hasUser: !!result?.user
+        status: response.status,
+        ok: response.ok
       });
 
-      if (!result || !result.accessToken || !result.user) {
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
         // eslint-disable-next-line no-console
-        console.warn('⚠️ AUTENTICACIÓN - Credenciales inválidas');
+        console.warn('⚠️ AUTENTICACIÓN - Error del backend:', errorData);
+
         return fail(400, {
           success: false,
-          error: 'Credenciales incorrectas',
+          error: errorData.message || 'Credenciales incorrectas',
+          credentials: false
+        });
+      }
+
+      const result = await response.json();
+
+      // Validar respuesta del backend
+      if (!result.accessToken || !result.user) {
+        // eslint-disable-next-line no-console
+        console.warn('⚠️ AUTENTICACIÓN - Respuesta inválida del backend');
+        return fail(400, {
+          success: false,
+          error: 'Respuesta inválida del servidor',
           credentials: false
         });
       }
@@ -101,6 +119,15 @@ export const actions: Actions = {
             maxAge: 60 * 60 * 24 * 30 // 30 días
           });
         }
+
+        // Cookie para información del usuario (no httpOnly para acceso cliente)
+        cookies.set('user_info', JSON.stringify(cleanUser), {
+          httpOnly: false,
+          secure: true,
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 60 * 60 * 24 * 7 // 7 días
+        });
       }
 
       // eslint-disable-next-line no-console
