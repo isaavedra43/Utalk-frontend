@@ -10,9 +10,9 @@
  * incluso en el login inicial donde aún no hay token.
  */
 
+import { browser } from '$app/environment';
 import { API_BASE_URL } from '$lib/env';
 import type { QueueItem } from '$lib/types/http';
-import { browser } from '$lib/utils/browser';
 import axios from 'axios';
 
 // Configuración del cliente Axios
@@ -33,7 +33,9 @@ function getCurrentToken(): string | null {
   try {
     // Intentar obtener token de localStorage como fallback
     return localStorage.getItem('accessToken') || null;
-  } catch {
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('⚠️ AXIOS - Error al leer localStorage:', error);
     return null;
   }
 }

@@ -44,14 +44,19 @@ export async function login(credentials: LoginRequest): Promise<LoginResponse> {
       throw new Error('Respuesta inválida del servidor');
     }
 
-    // Almacenar token en localStorage (como especificó el usuario)
+    // Almacenar token en localStorage SOLO en el cliente
     if (browser && data.accessToken) {
-      localStorage.setItem('accessToken', data.accessToken);
-      if (data.refreshToken) {
-        localStorage.setItem('refreshToken', data.refreshToken);
+      try {
+        localStorage.setItem('accessToken', data.accessToken);
+        if (data.refreshToken) {
+          localStorage.setItem('refreshToken', data.refreshToken);
+        }
+        // eslint-disable-next-line no-console
+        console.log('💾 AUTH LOGIN - Token almacenado en localStorage');
+      } catch (storageError) {
+        // eslint-disable-next-line no-console
+        console.warn('⚠️ AUTH LOGIN - Error al guardar en localStorage:', storageError);
       }
-      // eslint-disable-next-line no-console
-      console.log('💾 AUTH LOGIN - Token almacenado en localStorage');
     }
 
     return data;
@@ -83,12 +88,17 @@ export async function logout(): Promise<void> {
   console.log('🚪 AUTH LOGOUT - Cerrando sesión');
 
   try {
-    // Limpiar localStorage
+    // Limpiar localStorage SOLO en el cliente
     if (browser) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      // eslint-disable-next-line no-console
-      console.log('🗑️ AUTH LOGOUT - Tokens eliminados del localStorage');
+      try {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        // eslint-disable-next-line no-console
+        console.log('🗑️ AUTH LOGOUT - Tokens eliminados del localStorage');
+      } catch (storageError) {
+        // eslint-disable-next-line no-console
+        console.warn('⚠️ AUTH LOGOUT - Error al limpiar localStorage:', storageError);
+      }
     }
 
     // Intentar notificar al backend
@@ -112,7 +122,17 @@ export async function refreshToken(): Promise<LoginResponse | null> {
   console.log('🔄 AUTH REFRESH - Refrescando token');
 
   try {
-    const currentRefreshToken = browser ? localStorage.getItem('refreshToken') : null;
+    let currentRefreshToken: string | null = null;
+
+    // Obtener refresh token SOLO en el cliente
+    if (browser) {
+      try {
+        currentRefreshToken = localStorage.getItem('refreshToken');
+      } catch (storageError) {
+        // eslint-disable-next-line no-console
+        console.warn('⚠️ AUTH REFRESH - Error al leer localStorage:', storageError);
+      }
+    }
 
     if (!currentRefreshToken) {
       // eslint-disable-next-line no-console
@@ -126,14 +146,19 @@ export async function refreshToken(): Promise<LoginResponse | null> {
 
     const data = response.data as LoginResponse;
 
-    // Actualizar tokens en localStorage
+    // Actualizar tokens en localStorage SOLO en el cliente
     if (browser && data.accessToken) {
-      localStorage.setItem('accessToken', data.accessToken);
-      if (data.refreshToken) {
-        localStorage.setItem('refreshToken', data.refreshToken);
+      try {
+        localStorage.setItem('accessToken', data.accessToken);
+        if (data.refreshToken) {
+          localStorage.setItem('refreshToken', data.refreshToken);
+        }
+        // eslint-disable-next-line no-console
+        console.log('✅ AUTH REFRESH - Token actualizado');
+      } catch (storageError) {
+        // eslint-disable-next-line no-console
+        console.warn('⚠️ AUTH REFRESH - Error al guardar en localStorage:', storageError);
       }
-      // eslint-disable-next-line no-console
-      console.log('✅ AUTH REFRESH - Token actualizado');
     }
 
     return data;
@@ -141,10 +166,15 @@ export async function refreshToken(): Promise<LoginResponse | null> {
     // eslint-disable-next-line no-console
     console.error('🚨 AUTH REFRESH - Error:', error);
 
-    // Si el refresh falla, limpiar tokens
+    // Si el refresh falla, limpiar tokens SOLO en el cliente
     if (browser) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      try {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+      } catch (storageError) {
+        // eslint-disable-next-line no-console
+        console.warn('⚠️ AUTH REFRESH - Error al limpiar localStorage:', storageError);
+      }
     }
 
     return null;
