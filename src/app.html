@@ -4,12 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- 🧹 CONSOLE CLEANER MEJORADO - FILTRA ERRORES DE EXTENSIONES -->
+    <!-- 🧹 CONSOLE CLEANER ULTRA AGRESIVO - FILTRA ERRORES DE EXTENSIONES -->
     <script>
       (function () {
         'use strict';
 
-        // ✅ PATRONES A FILTRAR (extensiones y recursos ajenos)
+        // ✅ PATRONES ESPECÍFICOS PARA LOS ERRORES QUE SIGUEN APARECIENDO
         const FILTER_PATTERNS = [
           'chrome-extension://',
           'FrameDoesNotExistError',
@@ -46,10 +46,23 @@
           'background.js:1:48264',
           'DelayedMessageSender.<anonymous>',
           'runtime.lastError',
-          'chrome-extension://pejdijmoenmkgeppbflobdenhhabjlaj'
+          'chrome-extension://pejdijmoenmkgeppbflobdenhhabjlaj',
+          'Cannot access contents of the page. Extension manifest must request permission',
+          'The message port closed before a response was received',
+          'Could not establish connection. Receiving end does not exist',
+          'Frame does not exist in tab',
+          'background.js:1:48264',
+          'DelayedMessageSender.<anonymous>',
+          'runtime.lastError:',
+          'Unchecked runtime.lastError:',
+          'chrome-extension://',
+          'extension://',
+          'background.js',
+          'FrameDoesNotExistError: Frame',
+          'does not exist in tab'
         ];
 
-        // ✅ FUNCIÓN MEJORADA PARA VERIFICAR SI ES ERROR DE EXTENSIÓN
+        // ✅ FUNCIÓN ULTRA AGRESIVA PARA VERIFICAR SI ES ERROR DE EXTENSIÓN
         function isExtensionError(message, source, stack) {
           const fullMessage = `${message} ${source || ''} ${stack || ''}`.toLowerCase();
 
@@ -70,12 +83,34 @@
           // Verificar si es un error de background.js
           const hasBackgroundJs = fullMessage.includes('background.js');
 
+          // Verificar si contiene "message port closed"
+          const hasMessagePortClosed = fullMessage.includes('message port closed');
+
+          // Verificar si contiene "Could not establish connection"
+          const hasConnectionError = fullMessage.includes('could not establish connection');
+
+          // Verificar si contiene "Receiving end does not exist"
+          const hasReceivingEndError = fullMessage.includes('receiving end does not exist');
+
+          // Verificar si contiene "Cannot access contents of the page"
+          const hasCannotAccessError = fullMessage.includes('cannot access contents of the page');
+
+          // Verificar si contiene "Extension manifest must request permission"
+          const hasExtensionPermissionError = fullMessage.includes(
+            'extension manifest must request permission'
+          );
+
           return (
             hasExtensionPattern ||
             hasChromeExtension ||
             hasRuntimeError ||
             hasFrameError ||
-            hasBackgroundJs
+            hasBackgroundJs ||
+            hasMessagePortClosed ||
+            hasConnectionError ||
+            hasReceivingEndError ||
+            hasCannotAccessError ||
+            hasExtensionPermissionError
           );
         }
 
@@ -92,7 +127,7 @@
           return yourDomains.some(domain => source.includes(domain));
         }
 
-        // ✅ INTERCEPTAR console.error - MÁS AGRESIVO
+        // ✅ INTERCEPTAR console.error - ULTRA AGRESIVO
         const originalConsoleError = console.error;
         console.error = function (...args) {
           const message = args.join(' ');
@@ -103,7 +138,7 @@
           }
         };
 
-        // ✅ INTERCEPTAR console.warn - MÁS AGRESIVO
+        // ✅ INTERCEPTAR console.warn - ULTRA AGRESIVO
         const originalConsoleWarn = console.warn;
         console.warn = function (...args) {
           const message = args.join(' ');
@@ -114,7 +149,7 @@
           }
         };
 
-        // ✅ INTERCEPTAR console.log - MÁS AGRESIVO
+        // ✅ INTERCEPTAR console.log - ULTRA AGRESIVO
         const originalConsoleLog = console.log;
         console.log = function (...args) {
           const message = args.join(' ');
@@ -124,7 +159,7 @@
           }
         };
 
-        // ✅ INTERCEPTAR window.onerror - MÁS AGRESIVO
+        // ✅ INTERCEPTAR window.onerror - ULTRA AGRESIVO
         const originalOnError = window.onerror;
         window.onerror = function (message, source, lineno, colno, error) {
           if (!isExtensionError(message, source)) {
@@ -136,7 +171,7 @@
           return true;
         };
 
-        // ✅ INTERCEPTAR window.onunhandledrejection - MÁS AGRESIVO
+        // ✅ INTERCEPTAR window.onunhandledrejection - ULTRA AGRESIVO
         const originalOnUnhandledRejection = window.onunhandledrejection;
         window.onunhandledrejection = function (event) {
           const message = event.reason?.message || event.reason || '';
@@ -151,7 +186,7 @@
           return true;
         };
 
-        // ✅ INTERCEPTAR addEventListener para errores de recursos - MÁS AGRESIVO
+        // ✅ INTERCEPTAR addEventListener para errores de recursos - ULTRA AGRESIVO
         const originalAddEventListener = EventTarget.prototype.addEventListener;
         EventTarget.prototype.addEventListener = function (type, listener, options) {
           if (type === 'error') {
@@ -215,10 +250,61 @@
           };
         }, 1000);
 
+        // ✅ BLOQUEAR CONSOLE METHODS DESPUÉS DE 2 SEGUNDOS TAMBIÉN
+        setTimeout(() => {
+          console.error = function (...args) {
+            const message = args.join(' ');
+            if (!isExtensionError(message, null)) {
+              originalConsoleError.apply(console, args);
+            }
+          };
+
+          console.warn = function (...args) {
+            const message = args.join(' ');
+            if (!isExtensionError(message, null)) {
+              originalConsoleWarn.apply(console, args);
+            }
+          };
+
+          console.log = function (...args) {
+            const message = args.join(' ');
+            if (!isExtensionError(message, null)) {
+              originalConsoleLog.apply(console, args);
+            }
+          };
+        }, 2000);
+
+        // ✅ BLOQUEAR CONSOLE METHODS DESPUÉS DE 5 SEGUNDOS TAMBIÉN
+        setTimeout(() => {
+          console.error = function (...args) {
+            const message = args.join(' ');
+            if (!isExtensionError(message, null)) {
+              originalConsoleError.apply(console, args);
+            }
+          };
+
+          console.warn = function (...args) {
+            const message = args.join(' ');
+            if (!isExtensionError(message, null)) {
+              originalConsoleWarn.apply(console, args);
+            }
+          };
+
+          console.log = function (...args) {
+            const message = args.join(' ');
+            if (!isExtensionError(message, null)) {
+              originalConsoleLog.apply(console, args);
+            }
+          };
+        }, 5000);
+
         // ✅ LOG DE CONFIRMACIÓN
-        console.log('🧹 Console Cleaner MEJORADO activado - Filtrando errores de extensiones');
+        console.log(
+          '🧹 Console Cleaner ULTRA AGRESIVO activado - Filtrando errores de extensiones'
+        );
         console.log('✅ Solo se mostrarán logs de tu aplicación');
-        console.log('🛡️ Filtrado agresivo activado');
+        console.log('🛡️ Filtrado ultra agresivo activado');
+        console.log('🚫 Bloqueando todos los errores de extensiones');
       })();
     </script>
 
