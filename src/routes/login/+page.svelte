@@ -62,6 +62,21 @@
     password = '';
     // Actualizar estado de loading
     loading = false;
+
+    // ✅ MANEJAR LOGIN EXITOSO
+    if (formData.success && formData.user) {
+      // eslint-disable-next-line no-console
+      console.log('🎉 LOGIN EXITOSO - Redirigiendo:', {
+        userEmail: formData.user.email,
+        redirectTo: redirectTo || '/dashboard'
+      });
+
+      // Redirigir después de un pequeño delay para que se procesen las cookies
+      setTimeout(() => {
+        const targetUrl = redirectTo || '/dashboard';
+        window.location.href = targetUrl;
+      }, 100);
+    }
   }
 
   // Validación en tiempo real

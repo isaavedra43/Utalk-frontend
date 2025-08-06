@@ -41,4 +41,8 @@ export interface PageFormData {
   email?: string;
   error?: string;
   retryAfter?: number;
+  success?: boolean;
+  user?: User;
+  accessToken?: string;
+  refreshToken?: string;
 }

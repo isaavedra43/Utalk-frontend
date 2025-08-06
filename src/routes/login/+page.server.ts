@@ -190,6 +190,45 @@ export const actions: Actions = {
         }).length
       });
 
+      // ✅ ESTABLECER COOKIES DE SESIÓN
+      if (_cookies) {
+        // Cookie de sesión
+        _cookies.set('session', accessToken, {
+          httpOnly: true,
+          secure: true,
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 60 * 60 * 24 * 7 // 7 días
+        });
+
+        // Cookie de refresh token
+        if (refreshToken) {
+          _cookies.set('refresh_token', refreshToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'strict',
+            path: '/api/auth',
+            maxAge: 60 * 60 * 24 * 30 // 30 días
+          });
+        }
+
+        // Cookie de información del usuario
+        _cookies.set('user_info', JSON.stringify(cleanUser), {
+          httpOnly: false,
+          secure: true,
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 60 * 60 * 24 * 7 // 7 días
+        });
+
+        // eslint-disable-next-line no-console
+        console.log('🍪 LOG 17: Cookies establecidas:', {
+          hasSessionCookie: !!accessToken,
+          hasRefreshCookie: !!refreshToken,
+          hasUserInfoCookie: !!cleanUser
+        });
+      }
+
       // ✅ RETORNO CORRECTO - DATOS SERIALIZABLES
       return {
         success: true,
@@ -222,7 +261,7 @@ export const actions: Actions = {
         ]
       });
 
-      // ✅ RESPUESTA ESTRUCTURADA PARA ERRORES
+      // ✅ RESPUESTA ESTRUCTURADA PARA ERRORES - MEJORADA
       return fail(500, {
         success: false,
         error: 'Error interno del servidor. Revisar logs de Vercel.',

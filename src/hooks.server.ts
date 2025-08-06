@@ -237,14 +237,21 @@ export const handle: Handle = async ({ event, resolve }) => {
       throw error;
     }
 
-    // Para otros errores, log y redirigir a error page
+    // ✅ CORREGIDO: NO redirigir a /login para evitar loop infinito
+    // Solo log del error y dejar que SvelteKit maneje el error
     // eslint-disable-next-line no-console
-    console.error('Error in hooks.server.ts:', error);
+    console.error('Error in hooks.server.ts:', {
+      error: error instanceof Error ? error.message : String(error),
+      pathname,
+      timestamp: new Date().toISOString()
+    });
 
     // Limpiar cookies por seguridad en caso de error
     clearInvalidCookies(cookies);
 
-    throw redirect(302, '/login');
+    // ✅ CORREGIDO: NO hacer redirect, dejar que SvelteKit maneje el error
+    // Esto evita el loop infinito que causaba el 500
+    throw error;
   }
 };
 
