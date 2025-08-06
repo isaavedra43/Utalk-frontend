@@ -1,11 +1,6 @@
 /**
  * Hooks del Servidor para UTalk Frontend
  * Middleware global para autenticación, protección de rutas y manejo SSR
- *
- * Basado en la documentación backend:
- * - BACKEND_ADVANCED_LOGIC_CORREGIDO.md
- * - BACKEND_ADVANCED_LOGIC.md
- * - DOCUMENTACION_COMPLETA_BACKEND_UTALK.md
  */
 
 import type { User } from '$lib/types/auth';
@@ -22,23 +17,6 @@ const PUBLIC_ROUTES = [
   '/robots.txt', // Robots.txt
   '/sitemap.xml' // Sitemap
 ];
-
-/**
- * Lista de rutas privadas que requieren autenticación
- * Todo lo que no esté en PUBLIC_ROUTES se considera privado por defecto
- * Esta lista es informativa - la lógica usa isPrivateRoute()
- */
-// const PRIVATE_ROUTES = [
-//   '/dashboard',     // Dashboard principal
-//   '/chat',          // Sistema de chat
-//   '/conversations', // Gestión de conversaciones
-//   '/contacts',      // Gestión de contactos
-//   '/campaigns',     // Gestión de campañas
-//   '/profile',       // Perfil de usuario
-//   '/settings',      // Configuraciones
-//   '/admin',         // Panel de administración
-//   '/team'          // Gestión de equipo
-// ];
 
 /**
  * Verificar si una ruta es pública
@@ -163,16 +141,9 @@ export const handle: Handle = async ({ event, resolve }) => {
   const { url, cookies, locals } = event;
   const pathname = url.pathname;
 
-  // Log para debug
+  // Log simple para debug
   // eslint-disable-next-line no-console
-  console.log('🔍 Hook Server - Request:', {
-    pathname,
-    isPublic: isPublicRoute(pathname),
-    isPrivate: isPrivateRoute(pathname),
-    isAuthenticated: isAuthenticated(cookies),
-    hasSessionCookie: !!cookies.get('session'),
-    hasUserInfoCookie: !!cookies.get('user_info')
-  });
+  console.log('🔍 HOOK - Request:', pathname);
 
   try {
     // 1. REDIRECCIÓN AUTOMÁTICA DESDE LA RAÍZ
@@ -206,17 +177,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 
       // 5. ESTABLECER USUARIO EN LOCALS PARA SSR
       locals.user = user;
-    } else if (pathname === '/login') {
-      // 6. MANEJAR RUTA DE LOGIN - PERMITIR ACCESO LIBRE TEMPORALMENTE
-      // Comentado temporalmente para debug
-      // if (isAuthenticated(cookies)) {
-      //   // Usuario ya autenticado - redirigir según redirect param o dashboard
-      //   const redirectTo = url.searchParams.get('redirect') || '/dashboard';
-      //   throw redirect(302, redirectTo);
-      // }
     }
 
-    // 7. RESOLVER REQUEST CON CONFIGURACIÓN DE HEADERS
+    // 6. RESOLVER REQUEST CON CONFIGURACIÓN DE HEADERS
     const response = await resolve(event, {
       filterSerializedResponseHeaders(name) {
         // Mantener headers de seguridad y CORS
@@ -224,7 +187,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       }
     });
 
-    // 8. AGREGAR HEADERS DE SEGURIDAD
+    // 7. AGREGAR HEADERS DE SEGURIDAD
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('X-XSS-Protection', '1; mode=block');
@@ -237,20 +200,14 @@ export const handle: Handle = async ({ event, resolve }) => {
       throw error;
     }
 
-    // ✅ CORREGIDO: NO redirigir a /login para evitar loop infinito
-    // Solo log del error y dejar que SvelteKit maneje el error
+    // Log simple del error
     // eslint-disable-next-line no-console
-    console.error('Error in hooks.server.ts:', {
-      error: error instanceof Error ? error.message : String(error),
-      pathname,
-      timestamp: new Date().toISOString()
-    });
+    console.error('🚨 HOOK ERROR:', error instanceof Error ? error.message : String(error));
 
     // Limpiar cookies por seguridad en caso de error
     clearInvalidCookies(cookies);
 
-    // ✅ CORREGIDO: NO hacer redirect, dejar que SvelteKit maneje el error
-    // Esto evita el loop infinito que causaba el 500
+    // Dejar que SvelteKit maneje el error
     throw error;
   }
 };
@@ -259,17 +216,14 @@ export const handle: Handle = async ({ event, resolve }) => {
  * Manejo de errores del servidor
  */
 export const handleError: HandleServerError = async ({ error, event }) => {
-  const errorId = Date.now(); // Changed from randomUUID() to Date.now()
+  const errorId = Date.now();
 
-  // Log estructurado del error (solo en servidor)
+  // Log simple del error
   // eslint-disable-next-line no-console
-  console.error('Server Error:', {
+  console.error('🚨 SERVER ERROR:', {
     errorId,
     message: error instanceof Error ? error.message : 'Unknown error',
-    stack: error instanceof Error ? error.stack : undefined,
-    url: event.url.pathname,
-    userAgent: event.request.headers.get('user-agent'),
-    timestamp: new Date().toISOString()
+    url: event.url.pathname
   });
 
   // Retornar error sanitizado para el cliente
