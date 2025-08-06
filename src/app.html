@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- 🧹 CONSOLE CLEANER - FILTRA ERRORES DE EXTENSIONES -->
+    <!-- 🧹 CONSOLE CLEANER MEJORADO - FILTRA ERRORES DE EXTENSIONES -->
     <script>
       (function () {
         'use strict';
@@ -37,18 +37,51 @@
           'extensionState.js:1',
           'heuristicsRedefinitions.js:1',
           'key.svg',
-          'PasswordsToolb'
+          'PasswordsToolb',
+          'message port closed',
+          'Could not establish connection',
+          'Receiving end does not exist',
+          'completion list.html',
+          'pejdijmoenmkgeppbflobdenhhabjlaj',
+          'background.js:1:48264',
+          'DelayedMessageSender.<anonymous>',
+          'runtime.lastError',
+          'chrome-extension://pejdijmoenmkgeppbflobdenhhabjlaj'
         ];
 
-        // ✅ FUNCIÓN PARA VERIFICAR SI ES ERROR DE EXTENSIÓN
+        // ✅ FUNCIÓN MEJORADA PARA VERIFICAR SI ES ERROR DE EXTENSIÓN
         function isExtensionError(message, source, stack) {
           const fullMessage = `${message} ${source || ''} ${stack || ''}`.toLowerCase();
-          return FILTER_PATTERNS.some(pattern => fullMessage.includes(pattern.toLowerCase()));
+
+          // Verificar patrones específicos
+          const hasExtensionPattern = FILTER_PATTERNS.some(pattern =>
+            fullMessage.includes(pattern.toLowerCase())
+          );
+
+          // Verificar si contiene chrome-extension en cualquier parte
+          const hasChromeExtension = fullMessage.includes('chrome-extension');
+
+          // Verificar si es un error de runtime.lastError
+          const hasRuntimeError = fullMessage.includes('runtime.lasterror');
+
+          // Verificar si es un FrameDoesNotExistError
+          const hasFrameError = fullMessage.includes('framedoesnotexisterror');
+
+          // Verificar si es un error de background.js
+          const hasBackgroundJs = fullMessage.includes('background.js');
+
+          return (
+            hasExtensionPattern ||
+            hasChromeExtension ||
+            hasRuntimeError ||
+            hasFrameError ||
+            hasBackgroundJs
+          );
         }
 
         // ✅ FUNCIÓN PARA VERIFICAR SI ES DE TU DOMINIO
         function isFromYourDomain(source) {
-          if (!source) return true; // Si no hay source, permitir
+          if (!source) return true;
           const yourDomains = [
             'utalk-frontend-glt2.vercel.app',
             'localhost',
@@ -59,80 +92,78 @@
           return yourDomains.some(domain => source.includes(domain));
         }
 
-        // ✅ INTERCEPTAR console.error
+        // ✅ INTERCEPTAR console.error - MÁS AGRESIVO
         const originalConsoleError = console.error;
         console.error = function (...args) {
           const message = args.join(' ');
           const stack = new Error().stack;
 
-          // Solo mostrar si NO es error de extensión Y es de tu dominio
           if (!isExtensionError(message, null, stack)) {
             originalConsoleError.apply(console, args);
           }
         };
 
-        // ✅ INTERCEPTAR console.warn
+        // ✅ INTERCEPTAR console.warn - MÁS AGRESIVO
         const originalConsoleWarn = console.warn;
         console.warn = function (...args) {
           const message = args.join(' ');
           const stack = new Error().stack;
 
-          // Solo mostrar si NO es warning de extensión
           if (!isExtensionError(message, null, stack)) {
             originalConsoleWarn.apply(console, args);
           }
         };
 
-        // ✅ INTERCEPTAR console.log (opcional - para logs de extensión)
+        // ✅ INTERCEPTAR console.log - MÁS AGRESIVO
         const originalConsoleLog = console.log;
         console.log = function (...args) {
           const message = args.join(' ');
 
-          // Filtrar logs obvios de extensiones pero mantener logs de tu app
           if (!isExtensionError(message, null)) {
             originalConsoleLog.apply(console, args);
           }
         };
 
-        // ✅ INTERCEPTAR window.onerror
+        // ✅ INTERCEPTAR window.onerror - MÁS AGRESIVO
         const originalOnError = window.onerror;
         window.onerror = function (message, source, lineno, colno, error) {
-          // Solo manejar si NO es error de extensión Y es de tu dominio
-          if (!isExtensionError(message, source) && isFromYourDomain(source)) {
+          if (!isExtensionError(message, source)) {
             if (originalOnError) {
               return originalOnError(message, source, lineno, colno, error);
             }
             return false;
           }
-          return true; // Prevenir que se muestre el error
+          return true;
         };
 
-        // ✅ INTERCEPTAR window.onunhandledrejection
+        // ✅ INTERCEPTAR window.onunhandledrejection - MÁS AGRESIVO
         const originalOnUnhandledRejection = window.onunhandledrejection;
         window.onunhandledrejection = function (event) {
           const message = event.reason?.message || event.reason || '';
           const stack = event.reason?.stack || '';
 
-          // Solo manejar si NO es rejection de extensión
           if (!isExtensionError(message, null, stack)) {
             if (originalOnUnhandledRejection) {
               return originalOnUnhandledRejection(event);
             }
             return false;
           }
-          return true; // Prevenir que se muestre el rejection
+          return true;
         };
 
-        // ✅ INTERCEPTAR addEventListener para errores de recursos
+        // ✅ INTERCEPTAR addEventListener para errores de recursos - MÁS AGRESIVO
         const originalAddEventListener = EventTarget.prototype.addEventListener;
         EventTarget.prototype.addEventListener = function (type, listener, options) {
           if (type === 'error') {
             const wrappedListener = function (event) {
-              // Filtrar errores de recursos de extensiones
               if (event.target && event.target.src) {
                 const src = event.target.src;
-                if (src.includes('chrome-extension://') || src.includes('extension://')) {
-                  return; // No ejecutar listener para errores de extensiones
+                if (
+                  src.includes('chrome-extension://') ||
+                  src.includes('extension://') ||
+                  src.includes('background.js')
+                ) {
+                  return;
                 }
               }
               return listener.call(this, event);
@@ -142,9 +173,52 @@
           return originalAddEventListener.call(this, type, listener, options);
         };
 
+        // ✅ INTERCEPTAR fetch para bloquear requests de extensiones
+        const originalFetch = window.fetch;
+        window.fetch = function (url, options) {
+          if (typeof url === 'string' && url.includes('chrome-extension://')) {
+            return Promise.reject(new Error('Blocked extension request'));
+          }
+          return originalFetch.call(this, url, options);
+        };
+
+        // ✅ INTERCEPTAR XMLHttpRequest para bloquear requests de extensiones
+        const originalXHROpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function (method, url, async, user, password) {
+          if (typeof url === 'string' && url.includes('chrome-extension://')) {
+            return;
+          }
+          return originalXHROpen.call(this, method, url, async, user, password);
+        };
+
+        // ✅ BLOQUEAR CONSOLE METHODS TEMPORALMENTE PARA EXTENSIONES
+        setTimeout(() => {
+          console.error = function (...args) {
+            const message = args.join(' ');
+            if (!isExtensionError(message, null)) {
+              originalConsoleError.apply(console, args);
+            }
+          };
+
+          console.warn = function (...args) {
+            const message = args.join(' ');
+            if (!isExtensionError(message, null)) {
+              originalConsoleWarn.apply(console, args);
+            }
+          };
+
+          console.log = function (...args) {
+            const message = args.join(' ');
+            if (!isExtensionError(message, null)) {
+              originalConsoleLog.apply(console, args);
+            }
+          };
+        }, 1000);
+
         // ✅ LOG DE CONFIRMACIÓN
-        console.log('🧹 Console Cleaner activado - Filtrando errores de extensiones');
+        console.log('🧹 Console Cleaner MEJORADO activado - Filtrando errores de extensiones');
         console.log('✅ Solo se mostrarán logs de tu aplicación');
+        console.log('🛡️ Filtrado agresivo activado');
       })();
     </script>
 
