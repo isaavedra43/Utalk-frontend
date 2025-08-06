@@ -10,10 +10,11 @@ console.log('🚨 LOG 25: ENV.TS - ARCHIVO CARGADO:', {
  * Variables de entorno para UTalk Frontend
  * Configuración centralizada para URLs de API y WebSocket
  *
- * ⚠️ SIMPLIFICACIÓN CRÍTICA PARA VERCEL SERVERLESS
+ * ✅ SIMPLIFICACIÓN CRÍTICA PARA VERCEL SERVERLESS
+ * Hardcodeadas para evitar conflictos de importación dinámica
  */
 
-// ✅ CONFIGURACIÓN SIMPLIFICADA PARA VERCEL
+// ✅ CONFIGURACIÓN HARDCODEADA PARA VERCEL - SOLUCIÓN DEFINITIVA
 export const API_BASE_URL = 'https://utalk-backend-production.up.railway.app/api';
 export const WS_BASE_URL = 'wss://utalk-backend-production.up.railway.app';
 
@@ -25,16 +26,5 @@ console.log('🌐 LOG 26: BACKEND CONFIG FINAL:', {
   environment: typeof window === 'undefined' ? 'server' : 'client',
   context: typeof window === 'undefined' ? 'vercel-serverless' : 'browser',
   timestamp: new Date().toISOString(),
-  note: 'URLs hardcodeadas para evitar conflictos con Vercel'
-});
-
-// ⚠️ LOG 27: VALIDACIÓN DE CONFIGURACIÓN
-// eslint-disable-next-line no-console
-console.log('🔍 LOG 27: Validando configuración de entorno:', {
-  API_BASE_URL_Type: typeof API_BASE_URL,
-  WS_BASE_URL_Type: typeof WS_BASE_URL,
-  API_BASE_URL_Length: API_BASE_URL.length,
-  WS_BASE_URL_Length: WS_BASE_URL.length,
-  API_BASE_URL_IncludesRailway: API_BASE_URL.includes('railway'),
-  WS_BASE_URL_IncludesRailway: WS_BASE_URL.includes('railway')
+  note: 'URLs hardcodeadas para máxima compatibilidad con Vercel'
 });

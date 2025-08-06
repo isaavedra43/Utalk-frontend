@@ -6,190 +6,203 @@ console.log('🚨 LOGIN SERVER ACTION - ARCHIVO CARGADO:', {
   status: 'LOADED'
 });
 
+// ✅ IMPORTACIONES ESTÁTICAS - SOLUCIÓN AL PROBLEMA #1
+import { API_BASE_URL } from '$lib/env';
+import { login as authLogin } from '$lib/services/auth.service';
+import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
 
 // ⚠️ LOG CRÍTICO POST-IMPORT - Debe aparecer SIEMPRE
 // eslint-disable-next-line no-console
 console.log('🚨 LOGIN SERVER ACTION - IMPORTS COMPLETADOS:', {
   timestamp: new Date().toISOString(),
-  status: 'IMPORTS_LOADED'
+  API_BASE_URL: API_BASE_URL ? 'LOADED' : 'FAILED',
+  authLogin: typeof authLogin === 'function' ? 'LOADED' : 'FAILED',
+  status: 'IMPORTS_STATIC_OK'
 });
 
 export const actions: Actions = {
-  default: async ({ request }) => {
+  default: async ({ request, cookies: _cookies }) => {
     // ⚠️ LOG 1: INICIO DE SERVER ACTION
     // eslint-disable-next-line no-console
     console.log('🔍 LOG 1: SERVER ACTION INICIADO:', {
       timestamp: new Date().toISOString(),
+      API_BASE_URL,
       context: 'vercel-serverless-function',
-      requestMethod: request.method,
-      requestUrl: request.url
+      importMethod: 'STATIC' // Confirmación de solución
     });
 
     try {
-      // ⚠️ LOG 2: ANTES DE FORM DATA
+      // ⚠️ LOG 2: FORM DATA
       // eslint-disable-next-line no-console
       console.log('📋 LOG 2: Intentando obtener formData...');
 
       const formData = await request.formData();
 
-      // ⚠️ LOG 3: DESPUÉS DE FORM DATA
+      // ⚠️ LOG 3: FORM DATA EXITOSO
       // eslint-disable-next-line no-console
       console.log('✅ LOG 3: FormData obtenido exitosamente');
 
       const email = formData.get('email') as string;
       const password = formData.get('password') as string;
 
-      // ⚠️ LOG 4: DATOS OBTENIDOS
+      // ⚠️ LOG 4: DATOS FORMULARIO
       // eslint-disable-next-line no-console
       console.log('📋 LOG 4: Datos del formulario:', {
         hasEmail: !!email,
         hasPassword: !!password,
         emailLength: email?.length || 0,
-        passwordLength: password?.length || 0,
-        emailValue: email ? email.substring(0, 10) + '...' : 'undefined',
-        passwordValue: password ? '***' + password.length + '***' : 'undefined'
+        passwordLength: password?.length || 0
       });
 
-      // ⚠️ LOG 5: VALIDACIÓN DE DATOS
+      // ⚠️ LOG 5: VALIDACIÓN
       // eslint-disable-next-line no-console
-      console.log('🔍 LOG 5: Iniciando validación de datos...');
+      console.log('🔍 LOG 5: Validando datos...');
 
-      // ⚠️ VALIDACIÓN CRÍTICA ANTES DE LLAMAR AL BACKEND
       if (!email || !password) {
-        // ⚠️ LOG 6: DATOS INVÁLIDOS
         // eslint-disable-next-line no-console
-        console.warn('⚠️ LOG 6: Datos de formulario inválidos:', {
-          hasEmail: !!email,
-          hasPassword: !!password,
-          emailType: typeof email,
-          passwordType: typeof password
-        });
-        return {
+        console.warn('⚠️ LOG 6: Datos faltantes');
+
+        return fail(400, {
           success: false,
-          error: 'Email y contraseña son requeridos'
-        };
+          error: 'Email y contraseña son requeridos',
+          credentials: false
+        });
       }
 
-      // ⚠️ LOG 7: DATOS VÁLIDOS
+      // ⚠️ LOG 7: VALIDACIÓN API_BASE_URL
       // eslint-disable-next-line no-console
-      console.log('✅ LOG 7: Datos de formulario válidos, procediendo...');
-
-      // ⚠️ LOG 8: ANTES DE IMPORTAR SERVICIOS
-      // eslint-disable-next-line no-console
-      console.log('📋 LOG 8: Intentando importar servicios...');
-
-      // Importación dinámica para evitar errores de carga
-      const { API_BASE_URL } = await import('$lib/env');
-      const authService = await import('$lib/services/auth.service');
-      const authLogin = authService.login;
-
-      // ⚠️ LOG 9: DESPUÉS DE IMPORTAR SERVICIOS
-      // eslint-disable-next-line no-console
-      console.log('✅ LOG 9: Servicios importados:', {
-        API_BASE_URL: API_BASE_URL ? 'LOADED' : 'FAILED',
-        authLogin: typeof authLogin === 'function' ? 'LOADED' : 'FAILED',
-        authServiceType: typeof authService
-      });
-
-      // ⚠️ LOG 10: VALIDACIÓN DE API_BASE_URL
-      // eslint-disable-next-line no-console
-      console.log('🔍 LOG 10: Validando API_BASE_URL:', {
+      console.log('🔍 LOG 7: Validando API_BASE_URL:', {
         API_BASE_URL,
-        isString: typeof API_BASE_URL === 'string',
-        length: API_BASE_URL?.length,
-        includesLocalhost: API_BASE_URL?.includes('localhost'),
-        includesRailway: API_BASE_URL?.includes('railway')
+        isValid: !!API_BASE_URL && !API_BASE_URL.includes('localhost')
       });
 
       if (!API_BASE_URL || API_BASE_URL.includes('localhost')) {
-        // ⚠️ LOG 11: PROBLEMA CON API_BASE_URL
         // eslint-disable-next-line no-console
-        console.error('🚨 LOG 11: PROBLEMA CRÍTICO: API_BASE_URL incorrecta en serverless');
-        // eslint-disable-next-line no-console
-        console.error('📋 LOG 11: API_BASE_URL actual:', API_BASE_URL);
+        console.error('🚨 LOG 8: API_BASE_URL inválida:', {
+          API_BASE_URL,
+          expected: 'https://utalk-backend-production.up.railway.app/api'
+        });
 
-        return {
+        return fail(500, {
           success: false,
-          error: 'Error de configuración del servidor. Variables de entorno no configuradas.'
-        };
+          error: 'Error de configuración del servidor',
+          debug: 'API_BASE_URL no configurada correctamente'
+        });
       }
 
-      // ⚠️ LOG 12: API_BASE_URL VÁLIDA
+      // ⚠️ LOG 9: PRE-LOGIN
       // eslint-disable-next-line no-console
-      console.log('✅ LOG 12: API_BASE_URL válida:', API_BASE_URL);
-
-      // ⚠️ LOG 13: PREPARANDO LLAMADA AL BACKEND
-      // eslint-disable-next-line no-console
-      console.log('🔍 LOG 13: Preparando llamada al backend:', {
-        email: email.substring(0, 10) + '...',
+      console.log('✅ LOG 9: Intentando login con backend:', {
+        email,
         passwordLength: password.length,
         backendUrl: API_BASE_URL,
-        authLoginType: typeof authLogin
+        note: 'Llamando a authLogin service'
       });
 
-      // ⚠️ LOG 14: ANTES DE LLAMAR AUTHLOGIN
-      // eslint-disable-next-line no-console
-      console.log('🚀 LOG 14: Llamando a authLogin...');
-
-      // Log antes de la llamada crítica
       const startTime = performance.now();
 
-      // ⚠️ AQUÍ ES DONDE OCURRE EL ERROR 500 - Llamada al servicio
+      // ⚠️ LOG 10: LLAMADA AL BACKEND
+      // eslint-disable-next-line no-console
+      console.log('🚀 LOG 10: Ejecutando authLogin...');
+
       const result = await authLogin({ email, password });
 
       const duration = performance.now() - startTime;
 
-      // ⚠️ LOG 15: DESPUÉS DE AUTHLOGIN
+      // ⚠️ LOG 11: RESPUESTA RECIBIDA - ANÁLISIS CRÍTICO
       // eslint-disable-next-line no-console
-      console.log('✅ LOG 15: authLogin completado:', {
+      console.log('📥 LOG 11: RESPUESTA BACKEND RECIBIDA:', {
         duration: `${duration}ms`,
-        hasAccessToken: !!result.accessToken,
-        hasUser: !!result.user,
-        userEmail: result.user?.email,
-        resultType: typeof result
+        resultType: typeof result,
+        resultKeys: result ? Object.keys(result) : 'null/undefined',
+        resultIsArray: Array.isArray(result),
+        resultJSON: JSON.stringify(result).substring(0, 500) + '...'
       });
 
-      // ⚠️ LOG 16: VALIDACIÓN DE RESULTADO
+      // ⚠️ LOG 12: ANÁLISIS ESTRUCTURA - SOLUCIÓN AL PROBLEMA #2
       // eslint-disable-next-line no-console
-      console.log('🔍 LOG 16: Validando resultado del backend...');
+      console.log('🔍 LOG 12: ANÁLISIS ESTRUCTURA RESPUESTA:', {
+        hasAccessToken: !!result?.accessToken,
+        hasUser: !!result?.user,
+        userStructure: result?.user ? Object.keys(result.user) : 'no user',
+        resultStructure: result ? Object.keys(result) : 'no result'
+      });
 
-      if (result.accessToken && result.user) {
-        // ⚠️ LOG 17: LOGIN EXITOSO
+      // ✅ MANEJO DEFENSIVO DE RESPUESTA - SOLUCIÓN AL PROBLEMA #2
+      if (!result) {
         // eslint-disable-next-line no-console
-        console.log('🎉 LOG 17: Login exitoso:', {
-          userEmail: result.user.email,
-          userRole: result.user.role,
-          hasRefreshToken: !!result.refreshToken
-        });
-
-        return {
-          success: true,
-          user: result.user,
-          accessToken: result.accessToken,
-          refreshToken: result.refreshToken
-        };
-      } else {
-        // ⚠️ LOG 18: RESPUESTA INCOMPLETA
-        // eslint-disable-next-line no-console
-        console.warn('⚠️ LOG 18: Login falló - respuesta incompleta del backend:', {
-          hasAccessToken: !!result.accessToken,
-          hasUser: !!result.user,
-          hasUserEmail: !!result.user?.email,
-          resultKeys: Object.keys(result || {})
-        });
-
-        return {
+        console.error('🚨 LOG 13: Result es null/undefined');
+        return fail(500, {
           success: false,
-          error: 'Respuesta inválida del servidor'
-        };
+          error: 'No se recibió respuesta del servidor de autenticación'
+        });
       }
+
+      // Extraer datos directamente de la respuesta esperada
+      const accessToken = result.accessToken;
+      const user = result.user;
+      const refreshToken = result.refreshToken;
+
+      // ⚠️ LOG 14: TOKENS EXTRAÍDOS
+      // eslint-disable-next-line no-console
+      console.log('🔑 LOG 14: TOKENS EXTRAÍDOS:', {
+        hasAccessToken: !!accessToken,
+        hasUser: !!user,
+        hasRefreshToken: !!refreshToken,
+        accessTokenLength: accessToken?.length || 0,
+        userEmail: user?.email || 'no email'
+      });
+
+      if (!accessToken || !user) {
+        // eslint-disable-next-line no-console
+        console.warn('⚠️ LOG 15: Credenciales inválidas o estructura inesperada');
+
+        return fail(400, {
+          success: false,
+          error: 'Credenciales incorrectas',
+          credentials: false
+        });
+      }
+
+      // ✅ PREPARAR RESPUESTA SERIALIZABLE - SOLUCIÓN AL PROBLEMA #3
+      const cleanUser = {
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        avatarUrl: user.avatarUrl,
+        permissions: user.permissions,
+        isAuthenticated: true
+      };
+
+      // ⚠️ LOG 16: LOGIN EXITOSO
+      // eslint-disable-next-line no-console
+      console.log('✅ LOG 16: Login exitoso - Preparando respuesta:', {
+        duration: `${duration}ms`,
+        userEmail: cleanUser.email,
+        userName: cleanUser.name,
+        userRole: cleanUser.role,
+        hasAccessToken: !!accessToken,
+        responseSize: JSON.stringify({
+          success: true,
+          user: cleanUser,
+          accessToken
+        }).length
+      });
+
+      // ✅ RETORNO CORRECTO - DATOS SERIALIZABLES
+      return {
+        success: true,
+        user: cleanUser,
+        accessToken,
+        refreshToken: refreshToken || null
+      };
     } catch (error) {
       const duration = performance.now();
 
-      // ⚠️ LOG 19: ERROR CAPTURADO
+      // ⚠️ LOG CRÍTICO DEL ERROR
       // eslint-disable-next-line no-console
-      console.error('🚨 LOG 19: ERROR 500 EN SERVER ACTION:', {
+      console.error('🚨 ERROR CRÍTICO EN SERVER ACTION:', {
         timestamp: new Date().toISOString(),
         error:
           error instanceof Error
@@ -199,63 +212,27 @@ export const actions: Actions = {
                 stack: error.stack?.substring(0, 500)
               }
             : String(error),
+        API_BASE_URL,
         duration: `${duration}ms`,
-        context: 'vercel-serverless-error'
+        context: 'vercel-serverless-error',
+        solutionApplied: [
+          'Importaciones estáticas implementadas',
+          'Manejo defensivo de respuesta',
+          'Datos serializables garantizados'
+        ]
       });
 
-      // ⚠️ LOG 20: ANÁLISIS DEL ERROR
-      // eslint-disable-next-line no-console
-      console.error('🔍 LOG 20: Análisis detallado del error:', {
-        errorType: error instanceof Error ? error.constructor.name : typeof error,
-        errorMessage: error instanceof Error ? error.message : String(error),
-        errorName: error instanceof Error ? error.name : 'Unknown',
-        hasStack: !!(error instanceof Error && error.stack)
-      });
-
-      // ⚠️ LOG 21: POSIBLES CAUSAS
-      // eslint-disable-next-line no-console
-      console.error('📋 LOG 21: Posibles causas del error:', [
-        'Error de importación de módulos',
-        'Variables de entorno no resueltas',
-        'Timeout de conexión a Railway',
-        'Error en auth.service.ts',
-        'Problema con Axios configuration',
-        'Error de sintaxis en el código',
-        'Problema con Vercel serverless environment'
-      ]);
-
-      // ⚠️ LOG 22: INFORMACIÓN DEL ENTORNO
-      // eslint-disable-next-line no-console
-      console.error('🌐 LOG 22: Información del entorno:', {
-        nodeVersion: process.version,
-        platform: process.platform,
-        arch: process.arch,
-        env: process.env['NODE_ENV'],
-        vercel: process.env['VERCEL'],
-        timestamp: new Date().toISOString()
-      });
-
-      // ⚠️ LOG 23: STACK TRACE COMPLETO
-      if (error instanceof Error && error.stack) {
-        // eslint-disable-next-line no-console
-        console.error('📚 LOG 23: Stack trace completo:', error.stack);
-      }
-
-      // ⚠️ LOG 24: RESPUESTA DE ERROR
-      // eslint-disable-next-line no-console
-      console.log('📤 LOG 24: Enviando respuesta de error al cliente...');
-
-      // ⚠️ RESPUESTA ESTRUCTURADA PARA DEBUGGING
-      return {
+      // ✅ RESPUESTA ESTRUCTURADA PARA ERRORES
+      return fail(500, {
         success: false,
         error: 'Error interno del servidor. Revisar logs de Vercel.',
         debug: {
           timestamp: new Date().toISOString(),
+          API_BASE_URL: API_BASE_URL?.substring(0, 30) + '...',
           errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          errorType: error instanceof Error ? error.name : typeof error,
-          suggestion: 'Verificar configuración de variables de entorno en Vercel'
+          suggestion: 'Importaciones dinámicas eliminadas, revisar logs para más detalles'
         }
-      };
+      });
     }
   }
 };
