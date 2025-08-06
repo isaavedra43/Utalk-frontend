@@ -1,9 +1,7 @@
 // ✅ IMPORTACIONES MÍNIMAS
+import { buildApiUrl, getAuthHeaders, validateAuthResponse } from '$lib/config/api';
 import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
-
-// ✅ CONFIGURACIÓN HARDCODEADA
-const API_BASE_URL = 'https://utalk-backend-production.up.railway.app/api';
 
 // ✅ LOG INICIAL SIMPLE
 // eslint-disable-next-line no-console
@@ -36,33 +34,29 @@ export const actions: Actions = {
         });
       }
 
-      // Validar configuración del backend
-      if (!API_BASE_URL || API_BASE_URL.includes('localhost')) {
-        // eslint-disable-next-line no-console
-        console.error('🚨 CONFIGURACIÓN - API_BASE_URL inválida');
-        return fail(500, {
-          success: false,
-          error: 'Error de configuración del servidor'
-        });
-      }
+      // ✅ PETICIÓN SEGÚN DOCUMENTACIÓN BACKEND
+      // Endpoint: POST /api/auth/login
+      // Headers: Content-Type, Authorization (requerido)
+      // Body: { email, password }
+      const loginUrl = buildApiUrl('/auth/login');
 
       // eslint-disable-next-line no-console
-      console.log('🚀 BACKEND - Intentando autenticación con:', API_BASE_URL);
+      console.log('🚀 BACKEND - Intentando autenticación con:', loginUrl);
 
-      // ✅ FETCH NATIVO - SIN IMPORTS PROBLEMÁTICOS
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await fetch(loginUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer ' // Header requerido por el backend
-        },
-        body: JSON.stringify({ email, password })
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          email,
+          password
+        })
       });
 
       // eslint-disable-next-line no-console
       console.log('📥 BACKEND - Respuesta recibida:', {
         status: response.status,
-        ok: response.ok
+        ok: response.ok,
+        statusText: response.statusText
       });
 
       if (!response.ok) {
@@ -79,8 +73,8 @@ export const actions: Actions = {
 
       const result = await response.json();
 
-      // Validar respuesta del backend
-      if (!result.accessToken || !result.user) {
+      // Validar respuesta del backend según documentación
+      if (!validateAuthResponse(result)) {
         // eslint-disable-next-line no-console
         console.warn('⚠️ AUTENTICACIÓN - Respuesta inválida del backend');
         return fail(400, {
@@ -100,8 +94,9 @@ export const actions: Actions = {
         isAuthenticated: true
       };
 
-      // Establecer cookies de sesión
+      // Establecer cookies de sesión según documentación
       if (cookies) {
+        // Cookie de sesión (httpOnly para seguridad)
         cookies.set('session', result.accessToken, {
           httpOnly: true,
           secure: true,
@@ -110,6 +105,7 @@ export const actions: Actions = {
           maxAge: 60 * 60 * 24 * 7 // 7 días
         });
 
+        // Cookie de refresh token si existe
         if (result.refreshToken) {
           cookies.set('refresh_token', result.refreshToken, {
             httpOnly: true,

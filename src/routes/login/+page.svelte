@@ -58,6 +58,11 @@
   }
 </script>
 
+<svelte:head>
+  <title>Iniciar Sesión - UTalk</title>
+  <meta name="description" content="Inicia sesión en UTalk" />
+</svelte:head>
+
 <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
   <Card class="w-full max-w-md">
     <CardHeader class="text-center">
