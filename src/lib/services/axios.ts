@@ -140,12 +140,17 @@ apiClient.interceptors.response.use(
               const { refreshToken } = await import('./auth.service');
               const refreshResponse = await refreshToken();
 
-              // El nuevo token se establece automáticamente en cookies por el servidor
-              // Procesar la cola de requests pendientes
-              processQueue(null, refreshResponse.accessToken);
+              if (refreshResponse?.accessToken) {
+                // El nuevo token se establece automáticamente en cookies por el servidor
+                // Procesar la cola de requests pendientes
+                processQueue(null, refreshResponse.accessToken);
 
-              // Reintentar el request original
-              return apiClient(originalRequest);
+                // Reintentar el request original
+                return apiClient(originalRequest);
+              } else {
+                // No se pudo obtener nuevo token
+                throw new Error('No se pudo refrescar el token');
+              }
             } catch (refreshError) {
               // Refresh falló - forzar logout
               processQueue(refreshError, null);
