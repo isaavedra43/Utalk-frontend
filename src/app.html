@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- 🧹 CONSOLE CLEANER ULTRA AGRESIVO - FILTRA ERRORES DE EXTENSIONES -->
+    <!-- 🧹 CONSOLE CLEANER CON FILTRO NATIVO DE CHROME -->
     <script>
       (function () {
         'use strict';
@@ -298,13 +298,22 @@
           };
         }, 5000);
 
-        // ✅ LOG DE CONFIRMACIÓN
+        // ✅ LOG DE CONFIRMACIÓN CON INSTRUCCIONES
         console.log(
           '🧹 Console Cleaner ULTRA AGRESIVO activado - Filtrando errores de extensiones'
         );
         console.log('✅ Solo se mostrarán logs de tu aplicación');
         console.log('🛡️ Filtrado ultra agresivo activado');
         console.log('🚫 Bloqueando todos los errores de extensiones');
+        console.log('');
+        console.log('💡 INSTRUCCIONES PARA FILTRO MANUAL:');
+        console.log('1. En la consola de Chrome, busca el campo "Filter"');
+        console.log('2. Escribe: -url:chrome-extension');
+        console.log('3. Esto filtrará automáticamente todos los errores de extensiones');
+        console.log('4. También puedes usar: -background.js -runtime.lastError');
+        console.log('');
+        console.log('🔧 ALTERNATIVA: Ve a chrome://serviceworker-internals/');
+        console.log('   y desregistra los service workers de extensiones');
       })();
     </script>
 
