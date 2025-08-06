@@ -3,8 +3,154 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- 🧹 CONSOLE CLEANER - FILTRA ERRORES DE EXTENSIONES -->
+    <script>
+      (function () {
+        'use strict';
+
+        // ✅ PATRONES A FILTRAR (extensiones y recursos ajenos)
+        const FILTER_PATTERNS = [
+          'chrome-extension://',
+          'FrameDoesNotExistError',
+          'ERR_FILE_NOT_FOUND',
+          'Unchecked runtime.lastError',
+          'background.js',
+          'extensionState.js',
+          'heuristicsRedefi',
+          'completion_list.js',
+          'PasswordsToolb',
+          'Cannot access contents of the page',
+          'Extension manifest must request permission',
+          'net::ERR_FILE_NOT_FOUND',
+          'extension://',
+          'devtools://',
+          'chrome://',
+          'about:',
+          'data:',
+          'blob:',
+          'DelayedMessageSender',
+          'Uncaught (in promise)',
+          'background.js:1',
+          'chrome-extension://p',
+          'utils.js:1',
+          'extensionState.js:1',
+          'heuristicsRedefinitions.js:1',
+          'key.svg',
+          'PasswordsToolb'
+        ];
+
+        // ✅ FUNCIÓN PARA VERIFICAR SI ES ERROR DE EXTENSIÓN
+        function isExtensionError(message, source, stack) {
+          const fullMessage = `${message} ${source || ''} ${stack || ''}`.toLowerCase();
+          return FILTER_PATTERNS.some(pattern => fullMessage.includes(pattern.toLowerCase()));
+        }
+
+        // ✅ FUNCIÓN PARA VERIFICAR SI ES DE TU DOMINIO
+        function isFromYourDomain(source) {
+          if (!source) return true; // Si no hay source, permitir
+          const yourDomains = [
+            'utalk-frontend-glt2.vercel.app',
+            'localhost',
+            '127.0.0.1',
+            'vercel.app',
+            'utalk-backend-production.up.railway.app'
+          ];
+          return yourDomains.some(domain => source.includes(domain));
+        }
+
+        // ✅ INTERCEPTAR console.error
+        const originalConsoleError = console.error;
+        console.error = function (...args) {
+          const message = args.join(' ');
+          const stack = new Error().stack;
+
+          // Solo mostrar si NO es error de extensión Y es de tu dominio
+          if (!isExtensionError(message, null, stack)) {
+            originalConsoleError.apply(console, args);
+          }
+        };
+
+        // ✅ INTERCEPTAR console.warn
+        const originalConsoleWarn = console.warn;
+        console.warn = function (...args) {
+          const message = args.join(' ');
+          const stack = new Error().stack;
+
+          // Solo mostrar si NO es warning de extensión
+          if (!isExtensionError(message, null, stack)) {
+            originalConsoleWarn.apply(console, args);
+          }
+        };
+
+        // ✅ INTERCEPTAR console.log (opcional - para logs de extensión)
+        const originalConsoleLog = console.log;
+        console.log = function (...args) {
+          const message = args.join(' ');
+
+          // Filtrar logs obvios de extensiones pero mantener logs de tu app
+          if (!isExtensionError(message, null)) {
+            originalConsoleLog.apply(console, args);
+          }
+        };
+
+        // ✅ INTERCEPTAR window.onerror
+        const originalOnError = window.onerror;
+        window.onerror = function (message, source, lineno, colno, error) {
+          // Solo manejar si NO es error de extensión Y es de tu dominio
+          if (!isExtensionError(message, source) && isFromYourDomain(source)) {
+            if (originalOnError) {
+              return originalOnError(message, source, lineno, colno, error);
+            }
+            return false;
+          }
+          return true; // Prevenir que se muestre el error
+        };
+
+        // ✅ INTERCEPTAR window.onunhandledrejection
+        const originalOnUnhandledRejection = window.onunhandledrejection;
+        window.onunhandledrejection = function (event) {
+          const message = event.reason?.message || event.reason || '';
+          const stack = event.reason?.stack || '';
+
+          // Solo manejar si NO es rejection de extensión
+          if (!isExtensionError(message, null, stack)) {
+            if (originalOnUnhandledRejection) {
+              return originalOnUnhandledRejection(event);
+            }
+            return false;
+          }
+          return true; // Prevenir que se muestre el rejection
+        };
+
+        // ✅ INTERCEPTAR addEventListener para errores de recursos
+        const originalAddEventListener = EventTarget.prototype.addEventListener;
+        EventTarget.prototype.addEventListener = function (type, listener, options) {
+          if (type === 'error') {
+            const wrappedListener = function (event) {
+              // Filtrar errores de recursos de extensiones
+              if (event.target && event.target.src) {
+                const src = event.target.src;
+                if (src.includes('chrome-extension://') || src.includes('extension://')) {
+                  return; // No ejecutar listener para errores de extensiones
+                }
+              }
+              return listener.call(this, event);
+            };
+            return originalAddEventListener.call(this, type, wrappedListener, options);
+          }
+          return originalAddEventListener.call(this, type, listener, options);
+        };
+
+        // ✅ LOG DE CONFIRMACIÓN
+        console.log('🧹 Console Cleaner activado - Filtrando errores de extensiones');
+        console.log('✅ Solo se mostrarán logs de tu aplicación');
+      })();
+    </script>
+
     %sveltekit.head%
   </head>
+
   <body data-sveltekit-preload-data="hover">
     <div style="display: contents">%sveltekit.body%</div>
   </body>
