@@ -1,60 +1,110 @@
 <script lang="ts">
-  import { enhance } from '$app/forms';
   import { goto } from '$app/navigation';
-  import { page } from '$app/stores';
   import Button from '$lib/components/ui/button/button.svelte';
   import CardContent from '$lib/components/ui/card/card-content.svelte';
   import CardHeader from '$lib/components/ui/card/card-header.svelte';
   import CardTitle from '$lib/components/ui/card/card-title.svelte';
   import Card from '$lib/components/ui/card/card.svelte';
   import Input from '$lib/components/ui/input/input.svelte';
-  import type { PageFormData } from '$lib/types/auth';
+  import { buildApiUrl, getAuthHeaders, validateAuthResponse } from '$lib/config/api';
 
   // Variables reactivas
   let email = '';
   let password = '';
   let loading = false;
+  let error = '';
 
-  // Obtener datos del formulario después del submit
-  $: formData = $page.form as PageFormData;
-
-  // Manejar respuesta del servidor
-  $: if (formData) {
-    // eslint-disable-next-line no-console
-    console.log('📋 LOGIN RESPONSE:', {
-      hasFormData: !!formData,
-      hasError: !!formData.error,
-      hasSuccess: !!formData.success
-    });
-
-    // Preservar email en caso de error
-    if (formData.email) {
-      email = formData.email;
+  // ✅ PETICIÓN DIRECTA AL BACKEND - SIN SERVER ACTIONS
+  async function handleLogin() {
+    if (!email || !password) {
+      error = 'Email y contraseña son requeridos';
+      return;
     }
 
-    // Limpiar contraseña por seguridad
-    password = '';
+    loading = true;
+    error = '';
 
-    // Actualizar estado de loading
-    loading = false;
-
-    // Si login exitoso, redirigir al dashboard
-    if (formData.success && formData.user) {
+    try {
       // eslint-disable-next-line no-console
-      console.log('✅ LOGIN EXITOSO - Redirigiendo al dashboard');
+      console.log('🚀 LOGIN CLIENT - Iniciando autenticación directa al backend');
+
+      const loginUrl = buildApiUrl('/auth/login');
+
+      // eslint-disable-next-line no-console
+      console.log('📡 LOGIN CLIENT - URL del backend:', loginUrl);
+
+      const response = await fetch(loginUrl, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          email,
+          password
+        })
+      });
+
+      // eslint-disable-next-line no-console
+      console.log('📥 LOGIN CLIENT - Respuesta del backend:', {
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        // eslint-disable-next-line no-console
+        console.warn('⚠️ LOGIN CLIENT - Error del backend:', errorData);
+
+        error = errorData.message || 'Credenciales incorrectas';
+        return;
+      }
+
+      const result = await response.json();
+
+      // Validar respuesta del backend
+      if (!validateAuthResponse(result)) {
+        // eslint-disable-next-line no-console
+        console.warn('⚠️ LOGIN CLIENT - Respuesta inválida del backend');
+        error = 'Respuesta inválida del servidor';
+        return;
+      }
+
+      // Preparar datos del usuario
+      const cleanUser = {
+        email: result.user.email,
+        name: result.user.name,
+        role: result.user.role,
+        avatarUrl: result.user.avatarUrl || null,
+        permissions: result.user.permissions || [],
+        isAuthenticated: true
+      };
+
+      // Almacenar en localStorage según documentación
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('accessToken', result.accessToken);
+        if (result.refreshToken) {
+          localStorage.setItem('refreshToken', result.refreshToken);
+        }
+        localStorage.setItem('user', JSON.stringify(cleanUser));
+      }
+
+      // eslint-disable-next-line no-console
+      console.log('✅ LOGIN CLIENT - Exitoso para:', cleanUser.email);
+
+      // Redirigir al dashboard
       goto('/dashboard');
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('🚨 LOGIN CLIENT - Error crítico:', err);
+      error = 'Error de conexión. Intenta nuevamente.';
+    } finally {
+      loading = false;
     }
   }
 
   // Manejar submit del formulario
-  function handleSubmit() {
-    if (!email || !password) {
-      return;
-    }
-
-    // eslint-disable-next-line no-console
-    console.log('🚀 LOGIN SUBMIT - Procesando formulario');
-    loading = true;
+  function handleSubmit(event: any) {
+    event.preventDefault();
+    handleLogin();
   }
 </script>
 
@@ -72,14 +122,14 @@
 
     <CardContent>
       <!-- Mostrar errores si existen -->
-      {#if formData?.error}
+      {#if error}
         <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p class="text-red-800 text-sm">{formData.error}</p>
+          <p class="text-red-800 text-sm">{error}</p>
         </div>
       {/if}
 
       <!-- Formulario de login -->
-      <form method="POST" action="?/default" use:enhance on:submit={handleSubmit} class="space-y-4">
+      <form on:submit={handleSubmit} class="space-y-4">
         <div>
           <label for="email" class="block text-sm font-medium text-gray-700 mb-1"> Email </label>
           <Input
