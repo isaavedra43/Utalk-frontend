@@ -97,6 +97,63 @@
         >
           🔄 Actualizar
         </button>
+        <button
+          type="button"
+          class="demo-button"
+          on:click={() => {
+            // Crear una conversación de demo y redirigir
+            const demoConversation = {
+              id: 'demo-conversation',
+              participants: ['+521234567890', 'admin@company.com'],
+              customerPhone: '+521234567890',
+              contact: {
+                id: '+521234567890',
+                name: 'Cliente Demo',
+                phone: '+521234567890',
+                email: 'cliente@demo.com',
+                avatar: null,
+                company: 'Empresa Demo',
+                notes: 'Cliente de demostración',
+                channel: 'whatsapp',
+                isActive: true,
+                tags: ['demo'],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              },
+              assignedTo: {
+                id: 'admin@company.com',
+                name: 'Administrador del Sistema',
+                email: 'admin@company.com',
+                role: 'admin'
+              },
+              status: 'open' as const,
+              priority: 'normal' as const,
+              tags: ['demo'],
+              unreadCount: 2,
+              messageCount: 5,
+              lastMessage: {
+                id: 'msg_demo_1',
+                content: 'Hola, ¿cómo puedo ayudarte?',
+                timestamp: new Date().toISOString(),
+                sender: 'agent',
+                type: 'text',
+                status: 'delivered'
+              },
+              lastMessageId: 'msg_demo_1',
+              lastMessageAt: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+
+            // Agregar la conversación demo al store
+            conversationsStore.addDemoConversation(demoConversation);
+
+            // Redirigir a la conversación demo
+            window.location.href = '/chat/demo-conversation';
+          }}
+        >
+          🎯 Ver Interfaz Completa (Demo)
+        </button>
       </div>
     </div>
   {:else}
@@ -194,6 +251,24 @@
 
   .logout-button:hover {
     background-color: #5a6268;
+  }
+
+  .demo-button {
+    background-color: #28a745;
+    color: white;
+    margin-top: 0.5rem;
+  }
+
+  .demo-button:hover {
+    background-color: #218838;
+  }
+
+  .empty-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 1rem;
   }
 
   .empty-state h2 {

@@ -197,6 +197,21 @@ const createConversationsStore = () => {
             });
         },
 
+        addDemoConversation: (demoConversation: Conversation) => {
+            logStore('addDemoConversation', {
+                conversationId: demoConversation.id,
+                conversationStatus: demoConversation.status
+            });
+
+            executeUpdate(() => {
+                update(state => ({
+                    ...state,
+                    conversations: [demoConversation, ...state.conversations],
+                    selectedConversation: demoConversation
+                }));
+            });
+        },
+
         markConversationAsRead: (conversationId: string) => {
             logStore('markConversationAsRead', { conversationId });
 
