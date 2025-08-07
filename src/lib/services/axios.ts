@@ -64,7 +64,7 @@ const api: AxiosInstance = axios.create({
 // Interceptor de requests - Documento: info/1.md sección "Headers de Autorización Específicos"
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -87,6 +87,11 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       const errorData = extractErrorData(error);
 
+      // Verificar si es una petición crítica que requiere redirección
+      const isCriticalRequest = error.config?.url?.includes('/auth/') ||
+        error.config?.url?.includes('/profile') ||
+        error.config?.method === 'POST';
+
       if (errorData.code === 'TOKEN_EXPIRED_DURING_PROCESSING') {
         try {
           // Intentar refresh token automáticamente
@@ -94,15 +99,22 @@ api.interceptors.response.use(
           // Reintentar la operación original
           return api.request(error.config!);
         } catch (refreshError) {
-          // Si el refresh falla, deslogear al usuario
-          authStore.logout();
-          window.location.href = '/login';
+          // Si el refresh falla y es una petición crítica, deslogear al usuario
+          if (isCriticalRequest) {
+            authStore.logout();
+            window.location.href = '/login';
+          }
           return Promise.reject(refreshError);
         }
       } else {
-        // Otro error 401, deslogear al usuario
-        authStore.logout();
-        window.location.href = '/login';
+        // Otro error 401 - solo redirigir si es una petición crítica
+        if (isCriticalRequest) {
+          authStore.logout();
+          window.location.href = '/login';
+        } else {
+          // Para peticiones no críticas (como cargar conversaciones), solo mostrar error
+          notificationsStore.error('Error de autorización. Verifica tu sesión.');
+        }
       }
     }
 
@@ -136,6 +148,12 @@ api.interceptors.response.use(
     if (error.response?.status === 404) {
       const errorData = extractErrorData(error);
       notificationsStore.error(errorData.message);
+      return Promise.reject(error);
+    }
+
+    // Error específico para conversaciones - no redirigir automáticamente
+    if (error.response?.status === 401 && error.config?.url?.includes('/conversations')) {
+      notificationsStore.error('No se pudieron cargar las conversaciones. Verifica tu sesión.');
       return Promise.reject(error);
     }
 
@@ -176,8 +194,8 @@ async function refreshToken(): Promise<void> {
 
     const { accessToken, refreshToken: newRefreshToken } = response.data.data;
 
-    // Actualizar tokens en localStorage
-    localStorage.setItem('accessToken', accessToken);
+    // Actualizar tokens en localStorage con nombres consistentes
+    localStorage.setItem('token', accessToken);
     localStorage.setItem('refreshToken', newRefreshToken);
 
     // Actualizar store de autenticación

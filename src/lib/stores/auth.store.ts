@@ -24,7 +24,7 @@ const createAuthStore = () => {
   return {
     subscribe,
 
-    login: (user: User, token: string) => {
+    login: (user: User, token: string, refreshToken?: string) => {
       logStore('auth: login', {
         userId: user.id,
         userEmail: user.email,
@@ -32,6 +32,9 @@ const createAuthStore = () => {
       });
 
       localStorage.setItem('token', token);
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken);
+      }
       set({ user, token, isAuthenticated: true });
     },
 

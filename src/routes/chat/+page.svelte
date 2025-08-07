@@ -10,16 +10,27 @@
 
 <script lang="ts">
   import { conversationsStore } from '$lib/stores/conversations.store';
+  import { notificationsStore } from '$lib/stores/notifications.store';
   import { onMount } from 'svelte';
 
   let conversations: any[] = [];
   let loading = true;
+  let error = '';
 
-  onMount(() => {
+  onMount(async () => {
+    try {
+      // Cargar conversaciones
+      await conversationsStore.loadConversations();
+    } catch (err: any) {
+      error = err.message || 'Error al cargar conversaciones';
+      notificationsStore.error(error);
+    } finally {
+      loading = false;
+    }
+
     // Suscribirse a cambios en conversaciones
     conversationsStore.subscribe(state => {
       conversations = state.conversations;
-      loading = false;
     });
   });
 </script>
@@ -29,6 +40,33 @@
     <div class="loading-state">
       <div class="spinner"></div>
       <p>Cargando conversaciones...</p>
+    </div>
+  {:else if error}
+    <div class="error-state">
+      <div class="error-icon">⚠️</div>
+      <h2>Error al cargar conversaciones</h2>
+      <p>{error}</p>
+      <div class="error-actions">
+        <button
+          type="button"
+          class="retry-button"
+          on:click={() => {
+            error = '';
+            loading = true;
+            conversationsStore
+              .loadConversations()
+              .catch(err => {
+                error = err.message || 'Error al cargar conversaciones';
+                notificationsStore.error(error);
+              })
+              .finally(() => {
+                loading = false;
+              });
+          }}
+        >
+          🔄 Reintentar
+        </button>
+      </div>
     </div>
   {:else if conversations.length === 0}
     <div class="empty-state">
@@ -64,7 +102,8 @@
 
   .loading-state,
   .empty-state,
-  .redirecting-state {
+  .redirecting-state,
+  .error-state {
     text-align: center;
     color: #6c757d;
     max-width: 400px;
@@ -90,7 +129,8 @@
     }
   }
 
-  .empty-icon {
+  .empty-icon,
+  .error-icon {
     font-size: 4rem;
     margin-bottom: 1rem;
   }

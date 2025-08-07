@@ -93,7 +93,7 @@
       };
 
       // Actualizar el store de autenticación
-      authStore.login(user, result.accessToken);
+      authStore.login(user, result.accessToken, result.refreshToken);
 
       // eslint-disable-next-line no-console
       console.log('✅ LOGIN CLIENT - Exitoso para:', user.email);
