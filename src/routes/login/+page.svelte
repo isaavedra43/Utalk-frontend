@@ -61,6 +61,12 @@
 
       const result = await response.json();
 
+      // eslint-disable-next-line no-console
+      console.log(
+        '🔍 LOGIN CLIENT - Respuesta completa del backend:',
+        JSON.stringify(result, null, 2)
+      );
+
       // Validar respuesta del backend
       if (!validateAuthResponse(result)) {
         // eslint-disable-next-line no-console
@@ -69,23 +75,25 @@
         return;
       }
 
-      // Preparar datos del usuario según el modelo del backend
+      // Preparar datos del usuario según la estructura real del backend
       const user = {
-        id: result.data.user.id,
-        email: result.data.user.email,
-        name: result.data.user.name,
-        role: result.data.user.role,
-        isActive: result.data.user.isActive,
-        avatar: result.data.user.avatar || null,
-        lastSeen: result.data.user.lastSeen,
-        isOnline: result.data.user.isOnline,
-        permissions: result.data.user.permissions || [],
-        createdAt: result.data.user.createdAt,
-        updatedAt: result.data.user.updatedAt
+        id: result.user.id,
+        email: result.user.email,
+        name: result.user.name,
+        role: result.user.role,
+        isActive: result.user.isActive,
+        phone: result.user.phone,
+        permissions: result.user.permissions || [],
+        department: result.user.department,
+        settings: result.user.settings,
+        lastLoginAt: result.user.lastLoginAt,
+        createdAt: result.user.createdAt,
+        updatedAt: result.user.updatedAt,
+        performance: result.user.performance
       };
 
       // Actualizar el store de autenticación
-      authStore.login(user, result.data.tokens.accessToken);
+      authStore.login(user, result.accessToken);
 
       // eslint-disable-next-line no-console
       console.log('✅ LOGIN CLIENT - Exitoso para:', user.email);

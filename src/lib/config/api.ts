@@ -35,26 +35,82 @@ export function getAuthHeaders(token?: string): Record<string, string> {
   };
 }
 
-// ✅ Interfaz para respuesta de autenticación según documentación
+// ✅ Interfaz para respuesta de autenticación según estructura real del backend
 export interface AuthResponse {
   success: boolean;
-  data: {
-    user: {
-      id: string;
-      email: string;
-      name: string;
-      role: 'admin' | 'agent' | 'viewer';
-      isActive: boolean;
+  message: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: string;
+  refreshExpiresIn: string;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    phone: string | null;
+    role: 'admin' | 'agent' | 'viewer';
+    permissions: string[];
+    department: string;
+    isActive: boolean;
+    settings: {
+      notifications: boolean;
+      language: string;
+      timezone: string;
     };
-    tokens: {
-      accessToken: string;
-      refreshToken: string;
-      expiresIn: number;
+    lastLoginAt: {
+      _seconds: number;
+      _nanoseconds: number;
     };
+    createdAt: {
+      _seconds: number;
+      _nanoseconds: number;
+    };
+    updatedAt: {
+      _seconds: number;
+      _nanoseconds: number;
+    };
+    performance: any;
+  };
+  deviceInfo: {
+    deviceId: string;
+    deviceType: string;
+    loginAt: string;
   };
 }
 
-// ✅ Función para validar respuesta del backend
-export function validateAuthResponse(data: AuthResponse): boolean {
-  return !!(data?.data?.tokens?.accessToken && data?.data?.user);
+// ✅ Función para validar respuesta del backend según estructura real
+export function validateAuthResponse(data: any): boolean {
+  // Validar estructura completa según estructura real del backend
+  if (!data || typeof data !== 'object') {
+    console.warn('validateAuthResponse: data no es un objeto válido');
+    return false;
+  }
+
+  if (!data.success) {
+    console.warn('validateAuthResponse: success no es true');
+    return false;
+  }
+
+  if (!data.accessToken || typeof data.accessToken !== 'string') {
+    console.warn('validateAuthResponse: accessToken no existe o no es string');
+    return false;
+  }
+
+  if (!data.refreshToken || typeof data.refreshToken !== 'string') {
+    console.warn('validateAuthResponse: refreshToken no existe o no es string');
+    return false;
+  }
+
+  if (!data.user || typeof data.user !== 'object') {
+    console.warn('validateAuthResponse: user no existe o no es objeto');
+    return false;
+  }
+
+  // Validar campos mínimos del usuario
+  if (!data.user.id || !data.user.email || !data.user.role) {
+    console.warn('validateAuthResponse: campos mínimos del usuario faltantes');
+    return false;
+  }
+
+  return true;
 }
