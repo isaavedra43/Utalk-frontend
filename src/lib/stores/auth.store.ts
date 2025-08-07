@@ -8,252 +8,153 @@
  * - DOCUMENTACION_COMPLETA_BACKEND_UTALK.md
  */
 
-import type { User } from '$lib/types/auth';
-import { browser } from '$lib/utils/browser';
-import type { RequestEvent } from '@sveltejs/kit';
-import { derived, writable } from 'svelte/store';
+import { writable } from 'svelte/store';
 
-// Tipos basados en la documentación del backend
+// Interfaces basadas en el documento - Documento sección "Modelos JSON"
+export interface User {
+  id: string;
+  email: string;
+  role: 'admin' | 'agent' | 'viewer';
+  name: string;
+  avatar?: string;
+  lastSeen?: string;
+  isOnline?: boolean;
+}
+
 export interface AuthState {
   user: User | null;
-  loading: boolean;
+  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
   error: string | null;
 }
 
-// Estado inicial del store
+// Estado inicial
 const initialState: AuthState = {
   user: null,
-  loading: false,
+  token: null,
+  isAuthenticated: false,
+  isLoading: false,
   error: null
 };
 
-// Store principal de autenticación
-function createAuthStore() {
+// Crear store de autenticación - Documento: "Store de Autenticación"
+const createAuthStore = () => {
   const { subscribe, set, update } = writable<AuthState>(initialState);
 
   return {
     subscribe,
 
-    /**
-     * Función para inicializar el store desde el servidor (SSR)
-     * Lee la información del usuario desde cookies HttpOnly
-     *
-     * @param event - RequestEvent de SvelteKit con acceso a cookies
-     */
-    initFromServer: (event: RequestEvent) => {
-      try {
-        // Leer información del usuario desde cookie (NO sensible)
-        const userInfoCookie = event.cookies.get('user_info');
-
-        if (userInfoCookie) {
-          const userData = JSON.parse(userInfoCookie) as User;
-
-          // Verificar que tenemos los datos mínimos requeridos
-          if (userData.email && userData.name && userData.role) {
-            set({
-              user: userData,
-              loading: false,
-              error: null
-            });
-
-            // Establecer usuario en locals para SSR
-            event.locals.user = {
-              email: userData.email,
-              name: userData.name,
-              role: userData.role as User['role'],
-              permissions: userData.permissions || [],
-              isAuthenticated: true
-            };
-          }
-        }
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Error al inicializar auth store desde servidor:', error);
-        set({
-          user: null,
-          loading: false,
-          error: 'Error al cargar información del usuario'
-        });
-      }
-    },
-
-    /**
-     * Función para inicializar el store desde el cliente (hidratación)
-     * Lee la información del usuario desde cookies accesibles
-     */
-    initFromClient: () => {
-      if (!browser) return;
-
-      try {
-        // En el cliente, leer desde document.cookie la info del usuario (NO sensible)
-        const cookies = document.cookie.split(';').reduce(
-          (acc, cookie) => {
-            const [key, value] = cookie.trim().split('=');
-            if (key && value) {
-              acc[key] = value;
-            }
-            return acc;
-          },
-          {} as Record<string, string>
-        );
-
-        const userInfoCookie = cookies['user_info'];
-
-        if (userInfoCookie) {
-          const userData = JSON.parse(decodeURIComponent(userInfoCookie)) as User;
-
-          if (userData.email && userData.name && userData.role) {
-            set({
-              user: userData,
-              loading: false,
-              error: null
-            });
-          }
-        }
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Error al inicializar auth store desde cliente:', error);
-        set({
-          user: null,
-          loading: false,
-          error: 'Error al cargar información del usuario'
-        });
-      }
-    },
-
-    /**
-     * Función para actualizar el usuario después de login exitoso
-     * Se llama desde el servidor después de establecer las cookies
-     *
-     * @param user - Datos del usuario recibidos del backend
-     */
-    login: (user: User) => {
+    // Login - Documento: "Componente de Login"
+    login: (user: User, token: string) => {
+      localStorage.setItem('token', token);
       set({
         user,
-        loading: false,
+        token,
+        isAuthenticated: true,
+        isLoading: false,
         error: null
       });
     },
 
-    /**
-     * Función para limpiar el estado y realizar logout
-     * Borra las cookies y limpia el store
-     */
-    logout: async () => {
-      try {
-        // Limpiar el store inmediatamente
-        set({
-          user: null,
-          loading: false,
-          error: null
-        });
+    // Logout - Documento: "Logout sincronizado en todas las pestañas"
+    logout: () => {
+      localStorage.removeItem('token');
+      set(initialState);
 
-        if (browser) {
-          // Hacer request al servidor para limpiar cookies
-          // El endpoint manejará la limpieza de cookies HttpOnly
-          await globalThis.fetch('/api/auth/logout', {
-            method: 'POST',
-            credentials: 'include' // Incluir cookies en la request
-          });
-
-          // Limpiar cookies accesibles desde cliente
-          document.cookie =
-            'user_info=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; Secure; SameSite=Lax';
-
-          // Redirigir a login
-          window.location.href = '/login';
-        }
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Error durante logout:', error);
-        // Aún así limpiar el estado local
-        set({
-          user: null,
-          loading: false,
-          error: 'Error durante logout, pero sesión local limpiada'
-        });
+      // Limpiar socket - Documento: "Limpieza de listeners"
+      if (typeof window !== 'undefined') {
+        // TODO: Importar y limpiar socketManager
+        // socketManager.cleanup();
+        // socketManager.disconnect();
       }
     },
 
-    /**
-     * Función para establecer estado de loading
-     */
-    setLoading: (loading: boolean) => {
-      update(state => ({ ...state, loading }));
+    // Actualizar usuario - Documento: "updateUser"
+    updateUser: (user: User) => {
+      update(state => ({ ...state, user }));
     },
 
-    /**
-     * Función para establecer error
-     */
+    // Establecer estado de carga
+    setLoading: (isLoading: boolean) => {
+      update(state => ({ ...state, isLoading }));
+    },
+
+    // Establecer error
     setError: (error: string | null) => {
       update(state => ({ ...state, error }));
     },
 
-    /**
-     * Función para limpiar error
-     */
-    clearError: () => {
-      update(state => ({ ...state, error: null }));
+    // Actualizar tokens - Documento: info/1.5.md sección "Respuesta de Refresh Token"
+    updateTokens: (accessToken: string, refreshToken: string) => {
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
+      update(state => ({ ...state, token: accessToken }));
+    },
+
+    // Verificar si el usuario puede enviar mensajes - Documento: "Reglas de Autorización"
+    canSendMessages: (state: AuthState): boolean => {
+      if (!state.isAuthenticated || !state.user) return false;
+
+      // Viewer no puede enviar mensajes - Documento: "Roles de Usuario"
+      if (state.user.role === 'viewer') return false;
+
+      return true;
+    },
+
+    // Verificar si el usuario puede ver conversaciones - Documento: "Reglas de Autorización"
+    canViewConversations: (state: AuthState): boolean => {
+      if (!state.isAuthenticated || !state.user) return false;
+
+      // Viewer no puede ver conversaciones - Documento: "Roles de Usuario"
+      if (state.user.role === 'viewer') return false;
+
+      return true;
+    },
+
+    // Verificar si el usuario puede editar contactos - Documento: info/1.md sección "Reglas de Autorización"
+    canEditContacts: (): boolean => {
+      let currentState: AuthState | undefined;
+      subscribe(s => currentState = s)();
+
+      if (!currentState?.isAuthenticated || !currentState?.user) return false;
+
+      // Solo admin y agent pueden editar contactos
+      return currentState.user.role === 'admin' || currentState.user.role === 'agent';
+    },
+
+    // Verificar si el usuario es admin - Documento: "Roles de Usuario"
+    isAdmin: (state: AuthState): boolean => {
+      return state.user?.role === 'admin';
+    },
+
+    // Verificar si el usuario es agente - Documento: "Roles de Usuario"
+    isAgent: (state: AuthState): boolean => {
+      return state.user?.role === 'agent';
+    },
+
+    // Inicializar desde localStorage - Documento: "Logout sincronizado en todas las pestañas"
+    initialize: () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        // TODO: Validar token y obtener información del usuario
+        // Por ahora, solo establecer el token
+        update(state => ({ ...state, token, isAuthenticated: true }));
+      }
+    },
+
+    // Sincronizar logout entre pestañas - Documento: "Logout sincronizado en todas las pestañas"
+    setupStorageListener: () => {
+      if (typeof window !== 'undefined') {
+        window.addEventListener('storage', (event) => {
+          if (event.key === 'token' && !event.newValue) {
+            // Token eliminado en otra pestaña
+            set(initialState);
+          }
+        });
+      }
     }
   };
-}
+};
 
-// Instancia del store
 export const authStore = createAuthStore();
-
-// Stores derivados para acceso fácil a propiedades específicas
-export const isAuthenticated = derived(authStore, $auth => $auth.user !== null);
-
-export const currentUser = derived(authStore, $auth => $auth.user);
-
-export const authLoading = derived(authStore, $auth => $auth.loading);
-
-export const authError = derived(authStore, $auth => $auth.error);
-
-/**
- * Función helper para verificar permisos del usuario
- * Basada en la jerarquía de roles del backend
- */
-export function hasPermission(requiredRole: string): boolean {
-  let currentState: AuthState = initialState;
-
-  // Suscribirse sincrónicamente para obtener el valor actual
-  const unsubscribe = authStore.subscribe(state => {
-    currentState = state;
-  });
-  unsubscribe();
-
-  if (!currentState.user) return false;
-
-  // Jerarquía de roles según documentación backend (línea 383-389)
-  const roleHierarchy = ['viewer', 'agent', 'admin', 'superadmin'];
-  const userRoleIndex = roleHierarchy.indexOf(currentState.user.role);
-  const requiredRoleIndex = roleHierarchy.indexOf(requiredRole);
-
-  // Usuario tiene el rol requerido o uno superior
-  return userRoleIndex >= requiredRoleIndex;
-}
-
-/**
- * Función helper para verificar permisos específicos
- */
-export function hasSpecificPermission(permission: string): boolean {
-  let currentState: AuthState = initialState;
-
-  const unsubscribe = authStore.subscribe(state => {
-    currentState = state;
-  });
-  unsubscribe();
-
-  if (!currentState.user) return false;
-
-  return currentState.user.permissions?.includes(permission) ?? false;
-}
-
-/**
- * Función para inicializar el store automáticamente en el cliente
- */
-if (browser) {
-  // Hidratación automática en el cliente
-  authStore.initFromClient();
-}

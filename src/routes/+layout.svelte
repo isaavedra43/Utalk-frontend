@@ -1,45 +1,78 @@
+<!-- 
+ * Layout Principal de UTalk Frontend
+ * Basado en PLAN_FRONTEND_UTALK_COMPLETO.md
+ * 
+ * Características:
+ * - Layout base para toda la aplicación
+ * - Sistema de notificaciones global
+ * - Manejo de estados de autenticación
+ * - Estilos globales
+ -->
+
 <script lang="ts">
-  import { browser } from '$app/environment';
-  import { API_BASE_URL } from '$lib/env';
+  import NotificationToast from '$lib/components/NotificationToast.svelte';
+  import { socketManager } from '$lib/services/socket';
+  import { authStore } from '$lib/stores/auth.store';
+  import { onMount } from 'svelte';
   import '../app.css';
 
-  // Función para ping al backend
-  async function pingBackend() {
-    if (!browser) return;
-
-    try {
-      // eslint-disable-next-line no-console
-      console.log('🚀 PING BACKEND - Iniciando ping automático...');
-
-      const response = await fetch(`${API_BASE_URL.replace('/api', '')}/ping`, {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        // eslint-disable-next-line no-console
-        console.log('✅ PING BACKEND - Conexión exitosa:', {
-          status: response.status,
-          url: API_BASE_URL
-        });
+  onMount(() => {
+    // Inicializar socket si el usuario está autenticado
+    const unsubscribe = authStore.subscribe(state => {
+      if (state.isAuthenticated && state.user) {
+        socketManager.connect();
       } else {
-        // eslint-disable-next-line no-console
-        console.warn('⚠️ PING BACKEND - Respuesta no exitosa:', response.status);
+        socketManager.disconnect();
       }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('🚨 PING BACKEND - Error de conexión:', error);
-    }
-  }
+    });
 
-  // Ejecutar ping al cargar la app
-  if (browser) {
-    pingBackend();
-  }
+    return unsubscribe;
+  });
 </script>
 
-<main>
+<div class="app-container">
   <slot />
-</main>
+  <NotificationToast />
+</div>
+
+<style>
+  .app-container {
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  /* Reset básico */
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: inherit;
+  }
+
+  /* Estilos globales para el chat */
+  .chat-layout {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Scrollbar personalizada */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
+</style>

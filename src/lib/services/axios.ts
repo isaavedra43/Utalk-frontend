@@ -10,229 +10,147 @@
  * incluso en el login inicial donde aún no hay token.
  */
 
-import { browser } from '$app/environment';
-import { API_BASE_URL } from '$lib/env';
-import type { QueueItem } from '$lib/types/http';
-import axios from 'axios';
+// Configuración de Axios con interceptores - Extraído de PLAN_FRONTEND_UTALK_COMPLETO.md Fase 1.1
+import axios, { type AxiosError, type AxiosInstance, type AxiosResponse } from 'axios';
+import { environment } from '../config/environment';
+import { authStore } from '../stores/auth.store';
+import { notificationsStore } from '../stores/notifications.store';
 
-// Configuración del cliente Axios
-export const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 15000, // 15 segundos timeout según documentación
-  withCredentials: true, // Enviar cookies automáticamente
+// Configuración de la instancia de Axios - Documento: info/1.md sección "Headers de Autorización Específicos"
+const api: AxiosInstance = axios.create({
+  baseURL: environment.API_URL,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
-    Accept: 'application/json'
-  }
+  },
 });
 
-// Función para obtener token actual (desde cookies o storage)
-function getCurrentToken(): string | null {
-  if (!browser) return null;
-
-  try {
-    // Intentar obtener token de localStorage como fallback
-    return localStorage.getItem('accessToken') || null;
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn('⚠️ AXIOS - Error al leer localStorage:', error);
-    return null;
-  }
-}
-
-// Interceptor para requests - CRÍTICO: SIEMPRE envía Authorization header
-apiClient.interceptors.request.use(
-  config => {
-    // ⚠️ ALINEACIÓN CON BACKEND: Authorization header OBLIGATORIO
-    // Según la documentación del backend, ALL requests requieren este header,
-    // incluso el login inicial donde el token está vacío
-    const token = getCurrentToken();
-
-    // SIEMPRE enviar Authorization header, incluso si está vacío
-    config.headers.Authorization = `Bearer ${token || ''}`;
-
-    // Log en desarrollo
-    if (import.meta.env.DEV && typeof console !== 'undefined') {
-      // eslint-disable-next-line no-console
-      console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`, {
-        hasToken: !!token,
-        headers: {
-          'Content-Type': config.headers['Content-Type'],
-          Authorization: config.headers.Authorization?.substring(0, 20) + '...' // Log parcial para seguridad
-        }
-      });
+// Interceptor de requests - Documento: info/1.md sección "Headers de Autorización Específicos"
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-
     return config;
   },
-  error => {
-    // eslint-disable-next-line no-console
-    console.error('❌ Request Error:', error);
+  (error) => {
     return Promise.reject(error);
   }
 );
 
-// Variable para evitar múltiples intentos de refresh simultáneos
-let isRefreshing = false;
-let failedQueue: QueueItem[] = [];
-
-// Función para procesar la cola de requests después del refresh
-const processQueue = (error: unknown, token: string | null = null) => {
-  failedQueue.forEach(({ resolve, reject }) => {
-    if (error) {
-      reject(error);
-    } else {
-      resolve(token);
-    }
-  });
-
-  failedQueue = [];
-};
-
-// Interceptor para responses con auto-refresh
-apiClient.interceptors.response.use(
-  response => {
-    // Log en desarrollo
-    if (import.meta.env.DEV && typeof console !== 'undefined') {
-      // eslint-disable-next-line no-console
-      console.log(`✅ API Response: ${response.status} ${response.config.url}`);
-    }
-
+// Interceptor de responses - Documento: info/1.md sección "Casos Especiales que la UI debe manejar"
+api.interceptors.response.use(
+  (response: AxiosResponse) => {
+    // Manejar rate limiting - Documento: info/1.md sección "Rate Limiting"
+    handleRateLimitHeaders(response);
     return response;
   },
-  async error => {
-    const originalRequest = error.config;
+  async (error: AxiosError) => {
+    // Token expirado durante procesamiento - Documento: info/1.md sección "Token Expirado Durante Procesamiento"
+    if (error.response?.status === 401) {
+      const errorCode = (error.response.data as any)?.code;
 
-    // Manejo centralizado de errores
-    if (error.response) {
-      // Error del servidor (4xx, 5xx)
-      if (import.meta.env.DEV && typeof console !== 'undefined') {
-        // eslint-disable-next-line no-console
-        console.error('❌ API Error Response:', {
-          status: error.response.status,
-          statusText: error.response.statusText,
-          url: error.config?.url,
-          data: error.response.data
-        });
-      }
-
-      // Manejo específico por código de estado
-      switch (error.response.status) {
-        case 401: {
-          // Token expirado - intentar refresh automático
-          if (browser && !originalRequest._retry) {
-            if (isRefreshing) {
-              // Si ya estamos refrescando, añadir a la cola
-              return new Promise((resolve, reject) => {
-                failedQueue.push({ resolve, reject });
-              })
-                .then(() => {
-                  return apiClient(originalRequest);
-                })
-                .catch(err => {
-                  return Promise.reject(err);
-                });
-            }
-
-            originalRequest._retry = true;
-            isRefreshing = true;
-
-            try {
-              // Importar dinámicamente para evitar dependencias circulares
-              const { refreshToken } = await import('./auth.service');
-              const refreshResponse = await refreshToken();
-
-              if (refreshResponse?.accessToken) {
-                // El nuevo token se establece automáticamente en cookies por el servidor
-                // Procesar la cola de requests pendientes
-                processQueue(null, refreshResponse.accessToken);
-
-                // Reintentar el request original
-                return apiClient(originalRequest);
-              } else {
-                // No se pudo obtener nuevo token
-                throw new Error('No se pudo refrescar el token');
-              }
-            } catch (refreshError) {
-              // Refresh falló - forzar logout
-              processQueue(refreshError, null);
-
-              // Importar y ejecutar logout
-              const { authStore } = await import('../stores/auth.store');
-              await authStore.logout();
-
-              return Promise.reject(refreshError);
-            } finally {
-              isRefreshing = false;
-            }
-          }
-          break;
+      if (errorCode === 'TOKEN_EXPIRED_DURING_PROCESSING') {
+        try {
+          // Intentar refresh token automáticamente
+          await refreshToken();
+          // Reintentar la operación original
+          return api.request(error.config!);
+        } catch (refreshError) {
+          // Si el refresh falla, deslogear al usuario
+          authStore.logout();
+          window.location.href = '/login';
+          return Promise.reject(refreshError);
         }
-        case 403:
-          if (import.meta.env.DEV && typeof console !== 'undefined') {
-            // eslint-disable-next-line no-console
-            console.error('🔒 Acceso denegado');
-          }
-          break;
-        case 404:
-          if (import.meta.env.DEV && typeof console !== 'undefined') {
-            // eslint-disable-next-line no-console
-            console.error('🔍 Recurso no encontrado');
-          }
-          break;
-        case 500:
-          if (import.meta.env.DEV && typeof console !== 'undefined') {
-            // eslint-disable-next-line no-console
-            console.error('💥 Error interno del servidor');
-          }
-          break;
-      }
-    } else if (error.request) {
-      // Error de red (sin respuesta del servidor)
-      if (import.meta.env.DEV && typeof console !== 'undefined') {
-        // eslint-disable-next-line no-console
-        console.error('🌐 Network Error:', error.message);
-      }
-    } else {
-      // Error de configuración
-      if (import.meta.env.DEV && typeof console !== 'undefined') {
-        // eslint-disable-next-line no-console
-        console.error('⚙️ Axios Config Error:', error.message);
+      } else {
+        // Otro error 401, deslogear al usuario
+        authStore.logout();
+        window.location.href = '/login';
       }
     }
+
+    // Rate limiting - Documento: info/1.md sección "Rate Limiting"
+    if (error.response?.status === 429) {
+      const retryAfter = (error.response.data as any)?.retryAfter || 60;
+      notificationsStore.error(`Has excedido el límite de peticiones. Intenta de nuevo en ${retryAfter} segundos.`);
+      return Promise.reject(error);
+    }
+
+    // Error de archivo demasiado grande - Documento: info/1.5.md sección "Validación de Archivos"
+    if (error.response?.status === 413) {
+      notificationsStore.error('Archivo demasiado grande. Máximo 100MB por archivo.');
+      return Promise.reject(error);
+    }
+
+    // Error de tipo de archivo no permitido - Documento: info/1.5.md sección "Validación de Archivos"
+    if (error.response?.status === 415) {
+      notificationsStore.error('Tipo de archivo no permitido.');
+      return Promise.reject(error);
+    }
+
+    // Error de permisos - Documento: info/1.md sección "Reglas de Autorización"
+    if (error.response?.status === 403) {
+      notificationsStore.error('No tienes permisos para realizar esta acción.');
+      return Promise.reject(error);
+    }
+
+    // Error de conversación no encontrada - Documento: info/1.md sección "Casos Especiales"
+    if (error.response?.status === 404) {
+      const message = (error.response.data as any)?.message || 'Recurso no encontrado';
+      notificationsStore.error(message);
+      return Promise.reject(error);
+    }
+
+    // Error genérico del servidor
+    if (error.response?.status && error.response.status >= 500) {
+      notificationsStore.error('Error interno del servidor. Intenta de nuevo más tarde.');
+      return Promise.reject(error);
+    }
+
+    // Mostrar mensaje de error del backend si existe
+    const errorMessage = (error.response?.data as any)?.message || 'Error de conexión';
+    notificationsStore.error(errorMessage);
 
     return Promise.reject(error);
   }
 );
 
-// Exportar tipos útiles
-export interface ApiResponse<T = unknown> {
-  data: T;
-  status: number;
-  statusText: string;
+// Función para manejar headers de rate limiting - Documento: info/1.md sección "Rate Limiting"
+function handleRateLimitHeaders(response: AxiosResponse) {
+  const remaining = response.headers['X-RateLimit-Remaining'];
+  const reset = response.headers['X-RateLimit-Reset'];
+
+  if (remaining && parseInt(remaining) < 5) {
+    notificationsStore.warning('Estás cerca del límite de peticiones. Ten cuidado con el uso.');
+  }
 }
 
-export interface ApiError {
-  message: string;
-  status?: number;
-  data?: unknown;
+// Función para refresh token - Documento: info/1.5.md sección "Respuesta de Refresh Token"
+async function refreshToken(): Promise<void> {
+  try {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) {
+      throw new Error('No hay refresh token disponible');
+    }
+
+    const response = await axios.post(`${environment.API_URL}/auth/refresh`, {
+      refreshToken
+    });
+
+    const { accessToken, refreshToken: newRefreshToken } = response.data;
+
+    // Actualizar tokens en localStorage
+    localStorage.setItem('accessToken', accessToken);
+    localStorage.setItem('refreshToken', newRefreshToken);
+
+    // Actualizar store de autenticación
+    authStore.updateTokens(accessToken, newRefreshToken);
+
+  } catch (error) {
+    console.error('Error refreshing token:', error);
+    throw error;
+  }
 }
 
-// Funciones helper para métodos HTTP comunes
-export const api = {
-  get: <T = unknown>(url: string, config?: object) => apiClient.get<T>(url, config),
-
-  post: <T = unknown>(url: string, data?: unknown, config?: object) =>
-    apiClient.post<T>(url, data, config),
-
-  put: <T = unknown>(url: string, data?: unknown, config?: object) =>
-    apiClient.put<T>(url, data, config),
-
-  patch: <T = unknown>(url: string, data?: unknown, config?: object) =>
-    apiClient.patch<T>(url, data, config),
-
-  delete: <T = unknown>(url: string, config?: object) => apiClient.delete<T>(url, config)
-};
-
-// Exportar por defecto para compatibilidad
-export default apiClient;
+export { api };
