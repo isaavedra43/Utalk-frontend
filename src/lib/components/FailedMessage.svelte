@@ -10,7 +10,9 @@
 
 <script lang="ts">
   export let message: any;
+  // eslint-disable-next-line no-unused-vars
   export let onRetry: (messageId: string) => Promise<void>;
+  import { logError } from '$lib/utils/logger';
 
   let retrying = false;
 
@@ -21,7 +23,11 @@
       retrying = true;
       await onRetry(message.id);
     } catch (error) {
-      console.error('Error al reintentar mensaje:', error);
+      logError(
+        'Error al reintentar mensaje:',
+        'CHAT',
+        error instanceof Error ? error : new Error(String(error))
+      );
     } finally {
       retrying = false;
     }

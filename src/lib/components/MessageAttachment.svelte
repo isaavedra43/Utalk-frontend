@@ -17,7 +17,6 @@
   export let filename: string;
   export let fileType: string;
   export let fileSize: number;
-  export let thumbnail: string | null = null;
 
   let loading = true;
   let error = '';
@@ -28,7 +27,6 @@
 
   onMount(() => {
     // Determinar tipo de archivo para renderizado
-    const extension = filename.toLowerCase().substring(filename.lastIndexOf('.'));
     const detectedType = getFileTypeFromExtension(filename);
 
     isImage = detectedType === 'image' || fileType.startsWith('image/');
@@ -98,6 +96,7 @@
       <div class="attachment-video">
         <video controls preload="metadata" on:error={handleVideoError} class="video-preview">
           <source src={mediaUrl} type={fileType} />
+          <track kind="captions" src="" label="Subtítulos no disponibles" />
           Tu navegador no soporta el elemento video.
         </video>
         <div class="video-info">

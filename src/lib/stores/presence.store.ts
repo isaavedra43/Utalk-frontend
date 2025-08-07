@@ -48,7 +48,6 @@ const createPresenceStore = () => {
         updateUserPresence: (userPresence: UserPresence) => {
             update(state => {
                 const newUsers = { ...state.users };
-                const oldUser = newUsers[userPresence.userId];
 
                 // Actualizar usuario
                 newUsers[userPresence.userId] = userPresence;

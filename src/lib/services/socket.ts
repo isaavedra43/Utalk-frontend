@@ -11,6 +11,7 @@
  * - disconnect/reconnect: Manejo de reconexión automática
  */
 
+import { logError, logErrorWithContext, logSocket, logWarn } from '$lib/utils/logger';
 import { io, Socket } from 'socket.io-client';
 import { environment } from '../config/environment';
 import { conversationsStore } from '../stores/conversations.store';
@@ -96,7 +97,7 @@ class SocketManager {
       this.setupEventListeners();
 
       this.socket.on('connect', () => {
-        console.log('🟢 Socket conectado');
+        logSocket('🟢 Socket conectado');
         this.reconnectAttempts = 0;
         this.isConnecting = false;
 
@@ -106,7 +107,7 @@ class SocketManager {
       });
 
       this.socket.on('connect_error', (error) => {
-        console.error('🔴 Error de conexión del socket:', error);
+        logErrorWithContext('🔴 Error de conexión del socket:', 'SOCKET', error instanceof Error ? error : new Error(String(error)));
         this.isConnecting = false;
         reject(error);
       });
@@ -127,7 +128,7 @@ class SocketManager {
 
     // Desconexión - Documento: "Reconexión de WebSocket" - info/1.md línea 634
     this.socket.on('disconnect', (reason) => {
-      console.log('⚠️ Socket desconectado:', reason);
+      logWarn('⚠️ Socket desconectado:', reason);
       this.reconnect();
     });
 
@@ -144,54 +145,54 @@ class SocketManager {
 
     // Eventos de mensajes - Documento: "Eventos Socket.IO" - info/2.md línea 57
     this.socket.on(SOCKET_EVENTS.NEW_MESSAGE, (message: any) => {
-      console.log('📨 Nuevo mensaje recibido:', message);
+      logSocket('📨 Nuevo mensaje recibido:', message);
       this.handleNewMessage(message);
     });
 
     this.socket.on(SOCKET_EVENTS.MESSAGE_STATUS_UPDATED, (data: any) => {
-      console.log('📊 Estado de mensaje actualizado:', data);
+      logSocket('📊 Estado de mensaje actualizado:', data);
       this.handleMessageStatusUpdate(data);
     });
 
     // Eventos de escritura - Documento: "Eventos de Escritura" - info/1.md línea 648
     this.socket.on(SOCKET_EVENTS.TYPING_INDICATOR, (data: any) => {
-      console.log('✍️ Usuario escribiendo:', data);
+      logSocket('✍️ Usuario escribiendo:', data);
       this.handleTypingIndicator(data);
     });
 
     // Eventos de presencia - Documento: info/1.md sección "🔌 EVENTOS SOCKET.IO ESPECÍFICOS"
     this.socket.on(SOCKET_EVENTS.USER_PRESENCE, (data: any) => {
-      console.log('👤 Usuario online:', data);
+      logSocket('👤 Usuario online:', data);
       this.handleUserPresence(data);
     });
 
     this.socket.on(SOCKET_EVENTS.PRESENCE_UPDATED, (data: any) => {
-      console.log('👤 Usuario offline:', data);
+      logSocket('👤 Usuario offline:', data);
       this.handlePresenceUpdate(data);
     });
 
     this.socket.on(SOCKET_EVENTS.USER_PRESENCE_CHANGE, (data: any) => {
-      console.log('👤 Cambio de presencia:', data);
+      logSocket('👤 Cambio de presencia:', data);
       this.handleUserPresenceChange(data);
     });
 
     // Eventos de conversación
     this.socket.on(SOCKET_EVENTS.CONVERSATION_JOINED, (data: any) => {
-      console.log('✅ Conversación unida:', data);
+      logSocket('✅ Conversación unida:', data);
     });
 
     this.socket.on(SOCKET_EVENTS.CONVERSATION_LEFT, (data: any) => {
-      console.log('❌ Conversación abandonada:', data);
+      logSocket('❌ Conversación abandonada:', data);
     });
 
     // Eventos de sistema
     this.socket.on(SOCKET_EVENTS.SYSTEM_MESSAGE, (data: any) => {
-      console.log('🔔 Mensaje del sistema:', data);
+      logSocket('🔔 Mensaje del sistema:', data);
       notificationsStore.info(data.message);
     });
 
     this.socket.on(SOCKET_EVENTS.ERROR, (error: any) => {
-      console.error('🚨 Error del socket:', error);
+      logError('🚨 Error del socket:', error);
       notificationsStore.error(error.message || 'Error de conexión');
     });
   }
@@ -200,14 +201,14 @@ class SocketManager {
   private reconnect(): void {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
-      console.log(`🔄 Reintentando conexión en ${delay}ms (intento ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
+      logWarn(`🔄 Reintentando conexión en ${delay}ms (intento ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
 
       setTimeout(() => {
         this.connect();
         this.reconnectAttempts++;
       }, delay);
     } else {
-      console.error('❌ Máximo número de intentos de reconexión alcanzado');
+      logError('❌ Máximo número de intentos de reconexión alcanzado');
       notificationsStore.error('Error de conexión. Por favor, recarga la página.');
     }
   }
@@ -215,7 +216,7 @@ class SocketManager {
   // Unirse a una conversación - Documento: "Eventos Socket.IO" - info/2.md línea 565
   joinConversation(conversationId: string): void {
     if (!this.socket?.connected) {
-      console.warn('⚠️ Socket no conectado, no se puede unir a conversación');
+      logWarn('⚠️ Socket no conectado, no se puede unir a conversación');
       return;
     }
 
@@ -226,7 +227,7 @@ class SocketManager {
 
     this.currentConversationId = conversationId;
     this.socket.emit(SOCKET_EVENTS.JOIN_CONVERSATION, { conversationId });
-    console.log(`✅ Unido a conversación: ${conversationId}`);
+    logSocket(`✅ Unido a conversación: ${conversationId}`);
   }
 
   // Salir de una conversación
@@ -234,7 +235,7 @@ class SocketManager {
     if (!this.socket?.connected) return;
 
     this.socket.emit(SOCKET_EVENTS.LEAVE_CONVERSATION, { conversationId });
-    console.log(`❌ Salido de conversación: ${conversationId}`);
+    logSocket(`❌ Salido de conversación: ${conversationId}`);
 
     if (this.currentConversationId === conversationId) {
       this.currentConversationId = null;
@@ -252,7 +253,7 @@ class SocketManager {
     if (now - lastEvent > debounceTime) {
       this.socket.emit(SOCKET_EVENTS.USER_TYPING, { conversationId });
       this.lastTypingEvent[conversationId] = now;
-      console.log(`✍️ Enviando evento de escritura para conversación: ${conversationId}`);
+      logSocket(`✍️ Enviando evento de escritura para conversación: ${conversationId}`);
     }
   }
 
@@ -261,7 +262,7 @@ class SocketManager {
     if (!this.socket?.connected) return;
 
     this.socket.emit(SOCKET_EVENTS.USER_TYPING_STOP, { conversationId });
-    console.log(`🛑 Deteniendo evento de escritura para conversación: ${conversationId}`);
+    logSocket(`🛑 Deteniendo evento de escritura para conversación: ${conversationId}`);
   }
 
   // Manejar nuevo mensaje - Documento: "Estructura de Mensaje" - info/1.5.md línea 60
@@ -269,7 +270,7 @@ class SocketManager {
     try {
       // Validar estructura del mensaje según documentación
       if (!message.id || !message.conversationId) {
-        console.error('❌ Mensaje recibido con estructura inválida:', message);
+        logError('❌ Mensaje recibido con estructura inválida:', message);
         return;
       }
 
@@ -285,7 +286,7 @@ class SocketManager {
       }
 
     } catch (error) {
-      console.error('❌ Error procesando nuevo mensaje:', error);
+      logErrorWithContext('❌ Error procesando nuevo mensaje:', 'SOCKET', error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -293,10 +294,11 @@ class SocketManager {
   private handleMessageStatusUpdate(data: any): void {
     try {
       if (!data.messageId || !data.status) {
-        console.error('❌ Datos de actualización de estado inválidos:', data);
+        logError('❌ Datos de actualización de estado inválidos:', 'SOCKET', data);
         return;
       }
 
+      // Actualizar el estado del mensaje en el store
       messagesStore.updateMessageStatus(data.messageId, data.status, data.metadata);
 
       // Si el mensaje falló, mostrar notificación
@@ -305,7 +307,7 @@ class SocketManager {
       }
 
     } catch (error) {
-      console.error('❌ Error procesando actualización de estado:', error);
+      logErrorWithContext('❌ Error procesando actualización de estado:', 'SOCKET', error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -313,16 +315,16 @@ class SocketManager {
   private handleTypingIndicator(data: any): void {
     try {
       if (!data.conversationId || !data.userEmail) {
-        console.error('❌ Datos de indicador de escritura inválidos:', data);
+        logError('❌ Datos de indicador de escritura inválidos:', 'SOCKET', data);
         return;
       }
 
       // Agregar indicador de escritura al store
       typingStore.addTypingUser(data.conversationId, data.userEmail, data.userName || data.userEmail);
-      console.log(`✍️ ${data.userEmail} está escribiendo en conversación ${data.conversationId}`);
+      logSocket(`✍️ ${data.userEmail} está escribiendo en conversación ${data.conversationId}`);
 
     } catch (error) {
-      console.error('❌ Error procesando indicador de escritura:', error);
+      logErrorWithContext('❌ Error procesando indicador de escritura:', 'SOCKET', error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -330,7 +332,7 @@ class SocketManager {
   private handleUserPresence(data: any): void {
     try {
       if (!data.userId || !data.status) {
-        console.error('❌ Datos de presencia inválidos:', data);
+        logError('❌ Datos de presencia inválidos:', 'SOCKET', data);
         return;
       }
 
@@ -340,12 +342,14 @@ class SocketManager {
         email: data.email || data.userId,
         name: data.name || data.email || data.userId,
         status: data.status,
-        lastSeen: data.lastSeen
+        lastSeen: data.lastSeen,
+        isTyping: data.isTyping || false,
+        currentConversationId: data.conversationId
       });
 
-      console.log(`👤 ${data.email || data.userId} está ${data.status}`);
+      logSocket(`👤 ${data.email || data.userId} está ${data.status}`);
     } catch (error) {
-      console.error('❌ Error procesando presencia de usuario:', error);
+      logErrorWithContext('❌ Error procesando presencia de usuario:', 'SOCKET', error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -353,7 +357,7 @@ class SocketManager {
   private handlePresenceUpdate(data: any): void {
     try {
       if (!data.userId || !data.status) {
-        console.error('❌ Datos de presencia inválidos:', data);
+        logError('❌ Datos de presencia inválidos:', 'SOCKET', data);
         return;
       }
 
@@ -363,12 +367,14 @@ class SocketManager {
         email: data.email || data.userId,
         name: data.name || data.email || data.userId,
         status: data.status,
-        lastSeen: data.lastSeen
+        lastSeen: data.lastSeen,
+        isTyping: data.isTyping || false,
+        currentConversationId: data.conversationId
       });
 
-      console.log(`👤 ${data.email || data.userId} ahora está ${data.status}`);
+      logSocket(`👤 ${data.email || data.userId} ahora está ${data.status}`);
     } catch (error) {
-      console.error('❌ Error procesando actualización de presencia:', error);
+      logErrorWithContext('❌ Error procesando actualización de presencia:', 'SOCKET', error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -376,7 +382,7 @@ class SocketManager {
   private handleUserPresenceChange(data: any): void {
     try {
       if (!data.userId || !data.status) {
-        console.error('❌ Datos de cambio de presencia inválidos:', data);
+        logError('❌ Datos de cambio de presencia inválidos:', 'SOCKET', data);
         return;
       }
 
@@ -398,9 +404,9 @@ class SocketManager {
         notificationsStore.info(`${data.name || data.email} está en línea`);
       }
 
-      console.log(`👤 ${data.email || data.userId} cambió a ${data.status}`);
+      logSocket(`👤 ${data.email || data.userId} cambió a ${data.status}`);
     } catch (error) {
-      console.error('❌ Error procesando cambio de presencia:', error);
+      logErrorWithContext('❌ Error procesando cambio de presencia:', 'SOCKET', error instanceof Error ? error : new Error(String(error)));
     }
   }
 

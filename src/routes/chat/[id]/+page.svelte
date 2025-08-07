@@ -25,6 +25,7 @@
   import { notificationsStore } from '$lib/stores/notifications.store';
   import { typingStore } from '$lib/stores/typing.store';
   import { safeDateToISOString } from '$lib/utils/dates';
+  import { logChat } from '$lib/utils/logger';
   import { validateFileUpload, validateMessage } from '$lib/utils/validation';
   import { onDestroy, onMount } from 'svelte';
 
@@ -40,7 +41,6 @@
 
   // Estados para edge cases - Documento: info/1.md sección "Casos Especiales que la UI debe manejar"
   let hasUnassignedAgent = false;
-  let rateLimitWarning = false;
 
   // Referencias a elementos del DOM
   let messageInput: HTMLTextAreaElement;
@@ -50,7 +50,6 @@
   // Suscripciones a stores
   let conversations: any[] = [];
   let messages: any[] = [];
-  let pagination: any = null;
   let typingText = '';
 
   // Configuración de paginación
@@ -98,12 +97,11 @@
 
   messagesStore.subscribe(state => {
     messages = state.messages;
-    pagination = state.pagination;
     hasMore = state.pagination?.hasMore || false;
   });
 
   // Suscripción al store de indicadores de escritura
-  typingStore.subscribe((state: any) => {
+  typingStore.subscribe(() => {
     if (selectedConversation) {
       typingText = typingStore.getTypingText(selectedConversation.id);
     }
@@ -276,7 +274,7 @@
       }
     } catch (err: any) {
       // Los errores ya se manejan en el store
-      console.error('Error al enviar mensaje:', err);
+      logChat('Error al enviar mensaje:', err);
     }
   }
 
@@ -341,7 +339,7 @@
   <div class="conversations-sidebar">
     <div class="sidebar-header">
       <h2>Conversaciones</h2>
-      <button class="refresh-btn" on:click={loadConversations}> ↻ </button>
+      <button type="button" class="refresh-btn" on:click={loadConversations}> ↻ </button>
     </div>
 
     <div class="conversations-list">
@@ -359,7 +357,16 @@
             class="conversation-item"
             class:selected={selectedConversation?.id === conversation.id}
             class:unassigned={!conversation.assignedTo}
+            role="button"
+            tabindex="0"
             on:click={() => selectConversation(conversation)}
+            on:keydown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                selectConversation(conversation);
+              }
+            }}
+            aria-label="Seleccionar conversación con {getContactName(conversation)}"
           >
             <div class="conversation-avatar">
               {#if conversation.contact?.avatar}
@@ -535,8 +542,8 @@
         <div class="input-wrapper">
           <div class="input-controls">
             <button
-              class="file-button"
               type="button"
+              class="file-button"
               disabled={!canSend}
               on:click={() => fileInput?.click()}
             >
@@ -549,6 +556,7 @@
                   <span class="file-tag">
                     {file.name}
                     <button
+                      type="button"
                       class="remove-file"
                       on:click={() => (selectedFiles = selectedFiles.filter((_, i) => i !== index))}
                     >
@@ -580,6 +588,7 @@
               </span>
 
               <button
+                type="button"
                 class="send-button"
                 on:click={sendMessage}
                 disabled={!canSend || (!newMessage.trim() && selectedFiles.length === 0)}

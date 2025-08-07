@@ -36,8 +36,12 @@
       <h2>No hay conversaciones</h2>
       <p>Cuando recibas mensajes de clientes, aparecerán aquí.</p>
       <div class="empty-actions">
-        <button class="refresh-button" on:click={() => conversationsStore.loadConversations()}>
-          Actualizar
+        <button
+          type="button"
+          class="refresh-button"
+          on:click={() => conversationsStore.loadConversations()}
+        >
+          🔄 Actualizar
         </button>
       </div>
     </div>

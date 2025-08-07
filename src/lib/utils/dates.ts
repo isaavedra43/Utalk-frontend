@@ -1,6 +1,8 @@
 // Utilidad de fechas - Extraído de PLAN_FRONTEND_UTALK_COMPLETO.md Fase 1.4
 // Maneja los 6 formatos distintos de fecha que puede responder el backend
 
+import { logDebug } from './logger';
+
 export const safeDateToISOString = (date: any): string | null => {
     if (!date) return null;
 
@@ -42,7 +44,7 @@ export const safeDateToISOString = (date: any): string | null => {
             return parsedDate.toISOString();
         }
     } catch (error) {
-        console.warn('No se pudo parsear la fecha:', date);
+        logDebug('No se pudo parsear la fecha:', date);
     }
 
     return null;
@@ -127,5 +129,24 @@ export const getMinutesDifference = (date1: any, date2: any): number => {
         return Math.floor(diffInMs / (1000 * 60));
     } catch (error) {
         return 0;
+    }
+};
+
+export const formatRelativeTime = (date: any): string => {
+    const now = new Date();
+    const targetDate = new Date(date);
+    const diffInSeconds = Math.floor((now.getTime() - targetDate.getTime()) / 1000);
+
+    if (diffInSeconds < 60) {
+        return 'ahora';
+    } else if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `hace ${minutes} minuto${minutes > 1 ? 's' : ''}`;
+    } else if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        return `hace ${hours} hora${hours > 1 ? 's' : ''}`;
+    } else {
+        const days = Math.floor(diffInSeconds / 86400);
+        return `hace ${days} día${days > 1 ? 's' : ''}`;
     }
 }; 

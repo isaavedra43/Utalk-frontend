@@ -59,9 +59,30 @@ const createTypingStore = () => {
                 }
 
                 // Configurar auto-cleanup después de 3 segundos
-                const store = this;
                 typingTimeouts[timeoutKey] = setTimeout(() => {
-                    store.removeTypingUser(conversationId, userEmail);
+                    // Usar referencia directa al método removeTypingUser
+                    update(state => {
+                        const conversation = state[conversationId] || [];
+                        const filteredConversation = conversation.filter(user => user.userEmail !== userEmail);
+
+                        // Limpiar timeout
+                        const timeoutKey = `${conversationId}-${userEmail}`;
+                        if (typingTimeouts[timeoutKey]) {
+                            clearTimeout(typingTimeouts[timeoutKey]);
+                            delete typingTimeouts[timeoutKey];
+                        }
+
+                        if (filteredConversation.length === 0) {
+                            // Si no hay usuarios escribiendo, remover la conversación
+                            const { [conversationId]: removed, ...rest } = state;
+                            return rest;
+                        }
+
+                        return {
+                            ...state,
+                            [conversationId]: filteredConversation
+                        };
+                    });
                 }, 3000);
 
                 return {
@@ -106,8 +127,10 @@ const createTypingStore = () => {
 
         // Verificar si hay usuarios escribiendo
         isAnyoneTyping: (conversationId: string): boolean => {
-            const store = this;
-            return store.getTypingUsers(conversationId).length > 0;
+            let currentState: TypingState | undefined;
+            subscribe(s => currentState = s)();
+            const users = currentState?.[conversationId] || [];
+            return users.length > 0;
         },
 
         // Limpiar todos los indicadores de una conversación
@@ -139,7 +162,9 @@ const createTypingStore = () => {
 
         // Obtener texto de indicador de escritura
         getTypingText: (conversationId: string): string => {
-            const users = this.getTypingUsers(conversationId);
+            let currentState: TypingState | undefined;
+            subscribe(s => currentState = s)();
+            const users = currentState?.[conversationId] || [];
 
             if (users.length === 0) {
                 return '';

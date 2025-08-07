@@ -9,8 +9,9 @@
  * - Paginación con hasMore, nextCursor, totalResults
  */
 
-import { api } from '$lib/services/axios';
+import { logError } from '$lib/utils/logger';
 import { writable } from 'svelte/store';
+import { api } from '../services/axios';
 
 // Tipos basados en PLAN_FRONTEND_UTALK_COMPLETO.md - Sección "📊 ESTRUCTURAS DE DATOS EXACTAS"
 export interface Message {
@@ -139,7 +140,7 @@ const createMessagesStore = () => {
                     error: null
                 }));
             } catch (error: any) {
-                console.error('Error loading messages:', error);
+                logError('Error loading messages:', error);
                 update(state => ({
                     ...state,
                     loading: false,
@@ -174,7 +175,7 @@ const createMessagesStore = () => {
                     loading: false
                 }));
             } catch (error: any) {
-                console.error('Error loading more messages:', error);
+                logError('Error loading more messages:', error);
                 update(state => ({
                     ...state,
                     loading: false,
@@ -225,7 +226,7 @@ const createMessagesStore = () => {
                     )
                 }));
             } catch (error: any) {
-                console.error('Error marking message as read:', error);
+                logError('Error marking message as read:', error);
             }
         },
 
@@ -263,7 +264,7 @@ const createMessagesStore = () => {
 
                 return response.data;
             } catch (error: any) {
-                console.error('Error sending message:', error);
+                logError('Error sending message:', error);
 
                 // Manejar errores específicos del backend - Documento: info/1.md sección "Casos Especiales"
                 if (error.response?.status === 413) {
@@ -304,7 +305,7 @@ const createMessagesStore = () => {
 
                 return response.data;
             } catch (error: any) {
-                console.error('Error editing message:', error);
+                logError('Error editing message:', error);
                 throw error;
             }
         },
@@ -319,7 +320,7 @@ const createMessagesStore = () => {
                     messages: state.messages.filter(msg => msg.id !== messageId)
                 }));
             } catch (error: any) {
-                console.error('Error deleting message:', error);
+                logError('Error deleting message:', error);
                 throw error;
             }
         },
@@ -370,14 +371,14 @@ const createMessagesStore = () => {
         // Obtener mensajes fallidos
         getFailedMessages: () => {
             const state = get(messagesStore);
-            return state.messages.filter((msg) => msg.status === 'failed');
+            return state.messages.filter((msg: Message) => msg.status === 'failed');
         },
 
         // Reintentar mensaje fallido
         retryMessage: async (messageId: string) => {
             try {
                 const state = get(messagesStore);
-                const message = state.messages.find(msg => msg.id === messageId);
+                const message = state.messages.find((msg: Message) => msg.id === messageId);
 
                 if (!message) {
                     throw new Error('Mensaje no encontrado');
@@ -407,7 +408,7 @@ const createMessagesStore = () => {
 
                 return response.data;
             } catch (error: any) {
-                console.error('Error retrying message:', error);
+                logError('Error retrying message:', error);
                 throw error;
             }
         }

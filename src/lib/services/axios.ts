@@ -11,6 +11,7 @@
  */
 
 // Configuración de Axios con interceptores - Extraído de PLAN_FRONTEND_UTALK_COMPLETO.md Fase 1.1
+import { logError } from '$lib/utils/logger';
 import axios, { type AxiosError, type AxiosInstance, type AxiosResponse } from 'axios';
 import { environment } from '../config/environment';
 import { authStore } from '../stores/auth.store';
@@ -119,7 +120,6 @@ api.interceptors.response.use(
 // Función para manejar headers de rate limiting - Documento: info/1.md sección "Rate Limiting"
 function handleRateLimitHeaders(response: AxiosResponse) {
   const remaining = response.headers['X-RateLimit-Remaining'];
-  const reset = response.headers['X-RateLimit-Reset'];
 
   if (remaining && parseInt(remaining) < 5) {
     notificationsStore.warning('Estás cerca del límite de peticiones. Ten cuidado con el uso.');
@@ -148,7 +148,7 @@ async function refreshToken(): Promise<void> {
     authStore.updateTokens(accessToken, newRefreshToken);
 
   } catch (error) {
-    console.error('Error refreshing token:', error);
+    logError('Error refreshing token:', 'API', error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 }

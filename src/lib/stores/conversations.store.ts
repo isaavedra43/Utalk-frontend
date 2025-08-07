@@ -9,8 +9,9 @@
  * - Prioridades: low, normal, high, urgent
  */
 
-import { api } from '$lib/services/axios';
+import { logError } from '$lib/utils/logger';
 import { writable } from 'svelte/store';
+import { api } from '../services/axios';
 
 // Tipos basados en PLAN_FRONTEND_UTALK_COMPLETO.md - Sección "📊 ESTRUCTURAS DE DATOS EXACTAS"
 export interface Contact {
@@ -191,7 +192,7 @@ const createConversationsStore = () => {
                     error: null
                 }));
             } catch (error: any) {
-                console.error('Error loading conversations:', error);
+                logError('Error loading conversations:', error);
                 update(state => ({
                     ...state,
                     loading: false,
@@ -287,7 +288,7 @@ const createConversationsStore = () => {
                     loading: false
                 }));
             } catch (error: any) {
-                console.error('Error loading more conversations:', error);
+                logError('Error loading more conversations:', error);
                 update(state => ({
                     ...state,
                     loading: false,

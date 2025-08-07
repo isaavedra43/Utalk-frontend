@@ -6,18 +6,17 @@
 import { browser } from '$app/environment';
 import { API_BASE_URL } from '$lib/env';
 import type { LoginRequest, LoginResponse } from '$lib/types/auth';
-import { apiClient } from './axios';
+import { logAuth, logError, logWarn, logWarnWithContext } from '$lib/utils/logger';
+import { api } from './axios';
 
 // ✅ LOG INICIAL SIMPLE
-// eslint-disable-next-line no-console
-console.log('🔐 AUTH SERVICE - Cargado');
+logAuth('AUTH SERVICE - Cargado');
 
 /**
  * Función de login
  */
 export async function login(credentials: LoginRequest): Promise<LoginResponse> {
-  // eslint-disable-next-line no-console
-  console.log('🚀 AUTH LOGIN - Iniciando autenticación');
+  logAuth('AUTH LOGIN - Iniciando autenticación');
 
   try {
     // Verificar configuración
@@ -26,16 +25,14 @@ export async function login(credentials: LoginRequest): Promise<LoginResponse> {
     }
 
     // Configurar URL base del cliente
-    apiClient.defaults.baseURL = API_BASE_URL;
+    api.defaults.baseURL = API_BASE_URL;
 
-    // eslint-disable-next-line no-console
-    console.log('📡 AUTH LOGIN - Enviando request a:', `${API_BASE_URL}/auth/login`);
+    logAuth('AUTH LOGIN - Enviando request a:', `${API_BASE_URL}/auth/login`);
 
     // Realizar request de login
-    const response = await apiClient.post('/auth/login', credentials);
+    const response = await api.post('/auth/login', credentials);
 
-    // eslint-disable-next-line no-console
-    console.log('✅ AUTH LOGIN - Respuesta exitosa del backend');
+    logAuth('AUTH LOGIN - Respuesta exitosa del backend');
 
     const data = response.data as LoginResponse;
 
@@ -51,21 +48,16 @@ export async function login(credentials: LoginRequest): Promise<LoginResponse> {
         if (data.refreshToken) {
           localStorage.setItem('refreshToken', data.refreshToken);
         }
-        // eslint-disable-next-line no-console
-        console.log('💾 AUTH LOGIN - Token almacenado en localStorage');
+        logAuth('AUTH LOGIN - Token almacenado en localStorage');
       } catch (storageError) {
-        // eslint-disable-next-line no-console
-        console.warn('⚠️ AUTH LOGIN - Error al guardar en localStorage:', storageError);
+        logWarnWithContext('AUTH LOGIN - Error al guardar en localStorage:', 'AUTH', storageError);
       }
     }
 
     return data;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('🚨 AUTH LOGIN - Error:', {
-      message: error instanceof Error ? error.message : String(error),
-      status: (error as { response?: { status?: number } })?.response?.status || 'unknown'
-    });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logError('AUTH LOGIN - Error:', 'AUTH', error instanceof Error ? error : new Error(errorMessage));
 
     // Manejar errores específicos
     if ((error as { response?: { status?: number } })?.response?.status === 502) {
@@ -84,8 +76,7 @@ export async function login(credentials: LoginRequest): Promise<LoginResponse> {
  * Función de logout
  */
 export async function logout(): Promise<void> {
-  // eslint-disable-next-line no-console
-  console.log('🚪 AUTH LOGOUT - Cerrando sesión');
+  logAuth('AUTH LOGOUT - Cerrando sesión');
 
   try {
     // Limpiar localStorage SOLO en el cliente
@@ -93,23 +84,19 @@ export async function logout(): Promise<void> {
       try {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        // eslint-disable-next-line no-console
-        console.log('🗑️ AUTH LOGOUT - Tokens eliminados del localStorage');
+        logAuth('AUTH LOGOUT - Tokens eliminados del localStorage');
       } catch (storageError) {
-        // eslint-disable-next-line no-console
-        console.warn('⚠️ AUTH LOGOUT - Error al limpiar localStorage:', storageError);
+        logWarnWithContext('AUTH LOGOUT - Error al limpiar localStorage:', 'AUTH', storageError);
       }
     }
 
     // Intentar notificar al backend
-    if (apiClient.defaults.baseURL) {
-      await apiClient.post('/auth/logout');
-      // eslint-disable-next-line no-console
-      console.log('✅ AUTH LOGOUT - Backend notificado');
+    if (api.defaults.baseURL) {
+      await api.post('/auth/logout');
+      logAuth('AUTH LOGOUT - Backend notificado');
     }
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn('⚠️ AUTH LOGOUT - Error al notificar backend:', error);
+    logWarnWithContext('AUTH LOGOUT - Error al notificar backend:', 'AUTH', error);
     // No es crítico si el logout en backend falla
   }
 }
@@ -118,8 +105,7 @@ export async function logout(): Promise<void> {
  * Función para refrescar token
  */
 export async function refreshToken(): Promise<LoginResponse | null> {
-  // eslint-disable-next-line no-console
-  console.log('🔄 AUTH REFRESH - Refrescando token');
+  logAuth('AUTH REFRESH - Refrescando token');
 
   try {
     let currentRefreshToken: string | null = null;
@@ -129,18 +115,16 @@ export async function refreshToken(): Promise<LoginResponse | null> {
       try {
         currentRefreshToken = localStorage.getItem('refreshToken');
       } catch (storageError) {
-        // eslint-disable-next-line no-console
-        console.warn('⚠️ AUTH REFRESH - Error al leer localStorage:', storageError);
+        logWarnWithContext('AUTH REFRESH - Error al leer localStorage:', 'AUTH', storageError);
       }
     }
 
     if (!currentRefreshToken) {
-      // eslint-disable-next-line no-console
-      console.warn('⚠️ AUTH REFRESH - No hay refresh token');
+      logWarn('AUTH REFRESH - No hay refresh token');
       return null;
     }
 
-    const response = await apiClient.post('/auth/refresh', {
+    const response = await api.post('/auth/refresh', {
       refreshToken: currentRefreshToken
     });
 
@@ -153,18 +137,16 @@ export async function refreshToken(): Promise<LoginResponse | null> {
         if (data.refreshToken) {
           localStorage.setItem('refreshToken', data.refreshToken);
         }
-        // eslint-disable-next-line no-console
-        console.log('✅ AUTH REFRESH - Token actualizado');
+        logAuth('AUTH REFRESH - Token actualizado');
       } catch (storageError) {
-        // eslint-disable-next-line no-console
-        console.warn('⚠️ AUTH REFRESH - Error al guardar en localStorage:', storageError);
+        logWarnWithContext('AUTH REFRESH - Error al guardar en localStorage:', 'AUTH', storageError);
       }
     }
 
     return data;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('🚨 AUTH REFRESH - Error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logError('AUTH REFRESH - Error:', 'AUTH', error instanceof Error ? error : new Error(errorMessage));
 
     // Si el refresh falla, limpiar tokens SOLO en el cliente
     if (browser) {
@@ -172,8 +154,7 @@ export async function refreshToken(): Promise<LoginResponse | null> {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
       } catch (storageError) {
-        // eslint-disable-next-line no-console
-        console.warn('⚠️ AUTH REFRESH - Error al limpiar localStorage:', storageError);
+        logWarnWithContext('AUTH REFRESH - Error al limpiar localStorage:', 'AUTH', storageError);
       }
     }
 

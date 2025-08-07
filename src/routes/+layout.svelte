@@ -46,18 +46,6 @@
     box-sizing: border-box;
   }
 
-  body {
-    margin: 0;
-    padding: 0;
-    font-family: inherit;
-  }
-
-  /* Estilos globales para el chat */
-  .chat-layout {
-    height: 100vh;
-    overflow: hidden;
-  }
-
   /* Scrollbar personalizada */
   ::-webkit-scrollbar {
     width: 6px;

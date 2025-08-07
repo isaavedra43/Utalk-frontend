@@ -332,7 +332,7 @@
     }
   }
 
-  .clear-button {
+  .clear-filters {
     padding: 0.5rem;
     background: #ef4444;
     color: white;
@@ -342,11 +342,11 @@
     font-size: 0.875rem;
   }
 
-  .clear-button:hover:not(:disabled) {
+  .clear-filters:hover:not(:disabled) {
     background: #dc2626;
   }
 
-  .clear-button:disabled {
+  .clear-filters:disabled {
     background: #9ca3af;
     cursor: not-allowed;
   }

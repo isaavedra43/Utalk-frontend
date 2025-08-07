@@ -49,8 +49,11 @@ const createNotificationsStore = () => {
             // Auto-dismiss si tiene duración
             if (notification.duration && notification.duration > 0) {
                 setTimeout(() => {
-                    const store = this;
-                    store.remove(id);
+                    // Usar referencia directa al método remove
+                    update(state => ({
+                        ...state,
+                        notifications: state.notifications.filter(n => n.id !== id)
+                    }));
                 }, notification.duration);
             }
         },
@@ -83,23 +86,107 @@ const createNotificationsStore = () => {
 
         // Métodos de conveniencia por tipo
         success: (message: string, duration?: number) => {
-            const store = this;
-            store.add({ type: 'success', message, duration });
+            const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+            const newNotification: Notification = {
+                type: 'success',
+                message,
+                duration,
+                id,
+                timestamp: Date.now()
+            };
+
+            update(state => ({
+                ...state,
+                notifications: [...state.notifications, newNotification]
+            }));
+
+            // Auto-dismiss si tiene duración
+            if (duration && duration > 0) {
+                setTimeout(() => {
+                    update(state => ({
+                        ...state,
+                        notifications: state.notifications.filter(n => n.id !== id)
+                    }));
+                }, duration);
+            }
         },
 
         error: (message: string, duration?: number) => {
-            const store = this;
-            store.add({ type: 'error', message, duration });
+            const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+            const newNotification: Notification = {
+                type: 'error',
+                message,
+                duration,
+                id,
+                timestamp: Date.now()
+            };
+
+            update(state => ({
+                ...state,
+                notifications: [...state.notifications, newNotification]
+            }));
+
+            // Auto-dismiss si tiene duración
+            if (duration && duration > 0) {
+                setTimeout(() => {
+                    update(state => ({
+                        ...state,
+                        notifications: state.notifications.filter(n => n.id !== id)
+                    }));
+                }, duration);
+            }
         },
 
         warning: (message: string, duration?: number) => {
-            const store = this;
-            store.add({ type: 'warning', message, duration });
+            const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+            const newNotification: Notification = {
+                type: 'warning',
+                message,
+                duration,
+                id,
+                timestamp: Date.now()
+            };
+
+            update(state => ({
+                ...state,
+                notifications: [...state.notifications, newNotification]
+            }));
+
+            // Auto-dismiss si tiene duración
+            if (duration && duration > 0) {
+                setTimeout(() => {
+                    update(state => ({
+                        ...state,
+                        notifications: state.notifications.filter(n => n.id !== id)
+                    }));
+                }, duration);
+            }
         },
 
         info: (message: string, duration?: number) => {
-            const store = this;
-            store.add({ type: 'info', message, duration });
+            const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+            const newNotification: Notification = {
+                type: 'info',
+                message,
+                duration,
+                id,
+                timestamp: Date.now()
+            };
+
+            update(state => ({
+                ...state,
+                notifications: [...state.notifications, newNotification]
+            }));
+
+            // Auto-dismiss si tiene duración
+            if (duration && duration > 0) {
+                setTimeout(() => {
+                    update(state => ({
+                        ...state,
+                        notifications: state.notifications.filter(n => n.id !== id)
+                    }));
+                }, duration);
+            }
         },
 
         // Obtener notificaciones activas (no descartadas)

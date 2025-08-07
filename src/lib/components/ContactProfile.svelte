@@ -16,7 +16,6 @@
   import { createEventDispatcher } from 'svelte';
 
   export let contactId: string;
-  export let showEdit: boolean = false;
 
   const dispatch = createEventDispatcher();
 
@@ -154,7 +153,7 @@
     <div class="error-state">
       <span class="error-icon">⚠️</span>
       <p>{error}</p>
-      <button class="retry-button" on:click={loadContact}>Reintentar</button>
+      <button type="button" class="retry-button" on:click={loadContact}>Reintentar</button>
     </div>
   {:else if contact}
     <div class="contact-header">

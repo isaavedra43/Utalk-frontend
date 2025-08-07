@@ -24,8 +24,25 @@ export default [
         HTMLElement: 'readonly',
         HTMLDivElement: 'readonly',
         HTMLParagraphElement: 'readonly',
+        HTMLTextAreaElement: 'readonly',
+        HTMLInputElement: 'readonly',
+        HTMLFormElement: 'readonly',
         FileList: 'readonly',
+        File: 'readonly',
         URL: 'readonly',
+        URLSearchParams: 'readonly',
+        FormData: 'readonly',
+        TextEncoder: 'readonly',
+        TextDecoder: 'readonly',
+        Event: 'readonly',
+        EventTarget: 'readonly',
+        EventListener: 'readonly',
+        AddEventListenerOptions: 'readonly',
+        EventListenerOptions: 'readonly',
+        Blob: 'readonly',
+        BlobPart: 'readonly',
+        FilePropertyBag: 'readonly',
+        TextDecoderOptions: 'readonly',
         // Browser APIs para logger
         performance: 'readonly',
         localStorage: 'readonly',
@@ -35,12 +52,13 @@ export default [
         Response: 'readonly',
         RequestInfo: 'readonly',
         RequestInit: 'readonly',
-        Blob: 'readonly',
         crypto: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
         PerformanceNavigationTiming: 'readonly',
-        Sentry: 'readonly'
+        Sentry: 'readonly',
+        // NodeJS types
+        NodeJS: 'readonly'
       }
     },
     plugins: {
@@ -75,8 +93,25 @@ export default [
         HTMLElement: 'readonly',
         HTMLDivElement: 'readonly',
         HTMLParagraphElement: 'readonly',
+        HTMLTextAreaElement: 'readonly',
+        HTMLInputElement: 'readonly',
+        HTMLFormElement: 'readonly',
         FileList: 'readonly',
+        File: 'readonly',
         URL: 'readonly',
+        URLSearchParams: 'readonly',
+        FormData: 'readonly',
+        TextEncoder: 'readonly',
+        TextDecoder: 'readonly',
+        Event: 'readonly',
+        EventTarget: 'readonly',
+        EventListener: 'readonly',
+        AddEventListenerOptions: 'readonly',
+        EventListenerOptions: 'readonly',
+        Blob: 'readonly',
+        BlobPart: 'readonly',
+        FilePropertyBag: 'readonly',
+        TextDecoderOptions: 'readonly',
         // Browser APIs para logger
         performance: 'readonly',
         localStorage: 'readonly',
@@ -86,12 +121,13 @@ export default [
         Response: 'readonly',
         RequestInfo: 'readonly',
         RequestInit: 'readonly',
-        Blob: 'readonly',
         crypto: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
         PerformanceNavigationTiming: 'readonly',
-        Sentry: 'readonly'
+        Sentry: 'readonly',
+        // NodeJS types
+        NodeJS: 'readonly'
       }
     },
     plugins: {
