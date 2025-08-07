@@ -64,7 +64,7 @@ const api: AxiosInstance = axios.create({
 // Interceptor de requests - Documento: info/1.md sección "Headers de Autorización Específicos"
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -157,16 +157,83 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Error genérico del servidor
-    if (error.response?.status && error.response.status >= 500) {
-      notificationsStore.error('Error interno del servidor. Intenta de nuevo más tarde.');
+    // MANEJO ESPECÍFICO PARA ERRORES 5XX (SERVIDOR) - NO REDIRIGIR AUTOMÁTICAMENTE
+    if (error.response?.status && error.response.status >= 500 && error.response.status < 600) {
+      const errorData = extractErrorData(error);
+
+      // Determinar si es una petición crítica que requiere redirección
+      const isCriticalRequest = error.config?.url?.includes('/auth/') ||
+        error.config?.url?.includes('/profile') ||
+        error.config?.method === 'POST';
+
+      // Para errores 5xx en peticiones críticas, redirigir
+      if (isCriticalRequest) {
+        notificationsStore.error('Error del servidor. Intenta de nuevo más tarde.');
+        authStore.logout();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      // Para errores 5xx en peticiones no críticas (como GET /conversations), NO redirigir
+      const specificMessage = errorData.message || 'Error del servidor';
+      notificationsStore.error(`${specificMessage}. Intenta de nuevo más tarde.`);
       return Promise.reject(error);
     }
 
-    // Mostrar mensaje de error del backend si existe
-    const errorData = extractErrorData(error);
-    notificationsStore.error(errorData.message);
+    // MANEJO ESPECÍFICO PARA ERROR 502 BAD GATEWAY
+    if (error.response?.status === 502) {
+      const errorData = extractErrorData(error);
 
+      // Determinar si es una petición crítica
+      const isCriticalRequest = error.config?.url?.includes('/auth/') ||
+        error.config?.url?.includes('/profile') ||
+        error.config?.method === 'POST';
+
+      // Para 502 en peticiones críticas, redirigir
+      if (isCriticalRequest) {
+        notificationsStore.error('Servidor temporalmente no disponible. Intenta de nuevo más tarde.');
+        authStore.logout();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      // Para 502 en peticiones no críticas (como GET /conversations), NO redirigir
+      const specificMessage = errorData.message || 'Servidor temporalmente no disponible';
+      notificationsStore.error(`${specificMessage}. Intenta de nuevo más tarde.`);
+      return Promise.reject(error);
+    }
+
+    // Error genérico del servidor (4xx que no sean 401, 403, 404, 413, 415, 429)
+    if (error.response?.status && error.response.status >= 400 && error.response.status < 500) {
+      const errorData = extractErrorData(error);
+
+      // Determinar si es una petición crítica
+      const isCriticalRequest = error.config?.url?.includes('/auth/') ||
+        error.config?.url?.includes('/profile') ||
+        error.config?.method === 'POST';
+
+      // Para errores 4xx en peticiones críticas, redirigir
+      if (isCriticalRequest) {
+        notificationsStore.error(errorData.message || 'Error de cliente. Verifica tu sesión.');
+        authStore.logout();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      // Para errores 4xx en peticiones no críticas, solo mostrar error
+      notificationsStore.error(errorData.message || 'Error de cliente.');
+      return Promise.reject(error);
+    }
+
+    // Error de red
+    if (error.request) {
+      notificationsStore.error('Error de conexión. Verifica tu internet.');
+      return Promise.reject(error);
+    }
+
+    // Error genérico
+    const errorData = extractErrorData(error);
+    notificationsStore.error(errorData.message || 'Error inesperado. Intenta de nuevo.');
     return Promise.reject(error);
   }
 );
@@ -195,7 +262,7 @@ async function refreshToken(): Promise<void> {
     const { accessToken, refreshToken: newRefreshToken } = response.data.data;
 
     // Actualizar tokens en localStorage con nombres consistentes
-    localStorage.setItem('token', accessToken);
+    localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', newRefreshToken);
 
     // Actualizar store de autenticación

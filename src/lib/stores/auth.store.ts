@@ -31,7 +31,7 @@ const createAuthStore = () => {
         userRole: user.role
       });
 
-      localStorage.setItem('token', token);
+      localStorage.setItem('accessToken', token);
       if (refreshToken) {
         localStorage.setItem('refreshToken', refreshToken);
       }
@@ -65,7 +65,7 @@ const createAuthStore = () => {
     setToken: (token: string) => {
       logStore('auth: setToken');
 
-      localStorage.setItem('token', token);
+      localStorage.setItem('accessToken', token);
       update(state => ({ ...state, token }));
     },
 
@@ -76,7 +76,7 @@ const createAuthStore = () => {
 
     // Función para validar si el token existe y no ha expirado
     validateToken: (): boolean => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken');
       if (!token) return false;
 
       try {

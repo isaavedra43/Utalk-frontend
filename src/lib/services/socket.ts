@@ -102,7 +102,10 @@ class SocketManager {
         timeout: 10000,
         forceNew: true,
         reconnection: false, // Manejo manual de reconexión
-        autoConnect: false
+        autoConnect: false,
+        auth: {
+          token: localStorage.getItem('accessToken')
+        }
       });
 
       this.setupSocketListeners();
