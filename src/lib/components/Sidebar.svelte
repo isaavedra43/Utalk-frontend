@@ -1,9 +1,9 @@
 <!-- 
  * Sidebar de Navegación Principal - UTalk Frontend
- * Basado en diseño de Intercom/Zendesk
+ * Basado en diseño profesional de referencia
  * 
  * Características:
- * - Sidebar fijo y oscuro
+ * - Sidebar fijo y claro como la referencia
  * - Navegación a todas las rutas principales
  * - Responsive y accesible
  * - Integrado con el sistema de autenticación
@@ -66,32 +66,18 @@
 <div class="sidebar-container {collapsed ? 'collapsed' : ''} {isMobile ? 'mobile' : ''}">
   <!-- Header del Sidebar -->
   <div class="sidebar-header">
-    {#if user}
-      <div class="user-info">
-        <div class="user-avatar">
-          <span class="avatar-text">{user.name?.charAt(0) || user.email?.charAt(0) || 'U'}</span>
-        </div>
-        {#if !collapsed}
-          <div class="user-details">
-            <span class="user-name">{user.name || 'Usuario'}</span>
-            <span class="user-role">{user.role || 'Usuario'}</span>
-          </div>
-        {/if}
+    <div class="logo-container">
+      <div class="logo">
+        <span class="logo-text">UNIK</span>
       </div>
-    {:else}
-      <div class="logo-container">
-        <div class="logo">
-          <span class="logo-text">UNIK</span>
-        </div>
-        {#if !collapsed}
-          <span class="logo-subtitle">Chat Platform</span>
-        {/if}
-      </div>
-    {/if}
+      {#if !collapsed}
+        <span class="logo-subtitle">Chat Platform</span>
+      {/if}
+    </div>
   </div>
 
   <!-- Navegación Principal -->
-  <nav class="sidebar-nav" role="navigation" aria-label="Navegación principal">
+  <nav class="sidebar-nav" aria-label="Navegación principal">
     <ul class="nav-list">
       <!-- Dashboard -->
       <li class="nav-item">
@@ -126,8 +112,8 @@
         <button
           class="nav-link {isActive('/chat') ? 'active' : ''}"
           on:click={() => navigateTo('/chat')}
-          aria-label="Chat"
-          title="Chat"
+          aria-label="Conversaciones"
+          title="Conversaciones"
         >
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path
@@ -138,7 +124,7 @@
             />
           </svg>
           {#if !collapsed}
-            <span class="nav-text">Chat</span>
+            <span class="nav-text">Conversaciones</span>
           {/if}
         </button>
       </li>
@@ -293,18 +279,18 @@
     top: 0;
     left: 0;
     height: 100vh;
-    width: 280px;
-    background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
-    color: white;
+    width: 240px;
+    background: #f8f9fa;
+    color: #495057;
     z-index: 1000;
     transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    border-right: 1px solid #e9ecef;
   }
 
   .sidebar-container.collapsed {
-    width: 70px;
+    width: 60px;
   }
 
   .sidebar-container.mobile {
@@ -319,55 +305,10 @@
   /* Header */
   .sidebar-header {
     padding: 1.5rem 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid #e9ecef;
     min-height: 80px;
     display: flex;
     align-items: center;
-  }
-
-  .user-info {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    width: 100%;
-  }
-
-  .user-avatar {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .avatar-text {
-    color: white;
-    font-weight: bold;
-    font-size: 1rem;
-  }
-
-  .user-details {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
-
-  .user-name {
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: white;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .user-role {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.7);
-    text-transform: capitalize;
   }
 
   .logo-container {
@@ -395,7 +336,7 @@
 
   .logo-subtitle {
     font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: #6c757d;
   }
 
   /* Navegación */
@@ -420,7 +361,7 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem 1rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: #495057;
     text-decoration: none;
     border: none;
     background: none;
@@ -430,17 +371,18 @@
     border-radius: 0;
     font-size: 0.9rem;
     font-weight: 500;
+    position: relative;
   }
 
   .nav-link:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: #e9ecef;
+    color: #212529;
   }
 
   .nav-link.active {
-    background: rgba(102, 126, 234, 0.2);
-    color: #667eea;
-    border-right: 3px solid #667eea;
+    background: #667eea;
+    color: white;
+    border-right: 3px solid #4956b3;
   }
 
   .nav-icon {
@@ -457,7 +399,7 @@
 
   .nav-separator {
     height: 1px;
-    background: rgba(255, 255, 255, 0.1);
+    background: #e9ecef;
     margin: 0.5rem 1rem;
   }
 
@@ -467,12 +409,12 @@
   }
 
   .logout-link {
-    color: rgba(255, 255, 255, 0.6) !important;
+    color: #6c757d !important;
   }
 
   .logout-link:hover {
-    color: #f56565 !important;
-    background: rgba(245, 101, 101, 0.1) !important;
+    color: #dc3545 !important;
+    background: #f8d7da !important;
   }
 
   /* Toggle Button */
@@ -483,7 +425,7 @@
     width: 24px;
     height: 24px;
     background: white;
-    border: 2px solid #e2e8f0;
+    border: 2px solid #e9ecef;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -494,14 +436,14 @@
   }
 
   .sidebar-toggle:hover {
-    background: #f7fafc;
+    background: #f8f9fa;
     transform: scale(1.1);
   }
 
   .toggle-icon {
     width: 12px;
     height: 12px;
-    color: #4a5568;
+    color: #495057;
     transition: transform 0.3s ease;
   }
 
@@ -531,15 +473,15 @@
   }
 
   .sidebar-nav::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.1);
   }
 
   .sidebar-nav::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.3);
     border-radius: 2px;
   }
 
   .sidebar-nav::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.5);
   }
 </style>

@@ -69,7 +69,7 @@
   }
 
   .main-content.with-sidebar {
-    margin-left: 280px;
+    margin-left: 240px;
   }
 
   /* Responsive */

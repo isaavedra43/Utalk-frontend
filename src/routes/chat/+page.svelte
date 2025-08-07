@@ -1,42 +1,61 @@
 <!-- 
- * Página de Índice del Chat
- * Basado en PLAN_FRONTEND_UTALK_COMPLETO.md
+ * Página de Chat - UTalk Frontend
+ * Estructura completa del chat con sidebar y paneles
  * 
- * Funcionalidades:
- * - Estado vacío cuando no hay conversaciones
- * - Redirección automática cuando hay conversaciones
- * - Mensaje informativo para el usuario
+ * Características:
+ * - Estructura completa del chat visible siempre
+ * - Lista de conversaciones (vacía si no hay datos)
+ * - Panel central de mensajes
+ * - Paneles laterales integrados
  -->
 
 <script lang="ts">
+  import { goto } from '$app/navigation';
   import { authStore } from '$lib/stores/auth.store';
   import { conversationsStore } from '$lib/stores/conversations.store';
-  import { notificationsStore } from '$lib/stores/notifications.store';
   import { onMount } from 'svelte';
 
-  let conversations: any[] = [];
+  let user: any = null;
   let loading = true;
+  let conversations: any[] = [];
   let error = '';
 
-  onMount(async () => {
+  onMount(() => {
+    // Verificar si el usuario está autenticado
+    authStore.subscribe(state => {
+      if (state.isAuthenticated && state.user) {
+        user = state.user;
+        loading = false;
+
+        // Cargar conversaciones
+        loadConversations();
+      } else if (!state.isAuthenticated) {
+        // Redirigir al login si no está autenticado
+        goto('/login');
+      }
+    });
+  });
+
+  async function loadConversations() {
     try {
-      // Cargar conversaciones
+      loading = true;
       await conversationsStore.loadConversations();
+
+      // Suscribirse a las conversaciones
+      conversationsStore.subscribe(state => {
+        conversations = state.conversations;
+        loading = state.loading;
+        error = state.error || '';
+      });
     } catch (err: any) {
-      error = err.message || 'Error al cargar conversaciones';
-      notificationsStore.error(error);
+      error = err?.message || 'Error al cargar conversaciones';
     } finally {
       loading = false;
     }
-
-    // Suscribirse a cambios en conversaciones
-    conversationsStore.subscribe(state => {
-      conversations = state.conversations;
-    });
-  });
+  }
 </script>
 
-<div class="chat-index">
+<div class="chat-container">
   {#if loading}
     <div class="loading-state">
       <div class="spinner"></div>
@@ -47,29 +66,8 @@
       <div class="error-icon">⚠️</div>
       <h2>Error al cargar conversaciones</h2>
       <p>{error}</p>
-      <div class="error-details">
-        <p class="error-help">
-          Si el problema persiste, verifica tu conexión a internet o contacta al administrador.
-        </p>
-      </div>
       <div class="error-actions">
-        <button
-          type="button"
-          class="retry-button"
-          on:click={() => {
-            error = '';
-            loading = true;
-            conversationsStore
-              .loadConversations()
-              .catch(err => {
-                error = err.message || 'Error al cargar conversaciones';
-                notificationsStore.error(error);
-              })
-              .finally(() => {
-                loading = false;
-              });
-          }}
-        >
+        <button type="button" class="retry-button" on:click={loadConversations}>
           🔄 Reintentar
         </button>
         <button
@@ -84,113 +82,188 @@
         </button>
       </div>
     </div>
-  {:else if conversations.length === 0}
-    <div class="empty-state">
-      <div class="empty-icon">💬</div>
-      <h2>No hay conversaciones</h2>
-      <p>Cuando recibas mensajes de clientes, aparecerán aquí.</p>
-      <div class="empty-actions">
-        <button
-          type="button"
-          class="refresh-button"
-          on:click={() => conversationsStore.loadConversations()}
-        >
-          🔄 Actualizar
-        </button>
-        <button
-          type="button"
-          class="demo-button"
-          on:click={() => {
-            // Crear una conversación de demo y redirigir
-            const demoConversation = {
-              id: 'demo-conversation',
-              participants: ['+521234567890', 'admin@company.com'],
-              customerPhone: '+521234567890',
-              contact: {
-                id: '+521234567890',
-                name: 'Cliente Demo',
-                phone: '+521234567890',
-                email: 'cliente@demo.com',
-                avatar: null,
-                company: 'Empresa Demo',
-                notes: 'Cliente de demostración',
-                channel: 'whatsapp',
-                isActive: true,
-                tags: ['demo'],
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-              },
-              assignedTo: {
-                id: 'admin@company.com',
-                name: 'Administrador del Sistema',
-                email: 'admin@company.com',
-                role: 'admin'
-              },
-              status: 'open' as const,
-              priority: 'normal' as const,
-              tags: ['demo'],
-              unreadCount: 2,
-              messageCount: 5,
-              lastMessage: {
-                id: 'msg_demo_1',
-                content: 'Hola, ¿cómo puedo ayudarte?',
-                timestamp: new Date().toISOString(),
-                sender: 'agent',
-                type: 'text',
-                status: 'delivered'
-              },
-              lastMessageId: 'msg_demo_1',
-              lastMessageAt: new Date().toISOString(),
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            };
-
-            // Agregar la conversación demo al store
-            conversationsStore.addDemoConversation(demoConversation);
-
-            // Redirigir a la conversación demo
-            window.location.href = '/chat/demo-conversation';
-          }}
-        >
-          🎯 Ver Interfaz Completa (Demo)
-        </button>
-      </div>
-    </div>
   {:else}
-    <div class="redirecting-state">
-      <div class="spinner"></div>
-      <p>Redirigiendo a la conversación...</p>
+    <!-- Estructura completa del chat -->
+    <div class="chat-layout">
+      <!-- Panel izquierdo: Lista de conversaciones -->
+      <div class="conversations-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">💬 Conversaciones</h2>
+          <button class="refresh-button" on:click={loadConversations}> 🔄 </button>
+        </div>
+
+        <div class="conversations-list">
+          {#if conversations.length === 0}
+            <div class="empty-conversations">
+              <div class="empty-icon">💬</div>
+              <h3>No hay conversaciones</h3>
+              <p>Cuando recibas mensajes de clientes, aparecerán aquí.</p>
+              <button
+                type="button"
+                class="demo-button"
+                on:click={() => {
+                  // Crear una conversación de demo y redirigir
+                  const demoConversation = {
+                    id: 'demo-conversation',
+                    participants: ['+521234567890', 'admin@company.com'],
+                    customerPhone: '+521234567890',
+                    contact: {
+                      id: '+521234567890',
+                      name: 'Cliente Demo',
+                      phone: '+521234567890',
+                      email: 'cliente@demo.com',
+                      avatar: null,
+                      company: 'Empresa Demo',
+                      notes: 'Cliente de demostración',
+                      channel: 'whatsapp',
+                      isActive: true,
+                      tags: ['demo'],
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString()
+                    },
+                    assignedTo: {
+                      id: 'admin@company.com',
+                      name: 'Administrador del Sistema',
+                      email: 'admin@company.com',
+                      role: 'admin'
+                    },
+                    status: 'open' as const,
+                    priority: 'normal' as const,
+                    tags: ['demo'],
+                    unreadCount: 2,
+                    messageCount: 5,
+                    lastMessage: {
+                      id: 'msg_demo_1',
+                      content: 'Hola, ¿cómo puedo ayudarte?',
+                      timestamp: new Date().toISOString(),
+                      sender: 'agent',
+                      type: 'text',
+                      status: 'delivered'
+                    },
+                    lastMessageId: 'msg_demo_1',
+                    lastMessageAt: new Date().toISOString(),
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                  };
+
+                  // Agregar la conversación demo al store
+                  conversationsStore.addDemoConversation(demoConversation);
+
+                  // Redirigir a la conversación demo
+                  window.location.href = '/chat/demo-conversation';
+                }}
+              >
+                🎯 Ver Demo Completa
+              </button>
+            </div>
+          {:else}
+            {#each conversations as conversation}
+              <div class="conversation-item">
+                <div class="conversation-avatar">
+                  <span class="avatar-text">
+                    {conversation.contact?.name?.charAt(0) || 'C'}
+                  </span>
+                </div>
+                <div class="conversation-details">
+                  <h4 class="conversation-name">
+                    {conversation.contact?.name || 'Cliente'}
+                  </h4>
+                  <p class="conversation-preview">
+                    {conversation.lastMessage?.content || 'Sin mensajes'}
+                  </p>
+                </div>
+                <div class="conversation-meta">
+                  <span class="conversation-time">
+                    {conversation.lastMessageAt
+                      ? new Date(conversation.lastMessageAt).toLocaleTimeString()
+                      : ''}
+                  </span>
+                  {#if conversation.unreadCount > 0}
+                    <span class="unread-badge">{conversation.unreadCount}</span>
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          {/if}
+        </div>
+      </div>
+
+      <!-- Panel central: Área de mensajes -->
+      <div class="messages-panel">
+        <div class="messages-header">
+          <div class="chat-info">
+            <h2 class="chat-title">Selecciona una conversación</h2>
+            <p class="chat-subtitle">Elige una conversación para comenzar a chatear</p>
+          </div>
+        </div>
+
+        <div class="messages-area">
+          <div class="empty-messages">
+            <div class="empty-icon">💬</div>
+            <h3>Área de Mensajes</h3>
+            <p>Aquí se mostrarán los mensajes de la conversación seleccionada.</p>
+          </div>
+        </div>
+
+        <div class="message-input-area">
+          <div class="input-container">
+            <textarea class="message-input" placeholder="Escribe un mensaje..." disabled></textarea>
+            <button class="send-button" disabled> 📤 </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel derecho: Detalles y herramientas -->
+      <div class="details-panel">
+        <div class="panel-header">
+          <h3 class="panel-title">📋 Detalles</h3>
+        </div>
+
+        <div class="details-content">
+          <div class="detail-section">
+            <h4>Información del Contacto</h4>
+            <p>Selecciona una conversación para ver los detalles del contacto.</p>
+          </div>
+
+          <div class="detail-section">
+            <h4>Herramientas</h4>
+            <div class="tools-list">
+              <button class="tool-button" disabled> 📞 Llamar </button>
+              <button class="tool-button" disabled> 📧 Email </button>
+              <button class="tool-button" disabled> 📋 Notas </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   {/if}
 </div>
 
 <style>
-  .chat-index {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .chat-container {
     height: 100vh;
-    background-color: #f8f9fa;
+    background: #f8f9fa;
   }
 
   .loading-state,
-  .empty-state,
-  .redirecting-state,
   .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
     text-align: center;
     color: #6c757d;
-    max-width: 400px;
-    padding: 2rem;
   }
 
   .spinner {
     width: 40px;
     height: 40px;
     border: 4px solid #e9ecef;
-    border-top: 4px solid #2196f3;
+    border-top: 4px solid #667eea;
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin: 0 auto 1rem;
+    margin-bottom: 1rem;
   }
 
   @keyframes spin {
@@ -202,104 +275,387 @@
     }
   }
 
-  .empty-icon,
   .error-icon {
-    font-size: 4rem;
+    font-size: 3rem;
     margin-bottom: 1rem;
   }
 
-  .error-details {
-    margin: 1rem 0;
+  .error-state h2 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #212529;
+    margin: 0 0 0.5rem 0;
   }
 
-  .error-help {
-    font-size: 0.9rem;
+  .error-state p {
     color: #6c757d;
-    margin: 0;
+    margin: 0 0 1.5rem 0;
   }
 
   .error-actions {
     display: flex;
-    gap: 0.5rem;
-    justify-content: center;
-    margin-top: 1rem;
+    gap: 1rem;
   }
 
   .retry-button,
   .logout-button {
-    padding: 0.5rem 1rem;
+    padding: 0.75rem 1.5rem;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 0.9rem;
     transition: background-color 0.2s;
   }
 
   .retry-button {
-    background-color: #2196f3;
+    background: #667eea;
     color: white;
   }
 
   .retry-button:hover {
-    background-color: #1976d2;
+    background: #4956b3;
   }
 
   .logout-button {
-    background-color: #6c757d;
+    background: #6c757d;
     color: white;
   }
 
   .logout-button:hover {
-    background-color: #5a6268;
+    background: #5a6268;
   }
 
-  .demo-button {
-    background-color: #28a745;
-    color: white;
-    margin-top: 0.5rem;
+  /* Layout del Chat */
+  .chat-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr 300px;
+    height: 100vh;
+    background: white;
   }
 
-  .demo-button:hover {
-    background-color: #218838;
-  }
-
-  .empty-actions {
+  /* Panel de Conversaciones */
+  .conversations-panel {
+    border-right: 1px solid #e9ecef;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    align-items: center;
-    margin-top: 1rem;
   }
 
-  .empty-state h2 {
-    margin: 0 0 0.5rem 0;
-    color: #212529;
-    font-size: 1.5rem;
-  }
-
-  .empty-state p {
-    margin: 0 0 1.5rem 0;
-    font-size: 1rem;
-    line-height: 1.5;
-  }
-
-  .empty-actions {
+  .panel-header {
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .panel-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #212529;
+    margin: 0;
   }
 
   .refresh-button {
-    background-color: #2196f3;
-    color: white;
+    background: none;
     border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    font-size: 0.9rem;
+    font-size: 1.2rem;
     cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 4px;
     transition: background-color 0.2s;
   }
 
   .refresh-button:hover {
-    background-color: #1976d2;
+    background: #f8f9fa;
+  }
+
+  .conversations-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+  }
+
+  .empty-conversations {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: #6c757d;
+  }
+
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+
+  .empty-conversations h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #212529;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .empty-conversations p {
+    margin: 0 0 1.5rem 0;
+  }
+
+  .demo-button {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+  }
+
+  .demo-button:hover {
+    background: #218838;
+  }
+
+  .conversation-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-bottom: 0.5rem;
+  }
+
+  .conversation-item:hover {
+    background: #f8f9fa;
+  }
+
+  .conversation-avatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .avatar-text {
+    color: white;
+    font-weight: bold;
+    font-size: 0.9rem;
+  }
+
+  .conversation-details {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .conversation-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #212529;
+    margin: 0 0 0.25rem 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .conversation-preview {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .conversation-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+  }
+
+  .conversation-time {
+    font-size: 0.75rem;
+    color: #6c757d;
+  }
+
+  .unread-badge {
+    background: #667eea;
+    color: white;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 10px;
+    font-weight: bold;
+  }
+
+  /* Panel de Mensajes */
+  .messages-panel {
+    display: flex;
+    flex-direction: column;
+    background: white;
+  }
+
+  .messages-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .chat-info {
+    text-align: center;
+  }
+
+  .chat-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #212529;
+    margin: 0 0 0.25rem 0;
+  }
+
+  .chat-subtitle {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin: 0;
+  }
+
+  .messages-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  .empty-messages {
+    text-align: center;
+    color: #6c757d;
+  }
+
+  .empty-messages .empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+  }
+
+  .empty-messages h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #212529;
+    margin: 0 0 0.5rem 0;
+  }
+
+  .empty-messages p {
+    margin: 0;
+  }
+
+  .message-input-area {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e9ecef;
+  }
+
+  .input-container {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-end;
+  }
+
+  .message-input {
+    flex: 1;
+    min-height: 40px;
+    max-height: 120px;
+    padding: 0.75rem;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 0.9rem;
+    background: #f8f9fa;
+    color: #6c757d;
+  }
+
+  .message-input:disabled {
+    cursor: not-allowed;
+  }
+
+  .send-button {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 8px;
+    background: #6c757d;
+    color: white;
+    cursor: not-allowed;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Panel de Detalles */
+  .details-panel {
+    border-left: 1px solid #e9ecef;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .details-content {
+    flex: 1;
+    padding: 1rem;
+  }
+
+  .detail-section {
+    margin-bottom: 2rem;
+  }
+
+  .detail-section h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #212529;
+    margin: 0 0 0.75rem 0;
+  }
+
+  .detail-section p {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin: 0;
+  }
+
+  .tools-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .tool-button {
+    padding: 0.75rem;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    background: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+    font-size: 0.875rem;
+    text-align: left;
+    transition: all 0.2s;
+  }
+
+  .tool-button:disabled {
+    opacity: 0.5;
+  }
+
+  /* Responsive */
+  @media (max-width: 1024px) {
+    .chat-layout {
+      grid-template-columns: 250px 1fr 250px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .chat-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .conversations-panel,
+    .details-panel {
+      display: none;
+    }
   }
 </style>
