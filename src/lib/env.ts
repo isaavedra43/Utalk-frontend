@@ -10,7 +10,7 @@ export const API_BASE_URL = 'https://utalk-backend-production.up.railway.app/api
 export const WS_BASE_URL = 'wss://utalk-backend-production.up.railway.app';
 
 // ✅ LOG SIMPLE Y LIMPIO (COMENTADO PARA ESLINT)
-// console.log('🌐 ENV CONFIG:', {
+// Configuración de entorno
 //   apiUrl: API_BASE_URL,
 //   wsUrl: WS_BASE_URL,
 //   timestamp: new Date().toISOString()

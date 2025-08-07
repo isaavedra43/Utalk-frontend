@@ -11,11 +11,46 @@
  */
 
 // Configuración de Axios con interceptores - Extraído de PLAN_FRONTEND_UTALK_COMPLETO.md Fase 1.1
+import { environment } from '$lib/config/environment';
+import { authStore } from '$lib/stores/auth.store';
+import { notificationsStore } from '$lib/stores/notifications.store';
 import { logError } from '$lib/utils/logger';
 import axios, { type AxiosError, type AxiosInstance, type AxiosResponse } from 'axios';
-import { environment } from '../config/environment';
-import { authStore } from '../stores/auth.store';
-import { notificationsStore } from '../stores/notifications.store';
+
+// ✅ Interfaces específicas para errores del backend según documentación
+export interface BackendErrorResponse {
+  success: false;
+  message: string;
+  code?: string;
+  retryAfter?: number;
+}
+
+export interface RefreshTokenResponse {
+  success: true;
+  data: {
+    accessToken: string;
+    refreshToken: string;
+    expiresIn: number;
+  };
+}
+
+// ✅ Función para validar si es error del backend
+function isBackendError(data: unknown): data is BackendErrorResponse {
+  return typeof data === 'object' && data !== null && 'message' in data;
+}
+
+// ✅ Función para extraer datos de error de forma segura
+function extractErrorData(error: AxiosError): BackendErrorResponse {
+  if (error.response?.data && isBackendError(error.response.data)) {
+    return error.response.data;
+  }
+
+  return {
+    success: false,
+    message: 'Error de conexión',
+    code: 'UNKNOWN_ERROR'
+  };
+}
 
 // Configuración de la instancia de Axios - Documento: info/1.md sección "Headers de Autorización Específicos"
 const api: AxiosInstance = axios.create({
@@ -50,9 +85,9 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     // Token expirado durante procesamiento - Documento: info/1.md sección "Token Expirado Durante Procesamiento"
     if (error.response?.status === 401) {
-      const errorCode = (error.response.data as any)?.code;
+      const errorData = extractErrorData(error);
 
-      if (errorCode === 'TOKEN_EXPIRED_DURING_PROCESSING') {
+      if (errorData.code === 'TOKEN_EXPIRED_DURING_PROCESSING') {
         try {
           // Intentar refresh token automáticamente
           await refreshToken();
@@ -73,7 +108,8 @@ api.interceptors.response.use(
 
     // Rate limiting - Documento: info/1.md sección "Rate Limiting"
     if (error.response?.status === 429) {
-      const retryAfter = (error.response.data as any)?.retryAfter || 60;
+      const errorData = extractErrorData(error);
+      const retryAfter = errorData.retryAfter || 60;
       notificationsStore.error(`Has excedido el límite de peticiones. Intenta de nuevo en ${retryAfter} segundos.`);
       return Promise.reject(error);
     }
@@ -98,8 +134,8 @@ api.interceptors.response.use(
 
     // Error de conversación no encontrada - Documento: info/1.md sección "Casos Especiales"
     if (error.response?.status === 404) {
-      const message = (error.response.data as any)?.message || 'Recurso no encontrado';
-      notificationsStore.error(message);
+      const errorData = extractErrorData(error);
+      notificationsStore.error(errorData.message);
       return Promise.reject(error);
     }
 
@@ -110,8 +146,8 @@ api.interceptors.response.use(
     }
 
     // Mostrar mensaje de error del backend si existe
-    const errorMessage = (error.response?.data as any)?.message || 'Error de conexión';
-    notificationsStore.error(errorMessage);
+    const errorData = extractErrorData(error);
+    notificationsStore.error(errorData.message);
 
     return Promise.reject(error);
   }
@@ -134,18 +170,18 @@ async function refreshToken(): Promise<void> {
       throw new Error('No hay refresh token disponible');
     }
 
-    const response = await axios.post(`${environment.API_URL}/auth/refresh`, {
+    const response = await axios.post<RefreshTokenResponse>(`${environment.API_URL}/auth/refresh`, {
       refreshToken
     });
 
-    const { accessToken, refreshToken: newRefreshToken } = response.data;
+    const { accessToken, refreshToken: newRefreshToken } = response.data.data;
 
     // Actualizar tokens en localStorage
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', newRefreshToken);
 
     // Actualizar store de autenticación
-    authStore.updateTokens(accessToken, newRefreshToken);
+    authStore.setToken(accessToken);
 
   } catch (error) {
     logError('Error refreshing token:', 'API', error instanceof Error ? error : new Error(String(error)));

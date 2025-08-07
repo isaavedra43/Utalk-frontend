@@ -7,6 +7,7 @@
   import Card from '$lib/components/ui/card/card.svelte';
   import Input from '$lib/components/ui/input/input.svelte';
   import { buildApiUrl, getAuthHeaders, validateAuthResponse } from '$lib/config/api';
+  import { authStore } from '$lib/stores/auth.store';
 
   // Variables reactivas
   let email = '';
@@ -68,30 +69,29 @@
         return;
       }
 
-      // Preparar datos del usuario
-      const cleanUser = {
-        email: result.user.email,
-        name: result.user.name,
-        role: result.user.role,
-        avatarUrl: result.user.avatarUrl || null,
-        permissions: result.user.permissions || [],
-        isAuthenticated: true
+      // Preparar datos del usuario según el modelo del backend
+      const user = {
+        id: result.data.user.id,
+        email: result.data.user.email,
+        name: result.data.user.name,
+        role: result.data.user.role,
+        isActive: result.data.user.isActive,
+        avatar: result.data.user.avatar || null,
+        lastSeen: result.data.user.lastSeen,
+        isOnline: result.data.user.isOnline,
+        permissions: result.data.user.permissions || [],
+        createdAt: result.data.user.createdAt,
+        updatedAt: result.data.user.updatedAt
       };
 
-      // Almacenar en localStorage según documentación
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('accessToken', result.accessToken);
-        if (result.refreshToken) {
-          localStorage.setItem('refreshToken', result.refreshToken);
-        }
-        localStorage.setItem('user', JSON.stringify(cleanUser));
-      }
+      // Actualizar el store de autenticación
+      authStore.login(user, result.data.tokens.accessToken);
 
       // eslint-disable-next-line no-console
-      console.log('✅ LOGIN CLIENT - Exitoso para:', cleanUser.email);
+      console.log('✅ LOGIN CLIENT - Exitoso para:', user.email);
 
-      // Redirigir al dashboard
-      goto('/dashboard');
+      // Redirigir al chat principal
+      goto('/chat');
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('🚨 LOGIN CLIENT - Error crítico:', err);

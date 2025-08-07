@@ -50,7 +50,7 @@ export async function login(credentials: LoginRequest): Promise<LoginResponse> {
         }
         logAuth('AUTH LOGIN - Token almacenado en localStorage');
       } catch (storageError) {
-        logWarnWithContext('AUTH LOGIN - Error al guardar en localStorage:', 'AUTH', storageError);
+        logWarnWithContext('AUTH LOGIN - Error al guardar en localStorage:', 'AUTH', String(storageError));
       }
     }
 
@@ -86,7 +86,7 @@ export async function logout(): Promise<void> {
         localStorage.removeItem('refreshToken');
         logAuth('AUTH LOGOUT - Tokens eliminados del localStorage');
       } catch (storageError) {
-        logWarnWithContext('AUTH LOGOUT - Error al limpiar localStorage:', 'AUTH', storageError);
+        logWarnWithContext('AUTH LOGOUT - Error al limpiar localStorage:', 'AUTH', String(storageError));
       }
     }
 
@@ -96,7 +96,7 @@ export async function logout(): Promise<void> {
       logAuth('AUTH LOGOUT - Backend notificado');
     }
   } catch (error) {
-    logWarnWithContext('AUTH LOGOUT - Error al notificar backend:', 'AUTH', error);
+    logWarnWithContext('AUTH LOGOUT - Error al notificar backend:', 'AUTH', String(error));
     // No es crítico si el logout en backend falla
   }
 }
@@ -115,7 +115,7 @@ export async function refreshToken(): Promise<LoginResponse | null> {
       try {
         currentRefreshToken = localStorage.getItem('refreshToken');
       } catch (storageError) {
-        logWarnWithContext('AUTH REFRESH - Error al leer localStorage:', 'AUTH', storageError);
+        logWarnWithContext('AUTH REFRESH - Error al leer localStorage:', 'AUTH', String(storageError));
       }
     }
 
@@ -139,7 +139,7 @@ export async function refreshToken(): Promise<LoginResponse | null> {
         }
         logAuth('AUTH REFRESH - Token actualizado');
       } catch (storageError) {
-        logWarnWithContext('AUTH REFRESH - Error al guardar en localStorage:', 'AUTH', storageError);
+        logWarnWithContext('AUTH REFRESH - Error al guardar en localStorage:', 'AUTH', String(storageError));
       }
     }
 
@@ -154,7 +154,7 @@ export async function refreshToken(): Promise<LoginResponse | null> {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
       } catch (storageError) {
-        logWarnWithContext('AUTH REFRESH - Error al limpiar localStorage:', 'AUTH', storageError);
+        logWarnWithContext('AUTH REFRESH - Error al limpiar localStorage:', 'AUTH', String(storageError));
       }
     }
 

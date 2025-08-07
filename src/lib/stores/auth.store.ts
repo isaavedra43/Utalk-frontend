@@ -8,150 +8,148 @@
  * - DOCUMENTACION_COMPLETA_BACKEND_UTALK.md
  */
 
-import { writable } from 'svelte/store';
+import type { AuthState, User } from '$lib/types';
+import { logStore } from '$lib/utils/logger';
+import { get, writable } from 'svelte/store';
 
-// Interfaces basadas en el documento - Documento sección "Modelos JSON"
-export interface User {
-  id: string;
-  email: string;
-  role: 'admin' | 'agent' | 'viewer';
-  name: string;
-  avatar?: string;
-  lastSeen?: string;
-  isOnline?: boolean;
-}
-
-export interface AuthState {
-  user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
-}
-
-// Estado inicial
-const initialState: AuthState = {
-  user: null,
-  token: null,
-  isAuthenticated: false,
-  isLoading: false,
-  error: null
-};
-
-// Crear store de autenticación - Documento: "Store de Autenticación"
 const createAuthStore = () => {
+  const initialState: AuthState = {
+    user: null,
+    token: null,
+    isAuthenticated: false
+  };
+
   const { subscribe, set, update } = writable<AuthState>(initialState);
 
   return {
     subscribe,
 
-    // Login - Documento: "Componente de Login"
     login: (user: User, token: string) => {
-      localStorage.setItem('token', token);
-      set({
-        user,
-        token,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null
+      logStore('auth: login', {
+        userId: user.id,
+        userEmail: user.email,
+        userRole: user.role
       });
+
+      localStorage.setItem('token', token);
+      set({ user, token, isAuthenticated: true });
     },
 
-    // Logout - Documento: "Logout sincronizado en todas las pestañas"
     logout: () => {
-      localStorage.removeItem('token');
+      logStore('auth: logout - iniciando cleanup global');
+
+      // Importar y ejecutar cleanup global
+      import('$lib/services/cleanup.service').then(({ cleanupService }) => {
+        cleanupService.performGlobalCleanup();
+      });
+
+      // Resetear estado de autenticación inmediatamente
       set(initialState);
 
-      // Limpiar socket - Documento: "Limpieza de listeners"
-      if (typeof window !== 'undefined') {
-        // TODO: Importar y limpiar socketManager
-        // socketManager.cleanup();
-        // socketManager.disconnect();
-      }
+      logStore('auth: logout - cleanup global iniciado');
     },
 
-    // Actualizar usuario - Documento: "updateUser"
     updateUser: (user: User) => {
+      logStore('auth: updateUser', {
+        userId: user.id,
+        userEmail: user.email,
+        userRole: user.role
+      });
+
       update(state => ({ ...state, user }));
     },
 
-    // Establecer estado de carga
-    setLoading: (isLoading: boolean) => {
-      update(state => ({ ...state, isLoading }));
+    setToken: (token: string) => {
+      logStore('auth: setToken');
+
+      localStorage.setItem('token', token);
+      update(state => ({ ...state, token }));
     },
 
-    // Establecer error
-    setError: (error: string | null) => {
-      update(state => ({ ...state, error }));
+    clear: () => {
+      logStore('auth: clear');
+      set(initialState);
     },
 
-    // Actualizar tokens - Documento: info/1.5.md sección "Respuesta de Refresh Token"
-    updateTokens: (accessToken: string, refreshToken: string) => {
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
-      update(state => ({ ...state, token: accessToken }));
-    },
-
-    // Verificar si el usuario puede enviar mensajes - Documento: "Reglas de Autorización"
-    canSendMessages: (state: AuthState): boolean => {
-      if (!state.isAuthenticated || !state.user) return false;
-
-      // Viewer no puede enviar mensajes - Documento: "Roles de Usuario"
-      if (state.user.role === 'viewer') return false;
-
-      return true;
-    },
-
-    // Verificar si el usuario puede ver conversaciones - Documento: "Reglas de Autorización"
-    canViewConversations: (state: AuthState): boolean => {
-      if (!state.isAuthenticated || !state.user) return false;
-
-      // Viewer no puede ver conversaciones - Documento: "Roles de Usuario"
-      if (state.user.role === 'viewer') return false;
-
-      return true;
-    },
-
-    // Verificar si el usuario puede editar contactos - Documento: info/1.md sección "Reglas de Autorización"
-    canEditContacts: (): boolean => {
-      let currentState: AuthState | undefined;
-      subscribe(s => currentState = s)();
-
-      if (!currentState?.isAuthenticated || !currentState?.user) return false;
-
-      // Solo admin y agent pueden editar contactos
-      return currentState.user.role === 'admin' || currentState.user.role === 'agent';
-    },
-
-    // Verificar si el usuario es admin - Documento: "Roles de Usuario"
-    isAdmin: (state: AuthState): boolean => {
-      return state.user?.role === 'admin';
-    },
-
-    // Verificar si el usuario es agente - Documento: "Roles de Usuario"
-    isAgent: (state: AuthState): boolean => {
-      return state.user?.role === 'agent';
-    },
-
-    // Inicializar desde localStorage - Documento: "Logout sincronizado en todas las pestañas"
-    initialize: () => {
+    // Función para validar si el token existe y no ha expirado
+    validateToken: (): boolean => {
       const token = localStorage.getItem('token');
-      if (token) {
-        // TODO: Validar token y obtener información del usuario
-        // Por ahora, solo establecer el token
-        update(state => ({ ...state, token, isAuthenticated: true }));
+      if (!token) return false;
+
+      try {
+        // Decodificar JWT para verificar expiración
+        const payload = JSON.parse(window.atob(token.split('.')[1]));
+        const currentTime = Date.now() / 1000;
+
+        if (payload.exp && payload.exp < currentTime) {
+          logStore('auth: token expirado', {
+            exp: payload.exp,
+            currentTime
+          });
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        logStore('auth: error validando token', { error: String(error) });
+        return false;
       }
     },
 
-    // Sincronizar logout entre pestañas - Documento: "Logout sincronizado en todas las pestañas"
-    setupStorageListener: () => {
-      if (typeof window !== 'undefined') {
-        window.addEventListener('storage', (event) => {
-          if (event.key === 'token' && !event.newValue) {
-            // Token eliminado en otra pestaña
-            set(initialState);
-          }
-        });
+    // Función para verificar permisos de edición de contactos
+    canEditContacts: (): boolean => {
+      const state = get({ subscribe });
+      if (!state.user) return false;
+
+      // Solo admin y agent pueden editar contactos
+      return state.user.role === 'admin' || state.user.role === 'agent';
+    },
+
+    // Función para verificar permisos de envío de mensajes
+    canSendMessages: (): boolean => {
+      const state = get({ subscribe });
+      if (!state.user) return false;
+
+      // Solo admin y agent pueden enviar mensajes
+      return state.user.role === 'admin' || state.user.role === 'agent';
+    },
+
+    // Función para verificar permisos de asignación de conversaciones
+    canAssignConversations: (): boolean => {
+      const state = get({ subscribe });
+      if (!state.user) return false;
+
+      // Solo admin puede asignar conversaciones
+      return state.user.role === 'admin';
+    },
+
+    // Función para verificar permisos de gestión de usuarios
+    canManageUsers: (): boolean => {
+      const state = get({ subscribe });
+      if (!state.user) return false;
+
+      // Solo admin puede gestionar usuarios
+      return state.user.role === 'admin';
+    },
+
+    // Función para verificar permisos de visualización de estadísticas
+    canViewStats: (): boolean => {
+      const state = get({ subscribe });
+      if (!state.user) return false;
+
+      // Solo admin y agent pueden ver estadísticas
+      return state.user.role === 'admin' || state.user.role === 'agent';
+    },
+
+    // Función para inicializar desde localStorage
+    initialize: () => {
+      const token = localStorage.getItem('token');
+      if (token && authStore.validateToken()) {
+        logStore('auth: inicializando desde localStorage');
+        update(state => ({ ...state, token, isAuthenticated: true }));
+      } else {
+        logStore('auth: no hay token válido en localStorage');
+        authStore.clear();
       }
     }
   };

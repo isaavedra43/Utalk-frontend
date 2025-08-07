@@ -10,7 +10,8 @@
  -->
 
 <script lang="ts">
-  import { notificationsStore, type Notification } from '$lib/stores/notifications.store';
+  import { notificationsStore } from '$lib/stores/notifications.store';
+  import type { Notification } from '$lib/types';
   import { onMount } from 'svelte';
 
   let notifications: Notification[] = [];

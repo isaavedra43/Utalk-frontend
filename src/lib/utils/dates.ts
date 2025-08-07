@@ -3,7 +3,22 @@
 
 import { logDebug } from './logger';
 
-export const safeDateToISOString = (date: any): string | null => {
+// ✅ Tipos específicos para fechas según documentación del backend
+export type DateInput =
+    | string                    // ISO string - "2025-01-15T10:30:00Z"
+    | number                    // Timestamp numérico - 1705312200000
+    | Date                      // Instancia de Date
+    | null                      // null
+    | undefined                 // undefined
+    | FirestoreTimestamp        // Objetos Firestore
+    | unknown;                  // Otros formatos
+
+export interface FirestoreTimestamp {
+    _seconds: number;
+    _nanoseconds?: number;
+}
+
+export const safeDateToISOString = (date: DateInput): string | null => {
     if (!date) return null;
 
     // 1. ISO string - Documento: "ISO string - 2025-01-15T10:30:00Z"
@@ -17,9 +32,9 @@ export const safeDateToISOString = (date: any): string | null => {
     }
 
     // 3. Objetos Firestore - Documento: "Objetos Firestore con _seconds/_nanoseconds"
-    if (date._seconds) {
-        // Firestore timestamp
-        return new Date(date._seconds * 1000).toISOString();
+    if (typeof date === 'object' && date !== null && '_seconds' in date) {
+        const firestoreDate = date as FirestoreTimestamp;
+        return new Date(firestoreDate._seconds * 1000).toISOString();
     }
 
     // 4. Instancia de Date
@@ -39,19 +54,19 @@ export const safeDateToISOString = (date: any): string | null => {
 
     // Otros formatos específicos - Documento: "Otros formatos específicos"
     try {
-        const parsedDate = new Date(date);
+        const parsedDate = new Date(date as string | number);
         if (!isNaN(parsedDate.getTime())) {
             return parsedDate.toISOString();
         }
     } catch (error) {
-        logDebug('No se pudo parsear la fecha:', date);
+        logDebug('No se pudo parsear la fecha:', String(date));
     }
 
     return null;
 };
 
 // Función helper para formatear fecha para mostrar en UI
-export const formatDateForDisplay = (date: any): string => {
+export const formatDateForDisplay = (date: DateInput): string => {
     const isoString = safeDateToISOString(date);
     if (!isoString) return 'Fecha no disponible';
 
@@ -70,7 +85,7 @@ export const formatDateForDisplay = (date: any): string => {
 };
 
 // Función helper para formatear fecha relativa (hace X tiempo)
-export const formatRelativeDate = (date: any): string => {
+export const formatRelativeDate = (date: DateInput): string => {
     const isoString = safeDateToISOString(date);
     if (!isoString) return 'Fecha no disponible';
 
@@ -99,7 +114,7 @@ export const formatRelativeDate = (date: any): string => {
 };
 
 // Función helper para verificar si una fecha es reciente (últimas 24 horas)
-export const isRecentDate = (date: any): boolean => {
+export const isRecentDate = (date: DateInput): boolean => {
     const isoString = safeDateToISOString(date);
     if (!isoString) return false;
 
@@ -116,7 +131,7 @@ export const isRecentDate = (date: any): boolean => {
 };
 
 // Función helper para obtener la diferencia en minutos entre dos fechas
-export const getMinutesDifference = (date1: any, date2: any): number => {
+export const getMinutesDifference = (date1: DateInput, date2: DateInput): number => {
     const isoString1 = safeDateToISOString(date1);
     const isoString2 = safeDateToISOString(date2);
 
@@ -132,21 +147,28 @@ export const getMinutesDifference = (date1: any, date2: any): number => {
     }
 };
 
-export const formatRelativeTime = (date: any): string => {
-    const now = new Date();
-    const targetDate = new Date(date);
-    const diffInSeconds = Math.floor((now.getTime() - targetDate.getTime()) / 1000);
+export const formatRelativeTime = (date: DateInput): string => {
+    const isoString = safeDateToISOString(date);
+    if (!isoString) return 'Fecha no disponible';
 
-    if (diffInSeconds < 60) {
-        return 'ahora';
-    } else if (diffInSeconds < 3600) {
-        const minutes = Math.floor(diffInSeconds / 60);
-        return `hace ${minutes} minuto${minutes > 1 ? 's' : ''}`;
-    } else if (diffInSeconds < 86400) {
-        const hours = Math.floor(diffInSeconds / 3600);
-        return `hace ${hours} hora${hours > 1 ? 's' : ''}`;
-    } else {
-        const days = Math.floor(diffInSeconds / 86400);
-        return `hace ${days} día${days > 1 ? 's' : ''}`;
+    try {
+        const now = new Date();
+        const targetDate = new Date(isoString);
+        const diffInSeconds = Math.floor((now.getTime() - targetDate.getTime()) / 1000);
+
+        if (diffInSeconds < 60) {
+            return 'ahora';
+        } else if (diffInSeconds < 3600) {
+            const minutes = Math.floor(diffInSeconds / 60);
+            return `hace ${minutes} minuto${minutes > 1 ? 's' : ''}`;
+        } else if (diffInSeconds < 86400) {
+            const hours = Math.floor(diffInSeconds / 3600);
+            return `hace ${hours} hora${hours > 1 ? 's' : ''}`;
+        } else {
+            const days = Math.floor(diffInSeconds / 86400);
+            return `hace ${days} día${days > 1 ? 's' : ''}`;
+        }
+    } catch (error) {
+        return 'Fecha no disponible';
     }
 }; 

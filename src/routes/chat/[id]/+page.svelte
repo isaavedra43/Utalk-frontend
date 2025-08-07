@@ -16,13 +16,19 @@
 
 <script lang="ts">
   import { page } from '$app/stores';
+  import ContactProfile from '$lib/components/ContactProfile.svelte';
   import FailedMessage from '$lib/components/FailedMessage.svelte';
   import MessageAttachment from '$lib/components/MessageAttachment.svelte';
+  import NotificationToast from '$lib/components/NotificationToast.svelte';
+  import PresenceIndicator from '$lib/components/PresenceIndicator.svelte';
+  import SearchAndFilters from '$lib/components/SearchAndFilters.svelte';
+  import UXFeedback from '$lib/components/UXFeedback.svelte';
   import { environment } from '$lib/config/environment';
   import { socketManager } from '$lib/services/socket';
   import { conversationsStore } from '$lib/stores/conversations.store';
   import { messagesStore } from '$lib/stores/messages.store';
   import { notificationsStore } from '$lib/stores/notifications.store';
+  import { presenceStore } from '$lib/stores/presence.store';
   import { typingStore } from '$lib/stores/typing.store';
   import { safeDateToISOString } from '$lib/utils/dates';
   import { logChat } from '$lib/utils/logger';
@@ -42,6 +48,11 @@
   // Estados para edge cases - Documento: info/1.md sección "Casos Especiales que la UI debe manejar"
   let hasUnassignedAgent = false;
 
+  // Estados para componentes avanzados
+  let showContactProfile = false;
+  let selectedContactId: string | null = null;
+  let uploadProgress: Record<string, number> = {};
+
   // Referencias a elementos del DOM
   let messageInput: HTMLTextAreaElement;
   let fileInput: HTMLInputElement;
@@ -59,35 +70,54 @@
   $: conversationId = $page.params.id;
 
   onMount(async () => {
+    logChat('chat component: onMount start', {
+      conversationId,
+      timestamp: new Date().toISOString()
+    });
+
     try {
       // Cargar conversaciones iniciales
+      logChat('chat component: loading initial conversations');
       await loadConversations();
 
       // Configurar socket para nuevos mensajes
+      logChat('chat component: setting up socket listeners');
       setupSocketListeners();
 
       // Seleccionar la conversación de la URL
       if (conversationId) {
+        logChat('chat component: selecting conversation from URL', { conversationId });
         const conversation = conversations.find(c => c.id === conversationId);
         if (conversation) {
           await selectConversation(conversation);
         } else {
+          logChat('chat component: conversation not found', { conversationId });
           error = 'Conversación no encontrada';
         }
       }
 
       loading = false;
+      logChat('chat component: onMount completed successfully');
     } catch (err: any) {
+      logChat('chat component: onMount error', {
+        error: err.message,
+        conversationId
+      });
       error = err.response?.data?.message || 'Error al cargar el chat';
       loading = false;
     }
   });
 
   onDestroy(() => {
-    // Salir de la conversación actual al destruir el componente
+    logChat('chat component: onDestroy - cleaning up');
+
+    // Limpiar listeners de socket
     if (selectedConversation) {
       socketManager.leaveConversation(selectedConversation.id);
     }
+
+    // Limpiar estados de presencia
+    presenceStore.cleanup();
   });
 
   // Suscripción a stores
@@ -109,48 +139,125 @@
 
   // Función para cargar conversaciones
   async function loadConversations() {
+    logChat('loadConversations: start');
+
     try {
       await conversationsStore.loadConversations();
+
+      // Suscribirse a cambios en conversaciones
+      conversationsStore.subscribe(state => {
+        conversations = state.conversations;
+        logChat('loadConversations: conversations updated', {
+          count: conversations.length
+        });
+      });
     } catch (err: any) {
+      logChat('loadConversations: error', {
+        error: err.message
+      });
       notificationsStore.error('Error al cargar conversaciones');
-      throw err;
     }
   }
 
-  // Función para seleccionar una conversación
+  // Función para seleccionar conversación
   async function selectConversation(conversation: any) {
+    logChat('selectConversation: start', {
+      conversationId: conversation.id,
+      contactName: getContactName(conversation)
+    });
+
     try {
+      // Deseleccionar conversación anterior
+      if (selectedConversation) {
+        socketManager.leaveConversation(selectedConversation.id);
+      }
+
       selectedConversation = conversation;
 
-      // Verificar si la conversación tiene agente asignado - Documento: info/1.md sección "Conversación Sin Agente Asignado"
-      hasUnassignedAgent = conversation.assignedTo === null;
-      canSend = !hasUnassignedAgent && conversation.assignedTo !== null;
+      // Verificar si tiene agente asignado
+      hasUnassignedAgent = !conversation.assignedTo;
+
+      // Verificar si puede enviar mensajes
+      canSend = conversation.assignedTo !== null;
+
+      logChat('selectConversation: conversation selected', {
+        conversationId: conversation.id,
+        hasUnassignedAgent,
+        canSend
+      });
 
       // Cargar mensajes de la conversación
-      await messagesStore.loadMessages(conversation.id);
+      await loadMessages(conversation.id);
 
       // Unirse a la conversación en socket
       socketManager.joinConversation(conversation.id);
 
-      // Scroll al final de los mensajes
-      setTimeout(() => {
-        if (messagesContainer) {
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-      }, 100);
+      // Actualizar URL sin recargar
+      window.history.pushState({}, '', `/chat/${conversation.id}`);
+
+      logChat('selectConversation: completed successfully', {
+        conversationId: conversation.id
+      });
     } catch (err: any) {
+      logChat('selectConversation: error', {
+        conversationId: conversation.id,
+        error: err.message
+      });
+      notificationsStore.error('Error al seleccionar conversación');
+    }
+  }
+
+  // Función para cargar mensajes
+  async function loadMessages(conversationId: string) {
+    logChat('loadMessages: start', { conversationId });
+
+    try {
+      await messagesStore.loadMessages(conversationId);
+
+      // Suscribirse a cambios en mensajes
+      messagesStore.subscribe(state => {
+        messages = state.messages;
+        hasMore = state.pagination?.hasMore || false;
+        logChat('loadMessages: messages updated', {
+          conversationId,
+          count: messages.length,
+          hasMore
+        });
+      });
+    } catch (err: any) {
+      logChat('loadMessages: error', {
+        conversationId,
+        error: err.message
+      });
       notificationsStore.error('Error al cargar mensajes');
     }
   }
 
   // Función para cargar más mensajes (paginación)
   async function loadMoreMessages() {
-    if (loadingMore || !hasMore || !selectedConversation) return;
+    logChat('loadMoreMessages: start', {
+      loadingMore,
+      hasMore,
+      selectedConversationId: selectedConversation?.id
+    });
+
+    if (loadingMore || !hasMore || !selectedConversation) {
+      logChat('loadMoreMessages: skipped', {
+        reason: loadingMore ? 'already_loading' : !hasMore ? 'no_more_data' : 'no_conversation'
+      });
+      return;
+    }
 
     try {
       loadingMore = true;
+      logChat('loadMoreMessages: calling store method');
       await messagesStore.loadMoreMessages();
+      logChat('loadMoreMessages: completed successfully');
     } catch (err: any) {
+      logChat('loadMoreMessages: error', {
+        error: err.message,
+        selectedConversationId: selectedConversation?.id
+      });
       notificationsStore.error('Error al cargar más mensajes');
     } finally {
       loadingMore = false;
@@ -159,10 +266,19 @@
 
   // Función para reintentar mensaje fallido
   async function retryMessage(messageId: string) {
+    logChat('retryMessage: start', {
+      messageId,
+      selectedConversationId: selectedConversation?.id
+    });
+
     try {
       await messagesStore.retryMessage(messageId);
-      notificationsStore.success('Mensaje reenviado');
+      notificationsStore.success('Mensaje reenviado correctamente');
     } catch (err: any) {
+      logChat('retryMessage: error', {
+        messageId,
+        error: err.message
+      });
       notificationsStore.error('Error al reenviar mensaje');
     }
   }
@@ -184,29 +300,66 @@
     byteCount = new TextEncoder().encode(newMessage).length;
     remainingBytes = environment.VALIDATION_LIMITS.MESSAGE_MAX_LENGTH - byteCount;
 
+    logChat('handleMessageInput: text changed', {
+      messageLength: newMessage.length,
+      byteCount,
+      remainingBytes,
+      selectedConversationId: selectedConversation?.id
+    });
+
     // Enviar evento de escritura si hay conversación seleccionada
     if (selectedConversation && newMessage.trim()) {
-      socketManager.sendTypingEvent(selectedConversation.id);
+      logChat('handleMessageInput: sending typing event', {
+        conversationId: selectedConversation.id
+      });
+      socketManager.sendTyping(selectedConversation.id, true);
     }
   }
 
   // Función para manejar selección de archivos
-  function handleFileSelect(event: Event) {
+  async function handleFileSelect(event: Event) {
     const target = event.target as HTMLInputElement;
     const files = Array.from(target.files || []);
 
-    const validation = validateFileUpload(files);
+    logChat('handleFileSelect: files selected', {
+      fileCount: files.length,
+      fileNames: files.map(f => f.name),
+      totalSize: files.reduce((sum, f) => sum + f.size, 0),
+      selectedConversationId: selectedConversation?.id
+    });
+
+    const validation = await validateFileUpload(files);
     if (!validation.valid) {
+      logChat('handleFileSelect: validation failed', {
+        error: validation.error,
+        fileCount: files.length
+      });
       notificationsStore.error(validation.error || 'Error en archivos');
       return;
     }
 
     selectedFiles = files;
+    logChat('handleFileSelect: files accepted', {
+      fileCount: files.length,
+      fileNames: files.map(f => f.name)
+    });
   }
 
   // Función para enviar mensaje
   async function sendMessage() {
+    logChat('sendMessage: start', {
+      messageLength: newMessage.length,
+      fileCount: selectedFiles.length,
+      selectedConversationId: selectedConversation?.id,
+      canSend
+    });
+
     if (!selectedConversation || !canSend) {
+      logChat('sendMessage: cannot send', {
+        hasConversation: !!selectedConversation,
+        canSend,
+        reason: !selectedConversation ? 'no_conversation' : 'cannot_send'
+      });
       notificationsStore.error('No puedes enviar mensajes a esta conversación');
       return;
     }
@@ -214,67 +367,37 @@
     // Validar mensaje
     const messageValidation = validateMessage(newMessage);
     if (!messageValidation.valid) {
+      logChat('sendMessage: message validation failed', {
+        error: messageValidation.error,
+        messageLength: newMessage.length
+      });
       notificationsStore.error(messageValidation.error || 'Error en mensaje');
       return;
     }
 
-    // Validar archivos si existen
-    if (selectedFiles.length > 0) {
-      const fileValidation = validateFileUpload(selectedFiles);
-      if (!fileValidation.valid) {
-        notificationsStore.error(fileValidation.error || 'Error en archivos');
-        return;
-      }
-    }
-
-    // Verificar que hay contenido o archivos
-    if (!newMessage.trim() && selectedFiles.length === 0) {
-      notificationsStore.error('El mensaje no puede estar vacío');
-      return;
-    }
+    logChat('sendMessage: validation passed, sending message', {
+      conversationId: selectedConversation.id,
+      messageLength: newMessage.length,
+      fileCount: selectedFiles.length
+    });
 
     try {
-      // Determinar tipo de mensaje basado en archivos
-      let messageType: string = 'text';
-      if (selectedFiles.length > 0) {
-        const firstFile = selectedFiles[0];
-        if (firstFile && firstFile.type.startsWith('image/')) {
-          messageType = 'image';
-        } else if (firstFile && firstFile.type.startsWith('video/')) {
-          messageType = 'video';
-        } else if (firstFile && firstFile.type.startsWith('audio/')) {
-          messageType = 'audio';
-        } else {
-          messageType = 'document';
-        }
-      }
-
-      // Enviar mensaje usando el store
-      await messagesStore.sendMessage(
-        selectedConversation.id,
-        newMessage,
-        selectedFiles,
-        messageType as any
-      );
+      await messagesStore.sendMessage(selectedConversation.id, newMessage, selectedFiles);
 
       // Limpiar input
       newMessage = '';
       selectedFiles = [];
-      byteCount = 0;
-      remainingBytes = environment.VALIDATION_LIMITS.MESSAGE_MAX_LENGTH;
 
-      // Limpiar input de archivos
-      if (fileInput) {
-        fileInput.value = '';
-      }
-
-      // Detener evento de escritura
-      if (selectedConversation) {
-        socketManager.sendTypingStopEvent(selectedConversation.id);
-      }
+      logChat('sendMessage: completed successfully', {
+        conversationId: selectedConversation.id
+      });
     } catch (err: any) {
-      // Los errores ya se manejan en el store
-      logChat('Error al enviar mensaje:', err);
+      logChat('sendMessage: error', {
+        conversationId: selectedConversation.id,
+        error: err.message,
+        errorResponse: err.response?.data
+      });
+      notificationsStore.error('Error al enviar mensaje');
     }
   }
 
@@ -308,99 +431,159 @@
       conversation.contact?.name ||
       conversation.contact?.phone ||
       conversation.customerPhone ||
-      'Sin nombre'
+      'Contacto sin nombre'
     );
   }
 
-  // Función para obtener último mensaje
-  function getLastMessage(conversation: any): string {
-    if (!conversation.lastMessage) return 'Aún no hay mensajes';
+  // Función para obtener ID del contacto para PresenceIndicator
+  function getContactId(conversation: any): string {
+    return conversation.contact?.id || conversation.customerPhone || '';
+  }
 
-    if (conversation.lastMessage.type === 'text') {
-      return conversation.lastMessage.content || '[Sin contenido]';
-    } else {
-      return `[${conversation.lastMessage.type}]`;
+  // Función para abrir perfil de contacto
+  function openContactProfile(contactId: string) {
+    logChat('openContactProfile: start', { contactId });
+    selectedContactId = contactId;
+    showContactProfile = true;
+  }
+
+  // Función para cerrar perfil de contacto
+  function closeContactProfile() {
+    logChat('closeContactProfile: closing profile');
+    showContactProfile = false;
+    selectedContactId = null;
+  }
+
+  // Función para manejar actualización de contacto
+  function handleContactUpdated(contact: any) {
+    logChat('handleContactUpdated: contact updated', {
+      contactId: contact.id,
+      contactName: contact.name
+    });
+
+    // Actualizar la conversación si es necesario
+    if (selectedConversation && selectedConversation.contact?.id === contact.id) {
+      selectedConversation.contact = contact;
     }
   }
 
-  // Función para manejar scroll y cargar más mensajes
-  function handleScroll() {
-    if (!messagesContainer) return;
+  // Función para manejar progreso de upload
+  function handleUploadProgress(filename: string, progress: number) {
+    uploadProgress[filename] = progress;
+    uploadProgress = { ...uploadProgress }; // Trigger reactivity
+  }
 
-    const { scrollTop } = messagesContainer;
-    if (scrollTop < 100 && hasMore && !loadingMore) {
-      loadMoreMessages();
-    }
+  // Función para limpiar progreso de upload
+  function clearUploadProgress(filename: string) {
+    delete uploadProgress[filename];
+    uploadProgress = { ...uploadProgress }; // Trigger reactivity
+  }
+
+  // Funciones para SearchAndFilters
+  function handleSearch(event: CustomEvent) {
+    logChat('handleSearch: search triggered', {
+      query: event.detail.query,
+      type: event.detail.type
+    });
+
+    // Implementar búsqueda en conversaciones
+    conversationsStore.loadConversations({
+      search: event.detail.query
+    });
+  }
+
+  function handleFilter(event: CustomEvent) {
+    logChat('handleFilter: filter triggered', {
+      filters: event.detail.filters
+    });
+
+    // Implementar filtrado de conversaciones
+    conversationsStore.loadConversations(event.detail.filters);
+  }
+
+  function handleSort(event: CustomEvent) {
+    logChat('handleSort: sort triggered', {
+      sortBy: event.detail.sortBy,
+      sortOrder: event.detail.sortOrder
+    });
+
+    // Por ahora, el ordenamiento se maneja en el backend
+    // Los filtros se aplican sin parámetros de ordenamiento
+    conversationsStore.loadConversations({});
   }
 </script>
 
-<div class="chat-layout">
-  <!-- Sidebar de Conversaciones (Izquierda) -->
+<!-- Layout principal del chat -->
+<div class="chat-container">
+  <!-- Sidebar con lista de conversaciones -->
   <div class="conversations-sidebar">
+    <!-- Header con búsqueda y filtros -->
     <div class="sidebar-header">
-      <h2>Conversaciones</h2>
-      <button type="button" class="refresh-btn" on:click={loadConversations}> ↻ </button>
+      <h1>Conversaciones</h1>
+
+      <!-- Componente SearchAndFilters integrado -->
+      <SearchAndFilters
+        conversationId={selectedConversation?.id || null}
+        searchType="conversations"
+      />
     </div>
 
+    <!-- Lista de conversaciones -->
     <div class="conversations-list">
-      {#if loading}
-        <div class="loading">Cargando conversaciones...</div>
-      {:else if error}
-        <div class="error">{error}</div>
-      {:else if conversations.length === 0}
+      {#if conversations.length === 0}
         <div class="empty-state">
-          <p>No hay conversaciones aún</p>
+          <p>No hay conversaciones disponibles</p>
         </div>
       {:else}
-        {#each conversations as conversation}
+        {#each conversations as conversation (conversation.id)}
           <div
             class="conversation-item"
             class:selected={selectedConversation?.id === conversation.id}
-            class:unassigned={!conversation.assignedTo}
+            on:click={() => selectConversation(conversation)}
+            on:keydown={e => e.key === 'Enter' && selectConversation(conversation)}
             role="button"
             tabindex="0"
-            on:click={() => selectConversation(conversation)}
-            on:keydown={e => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                selectConversation(conversation);
-              }
-            }}
-            aria-label="Seleccionar conversación con {getContactName(conversation)}"
           >
-            <div class="conversation-avatar">
-              {#if conversation.contact?.avatar}
-                <img src={conversation.contact.avatar} alt="Avatar" />
-              {:else}
-                <div class="avatar-placeholder">
-                  {getContactName(conversation).charAt(0).toUpperCase()}
-                </div>
+            <!-- Header de conversación con presencia -->
+            <div class="conversation-header">
+              <div class="contact-info">
+                <h3 class="contact-name">
+                  {getContactName(conversation)}
+                </h3>
+
+                <!-- PresenceIndicator integrado -->
+                <PresenceIndicator
+                  userId={getContactId(conversation)}
+                  size="small"
+                  showName={false}
+                />
+              </div>
+
+              {#if conversation.unreadCount > 0}
+                <span class="unread-badge">{conversation.unreadCount}</span>
               {/if}
             </div>
 
-            <div class="conversation-info">
-              <div class="conversation-header">
-                <h3 class="contact-name">{getContactName(conversation)}</h3>
-                {#if conversation.unreadCount > 0}
-                  <span class="unread-badge">{conversation.unreadCount}</span>
+            <!-- Último mensaje -->
+            {#if conversation.lastMessage}
+              <p class="last-message">
+                {conversation.lastMessage.content || '[Sin contenido]'}
+              </p>
+            {:else}
+              <p class="last-message">Nueva conversación</p>
+            {/if}
+
+            <!-- Meta información -->
+            <div class="conversation-meta">
+              <span class="message-time">
+                {#if conversation.lastMessageAt}
+                  {formatMessageTime(conversation.lastMessageAt)}
                 {/if}
-              </div>
+              </span>
 
-              <p class="last-message">{getLastMessage(conversation)}</p>
-
-              <div class="conversation-meta">
-                <span class="message-time">
-                  {#if conversation.lastMessageAt}
-                    {formatMessageTime(conversation.lastMessageAt)}
-                  {:else}
-                    Sin actividad
-                  {/if}
-                </span>
-
-                {#if !conversation.assignedTo}
-                  <span class="unassigned-badge">Sin asignar</span>
-                {/if}
-              </div>
+              {#if !conversation.assignedTo}
+                <span class="unassigned-badge">Sin asignar</span>
+              {/if}
             </div>
           </div>
         {/each}
@@ -408,213 +591,277 @@
     </div>
   </div>
 
-  <!-- Área Principal de Mensajes (Centro) -->
+  <!-- Área principal de mensajes -->
   <div class="messages-area">
-    {#if !selectedConversation}
-      <div class="no-conversation-selected">
-        <div class="empty-state">
-          <h2>Selecciona una conversación</h2>
-          <p>Elige una conversación de la lista para comenzar a chatear</p>
-        </div>
-      </div>
-    {:else}
-      <!-- Header de la conversación -->
+    {#if selectedConversation}
+      <!-- Header de conversación -->
       <div class="conversation-header">
         <div class="conversation-details">
           <h2>{getContactName(selectedConversation)}</h2>
-          {#if selectedConversation.contact?.phone}
-            <p class="contact-phone">{selectedConversation.contact.phone}</p>
-          {/if}
+          <p class="contact-phone">{selectedConversation.customerPhone}</p>
         </div>
 
-        <div class="conversation-status">
-          {#if hasUnassignedAgent}
-            <span class="status-badge unassigned">Sin agente asignado</span>
-          {:else}
-            <span class="status-badge assigned">
-              Asignado a {selectedConversation.assignedTo.name}
-            </span>
-          {/if}
+        <div class="conversation-actions">
+          <!-- Botón para abrir perfil de contacto -->
+          <button
+            class="profile-button"
+            on:click={() =>
+              openContactProfile(
+                selectedConversation.contact?.id || selectedConversation.customerPhone
+              )}
+            title="Ver perfil del contacto"
+            aria-label="Ver perfil del contacto"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              ></path>
+            </svg>
+          </button>
+
+          <span
+            class="status-badge"
+            class:unassigned={!selectedConversation.assignedTo}
+            class:assigned={!!selectedConversation.assignedTo}
+          >
+            {selectedConversation.assignedTo ? 'Asignada' : 'Sin asignar'}
+          </span>
         </div>
       </div>
 
-      <!-- Advertencia de conversación sin agente - Documento: info/1.md sección "Conversación Sin Agente Asignado" -->
-      {#if hasUnassignedAgent}
-        <div class="unassigned-warning">
-          <span class="warning-icon">⚠️</span>
-          <span class="warning-text">Asigna un agente antes de responder</span>
-        </div>
-      {/if}
-
       <!-- Contenedor de mensajes -->
-      <div class="messages-container" bind:this={messagesContainer} on:scroll={handleScroll}>
-        {#if loadingMore}
-          <div class="loading-more">
-            <span>Cargando más mensajes...</span>
-          </div>
-        {/if}
-
-        {#each messages as message}
-          <div
-            class="message"
-            class:own={message.direction === 'outbound'}
-            class:failed={message.status === 'failed'}
-          >
-            <div class="message-content">
-              {#if message.type === 'text'}
-                <p>{message.content}</p>
-              {:else if message.mediaUrl}
-                <!-- Archivo adjunto -->
-                <MessageAttachment
-                  mediaUrl={message.mediaUrl}
-                  filename={message.metadata?.fileInfo?.filename || 'archivo'}
-                  fileType={message.metadata?.fileInfo?.mimeType || 'application/octet-stream'}
-                  fileSize={message.metadata?.fileInfo?.size || 0}
-                  thumbnail={message.metadata?.fileInfo?.thumbnail}
-                />
-                {#if message.content}
-                  <p class="attachment-caption">{message.content}</p>
-                {/if}
-              {:else}
-                <div class="media-message">
-                  <span class="media-icon">
-                    {#if message.type === 'audio'}🎵
-                    {:else if message.type === 'video'}🎥
-                    {:else if message.type === 'location'}📍
-                    {:else}📎
-                    {/if}
-                  </span>
-                  <span class="media-type">[{message.type}]</span>
-                  {#if message.content}
-                    <p>{message.content}</p>
-                  {/if}
-                </div>
-              {/if}
-
-              <!-- Mensaje de error si falló - Documento: info/1.md sección "Mensaje con Envío Fallido" -->
-              {#if message.status === 'failed'}
-                <FailedMessage {message} onRetry={retryMessage} />
-              {/if}
-            </div>
-
-            <div class="message-meta">
-              <span class="message-time">
-                {formatMessageTime(message.timestamp)}
-              </span>
-
-              {#if message.direction === 'outbound'}
-                <span class="message-status">
-                  {#if message.status === 'sent'}✓
-                  {:else if message.status === 'delivered'}✓✓
-                  {:else if message.status === 'read'}✓✓
-                  {:else if message.status === 'failed'}✗
-                  {:else}⏳
-                  {/if}
-                </span>
-              {/if}
-            </div>
-          </div>
-        {/each}
-
+      <div class="messages-container" bind:this={messagesContainer}>
         {#if messages.length === 0}
           <div class="no-messages">
             <p>No hay mensajes en esta conversación</p>
           </div>
+        {:else}
+          {#each messages as message (message.id)}
+            <div
+              class="message"
+              class:own={message.direction === 'outbound'}
+              class:failed={message.status === 'failed'}
+            >
+              <!-- Contenido del mensaje -->
+              <div class="message-content">
+                {#if message.type === 'text'}
+                  <p>{message.content}</p>
+                {:else if message.type === 'image'}
+                  <MessageAttachment
+                    mediaUrl={message.mediaUrl}
+                    filename={message.metadata?.fileInfo?.filename || 'imagen'}
+                    fileType={message.metadata?.fileInfo?.mimeType || 'image/jpeg'}
+                    fileSize={message.metadata?.fileInfo?.size || 0}
+                  />
+                {:else if message.type === 'audio'}
+                  <MessageAttachment
+                    mediaUrl={message.mediaUrl}
+                    filename={message.metadata?.fileInfo?.filename || 'audio'}
+                    fileType={message.metadata?.fileInfo?.mimeType || 'audio/mpeg'}
+                    fileSize={message.metadata?.fileInfo?.size || 0}
+                  />
+                {:else if message.type === 'video'}
+                  <MessageAttachment
+                    mediaUrl={message.mediaUrl}
+                    filename={message.metadata?.fileInfo?.filename || 'video'}
+                    fileType={message.metadata?.fileInfo?.mimeType || 'video/mp4'}
+                    fileSize={message.metadata?.fileInfo?.size || 0}
+                  />
+                {:else if message.type === 'document'}
+                  <MessageAttachment
+                    mediaUrl={message.mediaUrl}
+                    filename={message.metadata?.fileInfo?.filename || 'documento'}
+                    fileType={message.metadata?.fileInfo?.mimeType || 'application/pdf'}
+                    fileSize={message.metadata?.fileInfo?.size || 0}
+                  />
+                {:else}
+                  <div class="media-message">
+                    <div class="media-icon">📎</div>
+                    <span class="media-type">{message.type}</span>
+                  </div>
+                {/if}
+              </div>
+
+              <!-- Meta información del mensaje -->
+              <div class="message-meta">
+                <span class="message-time">{formatMessageTime(message.timestamp)}</span>
+
+                {#if message.status === 'failed'}
+                  <FailedMessage {message} onRetry={() => retryMessage(message.id)} />
+                {:else}
+                  <span class="message-status">
+                    {#if message.status === 'sent'}
+                      ✓
+                    {:else if message.status === 'delivered'}
+                      ✓✓
+                    {:else if message.status === 'read'}
+                      ✓✓
+                    {/if}
+                  </span>
+                {/if}
+              </div>
+            </div>
+          {/each}
         {/if}
 
-        {#if typingText}
-          <div class="typing-indicator">
-            <span class="typing-dots">●●●</span>
-            <span class="typing-text">{typingText}</span>
+        <!-- Indicador de carga de más mensajes -->
+        {#if loadingMore}
+          <div class="loading-more">
+            <p>Cargando más mensajes...</p>
           </div>
         {/if}
       </div>
 
       <!-- Input de mensaje -->
       <div class="message-input-container" class:disabled={!canSend}>
-        {#if hasUnassignedAgent}
-          <div class="input-warning">
-            <span class="warning-icon">⚠️</span>
-            <span>Asigna un agente antes de responder</span>
+        {#if !canSend}
+          <div class="disabled-message">
+            <p>No puedes enviar mensajes a conversaciones sin agente asignado</p>
           </div>
-        {/if}
+        {:else}
+          <!-- Barra de progreso de uploads -->
+          {#if Object.keys(uploadProgress).length > 0}
+            <div class="upload-progress">
+              {#each Object.entries(uploadProgress) as [filename, progress]}
+                <div class="progress-item">
+                  <span class="filename">{filename}</span>
+                  <div class="progress-bar">
+                    <div class="progress-fill" style="width: {progress}%"></div>
+                  </div>
+                  <span class="progress-text">{progress}%</span>
+                </div>
+              {/each}
+            </div>
+          {/if}
 
-        <div class="input-wrapper">
-          <div class="input-controls">
-            <button
-              type="button"
-              class="file-button"
-              disabled={!canSend}
-              on:click={() => fileInput?.click()}
-            >
-              📎
-            </button>
-
-            {#if selectedFiles.length > 0}
-              <div class="selected-files">
-                {#each selectedFiles as file, index}
-                  <span class="file-tag">
-                    {file.name}
-                    <button
-                      type="button"
-                      class="remove-file"
-                      on:click={() => (selectedFiles = selectedFiles.filter((_, i) => i !== index))}
-                    >
-                      ×
-                    </button>
-                  </span>
-                {/each}
-              </div>
-            {/if}
-          </div>
-
-          <div class="text-input-container">
+          <div class="input-container">
             <textarea
               bind:this={messageInput}
               bind:value={newMessage}
               on:input={handleMessageInput}
-              placeholder={canSend
-                ? 'Escribe tu mensaje...'
-                : 'Asigna un agente para enviar mensajes'}
+              placeholder="Escribe un mensaje..."
               disabled={!canSend}
-              maxlength="4096"
-              rows="1"
-              class="message-textarea"
-            />
+              maxlength={environment.VALIDATION_LIMITS.MESSAGE_MAX_LENGTH}
+            ></textarea>
 
-            <div class="input-footer">
-              <span class="byte-counter" class:warning={remainingBytes < 100}>
-                {remainingBytes} bytes restantes
-              </span>
+            <div class="input-actions">
+              <input
+                bind:this={fileInput}
+                type="file"
+                multiple
+                accept="image/*,audio/*,video/*,.pdf"
+                on:change={handleFileSelect}
+                style="display: none;"
+              />
 
               <button
-                type="button"
+                class="file-button"
+                on:click={() => fileInput?.click()}
+                disabled={!canSend}
+                title="Adjuntar archivo"
+                aria-label="Adjuntar archivo"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a2 2 0 00-2.828-2.828z"
+                  ></path>
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M7 10l6.586-6.586a2 2 0 012.828 2.828L9.828 12.828a2 2 0 01-2.828-2.828L7 10z"
+                  ></path>
+                </svg>
+              </button>
+
+              <button
                 class="send-button"
                 on:click={sendMessage}
-                disabled={!canSend || (!newMessage.trim() && selectedFiles.length === 0)}
+                disabled={!canSend || !newMessage.trim()}
+                title="Enviar mensaje"
+                aria-label="Enviar mensaje"
               >
-                Enviar
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                  ></path>
+                </svg>
               </button>
             </div>
           </div>
-        </div>
 
-        <input
-          bind:this={fileInput}
-          type="file"
-          multiple
-          accept="image/*,audio/*,video/*,.pdf"
-          on:change={handleFileSelect}
-          style="display: none;"
-        />
+          <!-- Contador de caracteres -->
+          {#if newMessage.length > 0}
+            <div class="character-counter" class:warning={remainingBytes < 100}>
+              <span>{newMessage.length} / {environment.VALIDATION_LIMITS.MESSAGE_MAX_LENGTH}</span>
+              {#if remainingBytes < 100}
+                <span class="warning-text">¡Casi alcanzas el límite!</span>
+              {/if}
+            </div>
+          {/if}
+        {/if}
+      </div>
+    {:else}
+      <!-- Estado sin conversación seleccionada -->
+      <div class="no-conversation">
+        <div class="empty-state">
+          <h2>Selecciona una conversación</h2>
+          <p>Elige una conversación de la lista para comenzar a chatear</p>
+        </div>
       </div>
     {/if}
   </div>
 </div>
 
+<!-- Modal de perfil de contacto -->
+{#if showContactProfile && selectedContactId}
+  <div class="contact-profile-modal" class:show={showContactProfile}>
+    <div
+      class="modal-overlay"
+      on:click={closeContactProfile}
+      on:keydown={e => e.key === 'Escape' && closeContactProfile()}
+      role="button"
+      tabindex="0"
+      aria-label="Cerrar modal"
+    ></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Perfil del Contacto</h2>
+        <button class="close-button" on:click={closeContactProfile} aria-label="Cerrar modal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            ></path>
+          </svg>
+        </button>
+      </div>
+
+      <ContactProfile contactId={selectedContactId} on:contactUpdated={handleContactUpdated} />
+    </div>
+  </div>
+{/if}
+
+<!-- Componente de notificaciones -->
+<NotificationToast />
+
+<!-- Componente de feedback UX -->
+<UXFeedback type="info" message="Sistema de chat UTalk cargado" duration={3000} />
+
 <style>
   /* Layout principal */
-  .chat-layout {
+  .chat-container {
     display: flex;
     height: 100vh;
     background-color: #f8f9fa;
@@ -632,45 +879,28 @@
   .sidebar-header {
     padding: 1rem;
     border-bottom: 1px solid #e9ecef;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
   }
 
-  .sidebar-header h2 {
-    margin: 0;
+  .sidebar-header h1 {
+    margin: 0 0 1rem 0;
     font-size: 1.25rem;
     font-weight: 600;
     color: #212529;
   }
 
-  .refresh-btn {
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 4px;
-    transition: background-color 0.2s;
-  }
-
-  .refresh-btn:hover {
-    background-color: #f8f9fa;
-  }
-
   .conversations-list {
     flex: 1;
     overflow-y: auto;
+    padding: 0.5rem;
   }
 
   .conversation-item {
     padding: 1rem;
-    border-bottom: 1px solid #f8f9fa;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
     cursor: pointer;
     transition: background-color 0.2s;
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
+    border: 1px solid transparent;
   }
 
   .conversation-item:hover {
@@ -679,33 +909,18 @@
 
   .conversation-item.selected {
     background-color: #e3f2fd;
-    border-left: 3px solid #2196f3;
+    border-color: #2196f3;
   }
 
-  .conversation-item.unassigned {
-    opacity: 0.7;
+  .conversation-item:focus {
+    outline: 2px solid #2196f3;
+    outline-offset: 2px;
   }
 
-  .conversation-avatar {
-    flex-shrink: 0;
-  }
-
-  .avatar-placeholder {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: #2196f3;
-    color: white;
+  .contact-info {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 1rem;
-  }
-
-  .conversation-info {
-    flex: 1;
-    min-width: 0;
+    gap: 0.5rem;
   }
 
   .conversation-header {
@@ -791,6 +1006,32 @@
     color: #6c757d;
   }
 
+  .conversation-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .profile-button {
+    padding: 0.5rem;
+    background: transparent;
+    border: 1px solid #e9ecef;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .profile-button:hover {
+    background-color: #f8f9fa;
+    border-color: #2196f3;
+  }
+
+  .profile-button svg {
+    width: 1rem;
+    height: 1rem;
+    color: #6c757d;
+  }
+
   .status-badge {
     padding: 0.25rem 0.75rem;
     border-radius: 1rem;
@@ -870,29 +1111,6 @@
     gap: 0.5rem;
   }
 
-  .media-message img {
-    max-width: 100%;
-    border-radius: 0.5rem;
-  }
-
-  .document-preview {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
-    background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 0.5rem;
-  }
-
-  .document-icon {
-    font-size: 1.5rem;
-  }
-
-  .document-name {
-    font-size: 0.9rem;
-    font-weight: 500;
-  }
-
   .media-message .media-icon {
     font-size: 2rem;
   }
@@ -900,36 +1118,6 @@
   .media-type {
     font-size: 0.8rem;
     opacity: 0.8;
-  }
-
-  .error-message {
-    margin-top: 0.5rem;
-    padding: 0.5rem;
-    background-color: rgba(220, 53, 69, 0.1);
-    border-radius: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.8rem;
-  }
-
-  .error-icon {
-    font-size: 1rem;
-  }
-
-  .retry-button {
-    background-color: #dc3545;
-    color: white;
-    border: none;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-    font-size: 0.8rem;
-    cursor: pointer;
-    margin-left: auto;
-  }
-
-  .retry-button:hover {
-    background-color: #c82333;
   }
 
   .message-meta {
@@ -962,133 +1150,125 @@
   }
 
   .message-input-container.disabled {
-    opacity: 0.6;
-  }
-
-  .input-warning {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem;
-    background-color: #fff3cd;
-    border: 1px solid #ffeaa7;
-    border-radius: 0.5rem;
-    margin-bottom: 1rem;
-    font-size: 0.9rem;
-    color: #856404;
-  }
-
-  .warning-icon {
-    font-size: 1rem;
-  }
-
-  .input-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .input-controls {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .file-button {
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 0.25rem;
-    transition: background-color 0.2s;
-  }
-
-  .file-button:hover:not(:disabled) {
     background-color: #f8f9fa;
   }
 
-  .file-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  .disabled-message {
+    text-align: center;
+    padding: 1rem;
+    color: #6c757d;
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 0.25rem;
   }
 
-  .selected-files {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+  .upload-progress {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
   }
 
-  .file-tag {
+  .progress-item {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.5rem;
-    background-color: #e9ecef;
-    border-radius: 0.25rem;
-    font-size: 0.8rem;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
   }
 
-  .remove-file {
-    background: none;
-    border: none;
-    cursor: pointer;
+  .progress-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .filename {
     font-size: 0.8rem;
     color: #6c757d;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .text-input-container {
+  .progress-bar {
+    width: 100px;
+    height: 4px;
+    background-color: #e9ecef;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background-color: #2196f3;
+    transition: width 0.3s ease;
+  }
+
+  .progress-text {
+    font-size: 0.75rem;
+    color: #6c757d;
+    min-width: 3rem;
+    text-align: right;
+  }
+
+  .input-container {
     display: flex;
-    flex-direction: column;
     gap: 0.5rem;
+    align-items: flex-end;
   }
 
-  .message-textarea {
-    width: 100%;
-    border: 1px solid #e9ecef;
-    border-radius: 0.5rem;
-    padding: 0.75rem;
-    font-family: inherit;
-    font-size: 0.9rem;
-    resize: none;
+  textarea {
+    flex: 1;
     min-height: 2.5rem;
     max-height: 8rem;
+    padding: 0.75rem;
+    border: 1px solid #e9ecef;
+    border-radius: 0.25rem;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 0.9rem;
+    line-height: 1.4;
   }
 
-  .message-textarea:focus {
+  textarea:focus {
     outline: none;
     border-color: #2196f3;
   }
 
-  .message-textarea:disabled {
+  textarea:disabled {
     background-color: #f8f9fa;
+    color: #6c757d;
     cursor: not-allowed;
   }
 
-  .input-footer {
+  .input-actions {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    gap: 0.25rem;
   }
 
-  .byte-counter {
-    font-size: 0.8rem;
+  .file-button,
+  .send-button {
+    padding: 0.75rem;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .file-button {
+    background-color: #f8f9fa;
     color: #6c757d;
   }
 
-  .byte-counter.warning {
-    color: #ffc107;
+  .file-button:hover:not(:disabled) {
+    background-color: #e9ecef;
   }
 
   .send-button {
     background-color: #2196f3;
     color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
   }
 
   .send-button:hover:not(:disabled) {
@@ -1096,103 +1276,125 @@
   }
 
   .send-button:disabled {
-    background-color: #6c757d;
+    background-color: #e9ecef;
+    color: #6c757d;
     cursor: not-allowed;
   }
 
-  /* Estados de carga y error */
-  .loading,
-  .error,
-  .empty-state {
-    padding: 2rem;
-    text-align: center;
-    color: #6c757d;
+  .file-button svg,
+  .send-button svg {
+    width: 1rem;
+    height: 1rem;
   }
 
-  .error {
-    color: #dc3545;
-  }
-
-  .no-conversation-selected {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .typing-indicator {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    color: #666;
-    font-size: 0.875rem;
-    font-style: italic;
-  }
-
-  .typing-dots {
-    animation: typing 1.4s infinite;
-    color: #007bff;
-  }
-
-  @keyframes typing {
-    0%,
-    20% {
-      opacity: 0;
-    }
-    50% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0;
-    }
-  }
-
-  .typing-text {
-    color: #666;
-  }
-
-  .attachment-caption {
+  .character-counter {
     margin-top: 0.5rem;
-    font-size: 0.9rem;
+    font-size: 0.75rem;
     color: #6c757d;
-    font-style: italic;
-  }
-
-  /* Advertencia de conversación sin agente - Documento: info/1.md sección "Conversación Sin Agente Asignado" */
-  .unassigned-warning {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
-    border-radius: 0.5rem;
-    margin: 0.5rem 1rem;
-    color: #856404;
   }
 
-  .warning-icon {
-    font-size: 1.1rem;
+  .character-counter.warning {
+    color: #f59e0b;
   }
 
   .warning-text {
-    font-size: 0.9rem;
+    color: #dc3545;
     font-weight: 500;
   }
 
+  /* Estados vacíos */
   .empty-state {
+    text-align: center;
+    padding: 2rem;
     color: #6c757d;
   }
 
-  .empty-state h2 {
-    margin-bottom: 0.5rem;
-    color: #212529;
+  .no-conversation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+  }
+
+  /* Modal de perfil de contacto */
+  .contact-profile-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .contact-profile-modal.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  .modal-content {
+    position: relative;
+    background-color: white;
+    border-radius: 0.5rem;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .modal-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .close-button {
+    padding: 0.5rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
+  }
+
+  .close-button:hover {
+    background-color: #f8f9fa;
+  }
+
+  .close-button svg {
+    width: 1rem;
+    height: 1rem;
+    color: #6c757d;
   }
 
   /* Responsive */
   @media (max-width: 768px) {
-    .chat-layout {
+    .chat-container {
       flex-direction: column;
     }
 

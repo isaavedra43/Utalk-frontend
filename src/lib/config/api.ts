@@ -35,7 +35,26 @@ export function getAuthHeaders(token?: string): Record<string, string> {
   };
 }
 
+// ✅ Interfaz para respuesta de autenticación según documentación
+export interface AuthResponse {
+  success: boolean;
+  data: {
+    user: {
+      id: string;
+      email: string;
+      name: string;
+      role: 'admin' | 'agent' | 'viewer';
+      isActive: boolean;
+    };
+    tokens: {
+      accessToken: string;
+      refreshToken: string;
+      expiresIn: number;
+    };
+  };
+}
+
 // ✅ Función para validar respuesta del backend
-export function validateAuthResponse(data: any): boolean {
-  return !!(data?.accessToken && data?.user);
+export function validateAuthResponse(data: AuthResponse): boolean {
+  return !!(data?.data?.tokens?.accessToken && data?.data?.user);
 }

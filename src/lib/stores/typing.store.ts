@@ -9,105 +9,59 @@
  * - Integración con Socket.IO para eventos en tiempo real
  */
 
-import { writable } from 'svelte/store';
-
-export interface TypingUser {
-    userEmail: string;
-    userName: string;
-    startedAt: number;
-}
-
-export interface TypingState {
-    [conversationId: string]: TypingUser[];
-}
+import type { TypingState } from '$lib/types';
+import { logStore } from '$lib/utils/logger';
+import { get, writable } from 'svelte/store';
 
 const createTypingStore = () => {
-    const { subscribe, update, set } = writable<TypingState>({});
+    const initialState: TypingState = {};
 
-    // Timeout para limpiar indicadores de escritura
-    const typingTimeouts: { [key: string]: NodeJS.Timeout } = {};
+    const { subscribe, set, update } = writable<TypingState>(initialState);
 
     return {
         subscribe,
 
-        // Agregar usuario escribiendo
         addTypingUser: (conversationId: string, userEmail: string, userName: string) => {
+            logStore('typing: addTypingUser', {
+                conversationId,
+                userEmail,
+                userName
+            });
+
             update(state => {
-                const conversation = state[conversationId] || [];
-                const existingUserIndex = conversation.findIndex(user => user.userEmail === userEmail);
-
-                if (existingUserIndex >= 0) {
-                    // Actualizar usuario existente
-                    conversation[existingUserIndex] = {
-                        userEmail,
+                const conversation = state[conversationId] || {};
+                const updatedConversation = {
+                    ...conversation,
+                    [userEmail]: {
                         userName,
-                        startedAt: Date.now()
-                    };
-                } else {
-                    // Agregar nuevo usuario
-                    conversation.push({
-                        userEmail,
-                        userName,
-                        startedAt: Date.now()
-                    });
-                }
-
-                // Limpiar timeout anterior si existe
-                const timeoutKey = `${conversationId}-${userEmail}`;
-                if (typingTimeouts[timeoutKey]) {
-                    clearTimeout(typingTimeouts[timeoutKey]);
-                }
-
-                // Configurar auto-cleanup después de 3 segundos
-                typingTimeouts[timeoutKey] = setTimeout(() => {
-                    // Usar referencia directa al método removeTypingUser
-                    update(state => {
-                        const conversation = state[conversationId] || [];
-                        const filteredConversation = conversation.filter(user => user.userEmail !== userEmail);
-
-                        // Limpiar timeout
-                        const timeoutKey = `${conversationId}-${userEmail}`;
-                        if (typingTimeouts[timeoutKey]) {
-                            clearTimeout(typingTimeouts[timeoutKey]);
-                            delete typingTimeouts[timeoutKey];
-                        }
-
-                        if (filteredConversation.length === 0) {
-                            // Si no hay usuarios escribiendo, remover la conversación
-                            const { [conversationId]: removed, ...rest } = state;
-                            return rest;
-                        }
-
-                        return {
-                            ...state,
-                            [conversationId]: filteredConversation
-                        };
-                    });
-                }, 3000);
+                        timestamp: Date.now()
+                    }
+                };
 
                 return {
                     ...state,
-                    [conversationId]: conversation
+                    [conversationId]: updatedConversation
                 };
             });
         },
 
-        // Remover usuario escribiendo
         removeTypingUser: (conversationId: string, userEmail: string) => {
+            logStore('typing: removeTypingUser', {
+                conversationId,
+                userEmail
+            });
+
             update(state => {
-                const conversation = state[conversationId] || [];
-                const filteredConversation = conversation.filter(user => user.userEmail !== userEmail);
+                const conversation = state[conversationId];
+                if (!conversation) return state;
 
-                // Limpiar timeout
-                const timeoutKey = `${conversationId}-${userEmail}`;
-                if (typingTimeouts[timeoutKey]) {
-                    clearTimeout(typingTimeouts[timeoutKey]);
-                    delete typingTimeouts[timeoutKey];
-                }
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { [userEmail]: _, ...filteredConversation } = conversation;
 
-                if (filteredConversation.length === 0) {
+                if (Object.keys(filteredConversation).length === 0) {
                     // Si no hay usuarios escribiendo, remover la conversación
-                    const { [conversationId]: removed, ...rest } = state;
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    const { [conversationId]: _, ...rest } = state;
                     return rest;
                 }
 
@@ -118,67 +72,44 @@ const createTypingStore = () => {
             });
         },
 
-        // Obtener usuarios escribiendo en una conversación
-        getTypingUsers: (conversationId: string): TypingUser[] => {
-            let currentState: TypingState | undefined;
-            subscribe(s => currentState = s)();
-            return currentState?.[conversationId] || [];
-        },
-
-        // Verificar si hay usuarios escribiendo
-        isAnyoneTyping: (conversationId: string): boolean => {
-            let currentState: TypingState | undefined;
-            subscribe(s => currentState = s)();
-            const users = currentState?.[conversationId] || [];
-            return users.length > 0;
-        },
-
-        // Limpiar todos los indicadores de una conversación
         clearConversation: (conversationId: string) => {
+            logStore('typing: clearConversation', { conversationId });
+
             update(state => {
-                const { [conversationId]: removed, ...rest } = state;
-
-                // Limpiar todos los timeouts de esta conversación
-                Object.keys(typingTimeouts).forEach(key => {
-                    if (key.startsWith(conversationId)) {
-                        clearTimeout(typingTimeouts[key]);
-                        delete typingTimeouts[key];
-                    }
-                });
-
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { [conversationId]: _, ...rest } = state;
                 return rest;
             });
         },
 
-        // Limpiar todos los indicadores
-        clearAll: () => {
-            // Limpiar todos los timeouts
-            Object.values(typingTimeouts).forEach(timeout => {
-                clearTimeout(timeout);
-            });
-
-            set({});
+        clear: () => {
+            logStore('typing: clear');
+            set(initialState);
         },
 
-        // Obtener texto de indicador de escritura
+        // Función para obtener texto de escritura
         getTypingText: (conversationId: string): string => {
-            let currentState: TypingState | undefined;
-            subscribe(s => currentState = s)();
-            const users = currentState?.[conversationId] || [];
+            const state = get({ subscribe });
+            const conversation = state[conversationId];
 
-            if (users.length === 0) {
-                return '';
-            }
+            if (!conversation) return '';
+
+            const users = Object.values(conversation);
+            if (users.length === 0) return '';
 
             if (users.length === 1) {
                 return `${users[0].userName} está escribiendo...`;
-            }
-
-            if (users.length === 2) {
+            } else if (users.length === 2) {
                 return `${users[0].userName} y ${users[1].userName} están escribiendo...`;
+            } else {
+                return `${users[0].userName} y ${users.length - 1} más están escribiendo...`;
             }
+        },
 
-            return `${users[0].userName} y ${users.length - 1} más están escribiendo...`;
+        // Función de cleanup específica para logout
+        cleanup: () => {
+            logStore('typing: cleanup - limpiando indicadores de escritura');
+            set(initialState);
         }
     };
 };

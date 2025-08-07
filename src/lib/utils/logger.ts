@@ -11,12 +11,23 @@ export enum LogLevel {
     ERROR = 3
 }
 
+// ✅ Tipos específicos para datos de logging
+export type LogData =
+    | string
+    | number
+    | boolean
+    | null
+    | undefined
+    | Record<string, unknown>
+    | Array<unknown>
+    | Error;
+
 export interface LogEntry {
     level: LogLevel;
     message: string;
     timestamp: string;
     context?: string;
-    data?: any;
+    data?: LogData;
     error?: Error;
 }
 
@@ -47,7 +58,7 @@ class Logger {
         return `${timestamp} ${level}${contextStr}: ${message}`;
     }
 
-    private log(level: LogLevel, message: string, context?: string, data?: any, error?: Error): void {
+    private log(level: LogLevel, message: string, context?: string, data?: LogData, error?: Error): void {
         if (!this.shouldLog(level)) return;
 
         const levelStr = LogLevel[level];
@@ -93,48 +104,48 @@ class Logger {
             return;
         }
 
-        // TODO: Implementar envío a servicio de logging en producción
+        // Envío a servicio de logging en producción (implementar según necesidades)
         // Ejemplo: Sentry, LogRocket, etc.
     }
 
-    public debug(message: string, context?: string, data?: any): void {
+    public debug(message: string, context?: string, data?: LogData): void {
         this.log(LogLevel.DEBUG, message, context, data);
     }
 
-    public info(message: string, context?: string, data?: any): void {
+    public info(message: string, context?: string, data?: LogData): void {
         this.log(LogLevel.INFO, message, context, data);
     }
 
-    public warn(message: string, context?: string, data?: any): void {
+    public warn(message: string, context?: string, data?: LogData): void {
         this.log(LogLevel.WARN, message, context, data);
     }
 
-    public error(message: string, context?: string, error?: Error, data?: any): void {
+    public error(message: string, context?: string, error?: Error, data?: LogData): void {
         this.log(LogLevel.ERROR, message, context, data, error);
     }
 
     // Métodos específicos para diferentes contextos
-    public auth(message: string, data?: any): void {
+    public auth(message: string, data?: LogData): void {
         this.info(message, 'AUTH', data);
     }
 
-    public socket(message: string, data?: any): void {
+    public socket(message: string, data?: LogData): void {
         this.info(message, 'SOCKET', data);
     }
 
-    public api(message: string, data?: any): void {
+    public api(message: string, data?: LogData): void {
         this.info(message, 'API', data);
     }
 
-    public store(message: string, data?: any): void {
+    public store(message: string, data?: LogData): void {
         this.debug(message, 'STORE', data);
     }
 
-    public validation(message: string, data?: any): void {
+    public validation(message: string, data?: LogData): void {
         this.debug(message, 'VALIDATION', data);
     }
 
-    public chat(message: string, data?: any): void {
+    public chat(message: string, data?: LogData): void {
         this.debug(message, 'CHAT', data);
     }
 }
@@ -143,19 +154,19 @@ class Logger {
 export const logger = Logger.getInstance();
 
 // Funciones de conveniencia para uso directo
-export const logDebug = (message: string, context?: string, data?: any) => logger.debug(message, context, data);
-export const logInfo = (message: string, context?: string, data?: any) => logger.info(message, context, data);
-export const logWarn = (message: string, context?: string, data?: any) => logger.warn(message, context, data);
-export const logError = (message: string, context?: string, error?: Error, data?: any) => logger.error(message, context, error, data);
+export const logDebug = (message: string, context?: string, data?: LogData) => logger.debug(message, context, data);
+export const logInfo = (message: string, context?: string, data?: LogData) => logger.info(message, context, data);
+export const logWarn = (message: string, context?: string, data?: LogData) => logger.warn(message, context, data);
+export const logError = (message: string, context?: string, error?: Error, data?: LogData) => logger.error(message, context, error, data);
 
 // Funciones específicas por contexto - aceptan data como segundo parámetro
-export const logAuth = (message: string, data?: any) => logger.auth(message, data);
-export const logSocket = (message: string, data?: any) => logger.socket(message, data);
-export const logApi = (message: string, data?: any) => logger.api(message, data);
-export const logStore = (message: string, data?: any) => logger.store(message, data);
-export const logValidation = (message: string, data?: any) => logger.validation(message, data);
-export const logChat = (message: string, data?: any) => logger.chat(message, data);
+export const logAuth = (message: string, data?: LogData) => logger.auth(message, data);
+export const logSocket = (message: string, data?: LogData) => logger.socket(message, data);
+export const logApi = (message: string, data?: LogData) => logger.api(message, data);
+export const logStore = (message: string, data?: LogData) => logger.store(message, data);
+export const logValidation = (message: string, data?: LogData) => logger.validation(message, data);
+export const logChat = (message: string, data?: LogData) => logger.chat(message, data);
 
 // Funciones de conveniencia que aceptan error como segundo parámetro
-export const logErrorWithContext = (message: string, context: string, error?: Error, data?: any) => logger.error(message, context, error, data);
-export const logWarnWithContext = (message: string, context: string, data?: any) => logger.warn(message, context, data); 
+export const logErrorWithContext = (message: string, context: string, error?: Error, data?: LogData) => logger.error(message, context, error, data);
+export const logWarnWithContext = (message: string, context: string, data?: LogData) => logger.warn(message, context, data); 
