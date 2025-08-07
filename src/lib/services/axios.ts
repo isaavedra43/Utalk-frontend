@@ -138,9 +138,25 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Error de permisos - Documento: info/1.md sección "Reglas de Autorización"
+    // Error de autorización (403) - Usuario autenticado pero sin permisos
     if (error.response?.status === 403) {
-      notificationsStore.error('No tienes permisos para realizar esta acción.');
+      const errorData = extractErrorData(error);
+
+      // Determinar si es una petición crítica
+      const isCriticalRequest = error.config?.url?.includes('/auth/') ||
+        error.config?.url?.includes('/profile') ||
+        error.config?.method === 'POST';
+
+      // Para 403 en peticiones críticas, redirigir
+      if (isCriticalRequest) {
+        notificationsStore.error(errorData.message || 'No tienes permisos para realizar esta acción.');
+        authStore.logout();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      // Para 403 en peticiones no críticas, solo mostrar error
+      notificationsStore.error(errorData.message || 'No tienes permisos para acceder a este recurso.');
       return Promise.reject(error);
     }
 
@@ -199,6 +215,38 @@ api.interceptors.response.use(
 
       // Para 502 en peticiones no críticas (como GET /conversations), NO redirigir
       const specificMessage = errorData.message || 'Servidor temporalmente no disponible';
+      notificationsStore.error(`${specificMessage}. Intenta de nuevo más tarde.`);
+      return Promise.reject(error);
+    }
+
+    // MANEJO ESPECÍFICO PARA ERROR 500 INTERNAL SERVER ERROR
+    if (error.response?.status === 500) {
+      const errorData = extractErrorData(error);
+
+      // Log detallado para debugging
+      console.error('🔴 ERROR 500 - Backend Internal Server Error:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        message: errorData.message,
+        code: errorData.code,
+        timestamp: new Date().toISOString()
+      });
+
+      // Determinar si es una petición crítica
+      const isCriticalRequest = error.config?.url?.includes('/auth/') ||
+        error.config?.url?.includes('/profile') ||
+        error.config?.method === 'POST';
+
+      // Para 500 en peticiones críticas, redirigir
+      if (isCriticalRequest) {
+        notificationsStore.error('Error interno del servidor. Intenta de nuevo más tarde.');
+        authStore.logout();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      // Para 500 en peticiones no críticas (como GET /conversations), NO redirigir
+      const specificMessage = errorData.message || 'Error interno del servidor';
       notificationsStore.error(`${specificMessage}. Intenta de nuevo más tarde.`);
       return Promise.reject(error);
     }

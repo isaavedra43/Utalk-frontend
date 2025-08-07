@@ -9,6 +9,7 @@
  -->
 
 <script lang="ts">
+  import { authStore } from '$lib/stores/auth.store';
   import { conversationsStore } from '$lib/stores/conversations.store';
   import { notificationsStore } from '$lib/stores/notifications.store';
   import { onMount } from 'svelte';
@@ -46,6 +47,11 @@
       <div class="error-icon">⚠️</div>
       <h2>Error al cargar conversaciones</h2>
       <p>{error}</p>
+      <div class="error-details">
+        <p class="error-help">
+          Si el problema persiste, verifica tu conexión a internet o contacta al administrador.
+        </p>
+      </div>
       <div class="error-actions">
         <button
           type="button"
@@ -65,6 +71,16 @@
           }}
         >
           🔄 Reintentar
+        </button>
+        <button
+          type="button"
+          class="logout-button"
+          on:click={() => {
+            authStore.logout();
+            window.location.href = '/login';
+          }}
+        >
+          🔑 Reiniciar sesión
         </button>
       </div>
     </div>
@@ -133,6 +149,51 @@
   .error-icon {
     font-size: 4rem;
     margin-bottom: 1rem;
+  }
+
+  .error-details {
+    margin: 1rem 0;
+  }
+
+  .error-help {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin: 0;
+  }
+
+  .error-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 1rem;
+  }
+
+  .retry-button,
+  .logout-button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+  }
+
+  .retry-button {
+    background-color: #2196f3;
+    color: white;
+  }
+
+  .retry-button:hover {
+    background-color: #1976d2;
+  }
+
+  .logout-button {
+    background-color: #6c757d;
+    color: white;
+  }
+
+  .logout-button:hover {
+    background-color: #5a6268;
   }
 
   .empty-state h2 {
