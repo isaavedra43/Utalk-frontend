@@ -87,18 +87,31 @@ const createConversationsStore = () => {
                 const response = await api.get<ConversationsResponse>(`/conversations?${params.toString()}`);
                 const endTime = performance.now();
 
+                // Log de la respuesta completa para debugging
+                console.log('🔍 RESPONSE FROM BACKEND:', response.data);
+
+                // Manejar tanto la estructura nueva como la antigua
+                const conversationsData = response.data.data || [];
+                const paginationData = response.data.pagination || null;
+                const metadataData = response.data.metadata || {};
+
                 logApi('loadConversations: API success', {
                     responseTime: `${(endTime - startTime).toFixed(2)}ms`,
-                    conversationCount: response.data.data.length,
-                    pagination: response.data.pagination,
-                    metadata: response.data.metadata
+                    conversationCount: conversationsData.length,
+                    pagination: paginationData,
+                    metadata: metadataData,
+                    responseStructure: {
+                        hasData: !!response.data.data,
+                        hasSuccess: !!response.data.success,
+                        hasMessage: !!response.data.message
+                    }
                 });
 
                 await executeUpdate(() => {
                     update(state => ({
                         ...state,
-                        conversations: response.data.data,
-                        pagination: response.data.pagination || null,
+                        conversations: conversationsData,
+                        pagination: paginationData,
                         filters,
                         loading: false,
                         error: null

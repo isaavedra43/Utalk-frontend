@@ -231,7 +231,10 @@ export interface ApiResponse<T> {
     };
 }
 
-export interface ConversationsResponse extends ApiResponse<Conversation[]> { }
+export interface ConversationsResponse extends ApiResponse<Conversation[]> {
+    message?: string;
+    timestamp?: string;
+}
 export interface MessagesResponse extends ApiResponse<Message[]> { }
 export interface ContactsResponse extends ApiResponse<Contact[]> { }
 export interface FilesResponse extends ApiResponse<File[]> { }
