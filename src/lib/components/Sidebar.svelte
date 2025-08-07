@@ -7,24 +7,31 @@
  * - Navegación a todas las rutas principales
  * - Responsive y accesible
  * - Integrado con el sistema de autenticación
+ * - Estado global para colapsar/expandir
  -->
 
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { authStore } from '$lib/stores/auth.store';
+  import { setSidebarCollapsed, sidebarStore, toggleSidebar } from '$lib/stores/sidebar.store';
   import { onMount } from 'svelte';
 
   let user: any = null;
   let collapsed = false;
   let isMobile = false;
 
+  // Suscribirse al store global del sidebar
+  sidebarStore.subscribe(state => {
+    collapsed = state.collapsed;
+  });
+
   // Verificar si es móvil
   onMount(() => {
     const checkMobile = () => {
       isMobile = window.innerWidth < 768;
       if (isMobile) {
-        collapsed = true;
+        setSidebarCollapsed(true);
       }
     };
 
@@ -44,6 +51,10 @@
   // Navegación
   function navigateTo(path: string) {
     goto(path);
+    // En móvil, colapsar el sidebar después de navegar
+    if (isMobile) {
+      setSidebarCollapsed(true);
+    }
   }
 
   // Logout
@@ -52,9 +63,9 @@
     goto('/login');
   }
 
-  // Toggle sidebar
-  function toggleSidebar() {
-    collapsed = !collapsed;
+  // Toggle sidebar usando el store global
+  function handleToggleSidebar() {
+    toggleSidebar();
   }
 
   // Verificar si la ruta está activa
@@ -257,7 +268,7 @@
   {#if !isMobile}
     <button
       class="sidebar-toggle"
-      on:click={toggleSidebar}
+      on:click={handleToggleSidebar}
       aria-label="{collapsed ? 'Expandir' : 'Colapsar'} sidebar"
       title="{collapsed ? 'Expandir' : 'Colapsar'} sidebar"
     >
@@ -290,7 +301,7 @@
   }
 
   .sidebar-container.collapsed {
-    width: 60px;
+    width: 80px;
   }
 
   .sidebar-container.mobile {

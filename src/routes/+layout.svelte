@@ -7,6 +7,7 @@
  * - Sistema de notificaciones global
  * - Manejo de estados de autenticación
  * - Sidebar de navegación integrado
+ * - Adaptación dinámica del contenido al sidebar
  * - Estilos globales
  -->
 
@@ -16,11 +17,20 @@
   import Sidebar from '$lib/components/Sidebar.svelte';
   import { socketManager } from '$lib/services/socket';
   import { authStore } from '$lib/stores/auth.store';
+  import { sidebarStore } from '$lib/stores/sidebar.store';
   import { onMount } from 'svelte';
   import '../app.css';
 
   let isAuthenticated = false;
   let showSidebar = false;
+  let sidebarWidth = 240;
+  let isSidebarCollapsed = false;
+
+  // Suscribirse al store del sidebar para obtener el estado actual
+  sidebarStore.subscribe(state => {
+    sidebarWidth = state.width;
+    isSidebarCollapsed = state.collapsed;
+  });
 
   onMount(() => {
     // Inicializar autenticación desde localStorage
@@ -53,8 +63,11 @@
     <Sidebar />
   {/if}
 
-  <!-- Contenido principal -->
-  <main class="main-content {showSidebar ? 'with-sidebar' : ''}">
+  <!-- Contenido principal con margen dinámico -->
+  <main
+    class="main-content {showSidebar ? 'with-sidebar' : ''}"
+    style="margin-left: {showSidebar ? sidebarWidth + 'px' : '0'};"
+  >
     <slot />
   </main>
 
@@ -73,14 +86,10 @@
     transition: margin-left 0.3s ease;
   }
 
-  .main-content.with-sidebar {
-    margin-left: 240px;
-  }
-
   /* Responsive */
   @media (max-width: 768px) {
     .main-content.with-sidebar {
-      margin-left: 0;
+      margin-left: 0 !important;
     }
   }
 
