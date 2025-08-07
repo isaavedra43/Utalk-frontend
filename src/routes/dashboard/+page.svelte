@@ -7,6 +7,7 @@
  * - Información básica del usuario
  * - Navegación al chat mediante sidebar existente
  * - Diseño minimalista y profesional
+ * - Integrado con sidebar de navegación
  -->
 
 <script lang="ts">
@@ -38,56 +39,59 @@
       <p>Cargando dashboard...</p>
     </div>
   {:else if user}
-    <div class="welcome-section">
-      <!-- Logo de la empresa -->
-      <div class="logo-container">
-        <div class="logo-placeholder">
-          <span class="logo-text">UNIK</span>
-        </div>
-      </div>
-
-      <!-- Mensaje de bienvenida -->
-      <div class="welcome-message">
-        <h1 class="welcome-title">Bienvenido a UNIK</h1>
-        <p class="welcome-subtitle">
-          Tu plataforma de gestión de conversaciones y atención al cliente
-        </p>
-      </div>
-
-      <!-- Información del usuario -->
-      <div class="user-info">
-        <div class="user-card">
-          <div class="user-avatar">
-            <span class="avatar-text">{user.name?.charAt(0) || user.email?.charAt(0) || 'U'}</span>
-          </div>
-          <div class="user-details">
-            <h3 class="user-name">{user.name || 'Usuario'}</h3>
-            <p class="user-email">{user.email}</p>
-            <span class="user-role">{user.role || 'Usuario'}</span>
+    <div class="dashboard-content">
+      <div class="welcome-section">
+        <!-- Logo de la empresa -->
+        <div class="logo-container">
+          <div class="logo-placeholder">
+            <span class="logo-text">UNIK</span>
           </div>
         </div>
-      </div>
 
-      <!-- Acciones rápidas -->
-      <div class="quick-actions">
-        <button type="button" class="action-button primary" on:click={() => goto('/chat')}>
-          💬 Ir al Chat
-        </button>
-        <button type="button" class="action-button secondary" on:click={() => goto('/chat')}>
-          📊 Ver Conversaciones
-        </button>
-      </div>
+        <!-- Mensaje de bienvenida -->
+        <div class="welcome-message">
+          <h1 class="welcome-title">Bienvenido a UNIK</h1>
+          <p class="welcome-subtitle">
+            Tu plataforma de gestión de conversaciones y atención al cliente
+          </p>
+        </div>
 
-      <!-- Información adicional -->
-      <div class="info-section">
-        <div class="info-card">
-          <h4>¿Qué puedes hacer?</h4>
-          <ul class="feature-list">
-            <li>📱 Gestionar conversaciones de WhatsApp</li>
-            <li>👥 Ver perfiles de contactos</li>
-            <li>🔍 Buscar y filtrar mensajes</li>
-            <li>📈 Monitorear estadísticas</li>
-          </ul>
+        <!-- Información del usuario -->
+        <div class="user-info">
+          <div class="user-card">
+            <div class="user-avatar">
+              <span class="avatar-text">{user.name?.charAt(0) || user.email?.charAt(0) || 'U'}</span
+              >
+            </div>
+            <div class="user-details">
+              <h3 class="user-name">{user.name || 'Usuario'}</h3>
+              <p class="user-email">{user.email}</p>
+              <span class="user-role">{user.role || 'Usuario'}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Acciones rápidas -->
+        <div class="quick-actions">
+          <button type="button" class="action-button primary" on:click={() => goto('/chat')}>
+            💬 Ir al Chat
+          </button>
+          <button type="button" class="action-button secondary" on:click={() => goto('/chat')}>
+            📊 Ver Conversaciones
+          </button>
+        </div>
+
+        <!-- Información adicional -->
+        <div class="info-section">
+          <div class="info-card">
+            <h4>¿Qué puedes hacer?</h4>
+            <ul class="feature-list">
+              <li>📱 Gestionar conversaciones de WhatsApp</li>
+              <li>👥 Ver perfiles de contactos</li>
+              <li>🔍 Buscar y filtrar mensajes</li>
+              <li>📈 Monitorear estadísticas</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
@@ -102,6 +106,11 @@
     min-height: 100vh;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     padding: 2rem;
+  }
+
+  .dashboard-content {
+    width: 100%;
+    max-width: 800px;
   }
 
   .loading-state {
@@ -136,6 +145,7 @@
     max-width: 600px;
     width: 100%;
     text-align: center;
+    margin: 0 auto;
   }
 
   .logo-container {

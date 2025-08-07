@@ -144,12 +144,62 @@ const createAuthStore = () => {
       return state.user.role === 'admin' || state.user.role === 'agent';
     },
 
+    // Función para validar sesión con el backend
+    validateSession: async () => {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        logStore('auth: no hay token en localStorage');
+        return false;
+      }
+
+      try {
+        // Llamar al endpoint de validación de sesión
+        const response = await fetch('/api/auth/validate', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          logStore('auth: sesión válida', { userId: userData.user.id });
+
+          // Actualizar el store con los datos del usuario
+          update(state => ({
+            ...state,
+            user: userData.user,
+            token,
+            isAuthenticated: true
+          }));
+
+          return true;
+        } else {
+          logStore('auth: sesión inválida', { status: response.status });
+          authStore.clear();
+          return false;
+        }
+      } catch (error) {
+        logStore('auth: error validando sesión', { error: String(error) });
+        authStore.clear();
+        return false;
+      }
+    },
+
     // Función para inicializar desde localStorage
-    initialize: () => {
-      const token = localStorage.getItem('token');
+    initialize: async () => {
+      const token = localStorage.getItem('accessToken');
       if (token && authStore.validateToken()) {
         logStore('auth: inicializando desde localStorage');
-        update(state => ({ ...state, token, isAuthenticated: true }));
+
+        // Intentar validar la sesión con el backend
+        const isValid = await authStore.validateSession();
+
+        if (!isValid) {
+          logStore('auth: sesión no válida, limpiando');
+          authStore.clear();
+        }
       } else {
         logStore('auth: no hay token válido en localStorage');
         authStore.clear();

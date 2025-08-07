@@ -1,13 +1,36 @@
 <script lang="ts">
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
+  import { authStore } from '$lib/stores/auth.store';
+  import { onMount } from 'svelte';
 
-  // Redirección automática al login solo en el cliente
-  if (browser) {
-    // eslint-disable-next-line no-console
-    console.log('🔄 REDIRECCIÓN - Enviando a login');
-    goto('/login');
-  }
+  let loading = true;
+
+  onMount(() => {
+    if (browser) {
+      // Suscribirse al estado de autenticación
+      const unsubscribe = authStore.subscribe(state => {
+        if (!loading) {
+          if (state.isAuthenticated && state.user) {
+            // Usuario autenticado, redirigir al dashboard
+            console.log('✅ USUARIO AUTENTICADO - Redirigiendo al dashboard');
+            goto('/dashboard');
+          } else {
+            // Usuario no autenticado, redirigir al login
+            console.log('🔒 USUARIO NO AUTENTICADO - Redirigiendo al login');
+            goto('/login');
+          }
+        }
+      });
+
+      // Marcar como no cargando después de un breve delay
+      setTimeout(() => {
+        loading = false;
+      }, 100);
+
+      return unsubscribe;
+    }
+  });
 </script>
 
 <svelte:head>

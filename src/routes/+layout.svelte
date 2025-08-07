@@ -6,32 +6,53 @@
  * - Layout base para toda la aplicación
  * - Sistema de notificaciones global
  * - Manejo de estados de autenticación
+ * - Sidebar de navegación integrado
  * - Estilos globales
  -->
 
 <script lang="ts">
+  import { page } from '$app/stores';
   import NotificationToast from '$lib/components/NotificationToast.svelte';
+  import Sidebar from '$lib/components/Sidebar.svelte';
   import { socketManager } from '$lib/services/socket';
   import { authStore } from '$lib/stores/auth.store';
   import { onMount } from 'svelte';
   import '../app.css';
 
-  onMount(() => {
-    // Inicializar socket si el usuario está autenticado
-    const unsubscribe = authStore.subscribe(state => {
-      if (state.isAuthenticated && state.user) {
-        socketManager.connect();
-      } else {
-        socketManager.disconnect();
-      }
-    });
+  let isAuthenticated = false;
+  let showSidebar = false;
 
-    return unsubscribe;
+  onMount(() => {
+    // Inicializar autenticación desde localStorage
+    authStore.initialize().then(() => {
+      // Inicializar socket si el usuario está autenticado
+      const unsubscribe = authStore.subscribe(state => {
+        isAuthenticated = state.isAuthenticated;
+        showSidebar = state.isAuthenticated && !['/login', '/'].includes($page.url.pathname);
+
+        if (state.isAuthenticated && state.user) {
+          socketManager.connect();
+        } else {
+          socketManager.disconnect();
+        }
+      });
+
+      return unsubscribe;
+    });
   });
 </script>
 
 <div class="app-container">
-  <slot />
+  <!-- Sidebar solo en rutas autenticadas -->
+  {#if showSidebar}
+    <Sidebar />
+  {/if}
+
+  <!-- Contenido principal -->
+  <main class="main-content {showSidebar ? 'with-sidebar' : ''}">
+    <slot />
+  </main>
+
   <NotificationToast />
 </div>
 
@@ -39,6 +60,23 @@
   .app-container {
     min-height: 100vh;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+  }
+
+  .main-content {
+    flex: 1;
+    transition: margin-left 0.3s ease;
+  }
+
+  .main-content.with-sidebar {
+    margin-left: 280px;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .main-content.with-sidebar {
+      margin-left: 0;
+    }
   }
 
   /* Reset básico */
