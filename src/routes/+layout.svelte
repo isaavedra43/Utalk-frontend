@@ -30,6 +30,11 @@
         isAuthenticated = state.isAuthenticated;
         showSidebar = state.isAuthenticated && !['/login', '/'].includes($page.url.pathname);
 
+        // Asegurar que el sidebar esté visible en todas las rutas principales
+        if (state.isAuthenticated) {
+          showSidebar = true;
+        }
+
         if (state.isAuthenticated && state.user) {
           socketManager.connect();
         } else {
