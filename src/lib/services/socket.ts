@@ -16,6 +16,7 @@ import { environment } from '../config/environment';
 import { conversationsStore } from '../stores/conversations.store';
 import { messagesStore } from '../stores/messages.store';
 import { notificationsStore } from '../stores/notifications.store';
+import { presenceStore } from '../stores/presence.store';
 import { typingStore } from '../stores/typing.store';
 
 // Eventos Socket.IO según documentación - info/2.md línea 565

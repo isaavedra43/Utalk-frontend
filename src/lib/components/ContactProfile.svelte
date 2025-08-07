@@ -183,7 +183,7 @@
 
       {#if canEdit}
         <div class="contact-actions">
-          <button class="edit-button" on:click={startEditing} disabled={editing}>
+          <button type="button" class="edit-button" on:click={startEditing} disabled={editing}>
             {editing ? 'Editando...' : '✏️ Editar'}
           </button>
         </div>
@@ -243,7 +243,7 @@
             {#each editForm.tags as tag}
               <span class="tag">
                 {tag}
-                <button class="tag-remove" on:click={() => removeTag(tag)}>×</button>
+                <button type="button" class="tag-remove" on:click={() => removeTag(tag)}>×</button>
               </span>
             {/each}
             <input
@@ -261,10 +261,10 @@
         </div>
 
         <div class="form-actions">
-          <button class="save-button" on:click={saveContact} disabled={saving}>
+          <button type="button" class="save-button" on:click={saveContact} disabled={saving}>
             {saving ? 'Guardando...' : '💾 Guardar'}
           </button>
-          <button class="cancel-button" on:click={cancelEditing} disabled={saving}>
+          <button type="button" class="cancel-button" on:click={cancelEditing} disabled={saving}>
             ❌ Cancelar
           </button>
         </div>

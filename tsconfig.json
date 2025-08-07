@@ -9,21 +9,18 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "allowSyntheticDefaultImports": true,
-    "noImplicitAny": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "allowUnusedLabels": false,
-    "allowUnreachableCode": false,
-    "noImplicitThis": true,
-    "useUnknownInCatchVariables": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "target": "ES2020",
-    "types": ["svelte", "node"]
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src/**/*.ts", "src/**/*.svelte", ".svelte-kit/types/**/*.d.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.svelte",
+    ".svelte-kit/types/**/*.d.ts"
+  ]
 }

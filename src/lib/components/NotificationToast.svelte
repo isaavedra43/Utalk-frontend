@@ -62,6 +62,7 @@
         <span class="notification-icon">{getIcon(notification.type)}</span>
         <span class="notification-message">{notification.message}</span>
         <button
+          type="button"
           class="notification-close"
           on:click={() => dismissNotification(notification.id)}
           aria-label="Cerrar notificación"

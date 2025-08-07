@@ -21,7 +21,7 @@
       retrying = true;
       await onRetry(message.id);
     } catch (error) {
-      console.error('Error retrying message:', error);
+      console.error('Error al reintentar mensaje:', error);
     } finally {
       retrying = false;
     }
@@ -44,15 +44,9 @@
   </div>
 
   {#if isRetryable()}
-    <button
-      class="retry-button"
-      on:click={handleRetry}
-      disabled={retrying}
-      title="Reintentar envío del mensaje"
-    >
+    <button type="button" class="retry-button" on:click={handleRetry} disabled={retrying}>
       {#if retrying}
-        <span class="retry-spinner">⏳</span>
-        Reintentando...
+        <span class="retry-spinner">⏳</span> Reintentando...
       {:else}
         🔄 Reintentar
       {/if}

@@ -129,7 +129,12 @@
             <span class="filesize">{formatFileSize(fileSize)}</span>
           </div>
         </div>
-        <button class="download-button" on:click={handleDownload} title="Descargar archivo">
+        <button
+          type="button"
+          class="download-button"
+          on:click={handleDownload}
+          title="Descargar archivo"
+        >
           📥 Descargar
         </button>
       </div>
@@ -144,7 +149,12 @@
             <span class="filesize">{formatFileSize(fileSize)}</span>
           </div>
         </div>
-        <button class="download-button" on:click={handleDownload} title="Descargar archivo">
+        <button
+          type="button"
+          class="download-button"
+          on:click={handleDownload}
+          title="Descargar archivo"
+        >
           📥 Descargar
         </button>
       </div>

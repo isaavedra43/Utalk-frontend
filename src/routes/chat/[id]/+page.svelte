@@ -16,6 +16,7 @@
 
 <script lang="ts">
   import { page } from '$app/stores';
+  import FailedMessage from '$lib/components/FailedMessage.svelte';
   import MessageAttachment from '$lib/components/MessageAttachment.svelte';
   import { environment } from '$lib/config/environment';
   import { socketManager } from '$lib/services/socket';

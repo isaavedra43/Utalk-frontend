@@ -89,8 +89,7 @@
         await searchMessages();
       }
     } catch (error: any) {
-      notificationsStore.error('Error al realizar la búsqueda');
-      console.error('Search error:', error);
+      notificationsStore.error('Error al realizar búsqueda');
     } finally {
       loading = false;
     }
@@ -199,9 +198,7 @@
       {/if}
     </div>
 
-    <button class="clear-button" on:click={clearFilters} disabled={loading} title="Limpiar filtros">
-      ✕
-    </button>
+    <button type="button" class="clear-filters" on:click={clearFilters}> 🗑️ Limpiar </button>
   </div>
 
   <!-- Filtros -->
