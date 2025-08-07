@@ -98,8 +98,8 @@
       // eslint-disable-next-line no-console
       console.log('✅ LOGIN CLIENT - Exitoso para:', user.email);
 
-      // Redirigir al chat principal
-      goto('/chat');
+      // Redirigir al dashboard después del login exitoso
+      goto('/dashboard');
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('🚨 LOGIN CLIENT - Error crítico:', err);
