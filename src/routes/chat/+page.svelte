@@ -46,6 +46,45 @@
         conversations = state.conversations;
         loading = state.loading;
         error = state.error || '';
+
+        // DEBUG-LOG-START(conversations-front)
+        if (
+          typeof window !== 'undefined' &&
+          window.location.search.includes('LOG_VERBOSE_CONVERSATIONS=true')
+        ) {
+          const requiredKeys = ['id', 'lastMessage', 'createdAt'];
+          const firstItem = conversations[0];
+          const missingKeys = firstItem
+            ? requiredKeys.filter(key => !(key in firstItem))
+            : requiredKeys;
+          const requiredKeysPresent = firstItem ? requiredKeys.filter(key => key in firstItem) : [];
+
+          console.debug('[CONV][selector][selector:mapped]', {
+            event: 'selector:mapped',
+            layer: 'selector',
+            request: { url: '/conversations', method: 'GET', queryParams: {} },
+            response: {
+              status: null,
+              ok: !error,
+              itemsLength: conversations.length,
+              keysSample: firstItem ? Object.keys(firstItem).slice(0, 3) : []
+            },
+            clientFilters: {
+              inbox: null,
+              status: null,
+              assignedTo: null,
+              search: null,
+              pagination: null
+            },
+            mapping: { requiredKeysPresent, missingKeys },
+            render: {
+              willShowEmptyState: conversations.length === 0,
+              reason:
+                conversations.length === 0 ? 'conversations.length === 0' : 'has conversations'
+            }
+          });
+        }
+        // DEBUG-LOG-END(conversations-front)
       });
     } catch (err: any) {
       error = err?.message || 'Error al cargar conversaciones';
@@ -94,6 +133,36 @@
 
         <div class="conversations-list">
           {#if conversations.length === 0}
+            <!-- DEBUG-LOG-START(conversations-front) -->
+            {(() => {
+              if (
+                typeof window !== 'undefined' &&
+                window.location.search.includes('LOG_VERBOSE_CONVERSATIONS=true')
+              ) {
+                console.debug('[CONV][component][render:decision]', {
+                  event: 'render:decision',
+                  layer: 'component',
+                  request: { url: '/conversations', method: 'GET', queryParams: {} },
+                  response: {
+                    status: null,
+                    ok: !error,
+                    itemsLength: conversations.length,
+                    keysSample: []
+                  },
+                  clientFilters: {
+                    inbox: null,
+                    status: null,
+                    assignedTo: null,
+                    search: null,
+                    pagination: null
+                  },
+                  mapping: { requiredKeysPresent: [], missingKeys: [] },
+                  render: { willShowEmptyState: true, reason: 'conversations.length === 0' }
+                });
+              }
+              return '';
+            })()}
+            <!-- DEBUG-LOG-END(conversations-front) -->
             <div class="empty-conversations">
               <div class="empty-icon">💬</div>
               <h3>No hay conversaciones</h3>

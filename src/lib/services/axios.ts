@@ -68,6 +68,25 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // DEBUG-LOG-START(conversations-front)
+    if (typeof window !== 'undefined' && window.location.search.includes('LOG_VERBOSE_CONVERSATIONS=true') && config.url?.includes('/conversations')) {
+      console.debug('[CONV][api][fetch:start]', {
+        event: 'fetch:start',
+        layer: 'api',
+        request: {
+          url: config.url,
+          method: config.method?.toUpperCase() || 'GET',
+          queryParams: config.params || {}
+        },
+        response: { status: null, ok: null, itemsLength: null, keysSample: null },
+        clientFilters: { inbox: null, status: null, assignedTo: null, search: null, pagination: null },
+        mapping: { requiredKeysPresent: [], missingKeys: [] },
+        render: { willShowEmptyState: null, reason: null }
+      });
+    }
+    // DEBUG-LOG-END(conversations-front)
+
     return config;
   },
   (error) => {
@@ -78,6 +97,33 @@ api.interceptors.request.use(
 // Interceptor de responses - Documento: info/1.md sección "Casos Especiales que la UI debe manejar"
 api.interceptors.response.use(
   (response: AxiosResponse) => {
+    // DEBUG-LOG-START(conversations-front)
+    if (typeof window !== 'undefined' && window.location.search.includes('LOG_VERBOSE_CONVERSATIONS=true') && response.config.url?.includes('/conversations')) {
+      const data = response.data?.data || [];
+      const firstItem = data[0];
+      const keysSample = firstItem ? Object.keys(firstItem).slice(0, 3) : [];
+
+      console.debug('[CONV][api][fetch:done]', {
+        event: 'fetch:done',
+        layer: 'api',
+        request: {
+          url: response.config.url,
+          method: response.config.method?.toUpperCase() || 'GET',
+          queryParams: response.config.params || {}
+        },
+        response: {
+          status: response.status,
+          ok: response.status >= 200 && response.status < 300,
+          itemsLength: data.length,
+          keysSample: keysSample
+        },
+        clientFilters: { inbox: null, status: null, assignedTo: null, search: null, pagination: null },
+        mapping: { requiredKeysPresent: [], missingKeys: [] },
+        render: { willShowEmptyState: null, reason: null }
+      });
+    }
+    // DEBUG-LOG-END(conversations-front)
+
     // Manejar rate limiting - Documento: info/1.md sección "Rate Limiting"
     handleRateLimitHeaders(response);
     return response;

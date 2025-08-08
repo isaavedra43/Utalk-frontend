@@ -134,6 +134,20 @@ class SocketManager {
 
     // Eventos de conexión
     this.socket.on('connect', () => {
+      // DEBUG-LOG-START(conversations-socket)
+      if (typeof window !== 'undefined' && window.location.search.includes('LOG_VERBOSE_CONVERSATIONS=true')) {
+        console.debug('[CONV][socket][socket:connected]', {
+          event: 'socket:connected',
+          domain: 'socket',
+          layer: 'bootstrap',
+          socketId: this.socket?.id || null,
+          user: { id: null, email: null, workspaceId: null },
+          structs: { hasClients: false, hasRooms: false, sizes: { clients: 0, rooms: 0 } },
+          note: 'Socket conectado exitosamente'
+        });
+      }
+      // DEBUG-LOG-END(conversations-socket)
+
       logSocket('socket-manager: conectado al servidor');
       this.reconnectAttempts = 0;
       this.reconnectDelay = 1000;
@@ -141,6 +155,20 @@ class SocketManager {
     });
 
     this.socket.on('disconnect', (reason: string) => {
+      // DEBUG-LOG-START(conversations-socket)
+      if (typeof window !== 'undefined' && window.location.search.includes('LOG_VERBOSE_CONVERSATIONS=true')) {
+        console.debug('[CONV][socket][socket:disconnected]', {
+          event: 'socket:disconnected',
+          domain: 'socket',
+          layer: 'bootstrap',
+          socketId: this.socket?.id || null,
+          user: { id: null, email: null, workspaceId: null },
+          structs: { hasClients: false, hasRooms: false, sizes: { clients: 0, rooms: 0 } },
+          note: `Socket desconectado: ${reason}`
+        });
+      }
+      // DEBUG-LOG-END(conversations-socket)
+
       logSocket('socket-manager: desconectado', { reason });
       this.stopHeartbeat();
 
@@ -157,6 +185,20 @@ class SocketManager {
     });
 
     this.socket.on('connect_error', (error: Error) => {
+      // DEBUG-LOG-START(conversations-socket)
+      if (typeof window !== 'undefined' && window.location.search.includes('LOG_VERBOSE_CONVERSATIONS=true')) {
+        console.debug('[CONV][socket][socket:error]', {
+          event: 'socket:error',
+          domain: 'socket',
+          layer: 'bootstrap',
+          socketId: this.socket?.id || null,
+          user: { id: null, email: null, workspaceId: null },
+          structs: { hasClients: false, hasRooms: false, sizes: { clients: 0, rooms: 0 } },
+          note: `Error de conexión: ${error.message}`
+        });
+      }
+      // DEBUG-LOG-END(conversations-socket)
+
       logError('socket-manager: error de conexión', 'SOCKET', error);
       this.scheduleReconnect();
     });
@@ -187,6 +229,20 @@ class SocketManager {
     });
 
     this.socket.on('error', (error: SocketError) => {
+      // DEBUG-LOG-START(conversations-socket)
+      if (typeof window !== 'undefined' && window.location.search.includes('LOG_VERBOSE_CONVERSATIONS=true')) {
+        console.debug('[CONV][socket][socket:error]', {
+          event: 'socket:error',
+          domain: 'socket',
+          layer: 'handler',
+          socketId: this.socket?.id || null,
+          user: { id: null, email: null, workspaceId: null },
+          structs: { hasClients: false, hasRooms: false, sizes: { clients: 0, rooms: 0 } },
+          note: `Error de socket: ${error.message}`
+        });
+      }
+      // DEBUG-LOG-END(conversations-socket)
+
       this.handleSocketError(error);
     });
 
@@ -271,26 +327,77 @@ class SocketManager {
   }
 
   /**
-   * Une una conversación específica
+   * Une el socket a una conversación específica
    */
   joinConversation(conversationId: string): void {
     if (!this.socket?.connected) {
+      // DEBUG-LOG-START(conversations-socket)
+      if (typeof window !== 'undefined' && window.location.search.includes('LOG_VERBOSE_CONVERSATIONS=true')) {
+        console.debug('[CONV][socket][socket:error]', {
+          event: 'socket:error',
+          domain: 'socket',
+          layer: 'registerEvent',
+          socketId: this.socket?.id || null,
+          user: { id: null, email: null, workspaceId: null },
+          structs: { hasClients: false, hasRooms: false, sizes: { clients: 0, rooms: 0 } },
+          note: 'Intentando unirse a conversación sin conexión'
+        });
+      }
+      // DEBUG-LOG-END(conversations-socket)
+
       logWarn('socket-manager: intentando unirse a conversación sin conexión');
       return;
     }
 
     if (this.currentConversationId === conversationId) {
+      // DEBUG-LOG-START(conversations-socket)
+      if (typeof window !== 'undefined' && window.location.search.includes('LOG_VERBOSE_CONVERSATIONS=true')) {
+        console.debug('[CONV][socket][socket:join]', {
+          event: 'socket:join',
+          domain: 'socket',
+          layer: 'registerEvent',
+          socketId: this.socket?.id || null,
+          user: { id: null, email: null, workspaceId: null },
+          structs: { hasClients: false, hasRooms: false, sizes: { clients: 0, rooms: 0 } },
+          note: `Ya unido a la conversación: ${conversationId}`
+        });
+      }
+      // DEBUG-LOG-END(conversations-socket)
+
       logSocket('socket-manager: ya unido a la conversación', { conversationId });
       return;
     }
 
-    // Salir de la conversación anterior si existe
-    if (this.currentConversationId) {
-      this.leaveConversation(this.currentConversationId);
+    // DEBUG-LOG-START(conversations-socket)
+    if (typeof window !== 'undefined' && window.location.search.includes('LOG_VERBOSE_CONVERSATIONS=true')) {
+      console.debug('[CONV][socket][socket:join]', {
+        event: 'socket:join',
+        domain: 'socket',
+        layer: 'registerEvent',
+        socketId: this.socket?.id || null,
+        user: { id: null, email: null, workspaceId: null },
+        structs: { hasClients: false, hasRooms: false, sizes: { clients: 0, rooms: 0 } },
+        note: `Uniéndose a conversación: ${conversationId}`
+      });
     }
+    // DEBUG-LOG-END(conversations-socket)
 
     this.socket.emit('join-conversation', { conversationId });
     this.currentConversationId = conversationId;
+
+    // DEBUG-LOG-START(conversations-socket)
+    if (typeof window !== 'undefined' && window.location.search.includes('LOG_VERBOSE_CONVERSATIONS=true')) {
+      console.debug('[CONV][socket][socket:join]', {
+        event: 'socket:join',
+        domain: 'socket',
+        layer: 'registerEvent',
+        socketId: this.socket?.id || null,
+        user: { id: null, email: null, workspaceId: null },
+        structs: { hasClients: false, hasRooms: false, sizes: { clients: 0, rooms: 0 } },
+        note: `Unido a conversación: ${conversationId}`
+      });
+    }
+    // DEBUG-LOG-END(conversations-socket)
 
     logSocket('socket-manager: unido a conversación', { conversationId });
   }

@@ -64,28 +64,73 @@ const createConversationsStore = () => {
         subscribe,
 
         loadConversations: async (filters: ConversationFilters = {}) => {
+            // DEBUG-LOG-START(conversations-front)
+            if (import.meta.env.VITE_LOG_VERBOSE_CONVERSATIONS === 'true') {
+                console.debug('[CONV][api][fetch:start]', {
+                    event: 'fetch:start',
+                    layer: 'api',
+                    request: {
+                        url: '/conversations',
+                        method: 'GET',
+                        queryParams: filters
+                    },
+                    response: { status: null, ok: null, itemsLength: null, keysSample: null },
+                    clientFilters: { inbox: null, status: null, assignedTo: null, search: null, pagination: null },
+                    mapping: { requiredKeysPresent: [], missingKeys: [] },
+                    render: { willShowEmptyState: null, reason: null }
+                });
+            }
+            // DEBUG-LOG-END(conversations-front)
+
             logStore('loadConversations: start', { filters, timestamp: new Date().toISOString() });
 
             await executeUpdate(() => {
                 update(state => ({ ...state, loading: true, error: null }));
             });
 
+            const params = new URLSearchParams();
+
+            if (filters.page) params.append('page', filters.page.toString());
+            if (filters.limit) params.append('limit', filters.limit.toString());
+            if (filters.status) params.append('status', filters.status);
+            if (filters.assignedTo) params.append('assignedTo', filters.assignedTo);
+            if (filters.search) params.append('search', filters.search);
+            if (filters.priority) params.append('priority', filters.priority);
+            if (filters.tags) params.append('tags', filters.tags.join(','));
+            if (filters.startDate) params.append('startDate', filters.startDate);
+            if (filters.endDate) params.append('endDate', filters.endDate);
+
             try {
-                const params = new URLSearchParams();
-
-                if (filters.page) params.append('page', filters.page.toString());
-                if (filters.limit) params.append('limit', filters.limit.toString());
-                if (filters.status) params.append('status', filters.status);
-                if (filters.assignedTo) params.append('assignedTo', filters.assignedTo);
-                if (filters.search) params.append('search', filters.search);
-                if (filters.priority) params.append('priority', filters.priority);
-                if (filters.tags) params.append('tags', filters.tags.join(','));
-                if (filters.startDate) params.append('startDate', filters.startDate);
-                if (filters.endDate) params.append('endDate', filters.endDate);
-
                 const startTime = performance.now();
                 const response = await api.get<ConversationsResponse>(`/conversations?${params.toString()}`);
                 const endTime = performance.now();
+
+                // DEBUG-LOG-START(conversations-front)
+                if (import.meta.env.VITE_LOG_VERBOSE_CONVERSATIONS === 'true') {
+                    const conversationsData = response.data.data || [];
+                    const firstItem = conversationsData[0];
+                    const keysSample = firstItem ? Object.keys(firstItem).slice(0, 3) : [];
+
+                    console.debug('[CONV][api][fetch:done]', {
+                        event: 'fetch:done',
+                        layer: 'api',
+                        request: {
+                            url: `/conversations?${params.toString()}`,
+                            method: 'GET',
+                            queryParams: filters
+                        },
+                        response: {
+                            status: response.status,
+                            ok: response.status >= 200 && response.status < 300,
+                            itemsLength: conversationsData.length,
+                            keysSample: keysSample
+                        },
+                        clientFilters: { inbox: null, status: null, assignedTo: null, search: null, pagination: null },
+                        mapping: { requiredKeysPresent: [], missingKeys: [] },
+                        render: { willShowEmptyState: null, reason: null }
+                    });
+                }
+                // DEBUG-LOG-END(conversations-front)
 
                 // Log de la respuesta completa para debugging
                 console.log('🔍 RESPONSE FROM BACKEND:', response.data);
@@ -94,6 +139,30 @@ const createConversationsStore = () => {
                 const conversationsData = response.data.data || [];
                 const paginationData = response.data.pagination || null;
                 const metadataData = response.data.metadata || {};
+
+                // DEBUG-LOG-START(conversations-front)
+                if (import.meta.env.VITE_LOG_VERBOSE_CONVERSATIONS === 'true') {
+                    const requiredKeys = ['id', 'lastMessage', 'createdAt'];
+                    const firstItem = conversationsData[0];
+                    const missingKeys = firstItem ? requiredKeys.filter(key => !(key in firstItem)) : requiredKeys;
+                    const requiredKeysPresent = firstItem ? requiredKeys.filter(key => key in firstItem) : [];
+
+                    console.debug('[CONV][state][state:set]', {
+                        event: 'state:set',
+                        layer: 'state',
+                        request: { url: `/conversations?${params.toString()}`, method: 'GET', queryParams: filters },
+                        response: {
+                            status: response.status,
+                            ok: response.status >= 200 && response.status < 300,
+                            itemsLength: conversationsData.length,
+                            keysSample: firstItem ? Object.keys(firstItem).slice(0, 3) : []
+                        },
+                        clientFilters: { inbox: null, status: null, assignedTo: null, search: null, pagination: null },
+                        mapping: { requiredKeysPresent, missingKeys },
+                        render: { willShowEmptyState: conversationsData.length === 0, reason: conversationsData.length === 0 ? 'data.length === 0' : 'has data' }
+                    });
+                }
+                // DEBUG-LOG-END(conversations-front)
 
                 logApi('loadConversations: API success', {
                     responseTime: `${(endTime - startTime).toFixed(2)}ms`,
@@ -118,6 +187,29 @@ const createConversationsStore = () => {
                     }));
                 });
             } catch (error: unknown) {
+                // DEBUG-LOG-START(conversations-front)
+                if (import.meta.env.VITE_LOG_VERBOSE_CONVERSATIONS === 'true') {
+                    console.debug('[CONV][api][fetch:error]', {
+                        event: 'fetch:error',
+                        layer: 'api',
+                        request: {
+                            url: `/conversations?${params.toString()}`,
+                            method: 'GET',
+                            queryParams: filters
+                        },
+                        response: {
+                            status: (error as any)?.response?.status || null,
+                            ok: false,
+                            itemsLength: 0,
+                            keysSample: []
+                        },
+                        clientFilters: { inbox: null, status: null, assignedTo: null, search: null, pagination: null },
+                        mapping: { requiredKeysPresent: [], missingKeys: [] },
+                        render: { willShowEmptyState: true, reason: 'API error' }
+                    });
+                }
+                // DEBUG-LOG-END(conversations-front)
+
                 const apiError = extractApiError(error);
                 logError('loadConversations: API error', 'CONVERSATIONS', new Error(apiError.message));
 
