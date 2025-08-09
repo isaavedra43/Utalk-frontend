@@ -13,16 +13,28 @@
   import { goto } from '$app/navigation';
   import { authStore } from '$lib/stores/auth.store';
   import { conversationsStore } from '$lib/stores/conversations.store';
+  import { messagesStore } from '$lib/stores/messages.store';
   import { onMount } from 'svelte';
 
   let user: any = null;
   let loading = true;
   let conversations: any[] = [];
   let error = '';
+  let selectedConversation: any = null;
+  let messages: any[] = [];
+  let newMessage = '';
+  let canSend = false;
 
   function openConversation(c: any) {
     if (!c?.id) return;
-    goto(`/chat/${encodeURIComponent(c.id)}`);
+    selectedConversation = c;
+    canSend = c.assignedTo !== null;
+
+    // Cargar mensajes de la conversación seleccionada
+    loadMessages(c.id);
+
+    // Actualizar URL sin navegar
+    window.history.pushState({}, '', `/chat/${encodeURIComponent(c.id)}`);
   }
 
   function displayName(c: any) {
@@ -107,6 +119,30 @@
       error = err?.message || 'Error al cargar conversaciones';
     } finally {
       loading = false;
+    }
+  }
+
+  async function loadMessages(conversationId: string) {
+    try {
+      await messagesStore.loadMessages(conversationId);
+
+      // Suscribirse a los mensajes
+      messagesStore.subscribe(state => {
+        messages = state.messages;
+      });
+    } catch (err: any) {
+      console.error('Error loading messages:', err);
+    }
+  }
+
+  async function sendMessage() {
+    if (!selectedConversation || !newMessage.trim() || !canSend) return;
+
+    try {
+      await messagesStore.sendMessage(selectedConversation.id, newMessage);
+      newMessage = '';
+    } catch (err: any) {
+      console.error('Error sending message:', err);
     }
   }
 </script>
@@ -283,27 +319,78 @@
 
       <!-- Panel central: Área de mensajes -->
       <div class="messages-panel">
-        <div class="messages-header">
-          <div class="chat-info">
-            <h2 class="chat-title">Selecciona una conversación</h2>
-            <p class="chat-subtitle">Elige una conversación para comenzar a chatear</p>
+        {#if selectedConversation}
+          <div class="messages-header">
+            <div class="chat-info">
+              <h2 class="chat-title">{displayName(selectedConversation)}</h2>
+              <p class="chat-subtitle">{selectedConversation.customerPhone}</p>
+            </div>
           </div>
-        </div>
 
-        <div class="messages-area">
-          <div class="empty-messages">
-            <div class="empty-icon">💬</div>
-            <h3>Área de Mensajes</h3>
-            <p>Aquí se mostrarán los mensajes de la conversación seleccionada.</p>
+          <div class="messages-area">
+            {#if messages.length === 0}
+              <div class="empty-messages">
+                <div class="empty-icon">💬</div>
+                <h3>Sin mensajes</h3>
+                <p>Esta conversación aún no tiene mensajes.</p>
+              </div>
+            {:else}
+              <div class="messages-list">
+                {#each messages as message}
+                  <div class="message-item">
+                    <div class="message-content">
+                      <p>{message.content}</p>
+                    </div>
+                    <div class="message-time">
+                      {message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : '--'}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {/if}
           </div>
-        </div>
 
-        <div class="message-input-area">
-          <div class="input-container">
-            <textarea class="message-input" placeholder="Escribe un mensaje..." disabled></textarea>
-            <button class="send-button" disabled> 📤 </button>
+          <div class="message-input-area">
+            <div class="input-container">
+              <textarea
+                class="message-input"
+                placeholder="Escribe un mensaje..."
+                bind:value={newMessage}
+                disabled={!canSend}
+              ></textarea>
+              <button
+                class="send-button"
+                disabled={!canSend || !newMessage.trim()}
+                on:click={() => sendMessage()}
+              >
+                📤
+              </button>
+            </div>
           </div>
-        </div>
+        {:else}
+          <div class="messages-header">
+            <div class="chat-info">
+              <h2 class="chat-title">Selecciona una conversación</h2>
+              <p class="chat-subtitle">Elige una conversación para comenzar a chatear</p>
+            </div>
+          </div>
+
+          <div class="messages-area">
+            <div class="empty-messages">
+              <div class="empty-icon">💬</div>
+              <h3>Área de Mensajes</h3>
+              <p>Aquí se mostrarán los mensajes de la conversación seleccionada.</p>
+            </div>
+          </div>
+
+          <div class="message-input-area">
+            <div class="input-container">
+              <textarea class="message-input" placeholder="Escribe un mensaje..." disabled
+              ></textarea>
+              <button class="send-button" disabled> 📤 </button>
+            </div>
+          </div>
+        {/if}
       </div>
 
       <!-- Panel derecho: Detalles y herramientas -->
@@ -614,14 +701,53 @@
   .messages-area {
     flex: 1;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
+    flex-direction: column;
+    padding: 1rem;
+    overflow-y: auto;
+  }
+
+  .messages-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .message-item {
+    display: flex;
+    flex-direction: column;
+    max-width: 70%;
+    align-self: flex-start;
+  }
+
+  .message-content {
+    background: #e9ecef;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border-bottom-left-radius: 4px;
+  }
+
+  .message-content p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #212529;
+  }
+
+  .message-time {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+    margin-left: 0.5rem;
   }
 
   .empty-messages {
     text-align: center;
     color: #6c757d;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 
   .empty-messages .empty-icon {
@@ -663,6 +789,13 @@
     font-size: 0.9rem;
     background: #f8f9fa;
     color: #6c757d;
+    transition: all 0.2s ease;
+  }
+
+  .message-input:not(:disabled) {
+    background: white;
+    color: #212529;
+    border-color: #007bff;
   }
 
   .message-input:disabled {
@@ -681,6 +814,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .send-button:not(:disabled) {
+    background: #007bff;
+    cursor: pointer;
+  }
+
+  .send-button:not(:disabled):hover {
+    background: #0056b3;
   }
 
   /* Panel de Detalles */
