@@ -18,6 +18,7 @@ import type {
 import { logApi, logError, logStore } from '$lib/utils/logger';
 import { extractApiError, get } from '$lib/utils/store-helpers';
 import { writable } from 'svelte/store';
+import { conversationsStore } from './conversations.store';
 
 const createMessagesStore = () => {
     const initialState: MessagesState = {
@@ -277,36 +278,61 @@ const createMessagesStore = () => {
             });
 
             try {
-                const formData = new FormData();
-                formData.append('content', content);
-                formData.append('type', 'text');
+                // Usar JSON en lugar de FormData para alinearse con el backend
+                const messageData = {
+                    content,
+                    type: 'text',
+                    metadata: {
+                        sentBy: 'frontend',
+                        timestamp: new Date().toISOString()
+                    }
+                };
 
-                files.forEach((file, index) => {
-                    formData.append(`attachments`, file);
-                });
+                // Si hay archivos, procesarlos (por ahora solo texto)
+                if (files.length > 0) {
+                    console.warn('File upload not implemented yet, sending text only');
+                }
 
-                const response = await api.post<{ success: boolean; data: Message }>(
+                const response = await api.post<{
+                    success: boolean;
+                    data: {
+                        message: Message;
+                        conversation: any;
+                    }
+                }>(
                     `/conversations/${conversationId}/messages`,
-                    formData,
+                    messageData,
                     {
                         headers: {
-                            'Content-Type': 'multipart/form-data'
+                            'Content-Type': 'application/json'
                         }
                     }
                 );
 
                 logStore('sendMessage: success', {
-                    messageId: response.data.data.id,
+                    messageId: response.data.data.message.id,
                     conversationId
                 });
 
                 // Agregar el mensaje enviado al store
-                messagesStore.addMessage(response.data.data);
+                messagesStore.addMessage(response.data.data.message);
+
+                // Actualizar la conversación si es necesario
+                if (response.data.data.conversation) {
+                    // Actualizar el store de conversaciones con los datos actualizados
+                    conversationsStore.updateConversation(conversationId, response.data.data.conversation);
+
+                    logStore('sendMessage: conversation updated', {
+                        conversationId,
+                        lastMessage: response.data.data.conversation.lastMessage,
+                        messageCount: response.data.data.conversation.messageCount
+                    });
+                }
 
                 await executeUpdate(() => {
                     update(state => ({ ...state, loading: false }));
                 });
-                return response.data.data;
+                return response.data.data.message;
             } catch (error: unknown) {
                 const apiError = extractApiError(error);
                 logError('sendMessage: API error', 'MESSAGES', new Error(apiError.message));
