@@ -10,7 +10,6 @@
 
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { page } from '$app/stores';
   import { authStore } from '$lib/stores/auth.store';
   import { conversationsStore } from '$lib/stores/conversations.store';
   import { notificationsStore } from '$lib/stores/notifications.store';
@@ -45,10 +44,11 @@
         conversations = state.conversations;
 
         // Si estamos en /chat sin ID y hay conversaciones, redirigir a la primera
-        if ($page.url.pathname === '/chat' && conversations.length > 0) {
-          const firstConversation = conversations[0];
-          goto(`/chat/${firstConversation.id}`);
-        }
+        // COMENTADO: Evitar redirección automática para mostrar la lista
+        // if ($page.url.pathname === '/chat' && conversations.length > 0) {
+        //   const firstConversation = conversations[0];
+        //   goto(`/chat/${firstConversation.id}`);
+        // }
 
         loading = false;
       });

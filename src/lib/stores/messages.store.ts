@@ -279,14 +279,14 @@ const createMessagesStore = () => {
             try {
                 const formData = new FormData();
                 formData.append('content', content);
-                formData.append('conversationId', conversationId);
+                formData.append('type', 'text');
 
                 files.forEach((file, index) => {
-                    formData.append(`files[${index}]`, file);
+                    formData.append(`attachments`, file);
                 });
 
                 const response = await api.post<{ success: boolean; data: Message }>(
-                    `/messages/send`,
+                    `/conversations/${conversationId}/messages`,
                     formData,
                     {
                         headers: {

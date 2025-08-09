@@ -137,14 +137,27 @@ const createConversationsStore = () => {
 
                 // Manejar tanto la estructura nueva como la antigua
                 const conversationsData = response.data.data || [];
+                console.log('🔍 CONVERSATIONS DATA:', conversationsData);
+                console.log('🔍 FIRST CONVERSATION:', conversationsData[0]);
                 const paginationData = response.data.pagination || null;
                 const metadataData = response.data.metadata || {};
 
                 // Normalización defensiva de lastMessageAt para la UI
-                const normalized = conversationsData.map((c: any) => ({
-                    ...c,
-                    lastMessageAt: c?.lastMessageAt ?? c?.lastMessage?.timestamp ?? c?.updatedAt ?? null
-                }));
+                const normalized = conversationsData.map((c: any) => {
+                    // Validación defensiva para evitar TypeError
+                    if (!c || typeof c !== 'object') {
+                        console.warn('Conversación inválida encontrada:', c);
+                        return null;
+                    }
+
+                    return {
+                        ...c,
+                        id: c.id || `unknown_${Date.now()}`,
+                        participants: Array.isArray(c.participants) ? c.participants : [],
+                        customerPhone: c.customerPhone || 'unknown',
+                        lastMessageAt: c?.lastMessageAt ?? c?.lastMessage?.timestamp ?? c?.updatedAt ?? null
+                    };
+                }).filter(Boolean); // Filtrar conversaciones nulas
 
                 // DEBUG-LOG-START(conversations-front)
                 if (import.meta.env.VITE_LOG_VERBOSE_CONVERSATIONS === 'true') {
