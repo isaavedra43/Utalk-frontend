@@ -18,8 +18,9 @@
   import Sidebar from '$lib/components/Sidebar.svelte';
   import { authStore } from '$lib/stores/auth.store';
   import { sidebarStore } from '$lib/stores/sidebar.store';
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import '../app.css';
+  let chatUnsubscribe: (() => void) | null = null;
 
   let isAuthenticated = false;
   let showSidebar = false;
@@ -34,7 +35,7 @@
 
   onMount(() => {
     // Wiring de chat (socket ↔ stores) una sola vez en cliente
-    wireChat();
+    chatUnsubscribe = wireChat();
 
     // Inicializar autenticación desde localStorage
     authStore.initialize().then(() => {
@@ -49,6 +50,11 @@
 
       return unsubscribe;
     });
+  });
+
+  onDestroy(() => {
+    // cleanup de listeners de chat si existiera
+    chatUnsubscribe?.();
   });
 </script>
 

@@ -34,6 +34,7 @@
   import { logChat } from '$lib/utils/logger';
   import { validateFileUpload, validateMessage } from '$lib/utils/validation';
   import { onDestroy, onMount } from 'svelte';
+  import { get } from 'svelte/store';
 
   // Estados del componente
   let selectedConversation: any = null;
@@ -67,68 +68,68 @@
   let loadingMore = false;
   let hasMore = false;
 
-  $: conversationId = $page.params.id;
+  let currentId: string | undefined;
 
   onMount(async () => {
+    currentId = get(page).params.id;
     logChat('chat component: onMount start', {
-      conversationId,
+      conversationId: currentId,
       timestamp: new Date().toISOString()
     });
 
     try {
+      // Suscripciones únicas con cleanup
+      const unsubConversations = conversationsStore.subscribe(state => {
+        conversations = state.conversations;
+      });
+
+      const unsubMessages = messagesStore.subscribe(state => {
+        messages = state.messages;
+        hasMore = state.pagination?.hasMore || false;
+      });
+
       // Cargar conversaciones iniciales
       logChat('chat component: loading initial conversations');
-      await loadConversations();
-
-      // Configurar socket para nuevos mensajes
-      logChat('chat component: setting up socket listeners');
-      setupSocketListeners();
+      await conversationsStore.loadConversations();
 
       // Seleccionar la conversación de la URL
-      if (conversationId) {
-        logChat('chat component: selecting conversation from URL', { conversationId });
-        const conversation = conversations.find(c => c.id === conversationId);
+      if (currentId) {
+        logChat('chat component: selecting conversation from URL', { conversationId: currentId });
+        const conversation = conversations.find(c => c.id === currentId);
         if (conversation) {
-          await selectConversation(conversation);
+          selectedConversation = conversation;
+          hasUnassignedAgent = !conversation.assignedTo;
+          canSend = conversation.assignedTo !== null;
+          await messagesStore.loadMessages(conversation.id);
+          joinConversation(conversation.id);
+          window.history.pushState({}, '', `/chat/${conversation.id}`);
         } else {
-          logChat('chat component: conversation not found', { conversationId });
+          logChat('chat component: conversation not found', { conversationId: currentId });
           error = 'Conversación no encontrada';
         }
       }
 
+      onDestroy(() => {
+        // cleanup de suscripciones y socket
+        unsubMessages?.();
+        unsubConversations?.();
+        if (selectedConversation) {
+          leaveConversation(selectedConversation.id);
+        }
+        presenceStore.cleanup();
+      });
+
       loading = false;
       logChat('chat component: onMount completed successfully');
     } catch (err: any) {
-      logChat('chat component: onMount error', {
-        error: err.message,
-        conversationId
-      });
+      logChat('chat component: onMount error', { error: err.message, conversationId: currentId });
       error = err.response?.data?.message || 'Error al cargar el chat';
       loading = false;
     }
   });
 
-  onDestroy(() => {
-    logChat('chat component: onDestroy - cleaning up');
-
-    // Limpiar listeners de socket
-    if (selectedConversation) {
-      leaveConversation(selectedConversation.id);
-    }
-
-    // Limpiar estados de presencia
-    presenceStore.cleanup();
-  });
-
-  // Suscripción a stores
-  conversationsStore.subscribe(state => {
-    conversations = state.conversations;
-  });
-
-  messagesStore.subscribe(state => {
-    messages = state.messages;
-    hasMore = state.pagination?.hasMore || false;
-  });
+  // Eliminar suscripciones duplicadas y listeners redundantes
+  // (selectConversation y loadMessages mantienen su uso si se selecciona desde la lista)
 
   // Suscripción al store de indicadores de escritura
   typingStore.subscribe(() => {

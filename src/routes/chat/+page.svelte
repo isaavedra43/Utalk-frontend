@@ -29,6 +29,14 @@
     return c?.contact?.name || c?.customerPhone || 'Cliente';
   }
 
+  function onItemKeydown(event: KeyboardEvent, c: any) {
+    const key = event.key;
+    if (key === 'Enter' || key === ' ') {
+      event.preventDefault();
+      openConversation(c);
+    }
+  }
+
   onMount(() => {
     // Verificar si el usuario está autenticado
     authStore.subscribe(state => {
@@ -236,7 +244,14 @@
             </div>
           {:else}
             {#each conversations as conversation}
-              <div class="conversation-item" on:click={() => openConversation(conversation)}>
+              <div
+                class="conversation-item"
+                role="button"
+                tabindex="0"
+                aria-label={`Abrir conversación con ${displayName(conversation)}`}
+                on:click={() => openConversation(conversation)}
+                on:keydown={e => onItemKeydown(e, conversation)}
+              >
                 <div class="conversation-avatar">
                   <span class="avatar-text">
                     {displayName(conversation).charAt(0) || 'C'}
@@ -254,7 +269,7 @@
                   <span class="conversation-time">
                     {conversation.lastMessageAt
                       ? new Date(conversation.lastMessageAt).toLocaleTimeString()
-                      : ''}
+                      : '--'}
                   </span>
                   {#if conversation.unreadCount > 0}
                     <span class="unread-badge">{conversation.unreadCount}</span>

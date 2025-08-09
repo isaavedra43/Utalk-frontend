@@ -14,16 +14,21 @@
 import { environment } from '$lib/config/environment';
 import { io, type Socket } from 'socket.io-client';
 
-// Registro de listeners desacoplado de los stores
 export type ChatListeners = {
   onNewMessage?: (payload: any) => void;
   onConversationEvent?: (payload: any) => void;
   onTypingIndicator?: (payload: any) => void;
 };
 
-let listeners: ChatListeners = {};
-export function registerChatListeners(partial: ChatListeners) {
-  listeners = { ...listeners, ...partial };
+const listenerSet: Set<ChatListeners> = new Set();
+
+export function registerChatListeners(partial: ChatListeners): () => void {
+  listenerSet.add(partial);
+  return () => listenerSet.delete(partial);
+}
+
+export function clearChatListeners() {
+  listenerSet.clear();
 }
 
 let socket: Socket | null = null;
@@ -37,17 +42,18 @@ export function connectSocket() {
     withCredentials: true
   });
 
-  socket.on('connect', () => {
-    // opcional: console.debug('socket connected');
-  });
-  socket.on('disconnect', () => {
-    // opcional: console.debug('socket disconnected');
-  });
+  socket.on('connect', () => { });
+  socket.on('disconnect', () => { });
 
-  // Reemite hacia listeners registrados (NO stores directos)
-  socket.on('new-message', (payload) => listeners.onNewMessage?.(payload));
-  socket.on('conversation-event', (payload) => listeners.onConversationEvent?.(payload));
-  socket.on('typing-indicator', (payload) => listeners.onTypingIndicator?.(payload));
+  socket.on('new-message', (payload) => {
+    for (const l of listenerSet) l.onNewMessage?.(payload);
+  });
+  socket.on('conversation-event', (payload) => {
+    for (const l of listenerSet) l.onConversationEvent?.(payload);
+  });
+  socket.on('typing-indicator', (payload) => {
+    for (const l of listenerSet) l.onTypingIndicator?.(payload);
+  });
 }
 
 export function joinConversation(conversationId: string) {

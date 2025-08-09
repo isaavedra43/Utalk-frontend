@@ -3,10 +3,10 @@ import { connectSocket, registerChatListeners } from '$lib/services/socket';
 import { conversationsStore } from '$lib/stores/conversations.store';
 import { messagesStore } from '$lib/stores/messages.store';
 
-export function wireChat() {
+export function wireChat(): () => void {
     connectSocket();
 
-    registerChatListeners({
+    const unsubscribe = registerChatListeners({
         onNewMessage: (m: any) => {
             messagesStore.addMessage?.(m);
             conversationsStore.addMessage?.(m.conversationId, m);
@@ -18,4 +18,6 @@ export function wireChat() {
             // no-op en este wiring
         }
     });
+
+    return unsubscribe;
 } 
