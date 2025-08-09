@@ -92,7 +92,9 @@ const createMessagesStore = () => {
                 if (filters.endDate) params.append('endDate', filters.endDate);
 
                 const startTime = performance.now();
-                const response = await api.get<MessagesResponse>(`/conversations/${conversationId}/messages?${params.toString()}`);
+                // asegurar conversationId en query
+                params.set('conversationId', conversationId);
+                const response = await api.get<MessagesResponse>(`/messages?${params.toString()}`);
                 const endTime = performance.now();
 
                 logApi('loadMessages: API success', {
@@ -145,10 +147,9 @@ const createMessagesStore = () => {
                 const params = new URLSearchParams();
                 params.append('cursor', currentState.pagination?.nextCursor || '');
                 params.append('limit', currentState.pagination?.limit.toString() || '20');
+                params.set('conversationId', currentState.currentConversationId);
 
-                const response = await api.get<MessagesResponse>(
-                    `/conversations/${currentState.currentConversationId}/messages?${params.toString()}`
-                );
+                const response = await api.get<MessagesResponse>(`/messages?${params.toString()}`);
 
                 await executeUpdate(() => {
                     update(state => ({
@@ -283,7 +284,7 @@ const createMessagesStore = () => {
                 });
 
                 const response = await api.post<{ success: boolean; data: Message }>(
-                    `/conversations/${conversationId}/messages`,
+                    `/messages`,
                     formData,
                     {
                         headers: {
