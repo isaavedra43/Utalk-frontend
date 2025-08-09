@@ -20,6 +20,15 @@
   let conversations: any[] = [];
   let error = '';
 
+  function openConversation(c: any) {
+    if (!c?.id) return;
+    goto(`/chat/${encodeURIComponent(c.id)}`);
+  }
+
+  function displayName(c: any) {
+    return c?.contact?.name || c?.customerPhone || 'Cliente';
+  }
+
   onMount(() => {
     // Verificar si el usuario está autenticado
     authStore.subscribe(state => {
@@ -227,15 +236,15 @@
             </div>
           {:else}
             {#each conversations as conversation}
-              <div class="conversation-item">
+              <div class="conversation-item" on:click={() => openConversation(conversation)}>
                 <div class="conversation-avatar">
                   <span class="avatar-text">
-                    {conversation.contact?.name?.charAt(0) || 'C'}
+                    {displayName(conversation).charAt(0) || 'C'}
                   </span>
                 </div>
                 <div class="conversation-details">
                   <h4 class="conversation-name">
-                    {conversation.contact?.name || 'Cliente'}
+                    {displayName(conversation)}
                   </h4>
                   <p class="conversation-preview">
                     {conversation.lastMessage?.content || 'Sin mensajes'}

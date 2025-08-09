@@ -13,9 +13,9 @@
 
 <script lang="ts">
   import { page } from '$app/stores';
+  import { wireChat } from '$lib/bootstrap/chat';
   import NotificationToast from '$lib/components/NotificationToast.svelte';
   import Sidebar from '$lib/components/Sidebar.svelte';
-  import { socketManager } from '$lib/services/socket';
   import { authStore } from '$lib/stores/auth.store';
   import { sidebarStore } from '$lib/stores/sidebar.store';
   import { onMount } from 'svelte';
@@ -33,22 +33,17 @@
   });
 
   onMount(() => {
+    // Wiring de chat (socket ↔ stores) una sola vez en cliente
+    wireChat();
+
     // Inicializar autenticación desde localStorage
     authStore.initialize().then(() => {
-      // Inicializar socket si el usuario está autenticado
       const unsubscribe = authStore.subscribe(state => {
         isAuthenticated = state.isAuthenticated;
         showSidebar = state.isAuthenticated && !['/login', '/'].includes($page.url.pathname);
 
-        // Asegurar que el sidebar esté visible en todas las rutas principales
         if (state.isAuthenticated) {
           showSidebar = true;
-        }
-
-        if (state.isAuthenticated && state.user) {
-          socketManager.connect();
-        } else {
-          socketManager.disconnect();
         }
       });
 
@@ -58,12 +53,10 @@
 </script>
 
 <div class="app-container">
-  <!-- Sidebar solo en rutas autenticadas -->
   {#if showSidebar}
     <Sidebar />
   {/if}
 
-  <!-- Contenido principal con margen dinámico -->
   <main
     class="main-content {showSidebar ? 'with-sidebar' : ''}"
     style="margin-left: {showSidebar ? sidebarWidth + 'px' : '0'};"

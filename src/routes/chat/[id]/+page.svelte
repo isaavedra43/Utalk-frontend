@@ -24,7 +24,7 @@
   import SearchAndFilters from '$lib/components/SearchAndFilters.svelte';
   import UXFeedback from '$lib/components/UXFeedback.svelte';
   import { environment } from '$lib/config/environment';
-  import { socketManager } from '$lib/services/socket';
+  import { joinConversation, leaveConversation, sendTyping } from '$lib/services/socket';
   import { conversationsStore } from '$lib/stores/conversations.store';
   import { messagesStore } from '$lib/stores/messages.store';
   import { notificationsStore } from '$lib/stores/notifications.store';
@@ -113,7 +113,7 @@
 
     // Limpiar listeners de socket
     if (selectedConversation) {
-      socketManager.leaveConversation(selectedConversation.id);
+      leaveConversation(selectedConversation.id);
     }
 
     // Limpiar estados de presencia
@@ -169,7 +169,7 @@
     try {
       // Deseleccionar conversación anterior
       if (selectedConversation) {
-        socketManager.leaveConversation(selectedConversation.id);
+        leaveConversation(selectedConversation.id);
       }
 
       selectedConversation = conversation;
@@ -190,7 +190,7 @@
       await loadMessages(conversation.id);
 
       // Unirse a la conversación en socket
-      socketManager.joinConversation(conversation.id);
+      joinConversation(conversation.id);
 
       // Actualizar URL sin recargar
       window.history.pushState({}, '', `/chat/${conversation.id}`);
@@ -287,7 +287,7 @@
   function setupSocketListeners() {
     // Unirse a la conversación actual
     if (selectedConversation) {
-      socketManager.joinConversation(selectedConversation.id);
+      joinConversation(selectedConversation.id);
     }
 
     // Los eventos de socket se manejan automáticamente en el SocketManager
@@ -312,7 +312,7 @@
       logChat('handleMessageInput: sending typing event', {
         conversationId: selectedConversation.id
       });
-      socketManager.sendTyping(selectedConversation.id, true);
+      sendTyping(selectedConversation.id, true);
     }
   }
 

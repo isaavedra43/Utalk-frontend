@@ -140,10 +140,16 @@ const createConversationsStore = () => {
                 const paginationData = response.data.pagination || null;
                 const metadataData = response.data.metadata || {};
 
+                // Normalización defensiva de lastMessageAt para la UI
+                const normalized = conversationsData.map((c: any) => ({
+                    ...c,
+                    lastMessageAt: c?.lastMessageAt ?? c?.lastMessage?.timestamp ?? c?.updatedAt ?? null
+                }));
+
                 // DEBUG-LOG-START(conversations-front)
                 if (import.meta.env.VITE_LOG_VERBOSE_CONVERSATIONS === 'true') {
                     const requiredKeys = ['id', 'lastMessage', 'createdAt'];
-                    const firstItem = conversationsData[0];
+                    const firstItem = normalized[0];
                     const missingKeys = firstItem ? requiredKeys.filter(key => !(key in firstItem)) : requiredKeys;
                     const requiredKeysPresent = firstItem ? requiredKeys.filter(key => key in firstItem) : [];
 
@@ -154,19 +160,19 @@ const createConversationsStore = () => {
                         response: {
                             status: response.status,
                             ok: response.status >= 200 && response.status < 300,
-                            itemsLength: conversationsData.length,
+                            itemsLength: normalized.length,
                             keysSample: firstItem ? Object.keys(firstItem).slice(0, 3) : []
                         },
                         clientFilters: { inbox: null, status: null, assignedTo: null, search: null, pagination: null },
                         mapping: { requiredKeysPresent, missingKeys },
-                        render: { willShowEmptyState: conversationsData.length === 0, reason: conversationsData.length === 0 ? 'data.length === 0' : 'has data' }
+                        render: { willShowEmptyState: normalized.length === 0, reason: normalized.length === 0 ? 'data.length === 0' : 'has data' }
                     });
                 }
                 // DEBUG-LOG-END(conversations-front)
 
                 logApi('loadConversations: API success', {
                     responseTime: `${(endTime - startTime).toFixed(2)}ms`,
-                    conversationCount: conversationsData.length,
+                    conversationCount: normalized.length,
                     pagination: paginationData,
                     metadata: metadataData,
                     responseStructure: {
@@ -179,7 +185,7 @@ const createConversationsStore = () => {
                 await executeUpdate(() => {
                     update(state => ({
                         ...state,
-                        conversations: conversationsData,
+                        conversations: normalized,
                         pagination: paginationData,
                         filters,
                         loading: false,
