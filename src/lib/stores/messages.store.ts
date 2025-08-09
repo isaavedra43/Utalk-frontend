@@ -13,7 +13,6 @@ import { api } from '$lib/services/axios';
 import type {
     Message,
     MessageFilters,
-    MessagesResponse,
     MessagesState
 } from '$lib/types';
 import { logApi, logError, logStore } from '$lib/utils/logger';
@@ -81,7 +80,9 @@ const createMessagesStore = () => {
             });
 
             try {
+                // Usar el nuevo endpoint GET /api/messages
                 const params = new URLSearchParams();
+                params.set('conversationId', conversationId);
 
                 if (filters.limit) params.append('limit', filters.limit.toString());
                 if (filters.cursor) params.append('cursor', filters.cursor);
@@ -92,25 +93,23 @@ const createMessagesStore = () => {
                 if (filters.endDate) params.append('endDate', filters.endDate);
 
                 const startTime = performance.now();
-                // asegurar conversationId en query
-                params.set('conversationId', conversationId);
-                const response = await api.get<MessagesResponse>(`/messages?${params.toString()}`);
+                const response = await api.get<any>(`/messages?${params.toString()}`);
                 const endTime = performance.now();
 
                 logApi('loadMessages: API success', {
                     responseTime: `${(endTime - startTime).toFixed(2)}ms`,
-                    messageCount: response.data.data.length,
-                    pagination: response.data.pagination,
-                    metadata: response.data.metadata
+                    messageCount: response.data.data.messages.length,
+                    pagination: response.data.data.pagination,
+                    metadata: response.data.data.metadata
                 });
 
                 await executeUpdate(() => {
                     update(state => ({
                         ...state,
-                        messages: response.data.data,
-                        pagination: response.data.pagination || null,
+                        messages: response.data.data.messages,
+                        pagination: response.data.data.pagination || null,
                         filters,
-                        hasMore: response.data.pagination?.hasMore || false,
+                        hasMore: response.data.data.pagination?.hasMore || false,
                         loading: false,
                         error: null
                     }));
@@ -145,18 +144,21 @@ const createMessagesStore = () => {
 
             try {
                 const params = new URLSearchParams();
-                params.append('cursor', currentState.pagination?.nextCursor || '');
-                params.append('limit', currentState.pagination?.limit.toString() || '20');
                 params.set('conversationId', currentState.currentConversationId);
 
-                const response = await api.get<MessagesResponse>(`/messages?${params.toString()}`);
+                if (currentState.pagination?.nextCursor) {
+                    params.append('cursor', currentState.pagination.nextCursor);
+                }
+                params.append('limit', currentState.pagination?.limit.toString() || '20');
+
+                const response = await api.get<any>(`/messages?${params.toString()}`);
 
                 await executeUpdate(() => {
                     update(state => ({
                         ...state,
-                        messages: [...state.messages, ...response.data.data],
-                        pagination: response.data.pagination || null,
-                        hasMore: response.data.pagination?.hasMore || false,
+                        messages: [...state.messages, ...response.data.data.messages],
+                        pagination: response.data.data.pagination || null,
+                        hasMore: response.data.data.pagination?.hasMore || false,
                         loading: false
                     }));
                 });
@@ -284,7 +286,7 @@ const createMessagesStore = () => {
                 });
 
                 const response = await api.post<{ success: boolean; data: Message }>(
-                    `/messages`,
+                    `/messages/send`,
                     formData,
                     {
                         headers: {

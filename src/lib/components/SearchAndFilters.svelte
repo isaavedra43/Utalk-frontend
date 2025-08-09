@@ -114,7 +114,7 @@
     const response = await api.get(`/conversations?${params.toString()}`);
 
     // Actualizar store de conversaciones
-    conversationsStore.setConversations(response.data.data || []);
+    // conversationsStore.setConversations(response.data.data || []);
 
     // Emitir evento de búsqueda completada
     dispatch('searchCompleted', {
@@ -130,6 +130,7 @@
     if (!conversationId) return;
 
     const params = new URLSearchParams();
+    params.set('conversationId', conversationId);
 
     if (searchQuery.trim()) {
       params.append('search', searchQuery.trim());
@@ -139,20 +140,28 @@
       params.append('type', selectedType);
     }
 
-    const response = await api.get(
-      `/conversations/${conversationId}/messages?${params.toString()}`
-    );
+    try {
+      const response = await api.get(`/messages?${params.toString()}`);
 
-    // Actualizar store de mensajes
-    messagesStore.setMessages(response.data.data || []);
+      // Actualizar store de mensajes
+      // messagesStore.setMessages(response.data.data.messages || []);
 
-    // Emitir evento de búsqueda completada
-    dispatch('searchCompleted', {
-      type: 'messages',
-      results: response.data.data?.length || 0,
-      query: searchQuery,
-      filters: { type: selectedType }
-    });
+      // Emitir evento de búsqueda completada
+      dispatch('searchCompleted', {
+        type: 'messages',
+        results: response.data.data.messages?.length || 0,
+        query: searchQuery,
+        filters: { type: selectedType }
+      });
+    } catch (error) {
+      console.error('Error searching messages:', error);
+      dispatch('searchCompleted', {
+        type: 'messages',
+        results: 0,
+        query: searchQuery,
+        filters: { type: selectedType }
+      });
+    }
   }
 
   // Limpiar filtros
