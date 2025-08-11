@@ -15,6 +15,7 @@ import { environment } from '$lib/config/environment';
 import { io, type Socket } from 'socket.io-client';
 import { get } from 'svelte/store';
 import { authStore } from '../stores/auth.store';
+import { conversationsStore } from '../stores/conversations.store';
 import { messagesStore } from '../stores/messages.store';
 import { normalizeConvId } from './transport';
 
@@ -128,40 +129,56 @@ export function connectSocket() {
     }
   });
 
-  // Handler unificado para mensajes (eventos obligatorios + alias)
+  // NUEVO handler unificado para mensajes
   const handleInboundMessage = (payload: any) => {
-    // Normalizar conversation ID
-    if (payload.conversationId) {
-      payload.conversationId = normalizeConvId(payload.conversationId);
-    }
+    // 1) Unwrap: preferir payload.message; fallback al propio payload
+    const msg = payload?.message ?? payload;
+    const convId = payload?.conversationId ?? msg?.conversationId;
 
-    // De-duplicación antes de procesar
-    if (messagesStore.has(payload.id)) {
-      console.debug('RT:MSG_DUPLICATE', { messageId: payload.id });
+    if (!msg?.id || !convId) {
+      console.debug('RT:MSG_DROP', { reason: 'missing id/convId', keys: Object.keys(payload || {}) });
       return;
     }
 
-    console.debug('RT:MSG_IN', {
-      messageId: payload.id,
-      conversationId: payload.conversationId,
-      timestamp: new Date().toISOString()
-    });
+    // 2) Normalizar conversationId
+    const normalizedConvId = normalizeConvId(convId);
+    msg.conversationId = normalizedConvId;
 
-    for (const l of listenerSet) l.onNewMessage?.(payload);
+    // 3) De-duplicación por message.id
+    if (messagesStore.has(msg.id)) {
+      console.debug('RT:MSG_DUPLICATE', { messageId: msg.id });
+      return;
+    }
+
+    console.debug('RT:MSG_IN', { messageId: msg.id, conversationId: normalizedConvId });
+
+    // 4) Actualizar stores con el MENSAJE (no el wrapper)
+    for (const l of listenerSet) l.onNewMessage?.(msg);
   };
 
   // Handler unificado para eventos de conversación
   const handleConversationUpdated = (payload: any) => {
-    // Normalizar conversation ID
-    if (payload.conversationId) {
-      payload.conversationId = normalizeConvId(payload.conversationId);
-    }
+    const convIdRaw = payload?.conversationId;
+    if (!convIdRaw) return;
 
-    console.debug('RT:CONV_EVT', {
-      conversationId: payload.conversationId,
-      eventType: payload.type,
-      timestamp: new Date().toISOString()
-    });
+    const convId = normalizeConvId(convIdRaw);
+    console.debug('RT:CONV_EVT', { conversationId: convId, type: payload?.type });
+
+    const msg = payload?.lastMessage;
+    if (msg?.id) {
+      msg.conversationId = convId;
+
+      if (!messagesStore.has(msg.id)) {
+        messagesStore.addMessage(msg);
+      }
+      conversationsStore.addMessage(convId, msg);
+    } else {
+      // "tocar" la conversación para reordenar por updatedAt
+      conversationsStore.updateConversation(convId, {
+        updatedAt: payload?.updatedAt || new Date().toISOString(),
+        unreadCount: payload?.unreadCount || 0
+      });
+    }
 
     for (const l of listenerSet) l.onConversationEvent?.(payload);
   };
