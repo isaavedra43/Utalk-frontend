@@ -37,7 +37,7 @@ export async function sendOutboundMessage(
     payload: MessagePayload
 ): Promise<SendResult> {
     try {
-        const url = `/api/conversations/${encodeConvIdForUrl(conversationId)}/messages`;
+        const url = `conversations/${encodeConvIdForUrl(conversationId)}/messages`;
 
         const response = await api.post(url, payload, {
             headers: {

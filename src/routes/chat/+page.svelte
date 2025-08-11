@@ -442,7 +442,10 @@
             {:else}
               <div class="messages-list">
                 {#each messages as message}
-                  <div class="message-item">
+                  {@const isOutbound =
+                    message?.direction === 'outbound' ||
+                    message?.senderIdentifier?.startsWith('agent:')}
+                  <div class="message-item" class:message-outbound={isOutbound}>
                     <div class="message-content">
                       {#if getMessageMedia(message)}
                         {#key message.id}
@@ -854,6 +857,27 @@
     flex-direction: column;
     max-width: 70%;
     align-self: flex-start;
+  }
+
+  .message-item.message-outbound {
+    align-self: flex-end;
+  }
+
+  .message-item.message-outbound .message-content {
+    background: #007bff;
+    color: white;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 4px;
+  }
+
+  .message-item.message-outbound .message-content p {
+    color: white;
+  }
+
+  .message-item.message-outbound .message-time {
+    text-align: right;
+    margin-right: 0.5rem;
+    margin-left: 0;
   }
 
   .message-content {
