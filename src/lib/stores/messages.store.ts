@@ -144,10 +144,17 @@ const createMessagesStore = () => {
                     metadata: response.data.data.metadata
                 });
 
+                // Ordenar mensajes cronológicamente (más viejo arriba, más nuevo abajo)
+                const sortedMessages = response.data.data.messages.sort((a: any, b: any) => {
+                    const dateA = new Date(a.timestamp || a.createdAt || 0);
+                    const dateB = new Date(b.timestamp || b.createdAt || 0);
+                    return dateA.getTime() - dateB.getTime();
+                });
+
                 await executeUpdate(() => {
                     update(state => ({
                         ...state,
-                        messages: response.data.data.messages,
+                        messages: sortedMessages,
                         pagination: response.data.data.pagination || null,
                         filters,
                         hasMore: response.data.data.pagination?.hasMore || false,
@@ -195,13 +202,23 @@ const createMessagesStore = () => {
                 const response = await api.get<any>(`/messages?${params.toString()}`);
 
                 await executeUpdate(() => {
-                    update(state => ({
-                        ...state,
-                        messages: [...state.messages, ...response.data.data.messages],
-                        pagination: response.data.data.pagination || null,
-                        hasMore: response.data.data.pagination?.hasMore || false,
-                        loading: false
-                    }));
+                    update(state => {
+                        // Ordenar todos los mensajes cronológicamente
+                        const allMessages = [...state.messages, ...response.data.data.messages];
+                        const sortedMessages = allMessages.sort((a: any, b: any) => {
+                            const dateA = new Date(a.timestamp || a.createdAt || 0);
+                            const dateB = new Date(b.timestamp || b.createdAt || 0);
+                            return dateA.getTime() - dateB.getTime();
+                        });
+
+                        return {
+                            ...state,
+                            messages: sortedMessages,
+                            pagination: response.data.data.pagination || null,
+                            hasMore: response.data.data.pagination?.hasMore || false,
+                            loading: false
+                        };
+                    });
                 });
             } catch (error: unknown) {
                 const apiError = extractApiError(error);
@@ -325,10 +342,20 @@ const createMessagesStore = () => {
                 };
 
                 await executeUpdate(() => {
-                    update(state => ({
-                        ...state,
-                        messages: [...state.messages, optimisticMessage]
-                    }));
+                    update(state => {
+                        // Agregar mensaje optimista y ordenar cronológicamente
+                        const newMessages = [...state.messages, optimisticMessage];
+                        const sortedMessages = newMessages.sort((a: any, b: any) => {
+                            const dateA = new Date(a.timestamp || a.createdAt || 0);
+                            const dateB = new Date(b.timestamp || b.createdAt || 0);
+                            return dateA.getTime() - dateB.getTime();
+                        });
+
+                        return {
+                            ...state,
+                            messages: sortedMessages
+                        };
+                    });
                 });
 
                 // Marcar como enviando
@@ -412,10 +439,20 @@ const createMessagesStore = () => {
             }
 
             executeUpdate(() => {
-                update(state => ({
-                    ...state,
-                    messages: [...state.messages, { ...message, conversationId: normalizedConvId }]
-                }));
+                update(state => {
+                    // Agregar mensaje y ordenar cronológicamente
+                    const newMessages = [...state.messages, { ...message, conversationId: normalizedConvId }];
+                    const sortedMessages = newMessages.sort((a: any, b: any) => {
+                        const dateA = new Date(a.timestamp || a.createdAt || 0);
+                        const dateB = new Date(b.timestamp || b.createdAt || 0);
+                        return dateA.getTime() - dateB.getTime();
+                    });
+
+                    return {
+                        ...state,
+                        messages: sortedMessages
+                    };
+                });
             });
         },
 

@@ -28,6 +28,8 @@
   let canSend = false;
   let selectedFiles: File[] = [];
   let fileInputEl: HTMLInputElement;
+  let messagesContainer: HTMLElement;
+  let conversationsContainer: HTMLElement;
 
   function openConversation(c: any) {
     if (!c?.id) return;
@@ -139,6 +141,15 @@
     }
   }
 
+  // Función para hacer scroll automático al final de los mensajes
+  function scrollToBottom() {
+    if (messagesContainer) {
+      setTimeout(() => {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }, 100);
+    }
+  }
+
   async function sendMessage() {
     if (!selectedConversation || (!newMessage.trim() && selectedFiles.length === 0) || !canSend)
       return;
@@ -152,6 +163,9 @@
       await messagesStore.sendMessage(selectedConversation.id, newMessage, selectedFiles);
       newMessage = '';
       selectedFiles = [];
+
+      // Scroll automático al enviar mensaje
+      scrollToBottom();
 
       // Mostrar notificación de éxito
       notificationsStore.success('Mensaje enviado correctamente');
@@ -234,6 +248,11 @@
       fileType: media?.mimeType || m?.metadata?.fileInfo?.mimeType || ''
     };
   }
+
+  // Reactive statement para scroll automático cuando cambian los mensajes
+  $: if (messages && messages.length > 0) {
+    scrollToBottom();
+  }
 </script>
 
 <div class="chat-container">
@@ -273,7 +292,7 @@
           <button class="refresh-button" on:click={loadConversations}> 🔄 </button>
         </div>
 
-        <div class="conversations-list">
+        <div class="conversations-list" bind:this={conversationsContainer}>
           {#if conversations.length === 0}
             <!-- DEBUG-LOG-START(conversations-front) -->
             {(() => {
@@ -440,7 +459,7 @@
                 <p>Esta conversación aún no tiene mensajes.</p>
               </div>
             {:else}
-              <div class="messages-list">
+              <div class="messages-list" bind:this={messagesContainer}>
                 {#each messages as message}
                   {@const isOutbound =
                     message?.direction === 'outbound' ||
@@ -692,6 +711,25 @@
     flex: 1;
     overflow-y: auto;
     padding: 1rem;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 #f7fafc;
+  }
+
+  .conversations-list::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .conversations-list::-webkit-scrollbar-track {
+    background: #f7fafc;
+  }
+
+  .conversations-list::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 3px;
+  }
+
+  .conversations-list::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
   }
 
   .empty-conversations {
@@ -850,6 +888,26 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 #f7fafc;
+  }
+
+  .messages-list::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .messages-list::-webkit-scrollbar-track {
+    background: #f7fafc;
+  }
+
+  .messages-list::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 3px;
+  }
+
+  .messages-list::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
   }
 
   .message-item {
