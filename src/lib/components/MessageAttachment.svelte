@@ -121,41 +121,25 @@
       <!-- Documento -->
     {:else if isDocument}
       <div class="attachment-document">
-        <div class="document-preview">
-          <span class="document-icon">📄</span>
-          <div class="document-info">
-            <span class="filename">{filename}</span>
-            <span class="filesize">{formatFileSize(fileSize)}</span>
-          </div>
+        <div class="doc-icon">📄</div>
+        <div class="doc-info">
+          <span class="filename">{filename}</span>
+          <span class="filesize">{formatFileSize(fileSize)}</span>
+          <button class="download" on:click={handleDownload} aria-label="Descargar"
+            >Descargar</button
+          >
         </div>
-        <button
-          type="button"
-          class="download-button"
-          on:click={handleDownload}
-          title="Descargar archivo"
-        >
-          📥 Descargar
-        </button>
       </div>
-
-      <!-- Archivo genérico -->
     {:else}
       <div class="attachment-generic">
-        <div class="generic-preview">
-          <span class="generic-icon">📎</span>
-          <div class="generic-info">
-            <span class="filename">{filename}</span>
-            <span class="filesize">{formatFileSize(fileSize)}</span>
-          </div>
+        <div class="generic-icon">📎</div>
+        <div class="generic-info">
+          <span class="filename">{filename}</span>
+          <span class="filesize">{formatFileSize(fileSize)}</span>
+          <button class="download" on:click={handleDownload} aria-label="Descargar"
+            >Descargar</button
+          >
         </div>
-        <button
-          type="button"
-          class="download-button"
-          on:click={handleDownload}
-          title="Descargar archivo"
-        >
-          📥 Descargar
-        </button>
       </div>
     {/if}
   {/if}
@@ -163,192 +147,37 @@
 
 <style>
   .attachment-container {
-    margin: 0.5rem 0;
-    border-radius: 0.5rem;
-    overflow: hidden;
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
-  }
-
-  .attachment-loading {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 1rem;
-    color: #6c757d;
+    flex-direction: column;
+    gap: 8px;
   }
-
-  .loading-spinner {
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
+  .attachment-loading,
   .attachment-error {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 1rem;
-    color: #dc3545;
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
+    gap: 8px;
   }
-
-  .error-icon {
-    font-size: 1.2rem;
-  }
-
-  .error-text {
-    font-size: 0.9rem;
-  }
-
-  /* Imagen */
-  .attachment-image {
-    display: flex;
-    flex-direction: column;
-  }
-
   .image-preview {
-    max-width: 100%;
-    max-height: 300px;
-    object-fit: contain;
-    border-radius: 0.5rem 0.5rem 0 0;
+    max-width: 240px;
+    max-height: 240px;
+    object-fit: cover;
+    border-radius: 8px;
   }
-
-  .image-info {
-    padding: 0.75rem;
+  .attachment-image .image-info,
+  .attachment-video .video-info,
+  .attachment-audio .audio-info,
+  .attachment-document .doc-info,
+  .attachment-generic .generic-info {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #fff;
-    border-top: 1px solid #e9ecef;
-  }
-
-  /* Video */
-  .attachment-video {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .video-preview {
-    max-width: 100%;
-    max-height: 300px;
-    border-radius: 0.5rem 0.5rem 0 0;
-  }
-
-  .video-info {
-    padding: 0.75rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #fff;
-    border-top: 1px solid #e9ecef;
-  }
-
-  /* Audio */
-  .attachment-audio {
-    padding: 1rem;
-    background: #fff;
-  }
-
-  .audio-player {
-    width: 100%;
-    margin-bottom: 0.5rem;
-  }
-
-  .audio-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.9rem;
-    color: #6c757d;
-  }
-
-  /* Documento */
-  .attachment-document {
-    padding: 1rem;
-    background: #fff;
-    display: flex;
-    justify-content: space-between;
+    gap: 8px;
     align-items: center;
   }
-
-  .document-preview {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .document-icon {
-    font-size: 2rem;
-  }
-
-  .document-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  /* Genérico */
-  .attachment-generic {
-    padding: 1rem;
-    background: #fff;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .generic-preview {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .generic-icon {
-    font-size: 2rem;
-  }
-
-  .generic-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  /* Común */
-  .filename {
-    font-weight: 500;
-    color: #212529;
-    word-break: break-all;
-  }
-
-  .filesize {
-    font-size: 0.8rem;
-    color: #6c757d;
-  }
-
-  .download-button {
+  .download {
     background: #007bff;
-    color: white;
+    color: #fff;
     border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.25rem;
+    padding: 4px 8px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 0.9rem;
-    transition: background-color 0.2s;
-  }
-
-  .download-button:hover {
-    background: #0056b3;
-  }
-
-  .download-button:active {
-    background: #004085;
   }
 </style>

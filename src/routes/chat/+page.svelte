@@ -11,9 +11,11 @@
 
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import MessageAttachment from '$lib/components/MessageAttachment.svelte';
   import { authStore } from '$lib/stores/auth.store';
   import { conversationsStore } from '$lib/stores/conversations.store';
   import { messagesStore } from '$lib/stores/messages.store';
+  import { notificationsStore } from '$lib/stores/notifications.store';
   import { onMount } from 'svelte';
 
   let user: any = null;
@@ -24,6 +26,8 @@
   let messages: any[] = [];
   let newMessage = '';
   let canSend = false;
+  let selectedFiles: File[] = [];
+  let fileInputEl: HTMLInputElement;
 
   function openConversation(c: any) {
     if (!c?.id) return;
@@ -136,14 +140,88 @@
   }
 
   async function sendMessage() {
-    if (!selectedConversation || !newMessage.trim() || !canSend) return;
+    if (!selectedConversation || (!newMessage.trim() && selectedFiles.length === 0) || !canSend)
+      return;
 
     try {
-      await messagesStore.sendMessage(selectedConversation.id, newMessage);
+      await messagesStore.sendMessage(selectedConversation.id, newMessage, selectedFiles);
       newMessage = '';
+      selectedFiles = [];
+
+      // Mostrar notificación de éxito
+      notificationsStore.success('Mensaje enviado correctamente');
     } catch (err: any) {
       console.error('Error sending message:', err);
+
+      // Mostrar error específico al usuario
+      const errorMessage = err.message || 'Error al enviar mensaje';
+      notificationsStore.error(errorMessage);
     }
+  }
+
+  function openFilePicker() {
+    if (fileInputEl) fileInputEl.click();
+  }
+
+  async function onFileChange(e: Event) {
+    const input = e.target as HTMLInputElement;
+    if (!input.files) return;
+
+    const files = Array.from(input.files);
+    // Validación básica de tamaño/tipo (UI):
+    const MAX_IMAGE_MB = 10 * 1024 * 1024;
+    const MAX_DOC_MB = 25 * 1024 * 1024;
+
+    const allowed = [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'audio/ogg',
+      'audio/webm'
+    ];
+
+    const filtered: File[] = [];
+    for (const f of files) {
+      if (!allowed.includes(f.type)) {
+        notificationsStore.error('Tipo de archivo no permitido');
+        continue;
+      }
+      if (f.type.startsWith('image/') && f.size > MAX_IMAGE_MB) {
+        notificationsStore.error('Imagen supera 10MB');
+        continue;
+      }
+      if (
+        (f.type.startsWith('application/') || f.type === 'application/pdf') &&
+        f.size > MAX_DOC_MB
+      ) {
+        notificationsStore.error('Documento supera 25MB');
+        continue;
+      }
+      filtered.push(f);
+    }
+
+    selectedFiles = [...selectedFiles, ...filtered];
+    // limpiar input para permitir volver a seleccionar el mismo archivo
+    input.value = '';
+  }
+
+  function removeSelectedFile(index: number) {
+    selectedFiles = selectedFiles.filter((_, i) => i !== index);
+  }
+
+  function getMessageMedia(m: any) {
+    const media = m?.media || null;
+    const mediaUrl = media?.mediaUrl ?? m?.mediaUrl ?? null;
+    if (!mediaUrl) return null;
+    return {
+      mediaUrl,
+      filename: media?.fileName || media?.filename || m?.metadata?.fileInfo?.filename || 'archivo',
+      fileSize: media?.fileSize || m?.metadata?.fileInfo?.size || 0,
+      fileType: media?.mimeType || m?.metadata?.fileInfo?.mimeType || ''
+    };
   }
 </script>
 
@@ -328,6 +406,22 @@
           </div>
 
           <div class="messages-area">
+            <!-- INTEGRATION POINT: cola de archivos seleccionados -->
+            {#if selectedFiles.length > 0}
+              <div class="selected-files">
+                {#each selectedFiles as f, i}
+                  <div class="selected-file">
+                    <span class="file-name">{f.name}</span>
+                    <span class="file-size">{(f.size / 1024 / 1024).toFixed(2)} MB</span>
+                    <button
+                      class="remove-file"
+                      on:click={() => removeSelectedFile(i)}
+                      aria-label="Quitar archivo">✖</button
+                    >
+                  </div>
+                {/each}
+              </div>
+            {/if}
             {#if messages.length === 0}
               <div class="empty-messages">
                 <div class="empty-icon">💬</div>
@@ -339,7 +433,23 @@
                 {#each messages as message}
                   <div class="message-item">
                     <div class="message-content">
-                      <p>{message.content}</p>
+                      {#if getMessageMedia(message)}
+                        {#key message.id}
+                          {#await Promise.resolve(getMessageMedia(message)) then mediaObj}
+                            {#if mediaObj}
+                              <MessageAttachment
+                                mediaUrl={mediaObj.mediaUrl}
+                                filename={mediaObj.filename}
+                                fileType={mediaObj.fileType}
+                                fileSize={mediaObj.fileSize}
+                              />
+                            {/if}
+                          {/await}
+                        {/key}
+                      {/if}
+                      {#if message.content}
+                        <p>{message.content}</p>
+                      {/if}
                     </div>
                     <div class="message-time">
                       {message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : '--'}
@@ -358,9 +468,24 @@
                 bind:value={newMessage}
                 disabled={!canSend}
               ></textarea>
+              <input
+                bind:this={fileInputEl}
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/gif,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,audio/ogg,audio/webm"
+                on:change={onFileChange}
+                style="display:none"
+              />
               <button
                 class="send-button"
-                disabled={!canSend || !newMessage.trim()}
+                on:click={openFilePicker}
+                title="Adjuntar"
+                aria-label="Adjuntar"
+                disabled={!canSend}>📎</button
+              >
+              <button
+                class="send-button"
+                disabled={!canSend || (!newMessage.trim() && selectedFiles.length === 0)}
                 on:click={() => sendMessage()}
               >
                 📤
@@ -893,5 +1018,34 @@
     .details-panel {
       display: none;
     }
+  }
+
+  .selected-files {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 8px 0;
+  }
+  .selected-file {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f1f3f5;
+    padding: 6px 10px;
+    border-radius: 8px;
+  }
+  .selected-file .file-name {
+    font-weight: 500;
+  }
+  .selected-file .file-size {
+    font-size: 0.8rem;
+    color: #6c757d;
+  }
+  .selected-file .remove-file {
+    margin-left: auto;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: #dc3545;
   }
 </style>

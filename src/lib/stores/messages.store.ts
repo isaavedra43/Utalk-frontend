@@ -16,9 +16,16 @@ import type {
     MessagesState
 } from '$lib/types';
 import { logApi, logError, logStore } from '$lib/utils/logger';
+import {
+    buildMessageMetadata,
+    validateMessageContent
+} from '$lib/utils/message-helpers';
 import { extractApiError, get } from '$lib/utils/store-helpers';
+import { generateUUID } from '$lib/utils/uuid';
 import { writable } from 'svelte/store';
+import { authStore } from './auth.store';
 import { conversationsStore } from './conversations.store';
+import { notificationsStore } from './notifications.store';
 
 const createMessagesStore = () => {
     const initialState: MessagesState = {
@@ -273,26 +280,97 @@ const createMessagesStore = () => {
                 fileCount: files.length
             });
 
+            function toE164(raw: string): string {
+                if (!raw) return '';
+                let p = String(raw).trim().replace(/[\s\-\(\)]/g, '');
+                if (p.startsWith('00')) p = '+' + p.slice(2);
+                if (!p.startsWith('+')) p = '+' + p;
+                return p;
+            }
+
             await executeUpdate(() => {
                 update(state => ({ ...state, loading: true, error: null }));
             });
 
             try {
-                // Usar JSON en lugar de FormData para alinearse con el backend
-                const messageData = {
-                    content,
-                    type: 'text',
-                    metadata: {
-                        sentBy: 'frontend',
-                        timestamp: new Date().toISOString()
-                    }
-                };
-
-                // Si hay archivos, procesarlos (por ahora solo texto)
-                if (files.length > 0) {
-                    console.warn('File upload not implemented yet, sending text only');
+                // Validar contenido del mensaje si no hay media
+                const contentValidation = validateMessageContent(content);
+                if (!contentValidation.valid && files.length === 0) {
+                    notificationsStore.error('El mensaje de texto debe tener entre 1 y 1000 caracteres.');
+                    throw new Error(contentValidation.error);
                 }
 
+                // Usuario autenticado para senderIdentifier
+                const auth = get(authStore);
+                const agentEmail = (auth as any)?.user?.email;
+                if (!agentEmail) {
+                    notificationsStore.error('No hay sesión de agente');
+                    throw new Error('agent_email_missing');
+                }
+
+                // Obtener conversación para recipientIdentifier y payload
+                const currentState = get(conversationsStore);
+                const conversation = currentState.conversations.find(c => c.id === conversationId);
+                if (!conversation) {
+                    notificationsStore.error('Conversación no encontrada');
+                    throw new Error('conversation_not_found');
+                }
+
+                // Normalizar teléfono del cliente
+                const customerPhone = (conversation as any)?.customerPhone || (conversation as any)?.contact?.phone;
+                const e164 = toE164(customerPhone);
+                if (!e164 || !/^\+\d{7,15}$/.test(e164)) {
+                    notificationsStore.error('Teléfono de cliente inválido');
+                    throw new Error('invalid_customer_phone');
+                }
+
+                // Construcción base del payload canónico
+                const basePayload: any = {
+                    messageId: generateUUID(),
+                    type: 'text',
+                    content: (content || '').trim(),
+                    senderIdentifier: `agent:${agentEmail}`,
+                    recipientIdentifier: `whatsapp:${e164}`,
+                    metadata: buildMessageMetadata(conversation)
+                };
+
+                // Upload de media si existen archivos (1 por mensaje)
+                let mediaPayload: any | null = null;
+                if (files.length > 0) {
+                    const { uploadFile } = await import('$lib/services/files');
+                    const controller = new AbortController();
+                    const file = files[0];
+
+                    const uploadResult = await uploadFile(file, {
+                        signal: controller.signal,
+                        onProgress: (percent) => {
+                            logStore('sendMessage: upload progress', { percent, filename: file.name });
+                        }
+                    });
+
+                    mediaPayload = {
+                        fileId: uploadResult.fileId,
+                        mediaUrl: uploadResult.mediaUrl,
+                        mimeType: uploadResult.mimeType,
+                        fileName: uploadResult.fileName,
+                        fileSize: uploadResult.fileSize,
+                        ...(uploadResult.durationMs ? { durationMs: uploadResult.durationMs } : {})
+                    };
+
+                    if (uploadResult.mimeType.startsWith('image/')) basePayload.type = 'image';
+                    else if (uploadResult.mimeType.startsWith('audio/')) basePayload.type = 'audio';
+                    else basePayload.type = 'document';
+                }
+
+                const messageData = mediaPayload ? { ...basePayload, media: mediaPayload } : basePayload;
+
+                if (import.meta.env.DEV) {
+                    const preview = { ...messageData };
+                    if (preview.content && preview.content.length > 100) preview.content = preview.content.slice(0, 100) + '...';
+                    logStore('sendMessage: payload', preview as any);
+                }
+
+                const startTime = performance.now();
                 const response = await api.post<{
                     success: boolean;
                     data: {
@@ -300,33 +378,23 @@ const createMessagesStore = () => {
                         conversation: any;
                     }
                 }>(
-                    `/conversations/${conversationId}/messages`,
+                    `/conversations/${encodeURIComponent(conversationId)}/messages`,
                     messageData,
-                    {
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    }
+                    { headers: { 'Content-Type': 'application/json' } }
                 );
+                const endTime = performance.now();
 
                 logStore('sendMessage: success', {
                     messageId: response.data.data.message.id,
-                    conversationId
+                    conversationId,
+                    responseTime: `${(endTime - startTime).toFixed(2)}ms`,
+                    requestId: response.headers['x-request-id'] || 'unknown'
                 });
 
-                // Agregar el mensaje enviado al store
                 messagesStore.addMessage(response.data.data.message);
 
-                // Actualizar la conversación si es necesario
                 if (response.data.data.conversation) {
-                    // Actualizar el store de conversaciones con los datos actualizados
                     conversationsStore.updateConversation(conversationId, response.data.data.conversation);
-
-                    logStore('sendMessage: conversation updated', {
-                        conversationId,
-                        lastMessage: response.data.data.conversation.lastMessage,
-                        messageCount: response.data.data.conversation.messageCount
-                    });
                 }
 
                 await executeUpdate(() => {
@@ -335,16 +403,31 @@ const createMessagesStore = () => {
                 return response.data.data.message;
             } catch (error: unknown) {
                 const apiError = extractApiError(error);
-                logError('sendMessage: API error', 'MESSAGES', new Error(apiError.message));
 
-                await executeUpdate(() => {
-                    update(state => ({
-                        ...state,
-                        loading: false,
-                        error: apiError.message
-                    }));
-                });
+                if (apiError.status === 400 && (error as any)?.response?.data?.code === 'validation_error') {
+                    const details = (error as any)?.response?.data?.details || [];
+                    const fields = details.map((d: any) => d.field).join(', ');
+                    notificationsStore.error(`Validación: revisar campos → ${fields}`);
+                    await executeUpdate(() => {
+                        update(state => ({ ...state, loading: false, error: `validation_error: ${fields}` }));
+                    });
+                    throw new Error('validation_error');
+                }
 
+                if (apiError.status === 413) {
+                    notificationsStore.error('El archivo es demasiado grande.');
+                    await executeUpdate(() => { update(state => ({ ...state, loading: false, error: '413_oversize' })); });
+                    throw new Error('413_oversize');
+                }
+
+                if (apiError.status && apiError.status >= 500) {
+                    notificationsStore.error('Error del servidor. Intenta nuevamente.');
+                    await executeUpdate(() => { update(state => ({ ...state, loading: false, error: 'server_error' })); });
+                    throw new Error('server_error');
+                }
+
+                notificationsStore.error(apiError.message);
+                await executeUpdate(() => { update(state => ({ ...state, loading: false, error: apiError.message })); });
                 throw new Error(apiError.message);
             }
         },
