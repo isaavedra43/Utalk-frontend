@@ -143,6 +143,11 @@
     if (!selectedConversation || (!newMessage.trim() && selectedFiles.length === 0) || !canSend)
       return;
 
+    // Verificar si ya se está enviando
+    if (messagesStore.isSending(selectedConversation.id)) {
+      return;
+    }
+
     try {
       await messagesStore.sendMessage(selectedConversation.id, newMessage, selectedFiles);
       newMessage = '';
@@ -155,7 +160,13 @@
 
       // Mostrar error específico al usuario
       const errorMessage = err.message || 'Error al enviar mensaje';
-      notificationsStore.error(errorMessage);
+
+      // No mostrar "Error desconocido" si fue un error de red o servidor
+      if (errorMessage.includes('desconocido') || errorMessage.includes('unknown')) {
+        notificationsStore.error('Error de conexión. Intenta de nuevo.');
+      } else {
+        notificationsStore.error(errorMessage);
+      }
     }
   }
 

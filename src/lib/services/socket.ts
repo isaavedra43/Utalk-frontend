@@ -13,6 +13,8 @@
 
 import { environment } from '$lib/config/environment';
 import { io, type Socket } from 'socket.io-client';
+import { messagesStore } from '../stores/messages.store';
+import { normalizeConvId } from './transport';
 
 export type ChatListeners = {
   onNewMessage?: (payload: any) => void;
@@ -46,24 +48,48 @@ export function connectSocket() {
   socket.on('disconnect', () => { });
 
   socket.on('new-message', (payload) => {
+    // Normalizar conversation ID
+    if (payload.conversationId) {
+      payload.conversationId = normalizeConvId(payload.conversationId);
+    }
+
+    // De-duplicación antes de procesar
+    if (messagesStore.has(payload.id)) {
+      console.log('Socket: duplicate message ignored', { messageId: payload.id });
+      return;
+    }
+
     for (const l of listenerSet) l.onNewMessage?.(payload);
   });
   socket.on('conversation-event', (payload) => {
+    // Normalizar conversation ID
+    if (payload.conversationId) {
+      payload.conversationId = normalizeConvId(payload.conversationId);
+    }
+
     for (const l of listenerSet) l.onConversationEvent?.(payload);
   });
   socket.on('typing-indicator', (payload) => {
+    // Normalizar conversation ID
+    if (payload.conversationId) {
+      payload.conversationId = normalizeConvId(payload.conversationId);
+    }
+
     for (const l of listenerSet) l.onTypingIndicator?.(payload);
   });
 }
 
 export function joinConversation(conversationId: string) {
-  socket?.emit('join-conversation', { conversationId });
+  const normalizedId = normalizeConvId(conversationId);
+  socket?.emit('join-conversation', { conversationId: normalizedId });
 }
 
 export function leaveConversation(conversationId: string) {
-  socket?.emit('leave-conversation', { conversationId });
+  const normalizedId = normalizeConvId(conversationId);
+  socket?.emit('leave-conversation', { conversationId: normalizedId });
 }
 
 export function sendTyping(conversationId: string, isTyping: boolean) {
-  socket?.emit('typing', { conversationId, isTyping });
+  const normalizedId = normalizeConvId(conversationId);
+  socket?.emit('typing', { conversationId: normalizedId, isTyping });
 }

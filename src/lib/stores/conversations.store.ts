@@ -10,10 +10,10 @@
  */
 
 import { api } from '$lib/services/axios';
+import { normalizeConvId } from '$lib/services/transport';
 import type {
     Conversation,
     ConversationFilters,
-    ConversationsResponse,
     ConversationsState
 } from '$lib/types';
 import { logApi, logError, logStore } from '$lib/utils/logger';
@@ -102,7 +102,7 @@ const createConversationsStore = () => {
 
             try {
                 const startTime = performance.now();
-                const response = await api.get<ConversationsResponse>(`/conversations?${params.toString()}`);
+                const response = await api.get<any>(`/conversations?${params.toString()}`);
                 const endTime = performance.now();
 
                 // DEBUG-LOG-START(conversations-front)
@@ -242,70 +242,105 @@ const createConversationsStore = () => {
             }
         },
 
-        selectConversation: (conversation: Conversation | null) => {
-            logStore('selectConversation', {
-                conversationId: conversation?.id,
-                conversationStatus: conversation?.status,
-                hasAgent: !!conversation?.assignedTo
-            });
-
-            executeUpdate(() => {
-                update(state => ({ ...state, selectedConversation: conversation }));
-            });
-        },
-
         updateConversation: (conversationId: string, updates: Partial<Conversation>) => {
+            const normalizedId = normalizeConvId(conversationId);
+
             logStore('updateConversation', {
-                conversationId,
-                updates: Object.keys(updates)
+                conversationId: normalizedId,
+                hasUpdates: !!updates,
+                updateKeys: Object.keys(updates || {})
             });
 
-            executeUpdate(() => {
-                update(state => ({
-                    ...state,
-                    conversations: state.conversations.map(conv =>
-                        conv.id === conversationId ? { ...conv, ...updates } : conv
-                    ),
-                    selectedConversation: state.selectedConversation?.id === conversationId
-                        ? { ...state.selectedConversation, ...updates }
-                        : state.selectedConversation
-                }));
-            });
+            update(state => ({
+                ...state,
+                conversations: state.conversations.map(conv =>
+                    normalizeConvId(conv.id) === normalizedId
+                        ? { ...conv, ...updates }
+                        : conv
+                )
+            }));
         },
 
-        addMessage: (conversationId: string, message: { id: string; content: string; timestamp: string; sender: { type: string }; type: string; status: string; direction: string }) => {
-            logStore('addMessage', {
-                conversationId,
+        addMessage: (conversationId: string, message: any) => {
+            const normalizedId = normalizeConvId(conversationId);
+
+            logStore('addMessage to conversation', {
+                conversationId: normalizedId,
                 messageId: message.id,
                 messageType: message.type,
                 messageDirection: message.direction
             });
 
-            executeUpdate(() => {
-                update(state => ({
-                    ...state,
-                    conversations: state.conversations.map(conv => {
-                        if (conv.id === conversationId) {
-                            return {
-                                ...conv,
-                                messageCount: conv.messageCount + 1,
-                                lastMessage: {
-                                    id: message.id,
-                                    content: message.content,
-                                    timestamp: message.timestamp,
-                                    sender: message.sender.type,
-                                    type: message.type,
-                                    status: message.status
-                                },
-                                lastMessageId: message.id,
-                                lastMessageAt: message.timestamp,
-                                unreadCount: message.direction === 'inbound' ? conv.unreadCount + 1 : conv.unreadCount
-                            };
-                        }
-                        return conv;
-                    })
-                }));
+            update(state => ({
+                ...state,
+                conversations: state.conversations.map(conv => {
+                    if (normalizeConvId(conv.id) !== normalizedId) return conv;
+
+                    return {
+                        ...conv,
+                        lastMessage: {
+                            id: message.id,
+                            content: message.content,
+                            type: message.type,
+                            direction: message.direction,
+                            timestamp: message.timestamp || new Date().toISOString(),
+                            sender: message.senderIdentifier || 'agent'
+                        },
+                        lastMessageAt: message.timestamp || new Date().toISOString(),
+                        messageCount: (conv.messageCount || 0) + 1
+                    };
+                })
+            }));
+        },
+
+        removeConversation: (conversationId: string) => {
+            const normalizedId = normalizeConvId(conversationId);
+
+            logStore('removeConversation', { conversationId: normalizedId });
+
+            update(state => ({
+                ...state,
+                conversations: state.conversations.filter(conv =>
+                    normalizeConvId(conv.id) !== normalizedId
+                )
+            }));
+        },
+
+        selectConversation: (conversationId: string) => {
+            const normalizedId = normalizeConvId(conversationId);
+
+            logStore('selectConversation', {
+                conversationId: normalizedId,
+                previousSelection: get(conversationsStore).selectedConversation?.id
             });
+
+            update(state => ({
+                ...state,
+                selectedConversation: state.conversations.find(conv =>
+                    normalizeConvId(conv.id) === normalizedId
+                ) || null
+            }));
+        },
+
+        clearSelection: () => {
+            logStore('clearSelection');
+            update(state => ({
+                ...state,
+                selectedConversation: null
+            }));
+        },
+
+        getConversation: (conversationId: string): Conversation | null => {
+            const normalizedId = normalizeConvId(conversationId);
+            const state = get(conversationsStore);
+            return state.conversations.find(conv =>
+                normalizeConvId(conv.id) === normalizedId
+            ) || null;
+        },
+
+        getSelectedConversation: (): Conversation | null => {
+            const state = get(conversationsStore);
+            return state.selectedConversation;
         },
 
         addDemoConversation: (demoConversation: Conversation) => {
@@ -354,7 +389,7 @@ const createConversationsStore = () => {
                 params.append('cursor', currentState.pagination.nextCursor!);
                 params.append('limit', currentState.pagination.limit.toString());
 
-                const response = await api.get<ConversationsResponse>(`/conversations?${params.toString()}`);
+                const response = await api.get<any>(`/conversations?${params.toString()}`);
 
                 await executeUpdate(() => {
                     update(state => ({

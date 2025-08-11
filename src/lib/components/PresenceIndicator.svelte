@@ -21,7 +21,7 @@
 
   // Suscripción al store de presencia
   presenceStore.subscribe(state => {
-    userPresence = state.users[userId] || null;
+    userPresence = (state.users as any)[userId] || null;
   });
 
   function getStatusColor(status: string): string {

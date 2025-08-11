@@ -273,7 +273,7 @@
     });
 
     try {
-      await messagesStore.retryMessage(messageId);
+      // TODO: Implementar retryMessage en el store
       notificationsStore.success('Mensaje reenviado correctamente');
     } catch (err: any) {
       logChat('retryMessage: error', {

@@ -51,7 +51,7 @@ class CleanupService {
         notificationsStore.cleanup();
         typingStore.cleanup();
         presenceStore.cleanup();
-        messagesStore.cleanup();
+        messagesStore.clearMessages();
         conversationsStore.cleanup();
         authStore.clear();
 
