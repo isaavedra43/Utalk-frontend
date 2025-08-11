@@ -253,6 +253,28 @@
   $: if (messages && messages.length > 0) {
     scrollToBottom();
   }
+
+  // Suscribirse al trigger de auto-scroll del store
+  let lastAddedAt = 0;
+  messagesStore.subscribeLastAdded(timestamp => {
+    if (timestamp > lastAddedAt && selectedConversation) {
+      lastAddedAt = timestamp;
+      // Solo hacer scroll si el usuario está cerca del final
+      if (messagesContainer) {
+        const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 200;
+
+        if (isNearBottom) {
+          setTimeout(() => {
+            messagesContainer.scrollTo({
+              top: messagesContainer.scrollHeight,
+              behavior: 'smooth'
+            });
+          }, 100);
+        }
+      }
+    }
+  });
 </script>
 
 <div class="chat-container">
@@ -377,7 +399,8 @@
                   };
 
                   // Agregar la conversación demo al store
-                  conversationsStore.addDemoConversation(demoConversation);
+                  // TODO: Implementar addDemoConversation si es necesario
+                  console.debug('RT:DEMO_CONV', { conversationId: demoConversation.id });
 
                   // Redirigir a la conversación demo
                   window.location.href = '/chat/demo-conversation';

@@ -52,7 +52,8 @@ class CleanupService {
         typingStore.cleanup();
         presenceStore.cleanup();
         messagesStore.clearMessages();
-        conversationsStore.cleanup();
+        // conversationsStore.cleanup(); // Removido - usar clearSelection en su lugar
+        conversationsStore.clearSelection();
         authStore.clear();
 
         logStore('cleanup: stores limpiados');

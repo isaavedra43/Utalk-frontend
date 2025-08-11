@@ -55,7 +55,8 @@ describe('Flujo Completo de Chat', () => {
     afterEach(() => {
         // Limpiar stores después de cada test
         authStore.logout();
-        conversationsStore.cleanup();
+        // conversationsStore.cleanup(); // Removido - usar clearSelection en su lugar
+        conversationsStore.clearSelection();
         messagesStore.clearMessages();
     });
 

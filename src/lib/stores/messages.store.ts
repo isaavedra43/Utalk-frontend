@@ -43,6 +43,9 @@ const createMessagesStore = () => {
 
     const { subscribe, set, update } = writable<MessagesState>(initialState);
 
+    // Writable para trigger de auto-scroll
+    const { subscribe: subscribeLastAdded, set: setLastAdded } = writable<number>(0);
+
     // Estado de envío por conversación para prevenir doble envío
     const sendingByConv = new Map<string, boolean>();
 
@@ -50,25 +53,20 @@ const createMessagesStore = () => {
     let isUpdating = false;
     const updateQueue: Array<() => void> = [];
 
-    // Función para ejecutar actualizaciones de forma segura
     const executeUpdate = async (updateFn: () => void): Promise<void> => {
         if (isUpdating) {
-            // Si hay una actualización en curso, agregar a la cola
             updateQueue.push(updateFn);
             return;
         }
-
         isUpdating = true;
         try {
             updateFn();
         } finally {
             isUpdating = false;
-
-            // Procesar cola de actualizaciones pendientes
             if (updateQueue.length > 0) {
                 const nextUpdate = updateQueue.shift();
                 if (nextUpdate) {
-                    setTimeout(() => executeUpdate(nextUpdate), 100); // Debounce de 100ms
+                    setTimeout(() => executeUpdate(nextUpdate), 100);
                 }
             }
         }
@@ -97,12 +95,19 @@ const createMessagesStore = () => {
         return exists;
     };
 
+    // Función para marcar conversación como leída
+    const markAsRead = (conversationId: string) => {
+        const normalizedId = normalizeConvId(conversationId);
+        // TODO: Implementar markAsRead en conversationsStore
+        console.debug('RT:MARK_READ', { conversationId: normalizedId });
+    };
+
     return {
         subscribe,
-
-        // Métodos públicos para control de envío
+        subscribeLastAdded,
         isSending,
         has,
+        markAsRead,
 
         loadMessages: async (conversationId: string, filters: MessageFilters = {}) => {
             logStore('loadMessages: start', {
@@ -454,6 +459,13 @@ const createMessagesStore = () => {
                     };
                 });
             });
+
+            // Trigger auto-scroll si es la conversación activa
+            const currentState = get(messagesStore);
+            if (currentState.currentConversationId === normalizedConvId) {
+                setLastAdded(Date.now());
+                markAsRead(normalizedConvId);
+            }
         },
 
         updateMessage: (messageId: string, updates: Partial<Message>) => {
