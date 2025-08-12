@@ -61,17 +61,17 @@ const createConversationsStore = () => {
 
             try {
                 const startTime = performance.now();
-                const { items, total } = await fetchConversations();
+                const { conversations, conversationCount } = await fetchConversations();
                 const endTime = performance.now();
 
                 logApi('loadConversations: API success', {
                     responseTime: `${(endTime - startTime).toFixed(2)}ms`,
-                    conversationCount: items.length,
-                    total
+                    conversationCount: conversations.length,
+                    total: conversationCount
                 });
 
-                // Convertir ConversationUI a Conversation para mantener compatibilidad
-                const conversations = items.map((item) => ({
+                // Convertir Conversation a Conversation para mantener compatibilidad
+                const conversationsList = conversations.map((item: any) => ({
                     id: item.id,
                     participants: item.participants,
                     customerPhone: item.phone || '',
@@ -94,7 +94,7 @@ const createConversationsStore = () => {
                     createdAt: item.updatedAt?.toISOString() || new Date().toISOString()
                 })) as Conversation[];
 
-                const sortedConversations = reorderConversations(conversations);
+                const sortedConversations = reorderConversations(conversationsList);
 
                 update(state => ({
                     ...state,

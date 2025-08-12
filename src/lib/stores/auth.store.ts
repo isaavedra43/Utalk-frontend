@@ -154,7 +154,7 @@ const createAuthStore = () => {
 
       try {
         // Llamar al endpoint de validación de sesión
-        const response = await fetch('/api/auth/validate', {
+        const response = await fetch('auth/validate', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

@@ -1,116 +1,41 @@
+// src/lib/config/api.ts
+import { browser } from '$app/environment';
+
+// Variables de entorno - usar window para acceso en cliente
+const STATIC_PUBLIC_API_BASE: string | undefined = typeof window !== 'undefined' ? ((window as unknown) as Record<string, unknown>).PUBLIC_API_BASE as string : undefined;
+const STATIC_API_URL: string | undefined = typeof window !== 'undefined' ? ((window as unknown) as Record<string, unknown>).API_URL as string : undefined;
+
 /**
- * Configuración de API según documentación del backend
- * Basado en DOCUMENTACION_COMPLETA_BACKEND_UTALK.md
+ * Base de API:
+ * - En navegador: PUBLIC_API_BASE (obligatorio)
+ * - En server (SSR): PUBLIC_API_BASE si existe, si no API_URL
  */
+const RAW_BASE = browser
+  ? (STATIC_PUBLIC_API_BASE || '')
+  : (STATIC_PUBLIC_API_BASE || STATIC_API_URL || '');
 
-// ✅ URLs del backend según documentación
-export const API_CONFIG = {
-  // URL base del backend
-  BASE_URL: 'https://utalk-backend-production.up.railway.app/api',
+export const API_BASE = (RAW_BASE || '').replace(/\/+$/, ''); // sin slash final
 
-  // Endpoints de autenticación según documentación
-  AUTH: {
-    LOGIN: '/auth/login',
-    REFRESH: '/auth/refresh',
-    LOGOUT: '/auth/logout'
-  },
-
-  // Headers requeridos según documentación
-  HEADERS: {
-    CONTENT_TYPE: 'application/json',
-    AUTHORIZATION: 'Bearer ' // Header requerido por el backend
-  }
-} as const;
-
-// ✅ Función para construir URLs completas
-export function buildApiUrl(endpoint: string): string {
-  return `${API_CONFIG.BASE_URL}${endpoint}`;
+/** Limpia paths: quita "/" inicial y "api/" si viniera incluido por error */
+export function cleanPath(path: string): string {
+  let p = String(path || '').trim();
+  p = p.replace(/^\/+/, '');      // quita "/" iniciales
+  p = p.replace(/^api\/+/i, '');  // quita "api/" duplicado
+  return p;
 }
 
-// ✅ Función para obtener headers requeridos
-export function getAuthHeaders(token?: string): Record<string, string> {
-  return {
-    'Content-Type': API_CONFIG.HEADERS.CONTENT_TYPE,
-    Authorization: `${API_CONFIG.HEADERS.AUTHORIZATION}${token || ''}`
-  };
+/** Construye URL absoluta hacia el backend de Railway */
+export function apiUrl(path: string): string {
+  const p = cleanPath(path);
+  if (!API_BASE) {
+    // Fallback de seguridad (no debería ocurrir en PROD): usa /api del front
+    return `/api/${p}`;
+  }
+  return `${API_BASE}/${p}`;
 }
 
-// ✅ Interfaz para respuesta de autenticación según estructura real del backend
-export interface AuthResponse {
-  success: boolean;
-  message: string;
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: string;
-  refreshExpiresIn: string;
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    phone: string | null;
-    role: 'admin' | 'agent' | 'viewer';
-    permissions: string[];
-    department: string;
-    isActive: boolean;
-    settings: {
-      notifications: boolean;
-      language: string;
-      timezone: string;
-    };
-    lastLoginAt: {
-      _seconds: number;
-      _nanoseconds: number;
-    };
-    createdAt: {
-      _seconds: number;
-      _nanoseconds: number;
-    };
-    updatedAt: {
-      _seconds: number;
-      _nanoseconds: number;
-    };
-    performance: any;
-  };
-  deviceInfo: {
-    deviceId: string;
-    deviceType: string;
-    loginAt: string;
-  };
-}
-
-// ✅ Función para validar respuesta del backend según estructura real
-export function validateAuthResponse(data: any): boolean {
-  // Validar estructura completa según estructura real del backend
-  if (!data || typeof data !== 'object') {
-    console.warn('validateAuthResponse: data no es un objeto válido');
-    return false;
-  }
-
-  if (!data.success) {
-    console.warn('validateAuthResponse: success no es true');
-    return false;
-  }
-
-  if (!data.accessToken || typeof data.accessToken !== 'string') {
-    console.warn('validateAuthResponse: accessToken no existe o no es string');
-    return false;
-  }
-
-  if (!data.refreshToken || typeof data.refreshToken !== 'string') {
-    console.warn('validateAuthResponse: refreshToken no existe o no es string');
-    return false;
-  }
-
-  if (!data.user || typeof data.user !== 'object') {
-    console.warn('validateAuthResponse: user no existe o no es objeto');
-    return false;
-  }
-
-  // Validar campos mínimos del usuario
-  if (!data.user.id || !data.user.email || !data.user.role) {
-    console.warn('validateAuthResponse: campos mínimos del usuario faltantes');
-    return false;
-  }
-
-  return true;
+/** Convierte http(s) base a ws(s) para Socket.IO (si se necesitara) */
+export function wsBase(): string {
+  if (!API_BASE) return '';
+  return API_BASE.replace(/^http/, 'ws').replace(/\/api\/?$/, '');
 }

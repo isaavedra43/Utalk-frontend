@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Cliente Socket.io configurado para UTalk Frontend
  * Basado en PLAN_FRONTEND_UTALK_COMPLETO.md - Sección "🔌 EVENTOS SOCKET.IO ESPECÍFICOS"
@@ -39,7 +40,7 @@ export async function refreshTokenIfNeeded(): Promise<boolean> {
     const refreshToken = localStorage.getItem('refreshToken');
     if (refreshToken) {
       // Intentar refrescar token usando el endpoint de refresh
-      const response = await fetch('/api/auth/refresh', {
+      const response = await fetch('auth/refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken })

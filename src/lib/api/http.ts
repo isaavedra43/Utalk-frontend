@@ -1,72 +1,63 @@
-// Cliente HTTP con base absoluta si existe PUBLIC_API_BASE (cliente),
-// o relative '/api' si usamos proxy de SvelteKit.
-// SvelteKit: PUBLIC_* es accesible en cliente.
-// API_URL (privada) la usaremos solo en el proxy server-side.
+// src/lib/api/http.ts
+import { apiUrl, cleanPath } from '$lib/config/api';
 
-// Variables de entorno - usar window para acceso en cliente
-const STATIC_PUBLIC_API_BASE: string | undefined = typeof window !== 'undefined' ? ((window as unknown) as Record<string, unknown>).PUBLIC_API_BASE as string : undefined;
-const DYN_PUBLIC: Record<string, string> = typeof window !== 'undefined' ? ((window as unknown) as Record<string, unknown>).env as Record<string, string> : {};
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-export type HttpGetOptions = {
-  credentials?: 'include' | 'omit' | 'same-origin';
-  headers?: Record<string, string>;
-};
-
-function joinUrl(base: string, path: string): string {
-  const b = (base || '').replace(/\/+$/, '');
-  const p = (path || '').replace(/^\/+/, '');
-  return b ? `${b}/${p}` : `/${p}`;
+function joinHeaders(init?: Record<string, string>): Record<string, string> {
+  const h = new (globalThis as any).Headers(init || {});
+  if (!h.has('Content-Type')) h.set('Content-Type', 'application/json; charset=utf-8');
+  return Object.fromEntries(h.entries());
 }
 
-// Si hay PUBLIC_API_BASE en el navegador, usaremos llamada directa al backend.
-// Si NO hay (caso típico de tu setup actual que usa API_URL privada), usaremos el proxy '/api'.
-const PUBLIC_API_BASE =
-  DYN_PUBLIC?.PUBLIC_API_BASE ||
-  STATIC_PUBLIC_API_BASE ||
-  ''; // vacío => usar proxy '/api'
-
-function apiUrl(path: string): string {
-  if (/^https?:\/\//i.test(path)) return path;
-  if (PUBLIC_API_BASE) return joinUrl(PUBLIC_API_BASE, path);
-  // Fallback: proxy local del front (ver /src/routes/api/[...path]/+server.ts)
-  return joinUrl('', path.startsWith('api/') ? path : `api/${path.replace(/^\/+/, '')}`);
-}
-
-function unwrapArrayShape(body: unknown): unknown[] {
-  if (Array.isArray(body)) return body;
-  const bodyObj = body as Record<string, unknown>;
-  if (Array.isArray(bodyObj?.data)) return bodyObj.data as unknown[];
-  if (Array.isArray(bodyObj?.items)) return bodyObj.items as unknown[];
-  if (Array.isArray(bodyObj?.conversations)) return bodyObj.conversations as unknown[];
-  if (bodyObj?.data && typeof bodyObj.data === 'object' && bodyObj.data !== null) {
-    const dataObj = bodyObj.data as Record<string, unknown>;
-    if (Array.isArray(dataObj?.conversations)) return dataObj.conversations as unknown[];
-  }
-  return [];
-}
-
-export async function httpGetArray<T = unknown>(
+async function http<T = unknown>(
+  method: HttpMethod,
   path: string,
-  opts: HttpGetOptions = {}
-): Promise<{ list: T[]; raw: unknown; total?: number }> {
+  body?: unknown,
+  init?: RequestInit
+): Promise<T> {
   const url = apiUrl(path);
+  const headers = joinHeaders(init?.headers as Record<string, string>);
+
   const res = await fetch(url, {
-    method: 'GET',
-    credentials: opts.credentials ?? 'include', // importante para cookies
-    headers: { ...(opts.headers || {}) },
+    method,
+    headers,
+    credentials: 'include',
+    body: body !== null ? JSON.stringify(body) : undefined,
+    ...init
   });
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    const hint = text?.trim().startsWith('<!doctype') ? ' (recibido HTML: ¿estabas llamando al dominio del frontend sin proxy?)' : '';
-    throw new Error(`HTTP ${res.status} ${res.statusText}${hint}`);
+  const text = await res.text();
+
+  // Si vino HTML, es error de enrutamiento
+  const looksHtml = text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html');
+  if (!res.ok || looksHtml) {
+    let msg = `HTTP ${res.status}`;
+    try {
+      const data = JSON.parse(text);
+      msg = data?.message || data?.error || msg;
+      throw new Error(msg);
+    } catch {
+      throw new Error(looksHtml ? `RUTA INVÁLIDA (HTML recibido) - ${msg}` : msg);
+    }
   }
 
-  const totalHeader = res.headers.get('X-Total-Count');
-  const total = totalHeader ? Number(totalHeader) : undefined;
+  return text ? (JSON.parse(text) as T) : (undefined as T);
+}
 
-  let body: unknown = {};
-  try { body = await res.json(); } catch { body = {}; }
+export const httpGet = <T = unknown>(path: string, init?: RequestInit) =>
+  http<T>('GET', cleanPath(path), undefined, init);
 
-  return { list: unwrapArrayShape(body) as T[], raw: body, total };
-} 
+export const httpGetArray = <T = unknown>(path: string, init?: RequestInit) =>
+  http<T[]>('GET', cleanPath(path), undefined, init);
+
+export const httpPost = <T = unknown>(path: string, body?: unknown, init?: RequestInit) =>
+  http<T>('POST', cleanPath(path), body, init);
+
+export const httpPut = <T = unknown>(path: string, body?: unknown, init?: RequestInit) =>
+  http<T>('PUT', cleanPath(path), body, init);
+
+export const httpPatch = <T = unknown>(path: string, body?: unknown, init?: RequestInit) =>
+  http<T>('PATCH', cleanPath(path), body, init);
+
+export const httpDelete = <T = unknown>(path: string, init?: RequestInit) =>
+  http<T>('DELETE', cleanPath(path), undefined, init); 

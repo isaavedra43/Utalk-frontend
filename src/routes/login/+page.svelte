@@ -6,7 +6,7 @@
   import CardTitle from '$lib/components/ui/card/card-title.svelte';
   import Card from '$lib/components/ui/card/card.svelte';
   import Input from '$lib/components/ui/input/input.svelte';
-  import { buildApiUrl, getAuthHeaders, validateAuthResponse } from '$lib/config/api';
+  import { apiUrl } from '$lib/config/api';
   import { authStore } from '$lib/stores/auth.store';
 
   // Variables reactivas
@@ -29,14 +29,17 @@
       // eslint-disable-next-line no-console
       console.log('🚀 LOGIN CLIENT - Iniciando autenticación directa al backend');
 
-      const loginUrl = buildApiUrl('/auth/login');
+      const loginUrl = apiUrl('auth/login');
 
       // eslint-disable-next-line no-console
       console.log('📡 LOGIN CLIENT - URL del backend:', loginUrl);
 
       const response = await fetch(loginUrl, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
         body: JSON.stringify({
           email,
           password
@@ -68,7 +71,7 @@
       );
 
       // Validar respuesta del backend
-      if (!validateAuthResponse(result)) {
+      if (!result || !result.success || !result.accessToken) {
         // eslint-disable-next-line no-console
         console.warn('⚠️ LOGIN CLIENT - Respuesta inválida del backend');
         error = 'Respuesta inválida del servidor';

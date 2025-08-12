@@ -19,6 +19,7 @@ function buildTargetUrl(event: RequestEvent): string {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function copyHeaders(src: any, omit: string[] = []): any {
   const out = new (globalThis as any).Headers();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   src.forEach((v: any, k: any) => {
     if (!omit.includes(k.toLowerCase())) out.set(k, v);
   });
