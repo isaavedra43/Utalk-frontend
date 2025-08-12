@@ -24,6 +24,7 @@ import {
     validateMessageContent
 } from '$lib/utils/message-helpers';
 import { extractApiError, get } from '$lib/utils/store-helpers';
+import { toDateSafe } from '$lib/utils/time';
 import { generateUUID } from '$lib/utils/uuid';
 import { writable } from 'svelte/store';
 import { authStore } from './auth.store';
@@ -151,8 +152,8 @@ const createMessagesStore = () => {
 
                 // Ordenar mensajes cronológicamente (más viejo arriba, más nuevo abajo)
                 const sortedMessages = response.data.data.messages.sort((a: any, b: any) => {
-                    const dateA = new Date(a.timestamp || a.createdAt || 0);
-                    const dateB = new Date(b.timestamp || b.createdAt || 0);
+                    const dateA = new Date(toDateSafe(a.timestamp || a.createdAt) || 0);
+                    const dateB = new Date(toDateSafe(b.timestamp || b.createdAt) || 0);
                     return dateA.getTime() - dateB.getTime();
                 });
 
@@ -211,8 +212,8 @@ const createMessagesStore = () => {
                         // Ordenar todos los mensajes cronológicamente
                         const allMessages = [...state.messages, ...response.data.data.messages];
                         const sortedMessages = allMessages.sort((a: any, b: any) => {
-                            const dateA = new Date(a.timestamp || a.createdAt || 0);
-                            const dateB = new Date(b.timestamp || b.createdAt || 0);
+                            const dateA = new Date(toDateSafe(a.timestamp || a.createdAt) || 0);
+                            const dateB = new Date(toDateSafe(b.timestamp || b.createdAt) || 0);
                             return dateA.getTime() - dateB.getTime();
                         });
 

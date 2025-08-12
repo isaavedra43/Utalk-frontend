@@ -13,11 +13,29 @@
  */
 
 import { wsUrl } from '$lib/config/api';
+import { toDateSafe } from '$lib/utils/time';
 import { io, type Socket } from 'socket.io-client';
 import { getAccessToken, setAccessToken } from '../stores/auth.store';
 import { conversationsStore } from '../stores/conversations.store';
 import { messagesStore } from '../stores/messages.store';
 import { normalizeConvId } from './transport';
+
+// Función para normalizar mensajes con timestamps y conversationId
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizeMessage(raw: any, conversationId: string): any {
+  return {
+    id: raw.id,
+    conversationId,
+    content: raw.content || raw.text || '',
+    sender: raw.sender || raw.senderIdentifier || 'unknown',
+    type: raw.type || 'text',
+    status: raw.status || 'sent',
+    timestamp: toDateSafe(raw.timestamp || raw.createdAt || raw.updatedAt),
+    createdAt: toDateSafe(raw.createdAt || raw.timestamp),
+    updatedAt: toDateSafe(raw.updatedAt || raw.timestamp),
+    ...raw // mantener otros campos
+  };
+}
 
 export type ChatListeners = {
   onNewMessage?: (payload: unknown) => void;
@@ -118,31 +136,36 @@ export function connectSocket() {
     }
   });
 
-  // NUEVO handler unificado para mensajes
+  // Handler unificado para mensajes con normalización completa
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleInboundMessage = (payload: any) => {
     // 1) Unwrap: preferir payload.message; fallback al propio payload
-    const msg = payload?.message ?? payload;
-    const convId = payload?.conversationId ?? msg?.conversationId;
+    const raw = payload?.message ?? payload;
+    const convIdRaw = payload?.conversationId ?? raw?.conversationId;
 
-    if (!msg?.id || !convId) {
+    if (!raw?.id || !convIdRaw) {
       console.debug('RT:MSG_DROP', { reason: 'missing id/convId', keys: Object.keys(payload || {}) });
       return;
     }
 
     // 2) Normalizar conversationId
-    const normalizedConvId = normalizeConvId(convId);
-    msg.conversationId = normalizedConvId;
+    const convId = normalizeConvId(convIdRaw);
+    
+    // 3) Normalizar mensaje completo
+    const msg = normalizeMessage(raw, convId);
 
-    // 3) De-duplicación por message.id
+    // 4) De-duplicación por message.id
     if (messagesStore.has(msg.id)) {
       console.debug('RT:MSG_DUPLICATE', { messageId: msg.id });
       return;
     }
 
-    console.debug('RT:MSG_IN', { messageId: msg.id, conversationId: normalizedConvId });
+    console.debug('RT:MSG_IN', { messageId: msg.id, conversationId: convId });
 
-    // 4) Actualizar stores con el MENSAJE (no el wrapper)
+    // 5) Actualizar stores con el mensaje normalizado
+    messagesStore.addMessage(msg);
+    conversationsStore.addMessage(convId, msg);
+    
     for (const l of listenerSet) l.onNewMessage?.(msg);
   };
 

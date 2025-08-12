@@ -3,8 +3,8 @@
  * Capa thin que maneja envío y normalización de respuestas
  */
 
-import { api } from './axios';
-import { encodeConvIdForUrl, mapApiError, normalizeApiResponse } from './transport';
+import { httpPost } from '$lib/api/http';
+import { encodeConvIdForUrl } from './transport';
 
 export interface MessagePayload {
     messageId?: string;
@@ -37,27 +37,26 @@ export async function sendOutboundMessage(
     payload: MessagePayload
 ): Promise<SendResult> {
     try {
-        const url = `conversations/${encodeConvIdForUrl(conversationId)}/messages`;
-
-        const response = await api.post(url, payload, {
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        const normalized = normalizeApiResponse(response);
-
-        if (!normalized.ok) {
-            throw new Error('Respuesta no exitosa del servidor');
-        }
+        const path = `conversations/${encodeConvIdForUrl(conversationId)}/messages`;
+        
+        const response = await httpPost<any>(path, payload);
 
         return {
-            message: normalized.message,
-            conversation: normalized.conversation,
-            info: normalized.info
+            message: response?.message,
+            conversation: response?.conversation,
+            info: response?.info
         };
     } catch (error: any) {
-        const apiError = mapApiError(error);
-        throw new Error(apiError.message);
+        // Mapeo de errores del backend
+        if (error.message?.includes('MISSING_TOKEN')) {
+            throw new Error('Sesión inválida/expirada. Vuelve a iniciar sesión.');
+        }
+        if (error.message?.includes('VALIDATION_ERROR')) {
+            throw new Error('Datos del mensaje inválidos. Verifica el contenido.');
+        }
+        if (error.message?.includes('CONVERSATION_NOT_FOUND')) {
+            throw new Error('La conversación no existe o no tienes acceso.');
+        }
+        throw new Error('No se pudo enviar el mensaje. Intenta nuevamente.');
     }
 } 
