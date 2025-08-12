@@ -388,9 +388,9 @@ const createMessagesStore = () => {
                         await executeUpdate(() => {
                             update(state => ({
                                 ...state,
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 messages: state.messages.map(m =>
                                     m.id === tempId
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         ? { ...result.message, status: 'sent' } as any
                                         : m
                                 )

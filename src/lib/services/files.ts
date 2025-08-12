@@ -16,7 +16,7 @@ export interface Attachment {
 
 export interface UploadOptions {
   onProgress?: (percent: number) => void;
-  signal?: any; // AbortSignal type
+  signal?: globalThis.AbortSignal;
 }
 
 export interface UploadResult {
