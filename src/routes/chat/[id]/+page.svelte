@@ -88,9 +88,8 @@
         hasMore = state.pagination?.hasMore || false;
       });
 
-      // Cargar conversaciones iniciales
-      logChat('chat component: loading initial conversations');
-      await conversationsStore.loadConversations();
+      // Conversaciones ya cargadas por +layout.svelte
+      logChat('chat component: conversations already loaded by layout');
 
       // Seleccionar la conversación de la URL
       if (currentId) {
@@ -138,27 +137,10 @@
     }
   });
 
-  // Función para cargar conversaciones
-  async function loadConversations() {
-    logChat('loadConversations: start');
-
-    try {
-      await conversationsStore.loadConversations();
-
-      // Suscribirse a cambios en conversaciones
-      conversationsStore.subscribe(state => {
-        conversations = state.conversations;
-        logChat('loadConversations: conversations updated', {
-          count: conversations.length
-        });
-      });
-    } catch (err: any) {
-      logChat('loadConversations: error', {
-        error: err.message
-      });
-      notificationsStore.error('Error al cargar conversaciones');
-    }
-  }
+  // Función para cargar conversaciones (ya no necesaria - lo maneja el layout)
+  // async function loadConversations() {
+  //   // REMOVIDO: ya se carga en +layout.svelte
+  // }
 
   // Función para seleccionar conversación
   async function selectConversation(conversation: any) {

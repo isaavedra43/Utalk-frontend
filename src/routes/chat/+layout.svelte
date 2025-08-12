@@ -32,6 +32,8 @@
     }
 
     // Cargar conversaciones y configurar redirección
+    // eslint-disable-next-line no-console
+    console.info('LOAD_CONV_FROM_LAYOUT');
     loadConversations();
   });
 

@@ -16,7 +16,7 @@
   import { conversationsStore } from '$lib/stores/conversations.store';
   import { messagesStore } from '$lib/stores/messages.store';
   import { notificationsStore } from '$lib/stores/notifications.store';
-  import { onMount } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
 
   let loading = true;
   let conversations: any[] = [];
@@ -29,6 +29,7 @@
   let fileInputEl: HTMLInputElement;
   let messagesContainer: HTMLElement;
   let conversationsContainer: HTMLElement;
+  let unsubscribe: (() => void) | undefined;
 
   function openConversation(c: any) {
     if (!c?.id) return;
@@ -55,6 +56,13 @@
   }
 
   onMount(() => {
+    // Suscribirse al store de conversaciones
+    unsubscribe = conversationsStore.subscribe((state) => {
+      conversations = state.conversations ?? [];
+      // eslint-disable-next-line no-console
+      console.info('UI_CONV_LEN', conversations?.length ?? -1);
+    });
+
     // Verificar si el usuario está autenticado
     authStore.subscribe(state => {
       if (state.isAuthenticated && state.user) {
@@ -65,6 +73,10 @@
         goto('/login');
       }
     });
+  });
+
+  onDestroy(() => {
+    unsubscribe?.();
   });
 
   // REMOVIDO: loadConversations() - ya se carga en +layout.svelte
