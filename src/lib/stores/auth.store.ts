@@ -12,6 +12,29 @@ import type { AuthState, User } from '$lib/types';
 import { logStore } from '$lib/utils/logger';
 import { get, writable } from 'svelte/store';
 
+// Token en memoria y localStorage
+let _token: string | null = null;
+const KEY = 'utalk.accessToken';
+
+// Función para obtener token actual
+export function getAccessToken(): string | null {
+  return _token ?? localStorage.getItem(KEY);
+}
+
+// Función para establecer token
+export function setAccessToken(t: string) {
+  _token = t || null;
+  if (t) localStorage.setItem(KEY, t); else localStorage.removeItem(KEY);
+  
+  logStore('auth: setAccessToken', { hasToken: !!t });
+}
+
+// Función para limpiar autenticación
+export function clearAuth() { 
+  setAccessToken('');
+  authStore.clear();
+}
+
 const createAuthStore = () => {
   const initialState: AuthState = {
     user: null,
@@ -31,7 +54,7 @@ const createAuthStore = () => {
         userRole: user.role
       });
 
-      localStorage.setItem('utalk_access_token', token);
+      setAccessToken(token);
       if (refreshToken) {
         localStorage.setItem('refreshToken', refreshToken);
       }
@@ -64,26 +87,24 @@ const createAuthStore = () => {
 
     setToken: (token: string) => {
       logStore('auth: setToken');
-
-      localStorage.setItem('utalk_access_token', token);
+      setAccessToken(token);
       update(state => ({ ...state, token }));
     },
 
     getToken: (): string | null => {
-      const state = get({ subscribe });
-      return state.token || localStorage.getItem('utalk_access_token');
+      return getAccessToken();
     },
 
     clear: () => {
       logStore('auth: clear');
-      localStorage.removeItem('utalk_access_token');
+      localStorage.removeItem(KEY);
       localStorage.removeItem('refreshToken');
       set(initialState);
     },
 
     // Función para validar si el token existe y no ha expirado
     validateToken: (): boolean => {
-      const token = localStorage.getItem('utalk_access_token');
+      const token = getAccessToken();
       if (!token) return false;
 
       try {
@@ -153,7 +174,7 @@ const createAuthStore = () => {
 
     // Función para validar sesión con el backend
     validateSession: async () => {
-      const token = localStorage.getItem('utalk_access_token');
+      const token = getAccessToken();
       if (!token) {
         logStore('auth: no hay token en localStorage');
         return false;
@@ -196,7 +217,7 @@ const createAuthStore = () => {
 
     // Función para inicializar desde localStorage
     initialize: async () => {
-      const token = localStorage.getItem('utalk_access_token');
+      const token = getAccessToken();
       if (token && authStore.validateToken()) {
         logStore('auth: inicializando desde localStorage');
 

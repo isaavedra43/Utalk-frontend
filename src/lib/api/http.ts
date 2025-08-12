@@ -1,46 +1,55 @@
 // Utalk-frontend/src/lib/api/http.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { apiUrl, cleanPath } from '$lib/config/api';
-import { authStore } from '$lib/stores/auth.store';
+import { apiUrl } from '$lib/config/api';
+import { getAccessToken, setAccessToken } from '$lib/stores/auth.store';
 
-type Json = Record<string, any> | any[] | null;
 
-function isHtml(s: string | undefined) {
-  if (!s) return false;
-  const t = s.trim().toLowerCase();
-  return t.startsWith('<!doctype') || t.startsWith('<html');
-}
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function authHeaders(extra?: any): any {
-  const token = authStore.getToken();
-  return token ? { ...(extra || {}), Authorization: `Bearer ${token}` } : (extra || {});
-}
-
-async function doFetch<T = any>(method: string, path: string, body?: Json, init?: RequestInit): Promise<T> {
-  const url = apiUrl(path); // SIEMPRE Railway
+async function rawFetch(method: string, path: string, body?: any, init?: RequestInit) {
+  const url = apiUrl(path);
+  const token = getAccessToken();
   const res = await fetch(url, {
     method,
-    credentials: 'include',              // <— cookies cross-site
-    headers: authHeaders({
+    credentials: 'include',
+    headers: {
       'Accept': 'application/json',
-      ...(body !== null ? { 'Content-Type': 'application/json' } : {}),
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       ...(init?.headers || {})
-    }),
-    body: body !== null ? JSON.stringify(body) : undefined,
+    },
+    body: body ? JSON.stringify(body) : undefined,
     ...init
   });
-
-  const raw = await res.text();          // evita conflictos de encoding
-  if (!res.ok || isHtml(raw)) {
-    throw new Error(`HTTP ${res.status} - ${raw?.slice(0, 400)}`);
-  }
-  return raw ? JSON.parse(raw) as T : (null as T);
+  return res;
 }
 
-// Helpers públicos
-export const httpGet    = <T = any>(path: string, init?: RequestInit) => doFetch<T>('GET',    cleanPath(path), undefined, init);
-export const httpPost   = <T = any>(path: string, body?: Json, init?: RequestInit) => doFetch<T>('POST',   cleanPath(path), body, init);
-export const httpPut    = <T = any>(path: string, body?: Json, init?: RequestInit) => doFetch<T>('PUT',    cleanPath(path), body, init);
-export const httpPatch  = <T = any>(path: string, body?: Json, init?: RequestInit) => doFetch<T>('PATCH',  cleanPath(path), body, init);
-export const httpDelete = <T = any>(path: string, body?: Json, init?: RequestInit) => doFetch<T>('DELETE', cleanPath(path), body, init); 
+async function fetchJson(method: string, path: string, body?: any, init?: RequestInit, _retry = false) {
+  const res = await rawFetch(method, path, body, init);
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+
+  if (res.ok) return data;
+
+  // intento de refresh sólo una vez ante 401
+  if (res.status === 401 && !_retry) {
+    try {
+      const r = await rawFetch('POST', 'auth/refresh');
+      const t = await r.json().catch(() => null);
+      if (r.ok && t?.accessToken) {
+        setAccessToken(t.accessToken);
+        return fetchJson(method, path, body, init, true);
+      }
+          } catch {
+        // Ignorar errores de refresh
+      }
+  }
+  // si llega aquí, error definitivo
+  if (data?.message) throw new Error(`HTTP ${res.status} - ${data.message}`);
+  throw new Error(`HTTP ${res.status} - ${text?.slice(0, 300)}`);
+}
+
+export const httpGet = <T = any>(p: string) => fetchJson('GET', p) as Promise<T>;
+export const httpPost = <T = any>(p: string, b?: any) => fetchJson('POST', p, b) as Promise<T>;
+export const httpPut = <T = any>(p: string, b?: any) => fetchJson('PUT', p, b) as Promise<T>;
+export const httpPatch = <T = any>(p: string, b?: any) => fetchJson('PATCH', p, b) as Promise<T>;
+export const httpDelete = <T = any>(p: string) => fetchJson('DELETE', p) as Promise<T>; 

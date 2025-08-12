@@ -12,9 +12,9 @@
  * - disconnect/reconnect: Manejo de reconexión automática
  */
 
-import { API_BASE } from '$lib/config/api';
+import { wsUrl } from '$lib/config/api';
 import { io, type Socket } from 'socket.io-client';
-import { authStore } from '../stores/auth.store';
+import { getAccessToken, setAccessToken } from '../stores/auth.store';
 import { conversationsStore } from '../stores/conversations.store';
 import { messagesStore } from '../stores/messages.store';
 import { normalizeConvId } from './transport';
@@ -29,7 +29,7 @@ const listenerSet: Set<ChatListeners> = new Set();
 
 // Función para obtener token actual
 function getCurrentToken(): string | null {
-  return authStore.getToken();
+  return getAccessToken();
 }
 
 // Función para refrescar token si es necesario
@@ -42,7 +42,7 @@ export async function refreshTokenIfNeeded(): Promise<boolean> {
       const data = await httpPost<{ token?: string }>('auth/refresh', { refreshToken });
       
       if (data && data.token) {
-        authStore.setToken(data.token);
+        setAccessToken(data.token);
         return true;
       }
     }
@@ -78,14 +78,10 @@ export function connectSocket() {
     return;
   }
 
-  socket = io(API_BASE, {
-    transports: ['websocket', 'polling'],
-    auth: { token },
-    reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
-    withCredentials: true
+  socket = io(wsUrl('socket.io'), {
+    transports: ['websocket'],
+    withCredentials: true,
+    auth: token ? { token } : undefined
   });
 
   // Listeners básicos con telemetría RT

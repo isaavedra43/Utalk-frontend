@@ -7,7 +7,7 @@
   import CardTitle from '$lib/components/ui/card/card-title.svelte';
   import Card from '$lib/components/ui/card/card.svelte';
   import Input from '$lib/components/ui/input/input.svelte';
-  import { authStore } from '$lib/stores/auth.store';
+  import { authStore, setAccessToken } from '$lib/stores/auth.store';
 
   // Variables reactivas
   let email = '';
@@ -63,6 +63,9 @@
         performance: data.user.performance
       };
 
+      // Guardar el accessToken
+      setAccessToken(data.accessToken);
+      
       // Actualizar el store de autenticación
       authStore.login(user, data.accessToken, data.refreshToken);
 
