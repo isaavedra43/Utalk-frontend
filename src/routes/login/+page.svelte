@@ -39,6 +39,9 @@
       if (!data || !data.success || !data.accessToken) {
         // eslint-disable-next-line no-console
         console.warn('⚠️ LOGIN CLIENT - Respuesta inválida del backend');
+        if (!data?.accessToken) {
+          throw new Error('Login OK pero sin accessToken en el body. Revisa nombre del campo en back.');
+        }
         error = 'Credenciales incorrectas';
         return;
       }

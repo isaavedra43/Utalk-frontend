@@ -1,6 +1,7 @@
 // Utalk-frontend/src/lib/api/http.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { apiUrl, cleanPath } from '$lib/config/api';
+import { authStore } from '$lib/stores/auth.store';
 
 type Json = Record<string, any> | any[] | null;
 
@@ -10,16 +11,22 @@ function isHtml(s: string | undefined) {
   return t.startsWith('<!doctype') || t.startsWith('<html');
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function authHeaders(extra?: any): any {
+  const token = authStore.getToken();
+  return token ? { ...(extra || {}), Authorization: `Bearer ${token}` } : (extra || {});
+}
+
 async function doFetch<T = any>(method: string, path: string, body?: Json, init?: RequestInit): Promise<T> {
   const url = apiUrl(path); // SIEMPRE Railway
   const res = await fetch(url, {
     method,
     credentials: 'include',              // <— cookies cross-site
-    headers: {
+    headers: authHeaders({
       'Accept': 'application/json',
       ...(body !== null ? { 'Content-Type': 'application/json' } : {}),
       ...(init?.headers || {})
-    },
+    }),
     body: body !== null ? JSON.stringify(body) : undefined,
     ...init
   });

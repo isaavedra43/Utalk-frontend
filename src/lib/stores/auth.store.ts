@@ -31,7 +31,7 @@ const createAuthStore = () => {
         userRole: user.role
       });
 
-      localStorage.setItem('accessToken', token);
+      localStorage.setItem('utalk_access_token', token);
       if (refreshToken) {
         localStorage.setItem('refreshToken', refreshToken);
       }
@@ -65,18 +65,25 @@ const createAuthStore = () => {
     setToken: (token: string) => {
       logStore('auth: setToken');
 
-      localStorage.setItem('accessToken', token);
+      localStorage.setItem('utalk_access_token', token);
       update(state => ({ ...state, token }));
+    },
+
+    getToken: (): string | null => {
+      const state = get({ subscribe });
+      return state.token || localStorage.getItem('utalk_access_token');
     },
 
     clear: () => {
       logStore('auth: clear');
+      localStorage.removeItem('utalk_access_token');
+      localStorage.removeItem('refreshToken');
       set(initialState);
     },
 
     // Función para validar si el token existe y no ha expirado
     validateToken: (): boolean => {
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem('utalk_access_token');
       if (!token) return false;
 
       try {
@@ -146,7 +153,7 @@ const createAuthStore = () => {
 
     // Función para validar sesión con el backend
     validateSession: async () => {
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem('utalk_access_token');
       if (!token) {
         logStore('auth: no hay token en localStorage');
         return false;
@@ -189,7 +196,7 @@ const createAuthStore = () => {
 
     // Función para inicializar desde localStorage
     initialize: async () => {
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem('utalk_access_token');
       if (token && authStore.validateToken()) {
         logStore('auth: inicializando desde localStorage');
 

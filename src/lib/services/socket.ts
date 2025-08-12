@@ -14,7 +14,6 @@
 
 import { API_BASE } from '$lib/config/api';
 import { io, type Socket } from 'socket.io-client';
-import { get } from 'svelte/store';
 import { authStore } from '../stores/auth.store';
 import { conversationsStore } from '../stores/conversations.store';
 import { messagesStore } from '../stores/messages.store';
@@ -30,8 +29,7 @@ const listenerSet: Set<ChatListeners> = new Set();
 
 // Función para obtener token actual
 function getCurrentToken(): string | null {
-  const auth = get(authStore);
-  return auth?.token || localStorage.getItem('token');
+  return authStore.getToken();
 }
 
 // Función para refrescar token si es necesario
