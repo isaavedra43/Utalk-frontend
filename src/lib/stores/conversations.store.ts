@@ -9,6 +9,7 @@
  * - Prioridades: low, normal, high, urgent
  */
 
+import { fetchConversations } from '$lib/api/conversations';
 import { api } from '$lib/services/axios';
 import { normalizeConvId } from '$lib/services/transport';
 import type {
@@ -30,7 +31,7 @@ const createConversationsStore = () => {
         filters: {}
     };
 
-    const { subscribe, set, update } = writable<ConversationsState>(initialState);
+    const { subscribe, update } = writable<ConversationsState>(initialState);
 
     // Función para reordenar conversaciones por updatedAt
     const reorderConversations = (conversations: Conversation[]): Conversation[] => {
@@ -59,44 +60,46 @@ const createConversationsStore = () => {
             update(state => ({ ...state, loading: true, error: null }));
 
             try {
-                const params = new URLSearchParams();
-                if (filters.limit) params.append('limit', filters.limit.toString());
-                if ((filters as any).cursor) params.append('cursor', (filters as any).cursor);
-                if (filters.status) params.append('status', filters.status);
-                if (filters.search) params.append('search', filters.search);
-
                 const startTime = performance.now();
-                const response = await api.get<any>(`/conversations?${params.toString()}`);
+                const { items, total } = await fetchConversations();
                 const endTime = performance.now();
 
                 logApi('loadConversations: API success', {
                     responseTime: `${(endTime - startTime).toFixed(2)}ms`,
-                    conversationCount: response.data.data.conversations.length,
-                    pagination: response.data.data.pagination
+                    conversationCount: items.length,
+                    total
                 });
 
-                // Procesar y ordenar conversaciones
-                const conversations = response.data.data.conversations
-                    .map((c: any) => ({
-                        id: c.id || '',
-                        participants: c.participants || [],
-                        customerPhone: c.customerPhone || c.contact?.phone || '',
-                        lastMessage: c.lastMessage || null,
-                        lastMessageAt: c?.lastMessageAt ?? c?.lastMessage?.timestamp ?? c?.updatedAt ?? null,
-                        updatedAt: c.updatedAt || c.lastMessageAt || new Date().toISOString(),
-                        messageCount: c.messageCount || 0,
-                        unreadCount: c.unreadCount || 0,
-                        status: c.status || 'active',
-                        displayName: c.displayName || c.contact?.name || c.customerPhone || 'Sin nombre'
-                    }))
-                    .filter((c: any) => c.id && c.customerPhone);
+                // Convertir ConversationUI a Conversation para mantener compatibilidad
+                const conversations = items.map((item) => ({
+                    id: item.id,
+                    participants: item.participants,
+                    customerPhone: item.phone || '',
+                    lastMessage: item.lastText ? {
+                        id: 'temp',
+                        content: item.lastText,
+                        timestamp: item.lastAt?.toISOString() || new Date().toISOString(),
+                        sender: 'customer',
+                        type: 'text',
+                        status: 'sent'
+                    } : null,
+                    lastMessageAt: item.lastAt?.toISOString() || undefined,
+                    updatedAt: item.updatedAt?.toISOString() || new Date().toISOString(),
+                    messageCount: 0,
+                    unreadCount: item.unread,
+                    status: item.status as 'open' | 'pending' | 'resolved' | 'archived',
+                    displayName: item.title,
+                    priority: 'normal' as const,
+                    tags: [],
+                    createdAt: item.updatedAt?.toISOString() || new Date().toISOString()
+                })) as Conversation[];
 
                 const sortedConversations = reorderConversations(conversations);
 
                 update(state => ({
                     ...state,
                     conversations: sortedConversations,
-                    pagination: response.data.data.pagination || null,
+                    pagination: null, // Por ahora sin paginación
                     filters,
                     loading: false,
                     error: null
@@ -108,13 +111,13 @@ const createConversationsStore = () => {
                     conversationsStore.selectConversation(sortedConversations[0].id);
                 }
             } catch (error: unknown) {
-                const apiError = extractApiError(error);
-                logError('loadConversations: API error', 'CONVERSATIONS', new Error(apiError.message));
-
+                // eslint-disable-next-line no-console
+                console.debug('CONVERSATIONS_LOAD_ERROR', { message: error instanceof Error ? error.message : String(error) });
+                
                 update(state => ({
                     ...state,
                     loading: false,
-                    error: apiError.message
+                    error: error instanceof Error ? error.message : 'No se pudieron cargar las conversaciones'
                 }));
             }
         },
@@ -141,6 +144,7 @@ const createConversationsStore = () => {
             });
         },
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         addMessage: (conversationId: string, message: any) => {
             const normalizedId = normalizeConvId(conversationId);
             const activeConversationId = getActiveConversationId();
@@ -253,9 +257,11 @@ const createConversationsStore = () => {
                 }
                 params.append('limit', currentState.pagination.limit.toString());
 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const response = await api.get<any>(`/conversations?${params.toString()}`);
 
                 const newConversations = response.data.data.conversations
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     .map((c: any) => ({
                         id: c.id || '',
                         participants: c.participants || [],
@@ -268,6 +274,7 @@ const createConversationsStore = () => {
                         status: c.status || 'active',
                         displayName: c.displayName || c.contact?.name || c.customerPhone || 'Sin nombre'
                     }))
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     .filter((c: any) => c.id && c.customerPhone);
 
                 update(state => {
