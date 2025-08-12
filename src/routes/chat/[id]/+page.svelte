@@ -29,7 +29,6 @@
   import { messagesStore } from '$lib/stores/messages.store';
   import { notificationsStore } from '$lib/stores/notifications.store';
   import { presenceStore } from '$lib/stores/presence.store';
-  import { typingStore } from '$lib/stores/typing.store';
   import { safeDateToISOString } from '$lib/utils/dates';
   import { logChat } from '$lib/utils/logger';
   import { validateFileUpload, validateMessage } from '$lib/utils/validation';
@@ -60,7 +59,6 @@
   // Suscripciones a stores
   let conversations: any[] = [];
   let messages: any[] = [];
-  let typingText = '';
 
   // Configuración de paginación
   let loadingMore = false;
@@ -128,12 +126,7 @@
   // Eliminar suscripciones duplicadas y listeners redundantes
   // (selectConversation y loadMessages mantienen su uso si se selecciona desde la lista)
 
-  // Suscripción al store de indicadores de escritura
-  typingStore.subscribe(() => {
-    if (selectedConversation) {
-      typingText = typingStore.getTypingText(selectedConversation.id);
-    }
-  });
+  // Suscripción al store de indicadores de escritura (removida - no se usa typingText)
 
   // Función para cargar conversaciones (ya no necesaria - lo maneja el layout)
   // async function loadConversations() {
@@ -214,36 +207,7 @@
     }
   }
 
-  // Función para cargar más mensajes (paginación)
-  async function loadMoreMessages() {
-    logChat('loadMoreMessages: start', {
-      loadingMore,
-      hasMore,
-      selectedConversationId: selectedConversation?.id
-    });
-
-    if (loadingMore || !hasMore || !selectedConversation) {
-      logChat('loadMoreMessages: skipped', {
-        reason: loadingMore ? 'already_loading' : !hasMore ? 'no_more_data' : 'no_conversation'
-      });
-      return;
-    }
-
-    try {
-      loadingMore = true;
-      logChat('loadMoreMessages: calling store method');
-      await messagesStore.loadMoreMessages();
-      logChat('loadMoreMessages: completed successfully');
-    } catch (err: any) {
-      logChat('loadMoreMessages: error', {
-        error: err.message,
-        selectedConversationId: selectedConversation?.id
-      });
-      notificationsStore.error('Error al cargar más mensajes');
-    } finally {
-      loadingMore = false;
-    }
-  }
+  // Función para cargar más mensajes (paginación) - removida - no se usa
 
   // Función para reintentar mensaje fallido
   async function retryMessage(messageId: string) {
@@ -264,16 +228,7 @@
     }
   }
 
-  // Configurar listeners de socket
-  function setupSocketListeners() {
-    // Unirse a la conversación actual
-    if (selectedConversation) {
-      joinConversation(selectedConversation.id);
-    }
-
-    // Los eventos de socket se manejan automáticamente en el SocketManager
-    // y actualizan los stores correspondientes
-  }
+  // Configurar listeners de socket - removida - no se usa
 
   // Función para manejar cambios en el input de mensaje
   function handleMessageInput() {
@@ -448,17 +403,7 @@
     }
   }
 
-  // Función para manejar progreso de upload
-  function handleUploadProgress(filename: string, progress: number) {
-    uploadProgress[filename] = progress;
-    uploadProgress = { ...uploadProgress }; // Trigger reactivity
-  }
-
-  // Función para limpiar progreso de upload
-  function clearUploadProgress(filename: string) {
-    delete uploadProgress[filename];
-    uploadProgress = { ...uploadProgress }; // Trigger reactivity
-  }
+  // Funciones de progreso de upload - removidas - no se usan
 
   // Funciones para SearchAndFilters (removidas - no se usan en el template)
 </script>
