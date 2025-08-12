@@ -170,3 +170,5 @@ export const logChat = (message: string, data?: LogData) => logger.chat(message,
 // Funciones de conveniencia que aceptan error como segundo parámetro
 export const logErrorWithContext = (message: string, context: string, error?: Error, data?: LogData) => logger.error(message, context, error, data);
 export const logWarnWithContext = (message: string, context: string, data?: LogData) => logger.warn(message, context, data); 
+
+ 

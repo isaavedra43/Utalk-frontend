@@ -6,19 +6,37 @@
 import { httpPost } from '$lib/api/http';
 import { encodeConvIdForUrl } from './transport';
 
+// Tipos locales para evitar dependencias circulares
+interface Message {
+  id: string;
+  conversationId: string;
+  type: 'text' | 'file';
+  content: string | null;
+  attachments: Array<{ id: string; url: string; mime: string; name: string; size: number; type: string }>;
+  senderId: string;
+  createdAt: string;
+  updatedAt?: string;
+  status?: 'pending' | 'sent' | 'failed';
+}
+
+interface SendMessageResult {
+  success: boolean;
+  message: Message;
+}
+
 export interface MessagePayload {
     messageId?: string;
     type: 'text' | 'file';
     content: string;
     senderIdentifier: string;
     recipientIdentifier: string;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
     attachments?: Array<{ id: string }>;
 }
 
 export interface SendResult {
-    message?: any;
-    conversation?: any;
+    message?: Message;
+    conversation?: unknown;
     info?: string;
 }
 
@@ -32,22 +50,24 @@ export async function sendOutboundMessage(
     try {
         const path = `conversations/${encodeConvIdForUrl(conversationId)}/messages`;
         
-        const response = await httpPost<any>(path, payload);
+        const response = await httpPost<SendMessageResult>(path, payload);
 
         return {
             message: response?.message,
-            conversation: response?.conversation,
-            info: response?.info
+            conversation: undefined,
+            info: response?.success ? 'Mensaje enviado exitosamente' : undefined
         };
-    } catch (error: any) {
+    } catch (error: unknown) {
         // Mapeo de errores del backend
-        if (error.message?.includes('MISSING_TOKEN')) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        
+        if (errorMessage.includes('MISSING_TOKEN')) {
             throw new Error('Sesión inválida/expirada. Vuelve a iniciar sesión.');
         }
-        if (error.message?.includes('VALIDATION_ERROR')) {
+        if (errorMessage.includes('VALIDATION_ERROR')) {
             throw new Error('Datos del mensaje inválidos. Verifica el contenido.');
         }
-        if (error.message?.includes('CONVERSATION_NOT_FOUND')) {
+        if (errorMessage.includes('CONVERSATION_NOT_FOUND')) {
             throw new Error('La conversación no existe o no tienes acceso.');
         }
         throw new Error('No se pudo enviar el mensaje. Intenta nuevamente.');
