@@ -39,19 +39,13 @@ export async function refreshTokenIfNeeded(): Promise<boolean> {
   try {
     const refreshToken = localStorage.getItem('refreshToken');
     if (refreshToken) {
-      // Intentar refrescar token usando el endpoint de refresh
-      const response = await fetch('auth/refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.token) {
-          authStore.setToken(data.token);
-          return true;
-        }
+      // Intentar refrescar token usando el cliente HTTP
+      const { httpPost } = await import('$lib/api/http');
+      const data = await httpPost<any>('auth/refresh', { refreshToken });
+      
+      if (data && data.token) {
+        authStore.setToken(data.token);
+        return true;
       }
     }
     return false;

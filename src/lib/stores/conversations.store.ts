@@ -61,17 +61,17 @@ const createConversationsStore = () => {
 
             try {
                 const startTime = performance.now();
-                const { conversations, conversationCount } = await fetchConversations();
+                const data = await fetchConversations();
                 const endTime = performance.now();
 
                 logApi('loadConversations: API success', {
                     responseTime: `${(endTime - startTime).toFixed(2)}ms`,
-                    conversationCount: conversations.length,
-                    total: conversationCount
+                    conversationCount: Array.isArray(data) ? data.length : 0,
+                    total: Array.isArray(data) ? data.length : 0
                 });
 
                 // Convertir Conversation a Conversation para mantener compatibilidad
-                const conversationsList = conversations.map((item: any) => ({
+                const conversationsList = (Array.isArray(data) ? data : []).map((item: any) => ({
                     id: item.id,
                     participants: item.participants,
                     customerPhone: item.phone || '',
