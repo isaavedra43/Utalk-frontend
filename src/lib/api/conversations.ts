@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { apiUrl } from '$lib/config/api';
 import { toDateSafe } from '$lib/utils/time';
 import { httpGet } from './http';
 
@@ -34,7 +35,7 @@ export async function fetchConversations(params: ListParams = {}): Promise<{ ite
   const path = 'conversations' + (searchParams.toString() ? `?${searchParams.toString()}` : '');
 
   // eslint-disable-next-line no-console
-  console.info('CONV DEBUG', { path, url: `https://utalk-backend-production.up.railway.app/api/${path}` });
+  console.info('CONV DEBUG', { path, finalUrl: apiUrl(path) });
 
   const res = await httpGet<any>(path);
   

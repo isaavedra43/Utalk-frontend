@@ -13,6 +13,12 @@ async function rawFetch(method: string, path: string, body?: any, init?: Request
     console.debug('[HTTP]', method, url, { hasToken: !!token });
   }
   
+  // Guard DEV: confirmar URL final correcta
+  if (import.meta.env.DEV) {
+    // eslint-disable-next-line no-console
+    console.debug('[HTTP]', method, url);
+  }
+  
   const res = await fetch(url, {
     method,
     credentials: 'include',

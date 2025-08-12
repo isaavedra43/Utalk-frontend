@@ -67,63 +67,8 @@
     });
   });
 
-  async function loadConversations() {
-    try {
-      loading = true;
-      await conversationsStore.loadConversations();
-
-      // Suscribirse a las conversaciones
-      conversationsStore.subscribe(state => {
-        conversations = state.conversations;
-        loading = state.loading;
-        error = state.error || '';
-
-        // DEBUG-LOG-START(conversations-front)
-        if (
-          typeof window !== 'undefined' &&
-          window.location.search.includes('LOG_VERBOSE_CONVERSATIONS=true')
-        ) {
-          const requiredKeys = ['id', 'lastMessage', 'createdAt'];
-          const firstItem = conversations[0];
-          const missingKeys = firstItem
-            ? requiredKeys.filter(key => !(key in firstItem))
-            : requiredKeys;
-          const requiredKeysPresent = firstItem ? requiredKeys.filter(key => key in firstItem) : [];
-
-          // eslint-disable-next-line no-console
-          console.debug('[CONV][selector][selector:mapped]', {
-            event: 'selector:mapped',
-            layer: 'selector',
-            request: { url: '/conversations', method: 'GET', queryParams: {} },
-            response: {
-              status: null,
-              ok: !error,
-              itemsLength: conversations.length,
-              keysSample: firstItem ? Object.keys(firstItem).slice(0, 3) : []
-            },
-            clientFilters: {
-              inbox: null,
-              status: null,
-              assignedTo: null,
-              search: null,
-              pagination: null
-            },
-            mapping: { requiredKeysPresent, missingKeys },
-            render: {
-              willShowEmptyState: conversations.length === 0,
-              reason:
-                conversations.length === 0 ? 'conversations.length === 0' : 'has conversations'
-            }
-          });
-        }
-        // DEBUG-LOG-END(conversations-front)
-      });
-    } catch (err: any) {
-      error = err?.message || 'Error al cargar conversaciones';
-    } finally {
-      loading = false;
-    }
-  }
+  // REMOVIDO: loadConversations() - ya se carga en +layout.svelte
+  // Evita doble fetch y duplicación de llamadas
 
   async function loadMessages(conversationId: string) {
     try {
@@ -288,7 +233,7 @@
       <h2>Error al cargar conversaciones</h2>
       <p>{error}</p>
       <div class="error-actions">
-        <button type="button" class="retry-button" on:click={loadConversations}>
+        <button type="button" class="retry-button" on:click={() => conversationsStore.loadConversations()}>
           🔄 Reintentar
         </button>
         <button
@@ -310,7 +255,7 @@
       <div class="conversations-panel">
         <div class="panel-header">
           <h2 class="panel-title">💬 Conversaciones</h2>
-          <button type="button" class="refresh-button" on:click={loadConversations}> 🔄 </button>
+          <button type="button" class="refresh-button" on:click={() => conversationsStore.loadConversations()}> 🔄 </button>
         </div>
 
         <div class="conversations-list" bind:this={conversationsContainer}>
