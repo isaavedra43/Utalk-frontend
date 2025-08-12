@@ -51,8 +51,19 @@ const createConversationsStore = () => {
     return {
         subscribe,
 
-        loadConversations: async (filters: ConversationFilters = {}) => {
-            logStore('loadConversations: start', {
+        // Variable para evitar doble disparo
+        loadingOnce: false,
+
+        loadConversationsOnce: async (filters: ConversationFilters = {}) => {
+            if (conversationsStore.loadingOnce) {
+                // eslint-disable-next-line no-console
+                console.debug('CONV: Skipping duplicate load');
+                return;
+            }
+            
+            conversationsStore.loadingOnce = true;
+            
+            logStore('loadConversationsOnce: start', {
                 filters,
                 timestamp: new Date().toISOString()
             });
@@ -61,38 +72,47 @@ const createConversationsStore = () => {
 
             try {
                 const startTime = performance.now();
-                const data = await fetchConversations();
+                // Convertir ConversationFilters a ListParams
+                const listParams = {
+                    page: filters.page,
+                    limit: filters.limit,
+                    status: (filters.status === 'archived' ? 'closed' : filters.status) as 'open' | 'pending' | 'resolved' | 'closed' | 'all' | undefined,
+                    priority: (filters.priority === 'normal' ? 'medium' : filters.priority) as 'low' | 'medium' | 'high' | 'urgent' | undefined,
+                    assignedTo: filters.assignedTo,
+                    search: filters.search
+                };
+                const { items: conversations, total } = await fetchConversations(listParams);
                 const endTime = performance.now();
 
-                logApi('loadConversations: API success', {
+                logApi('loadConversationsOnce: API success', {
                     responseTime: `${(endTime - startTime).toFixed(2)}ms`,
-                    conversationCount: Array.isArray(data) ? data.length : 0,
-                    total: Array.isArray(data) ? data.length : 0
+                    conversationCount: conversations.length,
+                    total
                 });
 
                 // Convertir Conversation a Conversation para mantener compatibilidad
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const conversationsList = (Array.isArray(data) ? data : []).map((item: any) => ({
+                const conversationsList = conversations.map((item: any) => ({
                     id: item.id,
-                    participants: item.participants,
-                    customerPhone: item.phone || '',
-                    lastMessage: item.lastText ? {
-                        id: 'temp',
-                        content: item.lastText,
-                        timestamp: item.lastAt?.toISOString() || new Date().toISOString(),
-                        sender: 'customer',
-                        type: 'text',
-                        status: 'sent'
+                    participants: item.participants || [],
+                    customerPhone: item.customerPhone || item.phone || '',
+                    lastMessage: item.lastMessage ? {
+                        id: item.lastMessage.id || 'temp',
+                        content: item.lastMessage.content || item.lastMessage.text || '',
+                        timestamp: item.lastMessage.timestamp || item.lastMessageAt || new Date().toISOString(),
+                        sender: item.lastMessage.sender || 'customer',
+                        type: item.lastMessage.type || 'text',
+                        status: item.lastMessage.status || 'sent'
                     } : null,
-                    lastMessageAt: item.lastAt?.toISOString() || undefined,
-                    updatedAt: item.updatedAt?.toISOString() || new Date().toISOString(),
-                    messageCount: 0,
-                    unreadCount: item.unread,
+                    lastMessageAt: item.lastMessageAt || item.updatedAt || new Date().toISOString(),
+                    updatedAt: item.updatedAt || new Date().toISOString(),
+                    messageCount: item.messageCount || 0,
+                    unreadCount: item.unreadCount || item.unread || 0,
                     status: item.status as 'open' | 'pending' | 'resolved' | 'archived',
-                    displayName: item.title,
-                    priority: 'normal' as const,
-                    tags: [],
-                    createdAt: item.updatedAt?.toISOString() || new Date().toISOString()
+                    displayName: item.displayName || item.title || item.customerName || 'Sin nombre',
+                    priority: item.priority || 'normal' as const,
+                    tags: item.tags || [],
+                    createdAt: item.createdAt || item.updatedAt || new Date().toISOString()
                 })) as Conversation[];
 
                 const sortedConversations = reorderConversations(conversationsList);
@@ -100,7 +120,7 @@ const createConversationsStore = () => {
                 update(state => ({
                     ...state,
                     conversations: sortedConversations,
-                    pagination: null, // Por ahora sin paginación
+                    pagination: { totalResults: total || 0, hasMore: false, limit: listParams.limit || 20 },
                     filters,
                     loading: false,
                     error: null
@@ -120,7 +140,13 @@ const createConversationsStore = () => {
                     loading: false,
                     error: error instanceof Error ? error.message : 'No se pudieron cargar las conversaciones'
                 }));
+            } finally {
+                conversationsStore.loadingOnce = false;
             }
+        },
+
+        loadConversations: async (filters: ConversationFilters = {}) => {
+            return conversationsStore.loadConversationsOnce(filters);
         },
 
         updateConversation: (conversationId: string, updates: Partial<Conversation>) => {
