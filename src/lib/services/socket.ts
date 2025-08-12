@@ -21,9 +21,9 @@ import { messagesStore } from '../stores/messages.store';
 import { normalizeConvId } from './transport';
 
 export type ChatListeners = {
-  onNewMessage?: (payload: any) => void;
-  onConversationEvent?: (payload: any) => void;
-  onTypingIndicator?: (payload: any) => void;
+  onNewMessage?: (payload: unknown) => void;
+  onConversationEvent?: (payload: unknown) => void;
+  onTypingIndicator?: (payload: unknown) => void;
 };
 
 const listenerSet: Set<ChatListeners> = new Set();
@@ -41,7 +41,7 @@ export async function refreshTokenIfNeeded(): Promise<boolean> {
     if (refreshToken) {
       // Intentar refrescar token usando el cliente HTTP
       const { httpPost } = await import('$lib/api/http');
-      const data = await httpPost<any>('auth/refresh', { refreshToken });
+      const data = await httpPost<{ token?: string }>('auth/refresh', { refreshToken });
       
       if (data && data.token) {
         authStore.setToken(data.token);
