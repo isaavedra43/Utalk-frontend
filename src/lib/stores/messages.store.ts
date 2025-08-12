@@ -301,31 +301,18 @@ const createMessagesStore = () => {
                     metadata: buildMessageMetadata(conversation)
                 };
 
-                // Upload de media si existen archivos (1 por mensaje)
+                // Upload de archivos si existen
                 if (files.length > 0) {
-                    const { uploadFile } = await import('$lib/services/files');
-                    const controller = new AbortController();
-                    const file = files[0];
-
-                    const uploadResult = await uploadFile(file, {
-                        signal: controller.signal,
+                    const { uploadFiles } = await import('$lib/services/files');
+                    
+                    const attachments = await uploadFiles(files, {
                         onProgress: (percent) => {
-                            logStore('sendMessage: upload progress', { percent, filename: file.name });
+                            logStore('sendMessage: upload progress', { percent, fileCount: files.length });
                         }
                     });
 
-                    payload.media = {
-                        fileId: uploadResult.fileId,
-                        mediaUrl: uploadResult.mediaUrl,
-                        mimeType: uploadResult.mimeType,
-                        fileName: uploadResult.fileName,
-                        fileSize: uploadResult.fileSize,
-                        ...(uploadResult.durationMs ? { durationMs: uploadResult.durationMs } : {})
-                    };
-
-                    if (uploadResult.mimeType.startsWith('image/')) payload.type = 'image';
-                    else if (uploadResult.mimeType.startsWith('audio/')) payload.type = 'audio';
-                    else payload.type = 'document';
+                    payload.attachments = attachments.map(a => ({ id: a.id }));
+                    payload.type = 'file';
                 }
 
                 // Inserción optimista

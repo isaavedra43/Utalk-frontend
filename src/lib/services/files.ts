@@ -1,50 +1,60 @@
-import { api } from '$lib/services/axios';
+/**
+ * Servicio de archivos para UTalk Frontend
+ * Flujo canónico: upload → obtener metadatos → enviar mensaje con attachments por ID
+ */
 
-export type UploadProgressCallback = (percent: number) => void;
+import { httpPostMultipart } from '$lib/api/http';
 
-export interface UploadResult {
-    fileId?: string;
-    mediaUrl: string;
-    mimeType: string;
-    fileName: string;
-    fileSize: number;
-    thumbnailUrl?: string;
-    durationMs?: number;
+export interface Attachment {
+  id: string;
+  url: string;
+  mime: string;
+  name: string;
+  size: number;
+  type: 'image' | 'video' | 'audio' | 'file';
 }
 
 export interface UploadOptions {
-    signal?: AbortSignal;
-    onProgress?: UploadProgressCallback;
+  onProgress?: (percent: number) => void;
+  signal?: any; // AbortSignal type
 }
 
-export async function uploadFile(file: File, options: UploadOptions = {}): Promise<UploadResult> {
-    const formData = new FormData();
+export interface UploadResult {
+  attachments: Attachment[];
+}
+
+/**
+ * Subir múltiples archivos y obtener metadatos
+ */
+export async function uploadFiles(files: File[], _options: UploadOptions = {}): Promise<Attachment[]> {
+  if (files.length === 0) return [];
+
+  const formData = new FormData();
+  
+  // Agregar todos los archivos al FormData
+  files.forEach((file) => {
     formData.append('file', file);
+  });
 
-    const response = await api.post<{ success: boolean; data: { id?: string; url: string; mimeType: string; size: number; filename?: string; thumbnailUrl?: string } }>(
-        '/media/upload',
-        formData,
-        {
-            headers: {
-                'Content-Type': 'multipart/form-data'
-            },
-            signal: options.signal,
-            onUploadProgress: (event) => {
-                if (!options.onProgress || !event.total) return;
-                const percent = Math.round((event.loaded * 100) / event.total);
-                options.onProgress(percent);
-            }
-        }
-    );
+  try {
+    const response = await httpPostMultipart<{ data: { attachments: Attachment[] } }>('media/upload', formData);
+    
+    if (!response?.data?.attachments) {
+      throw new Error('Respuesta inválida del servidor');
+    }
 
-    const data = response.data.data;
+    return response.data.attachments;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Error subiendo archivos:', error);
+    throw new Error('No se pudieron subir los archivos. Intenta nuevamente.');
+  }
+}
 
-    return {
-        fileId: data.id,
-        mediaUrl: data.url,
-        mimeType: data.mimeType || file.type,
-        fileName: data.filename || file.name,
-        fileSize: data.size,
-        thumbnailUrl: data.thumbnailUrl
-    };
+/**
+ * Subir un solo archivo (wrapper para compatibilidad)
+ */
+export async function uploadFile(file: File, options: UploadOptions = {}): Promise<UploadResult> {
+  const attachments = await uploadFiles([file], options);
+  return { attachments };
 } 

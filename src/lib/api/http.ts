@@ -63,4 +63,56 @@ export const httpGet = <T = any>(p: string) => fetchJson('GET', p) as Promise<T>
 export const httpPost = <T = any>(p: string, b?: any) => fetchJson('POST', p, b) as Promise<T>;
 export const httpPut = <T = any>(p: string, b?: any) => fetchJson('PUT', p, b) as Promise<T>;
 export const httpPatch = <T = any>(p: string, b?: any) => fetchJson('PATCH', p, b) as Promise<T>;
-export const httpDelete = <T = any>(p: string) => fetchJson('DELETE', p) as Promise<T>; 
+export const httpDelete = <T = any>(p: string) => fetchJson('DELETE', p) as Promise<T>;
+
+// Función para enviar FormData (multipart)
+export const httpPostMultipart = async <T = any>(path: string, formData: FormData): Promise<T> => {
+  const url = apiUrl(path);
+  const token = getAccessToken();
+
+  // Debug logging solo en desarrollo
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    // eslint-disable-next-line no-console
+    console.debug('[HTTP]', 'POST', url, { hasToken: !!token, isMultipart: true });
+  }
+
+  // Guard DEV: confirmar URL final correcta
+  if (import.meta.env.DEV) {
+    // eslint-disable-next-line no-console
+    console.debug('[HTTP]', 'POST', url);
+  }
+
+  const res = await fetch(url, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Accept': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      // NO incluir Content-Type para FormData (se establece automáticamente con boundary)
+    },
+    body: formData
+  });
+
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+
+  if (res.ok) return data;
+
+  // intento de refresh sólo una vez ante 401
+  if (res.status === 401) {
+    try {
+      const r = await rawFetch('POST', 'auth/refresh');
+      const t = await r.json().catch(() => null);
+      if (r.ok && t?.accessToken) {
+        setAccessToken(t.accessToken);
+        return httpPostMultipart(path, formData);
+      }
+    } catch {
+      // Ignorar errores de refresh
+    }
+  }
+
+  // si llega aquí, error definitivo
+  if (data?.message) throw new Error(`HTTP ${res.status} - ${data.message}`);
+  throw new Error(`HTTP ${res.status} - ${text?.slice(0, 300)}`);
+}; 

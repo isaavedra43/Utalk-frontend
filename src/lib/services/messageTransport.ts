@@ -8,19 +8,12 @@ import { encodeConvIdForUrl } from './transport';
 
 export interface MessagePayload {
     messageId?: string;
-    type: 'text' | 'image' | 'document' | 'audio';
+    type: 'text' | 'file';
     content: string;
     senderIdentifier: string;
     recipientIdentifier: string;
     metadata: Record<string, any>;
-    media?: {
-        fileId?: string;
-        mediaUrl: string;
-        mimeType: string;
-        fileName: string;
-        fileSize: number;
-        durationMs?: number;
-    };
+    attachments?: Array<{ id: string }>;
 }
 
 export interface SendResult {
