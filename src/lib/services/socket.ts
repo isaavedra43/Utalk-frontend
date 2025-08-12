@@ -12,7 +12,7 @@
  * - disconnect/reconnect: Manejo de reconexión automática
  */
 
-import { environment } from '$lib/config/environment';
+import { API_BASE } from '$lib/config/api';
 import { io, type Socket } from 'socket.io-client';
 import { get } from 'svelte/store';
 import { authStore } from '../stores/auth.store';
@@ -80,7 +80,7 @@ export function connectSocket() {
     return;
   }
 
-  socket = io(environment.SOCKET_URL, {
+  socket = io(API_BASE, {
     transports: ['websocket', 'polling'],
     auth: { token },
     reconnection: true,
