@@ -16,7 +16,6 @@
   import { onMount } from 'svelte';
 
   let loading = true;
-  let conversations: any[] = [];
 
   onMount(() => {
     // Verificar autenticación
@@ -41,17 +40,8 @@
     try {
       await conversationsStore.loadConversations();
 
-      // Suscribirse a cambios en conversaciones
-      conversationsStore.subscribe(state => {
-        conversations = state.conversations;
-
-        // Si estamos en /chat sin ID y hay conversaciones, redirigir a la primera
-        // COMENTADO: Evitar redirección automática para mostrar la lista
-        // if ($page.url.pathname === '/chat' && conversations.length > 0) {
-        //   const firstConversation = conversations[0];
-        //   goto(`/chat/${firstConversation.id}`);
-        // }
-
+      // Actualizar loading cuando se cargan las conversaciones
+      conversationsStore.subscribe(() => {
         loading = false;
       });
     } catch (err: any) {

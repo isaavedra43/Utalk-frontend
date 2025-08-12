@@ -40,8 +40,6 @@
   let selectedConversation: any = null;
   let newMessage = '';
   let selectedFiles: File[] = [];
-  let loading = true;
-  let error = '';
   let canSend = false;
   let byteCount = 0;
   let remainingBytes = environment.VALIDATION_LIMITS.MESSAGE_MAX_LENGTH;
@@ -104,7 +102,8 @@
           window.history.pushState({}, '', `/chat/${conversation.id}`);
         } else {
           logChat('chat component: conversation not found', { conversationId: currentId });
-          error = 'Conversación no encontrada';
+          // eslint-disable-next-line no-console
+          console.error('Conversación no encontrada:', currentId);
         }
       }
 
@@ -118,13 +117,12 @@
         presenceStore.cleanup();
       });
 
-      loading = false;
       logChat('chat component: onMount completed successfully');
-    } catch (err: any) {
-      logChat('chat component: onMount error', { error: err.message, conversationId: currentId });
-      error = err.response?.data?.message || 'Error al cargar el chat';
-      loading = false;
-    }
+          } catch (err: any) {
+        logChat('chat component: onMount error', { error: err.message, conversationId: currentId });
+        // eslint-disable-next-line no-console
+        console.error('Error al cargar el chat:', err);
+      }
   });
 
   // Eliminar suscripciones duplicadas y listeners redundantes
@@ -462,38 +460,7 @@
     uploadProgress = { ...uploadProgress }; // Trigger reactivity
   }
 
-  // Funciones para SearchAndFilters
-  function handleSearch(event: CustomEvent) {
-    logChat('handleSearch: search triggered', {
-      query: event.detail.query,
-      type: event.detail.type
-    });
-
-    // Implementar búsqueda en conversaciones
-    conversationsStore.loadConversations({
-      search: event.detail.query
-    });
-  }
-
-  function handleFilter(event: CustomEvent) {
-    logChat('handleFilter: filter triggered', {
-      filters: event.detail.filters
-    });
-
-    // Implementar filtrado de conversaciones
-    conversationsStore.loadConversations(event.detail.filters);
-  }
-
-  function handleSort(event: CustomEvent) {
-    logChat('handleSort: sort triggered', {
-      sortBy: event.detail.sortBy,
-      sortOrder: event.detail.sortOrder
-    });
-
-    // Por ahora, el ordenamiento se maneja en el backend
-    // Los filtros se aplican sin parámetros de ordenamiento
-    conversationsStore.loadConversations({});
-  }
+  // Funciones para SearchAndFilters (removidas - no se usan en el template)
 </script>
 
 <!-- Layout principal del chat -->
@@ -587,6 +554,7 @@
         <div class="conversation-actions">
           <!-- Botón para abrir perfil de contacto -->
           <button
+            type="button"
             class="profile-button"
             on:click={() =>
               openContactProfile(
@@ -741,6 +709,7 @@
               />
 
               <button
+                type="button"
                 class="file-button"
                 on:click={() => fileInput?.click()}
                 disabled={!canSend}
@@ -764,6 +733,7 @@
               </button>
 
               <button
+                type="button"
                 class="send-button"
                 on:click={sendMessage}
                 disabled={!canSend || !newMessage.trim()}
@@ -819,7 +789,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2>Perfil del Contacto</h2>
-        <button class="close-button" on:click={closeContactProfile} aria-label="Cerrar modal">
+        <button type="button" class="close-button" on:click={closeContactProfile} aria-label="Cerrar modal">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
             <path
               stroke-linecap="round"

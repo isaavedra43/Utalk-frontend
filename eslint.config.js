@@ -37,6 +37,7 @@ export default [
         Event: 'readonly',
         EventTarget: 'readonly',
         EventListener: 'readonly',
+        CustomEvent: 'readonly',
         AddEventListenerOptions: 'readonly',
         EventListenerOptions: 'readonly',
         Blob: 'readonly',
@@ -55,6 +56,8 @@ export default [
         crypto: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
         PerformanceNavigationTiming: 'readonly',
         Sentry: 'readonly',
         // NodeJS types
@@ -106,6 +109,7 @@ export default [
         Event: 'readonly',
         EventTarget: 'readonly',
         EventListener: 'readonly',
+        CustomEvent: 'readonly',
         AddEventListenerOptions: 'readonly',
         EventListenerOptions: 'readonly',
         Blob: 'readonly',
@@ -124,6 +128,8 @@ export default [
         crypto: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
         PerformanceNavigationTiming: 'readonly',
         Sentry: 'readonly',
         // NodeJS types
