@@ -141,7 +141,7 @@
     }
 
     try {
-      const response = await api.get(`/messages?${params.toString()}`);
+      const response = await api.get(`/conversations/${encodeURIComponent(conversationId)}/messages?${params.toString()}`);
 
       // Actualizar store de mensajes
       // messagesStore.setMessages(response.data.data.messages || []);
@@ -154,6 +154,7 @@
         filters: { type: selectedType }
       });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Error searching messages:', error);
       dispatch('searchCompleted', {
         type: 'messages',

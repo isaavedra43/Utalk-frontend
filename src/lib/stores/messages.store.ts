@@ -132,9 +132,8 @@ const createMessagesStore = () => {
             });
 
             try {
-                // Usar el nuevo endpoint GET /api/messages
+                // Usar el endpoint correcto GET /api/conversations/:id/messages
                 const params = new URLSearchParams();
-                params.set('conversationId', conversationId);
 
                 if (filters.limit) params.append('limit', filters.limit.toString());
                 if (filters.cursor) params.append('cursor', filters.cursor);
@@ -145,7 +144,7 @@ const createMessagesStore = () => {
                 if (filters.endDate) params.append('endDate', filters.endDate);
 
                 const startTime = performance.now();
-                const response = await api.get<unknown>(`/messages?${params.toString()}`);
+                const response = await api.get<unknown>(`/conversations/${encodeURIComponent(conversationId)}/messages?${params.toString()}`);
                 const endTime = performance.now();
 
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -213,14 +212,13 @@ const createMessagesStore = () => {
 
             try {
                 const params = new URLSearchParams();
-                params.set('conversationId', currentState.currentConversationId);
 
                 if (currentState.pagination?.nextCursor) {
                     params.append('cursor', currentState.pagination.nextCursor);
                 }
                 params.append('limit', currentState.pagination?.limit.toString() || '20');
 
-                const response = await api.get<unknown>(`/messages?${params.toString()}`);
+                const response = await api.get<unknown>(`/conversations/${encodeURIComponent(currentState.currentConversationId)}/messages?${params.toString()}`);
 
                 await executeUpdate(() => {
                     update(state => {
