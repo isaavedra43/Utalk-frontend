@@ -71,6 +71,7 @@ const createConversationsStore = () => {
                 });
 
                 // Convertir Conversation a Conversation para mantener compatibilidad
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const conversationsList = (Array.isArray(data) ? data : []).map((item: any) => ({
                     id: item.id,
                     participants: item.participants,

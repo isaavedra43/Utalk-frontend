@@ -7,8 +7,11 @@ const HOP_BY_HOP = new Set([
 ]);
 const ENCODING = new Set(['content-encoding','content-length']);
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function filterHeaders(src: any, drop: Set<string>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const out = new (globalThis as any).Headers();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   src.forEach((v: any, k: any) => { if (!drop.has(k.toLowerCase())) out.set(k, v); });
   return out;
 }

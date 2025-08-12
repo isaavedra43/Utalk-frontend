@@ -1,4 +1,5 @@
 // Utalk-frontend/src/lib/utils/time.ts
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function toDateSafe(input: any): string | null {
   if (!input) return null;
   if (typeof input === 'object' && typeof input._seconds === 'number') {

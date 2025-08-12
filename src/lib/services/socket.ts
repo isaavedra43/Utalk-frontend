@@ -125,6 +125,7 @@ export function connectSocket() {
   });
 
   // NUEVO handler unificado para mensajes
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleInboundMessage = (payload: any) => {
     // 1) Unwrap: preferir payload.message; fallback al propio payload
     const msg = payload?.message ?? payload;
@@ -152,6 +153,7 @@ export function connectSocket() {
   };
 
   // Handler unificado para eventos de conversación
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleConversationUpdated = (payload: any) => {
     const convIdRaw = payload?.conversationId;
     if (!convIdRaw) return;
