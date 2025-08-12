@@ -8,6 +8,8 @@ export const API_BASE = (STATIC_PUBLIC_API_BASE || 'https://utalk-backend-produc
 /** Quita "/" inicial y "api/" duplicado del path de negocio */
 export function cleanPath(path: string): string {
   let p = String(path || '').trim();
+  // Si ya es una URL absoluta, NO tocar
+  if (/^https?:\/\//i.test(p)) return p;
   p = p.replace(/^\/+/, '');       // quita "/" inicial
   p = p.replace(/^api\/+/i, '');   // evita doble "api/"
   return p;
@@ -15,7 +17,11 @@ export function cleanPath(path: string): string {
 
 /** Construye URL absoluta hacia el backend (Railway) */
 export function apiUrl(path: string): string {
-  return `${API_BASE}/${cleanPath(path)}`;
+  // Si el caller manda una URL absoluta, respétala tal cual (short-circuit)
+  if (/^https?:\/\//i.test(String(path))) return String(path);
+  
+  const p = cleanPath(path);
+  return `${API_BASE}/${p}`;
 }
 
 /** WS base para Socket.IO o WS nativo */

@@ -3,11 +3,16 @@
 import { apiUrl } from '$lib/config/api';
 import { getAccessToken, setAccessToken } from '$lib/stores/auth.store';
 
-
-
 async function rawFetch(method: string, path: string, body?: any, init?: RequestInit) {
   const url = apiUrl(path);
   const token = getAccessToken();
+  
+  // Debug logging solo en desarrollo
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    // eslint-disable-next-line no-console
+    console.debug('[HTTP]', method, url, { hasToken: !!token });
+  }
+  
   const res = await fetch(url, {
     method,
     credentials: 'include',

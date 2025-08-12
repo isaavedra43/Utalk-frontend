@@ -18,7 +18,6 @@
   import { notificationsStore } from '$lib/stores/notifications.store';
   import { onMount } from 'svelte';
 
-  let user: any = null;
   let loading = true;
   let conversations: any[] = [];
   let error = '';
@@ -47,7 +46,7 @@
     return c?.contact?.name || c?.customerPhone || 'Cliente';
   }
 
-  function onItemKeydown(event: KeyboardEvent, c: any) {
+  function onItemKeydown(event: globalThis.KeyboardEvent, c: any) {
     const key = event.key;
     if (key === 'Enter' || key === ' ') {
       event.preventDefault();
@@ -59,11 +58,8 @@
     // Verificar si el usuario está autenticado
     authStore.subscribe(state => {
       if (state.isAuthenticated && state.user) {
-        user = state.user;
         loading = false;
-
-        // Cargar conversaciones
-        loadConversations();
+        // NO cargar conversaciones aquí - ya se cargan en +layout.svelte
       } else if (!state.isAuthenticated) {
         // Redirigir al login si no está autenticado
         goto('/login');
@@ -94,6 +90,7 @@
             : requiredKeys;
           const requiredKeysPresent = firstItem ? requiredKeys.filter(key => key in firstItem) : [];
 
+          // eslint-disable-next-line no-console
           console.debug('[CONV][selector][selector:mapped]', {
             event: 'selector:mapped',
             layer: 'selector',
@@ -137,6 +134,7 @@
         messages = state.messages;
       });
     } catch (err: any) {
+      // eslint-disable-next-line no-console
       console.error('Error loading messages:', err);
     }
   }
@@ -170,6 +168,7 @@
       // Mostrar notificación de éxito
       notificationsStore.success('Mensaje enviado correctamente');
     } catch (err: any) {
+      // eslint-disable-next-line no-console
       console.error('Error sending message:', err);
 
       // Mostrar error específico al usuario
@@ -311,7 +310,7 @@
       <div class="conversations-panel">
         <div class="panel-header">
           <h2 class="panel-title">💬 Conversaciones</h2>
-          <button class="refresh-button" on:click={loadConversations}> 🔄 </button>
+          <button type="button" class="refresh-button" on:click={loadConversations}> 🔄 </button>
         </div>
 
         <div class="conversations-list" bind:this={conversationsContainer}>
@@ -322,6 +321,7 @@
                 typeof window !== 'undefined' &&
                 window.location.search.includes('LOG_VERBOSE_CONVERSATIONS=true')
               ) {
+                // eslint-disable-next-line no-console
                 console.debug('[CONV][component][render:decision]', {
                   event: 'render:decision',
                   layer: 'component',
@@ -400,6 +400,7 @@
 
                   // Agregar la conversación demo al store
                   // TODO: Implementar addDemoConversation si es necesario
+                  // eslint-disable-next-line no-console
                   console.debug('RT:DEMO_CONV', { conversationId: demoConversation.id });
 
                   // Redirigir a la conversación demo
@@ -467,6 +468,7 @@
                     <span class="file-name">{f.name}</span>
                     <span class="file-size">{(f.size / 1024 / 1024).toFixed(2)} MB</span>
                     <button
+                      type="button"
                       class="remove-file"
                       on:click={() => removeSelectedFile(i)}
                       aria-label="Quitar archivo">✖</button
@@ -533,6 +535,7 @@
                 style="display:none"
               />
               <button
+                type="button"
                 class="send-button"
                 on:click={openFilePicker}
                 title="Adjuntar"
@@ -540,6 +543,7 @@
                 disabled={!canSend}>📎</button
               >
               <button
+                type="button"
                 class="send-button"
                 disabled={!canSend || (!newMessage.trim() && selectedFiles.length === 0)}
                 on:click={() => sendMessage()}
@@ -568,7 +572,7 @@
             <div class="input-container">
               <textarea class="message-input" placeholder="Escribe un mensaje..." disabled
               ></textarea>
-              <button class="send-button" disabled> 📤 </button>
+                              <button type="button" class="send-button" disabled> 📤 </button>
             </div>
           </div>
         {/if}
@@ -589,9 +593,9 @@
           <div class="detail-section">
             <h4>Herramientas</h4>
             <div class="tools-list">
-              <button class="tool-button" disabled> 📞 Llamar </button>
-              <button class="tool-button" disabled> 📧 Email </button>
-              <button class="tool-button" disabled> 📋 Notas </button>
+                              <button type="button" class="tool-button" disabled> 📞 Llamar </button>
+                <button type="button" class="tool-button" disabled> 📧 Email </button>
+                <button type="button" class="tool-button" disabled> 📋 Notas </button>
             </div>
           </div>
         </div>
