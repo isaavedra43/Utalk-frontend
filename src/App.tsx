@@ -6,6 +6,7 @@ import { WebSocketProvider } from './contexts/WebSocketContext'
 import { AuthModule } from './modules/auth'
 import { MainLayout } from './components/layout/MainLayout'
 import { DebugPanel } from './components/DebugPanel'
+import { ConnectionStatus } from './components/ConnectionStatus'
 import { logger } from './utils/logger'
 import { useAppStore } from './stores/useAppStore'
 import { useAuth } from './modules/auth/hooks/useAuth'
@@ -75,6 +76,9 @@ function App() {
       <AuthProvider>
         <WebSocketProvider>
           <div className="app">
+            {/* Estado de conexión */}
+            <ConnectionStatus />
+            
             <Routes>
               <Route path="/login" element={<AuthModule />} />
               <Route 

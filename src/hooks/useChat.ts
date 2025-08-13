@@ -88,7 +88,7 @@ export const useChat = (conversationId: string) => {
   // Unirse a conversación cuando se conecta
   useEffect(() => {
     if (isConnected && conversationId) {
-      console.log('🔗 Uniéndose a conversación:', conversationId);
+      console.log('🔗 useChat - Uniéndose a conversación:', conversationId);
       joinConversation(conversationId);
       loadMessages();
       loadConversation();
@@ -98,29 +98,33 @@ export const useChat = (conversationId: string) => {
   // Salir de conversación al desmontar
   useEffect(() => {
     return () => {
-      if (conversationId) {
-        console.log('🔌 Saliendo de conversación:', conversationId);
+      if (conversationId && isConnected) {
+        console.log('🔌 useChat - Saliendo de conversación:', conversationId);
         leaveConversation(conversationId);
       }
     };
-  }, [conversationId, leaveConversation]);
+  }, [conversationId, leaveConversation, isConnected]);
 
   // Configurar listeners de socket para esta conversación
   useEffect(() => {
-    if (!socket || !conversationId) return;
+    if (!socket || !conversationId || !isConnected) return;
 
-    console.log('🎧 Configurando listeners para conversación:', conversationId);
+    console.log('🎧 useChat - Configurando listeners para conversación:', conversationId);
 
     const handleNewMessage = (data: unknown) => {
       const messageData = data as { conversationId: string; message: Message };
-      console.log('📨 Nuevo mensaje recibido:', messageData);
+      console.log('📨 useChat - Nuevo mensaje recibido:', messageData);
       
       if (messageData.conversationId === conversationId) {
         setMessages(prev => {
           // Evitar duplicados
           const exists = prev.some(msg => msg.id === messageData.message.id);
-          if (exists) return prev;
+          if (exists) {
+            console.log('📨 useChat - Mensaje duplicado, ignorando:', messageData.message.id);
+            return prev;
+          }
           
+          console.log('📨 useChat - Agregando nuevo mensaje:', messageData.message);
           return [...prev, messageData.message];
         });
         scrollToBottom();
@@ -129,7 +133,7 @@ export const useChat = (conversationId: string) => {
 
     const handleMessageSent = (data: unknown) => {
       const sentData = data as { conversationId: string; message: { id: string; status: string } };
-      console.log('✅ Mensaje enviado confirmado:', sentData);
+      console.log('✅ useChat - Mensaje enviado confirmado:', sentData);
       
       if (sentData.conversationId === conversationId) {
         setMessages(prev => 
@@ -147,7 +151,7 @@ export const useChat = (conversationId: string) => {
 
     const handleMessageDelivered = (data: unknown) => {
       const deliveredData = data as { conversationId: string; messageId: string };
-      console.log('📬 Mensaje entregado:', deliveredData);
+      console.log('📬 useChat - Mensaje entregado:', deliveredData);
       
       if (deliveredData.conversationId === conversationId) {
         setMessages(prev => 
@@ -162,7 +166,7 @@ export const useChat = (conversationId: string) => {
 
     const handleMessageRead = (data: unknown) => {
       const readData = data as { conversationId: string; messageIds: string[] };
-      console.log('👁️ Mensajes leídos:', readData);
+      console.log('👁️ useChat - Mensajes leídos:', readData);
       
       if (readData.conversationId === conversationId) {
         setMessages(prev => 
@@ -177,7 +181,7 @@ export const useChat = (conversationId: string) => {
 
     const handleTyping = (data: unknown) => {
       const typingData = data as { conversationId: string; userEmail: string };
-      console.log('✍️ Usuario escribiendo:', typingData);
+      console.log('✍️ useChat - Usuario escribiendo:', typingData);
       
       if (typingData.conversationId === conversationId) {
         // El context ya maneja typingUsers globalmente
@@ -186,7 +190,7 @@ export const useChat = (conversationId: string) => {
 
     const handleTypingStop = (data: unknown) => {
       const typingStopData = data as { conversationId: string; userEmail: string };
-      console.log('⏹️ Usuario dejó de escribir:', typingStopData);
+      console.log('⏹️ useChat - Usuario dejó de escribir:', typingStopData);
       
       if (typingStopData.conversationId === conversationId) {
         // El context ya maneja typingUsers globalmente
@@ -195,7 +199,7 @@ export const useChat = (conversationId: string) => {
 
     const handleConversationUpdate = (data: unknown) => {
       const updateData = data as { conversationId: string; updates: Partial<Conversation> };
-      console.log('🔄 Conversación actualizada:', updateData);
+      console.log('🔄 useChat - Conversación actualizada:', updateData);
       
       if (updateData.conversationId === conversationId) {
         setConversation(prev => prev ? { ...prev, ...updateData.updates } : null);
@@ -212,6 +216,7 @@ export const useChat = (conversationId: string) => {
     on('conversation-event', handleConversationUpdate);
 
     return () => {
+      console.log('🎧 useChat - Limpiando listeners para conversación:', conversationId);
       // Limpiar todos los listeners
       off('new-message');
       off('message-sent');
@@ -221,7 +226,7 @@ export const useChat = (conversationId: string) => {
       off('typing-stop');
       off('conversation-event');
     };
-  }, [socket, conversationId, on, off]);
+  }, [socket, conversationId, on, off, isConnected]);
 
   // Enviar mensaje con optimistic updates
   const sendMessage = useCallback(async (content: string, type: string = 'text', metadata: Record<string, unknown> = {}) => {

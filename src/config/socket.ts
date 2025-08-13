@@ -19,8 +19,13 @@ export const createSocket = (token: string) => {
   const SOCKET_URL = import.meta.env.VITE_WS_URL || import.meta.env.VITE_BACKEND_URL || 'https://tu-backend.railway.app';
   
   console.log('🔌 Configurando socket con URL:', SOCKET_URL);
+  console.log('🔌 Token disponible:', token ? 'Sí' : 'No');
+  console.log('🔌 Variables de entorno:', {
+    VITE_WS_URL: import.meta.env.VITE_WS_URL,
+    VITE_BACKEND_URL: import.meta.env.VITE_BACKEND_URL
+  });
   
-  return io(SOCKET_URL, {
+  const socket = io(SOCKET_URL, {
     ...SOCKET_CONFIG,
     auth: {
       token: token
@@ -29,4 +34,24 @@ export const createSocket = (token: string) => {
       'Authorization': `Bearer ${token}`
     }
   });
+
+  // Agregar logging adicional para debug
+  socket.on('connect', () => {
+    console.log('🔌 Socket conectado exitosamente:', socket.id);
+  });
+
+  socket.on('connect_error', (error) => {
+    console.error('🔌 Error de conexión del socket:', error);
+    console.error('🔌 Detalles del error:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
+  });
+
+  socket.on('disconnect', (reason) => {
+    console.log('🔌 Socket desconectado:', reason);
+  });
+
+  return socket;
 }; 
