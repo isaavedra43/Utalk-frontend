@@ -193,9 +193,9 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
       const matchesSearch = 
-        conversation.customerName.toLowerCase().includes(searchLower) ||
+        (conversation.customerName?.toLowerCase() || '').includes(searchLower) ||
         conversation.customerPhone.includes(searchLower) ||
-        conversation.lastMessage?.content.toLowerCase().includes(searchLower);
+        (conversation.lastMessage?.content?.toLowerCase() || '').includes(searchLower);
       
       if (!matchesSearch) return false;
     }
@@ -221,10 +221,10 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   // Estadísticas - solo si está autenticado
   const stats = useMemo(() => ({
     total: conversationsData?.pages[0]?.total || 0,
-    unread: filteredConversations.reduce((sum, conv) => sum + conv.unreadCount, 0),
-    assigned: filteredConversations.filter(conv => conv.assignedTo).length,
-    urgent: filteredConversations.filter(conv => conv.priority === 'urgent').length,
-    open: filteredConversations.filter(conv => conv.status === 'open').length
+    unread: filteredConversations.reduce((sum, conv) => sum + (conv?.unreadCount || 0), 0),
+    assigned: filteredConversations.filter(conv => conv?.assignedTo).length,
+    urgent: filteredConversations.filter(conv => conv?.priority === 'urgent').length,
+    open: filteredConversations.filter(conv => conv?.status === 'open').length
   }), [conversationsData?.pages, filteredConversations]);
 
   return {

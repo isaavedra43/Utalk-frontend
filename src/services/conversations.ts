@@ -10,6 +10,58 @@ interface ConversationListResponse {
   hasMore: boolean;
 }
 
+// Tipo para la respuesta del backend
+interface BackendConversation {
+  id: string;
+  customerPhone: string;
+  lastMessage?: {
+    sender: string;
+    direction: string;
+    messageId: string;
+    content: string;
+    timestamp: {
+      _seconds: number;
+      _nanoseconds: number;
+    };
+    timestampMs: number;
+    timestampISO: string;
+  };
+  unreadCount: number;
+  status: string;
+  workspaceId: string;
+  tenantId: string;
+  participants: string[];
+  lastMessageAt: {
+    _seconds: number;
+    _nanoseconds: number;
+  };
+  contact: {
+    phone: string;
+    name?: string;
+  };
+  createdAt: {
+    _seconds: number;
+    _nanoseconds: number;
+  };
+  updatedAt: {
+    _seconds: number;
+    _nanoseconds: number;
+  };
+  messageCount: number;
+  lastMessageAtMs: number;
+  lastMessageAtISO: string;
+  assignedTo?: string;
+  priority?: string;
+  tags?: string[];
+}
+
+interface BackendResponse {
+  success: boolean;
+  data: BackendConversation[];
+  message: string;
+  timestamp: string;
+}
+
 // Configuración de la API
 const CONVERSATIONS_API = '/api/conversations';
 
@@ -36,7 +88,44 @@ export const conversationsService = {
 
     const queryParams = new URLSearchParams(params);
     const response = await api.get(`${CONVERSATIONS_API}?${queryParams}`);
-    return response.data;
+    
+    // Mapear la respuesta del backend al formato esperado por el frontend
+    const backendData = response.data as BackendResponse;
+    
+    // Transformar las conversaciones del backend al formato esperado
+    const conversations = backendData.data.map((conv: BackendConversation) => ({
+      id: conv.id,
+      customerName: conv.contact?.name || conv.customerPhone, // Usar nombre del contacto o teléfono como fallback
+      customerPhone: conv.customerPhone,
+      status: conv.status as 'open' | 'closed' | 'pending' | 'resolved',
+      messageCount: conv.messageCount || 0,
+      unreadCount: conv.unreadCount || 0,
+      participants: conv.participants || [],
+      tenantId: conv.tenantId,
+      workspaceId: conv.workspaceId,
+      createdAt: conv.createdAt ? new Date(conv.createdAt._seconds * 1000).toISOString() : new Date().toISOString(),
+      updatedAt: conv.updatedAt ? new Date(conv.updatedAt._seconds * 1000).toISOString() : new Date().toISOString(),
+      lastMessageAt: conv.lastMessageAt ? new Date(conv.lastMessageAt._seconds * 1000).toISOString() : new Date().toISOString(),
+      lastMessage: conv.lastMessage ? {
+        id: conv.lastMessage.messageId,
+        content: conv.lastMessage.content,
+        type: 'text' as const,
+        timestamp: conv.lastMessage.timestampISO || new Date().toISOString(),
+        direction: conv.lastMessage.direction as 'inbound' | 'outbound',
+        status: 'delivered' as const
+      } : undefined,
+      assignedTo: conv.assignedTo,
+      priority: conv.priority as 'low' | 'medium' | 'high' | 'urgent' | undefined,
+      tags: conv.tags || []
+    }));
+
+    return {
+      conversations,
+      total: conversations.length,
+      page: parseInt(params.page),
+      limit: parseInt(params.limit),
+      hasMore: false // Por ahora asumimos que no hay más páginas
+    };
   },
 
   // Obtener conversación específica
