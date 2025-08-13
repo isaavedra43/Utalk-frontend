@@ -2,7 +2,7 @@ import api from './api';
 import type { Contact } from '../types';
 
 // Configuración de la API
-const CONTACTS_API = '/api/contacts';
+const CONTACTS_API = '/contacts';
 
 export const contactsService = {
   // Listar contactos

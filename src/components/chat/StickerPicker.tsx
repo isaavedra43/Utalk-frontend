@@ -1,41 +1,32 @@
 import React from 'react';
+import { X } from 'lucide-react';
 
 interface StickerPickerProps {
-  onStickerSelect: (stickerUrl: string) => void;
+  onSelectSticker: (stickerUrl: string) => void;
   onClose: () => void;
 }
 
-// Stickers predefinidos (en un proyecto real, estos vendrían del backend)
 const STICKERS = [
-  '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
-  '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
-  '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩',
-  '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
-  '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬',
-  '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗',
-  '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😯', '😦', '😧',
-  '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢',
-  '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '💩', '👻', '💀',
-  '☠️', '👽', '👾', '🤖', '😺', '😸', '😹', '😻', '😼', '😽'
+  '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣',
+  '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰',
+  '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜',
+  '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏',
+  '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣',
+  '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠',
+  '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨',
+  '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥'
 ];
 
-export const StickerPicker: React.FC<StickerPickerProps> = ({ onStickerSelect, onClose }) => {
-  const handleStickerClick = (sticker: string) => {
-    // En un proyecto real, aquí se enviaría la URL del sticker
-    // Por ahora, usamos emojis como placeholders
-    onStickerSelect(sticker);
-    onClose();
-  };
-
+export const StickerPicker: React.FC<StickerPickerProps> = ({ onSelectSticker, onClose }) => {
   return (
-    <div className="absolute bottom-full right-0 mb-2 bg-white border rounded-lg shadow-lg p-3 max-w-64">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-medium text-gray-900">Stickers</h3>
+    <div className="absolute bottom-full right-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-40">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="text-sm font-medium text-gray-700">Stickers</h4>
         <button
           onClick={onClose}
           className="text-gray-400 hover:text-gray-600"
         >
-          ✕
+          <X className="w-4 h-4" />
         </button>
       </div>
       
@@ -43,9 +34,11 @@ export const StickerPicker: React.FC<StickerPickerProps> = ({ onStickerSelect, o
         {STICKERS.map((sticker, index) => (
           <button
             key={index}
-            onClick={() => handleStickerClick(sticker)}
-            className="p-2 text-2xl hover:bg-gray-100 rounded transition-colors"
-            title={`Sticker ${index + 1}`}
+            onClick={() => {
+              onSelectSticker(sticker);
+              onClose();
+            }}
+            className="w-8 h-8 text-lg hover:bg-gray-100 rounded transition-colors flex items-center justify-center"
           >
             {sticker}
           </button>

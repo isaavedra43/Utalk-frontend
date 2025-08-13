@@ -2,7 +2,7 @@ import api from './api';
 import type { AISuggestion } from '../types';
 
 // Configuración de la API
-const AI_API = '/api/ai';
+const AI_API = '/ai';
 
 export const aiService = {
   // Obtener configuración IA

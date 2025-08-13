@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useMutation, useInfiniteQuery } from '@tanstack/react-query';
 import type { Conversation, ConversationFilters } from '../types';
-import { conversationsService, mockConversations } from '../services/conversations';
+import { conversationsService } from '../services/conversations';
 import { useAppStore } from '../stores/useAppStore';
-import { useWebSocketContext } from './useWebSocketContext';
+import { useWebSocketContext } from '../contexts/useWebSocketContext';
 
 export const useConversations = (filters: ConversationFilters = {}) => {
   const {
@@ -33,17 +33,6 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       limit: 20 // Cargar 20 conversaciones por página
     } as ConversationFilters & { page: number; limit: number }),
     initialPageParam: 1,
-    // Por ahora usar datos mock mientras no hay backend
-    initialData: {
-      pages: [{
-        conversations: mockConversations.slice(0, 20),
-        total: mockConversations.length,
-        page: 1,
-        limit: 20,
-        hasMore: mockConversations.length > 20
-      }],
-      pageParams: [1]
-    },
     getNextPageParam: (lastPage) => {
       if (!lastPage.hasMore) return undefined;
       return lastPage.page + 1;

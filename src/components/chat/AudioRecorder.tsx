@@ -1,26 +1,31 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { Mic, Square, Play, Pause, Trash2 } from 'lucide-react';
+import { Play, Pause, Square, Mic, Trash2 } from 'lucide-react';
 
 interface AudioRecorderProps {
-  onRecordingComplete: (audioBlob: Blob, fileName: string) => void;
-  onCancel: () => void;
+  onRecordingComplete: (audioBlob: Blob) => void;
+  onCancel?: () => void;
 }
 
-export const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplete, onCancel }) => {
+export const AudioRecorder: React.FC<AudioRecorderProps> = ({ 
+  onRecordingComplete, 
+  onCancel 
+}) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [duration, setDuration] = useState(0);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const audioElementRef = useRef<HTMLAudioElement | null>(null);
-  const startTimeRef = useRef<number>(0);
-  const durationIntervalRef = useRef<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const startRecording = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
@@ -33,24 +38,23 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplet
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
         const url = URL.createObjectURL(audioBlob);
         setAudioUrl(url);
-        
-        // Detener todas las pistas del stream
-        stream.getTracks().forEach(track => track.stop());
+        onRecordingComplete(audioBlob);
       };
 
       mediaRecorder.start();
       setIsRecording(true);
-      startTimeRef.current = Date.now();
-      
+      setDuration(0);
+
       // Actualizar duración cada segundo
       durationIntervalRef.current = setInterval(() => {
-        setDuration(Math.floor((Date.now() - startTimeRef.current) / 1000));
+        setDuration(prev => prev + 1);
       }, 1000);
+
     } catch (error) {
       console.error('Error accediendo al micrófono:', error);
       alert('No se pudo acceder al micrófono. Verifica los permisos.');
     }
-  }, []);
+  }, [onRecordingComplete]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -61,124 +65,109 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({ onRecordingComplet
         clearInterval(durationIntervalRef.current);
         durationIntervalRef.current = null;
       }
+
+      // Detener el stream
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
     }
   }, [isRecording]);
 
   const playRecording = useCallback(() => {
-    if (audioElementRef.current) {
-      if (isPlaying) {
-        audioElementRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        audioElementRef.current.play();
-        setIsPlaying(true);
-      }
+    if (audioUrl && audioRef.current) {
+      audioRef.current.play();
+      setIsPlaying(true);
     }
-  }, [isPlaying]);
+  }, [audioUrl]);
 
-  const handleAudioEnded = useCallback(() => {
-    setIsPlaying(false);
+  const pauseRecording = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
   }, []);
 
-  const handleSave = useCallback(() => {
-    if (audioUrl) {
-      const fileName = `audio_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.wav`;
-      fetch(audioUrl)
-        .then(response => response.blob())
-        .then(blob => {
-          onRecordingComplete(blob, fileName);
-        });
-    }
-  }, [audioUrl, onRecordingComplete]);
-
-  const handleDelete = useCallback(() => {
+  const deleteRecording = useCallback(() => {
     if (audioUrl) {
       URL.revokeObjectURL(audioUrl);
       setAudioUrl(null);
       setDuration(0);
+      setIsPlaying(false);
     }
-  }, [audioUrl]);
+    onCancel?.();
+  }, [audioUrl, onCancel]);
 
-  const formatDuration = (seconds: number) => {
+  const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
-    <div className="p-4 bg-white border rounded-lg shadow-lg">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-medium text-gray-900">Grabar Audio</h3>
+    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+      {!isRecording && !audioUrl ? (
         <button
-          onClick={onCancel}
-          className="text-gray-400 hover:text-gray-600"
+          onClick={startRecording}
+          className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
         >
-          ✕
+          <Mic className="w-4 h-4" />
+          <span>Grabar</span>
         </button>
-      </div>
-
-      {!audioUrl ? (
-        <div className="space-y-4">
-          <div className="flex items-center justify-center">
-            <button
-              onClick={isRecording ? stopRecording : startRecording}
-              className={`p-4 rounded-full transition-colors ${
-                isRecording 
-                  ? 'bg-red-500 hover:bg-red-600 text-white' 
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
-              }`}
-            >
-              {isRecording ? <Square className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
-            </button>
-          </div>
-          
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              {isRecording ? 'Grabando...' : 'Presiona para grabar'}
-            </p>
-            {isRecording && (
-              <p className="text-lg font-mono text-gray-900 mt-2">
-                {formatDuration(duration)}
-              </p>
-            )}
-          </div>
+      ) : isRecording ? (
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={stopRecording}
+            className="flex items-center space-x-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+          >
+            <Square className="w-4 h-4" />
+            <span>Detener</span>
+          </button>
+          <span className="text-sm text-gray-600">
+            {formatDuration(duration)}
+          </span>
         </div>
       ) : (
-        <div className="space-y-4">
-          <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+        <div className="flex items-center space-x-2">
+          {isPlaying ? (
+            <button
+              onClick={pauseRecording}
+              className="flex items-center space-x-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              <Pause className="w-4 h-4" />
+              <span>Pausar</span>
+            </button>
+          ) : (
             <button
               onClick={playRecording}
-              className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
+              className="flex items-center space-x-2 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
             >
-              {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              <Play className="w-4 h-4" />
+              <span>Reproducir</span>
             </button>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">Grabación</p>
-              <p className="text-xs text-gray-500">{formatDuration(duration)}</p>
-            </div>
-            <audio
-              ref={audioElementRef}
-              src={audioUrl}
-              onEnded={handleAudioEnded}
-              preload="metadata"
-            />
-          </div>
+          )}
           
-          <div className="flex space-x-2">
-            <button
-              onClick={handleSave}
-              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-            >
-              Enviar
-            </button>
-            <button
-              onClick={handleDelete}
-              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
+          <button
+            onClick={deleteRecording}
+            className="flex items-center space-x-2 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Eliminar</span>
+          </button>
+          
+          <span className="text-sm text-gray-600">
+            {formatDuration(duration)}
+          </span>
         </div>
+      )}
+
+      {audioUrl && (
+        <audio
+          ref={audioRef}
+          src={audioUrl}
+          onEnded={() => setIsPlaying(false)}
+          className="hidden"
+        />
       )}
     </div>
   );

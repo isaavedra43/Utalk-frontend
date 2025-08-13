@@ -1,33 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { useMessages } from '../../hooks/useMessages';
-import { useTyping } from '../../hooks/useTyping';
+import { useChat } from '../../hooks/useChat';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { ChatHeader } from './ChatHeader';
-import { useWebSocketContext } from '../../hooks/useWebSocketContext';
+import { TypingIndicator } from './TypingIndicator';
+import type { Conversation as ConversationType, Message as MessageType } from '../../types/index';
+import './ChatComponent.css';
 
-interface ChatComponentProps {
-  conversationId: string | null;
-}
-
-export const ChatComponent: React.FC<ChatComponentProps> = ({ conversationId }) => {
+export const ChatComponent = ({ conversationId }: { conversationId: string }) => {
   const {
     messages,
-    messageGroups,
-    isLoading,
+    conversation,
+    loading,
     error,
+    sending,
+    isTyping,
+    isConnected,
     typingUsers,
     sendMessage,
-    markMessagesAsRead,
-    messagesEndRef,
-    isSending
-  } = useMessages(conversationId);
-
-  const { onlineUsers } = useWebSocketContext();
-  const { startTyping, stopTyping } = useWebSocketContext();
-  
-  // Hook de typing optimizado
-  const { handleTyping, handleStopTyping } = useTyping(conversationId, startTyping, stopTyping);
+    handleTyping,
+    handleStopTyping,
+    markAsRead,
+    retryMessage,
+    deleteOptimisticMessage,
+    messagesEndRef
+  } = useChat(conversationId);
 
   const [inputValue, setInputValue] = useState('');
 
@@ -35,21 +32,21 @@ export const ChatComponent: React.FC<ChatComponentProps> = ({ conversationId }) 
   useEffect(() => {
     if (messages.length > 0) {
       const unreadMessages = messages
-        .filter(msg => msg.direction === 'inbound' && msg.status !== 'read')
-        .map(msg => msg.id);
+        .filter((msg) => msg.direction === 'inbound' && !msg.readAt)
+        .map((msg) => msg.id);
 
       if (unreadMessages.length > 0) {
-        markMessagesAsRead(unreadMessages);
+        markAsRead(unreadMessages);
       }
     }
-  }, [messages, markMessagesAsRead]);
+  }, [messages, markAsRead]);
 
   // Manejar envío de mensaje
   const handleSend = async () => {
-    if (!inputValue.trim() || isSending) return;
+    if (!inputValue.trim() || sending || !isConnected) return;
 
     try {
-      await sendMessage(inputValue.trim());
+      await sendMessage(inputValue);
       setInputValue('');
       handleStopTyping();
     } catch (error) {
@@ -60,7 +57,10 @@ export const ChatComponent: React.FC<ChatComponentProps> = ({ conversationId }) 
   // Manejar cambio de input
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
-    handleTyping();
+    
+    if (!isTyping) {
+      handleTyping();
+    }
   };
 
   // Manejar pérdida de foco
@@ -76,12 +76,33 @@ export const ChatComponent: React.FC<ChatComponentProps> = ({ conversationId }) 
     }
   };
 
-  if (isLoading) {
+  // Mostrar estado de conexión
+  if (!isConnected) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-500">Cargando conversación...</p>
+      <div className="chat-container">
+        <div className="chat-disconnected">
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-red-600 font-medium">Desconectado</p>
+              <p className="text-gray-500 text-sm">Intentando reconectar...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="chat-container">
+        <div className="chat-loading">
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600">Cargando conversación...</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -89,63 +110,114 @@ export const ChatComponent: React.FC<ChatComponentProps> = ({ conversationId }) 
 
   if (error) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">Error: {error.message}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Reintentar
-          </button>
+      <div className="chat-container">
+        <div className="chat-error">
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-red-600 text-xl">⚠️</span>
+              </div>
+              <p className="text-red-600 font-medium mb-2">Error de conexión</p>
+              <p className="text-gray-500 text-sm mb-4">{error}</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Reintentar
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
+  // Convertir tipos para compatibilidad
+  const convertConversation = (conv: { id: string; title?: string; participants?: string[]; unreadCount?: number; lastMessage?: string; lastMessageAt?: string } | null): ConversationType | null => {
+    if (!conv) return null;
+    return {
+      id: conv.id,
+      customerName: conv.title || 'Usuario',
+      customerPhone: conv.participants?.[0] || '',
+      status: 'open',
+      messageCount: 0,
+      unreadCount: conv.unreadCount || 0,
+      participants: conv.participants || [],
+      tenantId: 'default_tenant',
+      workspaceId: 'default_workspace',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastMessageAt: conv.lastMessageAt || new Date().toISOString(),
+      lastMessage: conv.lastMessage ? {
+        content: conv.lastMessage,
+        direction: 'inbound',
+        messageId: 'temp-id',
+        sender: 'system',
+        timestamp: conv.lastMessageAt || new Date().toISOString()
+      } : undefined
+    };
+  };
+
+  const convertMessages = (msgs: { id: string; content: string; direction: 'inbound' | 'outbound'; timestamp?: string; status: string; type: string }[]): MessageType[] => {
+    return msgs.map(msg => ({
+      id: msg.id,
+      conversationId: conversationId,
+      content: msg.content,
+      direction: msg.direction,
+      createdAt: msg.timestamp || new Date().toISOString(),
+      metadata: {
+        agentId: 'system',
+        ip: '127.0.0.1',
+        requestId: 'unknown',
+        sentBy: 'system',
+        source: 'web',
+        timestamp: msg.timestamp || new Date().toISOString()
+      },
+      status: msg.status as 'sent' | 'delivered' | 'read' | 'failed',
+      type: msg.type as 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker',
+      updatedAt: msg.timestamp || new Date().toISOString()
+    }));
+  };
+
+  const convertTypingUsers = (users: Set<string>) => {
+    return Array.from(users).map(userId => ({
+      userId,
+      userName: userId,
+      isTyping: true,
+      timestamp: new Date()
+    }));
+  };
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <ChatHeader 
-        conversation={conversationId ? { 
-          id: conversationId, 
-          customerName: 'Cliente', 
-          customerPhone: '', 
-          status: 'open' as const,
-          messageCount: 0,
-          unreadCount: 0,
-          participants: [],
-          tenantId: '',
-          workspaceId: '',
-          createdAt: '',
-          updatedAt: '',
-          lastMessageAt: ''
-        } : null} 
-        onlineUsers={onlineUsers}
-      />
+    <div className="chat-container">
+      <ChatHeader conversation={convertConversation(conversation)} />
       
-      {/* Lista de mensajes */}
-      <div className="flex-1 overflow-hidden">
+      <div className="chat-messages">
         <MessageList 
-          messages={messages}
-          messageGroups={messageGroups}
-          typingUsers={typingUsers}
-          customerName="Cliente"
+          messages={convertMessages(messages)}
+          onRetryMessage={retryMessage}
+          onDeleteMessage={deleteOptimisticMessage}
         />
+        
+        {typingUsers.size > 0 && (
+          <TypingIndicator users={convertTypingUsers(typingUsers)} />
+        )}
+        
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input de mensaje */}
-      <MessageInput
-        value={inputValue}
-        onChange={handleInputChange}
-        onBlur={handleInputBlur}
-        onKeyPress={handleKeyPress}
-        onSendMessage={handleSend}
-        isSending={isSending}
-        conversationId={conversationId}
-        placeholder="Escribe un mensaje..."
-      />
+      <div className="chat-input">
+        <MessageInput
+          value={inputValue}
+          onChange={handleInputChange}
+          onBlur={handleInputBlur}
+          onKeyPress={handleKeyPress}
+          onSendMessage={handleSend}
+          isSending={sending}
+          disabled={!isConnected}
+          placeholder={isConnected ? "Escribe un mensaje..." : "Desconectado..."}
+        />
+      </div>
     </div>
   );
 }; 

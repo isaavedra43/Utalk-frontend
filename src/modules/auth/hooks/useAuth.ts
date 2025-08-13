@@ -5,7 +5,7 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   updatePassword,
-  User as FirebaseUser
+  type User as FirebaseUser
 } from 'firebase/auth';
 import { auth } from '../../../config/firebase';
 import api from '../../../services/api';
@@ -71,6 +71,34 @@ export const useAuth = () => {
     return unsubscribe;
   }, []);
 
+  // Manejar bypass de desarrollo
+  useEffect(() => {
+    const handleDevBypass = async (event: CustomEvent) => {
+      try {
+        const mockFirebaseUser = event.detail.user;
+        
+        // Simular backend user desde localStorage
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const backendUser = JSON.parse(storedUser);
+          setUser(mockFirebaseUser as FirebaseUser);
+          setBackendUser(backendUser);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error en bypass de desarrollo:', error);
+        setError('Error en bypass de desarrollo');
+      }
+    };
+
+    // Escuchar evento de bypass de desarrollo
+    window.addEventListener('firebase-auth-state-changed', handleDevBypass as unknown as EventListener);
+
+    return () => {
+      window.removeEventListener('firebase-auth-state-changed', handleDevBypass as unknown as EventListener);
+    };
+  }, []);
+
   // Verificar/crear usuario en backend
   const verifyBackendUser = async (firebaseToken: string, firebaseUser: FirebaseUser): Promise<{ user: BackendUser } & AuthTokens> => {
     try {
@@ -83,8 +111,8 @@ export const useAuth = () => {
       });
       
       return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 404) {
+    } catch (error: unknown) {
+      if ((error as { response?: { status?: number } }).response?.status === 404) {
         // Usuario no existe, crear nuevo
         const createResponse = await api.post('/api/auth/create-user', {
           firebaseToken,
@@ -113,10 +141,11 @@ export const useAuth = () => {
       // y el useEffect se encargará del resto
       
       return userCredential.user;
-    } catch (error: any) {
+    } catch (error: unknown) {
       let errorMessage = 'Error en el login';
       
-      switch (error.code) {
+      const firebaseError = error as { code?: string; message?: string };
+      switch (firebaseError.code) {
         case 'auth/user-not-found':
           errorMessage = 'Usuario no encontrado';
           break;
@@ -133,7 +162,7 @@ export const useAuth = () => {
           errorMessage = 'Usuario deshabilitado';
           break;
         default:
-          errorMessage = error.message;
+          errorMessage = firebaseError.message || 'Error desconocido';
       }
       
       setError(errorMessage);

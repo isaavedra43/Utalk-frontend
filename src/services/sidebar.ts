@@ -2,7 +2,7 @@ import api from './api';
 import type { ClientProfile, ConversationDetails, NotificationSettings, AISuggestion } from '../types';
 
 // Configuración de la API
-const SIDEBAR_API = '/api/sidebar';
+const SIDEBAR_API = '/sidebar';
 
 export const sidebarService = {
   // Obtener perfil del cliente

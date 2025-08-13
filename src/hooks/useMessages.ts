@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import type { Message, MessageInputData } from '../types';
 import { messagesService } from '../services/messages';
 import { useAppStore } from '../stores/useAppStore';
-import { useWebSocketContext } from './useWebSocketContext';
+import { useWebSocketContext } from '../contexts/useWebSocketContext';
 
 export const useMessages = (conversationId: string | null) => {
 

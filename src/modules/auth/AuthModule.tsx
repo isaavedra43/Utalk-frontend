@@ -1,20 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { motion, useAnimation, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, useAnimation } from 'framer-motion';
 import { 
   Sparkles, 
   Zap, 
   Shield, 
-  ArrowRight, 
   Sun, 
-  Moon,
-  MessageSquare,
-  BarChart3,
-  Users,
-  Zap as Lightning
+  Moon
 } from 'lucide-react';
 import { LoginForm } from './components/LoginForm';
-import { BenefitsCarousel } from './components/BenefitsCarousel';
-import { Brand } from './components/Brand';
+import { BenefitsCarousel } from './components/BenefitsCarousel.js';
+import { Brand } from './components/Brand.js';
 import { useAuth } from './hooks/useAuth';
 
 export const AuthModule = () => {
@@ -140,7 +135,7 @@ export const AuthModule = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.2 }}
-            className="text-5xl xl:text-6xl font-bold leading-tight mt-8"
+            className="text-4xl xl:text-5xl font-bold leading-tight mt-6"
           >
             <span className="text-white">One Platform to</span>
             <br />
@@ -159,7 +154,7 @@ export const AuthModule = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-xl text-blue-100 mt-6 font-light"
+            className="text-base text-blue-100 mt-4 font-light"
           >
             Grow <strong>20% MoM</strong> with better campaign tools.
           </motion.p>
@@ -169,17 +164,17 @@ export const AuthModule = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
-            className="flex items-center justify-center gap-4 pt-8"
+            className="flex items-center justify-center gap-3 pt-6"
           >
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
               <Sparkles className="w-4 h-4 text-yellow-400" />
               <span className="text-sm text-white font-medium">AI-Powered</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
               <Zap className="w-4 h-4 text-cyan-400" />
               <span className="text-sm text-white font-medium">Real-time</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
               <Shield className="w-4 h-4 text-green-400" />
               <span className="text-sm text-white font-medium">Secure</span>
             </div>

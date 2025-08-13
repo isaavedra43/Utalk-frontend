@@ -42,13 +42,21 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [typingUsers, setTypingUsers] = useState<Map<string, Set<string>>>(new Map());
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
-  // Conectar automáticamente cuando hay token
+  // Autoconnect eliminado: la conexión del WebSocket se maneja desde AuthContext para evitar duplicados
+
+  // Reautenticar socket cuando se refresca el access token
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (token && !isConnected) {
-      connect(token);
-    }
-  }, [connect, isConnected]);
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { accessToken?: string } | undefined;
+      const accessToken = detail?.accessToken;
+      if (!accessToken) return;
+      disconnect();
+      connect(accessToken);
+    };
+
+    window.addEventListener('auth:token-refreshed', handler as unknown as EventListener);
+    return () => window.removeEventListener('auth:token-refreshed', handler as unknown as EventListener);
+  }, [connect, disconnect]);
 
   // Configurar listeners globales
   useEffect(() => {

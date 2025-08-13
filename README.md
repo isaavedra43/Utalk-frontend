@@ -1,155 +1,240 @@
-# 🚀 UTALK Frontend
+# 🚀 UTALK Frontend - Chat en Tiempo Real
 
-Aplicación de chat y customer service construida con React, TypeScript y Vite.
+Frontend completo para UTALK con funcionalidad de chat en tiempo real, WebSocket, y gestión de conversaciones.
 
-## 🛠️ Stack Tecnológico
+## ✨ Características
 
-- **React 18** + **TypeScript**
-- **Vite** (Build tool)
-- **Tailwind CSS** (Styling)
-- **Radix UI** (Componentes)
-- **Zustand** (State Management)
-- **TanStack Query** (Data Fetching)
-- **Socket.IO Client** (WebSocket)
-- **React Hook Form** + **Zod** (Formularios)
-- **Framer Motion** (Animaciones)
-- **Lucide React** (Iconos)
+- ✅ **Chat en Tiempo Real** con WebSocket
+- ✅ **Mensajes Multimedia** (texto, imágenes, documentos, audio, video, ubicación, stickers)
+- ✅ **Indicadores de Escritura** en tiempo real
+- ✅ **Estados de Mensajes** (enviando, enviado, entregado, leído, fallido)
+- ✅ **Optimistic Updates** para mejor UX
+- ✅ **Reconexión Automática** de WebSocket
+- ✅ **Gestión de Conversaciones** con filtros y búsqueda
+- ✅ **Subida de Archivos** con validación
+- ✅ **Autenticación** con JWT
+- ✅ **Responsive Design** con Tailwind CSS
 
-## 🚀 Despliegue en Vercel
+## 🚀 Instalación
 
-### 1. Variables de Entorno Requeridas
+### 1. Clonar el repositorio
+```bash
+git clone <repository-url>
+cd Utalk-frontend-1
+```
 
-Configura las siguientes variables de entorno en tu proyecto de Vercel:
+### 2. Instalar dependencias
+```bash
+npm install
+```
+
+### 3. Configurar variables de entorno
+
+Crear archivo `.env.local` en la raíz del proyecto:
 
 ```bash
-# Backend API Configuration
+# Configuración del Backend Real
+VITE_BACKEND_URL=https://tu-backend.railway.app
 VITE_API_URL=https://tu-backend.railway.app
 VITE_WS_URL=https://tu-backend.railway.app
 
-# Firebase Configuration
-VITE_FIREBASE_API_KEY=tu-firebase-api-key
-VITE_FIREBASE_AUTH_DOMAIN=tu-proyecto.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=tu-proyecto-id
-VITE_FIREBASE_STORAGE_BUCKET=tu-proyecto.appspot.com
+# Configuración de Desarrollo
+VITE_DEV_MODE=true
+VITE_MOCK_MODE=false
+VITE_DEBUG=true
+
+# Firebase Configuration (configurar con valores reales)
+VITE_FIREBASE_API_KEY=tu_firebase_api_key_real
+VITE_FIREBASE_AUTH_DOMAIN=tu_proyecto.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=tu_proyecto_id
+VITE_FIREBASE_STORAGE_BUCKET=tu_proyecto.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
 VITE_FIREBASE_APP_ID=1:123456789:web:abcdef123456
 
 # Environment Configuration
-VITE_NODE_ENV=production
-VITE_DEBUG=false
+VITE_NODE_ENV=development
 VITE_APP_NAME=UTALK
 VITE_APP_VERSION=1.0.0
-
-# Development Configuration
-VITE_DEV_MODE=false
-VITE_MOCK_MODE=false
 ```
 
-### 2. Configuración en Vercel Dashboard
-
-1. Ve a tu proyecto en [Vercel Dashboard](https://vercel.com/dashboard)
-2. Navega a **Settings** > **Environment Variables**
-3. Agrega cada variable de entorno con su valor correspondiente
-4. Asegúrate de que estén configuradas para **Production**, **Preview** y **Development**
-
-### 3. Despliegue Automático
-
-El proyecto está configurado para despliegue automático en Vercel:
-
-- **Framework**: Vite
-- **Build Command**: `npm run build`
-- **Output Directory**: `dist`
-- **Install Command**: `npm install`
-
-## 🏃‍♂️ Desarrollo Local
-
-### Instalación
-
+### 4. Ejecutar en desarrollo
 ```bash
-# Clonar repositorio
-git clone <tu-repositorio>
-cd Utalk-frontend-1
-
-# Instalar dependencias
-npm install
-
-# Configurar variables de entorno
-cp env.example .env.local
-# Editar .env.local con tus valores de desarrollo
-```
-
-### Scripts Disponibles
-
-```bash
-# Servidor de desarrollo
 npm run dev
-
-# Build de producción
-npm run build
-
-# Verificar tipos TypeScript
-npm run type-check
-
-# Linting
-npm run lint
-npm run lint:fix
-
-# Formatear código
-npm run format
-
-# Preview de producción
-npm run preview
 ```
 
-## 📁 Estructura del Proyecto
+## 🔧 Configuración del Backend
 
+### Variables de Entorno Requeridas
+
+| Variable | Descripción | Ejemplo |
+|----------|-------------|---------|
+| `VITE_BACKEND_URL` | URL del backend para APIs REST | `https://tu-backend.railway.app` |
+| `VITE_API_URL` | URL del backend para APIs REST | `https://tu-backend.railway.app` |
+| `VITE_WS_URL` | URL del backend para WebSocket | `https://tu-backend.railway.app` |
+| `VITE_MOCK_MODE` | Habilitar modo mock (false para backend real) | `false` |
+
+### Backend Requerido
+
+El frontend requiere un backend con las siguientes APIs:
+
+#### APIs REST
+- `POST /api/auth/login` - Autenticación
+- `POST /api/auth/refresh` - Refresh token
+- `GET /api/conversations` - Listar conversaciones
+- `GET /api/conversations/:id` - Obtener conversación
+- `POST /api/conversations/:id/messages` - Enviar mensaje
+- `GET /api/messages` - Obtener mensajes
+- `PUT /api/conversations/:id/messages/:messageId/read` - Marcar como leído
+
+#### WebSocket Events
+- `new-message` - Nuevo mensaje recibido
+- `message-sent` - Confirmación de envío
+- `message-delivered` - Confirmación de entrega
+- `message-read` - Confirmación de lectura
+- `typing` - Usuario escribiendo
+- `typing-stop` - Usuario dejó de escribir
+- `conversation-update` - Actualización de conversación
+
+## 🎯 Funcionalidades Implementadas
+
+### Chat en Tiempo Real
+- ✅ WebSocket con reconexión automática
+- ✅ Optimistic updates para mensajes
+- ✅ Indicadores de escritura
+- ✅ Estados de mensajes (enviando, enviado, entregado, leído, fallido)
+- ✅ Reintentar mensajes fallidos
+- ✅ Cancelar mensajes en envío
+
+### Mensajes Multimedia
+- ✅ Texto
+- ✅ Imágenes con preview
+- ✅ Documentos con iconos y descarga
+- ✅ Audio con reproductor
+- ✅ Video con reproductor nativo
+- ✅ Ubicación con Google Maps
+- ✅ Stickers
+
+### Gestión de Conversaciones
+- ✅ Lista de conversaciones con paginación
+- ✅ Filtros por estado, prioridad, asignación
+- ✅ Búsqueda de conversaciones
+- ✅ Estadísticas en tiempo real
+- ✅ Marcado automático de leídos
+
+### Subida de Archivos
+- ✅ Drag & drop
+- ✅ Múltiples archivos
+- ✅ Validación de tipos y tamaños
+- ✅ Progreso de subida
+- ✅ Previsualización antes de enviar
+
+## 🏗️ Arquitectura
+
+### Estructura de Carpetas
 ```
 src/
 ├── components/
-│   ├── ui/          # Componentes base (Radix UI)
-│   ├── chat/        # Componentes de chat
-│   ├── layout/      # Componentes de layout
-│   └── common/      # Componentes comunes
-├── hooks/           # Custom hooks
-├── stores/          # Zustand stores
-├── services/        # API & Socket services
-├── types/           # TypeScript types
-├── utils/           # Helper functions
-├── config/          # Configuración (Firebase, etc.)
-└── styles/          # Estilos globales
+│   ├── chat/           # Componentes de chat
+│   ├── layout/         # Layout principal
+│   └── ui/             # Componentes UI reutilizables
+├── contexts/           # Context providers
+├── hooks/              # Custom hooks
+├── services/           # Servicios de API
+├── stores/             # Estado global
+├── types/              # Tipos TypeScript
+└── utils/              # Utilidades
 ```
 
-## 🔧 Configuración
+### Tecnologías Utilizadas
+- **React 18** con TypeScript
+- **Vite** para build y desarrollo
+- **Tailwind CSS** para estilos
+- **Socket.IO Client** para WebSocket
+- **Axios** para APIs REST
+- **React Query** para cache y estado
+- **Zustand** para estado global
 
-### Firebase
+## 🔄 WebSocket Integration
 
-El proyecto incluye configuración de Firebase para autenticación y almacenamiento. Asegúrate de tener configuradas todas las variables de Firebase en Vercel.
+### Conexión Automática
+El WebSocket se conecta automáticamente cuando:
+1. El usuario está autenticado
+2. Hay un token válido en localStorage
+3. La aplicación está activa
 
-### API Backend
+### Reconexión
+- Reconexión automática en caso de desconexión
+- Backoff exponencial para reintentos
+- Máximo 10 intentos de reconexión
 
-La aplicación se conecta a un backend API. Configura las URLs en las variables de entorno:
+### Eventos Soportados
+```typescript
+// Enviar mensaje
+socket.emit('new-message', { conversationId, content, type, metadata });
 
-- `VITE_API_URL`: URL del backend para peticiones HTTP
-- `VITE_WS_URL`: URL del backend para WebSocket
+// Indicar escritura
+socket.emit('typing', { conversationId });
 
-## 🚀 Próximos Pasos
+// Marcar como leído
+socket.emit('message-read', { conversationId, messageIds });
+```
 
-1. **FASE 2**: Componentes de Layout
-2. **FASE 3**: Lista de Conversaciones
-3. **FASE 4**: Área de Chat
-4. **FASE 5**: Sidebar Derecho
-5. **FASE 6**: Estado Global y Hooks
-6. **FASE 7**: Integración de Servicios
-7. **FASE 8**: Funcionalidades Avanzadas
-8. **FASE 9**: Optimizaciones
-9. **FASE 10**: Testing y Deploy
+## 🚀 Deployment
 
-## 📞 Soporte
+### Build para Producción
+```bash
+npm run build
+```
 
-Para soporte técnico o preguntas sobre la integración:
-- Email: soporte@utalk.com
-- Documentación: https://docs.utalk.com
+### Variables de Entorno para Producción
+```bash
+VITE_BACKEND_URL=https://tu-backend-produccion.railway.app
+VITE_API_URL=https://tu-backend-produccion.railway.app
+VITE_WS_URL=https://tu-backend-produccion.railway.app
+VITE_MOCK_MODE=false
+```
 
----
+## 🐛 Troubleshooting
 
-**¡Feliz desarrollo! 🚀**
+### Problemas Comunes
+
+1. **WebSocket no conecta**
+   - Verificar `VITE_WS_URL` en variables de entorno
+   - Verificar que el backend esté ejecutándose
+   - Verificar token de autenticación
+
+2. **APIs no funcionan**
+   - Verificar `VITE_BACKEND_URL` en variables de entorno
+   - Verificar que el backend esté ejecutándose
+   - Verificar token de autenticación
+
+3. **Mensajes no se envían**
+   - Verificar conexión WebSocket
+   - Verificar permisos de usuario
+   - Verificar formato de mensaje
+
+## 📝 Scripts Disponibles
+
+```bash
+npm run dev          # Desarrollo
+npm run build        # Build para producción
+npm run preview      # Preview del build
+npm run lint         # Linting
+npm run type-check   # Verificación de tipos
+```
+
+## 🤝 Contribución
+
+1. Fork el proyecto
+2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abrir un Pull Request
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+
+## 🆘 Soporte
+
+Para soporte técnico, contactar al equipo de desarrollo o crear un issue en el repositorio.

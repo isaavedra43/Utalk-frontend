@@ -68,11 +68,11 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-3 space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Sparkles className="h-5 w-5 text-blue-600" />
+          <Sparkles className="h-4 w-4 text-blue-600" />
           <h3 className="text-sm font-medium text-gray-900">Copiloto IA</h3>
         </div>
         <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
@@ -86,7 +86,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
       <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
         <button
           onClick={() => onSetCopilotTab('suggestions')}
-          className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+          className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
             copilotState.activeTab === 'suggestions'
               ? 'bg-white text-gray-900 shadow-sm'
               : 'text-gray-600 hover:text-gray-900'
@@ -96,7 +96,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
         </button>
         <button
           onClick={() => onSetCopilotTab('chat')}
-          className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+          className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
             copilotState.activeTab === 'chat'
               ? 'bg-white text-gray-900 shadow-sm'
               : 'text-gray-600 hover:text-gray-900'
@@ -108,34 +108,34 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
 
       {/* Contenido de tabs */}
       {copilotState.activeTab === 'suggestions' ? (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {isLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+            <div className="text-center py-6">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
               <p className="text-xs text-gray-500">Generando sugerencias...</p>
             </div>
           ) : aiSuggestions.length === 0 ? (
-            <div className="text-center py-8">
-              <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-sm text-gray-500 mb-1">No hay sugerencias disponibles</p>
+            <div className="text-center py-6">
+              <MessageCircle className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+              <p className="text-xs text-gray-500 mb-1">No hay sugerencias disponibles</p>
               <p className="text-xs text-gray-400">El copiloto generará sugerencias automáticamente</p>
             </div>
           ) : (
             aiSuggestions.map((suggestion) => (
-              <div key={suggestion.id} className="border border-gray-200 rounded-lg p-3">
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="text-sm font-medium text-gray-900">{suggestion.title}</h4>
-                  <span className={`text-xs px-2 py-1 rounded-full ${getConfidenceColor(suggestion.confidence)}`}>
+              <div key={suggestion.id} className="border border-gray-200 rounded-lg p-2">
+                <div className="flex items-start justify-between mb-1.5">
+                  <h4 className="text-xs font-medium text-gray-900">{suggestion.title}</h4>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${getConfidenceColor(suggestion.confidence)}`}>
                     {getConfidenceText(suggestion.confidence)}
                   </span>
                 </div>
                 
-                <p className="text-sm text-gray-700 mb-3">{suggestion.content}</p>
+                <p className="text-xs text-gray-700 mb-2">{suggestion.content}</p>
                 
                 <div className="flex items-center justify-between">
                   <div className="flex flex-wrap gap-1">
                     {suggestion.tags.map((tag) => (
-                      <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                      <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-1 py-0.5 rounded">
                         {tag}
                       </span>
                     ))}
@@ -145,7 +145,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
                     {suggestion.actions.copy && (
                       <button
                         onClick={() => onCopySuggestion(suggestion)}
-                        className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700"
+                        className="p-0.5 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700"
                         title="Copiar"
                       >
                         <Copy className="h-3 w-3" />
@@ -154,7 +154,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
                     {suggestion.actions.improve && (
                       <button
                         onClick={() => onImproveSuggestion(suggestion.id)}
-                        className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700"
+                        className="p-0.5 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700"
                         title="Mejorar"
                       >
                         <RefreshCw className="h-3 w-3" />
@@ -167,24 +167,24 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
           )}
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Chat History */}
           <div className="flex-1 min-h-0">
             {copilotState.chatHistory.length === 0 ? (
-              <div className="text-center py-8">
-                <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-sm text-gray-500 mb-1">Pregunta lo que necesites</p>
+              <div className="text-center py-6">
+                <MessageCircle className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+                <p className="text-xs text-gray-500 mb-1">Pregunta lo que necesites</p>
                 <p className="text-xs text-gray-400">El copiloto está aquí para ayudarte</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {copilotState.chatHistory.map((message) => (
                   <div
                     key={message.id}
                     className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
+                      className={`max-w-xs px-2 py-1.5 rounded-lg text-xs ${
                         message.role === 'user'
                           ? 'bg-blue-600 text-white'
                           : 'bg-gray-100 text-gray-900'
@@ -207,18 +207,18 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyPress={handleChatKeyPress}
                 placeholder="Escribe tu pregunta..."
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
             <button
               onClick={handleChatSend}
               disabled={!chatInput.trim() || copilotState.isLoading}
-              className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               {copilotState.isLoading ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
-                <Send className="h-4 w-4" />
+                <Send className="h-3 w-3" />
               )}
             </button>
           </div>
@@ -226,7 +226,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
       )}
 
       {/* Status Indicator */}
-      <div className="pt-4 border-t border-gray-200">
+      <div className="pt-3 border-t border-gray-200">
         <p className="text-xs text-gray-500 text-center">
           Modo simulado - sin backend real
         </p>

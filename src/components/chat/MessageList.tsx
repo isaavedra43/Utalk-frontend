@@ -16,6 +16,8 @@ interface MessageListProps {
   onLoadMore?: () => void;
   hasMore?: boolean;
   isLoadingMore?: boolean;
+  onRetryMessage?: (messageId: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
@@ -25,7 +27,9 @@ export const MessageList: React.FC<MessageListProps> = ({
   customerName = 'Usuario',
   onLoadMore,
   hasMore = false,
-  isLoadingMore = false
+  isLoadingMore = false,
+  onRetryMessage,
+  onDeleteMessage
 }) => {
   const renderMessageGroup = (group: MessageGroup) => (
     <div key={group.date} className="mb-6">
@@ -50,6 +54,8 @@ export const MessageList: React.FC<MessageListProps> = ({
             customerName={customerName}
             showAvatar={showAvatar}
             isLastInGroup={isLastInGroup}
+            onRetry={onRetryMessage}
+            onDelete={onDeleteMessage}
           />
         );
       })}
@@ -74,6 +80,8 @@ export const MessageList: React.FC<MessageListProps> = ({
           customerName={customerName}
           showAvatar={showAvatar}
           isLastInGroup={isLastInGroup}
+          onRetry={onRetryMessage}
+          onDelete={onDeleteMessage}
         />
       );
     });

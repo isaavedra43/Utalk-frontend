@@ -1,98 +1,104 @@
 import React from 'react';
-import { LeftSidebar, RightSidebar, ThinSidebar } from './index';
-import { ConversationList, ChatArea } from '../chat/index';
-import { AuthModule } from '../../modules/auth/AuthModule';
+import { LeftSidebar } from './LeftSidebar';
+import { RightSidebar } from './RightSidebar';
+import { ThinSidebar } from './ThinSidebar';
+import { ChatModule } from '../chat/ChatModule';
 import { useAppStore } from '../../stores/useAppStore';
+import { useWebSocketContext } from '../../contexts/useWebSocketContext';
+
+const ConnectionBadge: React.FC = () => {
+  const { isConnected, connectionError } = useWebSocketContext();
+  if (isConnected && !connectionError) return null;
+  return (
+    <div style={{ position: 'fixed', right: 12, bottom: 12, zIndex: 50 }} className="rounded bg-red-600 text-white px-3 py-1 text-sm shadow">
+      {connectionError ? `WS: ${connectionError}` : 'Reconectando...'}
+    </div>
+  );
+};
 
 export const MainLayout: React.FC = () => {
-  const { activeConversation, currentModule } = useAppStore();
+  const { currentModule } = useAppStore();
 
-  return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Sidebar delgado con iconos */}
-      <ThinSidebar />
-
-      {/* Columna 1: Canales (Navegación Principal) */}
-      <div className="w-48 bg-white border-r border-gray-200 flex flex-col">
+  // Si estamos en el módulo de chat, mostrar la estructura de chat completa
+  if (currentModule === 'chat') {
+    return (
+      <div className="flex h-screen bg-gray-100">
+        {/* Sidebar izquierdo */}
         <LeftSidebar />
+        
+        {/* Módulo de Chat completo */}
+        <ChatModule />
+        <ConnectionBadge />
       </div>
+    );
+  }
 
-      {/* NUEVO: Renderizado condicional basado en módulo */}
-      {currentModule === 'auth' && <AuthModule />}
-      {currentModule === 'chat' && (
-        <>
-          {/* Columna 2: Listado de Conversaciones */}
-          <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-            <ConversationList />
-          </div>
-
-          {/* Columna 3: Área de Chat (Conversación Activa) - Toma el espacio restante */}
-          <div className="flex-1 bg-white flex flex-col min-w-0">
-            <ChatArea />
-          </div>
-        </>
-      )}
-
-      {/* NUEVO: Placeholders para otros módulos */}
-      {currentModule === 'contacts' && (
-        <div className="flex-1 bg-white flex flex-col min-w-0">
-          <div className="p-6 border-b">
-            <h1 className="text-2xl font-bold">Contactos</h1>
-          </div>
-          <div className="flex-1 p-6">
-            <p className="text-gray-500">Módulo de contactos en desarrollo...</p>
+  // Para el módulo de dashboard, mostrar una estructura simple
+  if (currentModule === 'dashboard') {
+    return (
+      <div className="flex h-screen bg-gray-100">
+        {/* Sidebar izquierdo */}
+        <LeftSidebar />
+        
+        {/* Área principal del dashboard */}
+        <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex">
+            <div className="flex-1">
+              <div className="h-full flex items-center justify-center bg-white">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Dashboard
+                  </h3>
+                  <p className="text-gray-500">
+                    Panel de control en desarrollo
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      )}
-
-      {currentModule === 'analytics' && (
-        <div className="flex-1 bg-white flex flex-col min-w-0">
-          <div className="p-6 border-b">
-            <h1 className="text-2xl font-bold">Analytics</h1>
-          </div>
-          <div className="flex-1 p-6">
-            <p className="text-gray-500">Módulo de analytics en desarrollo...</p>
-          </div>
-        </div>
-      )}
-
-      {currentModule === 'settings' && (
-        <div className="flex-1 bg-white flex flex-col min-w-0">
-          <div className="p-6 border-b">
-            <h1 className="text-2xl font-bold">Configuración</h1>
-          </div>
-          <div className="flex-1 p-6">
-            <p className="text-gray-500">Módulo de configuración en desarrollo...</p>
-          </div>
-        </div>
-      )}
-
-      {currentModule === 'dashboard' && (
-        <div className="flex-1 bg-white flex flex-col min-w-0">
-          <div className="p-6 border-b">
-            <h1 className="text-2xl font-bold">Dashboard</h1>
-          </div>
-          <div className="flex-1 p-6">
-            <p className="text-gray-500">Módulo de dashboard en desarrollo...</p>
-          </div>
-        </div>
-      )}
-
-      {/* Columna 4: Detalles del Cliente y Copiloto */}
-      <div className="w-72 bg-white border-l border-gray-200 flex flex-col">
-        <RightSidebar />
+        <ConnectionBadge />
       </div>
+    );
+  }
 
-      {/* Debug Info - Esquina inferior izquierda */}
-      <div className="fixed bottom-2 left-2 z-50">
-        <div className="bg-black text-white text-xs p-2 rounded">
-          <div>App: MOUNTED</div>
-          <div>Route: /</div>
-          <div>Mount: #root</div>
-          <div>Active: {activeConversation?.customerName || 'None'}</div>
-          <div>Module: {currentModule}</div>
+  // Para otros módulos, mostrar la estructura general
+  return (
+    <div className="flex h-screen bg-gray-100">
+      {/* Sidebar izquierdo */}
+      <LeftSidebar />
+      
+      {/* Sidebar delgado */}
+      <ThinSidebar />
+      
+      {/* Área principal */}
+      <div className="flex-1 flex flex-col">
+        {/* Contenido del módulo */}
+        <div className="flex-1 flex">
+          <div className="flex-1">
+            {/* Aquí iría el contenido específico de cada módulo */}
+            <div className="h-full flex items-center justify-center bg-white">
+              <div className="text-center">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Bienvenido a UTalk
+                </h3>
+                <p className="text-gray-500">
+                  Módulo: {currentModule}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+      
+      {/* Sidebar derecho */}
+      <RightSidebar />
+      <ConnectionBadge />
     </div>
   );
 }; 

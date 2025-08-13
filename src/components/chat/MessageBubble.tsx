@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, CheckCheck } from 'lucide-react';
+import { Check, CheckCheck, RefreshCw, X } from 'lucide-react';
 import type { Message } from '../../types';
 import { MessageContent } from './MessageContent';
 
@@ -8,13 +8,17 @@ interface MessageBubbleProps {
   customerName: string;
   showAvatar?: boolean;
   isLastInGroup?: boolean;
+  onRetry?: (messageId: string) => void;
+  onDelete?: (messageId: string) => void;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   customerName,
   showAvatar = false,
-  isLastInGroup = true
+  isLastInGroup = true,
+  onRetry,
+  onDelete
 }) => {
   const getCustomerInitials = (name: string) => {
     return name.split(' ').map(word => word.charAt(0)).join('').toUpperCase().slice(0, 2);
@@ -28,6 +32,36 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         return <CheckCheck className="w-3 h-3 text-gray-400" />;
       case 'sent':
         return <Check className="w-3 h-3 text-gray-400" />;
+      case 'failed':
+        return (
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-red-500">Error</span>
+            {onRetry && (
+              <button
+                onClick={() => onRetry(message.id)}
+                className="p-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded transition-colors"
+                title="Reintentar envío"
+              >
+                <RefreshCw className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        );
+      case 'sending':
+        return (
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+            {onDelete && (
+              <button
+                onClick={() => onDelete(message.id)}
+                className="p-1 text-gray-500 hover:text-red-500 hover:bg-red-100 rounded transition-colors"
+                title="Cancelar envío"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        );
       default:
         return null;
     }

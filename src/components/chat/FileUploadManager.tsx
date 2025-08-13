@@ -1,103 +1,80 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { 
   Paperclip, 
-  Image, 
+  Upload, 
   FileText, 
+  Image, 
   Music, 
   Video, 
-  X, 
-  Upload, 
-  CheckCircle,
-  AlertCircle,
-  File,
-  Trash2
+  CheckCircle, 
+  AlertCircle, 
+  Trash2,
+  X
 } from 'lucide-react';
-import { fileUploadService } from '../../services/fileUpload';
-import { APP_CONFIG } from '../../config/constants';
-
-interface FileUploadManagerProps {
-  conversationId: string;
-  onSendMessage: (content: string, type?: 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker') => void;
-  isUploading: boolean;
-  setIsUploading: (uploading: boolean) => void;
-}
 
 interface FilePreview {
   id: string;
   file: File;
+  type: string;
   preview?: string;
-  progress: number;
   status: 'pending' | 'uploading' | 'success' | 'error';
+  progress: number;
   error?: string;
-  type: 'image' | 'document' | 'audio' | 'video';
 }
 
-export const FileUploadManager: React.FC<FileUploadManagerProps> = ({
-  conversationId,
-  onSendMessage,
-  isUploading,
-  setIsUploading
-}) => {
+interface FileUploadManagerProps {
+  onFileUpload: (content: string, type?: string, metadata?: Record<string, unknown>) => void;
+}
+
+export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUpload }) => {
   const [showMenu, setShowMenu] = useState(false);
-  const [isDragOver, setIsDragOver] = useState(false);
   const [filePreviews, setFilePreviews] = useState<FilePreview[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
-  // Generar ID único para archivos
-  const generateFileId = () => Math.random().toString(36).substr(2, 9);
-
-  // Crear previsualización de archivo
-  const createFilePreview = async (file: File): Promise<FilePreview> => {
-    const id = generateFileId();
-    const type = fileUploadService.getMessageType(file);
+  const handleFileSelect = useCallback((files: FileList | null) => {
+    if (!files) return;
     
-    let preview: string | undefined;
-    
-    // Crear preview para imágenes
-    if (type === 'image') {
-      preview = URL.createObjectURL(file);
-    }
-    
-    return {
-      id,
+    const newFiles: FilePreview[] = Array.from(files).map(file => ({
+      id: `${file.name}-${Date.now()}`,
       file,
-      preview,
-      progress: 0,
+      type: getFileType(file),
       status: 'pending',
-      type
-    };
+      progress: 0
+    }));
+
+    setFilePreviews(prev => [...prev, ...newFiles]);
+  }, []);
+
+  const getFileType = (file: File): string => {
+    if (file.type.startsWith('image/')) return 'image';
+    if (file.type.startsWith('audio/')) return 'audio';
+    if (file.type.startsWith('video/')) return 'video';
+    return 'document';
   };
 
-  // Manejar selección de archivos
-  const handleFileSelect = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-
-    const newPreviews: FilePreview[] = [];
-    
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      
-      // Validar archivo
-      try {
-        fileUploadService.validateFile(file);
-        const preview = await createFilePreview(file);
-        newPreviews.push(preview);
-      } catch (error) {
-        console.error(`Error validando archivo ${file.name}:`, error);
-        // Mostrar error pero continuar con otros archivos
-      }
+  const getFileIcon = (type: string) => {
+    switch (type) {
+      case 'image': return <Image className="w-4 h-4 text-blue-500" />;
+      case 'audio': return <Music className="w-4 h-4 text-green-500" />;
+      case 'video': return <Video className="w-4 h-4 text-purple-500" />;
+      default: return <FileText className="w-4 h-4 text-gray-500" />;
     }
-
-    setFilePreviews(prev => [...prev, ...newPreviews]);
-    setShowMenu(false);
   };
 
-  // Subir archivo individual
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   const uploadFile = async (filePreview: FilePreview) => {
     try {
-      // Actualizar estado a uploading
       setFilePreviews(prev => 
         prev.map(fp => 
           fp.id === filePreview.id 
@@ -106,39 +83,19 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({
         )
       );
 
-      setIsUploading(true);
-
-      // Simular progreso de subida
-      const progressInterval = setInterval(() => {
+      // Simular subida con progreso
+      for (let i = 0; i <= 100; i += 10) {
+        await new Promise(resolve => setTimeout(resolve, 100));
         setFilePreviews(prev => 
           prev.map(fp => 
-            fp.id === filePreview.id && fp.progress < 90
-              ? { ...fp, progress: fp.progress + 10 }
+            fp.id === filePreview.id 
+              ? { ...fp, progress: i }
               : fp
           )
         );
-      }, 200);
-
-      // Subir archivo según su tipo
-      let uploadResponse;
-      switch (filePreview.type) {
-        case 'image':
-          uploadResponse = await fileUploadService.uploadImage(filePreview.file, conversationId);
-          break;
-        case 'audio':
-          uploadResponse = await fileUploadService.uploadAudio(filePreview.file, conversationId);
-          break;
-        case 'video':
-          uploadResponse = await fileUploadService.uploadVideo(filePreview.file, conversationId);
-          break;
-        default:
-          uploadResponse = await fileUploadService.uploadDocument(filePreview.file, conversationId);
-          break;
       }
 
-      clearInterval(progressInterval);
-
-      // Marcar como completado
+      // Simular éxito
       setFilePreviews(prev => 
         prev.map(fp => 
           fp.id === filePreview.id 
@@ -147,16 +104,16 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({
         )
       );
 
-      // Enviar mensaje
-      await onSendMessage(uploadResponse.url, filePreview.type);
-
-      // Remover de la lista después de un delay
-      setTimeout(() => {
-        setFilePreviews(prev => prev.filter(fp => fp.id !== filePreview.id));
-      }, 2000);
+      // Enviar archivo
+      const fileUrl = URL.createObjectURL(filePreview.file);
+      onFileUpload(fileUrl, filePreview.type, {
+        fileName: filePreview.file.name,
+        fileSize: filePreview.file.size,
+        fileType: filePreview.file.type
+      });
 
     } catch (error) {
-      console.error('Error subiendo archivo:', error);
+      console.error('Error uploading file:', error);
       setFilePreviews(prev => 
         prev.map(fp => 
           fp.id === filePreview.id 
@@ -164,75 +121,38 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({
             : fp
         )
       );
-    } finally {
-      setIsUploading(false);
     }
   };
 
-  // Subir todos los archivos pendientes
   const uploadAllFiles = async () => {
+    setIsUploading(true);
     const pendingFiles = filePreviews.filter(fp => fp.status === 'pending');
     
     for (const filePreview of pendingFiles) {
       await uploadFile(filePreview);
     }
+    
+    setIsUploading(false);
   };
 
-  // Remover archivo de la lista
-  const removeFile = (fileId: string) => {
-    setFilePreviews(prev => {
-      const filePreview = prev.find(fp => fp.id === fileId);
-      if (filePreview?.preview) {
-        URL.revokeObjectURL(filePreview.preview);
-      }
-      return prev.filter(fp => fp.id !== fileId);
-    });
+  const removeFile = (id: string) => {
+    setFilePreviews(prev => prev.filter(fp => fp.id !== id));
   };
 
-  // Drag & Drop handlers
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);
-  }, []);
+  };
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
+  const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-  }, []);
+  };
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
     handleFileSelect(e.dataTransfer.files);
-  }, []);
-
-  // Limpiar previews al desmontar
-  React.useEffect(() => {
-    return () => {
-      filePreviews.forEach(fp => {
-        if (fp.preview) {
-          URL.revokeObjectURL(fp.preview);
-        }
-      });
-    };
-  }, []);
-
-  const getFileIcon = (type: string) => {
-    switch (type) {
-      case 'image': return <Image className="w-4 h-4" />;
-      case 'document': return <FileText className="w-4 h-4" />;
-      case 'audio': return <Music className="w-4 h-4" />;
-      case 'video': return <Video className="w-4 h-4" />;
-      default: return <File className="w-4 h-4" />;
-    }
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   return (
@@ -240,8 +160,7 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({
       {/* Botón principal */}
       <button
         onClick={() => setShowMenu(!showMenu)}
-        disabled={isUploading}
-        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
         title="Adjuntar archivo"
       >
         <Paperclip className="w-5 h-5" />
@@ -249,26 +168,26 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({
 
       {/* Menú desplegable */}
       {showMenu && (
-        <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[200px] z-50">
-          <div className="text-sm font-medium text-gray-700 mb-2">Adjuntar archivo</div>
-          
-          {/* Opciones de archivo */}
-          <div className="space-y-1">
+        <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[200px] z-40">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-medium text-gray-700">Adjuntar archivo</h4>
             <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+              onClick={() => setShowMenu(false)}
+              className="text-gray-400 hover:text-gray-600"
             >
-              <File className="w-4 h-4" />
-              <span>Seleccionar archivos</span>
+              <X className="w-4 h-4" />
             </button>
-            
+          </div>
+          
+          <div className="space-y-1">
+            {/* Imágenes */}
             <button
               onClick={() => {
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = 'image/*';
                 input.multiple = true;
-                input.onchange = (e) => handleFileSelect(e.target?.files);
+                input.onchange = (e) => handleFileSelect((e.target as HTMLInputElement)?.files);
                 input.click();
               }}
               className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
@@ -276,44 +195,47 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({
               <Image className="w-4 h-4" />
               <span>Imágenes</span>
             </button>
-            
+
+            {/* Audios */}
             <button
               onClick={() => {
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = 'audio/*';
                 input.multiple = true;
-                input.onchange = (e) => handleFileSelect(e.target?.files);
+                input.onchange = (e) => handleFileSelect((e.target as HTMLInputElement)?.files);
                 input.click();
               }}
               className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
             >
               <Music className="w-4 h-4" />
-              <span>Audio</span>
+              <span>Audios</span>
             </button>
-            
+
+            {/* Videos */}
             <button
               onClick={() => {
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = 'video/*';
                 input.multiple = true;
-                input.onchange = (e) => handleFileSelect(e.target?.files);
+                input.onchange = (e) => handleFileSelect((e.target as HTMLInputElement)?.files);
                 input.click();
               }}
               className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
             >
               <Video className="w-4 h-4" />
-              <span>Video</span>
+              <span>Videos</span>
             </button>
-            
+
+            {/* Documentos */}
             <button
               onClick={() => {
                 const input = document.createElement('input');
                 input.type = 'file';
-                input.accept = '.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx";
+                input.accept = '.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx';
                 input.multiple = true;
-                input.onchange = (e) => handleFileSelect(e.target?.files);
+                input.onchange = (e) => handleFileSelect((e.target as HTMLInputElement)?.files);
                 input.click();
               }}
               className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
@@ -409,7 +331,7 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({
                   )}
                   
                   {filePreview.status === 'error' && (
-                    <AlertCircle className="w-4 h-4 text-red-500" title={filePreview.error} />
+                    <AlertCircle className="w-4 h-4 text-red-500" />
                   )}
                   
                   <button

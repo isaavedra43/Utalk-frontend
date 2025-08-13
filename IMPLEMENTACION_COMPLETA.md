@@ -160,7 +160,7 @@ MAX_FILE_SIZE: {
   AUDIO: 50 * 1024 * 1024,    // 50MB
   VIDEO: 100 * 1024 * 1024,   // 100MB
   DOCUMENT: 25 * 1024 * 1024, // 25MB
-}
+} y le el documento apra ver si 
 ```
 
 ## 🎉 **RESULTADO FINAL**

@@ -67,20 +67,20 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`p-1.5 cursor-pointer transition-colors ${
+      className={`p-1 cursor-pointer transition-colors ${
         isSelected 
           ? 'bg-blue-50 border-l-4 border-l-blue-500' 
           : 'hover:bg-gray-50'
       }`}
     >
-      <div className="flex items-start space-x-2">
+      <div className="flex items-start space-x-1.5">
         {/* Avatar */}
         <div className="relative flex-shrink-0">
-          <div className="w-7 h-7 bg-gray-300 rounded-full flex items-center justify-center text-xs font-medium text-gray-700">
+          <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center text-xs font-medium text-gray-700">
             {getCustomerInitials(conversation.customerName)}
           </div>
           {/* Status dot */}
-          <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 border-white ${getStatusColor(conversation.priority || 'medium', conversation.unreadCount)}`}></div>
+          <div className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-white ${getStatusColor(conversation.priority || 'medium', conversation.unreadCount)}`}></div>
         </div>
 
         {/* Content */}
@@ -104,7 +104,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
 
           {/* Customer Info */}
           <div className="flex items-center space-x-1 mb-0.5">
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-500 truncate">
               {conversation.customerPhone}
             </span>
             <span className="text-xs text-gray-400">•</span>
@@ -128,9 +128,9 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
 
           {/* Stats and Tags */}
           <div className="flex items-center justify-between">
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-0.5">
               {/* Priority tags */}
-              {conversation.tags?.slice(0, 2).map((tag, index) => (
+              {conversation.tags?.slice(0, 1).map((tag, index) => (
                 <span
                   key={index}
                   className="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700"

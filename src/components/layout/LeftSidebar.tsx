@@ -1,147 +1,86 @@
 import React from 'react';
-import { Search, User, Clock, Folder, MessageSquare, Users, BarChart3, Settings, LayoutDashboard, Shield } from 'lucide-react';
-import { useConversations } from '../../hooks/useConversations';
+import { MessageSquare, LayoutDashboard, LogOut } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
+import { useAuthContext } from '../../contexts/useAuthContext';
 
 export const LeftSidebar: React.FC = () => {
-  const { stats } = useConversations();
   const { currentModule, navigateToModule } = useAppStore();
+  const { logout, backendUser } = useAuthContext();
   
+  const handleLogout = async () => {
+    try {
+      await logout();
+      // El logout automáticamente redirigirá al login
+    } catch (error) {
+      console.error('Error en logout:', error);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Header - Canales */}
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">Canales</h2>
-        
-        {/* Búsqueda - Q Filtrar */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <input
-            type="text"
-            placeholder="Q Filtrar"
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+    <div className="flex flex-col h-screen w-16 bg-white border-r border-gray-200">
+      {/* Header con logo */}
+      <div className="p-3 border-b border-gray-200 flex-shrink-0">
+        <div className="flex items-center justify-center">
+          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-lg">U</span>
+          </div>
         </div>
       </div>
 
-      {/* Navegación con Badges */}
-      <div className="flex-1 p-4 space-y-2">
-        {/* Asignados a ti */}
-        <div className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 cursor-pointer">
-          <div className="flex items-center gap-3">
-            <User className="h-4 w-4 text-gray-600" />
-            <span className="text-sm text-gray-700">Asignados a ti</span>
-          </div>
-          <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-            {stats.assigned > 9 ? '9+' : stats.assigned}
-          </span>
-        </div>
-
-        {/* Sin contestar */}
-        <div className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 cursor-pointer">
-          <div className="flex items-center gap-3">
-            <Clock className="h-4 w-4 text-gray-600" />
-            <span className="text-sm text-gray-700">Sin contestar</span>
-          </div>
-          <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-            {stats.unread}
-          </span>
-        </div>
-
-        {/* Abiertos */}
-        <div className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-100 cursor-pointer">
-          <div className="flex items-center gap-3">
-            <Folder className="h-4 w-4 text-gray-600" />
-            <span className="text-sm text-gray-700">Abiertos</span>
-          </div>
-          <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-            {stats.open}
-          </span>
-        </div>
-      </div>
-
-      {/* NUEVO: Navegación entre módulos */}
-      <div className="p-4 border-t border-gray-200">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Módulos</h3>
-        <div className="space-y-1">
-          {/* Auth */}
-          <button
-            onClick={() => navigateToModule('auth')}
-            className={`w-full flex items-center gap-3 p-2 rounded-lg text-sm transition-colors ${
-              currentModule === 'auth' 
-                ? 'bg-blue-100 text-blue-700' 
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <Shield className="h-4 w-4" />
-            <span>Auth</span>
-          </button>
-
+      {/* Navegación entre módulos */}
+      <div className="flex-1 p-2">
+        <div className="space-y-2">
           {/* Dashboard */}
           <button
             onClick={() => navigateToModule('dashboard')}
-            className={`w-full flex items-center gap-3 p-2 rounded-lg text-sm transition-colors ${
+            className={`w-full h-10 flex items-center justify-center rounded-lg text-sm transition-colors ${
               currentModule === 'dashboard' 
                 ? 'bg-blue-100 text-blue-700' 
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
+            title="Dashboard"
           >
-            <LayoutDashboard className="h-4 w-4" />
-            <span>Dashboard</span>
+            <LayoutDashboard className="h-5 w-5" />
           </button>
 
           {/* Chat */}
           <button
             onClick={() => navigateToModule('chat')}
-            className={`w-full flex items-center gap-3 p-2 rounded-lg text-sm transition-colors ${
+            className={`w-full h-10 flex items-center justify-center rounded-lg text-sm transition-colors ${
               currentModule === 'chat' 
                 ? 'bg-blue-100 text-blue-700' 
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
+            title="Chat"
           >
-            <MessageSquare className="h-4 w-4" />
-            <span>Chat</span>
-          </button>
-
-          {/* Contactos */}
-          <button
-            onClick={() => navigateToModule('contacts')}
-            className={`w-full flex items-center gap-3 p-2 rounded-lg text-sm transition-colors ${
-              currentModule === 'contacts' 
-                ? 'bg-blue-100 text-blue-700' 
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <Users className="h-4 w-4" />
-            <span>Contactos</span>
-          </button>
-
-          {/* Analytics */}
-          <button
-            onClick={() => navigateToModule('analytics')}
-            className={`w-full flex items-center gap-3 p-2 rounded-lg text-sm transition-colors ${
-              currentModule === 'analytics' 
-                ? 'bg-blue-100 text-blue-700' 
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <BarChart3 className="h-4 w-4" />
-            <span>Analytics</span>
-          </button>
-
-          {/* Configuración */}
-          <button
-            onClick={() => navigateToModule('settings')}
-            className={`w-full flex items-center gap-3 p-2 rounded-lg text-sm transition-colors ${
-              currentModule === 'settings' 
-                ? 'bg-blue-100 text-blue-700' 
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <Settings className="h-4 w-4" />
-            <span>Configuración</span>
+            <MessageSquare className="h-5 w-5" />
           </button>
         </div>
+      </div>
+
+      {/* Información del Usuario y Logout */}
+      <div className="p-2 border-t border-gray-200 flex-shrink-0 bg-gray-50">
+        {/* Información del usuario */}
+        {backendUser && (
+          <div className="mb-2 p-1 rounded-lg bg-white border border-gray-200">
+            <div className="flex items-center justify-center">
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-medium">
+                  {backendUser.displayName?.charAt(0) || backendUser.email?.charAt(0) || 'U'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Botón de Logout */}
+        <button
+          onClick={handleLogout}
+          className="w-full h-10 flex items-center justify-center rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors border border-red-200 hover:border-red-300"
+          title="Cerrar Sesión"
+        >
+          <LogOut className="h-5 w-5" />
+        </button>
       </div>
     </div>
   );
