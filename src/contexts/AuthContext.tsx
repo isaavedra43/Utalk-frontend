@@ -56,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('🔐 AuthContext - Desconectando WebSocket (usuario no autenticado)');
       disconnectSocket();
     }
-  }, [auth.isAuthenticated, auth.backendUser, auth.loading, connectSocket, disconnectSocket, isConnected]);
+  }, [auth.isAuthenticated, auth.backendUser, auth.loading, connectSocket, disconnectSocket, isConnected, auth.user?.email]);
 
   // Escuchar eventos de autenticación fallida para desconectar WebSocket
   useEffect(() => {

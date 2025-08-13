@@ -573,16 +573,19 @@ export const useChat = (conversationId: string) => {
     optimisticMessagesRef.current.delete(messageId);
   }, []);
 
+  // Función de limpieza memoizada
+  const cleanup = useCallback(() => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    // Limpiar mensajes optimistas
+    optimisticMessagesRef.current.clear();
+  }, []);
+
   // Limpiar al desmontar
   useEffect(() => {
-    return () => {
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-      // Limpiar mensajes optimistas
-      optimisticMessagesRef.current.clear();
-    };
-  }, []);
+    return cleanup;
+  }, [cleanup]);
 
   return {
     // Datos

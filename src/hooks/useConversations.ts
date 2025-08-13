@@ -25,13 +25,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Memoizar filters para evitar re-renders innecesarios
-  const memoizedFilters = useMemo(() => filters, [
-    filters.search,
-    filters.status,
-    filters.priority,
-    filters.assignedTo,
-    filters
-  ]);
+  const memoizedFilters = useMemo(() => filters, [filters]);
 
   // Memoizar la función de sincronización con debouncing
   const debouncedSync = useCallback((reason?: string) => {

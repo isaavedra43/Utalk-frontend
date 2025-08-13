@@ -77,7 +77,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         connect(token);
       }, 1000);
     }
-  }, [isConnected]); // Remover 'connect' de las dependencias para evitar bucles
+  }, [isConnected, connect]); // Incluir 'connect' en las dependencias
 
   // Reautenticar socket cuando se refresca el access token
   useEffect(() => {
@@ -93,7 +93,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     window.addEventListener('auth:token-refreshed', handler as unknown as EventListener);
     return () => window.removeEventListener('auth:token-refreshed', handler as unknown as EventListener);
-  }, []); // Remover dependencias para evitar bucles
+  }, [connect, disconnect]); // Incluir dependencias necesarias
 
   // Configurar listeners globales
   useEffect(() => {
