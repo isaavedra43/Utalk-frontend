@@ -132,10 +132,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   }, []);
 
   return (
-    <div className="border-t border-gray-200 p-4 bg-white">
+    <div className="border-t border-gray-200 p-3 sm:p-4 bg-white">
       {/* Audio Recorder */}
       {showAudioRecorder && (
-        <div className="mb-4">
+        <div className="mb-3 sm:mb-4">
           <AudioRecorder
             onRecordingComplete={handleAudioComplete}
             onCancel={() => setShowAudioRecorder(false)}
@@ -145,7 +145,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
       {/* Sticker Picker */}
       {showStickerPicker && (
-        <div className="mb-4">
+        <div className="mb-3 sm:mb-4">
           <StickerPicker
             onSelectSticker={handleStickerSelect}
             onClose={() => setShowStickerPicker(false)}
@@ -153,33 +153,33 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         </div>
       )}
 
-      <div className="flex items-end space-x-2">
+      <div className="flex items-end space-x-2 sm:space-x-3">
         {/* Botones de acción */}
-        <div className="flex space-x-1">
+        <div className="flex space-x-1 sm:space-x-2">
           <FileUploadManager onFileUpload={onSendMessage} />
           
           <button
             onClick={() => setShowAudioRecorder(!showAudioRecorder)}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             disabled={disabled}
           >
-            <Mic className="w-5 h-5" />
+            <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
           
           <button
             onClick={handleLocationClick}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             disabled={disabled}
           >
-            <MapPin className="w-5 h-5" />
+            <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
           
           <button
             onClick={() => setShowStickerPicker(!showStickerPicker)}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             disabled={disabled}
           >
-            <Smile className="w-5 h-5" />
+            <Smile className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 
@@ -193,7 +193,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             onKeyPress={handleKeyPress}
             placeholder={placeholder}
             disabled={disabled || isSending}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed"
+            className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed text-sm sm:text-base"
             rows={1}
             style={{ minHeight: '44px', maxHeight: '120px' }}
           />
@@ -203,9 +203,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         <button
           onClick={handleSend}
           disabled={!currentValue.trim() || disabled || isSending}
-          className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 sm:p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
-          <Send className="w-5 h-5" />
+          <Send className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
       </div>
     </div>

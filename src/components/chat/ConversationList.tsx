@@ -52,28 +52,28 @@ export const ConversationList: React.FC = () => {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="p-1.5 border-b border-gray-200">
-        <h2 className="text-xs font-semibold text-gray-900 mb-1.5">Conversaciones</h2>
+      <div className="p-2 sm:p-3 border-b border-gray-200 flex-shrink-0">
+        <h2 className="text-xs sm:text-sm font-semibold text-gray-900 mb-2 sm:mb-3">Conversaciones</h2>
         
         {/* Search Bar */}
-        <div className="relative mb-1.5">
-          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400" />
+        <div className="relative mb-2 sm:mb-3">
+          <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
           <input
             type="text"
             placeholder="Buscar..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-7 pr-3 py-1 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-7 sm:pl-8 pr-3 py-2 sm:py-2.5 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex space-x-1">
+        <div className="flex space-x-1 sm:space-x-2">
           {filters.map((filter) => (
             <button
               key={filter.id}
               onClick={() => setActiveFilter(filter.id)}
-              className={`px-2 py-0.5 text-xs font-medium rounded-md transition-colors ${
+              className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${
                 activeFilter === filter.id
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -91,14 +91,14 @@ export const ConversationList: React.FC = () => {
         className="flex-1 overflow-y-auto"
       >
         {isLoading ? (
-          <div className="p-1.5">
-            <div className="animate-pulse space-y-1">
+          <div className="p-2 sm:p-3">
+            <div className="animate-pulse space-y-2 sm:space-y-3">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="flex items-center space-x-2">
-                  <div className="w-7 h-7 bg-gray-300 rounded-full"></div>
+                <div key={i} className="flex items-center space-x-3 sm:space-x-4">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-300 rounded-full"></div>
                   <div className="flex-1">
-                    <div className="h-3 bg-gray-300 rounded w-3/4"></div>
-                    <div className="h-2 bg-gray-300 rounded w-1/2 mt-1"></div>
+                    <div className="h-3 sm:h-4 bg-gray-300 rounded w-3/4"></div>
+                    <div className="h-2 sm:h-3 bg-gray-300 rounded w-1/2 mt-1 sm:mt-2"></div>
                   </div>
                 </div>
               ))}
@@ -117,24 +117,24 @@ export const ConversationList: React.FC = () => {
             
             {/* Loading indicator for infinite scroll */}
             {isFetchingNextPage && (
-              <div className="p-1.5 text-center">
-                <div className="inline-flex items-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-xs text-gray-500">Cargando más conversaciones...</span>
+              <div className="p-2 sm:p-3 text-center">
+                <div className="inline-flex items-center space-x-2 sm:space-x-3">
+                  <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-xs sm:text-sm text-gray-500">Cargando más conversaciones...</span>
                 </div>
               </div>
             )}
             
             {/* End of list indicator */}
             {!hasNextPage && conversations.length > 0 && (
-              <div className="p-1.5 text-center">
-                <span className="text-xs text-gray-400">No hay más conversaciones</span>
+              <div className="p-2 sm:p-3 text-center">
+                <span className="text-xs sm:text-sm text-gray-400">No hay más conversaciones</span>
               </div>
             )}
           </div>
         ) : (
-          <div className="p-1.5 text-center text-gray-500">
-            <p className="text-xs">No se encontraron conversaciones</p>
+          <div className="p-2 sm:p-3 text-center text-gray-500">
+            <p className="text-xs sm:text-sm">No se encontraron conversaciones</p>
           </div>
         )}
       </div>

@@ -37,7 +37,7 @@
   height: 100%;
   color: #ef4444;
   text-align: center;
-  padding: 2rem;
+  padding: 1rem;
 }
 
 .chat-error button {
@@ -58,11 +58,55 @@
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem;
+  padding: 0.75rem;
 }
 
 .chat-input {
   border-top: 1px solid #e2e8f0;
   background-color: white;
-  padding: 1rem;
+  padding: 0.75rem;
+}
+
+/* Responsive adjustments */
+@media (min-width: 640px) {
+  .chat-messages {
+    padding: 1rem;
+  }
+  
+  .chat-input {
+    padding: 1rem;
+  }
+  
+  .chat-error {
+    padding: 2rem;
+  }
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 639px) {
+  .chat-container {
+    /* Ensure full height on mobile */
+    min-height: 100vh;
+  }
+  
+  .chat-messages {
+    /* Optimize for mobile scrolling */
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  .chat-input {
+    /* Ensure input is always visible on mobile */
+    position: relative;
+    z-index: 10;
+  }
+}
+
+/* Touch-friendly interactions */
+@media (hover: none) and (pointer: coarse) {
+  .chat-error button {
+    /* Larger touch targets on mobile */
+    min-height: 44px;
+    min-width: 44px;
+  }
 } 

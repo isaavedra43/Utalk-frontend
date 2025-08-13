@@ -81,11 +81,11 @@ export const ChatComponent = ({ conversationId }: { conversationId: string }) =>
     return (
       <div className="chat-container">
         <div className="chat-disconnected">
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-full p-4">
             <div className="text-center">
-              <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-red-600 font-medium">Desconectado</p>
-              <p className="text-gray-500 text-sm">Intentando reconectar...</p>
+              <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-red-600 font-medium text-sm sm:text-base">Desconectado</p>
+              <p className="text-gray-500 text-xs sm:text-sm">Intentando reconectar...</p>
             </div>
           </div>
         </div>
@@ -97,10 +97,10 @@ export const ChatComponent = ({ conversationId }: { conversationId: string }) =>
     return (
       <div className="chat-container">
         <div className="chat-loading">
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-full p-4">
             <div className="text-center">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600">Cargando conversación...</p>
+              <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600 text-sm sm:text-base">Cargando conversación...</p>
             </div>
           </div>
         </div>
@@ -112,16 +112,16 @@ export const ChatComponent = ({ conversationId }: { conversationId: string }) =>
     return (
       <div className="chat-container">
         <div className="chat-error">
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-full p-4">
             <div className="text-center">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-red-600 text-xl">⚠️</span>
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-red-600 text-xl sm:text-2xl">⚠️</span>
               </div>
-              <p className="text-red-600 font-medium mb-2">Error de conexión</p>
-              <p className="text-gray-500 text-sm mb-4">{error}</p>
+              <p className="text-red-600 font-medium mb-2 text-sm sm:text-base">Error de conexión</p>
+              <p className="text-gray-500 text-xs sm:text-sm mb-4">{error}</p>
               <button 
                 onClick={() => window.location.reload()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 sm:px-6 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
               >
                 Reintentar
               </button>
