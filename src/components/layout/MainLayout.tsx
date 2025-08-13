@@ -4,7 +4,7 @@ import { ConversationList, ChatArea } from '../chat/index';
 import { useAppStore } from '../../stores/useAppStore';
 
 export const MainLayout: React.FC = () => {
-  const { activeConversation } = useAppStore();
+  const { activeConversation, currentModule } = useAppStore();
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -16,15 +16,65 @@ export const MainLayout: React.FC = () => {
         <LeftSidebar />
       </div>
 
-      {/* Columna 2: Listado de Conversaciones */}
-      <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        <ConversationList />
-      </div>
+      {/* NUEVO: Renderizado condicional basado en módulo */}
+      {currentModule === 'chat' && (
+        <>
+          {/* Columna 2: Listado de Conversaciones */}
+          <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
+            <ConversationList />
+          </div>
 
-      {/* Columna 3: Área de Chat (Conversación Activa) - Toma el espacio restante */}
-      <div className="flex-1 bg-white flex flex-col min-w-0">
-        <ChatArea />
-      </div>
+          {/* Columna 3: Área de Chat (Conversación Activa) - Toma el espacio restante */}
+          <div className="flex-1 bg-white flex flex-col min-w-0">
+            <ChatArea />
+          </div>
+        </>
+      )}
+
+      {/* NUEVO: Placeholders para otros módulos */}
+      {currentModule === 'contacts' && (
+        <div className="flex-1 bg-white flex flex-col min-w-0">
+          <div className="p-6 border-b">
+            <h1 className="text-2xl font-bold">Contactos</h1>
+          </div>
+          <div className="flex-1 p-6">
+            <p className="text-gray-500">Módulo de contactos en desarrollo...</p>
+          </div>
+        </div>
+      )}
+
+      {currentModule === 'analytics' && (
+        <div className="flex-1 bg-white flex flex-col min-w-0">
+          <div className="p-6 border-b">
+            <h1 className="text-2xl font-bold">Analytics</h1>
+          </div>
+          <div className="flex-1 p-6">
+            <p className="text-gray-500">Módulo de analytics en desarrollo...</p>
+          </div>
+        </div>
+      )}
+
+      {currentModule === 'settings' && (
+        <div className="flex-1 bg-white flex flex-col min-w-0">
+          <div className="p-6 border-b">
+            <h1 className="text-2xl font-bold">Configuración</h1>
+          </div>
+          <div className="flex-1 p-6">
+            <p className="text-gray-500">Módulo de configuración en desarrollo...</p>
+          </div>
+        </div>
+      )}
+
+      {currentModule === 'dashboard' && (
+        <div className="flex-1 bg-white flex flex-col min-w-0">
+          <div className="p-6 border-b">
+            <h1 className="text-2xl font-bold">Dashboard</h1>
+          </div>
+          <div className="flex-1 p-6">
+            <p className="text-gray-500">Módulo de dashboard en desarrollo...</p>
+          </div>
+        </div>
+      )}
 
       {/* Columna 4: Detalles del Cliente y Copiloto */}
       <div className="w-72 bg-white border-l border-gray-200 flex flex-col">
@@ -38,6 +88,7 @@ export const MainLayout: React.FC = () => {
           <div>Route: /</div>
           <div>Mount: #root</div>
           <div>Active: {activeConversation?.customerName || 'None'}</div>
+          <div>Module: {currentModule}</div>
         </div>
       </div>
     </div>

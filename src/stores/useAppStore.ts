@@ -18,6 +18,10 @@ interface AppStore extends AppState {
   setError: (error: string | null) => void;
   clearError: () => void;
   reset: () => void;
+  // NUEVAS acciones de navegación
+  setCurrentModule: (module: string) => void;
+  navigateToModule: (module: string) => void;
+  goBack: () => void;
 }
 
 const initialState: AppState = {
@@ -28,6 +32,9 @@ const initialState: AppState = {
   contacts: [],
   loading: false,
   error: null,
+  // NUEVO: Estado inicial de navegación
+  currentModule: 'chat',
+  moduleHistory: [],
 };
 
 export const useAppStore = create<AppStore>()(
@@ -96,6 +103,25 @@ export const useAppStore = create<AppStore>()(
       clearError: () => set({ error: null }),
 
       reset: () => set(initialState),
+
+      // NUEVAS acciones de navegación
+      setCurrentModule: (module) => set({ currentModule: module as AppState['currentModule'] }),
+
+      navigateToModule: (module) => set((state) => ({
+        currentModule: module as AppState['currentModule'],
+        moduleHistory: [...state.moduleHistory, state.currentModule].slice(-10) // Mantener solo los últimos 10
+      })),
+
+      goBack: () => set((state) => {
+        const previousModule = state.moduleHistory[state.moduleHistory.length - 1];
+        if (previousModule) {
+          return {
+            currentModule: previousModule as AppState['currentModule'],
+            moduleHistory: state.moduleHistory.slice(0, -1)
+          };
+        }
+        return state;
+      }),
     }),
     {
       name: 'utalk-store',

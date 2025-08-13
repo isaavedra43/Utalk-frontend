@@ -1,9 +1,11 @@
 import React from 'react';
-import { Search, User, Clock, Folder } from 'lucide-react';
+import { Search, User, Clock, Folder, MessageSquare, Users, BarChart3, Settings, LayoutDashboard } from 'lucide-react';
 import { useConversations } from '../../hooks/useConversations';
+import { useAppStore } from '../../stores/useAppStore';
 
 export const LeftSidebar: React.FC = () => {
   const { stats } = useConversations();
+  const { currentModule, navigateToModule } = useAppStore();
   
   return (
     <div className="flex flex-col h-full">
@@ -55,6 +57,77 @@ export const LeftSidebar: React.FC = () => {
           <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
             {stats.open}
           </span>
+        </div>
+      </div>
+
+      {/* NUEVO: Navegación entre módulos */}
+      <div className="p-4 border-t border-gray-200">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">Módulos</h3>
+        <div className="space-y-1">
+          {/* Dashboard */}
+          <button
+            onClick={() => navigateToModule('dashboard')}
+            className={`w-full flex items-center gap-3 p-2 rounded-lg text-sm transition-colors ${
+              currentModule === 'dashboard' 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            <span>Dashboard</span>
+          </button>
+
+          {/* Chat */}
+          <button
+            onClick={() => navigateToModule('chat')}
+            className={`w-full flex items-center gap-3 p-2 rounded-lg text-sm transition-colors ${
+              currentModule === 'chat' 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <MessageSquare className="h-4 w-4" />
+            <span>Chat</span>
+          </button>
+
+          {/* Contactos */}
+          <button
+            onClick={() => navigateToModule('contacts')}
+            className={`w-full flex items-center gap-3 p-2 rounded-lg text-sm transition-colors ${
+              currentModule === 'contacts' 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            <span>Contactos</span>
+          </button>
+
+          {/* Analytics */}
+          <button
+            onClick={() => navigateToModule('analytics')}
+            className={`w-full flex items-center gap-3 p-2 rounded-lg text-sm transition-colors ${
+              currentModule === 'analytics' 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <BarChart3 className="h-4 w-4" />
+            <span>Analytics</span>
+          </button>
+
+          {/* Configuración */}
+          <button
+            onClick={() => navigateToModule('settings')}
+            className={`w-full flex items-center gap-3 p-2 rounded-lg text-sm transition-colors ${
+              currentModule === 'settings' 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <Settings className="h-4 w-4" />
+            <span>Configuración</span>
+          </button>
         </div>
       </div>
     </div>
