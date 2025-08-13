@@ -1,12 +1,35 @@
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { WebSocketProvider } from './contexts/WebSocketContext'
 import { AuthModule } from './modules/auth'
-import { ChatModule } from './components/chat/ChatModule'
+import { MainLayout } from './components/layout/MainLayout'
 import { DebugPanel } from './components/DebugPanel'
 import { logger } from './utils/logger'
+import { useAppStore } from './stores/useAppStore'
+
+// Componente para establecer el módulo de chat
+const ChatPage: React.FC = () => {
+  const { setCurrentModule } = useAppStore();
+  
+  useEffect(() => {
+    setCurrentModule('chat');
+  }, [setCurrentModule]);
+  
+  return <MainLayout />;
+};
+
+// Componente para establecer el módulo de dashboard
+const DashboardPage: React.FC = () => {
+  const { setCurrentModule } = useAppStore();
+  
+  useEffect(() => {
+    setCurrentModule('dashboard');
+  }, [setCurrentModule]);
+  
+  return <MainLayout />;
+};
 
 function App() {
   const [showDebugPanel, setShowDebugPanel] = useState(import.meta.env.DEV);
@@ -26,7 +49,8 @@ function App() {
           <div className="app">
             <Routes>
               <Route path="/login" element={<AuthModule />} />
-              <Route path="/chat" element={<ChatModule />} />
+              <Route path="/chat" element={<ChatPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/" element={<Navigate to="/login" replace />} />
             </Routes>
             
