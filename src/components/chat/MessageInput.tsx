@@ -1,12 +1,19 @@
-import React, { useState, useRef } from 'react';
-import { Paperclip, Smile, FileText, Send } from 'lucide-react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { Paperclip, Send, Smile } from 'lucide-react';
+import { EmojiPicker } from './EmojiPicker';
+import { useWebSocketContext } from '../../hooks/useWebSocketContext';
 
 interface MessageInputProps {
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, type?: 'text' | 'image' | 'document' | 'location') => void;
   isSending?: boolean;
   placeholder?: string;
   contextTags?: string[];
   onContextTagClick?: (tag: string) => void;
+  conversationId?: string | null;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  onBlur?: () => void;
+  onKeyPress?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -14,64 +21,143 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   isSending = false,
   placeholder = 'Escribe un mensaje...',
   contextTags = [],
-  onContextTagClick
+  onContextTagClick,
+  conversationId,
+  value: externalValue,
+  onChange: externalOnChange,
+  onBlur: externalOnBlur,
+  onKeyPress: externalOnKeyPress
 }) => {
-  const [message, setMessage] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [inputValue, setInputValue] = useState('');
+  
+  // Usar valor externo si se proporciona, sino usar estado interno
+  const currentValue = externalValue !== undefined ? externalValue : inputValue;
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (message.trim() && !isSending) {
-      onSendMessage(message.trim());
-      setMessage('');
-      // Resetear altura del textarea
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
+  // WebSocket context para typing
+  const { startTyping, stopTyping } = useWebSocketContext();
+
+  // Función para manejar typing
+  const handleTyping = useCallback(() => {
+    if (!isTyping && conversationId) {
+      setIsTyping(true);
+      startTyping(conversationId);
+    }
+
+    // Limpiar timeout anterior
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Auto-stop typing después de 3 segundos
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      if (conversationId) {
+        stopTyping(conversationId);
       }
+    }, 3000);
+  }, [isTyping, startTyping, stopTyping, conversationId]);
+
+  // Función para detener typing
+  const handleStopTyping = useCallback(() => {
+    setIsTyping(false);
+    if (conversationId) {
+      stopTyping(conversationId);
+    }
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+  }, [stopTyping, conversationId]);
+
+  // Limpiar timeout al desmontar
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleSend = async () => {
+    if (!inputValue.trim() || isSending) return;
+
+    try {
+      await onSendMessage(inputValue.trim());
+      setInputValue('');
+      handleStopTyping();
+      setShowEmojiPicker(false);
+    } catch (error) {
+      console.error('Error enviando mensaje:', error);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (externalOnChange) {
+      externalOnChange(e);
+    } else {
+      setInputValue(e.target.value);
+    }
+    handleTyping();
+  };
+
+  const handleInputBlur = () => {
+    if (externalOnBlur) {
+      externalOnBlur();
+    }
+    handleStopTyping();
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (externalOnKeyPress) {
+      externalOnKeyPress(e);
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      handleSend();
     }
   };
 
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setMessage(e.target.value);
-    
-    // Auto-resize textarea
-    const textarea = e.target;
-    textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+  const handleFileClick = () => {
+    fileInputRef.current?.click();
   };
 
-  const handleFileUpload = () => {
-    // Implementar lógica de subida de archivos
-    console.log('Subir archivo');
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // TODO: Implementar subida de archivo
+      console.log('Archivo seleccionado:', file);
+      onSendMessage(`Archivo: ${file.name}`, 'document');
+    }
+    // Limpiar input
+    e.target.value = '';
   };
 
-  const handleEmojiClick = () => {
-    // Implementar selector de emojis
-    console.log('Abrir selector de emojis');
+  const handleEmojiSelect = (emoji: string) => {
+    setInputValue(prev => prev + emoji);
+    inputRef.current?.focus();
   };
 
-  const handleDocumentClick = () => {
-    // Implementar selector de documentos
-    console.log('Abrir selector de documentos');
+  const handleContextTagClick = (tag: string) => {
+    onContextTagClick?.(tag);
   };
 
   return (
-    <div className="border-t border-gray-200 bg-white p-4">
+    <div className="border-t border-gray-200 bg-white p-3">
       {/* Tags de contexto */}
       {contextTags.length > 0 && (
-        <div className="flex gap-2 mb-3">
+        <div className="mb-2 flex flex-wrap gap-1">
           {contextTags.map((tag) => (
             <button
               key={tag}
-              onClick={() => onContextTagClick?.(tag)}
-              className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+              onClick={() => handleContextTagClick(tag)}
+              className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full hover:bg-blue-200 transition-colors"
             >
               {tag}
             </button>
@@ -79,60 +165,74 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         </div>
       )}
 
-      {/* Input de mensaje */}
-      <form onSubmit={handleSubmit} className="flex items-end gap-2">
-        {/* Iconos de acción */}
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={handleFileUpload}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <Paperclip className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={handleEmojiClick}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <Smile className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={handleDocumentClick}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <FileText className="h-5 w-5" />
-          </button>
-        </div>
+      {/* Input principal */}
+      <div className="flex items-end space-x-2">
+        {/* Botón de adjuntar archivo */}
+        <button
+          onClick={handleFileClick}
+          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          title="Adjuntar archivo"
+        >
+          <Paperclip className="w-5 h-5" />
+        </button>
 
-        {/* Campo de texto */}
-        <div className="flex-1">
+        {/* Input de texto */}
+        <div className="flex-1 relative">
           <textarea
-            ref={textareaRef}
-            value={message}
-            onChange={handleTextareaChange}
+            ref={inputRef}
+            value={currentValue}
+            onChange={handleInputChange}
+            onBlur={handleInputBlur}
             onKeyPress={handleKeyPress}
             placeholder={placeholder}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            disabled={isSending}
+            className="w-full resize-none border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
             rows={1}
-            style={{ minHeight: '40px', maxHeight: '120px' }}
+            style={{
+              minHeight: '40px',
+              maxHeight: '120px'
+            }}
           />
+          
+          {/* Botón de emoji */}
+          <button
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className="absolute right-2 bottom-2 p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+            title="Emoji"
+          >
+            <Smile className="w-4 h-4" />
+          </button>
+
+          {/* Emoji picker */}
+          {showEmojiPicker && (
+            <div className="absolute bottom-full right-0 mb-2">
+              <EmojiPicker 
+                onEmojiSelect={handleEmojiSelect} 
+                onClose={() => setShowEmojiPicker(false)}
+              />
+            </div>
+          )}
         </div>
 
         {/* Botón de enviar */}
         <button
-          type="submit"
-          disabled={!message.trim() || isSending}
-          className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          onClick={handleSend}
+          disabled={!inputValue.trim() || isSending}
+          className="flex-shrink-0 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          title="Enviar mensaje"
         >
-          {isSending ? (
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          ) : (
-            <Send className="h-5 w-5" />
-          )}
+          <Send className="w-5 h-5" />
         </button>
-      </form>
+      </div>
+
+      {/* Input de archivo oculto */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
+        onChange={handleFileChange}
+        className="hidden"
+      />
     </div>
   );
 }; 

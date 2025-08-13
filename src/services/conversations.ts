@@ -15,10 +15,10 @@ const CONVERSATIONS_API = '/api/conversations';
 
 export const conversationsService = {
   // Obtener lista de conversaciones
-  async getConversations(filters: ConversationFilters = {}): Promise<ConversationListResponse> {
+  async getConversations(filters: ConversationFilters & { page?: number; limit?: number } = {}): Promise<ConversationListResponse> {
     const queryParams = new URLSearchParams({
-      page: '1',
-      limit: '50',
+      page: (filters.page || 1).toString(),
+      limit: (filters.limit || 50).toString(),
       status: filters.status || 'all',
       priority: filters.priority || '',
       assignedTo: filters.assignedTo || '',
@@ -270,5 +270,156 @@ export const mockConversations: Conversation[] = [
     assignedTo: 'admin@company.com',
     priority: 'urgent',
     tags: ['VIP', 'Urgent']
+  },
+  // Agregar más conversaciones para probar el scroll infinito
+  {
+    id: 'conv_+5214773793_+5214793176502',
+    customerName: 'Ana Martínez',
+    customerPhone: '+5214773793',
+    status: 'closed',
+    messageCount: 18,
+    unreadCount: 0,
+    participants: [
+      '+5214773793',
+      'system@utalk.local',
+      'admin@company.com',
+      'agent:admin@company.com',
+      'whatsapp:+5214773793'
+    ],
+    tenantId: 'default_tenant',
+    workspaceId: 'default_workspace',
+    createdAt: '6 de agosto de 2025, 3:20:10 a.m. UTC-6',
+    updatedAt: '10 de agosto de 2025, 5:30:15 p.m. UTC-6',
+    lastMessageAt: '10 de agosto de 2025, 5:30:15 p.m. UTC-6',
+    lastMessage: {
+      content: 'Gracias por resolver mi problema',
+      direction: 'inbound',
+      messageId: 'msg-567890',
+      sender: 'whatsapp:+5214773793',
+      timestamp: '10 de agosto de 2025, 5:30:15 p.m. UTC-6'
+    },
+    assignedTo: 'admin@company.com',
+    priority: 'low',
+    tags: ['Resuelto']
+  },
+  {
+    id: 'conv_+5214773794_+5214793176502',
+    customerName: 'Roberto Silva',
+    customerPhone: '+5214773794',
+    status: 'open',
+    messageCount: 30,
+    unreadCount: 12,
+    participants: [
+      '+5214773794',
+      'system@utalk.local',
+      'admin@company.com',
+      'agent:admin@company.com',
+      'whatsapp:+5214773794'
+    ],
+    tenantId: 'default_tenant',
+    workspaceId: 'default_workspace',
+    createdAt: '5 de agosto de 2025, 1:45:30 p.m. UTC-6',
+    updatedAt: '11 de agosto de 2025, 6:10:22 p.m. UTC-6',
+    lastMessageAt: '11 de agosto de 2025, 6:10:22 p.m. UTC-6',
+    lastMessage: {
+      content: 'Necesito una factura urgente para mi empresa',
+      direction: 'inbound',
+      messageId: 'msg-234567',
+      sender: 'whatsapp:+5214773794',
+      timestamp: '11 de agosto de 2025, 6:10:22 p.m. UTC-6'
+    },
+    assignedTo: 'admin@company.com',
+    priority: 'urgent',
+    tags: ['VIP', 'Facturación']
+  },
+  {
+    id: 'conv_+5214773795_+5214793176502',
+    customerName: 'Carmen Vega',
+    customerPhone: '+5214773795',
+    status: 'pending',
+    messageCount: 5,
+    unreadCount: 1,
+    participants: [
+      '+5214773795',
+      'system@utalk.local',
+      'admin@company.com',
+      'agent:admin@company.com',
+      'whatsapp:+5214773795'
+    ],
+    tenantId: 'default_tenant',
+    workspaceId: 'default_workspace',
+    createdAt: '11 de agosto de 2025, 7:15:45 a.m. UTC-6',
+    updatedAt: '11 de agosto de 2025, 8:45:30 a.m. UTC-6',
+    lastMessageAt: '11 de agosto de 2025, 8:45:30 a.m. UTC-6',
+    lastMessage: {
+      content: 'Hola, tengo una consulta sobre productos',
+      direction: 'inbound',
+      messageId: 'msg-345678',
+      sender: 'whatsapp:+5214773795',
+      timestamp: '11 de agosto de 2025, 8:45:30 a.m. UTC-6'
+    },
+    assignedTo: undefined,
+    priority: 'medium',
+    tags: ['Consulta']
+  },
+  {
+    id: 'conv_+5214773796_+5214793176502',
+    customerName: 'Luis Mendoza',
+    customerPhone: '+5214773796',
+    status: 'open',
+    messageCount: 42,
+    unreadCount: 15,
+    participants: [
+      '+5214773796',
+      'system@utalk.local',
+      'admin@company.com',
+      'agent:admin@company.com',
+      'whatsapp:+5214773796'
+    ],
+    tenantId: 'default_tenant',
+    workspaceId: 'default_workspace',
+    createdAt: '4 de agosto de 2025, 10:30:20 a.m. UTC-6',
+    updatedAt: '11 de agosto de 2025, 7:20:15 p.m. UTC-6',
+    lastMessageAt: '11 de agosto de 2025, 7:20:15 p.m. UTC-6',
+    lastMessage: {
+      content: 'Mi pedido no ha llegado y necesito una explicación',
+      direction: 'inbound',
+      messageId: 'msg-456789',
+      sender: 'whatsapp:+5214773796',
+      timestamp: '11 de agosto de 2025, 7:20:15 p.m. UTC-6'
+    },
+    assignedTo: 'admin@company.com',
+    priority: 'high',
+    tags: ['VIP', 'Envío', 'Reclamo']
+  },
+  {
+    id: 'conv_+5214773797_+5214793176502',
+    customerName: 'Patricia Herrera',
+    customerPhone: '+5214773797',
+    status: 'open',
+    messageCount: 16,
+    unreadCount: 3,
+    participants: [
+      '+5214773797',
+      'system@utalk.local',
+      'admin@company.com',
+      'agent:admin@company.com',
+      'whatsapp:+5214773797'
+    ],
+    tenantId: 'default_tenant',
+    workspaceId: 'default_workspace',
+    createdAt: '9 de agosto de 2025, 2:15:40 p.m. UTC-6',
+    updatedAt: '11 de agosto de 2025, 4:30:45 p.m. UTC-6',
+    lastMessageAt: '11 de agosto de 2025, 4:30:45 p.m. UTC-6',
+    lastMessage: {
+      content: '¿Pueden ayudarme con el cambio de dirección?',
+      direction: 'inbound',
+      messageId: 'msg-567890',
+      sender: 'whatsapp:+5214773797',
+      timestamp: '11 de agosto de 2025, 4:30:45 p.m. UTC-6'
+    },
+    assignedTo: 'admin@company.com',
+    priority: 'medium',
+    tags: ['Dirección']
   }
 ]; 

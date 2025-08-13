@@ -1,12 +1,12 @@
 import React from 'react';
-import type { Conversation } from '../../types';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import type { Conversation } from '../../types';
 
 interface ConversationItemProps {
   conversation: Conversation;
   isSelected: boolean;
-  onClick: (conversationId: string) => void;
+  onClick: () => void;
 }
 
 export const ConversationItem: React.FC<ConversationItemProps> = ({
@@ -14,117 +14,144 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
   isSelected,
   onClick
 }) => {
-  // Generar iniciales del nombre del cliente
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  // Determinar el color del indicador de estado
-  const getStatusColor = () => {
-    if (conversation.priority === 'urgent') return 'bg-red-500';
-    if (conversation.priority === 'high') return 'bg-orange-500';
-    if (conversation.unreadCount > 0) return 'bg-green-500';
+  const getStatusColor = (status: string, unreadCount: number) => {
+    if (unreadCount > 0) return 'bg-green-500';
+    if (status === 'urgent') return 'bg-red-500';
+    if (status === 'high') return 'bg-orange-500';
     return 'bg-gray-400';
   };
 
-  // Determinar el tag principal
-  const getPrimaryTag = () => {
-    if (conversation.tags && conversation.tags.length > 0) {
-      return conversation.tags[0];
-    }
-    return null;
+  const getCustomerInitials = (name: string) => {
+    return name.split(' ').map(word => word.charAt(0)).join('').toUpperCase().slice(0, 2);
   };
 
-  // Formatear timestamp
-  const formatTimestamp = (timestamp: string) => {
+  const formatTime = (timestamp: string) => {
     try {
-      // Convertir el formato español a Date
-      const date = new Date(timestamp);
-      return formatDistanceToNow(date, { addSuffix: true, locale: es });
+      return formatDistanceToNow(new Date(timestamp), { 
+        addSuffix: true, 
+        locale: es 
+      });
     } catch {
       return 'hace un momento';
     }
   };
 
-  // Truncar texto
-  const truncateText = (text: string, maxLength: number = 30) => {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
+  const getPriorityColor = (priority?: string) => {
+    switch (priority) {
+      case 'urgent':
+        return 'bg-red-100 text-red-800';
+      case 'high':
+        return 'bg-orange-100 text-orange-800';
+      case 'medium':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'low':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
-  const initials = getInitials(conversation.customerName);
-  const statusColor = getStatusColor();
-  const primaryTag = getPrimaryTag();
-  const timestamp = conversation.lastMessageAt ? formatTimestamp(conversation.lastMessageAt) : '';
-  const lastMessageContent = conversation.lastMessage?.content || 'Sin mensajes';
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'open':
+        return 'Abierta';
+      case 'closed':
+        return 'Cerrada';
+      case 'pending':
+        return 'Pendiente';
+      default:
+        return status;
+    }
+  };
 
   return (
     <div
-      className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-        isSelected ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+      onClick={onClick}
+      className={`p-1.5 cursor-pointer transition-colors ${
+        isSelected 
+          ? 'bg-blue-50 border-l-4 border-l-blue-500' 
+          : 'hover:bg-gray-50'
       }`}
-      onClick={() => onClick(conversation.id)}
     >
-      <div className="flex items-start gap-3">
-        {/* Avatar con indicador de estado */}
-        <div className="flex-shrink-0 relative">
-          <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-sm font-medium text-gray-700">
-            {initials}
+      <div className="flex items-start space-x-2">
+        {/* Avatar */}
+        <div className="relative flex-shrink-0">
+          <div className="w-7 h-7 bg-gray-300 rounded-full flex items-center justify-center text-xs font-medium text-gray-700">
+            {getCustomerInitials(conversation.customerName)}
           </div>
-          {/* Indicador de estado */}
-          <div className={`w-3 h-3 rounded-full border-2 border-white absolute -bottom-1 -right-1 ${statusColor}`} />
+          {/* Status dot */}
+          <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 border-white ${getStatusColor(conversation.priority || 'medium', conversation.unreadCount)}`}></div>
         </div>
 
-        {/* Contenido */}
+        {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1">
-            <h4 className="text-sm font-medium text-gray-900 truncate">
-              {conversation.customerName}
-            </h4>
-            <span className="text-xs text-gray-500 flex-shrink-0 ml-2">
-              {timestamp}
-            </span>
-          </div>
-          
-          <p className="text-sm text-gray-600 truncate mb-2">
-            {truncateText(lastMessageContent, 35)}
-          </p>
-          
-          {/* Tags y contadores */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              {primaryTag && (
-                <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
-                  {primaryTag}
-                </span>
-              )}
-              {conversation.unreadCount > 0 && (
-                <span className="text-xs bg-blue-500 text-white px-1.5 py-0.5 rounded-full">
-                  +{conversation.unreadCount}
+          {/* Header */}
+          <div className="flex items-center justify-between mb-0.5">
+            <div className="flex items-center space-x-1">
+              <h3 className={`text-xs font-semibold truncate ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>
+                {conversation.customerName}
+              </h3>
+              {conversation.priority && (
+                <span className={`px-1 py-0.5 rounded text-xs font-medium ${getPriorityColor(conversation.priority)}`}>
+                  {conversation.priority}
                 </span>
               )}
             </div>
-            
-            {/* Indicadores adicionales */}
-            <div className="flex items-center gap-1">
-              {conversation.priority === 'urgent' && (
-                <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded">
-                  Urgente
+            <span className="text-xs text-gray-500 flex-shrink-0 ml-1">
+              {formatTime(conversation.lastMessageAt)}
+            </span>
+          </div>
+
+          {/* Customer Info */}
+          <div className="flex items-center space-x-1 mb-0.5">
+            <span className="text-xs text-gray-500">
+              {conversation.customerPhone}
+            </span>
+            <span className="text-xs text-gray-400">•</span>
+            <span className="text-xs text-gray-500">
+              {getStatusText(conversation.status)}
+            </span>
+            {conversation.assignedTo && (
+              <>
+                <span className="text-xs text-gray-400">•</span>
+                <span className="text-xs text-blue-600">
+                  Asignado
                 </span>
-              )}
-              {conversation.priority === 'high' && (
-                <span className="text-xs bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded">
-                  Alta
+              </>
+            )}
+          </div>
+
+          {/* Message preview */}
+          <p className={`text-xs truncate mb-1 ${conversation.unreadCount > 0 ? 'font-medium text-gray-900' : 'text-gray-600'}`}>
+            {conversation.lastMessage?.content || 'Sin mensajes'}
+          </p>
+
+          {/* Stats and Tags */}
+          <div className="flex items-center justify-between">
+            <div className="flex flex-wrap gap-1">
+              {/* Priority tags */}
+              {conversation.tags?.slice(0, 2).map((tag, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700"
+                >
+                  {tag}
                 </span>
-              )}
+              ))}
+              
+              {/* VIP tag */}
               {conversation.tags?.includes('VIP') && (
-                <span className="text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded">
+                <span className="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
                   VIP
+                </span>
+              )}
+            </div>
+
+            {/* Message count and unread */}
+            <div className="flex items-center space-x-1">
+              {conversation.unreadCount > 0 && (
+                <span className="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
+                  +{conversation.unreadCount}
                 </span>
               )}
             </div>

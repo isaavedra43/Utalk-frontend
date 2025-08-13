@@ -22,24 +22,6 @@ export const LeftSidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* Filtros */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex gap-2 mb-4">
-          <button className="px-3 py-1 bg-blue-600 text-white text-xs rounded-full">
-            All
-          </button>
-          <button className="px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded-full hover:bg-gray-300">
-            New
-          </button>
-          <button className="px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded-full hover:bg-gray-300">
-            Asig
-          </button>
-          <button className="px-3 py-1 bg-gray-200 text-gray-700 text-xs rounded-full hover:bg-gray-300">
-            Urg
-          </button>
-        </div>
-      </div>
-
       {/* Navegación con Badges */}
       <div className="flex-1 p-4 space-y-2">
         {/* Asignados a ti */}

@@ -57,6 +57,8 @@ export interface ConversationFilters {
   assignedTo?: string;
   search?: string;
   tags?: string[];
+  page?: number;
+  limit?: number;
 }
 
 export interface ConversationListResponse {

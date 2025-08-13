@@ -60,11 +60,11 @@
 
 @layer components {
   .chat-container {
-    @apply flex h-screen bg-chat-bg;
+    @apply flex h-screen bg-gray-50;
   }
   
   .sidebar {
-    @apply bg-chat-sidebar border-r border-gray-200;
+    @apply bg-white border-r border-gray-200;
   }
   
   .message-bubble {
@@ -72,7 +72,7 @@
   }
   
   .message-sent {
-    @apply bg-primary text-white ml-auto;
+    @apply bg-blue-600 text-white ml-auto;
   }
   
   .message-received {
@@ -80,14 +80,14 @@
   }
   
   .status-online {
-    @apply bg-status-online;
+    @apply bg-green-500;
   }
   
   .status-offline {
-    @apply bg-status-offline;
+    @apply bg-gray-400;
   }
   
   .status-urgent {
-    @apply bg-status-urgent;
+    @apply bg-red-500;
   }
 }
