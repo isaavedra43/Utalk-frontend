@@ -192,11 +192,14 @@ export const useChat = (conversationId: string) => {
 
   // Salir de conversación al desmontar con throttling
   useEffect(() => {
+    let hasLeft = false; // Flag para evitar múltiples salidas
+    
     return () => {
-      if (conversationId && isConnected) {
+      if (conversationId && isConnected && !hasLeft) {
         // Validar y sanitizar el ID de conversación
         const sanitizedId = sanitizeConversationId(conversationId);
         if (sanitizedId) {
+          hasLeft = true; // Marcar como que ya salió
           const leaveOperation = async () => {
             try {
               console.log('🔌 useChat - Saliendo de conversación:', sanitizedId);
@@ -210,6 +213,7 @@ export const useChat = (conversationId: string) => {
               );
             } catch (error) {
               console.error('❌ useChat - Error saliendo de conversación:', error);
+              // No reintentar en caso de error para evitar bucles
             }
           };
 

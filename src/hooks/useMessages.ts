@@ -61,9 +61,17 @@ export const useMessages = (conversationId: string | null) => {
 
   // Salir de conversación al desmontar
   useEffect(() => {
+    let hasLeft = false; // Flag para evitar múltiples salidas
+    
     return () => {
-      if (conversationId) {
-        leaveConversation(conversationId);
+      if (conversationId && !hasLeft) {
+        hasLeft = true; // Marcar como que ya salió
+        try {
+          leaveConversation(conversationId);
+        } catch (error) {
+          console.error('❌ useMessages - Error saliendo de conversación:', error);
+          // No reintentar en caso de error para evitar bucles
+        }
       }
     };
   }, [conversationId, leaveConversation]);

@@ -70,14 +70,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Conectar automáticamente cuando hay un token válido
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    if (token && isTokenValid(token) && !isConnected) {
+    if (token && isTokenValid(token) && !isConnected && !connectionError) {
       console.log('🔌 WebSocketContext - Conectando automáticamente con token válido');
       // Agregar un pequeño delay para asegurar que la autenticación esté completa
       setTimeout(() => {
         connect(token);
       }, 1000);
     }
-  }, [isConnected, connect]); // Incluir 'connect' en las dependencias
+  }, [isConnected, connect, connectionError]); // Incluir connectionError para evitar reconexiones en caso de error
 
   // Reautenticar socket cuando se refresca el access token
   useEffect(() => {
@@ -275,6 +275,19 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     },
     leaveConversation: (conversationId: string) => {
       console.log('🔌 Saliendo de conversación:', conversationId);
+      
+      // Verificar que el socket esté conectado antes de intentar salir
+      if (!socket || !isConnected) {
+        console.warn('⚠️ No se puede salir de conversación: socket no conectado');
+        // Limpiar estado local aunque no se pueda enviar al servidor
+        setActiveConversations(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(conversationId);
+          return newSet;
+        });
+        return;
+      }
+      
       rateLimiter.executeWithRateLimit('leave-conversation', () => {
         emit('leave-conversation', { conversationId });
         setActiveConversations(prev => {
