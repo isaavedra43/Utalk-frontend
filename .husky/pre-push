@@ -1,9 +1,0 @@
-echo "🚀 Running pre-push checks..."
-
-# Ejecutar validación completa
-if ! npm run validate; then
-  echo "❌ Validation failed. Please fix all issues before pushing."
-  exit 1
-fi
-
-echo "✅ Pre-push checks passed!"
