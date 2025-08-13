@@ -26,19 +26,25 @@ export interface UploadResult {
 /**
  * Subir múltiples archivos y obtener metadatos
  */
-export async function uploadFiles(files: File[], _options: UploadOptions = {}): Promise<Attachment[]> {
+export async function uploadFiles(
+  files: File[],
+  _options: UploadOptions = {}
+): Promise<Attachment[]> {
   if (files.length === 0) return [];
 
   const formData = new FormData();
-  
+
   // Agregar todos los archivos al FormData
-  files.forEach((file) => {
+  files.forEach(file => {
     formData.append('file', file);
   });
 
   try {
-    const response = await httpPostMultipart<{ data: { attachments: Attachment[] } }>('media/upload', formData);
-    
+    const response = await httpPostMultipart<{ data: { attachments: Attachment[] } }>(
+      'media/upload',
+      formData
+    );
+
     if (!response?.data?.attachments) {
       throw new Error('Respuesta inválida del servidor');
     }
@@ -57,4 +63,4 @@ export async function uploadFiles(files: File[], _options: UploadOptions = {}): 
 export async function uploadFile(file: File, options: UploadOptions = {}): Promise<UploadResult> {
   const attachments = await uploadFiles([file], options);
   return { attachments };
-} 
+}

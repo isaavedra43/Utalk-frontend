@@ -57,20 +57,24 @@ const api: AxiosInstance = axios.create({
   baseURL: environment.API_URL,
   timeout: 30000,
   headers: {
-    'Content-Type': 'application/json',
-  },
+    'Content-Type': 'application/json'
+  }
 });
 
 // Interceptor de requests - Documento: info/1.md sección "Headers de Autorización Específicos"
 api.interceptors.request.use(
-  (config) => {
+  config => {
     const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
     // DEBUG-LOG-START(conversations-front)
-    if (typeof window !== 'undefined' && window.location.search.includes('LOG_VERBOSE_CONVERSATIONS=true') && config.url?.includes('/conversations')) {
+    if (
+      typeof window !== 'undefined' &&
+      window.location.search.includes('LOG_VERBOSE_CONVERSATIONS=true') &&
+      config.url?.includes('/conversations')
+    ) {
       console.debug('[CONV][api][fetch:start]', {
         event: 'fetch:start',
         layer: 'api',
@@ -80,7 +84,13 @@ api.interceptors.request.use(
           queryParams: config.params || {}
         },
         response: { status: null, ok: null, itemsLength: null, keysSample: null },
-        clientFilters: { inbox: null, status: null, assignedTo: null, search: null, pagination: null },
+        clientFilters: {
+          inbox: null,
+          status: null,
+          assignedTo: null,
+          search: null,
+          pagination: null
+        },
         mapping: { requiredKeysPresent: [], missingKeys: [] },
         render: { willShowEmptyState: null, reason: null }
       });
@@ -89,7 +99,7 @@ api.interceptors.request.use(
 
     return config;
   },
-  (error) => {
+  error => {
     return Promise.reject(error);
   }
 );
@@ -98,7 +108,11 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response: AxiosResponse) => {
     // DEBUG-LOG-START(conversations-front)
-    if (typeof window !== 'undefined' && window.location.search.includes('LOG_VERBOSE_CONVERSATIONS=true') && response.config.url?.includes('/conversations')) {
+    if (
+      typeof window !== 'undefined' &&
+      window.location.search.includes('LOG_VERBOSE_CONVERSATIONS=true') &&
+      response.config.url?.includes('/conversations')
+    ) {
       const data = response.data?.data || [];
       const firstItem = data[0];
       const keysSample = firstItem ? Object.keys(firstItem).slice(0, 3) : [];
@@ -117,7 +131,13 @@ api.interceptors.response.use(
           itemsLength: data.length,
           keysSample: keysSample
         },
-        clientFilters: { inbox: null, status: null, assignedTo: null, search: null, pagination: null },
+        clientFilters: {
+          inbox: null,
+          status: null,
+          assignedTo: null,
+          search: null,
+          pagination: null
+        },
         mapping: { requiredKeysPresent: [], missingKeys: [] },
         render: { willShowEmptyState: null, reason: null }
       });
@@ -134,7 +154,8 @@ api.interceptors.response.use(
       const errorData = extractErrorData(error);
 
       // Verificar si es una petición crítica que requiere redirección
-      const isCriticalRequest = error.config?.url?.includes('/auth/') ||
+      const isCriticalRequest =
+        error.config?.url?.includes('/auth/') ||
         error.config?.url?.includes('/profile') ||
         error.config?.method === 'POST';
 
@@ -168,7 +189,9 @@ api.interceptors.response.use(
     if (error.response?.status === 429) {
       const errorData = extractErrorData(error);
       const retryAfter = errorData.retryAfter || 60;
-      notificationsStore.error(`Has excedido el límite de peticiones. Intenta de nuevo en ${retryAfter} segundos.`);
+      notificationsStore.error(
+        `Has excedido el límite de peticiones. Intenta de nuevo en ${retryAfter} segundos.`
+      );
       return Promise.reject(error);
     }
 
@@ -189,20 +212,25 @@ api.interceptors.response.use(
       const errorData = extractErrorData(error);
 
       // Determinar si es una petición crítica
-      const isCriticalRequest = error.config?.url?.includes('/auth/') ||
+      const isCriticalRequest =
+        error.config?.url?.includes('/auth/') ||
         error.config?.url?.includes('/profile') ||
         error.config?.method === 'POST';
 
       // Para 403 en peticiones críticas, redirigir
       if (isCriticalRequest) {
-        notificationsStore.error(errorData.message || 'No tienes permisos para realizar esta acción.');
+        notificationsStore.error(
+          errorData.message || 'No tienes permisos para realizar esta acción.'
+        );
         authStore.logout();
         window.location.href = '/login';
         return Promise.reject(error);
       }
 
       // Para 403 en peticiones no críticas, solo mostrar error
-      notificationsStore.error(errorData.message || 'No tienes permisos para acceder a este recurso.');
+      notificationsStore.error(
+        errorData.message || 'No tienes permisos para acceder a este recurso.'
+      );
       return Promise.reject(error);
     }
 
@@ -224,7 +252,8 @@ api.interceptors.response.use(
       const errorData = extractErrorData(error);
 
       // Determinar si es una petición crítica que requiere redirección
-      const isCriticalRequest = error.config?.url?.includes('/auth/') ||
+      const isCriticalRequest =
+        error.config?.url?.includes('/auth/') ||
         error.config?.url?.includes('/profile') ||
         error.config?.method === 'POST';
 
@@ -247,13 +276,16 @@ api.interceptors.response.use(
       const errorData = extractErrorData(error);
 
       // Determinar si es una petición crítica
-      const isCriticalRequest = error.config?.url?.includes('/auth/') ||
+      const isCriticalRequest =
+        error.config?.url?.includes('/auth/') ||
         error.config?.url?.includes('/profile') ||
         error.config?.method === 'POST';
 
       // Para 502 en peticiones críticas, redirigir
       if (isCriticalRequest) {
-        notificationsStore.error('Servidor temporalmente no disponible. Intenta de nuevo más tarde.');
+        notificationsStore.error(
+          'Servidor temporalmente no disponible. Intenta de nuevo más tarde.'
+        );
         authStore.logout();
         window.location.href = '/login';
         return Promise.reject(error);
@@ -279,7 +311,8 @@ api.interceptors.response.use(
       });
 
       // Determinar si es una petición crítica
-      const isCriticalRequest = error.config?.url?.includes('/auth/') ||
+      const isCriticalRequest =
+        error.config?.url?.includes('/auth/') ||
         error.config?.url?.includes('/profile') ||
         error.config?.method === 'POST';
 
@@ -302,7 +335,8 @@ api.interceptors.response.use(
       const errorData = extractErrorData(error);
 
       // Determinar si es una petición crítica
-      const isCriticalRequest = error.config?.url?.includes('/auth/') ||
+      const isCriticalRequest =
+        error.config?.url?.includes('/auth/') ||
         error.config?.url?.includes('/profile') ||
         error.config?.method === 'POST';
 
@@ -361,9 +395,12 @@ async function refreshToken(): Promise<void> {
 
     // Actualizar store de autenticación
     authStore.setToken(accessToken);
-
   } catch (error) {
-    logError('Error refreshing token:', 'API', error instanceof Error ? error : new Error(String(error)));
+    logError(
+      'Error refreshing token:',
+      'API',
+      error instanceof Error ? error : new Error(String(error))
+    );
     throw error;
   }
 }

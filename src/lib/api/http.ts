@@ -6,26 +6,26 @@ import { getAccessToken, setAccessToken } from '$lib/stores/auth.store';
 async function rawFetch(method: string, path: string, body?: any, init?: RequestInit) {
   const url = apiUrl(path);
   const token = getAccessToken();
-  
+
   // Debug logging solo en desarrollo
   if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
     // eslint-disable-next-line no-console
     console.debug('[HTTP]', method, url, { hasToken: !!token });
   }
-  
+
   // Guard DEV: confirmar URL final correcta
   if (import.meta.env.DEV) {
     // eslint-disable-next-line no-console
     console.debug('[HTTP]', method, url);
   }
-  
+
   const res = await fetch(url, {
     method,
     credentials: 'include',
     headers: {
-      'Accept': 'application/json',
+      Accept: 'application/json',
       ...(body ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init?.headers || {})
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -34,7 +34,13 @@ async function rawFetch(method: string, path: string, body?: any, init?: Request
   return res;
 }
 
-async function fetchJson(method: string, path: string, body?: any, init?: RequestInit, _retry = false) {
+async function fetchJson(
+  method: string,
+  path: string,
+  body?: any,
+  init?: RequestInit,
+  _retry = false
+) {
   const res = await rawFetch(method, path, body, init);
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
@@ -50,9 +56,9 @@ async function fetchJson(method: string, path: string, body?: any, init?: Reques
         setAccessToken(t.accessToken);
         return fetchJson(method, path, body, init, true);
       }
-          } catch {
-        // Ignorar errores de refresh
-      }
+    } catch {
+      // Ignorar errores de refresh
+    }
   }
   // si llega aquí, error definitivo
   if (data?.message) throw new Error(`HTTP ${res.status} - ${data.message}`);
@@ -86,8 +92,8 @@ export const httpPostMultipart = async <T = any>(path: string, formData: FormDat
     method: 'POST',
     credentials: 'include',
     headers: {
-      'Accept': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      Accept: 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
       // NO incluir Content-Type para FormData (se establece automáticamente con boundary)
     },
     body: formData
@@ -115,4 +121,4 @@ export const httpPostMultipart = async <T = any>(path: string, formData: FormDat
   // si llega aquí, error definitivo
   if (data?.message) throw new Error(`HTTP ${res.status} - ${data.message}`);
   throw new Error(`HTTP ${res.status} - ${text?.slice(0, 300)}`);
-}; 
+};

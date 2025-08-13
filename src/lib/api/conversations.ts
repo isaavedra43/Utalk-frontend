@@ -19,10 +19,12 @@ type ListParams = {
   search?: string;
 };
 
-export async function fetchConversations(params: ListParams = {}): Promise<{ items: Conversation[]; total?: number }> {
+export async function fetchConversations(
+  params: ListParams = {}
+): Promise<{ items: Conversation[]; total?: number }> {
   // Construir query string manualmente
   const searchParams = new URLSearchParams();
-  
+
   // ===> PARAMS EXACTOS QUE ESPERA EL BACKEND:
   if (params.page) searchParams.set('page', String(params.page));
   if (params.limit) searchParams.set('limit', String(params.limit));
@@ -38,23 +40,25 @@ export async function fetchConversations(params: ListParams = {}): Promise<{ ite
   console.info('CONV DEBUG', { path, finalUrl: apiUrl(path) });
 
   const res = await httpGet<any>(path);
-  
+
   // Parser tolerante al shape real del backend (según ResponseHandler.success)
   const rows = res?.data ?? res ?? [];
-  
+
   // eslint-disable-next-line no-console
-  console.info('CONV DEBUG', { 
-    count: Array.isArray(rows) ? rows.length : 0, 
+  console.info('CONV DEBUG', {
+    count: Array.isArray(rows) ? rows.length : 0,
     sample: Array.isArray(rows) ? rows[0] : null,
     responseShape: Object.keys(res || {})
   });
 
   const items: Conversation[] = (Array.isArray(rows) ? rows : []).map((c: any) => ({
     ...c,
-    lastMessageAt: toDateSafe(c?.lastMessageAt ?? c?.lastMessage?.timestamp ?? c?.updatedAt ?? null),
-    updatedAt: toDateSafe(c?.updatedAt ?? c?.lastMessageAt ?? null),
+    lastMessageAt: toDateSafe(
+      c?.lastMessageAt ?? c?.lastMessage?.timestamp ?? c?.updatedAt ?? null
+    ),
+    updatedAt: toDateSafe(c?.updatedAt ?? c?.lastMessageAt ?? null)
   }));
 
   // El backend no devuelve pagination en este endpoint, solo el array directo
   return { items, total: items.length };
-} 
+}

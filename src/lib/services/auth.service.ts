@@ -50,14 +50,22 @@ export async function login(credentials: LoginRequest): Promise<LoginResponse> {
         }
         logAuth('AUTH LOGIN - Token almacenado en localStorage');
       } catch (storageError) {
-        logWarnWithContext('AUTH LOGIN - Error al guardar en localStorage:', 'AUTH', String(storageError));
+        logWarnWithContext(
+          'AUTH LOGIN - Error al guardar en localStorage:',
+          'AUTH',
+          String(storageError)
+        );
       }
     }
 
     return data;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logError('AUTH LOGIN - Error:', 'AUTH', error instanceof Error ? error : new Error(errorMessage));
+    logError(
+      'AUTH LOGIN - Error:',
+      'AUTH',
+      error instanceof Error ? error : new Error(errorMessage)
+    );
 
     // Manejar errores específicos
     if ((error as { response?: { status?: number } })?.response?.status === 502) {
@@ -86,7 +94,11 @@ export async function logout(): Promise<void> {
         localStorage.removeItem('refreshToken');
         logAuth('AUTH LOGOUT - Tokens eliminados del localStorage');
       } catch (storageError) {
-        logWarnWithContext('AUTH LOGOUT - Error al limpiar localStorage:', 'AUTH', String(storageError));
+        logWarnWithContext(
+          'AUTH LOGOUT - Error al limpiar localStorage:',
+          'AUTH',
+          String(storageError)
+        );
       }
     }
 
@@ -115,7 +127,11 @@ export async function refreshToken(): Promise<LoginResponse | null> {
       try {
         currentRefreshToken = localStorage.getItem('refreshToken');
       } catch (storageError) {
-        logWarnWithContext('AUTH REFRESH - Error al leer localStorage:', 'AUTH', String(storageError));
+        logWarnWithContext(
+          'AUTH REFRESH - Error al leer localStorage:',
+          'AUTH',
+          String(storageError)
+        );
       }
     }
 
@@ -139,14 +155,22 @@ export async function refreshToken(): Promise<LoginResponse | null> {
         }
         logAuth('AUTH REFRESH - Token actualizado');
       } catch (storageError) {
-        logWarnWithContext('AUTH REFRESH - Error al guardar en localStorage:', 'AUTH', String(storageError));
+        logWarnWithContext(
+          'AUTH REFRESH - Error al guardar en localStorage:',
+          'AUTH',
+          String(storageError)
+        );
       }
     }
 
     return data;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logError('AUTH REFRESH - Error:', 'AUTH', error instanceof Error ? error : new Error(errorMessage));
+    logError(
+      'AUTH REFRESH - Error:',
+      'AUTH',
+      error instanceof Error ? error : new Error(errorMessage)
+    );
 
     // Si el refresh falla, limpiar tokens SOLO en el cliente
     if (browser) {
@@ -154,7 +178,11 @@ export async function refreshToken(): Promise<LoginResponse | null> {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
       } catch (storageError) {
-        logWarnWithContext('AUTH REFRESH - Error al limpiar localStorage:', 'AUTH', String(storageError));
+        logWarnWithContext(
+          'AUTH REFRESH - Error al limpiar localStorage:',
+          'AUTH',
+          String(storageError)
+        );
       }
     }
 

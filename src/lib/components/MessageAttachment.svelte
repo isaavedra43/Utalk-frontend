@@ -125,9 +125,9 @@
         <div class="doc-info">
           <span class="filename">{filename}</span>
           <span class="filesize">{formatFileSize(fileSize)}</span>
-          <button class="download" on:click={handleDownload} aria-label="Descargar"
-            >Descargar</button
-          >
+          <button type="button" class="download" on:click={handleDownload} aria-label="Descargar">
+            Descargar
+          </button>
         </div>
       </div>
     {:else}
@@ -136,9 +136,9 @@
         <div class="generic-info">
           <span class="filename">{filename}</span>
           <span class="filesize">{formatFileSize(fileSize)}</span>
-          <button class="download" on:click={handleDownload} aria-label="Descargar"
-            >Descargar</button
-          >
+          <button type="button" class="download" on:click={handleDownload} aria-label="Descargar">
+            Descargar
+          </button>
         </div>
       </div>
     {/if}

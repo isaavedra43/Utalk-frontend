@@ -116,11 +116,11 @@
       });
 
       logChat('chat component: onMount completed successfully');
-          } catch (err: any) {
-        logChat('chat component: onMount error', { error: err.message, conversationId: currentId });
-        // eslint-disable-next-line no-console
-        console.error('Error al cargar el chat:', err);
-      }
+    } catch (err: any) {
+      logChat('chat component: onMount error', { error: err.message, conversationId: currentId });
+      // eslint-disable-next-line no-console
+      console.error('Error al cargar el chat:', err);
+    }
   });
 
   // Eliminar suscripciones duplicadas y listeners redundantes
@@ -734,7 +734,12 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2>Perfil del Contacto</h2>
-        <button type="button" class="close-button" on:click={closeContactProfile} aria-label="Cerrar modal">
+        <button
+          type="button"
+          class="close-button"
+          on:click={closeContactProfile}
+          aria-label="Cerrar modal"
+        >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
             <path
               stroke-linecap="round"

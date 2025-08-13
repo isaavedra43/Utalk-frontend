@@ -24,13 +24,14 @@ export function getAccessToken(): string | null {
 // Función para establecer token
 export function setAccessToken(t: string) {
   _token = t || null;
-  if (t) localStorage.setItem(KEY, t); else localStorage.removeItem(KEY);
-  
+  if (t) localStorage.setItem(KEY, t);
+  else localStorage.removeItem(KEY);
+
   logStore('auth: setAccessToken', { hasToken: !!t });
 }
 
 // Función para limpiar autenticación
-export function clearAuth() { 
+export function clearAuth() {
   setAccessToken('');
   authStore.clear();
 }
@@ -185,7 +186,7 @@ const createAuthStore = () => {
         const response = await fetch('auth/validate', {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });

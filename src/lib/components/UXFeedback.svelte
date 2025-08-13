@@ -127,11 +127,11 @@
       <!-- Botones de acción -->
       <div class="feedback-actions">
         {#if showRetry && retryAction}
-          <button class="retry-button" on:click={handleRetry}> Reintentar </button>
+          <button type="button" class="retry-button" on:click={handleRetry}> Reintentar </button>
         {/if}
 
         {#if dismissible}
-          <button class="close-button" on:click={handleClose} aria-label="Cerrar">
+          <button type="button" class="close-button" on:click={handleClose} aria-label="Cerrar">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
               <path
                 stroke-linecap="round"

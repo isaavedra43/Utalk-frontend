@@ -33,14 +33,19 @@
       const data = await httpPost<any>('auth/login', payload); // <-- no '/api/'
 
       // eslint-disable-next-line no-console
-      console.log('🔍 LOGIN CLIENT - Respuesta completa del backend:', JSON.stringify(data, null, 2));
+      console.log(
+        '🔍 LOGIN CLIENT - Respuesta completa del backend:',
+        JSON.stringify(data, null, 2)
+      );
 
       // Validar respuesta del backend
       if (!data || !data.success || !data.accessToken) {
         // eslint-disable-next-line no-console
         console.warn('⚠️ LOGIN CLIENT - Respuesta inválida del backend');
         if (!data?.accessToken) {
-          throw new Error('Login OK pero sin accessToken en el body. Revisa nombre del campo en back.');
+          throw new Error(
+            'Login OK pero sin accessToken en el body. Revisa nombre del campo en back.'
+          );
         }
         error = 'Credenciales incorrectas';
         return;
@@ -65,7 +70,7 @@
 
       // Guardar el accessToken
       setAccessToken(data.accessToken);
-      
+
       // Actualizar el store de autenticación
       authStore.login(user, data.accessToken, data.refreshToken);
 

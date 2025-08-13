@@ -22,15 +22,12 @@
   import '../app.css';
   let chatUnsubscribe: (() => void) | null = null;
 
-  let isAuthenticated = false;
   let showSidebar = false;
   let sidebarWidth = 240;
-  let isSidebarCollapsed = false;
 
   // Suscribirse al store del sidebar para obtener el estado actual
   sidebarStore.subscribe(state => {
     sidebarWidth = state.width;
-    isSidebarCollapsed = state.collapsed;
   });
 
   onMount(() => {
@@ -40,7 +37,6 @@
     // Inicializar autenticación desde localStorage
     authStore.initialize().then(() => {
       const unsubscribe = authStore.subscribe(state => {
-        isAuthenticated = state.isAuthenticated;
         showSidebar = state.isAuthenticated && !['/login', '/'].includes($page.url.pathname);
 
         if (state.isAuthenticated) {

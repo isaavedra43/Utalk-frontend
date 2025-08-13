@@ -85,19 +85,23 @@
           </div>
           <div class="card-content">
             <div class="actions-grid">
-              <button class="action-button primary" on:click={() => goto('/chat')}>
+              <button type="button" class="action-button primary" on:click={() => goto('/chat')}>
                 <span class="action-icon">💬</span>
                 <span class="action-text">Ir al Chat</span>
               </button>
-              <button class="action-button secondary" on:click={() => goto('/chat')}>
+              <button type="button" class="action-button secondary" on:click={() => goto('/chat')}>
                 <span class="action-icon">📊</span>
                 <span class="action-text">Ver Conversaciones</span>
               </button>
-              <button class="action-button secondary" on:click={() => goto('/inbox')}>
+              <button type="button" class="action-button secondary" on:click={() => goto('/inbox')}>
                 <span class="action-icon">📥</span>
                 <span class="action-text">Bandeja de Entrada</span>
               </button>
-              <button class="action-button secondary" on:click={() => goto('/analytics')}>
+              <button
+                type="button"
+                class="action-button secondary"
+                on:click={() => goto('/analytics')}
+              >
                 <span class="action-icon">📈</span>
                 <span class="action-text">Analytics</span>
               </button>
@@ -177,15 +181,15 @@
               Ponte en contacto con nuestro equipo de soporte o visita nuestra documentación
             </p>
             <div class="help-links">
-              <button class="help-link">
+              <button type="button" class="help-link">
                 <span class="help-icon">📞</span>
                 <span>Contactar Soporte</span>
               </button>
-              <button class="help-link">
+              <button type="button" class="help-link">
                 <span class="help-icon">📚</span>
                 <span>Documentación</span>
               </button>
-              <button class="help-link">
+              <button type="button" class="help-link">
                 <span class="help-icon">🎥</span>
                 <span>Tutoriales</span>
               </button>

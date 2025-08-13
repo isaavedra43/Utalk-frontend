@@ -141,7 +141,9 @@
     }
 
     try {
-      const response = await api.get(`/conversations/${encodeURIComponent(conversationId)}/messages?${params.toString()}`);
+      const response = await api.get(
+        `/conversations/${encodeURIComponent(conversationId)}/messages?${params.toString()}`
+      );
 
       // Actualizar store de mensajes
       // messagesStore.setMessages(response.data.data.messages || []);

@@ -2,7 +2,7 @@
 /**
  * Cliente Socket.io configurado para UTalk Frontend
  * Basado en PLAN_FRONTEND_UTALK_COMPLETO.md - Sección "🔌 EVENTOS SOCKET.IO ESPECÍFICOS"
- * 
+ *
  * Eventos implementados según documentación:
  * - join-conversation: Unirse a sala de conversación
  * - new-message: Recibir nuevos mensajes
@@ -58,7 +58,7 @@ export async function refreshTokenIfNeeded(): Promise<boolean> {
       // Intentar refrescar token usando el cliente HTTP
       const { httpPost } = await import('$lib/api/http');
       const data = await httpPost<{ token?: string }>('auth/refresh', { refreshToken });
-      
+
       if (data && data.token) {
         setAccessToken(data.token);
         return true;
@@ -107,20 +107,26 @@ export function connectSocket() {
     console.debug('RT:CONNECT', { id: socket?.id, timestamp: new Date().toISOString() });
   });
 
-  socket.on('disconnect', (reason) => {
+  socket.on('disconnect', reason => {
     console.debug('RT:DISCONNECT', { reason, timestamp: new Date().toISOString() });
   });
 
-  socket.on('reconnect', (attemptNumber) => {
+  socket.on('reconnect', attemptNumber => {
     console.debug('RT:RECONNECT', { attempt: attemptNumber, timestamp: new Date().toISOString() });
   });
 
-  socket.on('reconnect_error', (error) => {
-    console.debug('RT:RECONNECT_ERR', { message: error?.message, timestamp: new Date().toISOString() });
+  socket.on('reconnect_error', error => {
+    console.debug('RT:RECONNECT_ERR', {
+      message: error?.message,
+      timestamp: new Date().toISOString()
+    });
   });
 
-  socket.on('connect_error', (err) => {
-    console.debug('RT:CONNECT_ERROR', { message: err.message, timestamp: new Date().toISOString() });
+  socket.on('connect_error', err => {
+    console.debug('RT:CONNECT_ERROR', {
+      message: err.message,
+      timestamp: new Date().toISOString()
+    });
 
     // Si es error de autenticación, intentar refrescar token
     if (err.message.includes('auth') || err.message.includes('token')) {
@@ -144,13 +150,16 @@ export function connectSocket() {
     const convIdRaw = payload?.conversationId ?? raw?.conversationId;
 
     if (!raw?.id || !convIdRaw) {
-      console.debug('RT:MSG_DROP', { reason: 'missing id/convId', keys: Object.keys(payload || {}) });
+      console.debug('RT:MSG_DROP', {
+        reason: 'missing id/convId',
+        keys: Object.keys(payload || {})
+      });
       return;
     }
 
     // 2) Normalizar conversationId
     const convId = normalizeConvId(convIdRaw);
-    
+
     // 3) Normalizar mensaje completo
     const msg = normalizeMessage(raw, convId);
 
@@ -165,7 +174,7 @@ export function connectSocket() {
     // 5) Actualizar stores con el mensaje normalizado
     messagesStore.addMessage(msg);
     conversationsStore.addMessage(convId, msg);
-    
+
     for (const l of listenerSet) l.onNewMessage?.(msg);
   };
 
@@ -205,7 +214,7 @@ export function connectSocket() {
   socket.on('message.created', handleInboundMessage);
   socket.on('conversation.updated', handleConversationUpdated);
 
-  socket.on('typing-indicator', (payload) => {
+  socket.on('typing-indicator', payload => {
     // Normalizar conversation ID
     if (payload.conversationId) {
       payload.conversationId = normalizeConvId(payload.conversationId);
