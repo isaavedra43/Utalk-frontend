@@ -49,10 +49,6 @@ export const useChat = (conversationId: string) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const optimisticMessagesRef = useRef<Set<string>>(new Set());
   
-  // RATE LIMITING - CRÍTICO PARA EVITAR SOBRECARGAR EL BACKEND
-  const messageRateLimitRef = useRef(0);
-  const typingRateLimitRef = useRef(0);
-
   // Cargar mensajes iniciales
   const loadMessages = useCallback(async () => {
     if (!conversationId) return;
@@ -278,14 +274,6 @@ export const useChat = (conversationId: string) => {
   const sendMessage = useCallback(async (content: string, type: string = 'text', metadata: Record<string, unknown> = {}) => {
     if (!conversationId || !content.trim() || !isJoined) return;
 
-    // RATE LIMITING - Evitar sobrecargar el backend
-    const now = Date.now();
-    if (now - messageRateLimitRef.current < 100) {
-      console.warn('⚠️ Rate limit: esperar antes de enviar otro mensaje');
-      return;
-    }
-    messageRateLimitRef.current = now;
-
     try {
       setSending(true);
       setError(null);
@@ -369,13 +357,6 @@ export const useChat = (conversationId: string) => {
   // Indicar escritura con debouncing y rate limiting
   const handleTyping = useCallback(() => {
     if (!conversationId || !isConnected || !isJoined) return;
-
-    // RATE LIMITING - Evitar spam de typing
-    const now = Date.now();
-    if (now - typingRateLimitRef.current < 500) {
-      return;
-    }
-    typingRateLimitRef.current = now;
 
     if (!isTyping) {
       setIsTyping(true);

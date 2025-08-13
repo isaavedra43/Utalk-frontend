@@ -1,6 +1,7 @@
 import React, { createContext, useEffect, useState } from 'react';
 import { Socket } from 'socket.io-client';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { useRateLimiter } from '../hooks/useRateLimiter';
 
 interface WebSocketContextType {
   socket: Socket | null;
@@ -37,6 +38,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     off,
     emit
   } = useWebSocket();
+
+  // Rate limiter para eventos del WebSocket
+  const rateLimiter = useRateLimiter();
 
   const [activeConversations, setActiveConversations] = useState<Set<string>>(new Set());
   const [typingUsers, setTypingUsers] = useState<Map<string, Set<string>>>(new Map());
@@ -250,49 +254,83 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     off,
     joinConversation: (conversationId: string) => {
       console.log('🔗 Uniéndose a conversación:', conversationId);
-      emit('join-conversation', { conversationId });
-      setActiveConversations(prev => new Set(prev).add(conversationId));
+      rateLimiter.executeWithRateLimit('join-conversation', () => {
+        emit('join-conversation', { conversationId });
+        setActiveConversations(prev => new Set(prev).add(conversationId));
+      }, (eventType, retryAfter) => {
+        console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
+      });
     },
     leaveConversation: (conversationId: string) => {
       console.log('🔌 Saliendo de conversación:', conversationId);
-      emit('leave-conversation', { conversationId });
-      setActiveConversations(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(conversationId);
-        return newSet;
+      rateLimiter.executeWithRateLimit('leave-conversation', () => {
+        emit('leave-conversation', { conversationId });
+        setActiveConversations(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(conversationId);
+          return newSet;
+        });
+      }, (eventType, retryAfter) => {
+        console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
       });
     },
     startTyping: (conversationId: string) => {
       console.log('✍️ Iniciando typing en conversación:', conversationId);
-      emit('typing', { conversationId });
+      rateLimiter.executeWithRateLimit('typing', () => {
+        emit('typing', { conversationId });
+      }, (eventType, retryAfter) => {
+        console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
+      });
     },
     stopTyping: (conversationId: string) => {
       console.log('⏹️ Deteniendo typing en conversación:', conversationId);
-      emit('typing-stop', { conversationId });
+      rateLimiter.executeWithRateLimit('typing-stop', () => {
+        emit('typing-stop', { conversationId });
+      }, (eventType, retryAfter) => {
+        console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
+      });
     },
     sendMessage: (conversationId: string, content: string, type = 'text', metadata = {}) => {
       console.log('📤 Enviando mensaje:', { conversationId, content, type, metadata });
-      return emit('new-message', {
-        conversationId,
-        content,
-        type,
-        metadata
+      let success = false;
+      rateLimiter.executeWithRateLimit('new-message', () => {
+        success = emit('new-message', {
+          conversationId,
+          content,
+          type,
+          metadata
+        });
+      }, (eventType, retryAfter) => {
+        console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
       });
+      return success;
     },
     markMessagesAsRead: (conversationId: string, messageIds: string[]) => {
       console.log('👁️ Marcando mensajes como leídos:', { conversationId, messageIds });
-      emit('message-read', {
-        conversationId,
-        messageIds
+      rateLimiter.executeWithRateLimit('message-read', () => {
+        emit('message-read', {
+          conversationId,
+          messageIds
+        });
+      }, (eventType, retryAfter) => {
+        console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
       });
     },
     changeUserStatus: (status: string) => {
       console.log('👤 Cambiando estado de usuario:', status);
-      emit('user-status-change', { status });
+      rateLimiter.executeWithRateLimit('user-status-change', () => {
+        emit('user-status-change', { status });
+      }, (eventType, retryAfter) => {
+        console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
+      });
     },
     syncState: () => {
       console.log('🔄 Sincronizando estado');
-      emit('sync-state', { syncId: Date.now() });
+      rateLimiter.executeWithRateLimit('sync-state', () => {
+        emit('sync-state', { syncId: Date.now() });
+      }, (eventType, retryAfter) => {
+        console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
+      });
     }
   };
 

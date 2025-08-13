@@ -2,6 +2,7 @@ import React from 'react';
 import { useWebSocketContext } from '../contexts/useWebSocketContext';
 import { useAuth } from '../modules/auth/hooks/useAuth';
 import { WebSocketTest } from './WebSocketTest';
+import { RateLimitStats } from './RateLimitStats';
 
 interface DebugPanelProps {
   isVisible: boolean;
@@ -94,6 +95,9 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) =>
 
           {/* Componente de Prueba WebSocket */}
           <WebSocketTest />
+
+          {/* Estadísticas de Rate Limiting */}
+          <RateLimitStats />
 
           {/* Logs Recientes */}
           <div className="border rounded-lg p-4">
