@@ -23,7 +23,7 @@ interface LogEntry {
 }
 
 export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) => {
-  const { isConnected, connectionError, socket, emit, activeConversations, typingUsers, onlineUsers } = useWebSocketContext();
+  const { isConnected, isSynced, connectionError, socket, emit, activeConversations, typingUsers, onlineUsers } = useWebSocketContext();
   const auth = useAuth();
   const [activeTab, setActiveTab] = useState<'estado' | 'websocket' | 'auth' | 'logs' | 'tools' | 'performance' | 'errors' | 'network' | 'advanced'>('estado');
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -205,9 +205,11 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) =>
                   </h3>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>Conectado: <span className={isConnected ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>{isConnected ? 'Sí' : 'No'}</span></div>
+                    <div>Sincronizado: <span className={isSynced ? 'text-green-600 font-semibold' : 'text-yellow-600 font-semibold'}>{isSynced ? 'Sí' : 'No'}</span></div>
                     <div>Socket ID: <span className="text-gray-600 font-mono text-xs">{socket?.id || 'N/A'}</span></div>
                     <div>Error: <span className={connectionError ? 'text-red-600' : 'text-green-600'}>{connectionError || 'Ninguno'}</span></div>
                     <div>Conversaciones Activas: <span className="text-blue-600 font-semibold">{activeConversations.size}</span></div>
+                    <div>Usuarios Online: <span className="text-green-600 font-semibold">{onlineUsers.size}</span></div>
                   </div>
                 </div>
               </div>
