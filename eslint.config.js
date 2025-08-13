@@ -182,6 +182,7 @@ export default [
       'dist/',
       'build/',
       '.svelte-kit/',
+      '.vercel/',
       'node_modules/',
       'coverage/',
       '**/.DS_Store',
