@@ -4,7 +4,7 @@ export interface Conversation {
   id: string; // conv_+5214773790184_+5214793176502
   customerName: string; // "Isra"
   customerPhone: string; // "+5214773790184"
-  status: 'open' | 'closed' | 'pending';
+  status: 'open' | 'closed' | 'pending' | 'resolved';
   messageCount: number; // 22
   unreadCount: number; // 5
   participants: string[]; // ["+5214773790184", "system@utalk.local", "admin@company.com", ...]

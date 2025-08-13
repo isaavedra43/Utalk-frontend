@@ -107,12 +107,11 @@ export const conversationsService = {
       updatedAt: conv.updatedAt ? new Date(conv.updatedAt._seconds * 1000).toISOString() : new Date().toISOString(),
       lastMessageAt: conv.lastMessageAt ? new Date(conv.lastMessageAt._seconds * 1000).toISOString() : new Date().toISOString(),
       lastMessage: conv.lastMessage ? {
-        id: conv.lastMessage.messageId,
         content: conv.lastMessage.content,
-        type: 'text' as const,
-        timestamp: conv.lastMessage.timestampISO || new Date().toISOString(),
         direction: conv.lastMessage.direction as 'inbound' | 'outbound',
-        status: 'delivered' as const
+        messageId: conv.lastMessage.messageId,
+        sender: conv.lastMessage.sender,
+        timestamp: conv.lastMessage.timestampISO || new Date().toISOString()
       } : undefined,
       assignedTo: conv.assignedTo,
       priority: conv.priority as 'low' | 'medium' | 'high' | 'urgent' | undefined,
