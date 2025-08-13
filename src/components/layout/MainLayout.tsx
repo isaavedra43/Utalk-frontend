@@ -1,31 +1,31 @@
 import React from 'react';
 import { LeftSidebar, RightSidebar } from './index';
 import { ConversationList, ChatArea } from '../chat/index';
+import { useAppStore } from '../../stores/useAppStore';
 
 export const MainLayout: React.FC = () => {
+  const { activeConversation } = useAppStore();
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Sidebar Izquierdo - Navegación y Canales */}
+      {/* Columna 1: Canales (Navegación Principal) */}
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
         <LeftSidebar />
       </div>
 
-      {/* Columna Central - Lista de Conversaciones */}
+      {/* Columna 2: Listado de Conversaciones */}
       <div className="w-96 bg-white border-r border-gray-200 flex flex-col">
         <ConversationList />
       </div>
 
-      {/* Columna Derecha - Chat + Sidebar de Detalles */}
-      <div className="flex-1 flex">
-        {/* Área de Chat */}
-        <div className="flex-1 bg-white flex flex-col">
-          <ChatArea />
-        </div>
+      {/* Columna 3: Área de Chat (Conversación Activa) */}
+      <div className="flex-1 bg-white flex flex-col">
+        <ChatArea />
+      </div>
 
-        {/* Sidebar Derecho - Detalles y Copilot */}
-        <div className="w-80 bg-gray-50 border-l border-gray-200">
-          <RightSidebar />
-        </div>
+      {/* Columna 4: Detalles del Cliente y Copiloto */}
+      <div className="w-80 bg-white border-l border-gray-200">
+        <RightSidebar />
       </div>
 
       {/* Debug Info - Esquina inferior izquierda */}
@@ -34,6 +34,7 @@ export const MainLayout: React.FC = () => {
           <div>App: MOUNTED</div>
           <div>Route: /</div>
           <div>Mount: #root</div>
+          <div>Active: {activeConversation?.customerName || 'None'}</div>
         </div>
       </div>
     </div>

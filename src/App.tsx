@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from 'react-hot-toast';
-import { validateConfig } from './config/firebase';
 import { MainLayout } from './components/layout/MainLayout';
+import { useAppStore } from './stores/useAppStore';
+import { mockConversations } from './services/conversations';
+import { mockMessages } from './services/messages';
+import './index.css';
 
 // Crear cliente de React Query
 const queryClient = new QueryClient({
@@ -14,29 +16,36 @@ const queryClient = new QueryClient({
   },
 });
 
-function App() {
-  // Validar configuración al cargar la app
-  React.useEffect(() => {
-    if (!validateConfig()) {
-      console.error('Configuración de entorno inválida');
-    }
-  }, []);
+// Componente para inicializar datos
+const AppInitializer: React.FC = () => {
+  const { setConversations, setMessages } = useAppStore();
 
+  useEffect(() => {
+    // Inicializar conversaciones en el store
+    setConversations(mockConversations);
+    
+    // Inicializar mensajes en el store
+    const messagesByConversation: Record<string, typeof mockMessages> = {};
+    mockMessages.forEach(message => {
+      if (!messagesByConversation[message.conversationId]) {
+        messagesByConversation[message.conversationId] = [];
+      }
+      messagesByConversation[message.conversationId].push(message);
+    });
+    
+    Object.entries(messagesByConversation).forEach(([conversationId, messages]) => {
+      setMessages(conversationId, messages);
+    });
+  }, [setConversations, setMessages]);
+
+  return null;
+};
+
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <AppInitializer />
       <MainLayout />
-      
-      {/* Toaster para notificaciones */}
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: '#363636',
-            color: '#fff',
-          },
-        }}
-      />
     </QueryClientProvider>
   );
 }

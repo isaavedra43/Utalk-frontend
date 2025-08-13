@@ -2,10 +2,18 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import type { Message, MessageInputData, TypingIndicator } from '../types';
 import { messagesService, mockMessages } from '../services/messages';
+import { useAppStore } from '../stores/useAppStore';
 
 export const useMessages = (conversationId: string | null) => {
   const [typingUsers] = useState<TypingIndicator[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const {
+    messages: storeMessages,
+    setMessages,
+    addMessage: addStoreMessage,
+    updateMessage: updateStoreMessage
+  } = useAppStore();
 
   // Query para obtener mensajes
   const {
@@ -26,11 +34,20 @@ export const useMessages = (conversationId: string | null) => {
     refetchOnWindowFocus: false
   });
 
+  // Sincronizar mensajes del store con la query
+  useEffect(() => {
+    if (conversationId && messagesData?.messages) {
+      setMessages(conversationId, messagesData.messages);
+    }
+  }, [conversationId, messagesData?.messages, setMessages]);
+
   // Mutation para enviar mensaje
   const sendMessageMutation = useMutation({
     mutationFn: ({ conversationId, messageData }: { conversationId: string; messageData: MessageInputData }) =>
       messagesService.sendMessage(conversationId, messageData),
-    onSuccess: () => {
+    onSuccess: (newMessage, variables) => {
+      // Agregar mensaje al store
+      addStoreMessage(variables.conversationId, newMessage);
       // Refetch para obtener mensajes actualizados
       refetch();
       // Scroll al final
@@ -44,7 +61,9 @@ export const useMessages = (conversationId: string | null) => {
   const markAsReadMutation = useMutation({
     mutationFn: ({ conversationId, messageId }: { conversationId: string; messageId: string }) =>
       messagesService.markMessageAsRead(conversationId, messageId),
-    onSuccess: () => {
+    onSuccess: (updatedMessage, variables) => {
+      // Actualizar mensaje en el store
+      updateStoreMessage(variables.conversationId, variables.messageId, updatedMessage);
       refetch();
     }
   });
@@ -109,19 +128,22 @@ export const useMessages = (conversationId: string | null) => {
     }));
   };
 
+  // Obtener mensajes del store o de la query
+  const currentMessages = conversationId ? (storeMessages[conversationId] || messagesData?.messages || []) : [];
+
   // Scroll al final cuando se cargan nuevos mensajes
   useEffect(() => {
-    if (messagesData?.messages.length) {
+    if (currentMessages.length) {
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     }
-  }, [messagesData?.messages.length]);
+  }, [currentMessages.length]);
 
   // Marcar mensajes como leídos cuando se selecciona la conversación
   useEffect(() => {
-    if (conversationId && messagesData?.messages.length) {
-      const unreadMessages = messagesData.messages.filter(
+    if (conversationId && currentMessages.length) {
+      const unreadMessages = currentMessages.filter(
         msg => msg.direction === 'inbound' && msg.status !== 'read'
       );
       
@@ -129,13 +151,13 @@ export const useMessages = (conversationId: string | null) => {
         markMessagesAsRead(unreadMessages.map(msg => msg.id));
       }
     }
-  }, [conversationId, messagesData?.messages, markMessagesAsRead]);
+  }, [conversationId, currentMessages, markMessagesAsRead]);
 
-  const messageGroups = groupMessagesByDate(messagesData?.messages || []);
+  const messageGroups = groupMessagesByDate(currentMessages);
 
   return {
     // Datos
-    messages: messagesData?.messages || [],
+    messages: currentMessages,
     messageGroups,
     hasMore: messagesData?.hasMore || false,
     

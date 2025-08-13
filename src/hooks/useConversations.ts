@@ -1,10 +1,16 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import type { Conversation, ConversationFilters } from '../types';
 import { conversationsService, mockConversations } from '../services/conversations';
+import { useAppStore } from '../stores/useAppStore';
 
 export const useConversations = (filters: ConversationFilters = {}) => {
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const {
+    activeConversation,
+    setConversations,
+    setActiveConversation,
+    updateConversation: updateStoreConversation
+  } = useAppStore();
 
   // Query para obtener conversaciones
   const {
@@ -27,12 +33,27 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     refetchOnWindowFocus: false
   });
 
+  // Sincronizar datos del store con la query
+  useEffect(() => {
+    if (conversationsData?.conversations) {
+      setConversations(conversationsData.conversations);
+    }
+  }, [conversationsData?.conversations, setConversations]);
+
+  // Seleccionar automáticamente la primera conversación si no hay ninguna seleccionada
+  useEffect(() => {
+    if (!activeConversation && conversationsData?.conversations.length > 0) {
+      setActiveConversation(conversationsData.conversations[0]);
+    }
+  }, [activeConversation, conversationsData?.conversations, setActiveConversation]);
+
   // Mutation para actualizar conversación
   const updateConversationMutation = useMutation({
     mutationFn: ({ conversationId, updateData }: { conversationId: string; updateData: Partial<Conversation> }) =>
       conversationsService.updateConversation(conversationId, updateData),
-    onSuccess: () => {
-      // Refetch para obtener datos actualizados
+    onSuccess: (updatedConversation, variables) => {
+      // Actualizar tanto el store como refetch
+      updateStoreConversation(variables.conversationId, updatedConversation);
       refetch();
     }
   });
@@ -40,8 +61,9 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   // Mutation para marcar como leído
   const markAsReadMutation = useMutation({
     mutationFn: (conversationId: string) => conversationsService.markConversationAsRead(conversationId),
-    onSuccess: () => {
-      // Refetch para obtener datos actualizados
+    onSuccess: (updatedConversation, variables) => {
+      // Actualizar tanto el store como refetch
+      updateStoreConversation(variables, updatedConversation);
       refetch();
     }
   });
@@ -50,21 +72,24 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   const changeStatusMutation = useMutation({
     mutationFn: ({ conversationId, status }: { conversationId: string; status: string }) =>
       conversationsService.changeConversationStatus(conversationId, status),
-    onSuccess: () => {
-      // Refetch para obtener datos actualizados
+    onSuccess: (updatedConversation, variables) => {
+      // Actualizar tanto el store como refetch
+      updateStoreConversation(variables.conversationId, updatedConversation);
       refetch();
     }
   });
 
   // Función para seleccionar conversación
   const selectConversation = useCallback((conversationId: string) => {
-    setSelectedConversationId(conversationId);
-  }, []);
+    const conversation = conversationsData?.conversations.find(conv => conv.id === conversationId);
+    if (conversation) {
+      setActiveConversation(conversation);
+    }
+  }, [conversationsData?.conversations, setActiveConversation]);
 
   // Función para obtener conversación seleccionada
-  const selectedConversation = conversationsData?.conversations.find(
-    conv => conv.id === selectedConversationId
-  ) || null;
+  const selectedConversation = activeConversation;
+  const selectedConversationId = activeConversation?.id || null;
 
   // Función para filtrar conversaciones
   const filteredConversations = conversationsData?.conversations.filter(conversation => {

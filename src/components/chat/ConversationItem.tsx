@@ -27,7 +27,8 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
   // Determinar el color del indicador de estado
   const getStatusColor = () => {
     if (conversation.priority === 'urgent') return 'bg-red-500';
-    if (conversation.unreadCount > 0) return 'bg-blue-500';
+    if (conversation.priority === 'high') return 'bg-orange-500';
+    if (conversation.unreadCount > 0) return 'bg-green-500';
     return 'bg-gray-400';
   };
 
@@ -70,7 +71,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
       onClick={() => onClick(conversation.id)}
     >
       <div className="flex items-start gap-3">
-        {/* Avatar */}
+        {/* Avatar con indicador de estado */}
         <div className="flex-shrink-0 relative">
           <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-sm font-medium text-gray-700">
             {initials}
@@ -104,7 +105,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
               )}
               {conversation.unreadCount > 0 && (
                 <span className="text-xs bg-blue-500 text-white px-1.5 py-0.5 rounded-full">
-                  {conversation.unreadCount}
+                  +{conversation.unreadCount}
                 </span>
               )}
             </div>
@@ -119,6 +120,11 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
               {conversation.priority === 'high' && (
                 <span className="text-xs bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded">
                   Alta
+                </span>
+              )}
+              {conversation.tags?.includes('VIP') && (
+                <span className="text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded">
+                  VIP
                 </span>
               )}
             </div>

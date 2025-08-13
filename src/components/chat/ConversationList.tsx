@@ -32,8 +32,11 @@ export const ConversationList: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header con búsqueda */}
+      {/* Header con título y búsqueda */}
       <div className="p-4 border-b border-gray-200">
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">Conversaciones</h2>
+        
+        {/* Búsqueda - Q Buscar... */}
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <input

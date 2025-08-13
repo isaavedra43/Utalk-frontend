@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { DetailsPanel } from './DetailsPanel';
 import { CopilotPanel } from './CopilotPanel';
 import { useSidebar } from '../../hooks/useSidebar';
-import { useConversations } from '../../hooks/useConversations';
+import { useAppStore } from '../../stores/useAppStore';
 
 export const RightSidebar: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'details' | 'copilot'>('details');
-  const { selectedConversationId } = useConversations();
+  const { activeConversation } = useAppStore();
+  const selectedConversationId = activeConversation?.id || null;
+  
   const {
     clientProfile,
     conversationDetails,
@@ -72,19 +74,31 @@ export const RightSidebar: React.FC = () => {
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         {activeTab === 'details' ? (
-          <DetailsPanel
-            clientProfile={clientProfile}
-            conversationDetails={conversationDetails}
-            notificationSettings={notificationSettings}
-            onUpdateNotificationSettings={updateNotificationSettings}
-            isLoading={isLoadingClientProfile || isLoadingConversationDetails || isLoadingNotificationSettings}
-          />
+          clientProfile && conversationDetails && notificationSettings ? (
+            <DetailsPanel
+              clientProfile={clientProfile}
+              conversationDetails={conversationDetails}
+              notificationSettings={notificationSettings}
+              onUpdateNotificationSettings={updateNotificationSettings}
+              isLoading={isLoadingClientProfile || isLoadingConversationDetails || isLoadingNotificationSettings}
+            />
+          ) : (
+            <div className="p-4 text-center text-gray-500">
+              Cargando detalles...
+            </div>
+          )
         ) : (
           <CopilotPanel
-            copilotState={copilotState}
+            copilotState={{
+              isMockMode: true,
+              activeTab: copilotState.tab,
+              suggestions: aiSuggestions,
+              chatHistory: [],
+              isLoading: copilotState.isGenerating
+            }}
             aiSuggestions={aiSuggestions}
             onSetCopilotTab={setCopilotTab}
-            onCopySuggestion={copySuggestion}
+            onCopySuggestion={(suggestion) => copySuggestion(suggestion.id)}
             onImproveSuggestion={improveSuggestion}
             onGenerateSuggestion={generateAISuggestion}
             isLoading={isLoadingAISuggestions}

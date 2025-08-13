@@ -6,28 +6,21 @@ import { Check, CheckCheck } from 'lucide-react';
 
 interface MessageBubbleProps {
   message: Message;
-  showAvatar?: boolean;
+  showAvatar: boolean;
   customerName?: string;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
-  showAvatar = true,
+  showAvatar,
   customerName
 }) => {
-  // Generar iniciales del remitente
-  const getInitials = (sender: string) => {
-    if (sender.includes('whatsapp:')) {
-      // Es un cliente de WhatsApp
-      return customerName ? customerName.split(' ').map(word => word.charAt(0)).join('').toUpperCase().slice(0, 2) : 'CL';
-    } else if (sender.includes('agent:')) {
-      // Es un agente
-      const agentName = sender.replace('agent:', '');
-      return agentName.split('@')[0].toUpperCase().slice(0, 2);
-    } else {
-      // Otro tipo de remitente
-      return sender.split('@')[0].toUpperCase().slice(0, 2);
-    }
+  const isOutbound = message.direction === 'outbound';
+  const isRead = message.status === 'read';
+
+  // Generar iniciales del cliente
+  const getCustomerInitials = (name: string) => {
+    return name.split(' ').map(word => word.charAt(0)).join('').toUpperCase().slice(0, 2);
   };
 
   // Formatear timestamp
@@ -40,59 +33,44 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   };
 
-  // Determinar el estado del mensaje
-  const getMessageStatus = () => {
-    if (message.direction === 'inbound') return null;
-    
-    switch (message.status) {
-      case 'sent':
-        return <Check className="h-3 w-3 text-gray-400" />;
-      case 'delivered':
-        return <CheckCheck className="h-3 w-3 text-gray-400" />;
-      case 'read':
-        return <CheckCheck className="h-3 w-3 text-blue-500" />;
-      case 'failed':
-        return <span className="text-red-500 text-xs">Error</span>;
-      default:
-        return null;
-    }
-  };
-
-  const isOutbound = message.direction === 'outbound';
-  const initials = getInitials(message.senderIdentifier || message.metadata.sentBy);
   const timestamp = formatTimestamp(message.createdAt);
-  const messageStatus = getMessageStatus();
 
   return (
-    <div className={`flex gap-3 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
-      {/* Avatar para mensajes entrantes */}
+    <div className={`flex ${isOutbound ? 'justify-end' : 'justify-start'} gap-3`}>
+      {/* Avatar (solo para mensajes entrantes) */}
       {!isOutbound && showAvatar && (
         <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-xs font-medium text-gray-700 flex-shrink-0">
-          {initials}
+          {customerName ? getCustomerInitials(customerName) : 'CL'}
         </div>
       )}
-      
-      {/* Burbuja del mensaje */}
-      <div className={`max-w-xs lg:max-w-md ${
-        isOutbound 
-          ? 'bg-blue-600 text-white' 
-          : 'bg-white border border-gray-200'
-      } rounded-lg p-3 shadow-sm`}>
-        {/* Contenido del mensaje */}
-        {message.content && (
-          <p className="text-sm whitespace-pre-wrap break-words">
-            {message.content}
-          </p>
-        )}
+
+      {/* Espacio para alinear mensajes salientes */}
+      {isOutbound && (
+        <div className="w-8 flex-shrink-0"></div>
+      )}
+
+      {/* Burbuja de mensaje */}
+      <div className={`max-w-xs lg:max-w-md ${isOutbound ? 'order-first' : ''}`}>
+        <div
+          className={`px-4 py-2 rounded-lg ${
+            isOutbound
+              ? 'bg-blue-600 text-white'
+              : 'bg-white text-gray-900 border border-gray-200'
+          }`}
+        >
+          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+        </div>
         
         {/* Timestamp y estado */}
-        <div className={`flex items-center justify-between mt-2 ${
-          isOutbound ? 'text-blue-100' : 'text-gray-500'
-        }`}>
-          <span className="text-xs">{timestamp}</span>
-          {messageStatus && (
-            <div className="flex items-center gap-1">
-              {messageStatus}
+        <div className={`flex items-center gap-1 mt-1 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
+          <span className="text-xs text-gray-500">{timestamp}</span>
+          {isOutbound && (
+            <div className="flex items-center">
+              {isRead ? (
+                <CheckCheck className="h-3 w-3 text-blue-500" />
+              ) : (
+                <Check className="h-3 w-3 text-gray-400" />
+              )}
             </div>
           )}
         </div>

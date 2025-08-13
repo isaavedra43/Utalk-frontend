@@ -45,18 +45,18 @@ export const MessageContainer: React.FC<MessageContainerProps> = ({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+    <div className="flex-1 overflow-y-auto bg-gray-50">
       {messageGroups.map((group) => (
         <div key={group.date} className="space-y-4">
           {/* Separador de fecha */}
-          <div className="flex justify-center">
+          <div className="flex justify-center pt-4">
             <div className="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full">
               {group.date}
             </div>
           </div>
 
           {/* Mensajes del grupo */}
-          <div className="space-y-4">
+          <div className="space-y-4 px-4">
             {group.messages.map((message, messageIndex) => (
               <MessageBubble
                 key={message.id}
@@ -72,7 +72,7 @@ export const MessageContainer: React.FC<MessageContainerProps> = ({
 
       {/* Indicador de escritura */}
       {typingUsers.length > 0 && (
-        <div className="flex gap-3 justify-start mt-4">
+        <div className="flex gap-3 justify-start mt-4 px-4">
           <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-xs font-medium text-gray-700">
             {customerName ? customerName.split(' ').map(word => word.charAt(0)).join('').toUpperCase().slice(0, 2) : 'CL'}
           </div>

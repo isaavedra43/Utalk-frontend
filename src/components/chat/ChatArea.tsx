@@ -3,10 +3,12 @@ import { Phone, Video, UserPlus, Bookmark, MoreVertical } from 'lucide-react';
 import { MessageContainer } from './MessageContainer';
 import { MessageInput } from './MessageInput';
 import { useMessages } from '../../hooks/useMessages';
-import { useConversations } from '../../hooks/useConversations';
+import { useAppStore } from '../../stores/useAppStore';
 
 export const ChatArea: React.FC = () => {
-  const { selectedConversationId, selectedConversation } = useConversations();
+  const { activeConversation } = useAppStore();
+  const selectedConversationId = activeConversation?.id || null;
+  
   const {
     messageGroups,
     typingUsers,
@@ -37,7 +39,7 @@ export const ChatArea: React.FC = () => {
   };
 
   // Si no hay conversación seleccionada
-  if (!selectedConversationId || !selectedConversation) {
+  if (!selectedConversationId || !activeConversation) {
     return (
       <div className="flex flex-col h-full">
         <div className="flex-1 flex items-center justify-center">
@@ -63,16 +65,16 @@ export const ChatArea: React.FC = () => {
           <div className="flex items-center gap-3">
             {/* Avatar */}
             <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-sm font-medium text-gray-700">
-              {getCustomerInitials(selectedConversation.customerName)}
+              {getCustomerInitials(activeConversation.customerName)}
             </div>
             
             {/* Información del contacto */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">{selectedConversation.customerName}</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{activeConversation.customerName}</h3>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <span className="text-sm text-green-600">en línea</span>
-                {selectedConversation.tags?.includes('VIP') && (
+                {activeConversation.tags?.includes('VIP') && (
                   <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">VIP</span>
                 )}
               </div>
@@ -105,7 +107,7 @@ export const ChatArea: React.FC = () => {
         messageGroups={messageGroups}
         typingUsers={typingUsers}
         messagesEndRef={messagesEndRef}
-        customerName={selectedConversation.customerName}
+        customerName={activeConversation.customerName}
         isLoading={isLoading}
       />
 
