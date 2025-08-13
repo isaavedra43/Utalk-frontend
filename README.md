@@ -238,3 +238,4 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 ## 🆘 Soporte
 
 Para soporte técnico, contactar al equipo de desarrollo o crear un issue en el repositorio.
+# Forzar actualización de Vercel
