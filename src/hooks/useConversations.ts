@@ -7,7 +7,7 @@ import { useWebSocketContext } from '../contexts/useWebSocketContext';
 import { useAuth } from '../modules/auth/hooks/useAuth';
 
 export const useConversations = (filters: ConversationFilters = {}) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const {
     activeConversation,
     setConversations,
@@ -41,7 +41,17 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     },
     staleTime: 30000, // 30 segundos
     refetchOnWindowFocus: false,
-    enabled: isAuthenticated // Solo ejecutar si está autenticado
+    enabled: isAuthenticated && !authLoading, // Solo ejecutar si está autenticado y no está cargando
+    retry: (failureCount, error) => {
+      // No reintentar si es un error de autenticación
+      if (error && typeof error === 'object' && 'response' in error) {
+        const apiError = error as { response?: { status?: number } };
+        if (apiError.response?.status === 401) {
+          return false;
+        }
+      }
+      return failureCount < 3;
+    }
   });
 
   // Aplanar todas las conversaciones de todas las páginas
@@ -52,14 +62,14 @@ export const useConversations = (filters: ConversationFilters = {}) => {
 
   // Sincronizar datos del store con la query - solo si está autenticado
   useEffect(() => {
-    if (isAuthenticated && allConversations.length > 0) {
+    if (isAuthenticated && !authLoading && allConversations.length > 0) {
       setConversations(allConversations);
     }
-  }, [allConversations, setConversations, isAuthenticated]);
+  }, [allConversations, setConversations, isAuthenticated, authLoading]);
 
   // Escuchar eventos de conversación en tiempo real - solo si está autenticado
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || authLoading) return;
 
     const handleConversationEvent = (data: unknown) => {
       const eventData = data as { conversationId: string; [key: string]: unknown };
@@ -117,14 +127,14 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       off('new-message');
       off('message-read');
     };
-  }, [on, off, updateStoreConversation, refetch, allConversations, isAuthenticated]);
+  }, [on, off, updateStoreConversation, refetch, allConversations, isAuthenticated, authLoading]);
 
   // Seleccionar automáticamente la primera conversación si no hay ninguna seleccionada - solo si está autenticado
   useEffect(() => {
-    if (isAuthenticated && !activeConversation && allConversations.length > 0) {
+    if (isAuthenticated && !authLoading && !activeConversation && allConversations.length > 0) {
       setActiveConversation(allConversations[0]);
     }
-  }, [activeConversation, allConversations, setActiveConversation, isAuthenticated]);
+  }, [activeConversation, allConversations, setActiveConversation, isAuthenticated, authLoading]);
 
   // Mutation para actualizar conversación
   const updateConversationMutation = useMutation({
@@ -168,10 +178,10 @@ export const useConversations = (filters: ConversationFilters = {}) => {
 
   // Función para cargar más conversaciones (scroll infinito)
   const loadMoreConversations = useCallback(() => {
-    if (isAuthenticated && hasNextPage && !isFetchingNextPage) {
+    if (isAuthenticated && !authLoading && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage, isAuthenticated]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, isAuthenticated, authLoading]);
 
   // Función para obtener conversación seleccionada
   const selectedConversation = activeConversation;
@@ -225,7 +235,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     stats,
     
     // Estados
-    isLoading: isLoading || !isAuthenticated, // Mostrar loading si no está autenticado
+    isLoading: isLoading || authLoading || !isAuthenticated, // Mostrar loading si no está autenticado o está cargando
     error,
     isFetchingNextPage,
     hasNextPage,

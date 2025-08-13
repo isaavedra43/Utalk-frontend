@@ -8,6 +8,34 @@ import { MainLayout } from './components/layout/MainLayout'
 import { DebugPanel } from './components/DebugPanel'
 import { logger } from './utils/logger'
 import { useAppStore } from './stores/useAppStore'
+import { useAuth } from './modules/auth/hooks/useAuth'
+
+// Componente de protección de rutas
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+
+  // Si está cargando, mostrar loading
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Verificando autenticación...
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
+  // Si no está autenticado, redirigir al login
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Si está autenticado, mostrar el contenido
+  return <>{children}</>;
+};
 
 // Componente para establecer el módulo de chat
 const ChatPage: React.FC = () => {
@@ -49,8 +77,22 @@ function App() {
           <div className="app">
             <Routes>
               <Route path="/login" element={<AuthModule />} />
-              <Route path="/chat" element={<ChatPage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route 
+                path="/chat" 
+                element={
+                  <ProtectedRoute>
+                    <ChatPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard" 
+                element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                } 
+              />
               <Route path="/" element={<Navigate to="/login" replace />} />
             </Routes>
             

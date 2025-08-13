@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
 import { ChannelsColumn } from './ChannelsColumn';
 import { ConversationList } from './ConversationList';
 import { ChatComponent } from './ChatComponent';
 import { DetailsPanel } from '../layout/DetailsPanel';
 import { CopilotPanel } from '../layout/CopilotPanel';
 import { useConversations } from '../../hooks/useConversations';
-import { useAuth } from '../../modules/auth/hooks/useAuth';
 import { 
   MessageSquare, 
   Users, 
@@ -360,27 +358,6 @@ const AuthenticatedChatContent: React.FC = () => {
 };
 
 export const ChatModule: React.FC = () => {
-  const { isAuthenticated, loading: authLoading } = useAuth();
-
-  // Si está cargando la autenticación, mostrar loading
-  if (authLoading) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Verificando autenticación...
-          </h3>
-        </div>
-      </div>
-    );
-  }
-
-  // Si no está autenticado, redirigir al login
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Si está autenticado, mostrar el contenido del chat
+  // El componente ya no maneja la autenticación, eso se hace en ProtectedRoute
   return <AuthenticatedChatContent />;
 }; 

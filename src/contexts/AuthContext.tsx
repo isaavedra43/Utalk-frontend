@@ -10,7 +10,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Conectar WebSocket cuando se autentica
   useEffect(() => {
-    if (auth.isAuthenticated && auth.backendUser && connectSocket) {
+    if (auth.isAuthenticated && auth.backendUser && !auth.loading && connectSocket) {
       const token = localStorage.getItem('access_token');
       if (token) {
         connectSocket(token);
@@ -18,7 +18,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else if (disconnectSocket) {
       disconnectSocket();
     }
-  }, [auth.isAuthenticated, auth.backendUser, connectSocket, disconnectSocket]);
+  }, [auth.isAuthenticated, auth.backendUser, auth.loading, connectSocket, disconnectSocket]);
+
+  // Escuchar eventos de autenticación fallida para desconectar WebSocket
+  useEffect(() => {
+    const handleAuthFailed = () => {
+      if (disconnectSocket) {
+        disconnectSocket();
+      }
+    };
+
+    window.addEventListener('auth:authentication-failed', handleAuthFailed);
+    
+    return () => {
+      window.removeEventListener('auth:authentication-failed', handleAuthFailed);
+    };
+  }, [disconnectSocket]);
 
   return (
     <AuthContext.Provider value={auth}>

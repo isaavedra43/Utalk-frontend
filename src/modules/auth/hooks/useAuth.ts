@@ -16,13 +16,12 @@ interface BackendUser {
   updatedAt: string;
 }
 
-
-
 export const useAuth = () => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [backendUser, setBackendUser] = useState<BackendUser | null>(null);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   // Refresh token automático
   const refreshToken = useCallback(async () => {
@@ -57,12 +56,24 @@ export const useAuth = () => {
     }
   }, []);
 
+  // Función para limpiar autenticación
+  const clearAuth = useCallback(() => {
+    logger.authInfo('Limpiando estado de autenticación');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setBackendUser(null);
+    setError(null);
+  }, []);
+
   // Verificar estado de autenticación desde localStorage
   useEffect(() => {
     logger.authInfo('Verificando estado de autenticación desde localStorage');
     
     const checkAuthState = async () => {
       try {
+        setIsAuthenticating(true);
         const storedUser = localStorage.getItem('user');
         const accessToken = localStorage.getItem('access_token');
         
@@ -92,11 +103,7 @@ export const useAuth = () => {
           } catch (tokenError) {
             logger.authError('Token inválido, limpiando autenticación', tokenError as Error);
             // Token inválido, limpiar todo
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            localStorage.removeItem('user');
-            setUser(null);
-            setBackendUser(null);
+            clearAuth();
           }
         } else {
           logger.authInfo('No hay usuario autenticado en localStorage');
@@ -109,11 +116,26 @@ export const useAuth = () => {
         setBackendUser(null);
       } finally {
         setLoading(false);
+        setIsAuthenticating(false);
       }
     };
 
     checkAuthState();
-  }, []);
+  }, [clearAuth]);
+
+  // Escuchar eventos de autenticación fallida
+  useEffect(() => {
+    const handleAuthFailed = () => {
+      logger.authInfo('Evento de autenticación fallida recibido');
+      clearAuth();
+    };
+
+    window.addEventListener('auth:authentication-failed', handleAuthFailed);
+    
+    return () => {
+      window.removeEventListener('auth:authentication-failed', handleAuthFailed);
+    };
+  }, [clearAuth]);
 
   // Manejar bypass de desarrollo
   useEffect(() => {
@@ -149,13 +171,12 @@ export const useAuth = () => {
     };
   }, []);
 
-
-
   // Login con email y password - Solo backend
   const login = useCallback(async (email: string, password: string) => {
     try {
       setError(null);
       setLoading(true);
+      setIsAuthenticating(true);
       
       // Log del intento de login
       logger.logLoginAttempt(email, {
@@ -235,6 +256,7 @@ export const useAuth = () => {
       throw new Error(errorMessage);
     } finally {
       setLoading(false);
+      setIsAuthenticating(false);
     }
   }, []);
 
@@ -260,13 +282,7 @@ export const useAuth = () => {
       }
       
       // Limpiar estado local
-      setUser(null);
-      setBackendUser(null);
-      
-      // Limpiar localStorage
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
+      clearAuth();
       
       logger.authInfo('Logout completado, localStorage limpiado');
       
@@ -276,7 +292,7 @@ export const useAuth = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, backendUser]);
+  }, [user, backendUser, clearAuth]);
 
   // Cambiar contraseña - Solo backend
   const changePassword = useCallback(async (newPassword: string) => {
@@ -363,7 +379,7 @@ export const useAuth = () => {
   return {
     user,
     backendUser,
-    loading,
+    loading: loading || isAuthenticating,
     error,
     login,
     logout,
@@ -372,6 +388,7 @@ export const useAuth = () => {
     refreshToken,
     getProfile,
     updateProfile,
-    isAuthenticated: !!user && !!backendUser
+    clearAuth,
+    isAuthenticated: !!user && !!backendUser && !isAuthenticating
   };
 }; 
