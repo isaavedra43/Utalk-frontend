@@ -2,7 +2,7 @@ import api from './api';
 import type { Message, MessageInputData } from '../types';
 
 // Configuración de la API
-const MESSAGES_API = '/messages';
+const MESSAGES_API = '/api/messages';
 
 export const messagesService = {
   // Obtener mensajes de una conversación
