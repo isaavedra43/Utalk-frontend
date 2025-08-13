@@ -1,6 +1,7 @@
 import React from 'react';
 import { Check, CheckCheck } from 'lucide-react';
 import type { Message } from '../../types';
+import { MessageContent } from './MessageContent';
 
 interface MessageBubbleProps {
   message: Message;
@@ -59,7 +60,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               : 'bg-gray-100 text-gray-900'
           } ${!isLastInGroup ? 'rounded-br-md' : ''}`}
         >
-          <p className="message-content whitespace-pre-wrap">{message.content}</p>
+          <MessageContent message={message} />
         </div>
         
         {/* Timestamp y estado - solo mostrar en el último mensaje del grupo */}

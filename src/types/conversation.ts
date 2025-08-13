@@ -20,11 +20,12 @@ export interface Conversation {
 }
 
 export interface LastMessage {
-  content: string; // "PRUEBA 9"
+  id: string;
+  content: string;
+  type: 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker';
+  timestamp: string;
   direction: 'inbound' | 'outbound';
-  messageId: string; // "e9f6edd0-d771-4829-89f0-16393b53eed3"
-  sender: string; // "agent:admin@company.com"
-  timestamp: string; // "11 de agosto de 2025, 4:21:25 p.m. UTC-6"
+  status: 'sent' | 'delivered' | 'read' | 'failed';
 }
 
 export interface Message {

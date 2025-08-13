@@ -25,10 +25,8 @@ export const ChatArea: React.FC = () => {
     return name.split(' ').map(word => word.charAt(0)).join('').toUpperCase().slice(0, 2);
   };
 
-  const handleSendMessage = (content: string, type: 'text' | 'image' | 'document' | 'location' = 'text') => {
-    if (selectedConversationId && content.trim()) {
-      sendMessage(content.trim(), type);
-    }
+  const handleSendMessage = (content: string, type: 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker' = 'text') => {
+    sendMessage(content, type);
   };
 
   const handleContextTagClick = (tag: string) => {

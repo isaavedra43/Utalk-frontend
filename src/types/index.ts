@@ -49,7 +49,7 @@ export interface Message {
   createdAt: string; // "11 de agosto de 2025, 12:58:20 p.m. UTC-6"
   metadata: MessageMetadata;
   status: 'sent' | 'delivered' | 'read' | 'failed';
-  type: 'text' | 'image' | 'document' | 'location';
+  type: 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker';
   recipientIdentifier?: string; // "whatsapp:+5214773790"
   senderIdentifier?: string; // "agent:admin@company.com"
   userAgent?: string;
@@ -57,12 +57,19 @@ export interface Message {
 }
 
 export interface MessageMetadata {
-  agentId: string; // "admin@company.com"
-  ip: string; // "189.162.163.251"
-  requestId: string; // "unknown"
-  sentBy: string; // "admin@company.com"
+  agentId: string;
+  ip: string;
+  requestId: string;
+  sentBy: string;
   source: 'web' | 'mobile' | 'api';
-  timestamp: string; // "2025-08-11T18:58:20.111Z"
+  timestamp: string;
+  // Metadata adicional para archivos
+  fileSize?: number;
+  fileName?: string;
+  fileType?: string;
+  fileUrl?: string;
+  duration?: number; // Para audios/videos
+  thumbnail?: string; // Para videos
 }
 
 export interface MessageGroup {
@@ -79,7 +86,7 @@ export interface TypingIndicator {
 
 export interface MessageInputData {
   content: string;
-  type?: 'text' | 'image' | 'document' | 'location';
+  type?: 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker';
   replyToMessageId?: string;
   metadata?: Record<string, unknown>;
 }

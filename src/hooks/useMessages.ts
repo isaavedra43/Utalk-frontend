@@ -150,7 +150,7 @@ export const useMessages = (conversationId: string | null) => {
   });
 
   // Función para enviar mensaje
-  const sendMessage = useCallback(async (content: string, type: 'text' | 'image' | 'document' | 'location' = 'text') => {
+  const sendMessage = useCallback(async (content: string, type: 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker' = 'text') => {
     if (!conversationId || !content.trim()) return;
 
     const messageData: MessageInputData = {

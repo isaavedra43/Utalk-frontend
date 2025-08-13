@@ -1,10 +1,14 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Paperclip, Send, Smile } from 'lucide-react';
+import { Send, Smile, Mic, MapPin } from 'lucide-react';
 import { EmojiPicker } from './EmojiPicker';
+import { AudioRecorder } from './AudioRecorder';
+import { StickerPicker } from './StickerPicker';
+import { FileUploadManager } from './FileUploadManager';
 import { useWebSocketContext } from '../../hooks/useWebSocketContext';
+import { fileUploadService } from '../../services/fileUpload';
 
 interface MessageInputProps {
-  onSendMessage: (content: string, type?: 'text' | 'image' | 'document' | 'location') => void;
+  onSendMessage: (content: string, type?: 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker') => void;
   isSending?: boolean;
   placeholder?: string;
   contextTags?: string[];
@@ -33,11 +37,13 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   // Usar valor externo si se proporciona, sino usar estado interno
   const currentValue = externalValue !== undefined ? externalValue : inputValue;
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showStickerPicker, setShowStickerPicker] = useState(false);
+  const [showAudioRecorder, setShowAudioRecorder] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingTimeoutRef = useRef<number | null>(null);
 
   // WebSocket context para typing
   const { startTyping, stopTyping } = useWebSocketContext();
@@ -93,6 +99,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       setInputValue('');
       handleStopTyping();
       setShowEmojiPicker(false);
+      setShowStickerPicker(false);
     } catch (error) {
       console.error('Error enviando mensaje:', error);
     }
@@ -124,19 +131,76 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     }
   };
 
-  const handleFileClick = () => {
-    fileInputRef.current?.click();
+
+
+  const handleAudioRecordingComplete = async (audioBlob: Blob, fileName: string) => {
+    if (conversationId) {
+      try {
+        setIsUploading(true);
+        
+        // Crear archivo desde el blob
+        const audioFile = new File([audioBlob], fileName, { type: 'audio/wav' });
+        
+        // Subir audio
+        const uploadResponse = await fileUploadService.uploadAudio(audioFile, conversationId);
+        
+        // Enviar mensaje
+        await onSendMessage(uploadResponse.url, 'voice');
+        
+        setShowAudioRecorder(false);
+      } catch (error) {
+        console.error('Error enviando audio:', error);
+        alert('Error al enviar el audio. Inténtalo de nuevo.');
+      } finally {
+        setIsUploading(false);
+      }
+    }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // TODO: Implementar subida de archivo
-      console.log('Archivo seleccionado:', file);
-      onSendMessage(`Archivo: ${file.name}`, 'document');
+  const handleStickerSelect = (sticker: string) => {
+    onSendMessage(sticker, 'sticker');
+  };
+
+  const handleLocationClick = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          // Obtener dirección usando reverse geocoding
+          try {
+            const response = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=YOUR_GOOGLE_API_KEY`
+            );
+            const data = await response.json();
+            const address = data.results[0]?.formatted_address || '';
+            
+            const locationData = {
+              latitude,
+              longitude,
+              address,
+              timestamp: new Date().toISOString()
+            };
+            
+            await onSendMessage(JSON.stringify(locationData), 'location');
+          } catch {
+            // Si falla el geocoding, enviar solo coordenadas
+            const locationData = {
+              latitude,
+              longitude,
+              timestamp: new Date().toISOString()
+            };
+            await onSendMessage(JSON.stringify(locationData), 'location');
+          }
+        },
+        (error) => {
+          console.error('Error obteniendo ubicación:', error);
+          alert('No se pudo obtener tu ubicación. Verifica los permisos.');
+        }
+      );
+    } else {
+      alert('La geolocalización no está soportada en este navegador.');
     }
-    // Limpiar input
-    e.target.value = '';
   };
 
   const handleEmojiSelect = (emoji: string) => {
@@ -165,15 +229,44 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         </div>
       )}
 
+      {/* Audio Recorder */}
+      {showAudioRecorder && (
+        <div className="mb-3">
+          <AudioRecorder
+            onRecordingComplete={handleAudioRecordingComplete}
+            onCancel={() => setShowAudioRecorder(false)}
+          />
+        </div>
+      )}
+
       {/* Input principal */}
       <div className="flex items-end space-x-2">
-        {/* Botón de adjuntar archivo */}
+        {/* Gestión avanzada de archivos */}
+        <FileUploadManager
+          conversationId={conversationId || ''}
+          onSendMessage={onSendMessage}
+          isUploading={isUploading}
+          setIsUploading={setIsUploading}
+        />
+
+        {/* Botón de grabar audio */}
         <button
-          onClick={handleFileClick}
-          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-          title="Adjuntar archivo"
+          onClick={() => setShowAudioRecorder(true)}
+          disabled={isUploading}
+          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+          title="Grabar audio"
         >
-          <Paperclip className="w-5 h-5" />
+          <Mic className="w-5 h-5" />
+        </button>
+
+        {/* Botón de ubicación */}
+        <button
+          onClick={handleLocationClick}
+          disabled={isUploading}
+          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+          title="Enviar ubicación"
+        >
+          <MapPin className="w-5 h-5" />
         </button>
 
         {/* Input de texto */}
@@ -184,8 +277,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             onChange={handleInputChange}
             onBlur={handleInputBlur}
             onKeyPress={handleKeyPress}
-            placeholder={placeholder}
-            disabled={isSending}
+            placeholder={isUploading ? 'Subiendo archivo...' : placeholder}
+            disabled={isSending || isUploading}
             className="w-full resize-none border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
             rows={1}
             style={{
@@ -196,8 +289,12 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           
           {/* Botón de emoji */}
           <button
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="absolute right-2 bottom-2 p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+            onClick={() => {
+              setShowEmojiPicker(!showEmojiPicker);
+              setShowStickerPicker(false);
+            }}
+            disabled={isUploading}
+            className="absolute right-2 bottom-2 p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors disabled:opacity-50"
             title="Emoji"
           >
             <Smile className="w-4 h-4" />
@@ -212,12 +309,22 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               />
             </div>
           )}
+
+          {/* Sticker picker */}
+          {showStickerPicker && (
+            <div className="absolute bottom-full right-0 mb-2">
+              <StickerPicker
+                onStickerSelect={handleStickerSelect}
+                onClose={() => setShowStickerPicker(false)}
+              />
+            </div>
+          )}
         </div>
 
         {/* Botón de enviar */}
         <button
           onClick={handleSend}
-          disabled={!inputValue.trim() || isSending}
+          disabled={!inputValue.trim() || isSending || isUploading}
           className="flex-shrink-0 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           title="Enviar mensaje"
         >
@@ -225,14 +332,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         </button>
       </div>
 
-      {/* Input de archivo oculto */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
-        onChange={handleFileChange}
-        className="hidden"
-      />
+
     </div>
   );
 }; 

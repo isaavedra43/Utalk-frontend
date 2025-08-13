@@ -8,7 +8,7 @@ export interface Message {
   createdAt: string; // "11 de agosto de 2025, 12:58:20 p.m. UTC-6"
   metadata: MessageMetadata;
   status: 'sent' | 'delivered' | 'read' | 'failed';
-  type: 'text' | 'image' | 'document' | 'location';
+  type: 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker';
   recipientIdentifier?: string; // "whatsapp:+5214773790"
   senderIdentifier?: string; // "agent:admin@company.com"
   userAgent?: string;
@@ -22,6 +22,13 @@ export interface MessageMetadata {
   sentBy: string; // "admin@company.com"
   source: 'web' | 'mobile' | 'api';
   timestamp: string; // "2025-08-11T18:58:20.111Z"
+  // Metadata adicional para archivos
+  fileSize?: number;
+  fileName?: string;
+  fileType?: string;
+  fileUrl?: string;
+  duration?: number; // Para audios/videos
+  thumbnail?: string; // Para videos
 }
 
 export interface MessageGroup {
@@ -38,7 +45,7 @@ export interface TypingIndicator {
 
 export interface MessageInputData {
   content: string;
-  type?: 'text' | 'image' | 'document' | 'location';
+  type?: 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker';
   replyToMessageId?: string;
   metadata?: Record<string, unknown>;
 } 

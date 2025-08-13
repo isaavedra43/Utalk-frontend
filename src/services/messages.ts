@@ -12,6 +12,18 @@ export const messagesService = {
     before?: string;
     after?: string;
   } = {}): Promise<{ messages: Message[]; hasMore: boolean; cursor?: string }> {
+    // En desarrollo, usar datos mock si el backend no está disponible
+    if (import.meta.env.DEV && !import.meta.env.VITE_BACKEND_URL) {
+      console.log('🔧 Usando datos mock para desarrollo');
+      const mockMessagesForConversation = mockMessages.filter(
+        msg => msg.conversationId === conversationId
+      );
+      return {
+        messages: mockMessagesForConversation,
+        hasMore: false
+      };
+    }
+
     const queryParams = new URLSearchParams({
       conversationId,
       limit: params.limit?.toString() || '50',
@@ -64,6 +76,69 @@ export const messagesService = {
   }): Promise<Message> {
     const response = await api.post(`${MESSAGES_API}/send-sticker`, stickerData);
     return response.data;
+  },
+
+  // Enviar imagen
+  async sendImage(imageData: {
+    to: string;
+    imageUrl: string;
+    caption?: string;
+    conversationId: string;
+  }): Promise<Message> {
+    const response = await api.post(`${MESSAGES_API}/send-image`, imageData);
+    return response.data;
+  },
+
+  // Enviar documento
+  async sendDocument(documentData: {
+    to: string;
+    documentUrl: string;
+    filename: string;
+    caption?: string;
+    conversationId: string;
+  }): Promise<Message> {
+    const response = await api.post(`${MESSAGES_API}/send-document`, documentData);
+    return response.data;
+  },
+
+  // Enviar audio
+  async sendAudio(audioData: {
+    to: string;
+    audioUrl: string;
+    filename: string;
+    duration?: number;
+    conversationId: string;
+  }): Promise<Message> {
+    const response = await api.post(`${MESSAGES_API}/send-audio`, audioData);
+    return response.data;
+  },
+
+  // Enviar video
+  async sendVideo(videoData: {
+    to: string;
+    videoUrl: string;
+    filename: string;
+    caption?: string;
+    duration?: number;
+    thumbnail?: string;
+    conversationId: string;
+  }): Promise<Message> {
+    const response = await api.post(`${MESSAGES_API}/send-video`, videoData);
+    return response.data;
+  },
+
+  // Reenviar mensaje
+  async forwardMessage(messageId: string, targetConversationId: string): Promise<Message> {
+    const response = await api.post(`${MESSAGES_API}/${messageId}/forward`, {
+      targetConversationId
+    });
+    return response.data;
+  },
+
+  // Responder a mensaje
+  async replyToMessage(messageId: string, replyData: MessageInputData): Promise<Message> {
+    const response = await api.post(`${MESSAGES_API}/${messageId}/reply`, replyData);
+    return response.data;
   }
 };
 
@@ -92,45 +167,166 @@ export const mockMessages: Message[] = [
   {
     id: 'msg-2',
     conversationId: 'conv_+5214775211_+5214793176502',
-    content: '',
+    content: 'https://picsum.photos/400/300',
+    direction: 'inbound',
+    createdAt: '15 de enero de 2024, 10:31:00 a.m. UTC-6',
+    metadata: {
+      agentId: 'admin@company.com',
+      ip: '192.168.1.1',
+      requestId: 'req-124',
+      sentBy: 'whatsapp:+5214775211',
+      source: 'web',
+      timestamp: '2024-01-15T16:31:00.000Z',
+      fileName: 'imagen_producto.jpg',
+      fileSize: 245760,
+      fileType: 'image/jpeg'
+    },
+    status: 'read',
+    type: 'image',
+    recipientIdentifier: 'whatsapp:+5214775211',
+    senderIdentifier: 'whatsapp:+5214775211',
+    updatedAt: '15 de enero de 2024, 10:31:00 a.m. UTC-6'
+  },
+  {
+    id: 'msg-3',
+    conversationId: 'conv_+5214775211_+5214793176502',
+    content: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     direction: 'outbound',
     createdAt: '15 de enero de 2024, 10:32:00 a.m. UTC-6',
     metadata: {
       agentId: 'admin@company.com',
       ip: '192.168.1.1',
-      requestId: 'req-124',
+      requestId: 'req-125',
       sentBy: 'admin@company.com',
       source: 'web',
-      timestamp: '2024-01-15T16:32:00.000Z'
+      timestamp: '2024-01-15T16:32:00.000Z',
+      fileName: 'factura_pedido_12345.pdf',
+      fileSize: 1048576,
+      fileType: 'application/pdf'
     },
     status: 'read',
-    type: 'text',
+    type: 'document',
     recipientIdentifier: 'whatsapp:+5214775211',
     senderIdentifier: 'agent:admin@company.com',
     updatedAt: '15 de enero de 2024, 10:32:00 a.m. UTC-6'
   },
   {
-    id: 'msg-3',
+    id: 'msg-4',
     conversationId: 'conv_+5214775211_+5214793176502',
-    content: '¡Perfecto! Muchas gracias por la información. ¿Podrían cambiar la dirección de entrega?',
+    content: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav',
+    direction: 'inbound',
+    createdAt: '15 de enero de 2024, 10:33:00 a.m. UTC-6',
+    metadata: {
+      agentId: 'admin@company.com',
+      ip: '192.168.1.1',
+      requestId: 'req-126',
+      sentBy: 'whatsapp:+5214775211',
+      source: 'web',
+      timestamp: '2024-01-15T16:33:00.000Z',
+      fileName: 'mensaje_voz.wav',
+      fileSize: 512000,
+      fileType: 'audio/wav',
+      duration: 15
+    },
+    status: 'read',
+    type: 'voice',
+    recipientIdentifier: 'whatsapp:+5214775211',
+    senderIdentifier: 'whatsapp:+5214775211',
+    updatedAt: '15 de enero de 2024, 10:33:00 a.m. UTC-6'
+  },
+  {
+    id: 'msg-5',
+    conversationId: 'conv_+5214775211_+5214793176502',
+    content: 'https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4',
+    direction: 'outbound',
+    createdAt: '15 de enero de 2024, 10:34:00 a.m. UTC-6',
+    metadata: {
+      agentId: 'admin@company.com',
+      ip: '192.168.1.1',
+      requestId: 'req-127',
+      sentBy: 'admin@company.com',
+      source: 'web',
+      timestamp: '2024-01-15T16:34:00.000Z',
+      fileName: 'tutorial_producto.mp4',
+      fileSize: 2097152,
+      fileType: 'video/mp4',
+      duration: 45,
+      thumbnail: 'https://picsum.photos/320/180'
+    },
+    status: 'read',
+    type: 'video',
+    recipientIdentifier: 'whatsapp:+5214775211',
+    senderIdentifier: 'agent:admin@company.com',
+    updatedAt: '15 de enero de 2024, 10:34:00 a.m. UTC-6'
+  },
+  {
+    id: 'msg-6',
+    conversationId: 'conv_+5214775211_+5214793176502',
+    content: JSON.stringify({
+      latitude: 19.4326,
+      longitude: -99.1332,
+      name: 'Centro Histórico',
+      address: 'Centro Histórico, Ciudad de México, CDMX, México',
+      timestamp: '2024-01-15T16:35:00.000Z'
+    }),
     direction: 'inbound',
     createdAt: '15 de enero de 2024, 10:35:00 a.m. UTC-6',
     metadata: {
       agentId: 'admin@company.com',
       ip: '192.168.1.1',
-      requestId: 'req-125',
+      requestId: 'req-128',
       sentBy: 'whatsapp:+5214775211',
       source: 'web',
       timestamp: '2024-01-15T16:35:00.000Z'
     },
     status: 'read',
-    type: 'text',
+    type: 'location',
     recipientIdentifier: 'whatsapp:+5214775211',
     senderIdentifier: 'whatsapp:+5214775211',
     updatedAt: '15 de enero de 2024, 10:35:00 a.m. UTC-6'
   },
   {
-    id: 'msg-4',
+    id: 'msg-7',
+    conversationId: 'conv_+5214775211_+5214793176502',
+    content: '😊',
+    direction: 'inbound',
+    createdAt: '15 de enero de 2024, 10:36:00 a.m. UTC-6',
+    metadata: {
+      agentId: 'admin@company.com',
+      ip: '192.168.1.1',
+      requestId: 'req-129',
+      sentBy: 'whatsapp:+5214775211',
+      source: 'web',
+      timestamp: '2024-01-15T16:36:00.000Z'
+    },
+    status: 'read',
+    type: 'sticker',
+    recipientIdentifier: 'whatsapp:+5214775211',
+    senderIdentifier: 'whatsapp:+5214775211',
+    updatedAt: '15 de enero de 2024, 10:36:00 a.m. UTC-6'
+  },
+  {
+    id: 'msg-8',
+    conversationId: 'conv_+5214775211_+5214793176502',
+    content: '¡Perfecto! Muchas gracias por la información. ¿Podrían cambiar la dirección de entrega?',
+    direction: 'inbound',
+    createdAt: '15 de enero de 2024, 10:37:00 a.m. UTC-6',
+    metadata: {
+      agentId: 'admin@company.com',
+      ip: '192.168.1.1',
+      requestId: 'req-130',
+      sentBy: 'whatsapp:+5214775211',
+      source: 'web',
+      timestamp: '2024-01-15T16:37:00.000Z'
+    },
+    status: 'read',
+    type: 'text',
+    recipientIdentifier: 'whatsapp:+5214775211',
+    senderIdentifier: 'whatsapp:+5214775211',
+    updatedAt: '15 de enero de 2024, 10:37:00 a.m. UTC-6'
+  },
+  {
+    id: 'msg-9',
     conversationId: 'conv_+5214773790184_+5214793176502',
     content: 'PRUEBA 9',
     direction: 'outbound',
@@ -150,7 +346,7 @@ export const mockMessages: Message[] = [
     updatedAt: '11 de agosto de 2025, 4:21:25 p.m. UTC-6'
   },
   {
-    id: 'msg-5',
+    id: 'msg-10',
     conversationId: 'conv_+5214773790184_+5214793176502',
     content: 'prueba 2',
     direction: 'outbound',
