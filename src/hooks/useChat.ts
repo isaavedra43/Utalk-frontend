@@ -582,7 +582,7 @@ export const useChat = (conversationId: string) => {
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-    // Limpiar mensajes optimistas
+    // Limpiar mensajes optimistasS
     optimisticMessagesRef.current.clear();
   }, []);
 
