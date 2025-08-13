@@ -1,3 +1,4 @@
+/* stylelint-disable */
 /* 
  * Tokens de Diseño - Módulo Equipo & Performance
  * FASE 6: ESTILOS Y TOKENS
@@ -129,3 +130,4 @@
 .stable-border {
   @apply border-blue-200;
 }
+/* stylelint-enable */
