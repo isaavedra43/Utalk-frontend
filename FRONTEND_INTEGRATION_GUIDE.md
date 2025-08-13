@@ -1,3 +1,4 @@
++´ solo analiza 
 # 🚀 GUÍA DE INTEGRACIÓN FRONTEND - UTALK BACKEND
 
 ## 📋 ÍNDICE
