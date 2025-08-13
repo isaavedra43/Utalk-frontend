@@ -84,6 +84,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
+    "@sveltejs/adapter-vercel": "^5.8.2",
     "@tanstack/svelte-query": "^5.61.5",
     "axios": "^1.7.8",
     "date-fns": "^4.1.0",
