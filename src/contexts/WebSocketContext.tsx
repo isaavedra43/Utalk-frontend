@@ -6,6 +6,7 @@ import { useRateLimiter } from '../hooks/useRateLimiter';
 interface WebSocketContextType {
   socket: Socket | null;
   isConnected: boolean;
+  isSynced: boolean;
   connectionError: string | null;
   activeConversations: Set<string>;
   typingUsers: Map<string, Set<string>>;
@@ -45,6 +46,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [activeConversations, setActiveConversations] = useState<Set<string>>(new Set());
   const [typingUsers, setTypingUsers] = useState<Map<string, Set<string>>>(new Map());
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const [isSynced, setIsSynced] = useState(false);
 
   // SOLUCIONADO: Eliminado el useEffect problemático que desconectaba el WebSocket
   // Ahora el WebSocket permanecerá conectado después del login exitoso
@@ -202,8 +204,19 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // Estado sincronizado
     on('state-synced', (data: unknown) => {
       console.log('✅ WebSocketContext - Estado sincronizado:', data);
+      console.log('🚀 WebSocketContext - Emitiendo evento websocket:state-synced...');
+      
+      // Actualizar estado de sincronización
+      setIsSynced(true);
+      
       // Emitir evento personalizado para que useConversations lo escuche
-      window.dispatchEvent(new CustomEvent('websocket:state-synced', { detail: data }));
+      try {
+        const customEvent = new CustomEvent('websocket:state-synced', { detail: data });
+        window.dispatchEvent(customEvent);
+        console.log('✅ WebSocketContext - Evento websocket:state-synced emitido exitosamente');
+      } catch (error) {
+        console.error('❌ WebSocketContext - Error emitiendo evento websocket:state-synced:', error);
+      }
     });
 
     // Sincronización requerida
@@ -241,6 +254,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const value: WebSocketContextType = {
     socket,
     isConnected,
+    isSynced,
     connectionError,
     activeConversations,
     typingUsers,
