@@ -94,12 +94,21 @@ export const useAuth = () => {
           // Verificar que el token sea válido haciendo una llamada al backend
           try {
             logger.authInfo('Verificando validez del token');
-            await api.get('/api/auth/profile');
+            const profileResponse = await api.get('/api/auth/profile');
             
             // Si la llamada es exitosa, el token es válido
-            setUser({ uid: user.id, email: user.email, displayName: user.displayName } as FirebaseUser);
-            setBackendUser(user);
-            logger.authInfo('Usuario autenticado establecido desde localStorage');
+            const currentUser = profileResponse.data || user;
+            setUser({ uid: currentUser.id, email: currentUser.email, displayName: currentUser.displayName } as FirebaseUser);
+            setBackendUser(currentUser);
+            
+            // Actualizar localStorage con datos actualizados
+            localStorage.setItem('user', JSON.stringify(currentUser));
+            
+            logger.authInfo('Usuario autenticado establecido desde localStorage', {
+              userId: currentUser.id,
+              email: currentUser.email,
+              hasProfileData: !!profileResponse.data
+            });
           } catch (tokenError) {
             logger.authError('Token inválido, limpiando autenticación', tokenError as Error);
             // Token inválido, limpiar todo
@@ -210,6 +219,14 @@ export const useAuth = () => {
       // Actualizar estado
       setBackendUser(user);
       setUser({ uid: user.id, email: user.email, displayName: user.displayName } as FirebaseUser);
+      
+      // Log del estado actualizado
+      logger.authInfo('Estado de autenticación actualizado después del login', {
+        hasUser: !!user,
+        hasBackendUser: !!user,
+        userEmail: user.email,
+        userId: user.id
+      });
       
       // Log de éxito completo
       logger.logLoginSuccess(
@@ -376,6 +393,20 @@ export const useAuth = () => {
     }
   }, []);
 
+  // Calcular estado de autenticación
+  const isAuthenticated = !!user && !!backendUser && !isAuthenticating;
+  
+  // Log del estado de autenticación
+  useEffect(() => {
+    logger.authInfo('Estado de autenticación calculado', {
+      hasUser: !!user,
+      hasBackendUser: !!backendUser,
+      isAuthenticating,
+      isAuthenticated,
+      userEmail: user?.email || backendUser?.email
+    });
+  }, [user, backendUser, isAuthenticating, isAuthenticated]);
+
   return {
     user,
     backendUser,
@@ -389,6 +420,6 @@ export const useAuth = () => {
     getProfile,
     updateProfile,
     clearAuth,
-    isAuthenticated: !!user && !!backendUser && !isAuthenticating
+    isAuthenticated
   };
 }; 

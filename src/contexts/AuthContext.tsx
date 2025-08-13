@@ -29,7 +29,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated: auth.isAuthenticated,
       hasBackendUser: !!auth.backendUser,
       loading: auth.loading,
-      isConnected: isConnected
+      isConnected: isConnected,
+      userEmail: auth.backendUser?.email || auth.user?.email
     });
 
     if (auth.isAuthenticated && auth.backendUser && !auth.loading && connectSocket && !isConnected) {
@@ -40,7 +41,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Verificar si el token es válido
         if (isTokenValid(token)) {
           console.log('🔐 AuthContext - Token válido, conectando WebSocket...');
-          connectSocket(token);
+          // Agregar un pequeño delay para asegurar que todo esté listo
+          setTimeout(() => {
+            connectSocket(token);
+          }, 500);
         } else {
           console.warn('🔐 AuthContext - Token expirado o inválido, no conectando WebSocket');
           // El token está expirado, debería refrescarse automáticamente
@@ -48,8 +52,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         console.warn('🔐 AuthContext - No hay token disponible para conectar WebSocket');
       }
-    } else if (disconnectSocket && isConnected) {
-      console.log('🔐 AuthContext - Desconectando WebSocket');
+    } else if (disconnectSocket && isConnected && (!auth.isAuthenticated || !auth.backendUser)) {
+      console.log('🔐 AuthContext - Desconectando WebSocket (usuario no autenticado)');
       disconnectSocket();
     }
   }, [auth.isAuthenticated, auth.backendUser, auth.loading, connectSocket, disconnectSocket, isConnected]);

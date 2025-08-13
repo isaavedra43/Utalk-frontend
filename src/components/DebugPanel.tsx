@@ -3,6 +3,7 @@ import { useWebSocketContext } from '../contexts/useWebSocketContext';
 import { useAuth } from '../modules/auth/hooks/useAuth';
 import { WebSocketTest } from './WebSocketTest';
 import { RateLimitStats } from './RateLimitStats';
+import { AuthDebug } from './AuthDebug';
 
 interface DebugPanelProps {
   isVisible: boolean;
@@ -92,6 +93,9 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) =>
               <div>VITE_DEV_MODE: <span className="text-gray-600">{import.meta.env.VITE_DEV_MODE || 'No definida'}</span></div>
             </div>
           </div>
+
+          {/* Debug de Autenticación */}
+          <AuthDebug />
 
           {/* Componente de Prueba WebSocket */}
           <WebSocketTest />
