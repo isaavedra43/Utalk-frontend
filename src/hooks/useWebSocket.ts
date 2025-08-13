@@ -10,6 +10,7 @@ export const useWebSocket = () => {
   
   const socketRef = useRef<Socket | null>(null);
   const eventListenersRef = useRef(new Map<string, (...args: unknown[]) => void>());
+  const isConnectingRef = useRef(false);
 
   // Conectar socket
   const connect = useCallback((token: string) => {
@@ -18,7 +19,13 @@ export const useWebSocket = () => {
       return;
     }
 
+    if (isConnectingRef.current) {
+      console.log('🔌 Ya hay una conexión en progreso, saltando...');
+      return;
+    }
+
     try {
+      isConnectingRef.current = true;
       console.log('🔌 Iniciando conexión de socket...');
       const newSocket = createSocket(token);
       socketRef.current = newSocket;
@@ -30,17 +37,22 @@ export const useWebSocket = () => {
         setIsConnected(true);
         setConnectionError(null);
         setReconnectAttempts(0);
+        isConnectingRef.current = false;
       });
 
       newSocket.on('disconnect', (reason: string) => {
         console.log('❌ Socket desconectado:', reason);
         setIsConnected(false);
+        isConnectingRef.current = false;
         
-        if (reason === 'io server disconnect') {
-          // Reconexión manual necesaria
-          console.log('🔄 Intentando reconexión manual...');
+        // Solo intentar reconexión automática si no fue una desconexión manual
+        if (reason === 'io server disconnect' || reason === 'transport close') {
+          console.log('🔄 Intentando reconexión automática...');
           setTimeout(() => {
-            if (token) connect(token);
+            if (token && !isConnectingRef.current) {
+              setReconnectAttempts(prev => prev + 1);
+              connect(token);
+            }
           }, 1000);
         }
       });
@@ -49,6 +61,7 @@ export const useWebSocket = () => {
         console.error('🔌 Error de conexión:', error);
         setConnectionError(error.message);
         setIsConnected(false);
+        isConnectingRef.current = false;
       });
 
       newSocket.on('error', (error: Error) => {
@@ -63,17 +76,20 @@ export const useWebSocket = () => {
     } catch (error: unknown) {
       console.error('Error creando socket:', error);
       setConnectionError(error instanceof Error ? error.message : 'Error desconocido');
+      isConnectingRef.current = false;
     }
   }, []);
 
   // Desconectar socket
   const disconnect = useCallback(() => {
     if (socketRef.current) {
+      console.log('🔌 Desconectando socket manualmente...');
       socketRef.current.disconnect();
       socketRef.current = null;
       setSocket(null);
       setIsConnected(false);
       setConnectionError(null);
+      isConnectingRef.current = false;
     }
   }, []);
 
@@ -117,9 +133,12 @@ export const useWebSocket = () => {
   // Limpiar al desmontar
   useEffect(() => {
     return () => {
-      disconnect();
+      if (socketRef.current) {
+        console.log('🔌 Limpiando socket al desmontar componente...');
+        socketRef.current.disconnect();
+      }
     };
-  }, [disconnect]);
+  }, []);
 
   return {
     socket,

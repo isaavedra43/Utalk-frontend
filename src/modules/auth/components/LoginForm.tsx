@@ -8,6 +8,8 @@ import { useNavigate } from 'react-router-dom';
 import { SocialButton } from './SocialButton';
 import { PasswordField } from './PasswordField';
 import { useAuth } from '../hooks/useAuth';
+import { WebSocketContext } from '../../../contexts/WebSocketContext';
+import { useContext } from 'react';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -21,6 +23,7 @@ export const LoginForm: React.FC = () => {
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { isConnected } = useContext(WebSocketContext) || {};
 
   // Limpiar localStorage al cargar el componente de login
   useEffect(() => {
@@ -48,13 +51,26 @@ export const LoginForm: React.FC = () => {
       setIsLoading(true);
       await login(data.email, data.password);
       
-      // Esperar un poco más para asegurar que el WebSocket se conecte
+      // Esperar a que el WebSocket se conecte completamente
       console.log('✅ Login exitoso, esperando conexión WebSocket...');
-      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Redirigir al chat después del login exitoso
-      console.log('🚀 Navegando a /chat...');
-      navigate('/chat');
+      // Esperar hasta 10 segundos para que el WebSocket se conecte
+      let attempts = 0;
+      const maxAttempts = 50; // 50 intentos * 200ms = 10 segundos
+      
+      while (!isConnected && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        attempts++;
+        console.log(`⏳ Esperando conexión WebSocket... (${attempts}/${maxAttempts})`);
+      }
+      
+      if (isConnected) {
+        console.log('✅ WebSocket conectado, navegando al chat...');
+        navigate('/chat');
+      } else {
+        console.warn('⚠️ WebSocket no se conectó en el tiempo esperado, navegando de todas formas...');
+        navigate('/chat');
+      }
     } catch (error) {
       console.error('Error en login:', error);
     } finally {

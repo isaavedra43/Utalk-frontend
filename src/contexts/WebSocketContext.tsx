@@ -46,18 +46,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [typingUsers, setTypingUsers] = useState<Map<string, Set<string>>>(new Map());
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
-  // Conectar automáticamente cuando hay un token válido
-  useEffect(() => {
-    // DESHABILITADO: Conexión automática del WebSocket
-    // Solo conectar después del login manual para evitar problemas
-    console.log('🔌 WebSocketContext - Conexión automática deshabilitada - Esperar login manual');
-    
-    // Limpiar cualquier conexión residual
-    if (isConnected) {
-      console.log('🔌 WebSocketContext - Desconectando conexión residual');
-      disconnect();
-    }
-  }, [isConnected, connect, connectionError, disconnect]); // Incluir disconnect en dependencias
+  // SOLUCIONADO: Eliminado el useEffect problemático que desconectaba el WebSocket
+  // Ahora el WebSocket permanecerá conectado después del login exitoso
 
   // Reautenticar socket cuando se refresca el access token
   useEffect(() => {
@@ -73,7 +63,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     window.addEventListener('auth:token-refreshed', handler as unknown as EventListener);
     return () => window.removeEventListener('auth:token-refreshed', handler as unknown as EventListener);
-  }, [connect, disconnect]); // Incluir dependencias necesarias
+  }, [connect, disconnect]);
 
   // Conectar WebSocket inmediatamente después del login exitoso
   useEffect(() => {
