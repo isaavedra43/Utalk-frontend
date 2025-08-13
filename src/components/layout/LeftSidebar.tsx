@@ -1,7 +1,10 @@
 import React from 'react';
 import { Search, User, Clock, Folder } from 'lucide-react';
+import { useConversations } from '../../hooks/useConversations';
 
 export const LeftSidebar: React.FC = () => {
+  const { stats } = useConversations();
+  
   return (
     <div className="flex flex-col h-full">
       {/* Header - Canales */}
@@ -46,7 +49,7 @@ export const LeftSidebar: React.FC = () => {
             <span className="text-sm text-gray-700">Asignados a ti</span>
           </div>
           <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-            9+
+            {stats.assigned > 9 ? '9+' : stats.assigned}
           </span>
         </div>
 
@@ -57,7 +60,7 @@ export const LeftSidebar: React.FC = () => {
             <span className="text-sm text-gray-700">Sin contestar</span>
           </div>
           <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-            3
+            {stats.unread}
           </span>
         </div>
 
@@ -68,7 +71,7 @@ export const LeftSidebar: React.FC = () => {
             <span className="text-sm text-gray-700">Abiertos</span>
           </div>
           <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-            5
+            {stats.open}
           </span>
         </div>
       </div>

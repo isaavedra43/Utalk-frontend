@@ -1,14 +1,8 @@
 import React from 'react';
-import { LeftSidebar } from './LeftSidebar';
-import { ConversationList } from '../chat/ConversationList';
-import { ChatArea } from '../chat/ChatArea';
-import { RightSidebar } from './RightSidebar';
+import { LeftSidebar, RightSidebar } from './index';
+import { ConversationList, ChatArea } from '../chat/index';
 
-interface MainLayoutProps {
-  children?: React.ReactNode;
-}
-
-export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+export const MainLayout: React.FC = () => {
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Sidebar Izquierdo - Navegación y Canales */}

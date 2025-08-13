@@ -9,39 +9,76 @@ export interface User {
   lastSeen?: Date;
 }
 
-// Tipos de conversación
+// Tipos de conversación (basados en Firebase)
 export interface Conversation {
-  id: string;
-  customerName: string;
-  customerPhone: string;
-  customerAvatar?: string;
-  subject?: string;
-  status: 'open' | 'closed' | 'pending' | 'resolved';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  assignedTo?: string;
-  tags: string[];
-  unreadCount: number;
-  lastMessage?: Message;
-  lastActivity: Date;
-  createdAt: Date;
-  updatedAt: Date;
-  metadata?: Record<string, unknown>;
+  id: string; // conv_+5214773790184_+5214793176502
+  customerName: string; // "Isra"
+  customerPhone: string; // "+5214773790184"
+  status: 'open' | 'closed' | 'pending';
+  messageCount: number; // 22
+  unreadCount: number; // 5
+  participants: string[]; // ["+5214773790184", "system@utalk.local", "admin@company.com", ...]
+  tenantId: string; // "default_tenant"
+  workspaceId: string; // "default_workspace"
+  createdAt: string; // "8 de agosto de 2025, 6:33:49 p.m. UTC-6"
+  updatedAt: string; // "11 de agosto de 2025, 4:21:25 p.m. UTC-6"
+  lastMessageAt: string; // "11 de agosto de 2025, 4:21:25 p.m. UTC-6"
+  lastMessage?: LastMessage;
+  assignedTo?: string; // "admin@company.com"
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  tags?: string[]; // ["VIP", "Premium", "Order"]
 }
 
-// Tipos de mensaje
-export interface Message {
-  id: string;
-  conversationId: string;
-  content: string;
-  type: 'text' | 'image' | 'file' | 'location' | 'sticker';
+export interface LastMessage {
+  content: string; // "PRUEBA 9"
   direction: 'inbound' | 'outbound';
-  senderId?: string;
-  senderName?: string;
-  senderAvatar?: string;
-  timestamp: Date;
+  messageId: string; // "e9f6edd0-d771-4829-89f0-16393b53eed3"
+  sender: string; // "agent:admin@company.com"
+  timestamp: string; // "11 de agosto de 2025, 4:21:25 p.m. UTC-6"
+}
+
+// Tipos de mensaje (basados en Firebase)
+export interface Message {
+  id: string; // "b23da669-896f-4030-8a11-6583b232e96e"
+  conversationId: string; // "conv_+5214773790184_+5214"
+  content: string; // "prueba 2"
+  direction: 'inbound' | 'outbound';
+  createdAt: string; // "11 de agosto de 2025, 12:58:20 p.m. UTC-6"
+  metadata: MessageMetadata;
   status: 'sent' | 'delivered' | 'read' | 'failed';
-  metadata?: Record<string, unknown>;
+  type: 'text' | 'image' | 'document' | 'location';
+  recipientIdentifier?: string; // "whatsapp:+5214773790"
+  senderIdentifier?: string; // "agent:admin@company.com"
+  userAgent?: string;
+  updatedAt: string; // "11 de agosto de 2025, 12:58:20 p.m. UTC-6"
+}
+
+export interface MessageMetadata {
+  agentId: string; // "admin@company.com"
+  ip: string; // "189.162.163.251"
+  requestId: string; // "unknown"
+  sentBy: string; // "admin@company.com"
+  source: 'web' | 'mobile' | 'api';
+  timestamp: string; // "2025-08-11T18:58:20.111Z"
+}
+
+export interface MessageGroup {
+  date: string;
+  messages: Message[];
+}
+
+export interface TypingIndicator {
+  userId: string;
+  userName: string;
+  isTyping: boolean;
+  timestamp: Date;
+}
+
+export interface MessageInputData {
+  content: string;
+  type?: 'text' | 'image' | 'document' | 'location';
   replyToMessageId?: string;
+  metadata?: Record<string, unknown>;
 }
 
 // Tipos de contacto
@@ -63,12 +100,16 @@ export interface Contact {
 // Tipos de sugerencia de IA
 export interface AISuggestion {
   id: string;
-  conversationId: string;
+  title: string;
   content: string;
   confidence: 'low' | 'medium' | 'high';
   category: string;
   tags: string[];
-  createdAt: Date;
+  actions: {
+    copy: boolean;
+    improve: boolean;
+    use: boolean;
+  };
 }
 
 // Tipos de estado de la aplicación
@@ -117,4 +158,7 @@ export interface SocketEvents {
   'user-offline': (data: { userId: string }) => void;
   'conversation-event': (data: Partial<Conversation>) => void;
   'message-read': (data: { conversationId: string; messageIds: string[] }) => void;
-} 
+}
+
+// Re-exportar tipos de sidebar
+export * from './sidebar';
