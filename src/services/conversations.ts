@@ -11,7 +11,7 @@ interface ConversationListResponse {
 }
 
 // Configuración de la API
-const CONVERSATIONS_API = '/conversations';
+const CONVERSATIONS_API = '/api/conversations';
 
 export const conversationsService = {
   // Obtener lista de conversaciones
