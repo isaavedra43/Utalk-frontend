@@ -1,6 +1,8 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
+import { Login } from './pages/Login';
 import { WebSocketProvider } from './contexts/WebSocketContext';
 import './index.css';
 
@@ -17,9 +19,23 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <WebSocketProvider>
-        <MainLayout />
-      </WebSocketProvider>
+      <Router>
+        <WebSocketProvider>
+          <Routes>
+            {/* Ruta de login */}
+            <Route path="/login" element={<Login />} />
+            
+            {/* Ruta principal del chat */}
+            <Route path="/chat" element={<MainLayout />} />
+            
+            {/* Ruta por defecto - redirigir a login */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            
+            {/* Ruta catch-all - redirigir a login */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </WebSocketProvider>
+      </Router>
     </QueryClientProvider>
   );
 }
