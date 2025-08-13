@@ -48,9 +48,9 @@ export const AuthModule = () => {
   }
 
   return (
-    <div className="min-h-screen flex relative overflow-hidden">
-      {/* Efectos de Fondo Animados */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div className="min-h-screen flex flex-col lg:flex-row relative overflow-hidden">
+      {/* Efectos de Fondo Animados - Solo en desktop */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none hidden lg:block">
         {/* Orbe 1 - Azul/Púrpura */}
         <motion.div
           animate={{ y: [0, -10, 0] }}
@@ -79,9 +79,9 @@ export const AuthModule = () => {
         />
       </div>
 
-      {/* Aura que sigue el cursor */}
+      {/* Aura que sigue el cursor - Solo en desktop */}
       <motion.div
-        className="absolute w-96 h-96 pointer-events-none"
+        className="absolute w-96 h-96 pointer-events-none hidden lg:block"
         animate={{
           x: mousePosition.x - 192,
           y: mousePosition.y - 192,
@@ -91,22 +91,22 @@ export const AuthModule = () => {
         <div className="w-full h-full bg-gradient-radial from-blue-500/5 via-purple-500/5 to-transparent rounded-full blur-3xl" />
       </motion.div>
 
-      {/* Botón Toggle Theme */}
+      {/* Botón Toggle Theme - Responsivo */}
       <motion.div
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="absolute top-6 right-6 z-50"
+        className="absolute top-4 right-4 lg:top-6 lg:right-6 z-50"
       >
         <button
           onClick={toggleTheme}
-          className="backdrop-blur-md bg-white/10 border border-white/20 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/20 rounded-lg p-2"
+          className="backdrop-blur-md bg-white/10 border border-white/20 text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/20 rounded-lg p-2 lg:p-2"
         >
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </button>
       </motion.div>
 
-      {/* Panel Izquierdo - 50% Desktop */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12 relative">
+      {/* Panel Izquierdo - Responsivo */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-12 relative order-2 lg:order-1">
         {/* Fondo Animado Dinámico */}
         <motion.div 
           className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900"
@@ -127,16 +127,16 @@ export const AuthModule = () => {
         </div>
 
         {/* Contenido del Panel Izquierdo */}
-        <div className="relative z-10 max-w-lg mx-auto text-center">
+        <div className="relative z-10 max-w-lg mx-auto text-center px-4">
           {/* Brand */}
           <Brand />
 
-          {/* Título Espectacular */}
+          {/* Título Espectacular - Responsivo */}
           <motion.h1 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.2 }}
-            className="text-4xl xl:text-5xl font-bold leading-tight mt-6"
+            className="text-2xl sm:text-3xl md:text-4xl xl:text-5xl font-bold leading-tight mt-4 sm:mt-6"
           >
             <span className="text-white">One Platform to</span>
             <br />
@@ -145,56 +145,56 @@ export const AuthModule = () => {
             </span>
             <br />
             <span className="text-white">All Product</span>
-            <span className="bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 bg-clip-text text-transparent ml-4">
+            <span className="bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 bg-clip-text text-transparent ml-2 sm:ml-4">
               Analytics
             </span>
           </motion.h1>
 
-          {/* Subtítulo */}
+          {/* Subtítulo - Responsivo */}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-base text-blue-100 mt-4 font-light"
+            className="text-sm sm:text-base text-blue-100 mt-3 sm:mt-4 font-light"
           >
             Grow <strong>20% MoM</strong> with better campaign tools.
           </motion.p>
 
-          {/* Badges de Características */}
+          {/* Badges de Características - Responsivo */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
-            className="flex items-center justify-center gap-3 pt-6"
+            className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 pt-4 sm:pt-6"
           >
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
-              <Sparkles className="w-4 h-4 text-yellow-400" />
-              <span className="text-sm text-white font-medium">AI-Powered</span>
+            <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
+              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" />
+              <span className="text-xs sm:text-sm text-white font-medium">AI-Powered</span>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
-              <Zap className="w-4 h-4 text-cyan-400" />
-              <span className="text-sm text-white font-medium">Real-time</span>
+            <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
+              <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-cyan-400" />
+              <span className="text-xs sm:text-sm text-white font-medium">Real-time</span>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
-              <Shield className="w-4 h-4 text-green-400" />
-              <span className="text-sm text-white font-medium">Secure</span>
+            <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
+              <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
+              <span className="text-xs sm:text-sm text-white font-medium">Secure</span>
             </div>
           </motion.div>
 
-          {/* Benefits Carousel */}
+          {/* Benefits Carousel - Solo en desktop */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 1.2 }}
-            className="mt-12"
+            className="mt-8 sm:mt-12 hidden lg:block"
           >
             <BenefitsCarousel />
           </motion.div>
         </div>
       </div>
 
-      {/* Panel Derecho - Formulario */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-12 bg-gradient-to-br from-gray-50 via-white to-blue-50/30 relative">
+      {/* Panel Derecho - Formulario - Responsivo */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-12 bg-gradient-to-br from-gray-50 via-white to-blue-50/30 relative order-1 lg:order-2 min-h-[60vh] lg:min-h-screen">
         {/* Patrón de puntos */}
         <div className="absolute inset-0 opacity-[0.02]">
           <div className="absolute inset-0" style={{
@@ -202,13 +202,13 @@ export const AuthModule = () => {
           }} />
         </div>
 
-        {/* Card con Glassmorphism */}
+        {/* Card con Glassmorphism - Responsivo */}
         <motion.div
           whileHover={{ y: -5 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="relative w-full max-w-md"
+          className="relative w-full max-w-sm sm:max-w-md"
         >
-          <div className="p-8 shadow-2xl border-0 bg-white/80 backdrop-blur-xl relative overflow-hidden rounded-xl">
+          <div className="p-4 sm:p-6 lg:p-8 shadow-2xl border-0 bg-white/80 backdrop-blur-xl relative overflow-hidden rounded-xl">
             {/* Borde de gradiente */}
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-cyan-500/20 rounded-xl blur-sm" />
             <div className="absolute inset-[1px] bg-white/90 backdrop-blur-xl rounded-xl" />

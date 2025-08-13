@@ -162,6 +162,37 @@
   .mobile-hidden {
     display: none;
   }
+  
+  /* Mejoras específicas para móviles */
+  .mobile-optimized {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  
+  /* Ajustes de touch para móviles */
+  .mobile-touch {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Espaciado optimizado para móviles */
+  .mobile-spacing {
+    padding: 12px;
+    margin: 8px 0;
+  }
+  
+  /* Inputs optimizados para móviles */
+  .mobile-input {
+    font-size: 16px; /* Previene zoom en iOS */
+    padding: 12px 16px;
+  }
+  
+  /* Botones optimizados para móviles */
+  .mobile-button {
+    min-height: 44px;
+    padding: 12px 20px;
+    font-size: 16px;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -181,5 +212,57 @@
 @media print {
   .no-print {
     display: none !important;
+  }
+}
+
+/* Mejoras específicas para el login responsivo */
+.login-mobile-optimized {
+  @apply mobile-optimized;
+}
+
+.login-form-mobile {
+  @apply mobile-spacing;
+}
+
+.login-input-mobile {
+  @apply mobile-input;
+}
+
+.login-button-mobile {
+  @apply mobile-button;
+}
+
+/* Ajustes para pantallas muy pequeñas */
+@media (max-width: 480px) {
+  .xs-optimized {
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+  
+  .xs-button {
+    min-height: 40px;
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+  
+  .xs-input {
+    font-size: 16px;
+    padding: 10px 14px;
+  }
+}
+
+/* Ajustes para pantallas medianas */
+@media (min-width: 481px) and (max-width: 768px) {
+  .sm-optimized {
+    font-size: 14px;
+    padding: 10px 14px;
+  }
+}
+
+/* Ajustes para tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .md-optimized {
+    font-size: 15px;
+    padding: 12px 16px;
   }
 }

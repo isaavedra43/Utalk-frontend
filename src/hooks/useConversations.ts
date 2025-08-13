@@ -4,8 +4,10 @@ import type { Conversation, ConversationFilters } from '../types';
 import { conversationsService } from '../services/conversations';
 import { useAppStore } from '../stores/useAppStore';
 import { useWebSocketContext } from '../contexts/useWebSocketContext';
+import { useAuth } from '../modules/auth/hooks/useAuth';
 
 export const useConversations = (filters: ConversationFilters = {}) => {
+  const { isAuthenticated } = useAuth();
   const {
     activeConversation,
     setConversations,
@@ -16,7 +18,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   // WebSocket context
   const { on, off } = useWebSocketContext();
 
-  // Infinite Query para obtener conversaciones con paginación
+  // Infinite Query para obtener conversaciones con paginación - solo si está autenticado
   const {
     data: conversationsData,
     isLoading,
@@ -38,7 +40,8 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       return lastPage.page + 1;
     },
     staleTime: 30000, // 30 segundos
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    enabled: isAuthenticated // Solo ejecutar si está autenticado
   });
 
   // Aplanar todas las conversaciones de todas las páginas
@@ -47,15 +50,17 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     [conversationsData?.pages]
   );
 
-  // Sincronizar datos del store con la query
+  // Sincronizar datos del store con la query - solo si está autenticado
   useEffect(() => {
-    if (allConversations.length > 0) {
+    if (isAuthenticated && allConversations.length > 0) {
       setConversations(allConversations);
     }
-  }, [allConversations, setConversations]);
+  }, [allConversations, setConversations, isAuthenticated]);
 
-  // Escuchar eventos de conversación en tiempo real
+  // Escuchar eventos de conversación en tiempo real - solo si está autenticado
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     const handleConversationEvent = (data: unknown) => {
       const eventData = data as { conversationId: string; [key: string]: unknown };
       console.log('💬 Evento de conversación recibido:', eventData);
@@ -112,14 +117,14 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       off('new-message');
       off('message-read');
     };
-  }, [on, off, updateStoreConversation, refetch, allConversations]);
+  }, [on, off, updateStoreConversation, refetch, allConversations, isAuthenticated]);
 
-  // Seleccionar automáticamente la primera conversación si no hay ninguna seleccionada
+  // Seleccionar automáticamente la primera conversación si no hay ninguna seleccionada - solo si está autenticado
   useEffect(() => {
-    if (!activeConversation && allConversations.length > 0) {
+    if (isAuthenticated && !activeConversation && allConversations.length > 0) {
       setActiveConversation(allConversations[0]);
     }
-  }, [activeConversation, allConversations, setActiveConversation]);
+  }, [activeConversation, allConversations, setActiveConversation, isAuthenticated]);
 
   // Mutation para actualizar conversación
   const updateConversationMutation = useMutation({
@@ -163,10 +168,10 @@ export const useConversations = (filters: ConversationFilters = {}) => {
 
   // Función para cargar más conversaciones (scroll infinito)
   const loadMoreConversations = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) {
+    if (isAuthenticated && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, isAuthenticated]);
 
   // Función para obtener conversación seleccionada
   const selectedConversation = activeConversation;
@@ -203,14 +208,14 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     return true;
   });
 
-  // Estadísticas
-  const stats = {
+  // Estadísticas - solo si está autenticado
+  const stats = useMemo(() => ({
     total: conversationsData?.pages[0]?.total || 0,
     unread: filteredConversations.reduce((sum, conv) => sum + conv.unreadCount, 0),
     assigned: filteredConversations.filter(conv => conv.assignedTo).length,
     urgent: filteredConversations.filter(conv => conv.priority === 'urgent').length,
     open: filteredConversations.filter(conv => conv.status === 'open').length
-  };
+  }), [conversationsData?.pages, filteredConversations]);
 
   return {
     // Datos
@@ -220,7 +225,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     stats,
     
     // Estados
-    isLoading,
+    isLoading: isLoading || !isAuthenticated, // Mostrar loading si no está autenticado
     error,
     isFetchingNextPage,
     hasNextPage,

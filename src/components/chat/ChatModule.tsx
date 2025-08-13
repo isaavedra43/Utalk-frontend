@@ -9,14 +9,30 @@ import { useConversations } from '../../hooks/useConversations';
 import { useAuth } from '../../modules/auth/hooks/useAuth';
 
 export const ChatModule: React.FC = () => {
-  const { selectedConversationId } = useConversations();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<'details' | 'copilot'>('copilot');
-  const { isAuthenticated } = useAuth();
+
+  // Si está cargando la autenticación, mostrar loading
+  if (authLoading) {
+    return (
+      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Verificando autenticación...
+          </h3>
+        </div>
+      </div>
+    );
+  }
 
   // Si no está autenticado, redirigir al login
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
+
+  // Solo usar el hook de conversaciones si está autenticado
+  const { selectedConversationId } = useConversations();
 
   // Datos mock para el panel de detalles
   const mockClientProfile = {
