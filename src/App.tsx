@@ -1,49 +1,52 @@
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MainLayout } from './components/layout/MainLayout';
-import { AuthModule } from './modules/auth/AuthModule';
-import { AuthProvider } from './contexts/AuthContext';
-import { useAuthContext } from './contexts/useAuthContext';
-import { WebSocketProvider } from './contexts/WebSocketContext';
-import './index.css';
-
-// Crear cliente de React Query
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 10000,
-      retry: 1,
-    },
-  },
-});
-
-function AppContent() {
-  const { isAuthenticated, loading } = useAuthContext();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return isAuthenticated ? <MainLayout /> : <AuthModule />;
-}
+import { useState } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './contexts/AuthContext'
+import { WebSocketProvider } from './contexts/WebSocketContext'
+import { AuthModule } from './modules/auth'
+import { ChatModule } from './components/chat/ChatModule'
+import { DebugPanel } from './components/DebugPanel'
+import { logger } from './utils/logger'
 
 function App() {
+  const [showDebugPanel, setShowDebugPanel] = useState(import.meta.env.DEV);
+
+  const toggleDebugPanel = () => {
+    setShowDebugPanel(!showDebugPanel);
+    logger.systemInfo('Debug panel toggled', { 
+      isVisible: !showDebugPanel,
+      timestamp: new Date().toISOString()
+    });
+  };
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <WebSocketProvider>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </WebSocketProvider>
-    </QueryClientProvider>
-  );
+    <Router>
+      <AuthProvider>
+        <WebSocketProvider>
+          <div className="app">
+            <Routes>
+              <Route path="/login" element={<AuthModule />} />
+              <Route path="/chat" element={<ChatModule />} />
+              <Route path="/" element={<Navigate to="/login" replace />} />
+            </Routes>
+            
+            {/* Debug Panel Toggle Button (solo en desarrollo) */}
+            {import.meta.env.DEV && (
+              <button
+                onClick={toggleDebugPanel}
+                className="fixed top-4 right-4 z-50 px-3 py-2 bg-gray-800 text-white rounded-lg shadow-lg hover:bg-gray-700 text-sm"
+              >
+                {showDebugPanel ? 'Hide Debug' : 'Show Debug'}
+              </button>
+            )}
+            
+            {/* Debug Panel */}
+            <DebugPanel isVisible={showDebugPanel} onClose={() => setShowDebugPanel(false)} />
+          </div>
+        </WebSocketProvider>
+      </AuthProvider>
+    </Router>
+  )
 }
 
-export default App;
+export default App

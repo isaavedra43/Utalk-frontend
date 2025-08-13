@@ -1,14 +1,22 @@
 import React, { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { ChannelsColumn } from './ChannelsColumn';
 import { ConversationList } from './ConversationList';
 import { ChatComponent } from './ChatComponent';
 import { DetailsPanel } from '../layout/DetailsPanel';
 import { CopilotPanel } from '../layout/CopilotPanel';
 import { useConversations } from '../../hooks/useConversations';
+import { useAuth } from '../../modules/auth/hooks/useAuth';
 
 export const ChatModule: React.FC = () => {
   const { selectedConversationId } = useConversations();
   const [activeTab, setActiveTab] = useState<'details' | 'copilot'>('copilot');
+  const { isAuthenticated } = useAuth();
+
+  // Si no está autenticado, redirigir al login
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
   // Datos mock para el panel de detalles
   const mockClientProfile = {

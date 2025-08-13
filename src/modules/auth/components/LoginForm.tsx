@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { Sparkles, ArrowRight, Zap } from 'lucide-react';
 import { SocialButton } from './SocialButton';
 import { PasswordField } from './PasswordField';
-import { useAuth } from '../hooks/useAuth.js';
+import { useAuth } from '../hooks/useAuth';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),

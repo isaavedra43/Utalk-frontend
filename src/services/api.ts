@@ -1,9 +1,10 @@
 import axios from 'axios';
+import { logger, LogCategory } from '../utils/logger';
 
 // Usar URL del backend real
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || 'https://tu-backend.railway.app';
 
-console.log('🌐 Configurando API con URL:', API_BASE_URL);
+logger.apiInfo('Configurando API con URL', { apiBaseUrl: API_BASE_URL });
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -19,17 +20,29 @@ api.interceptors.request.use(
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      logger.apiInfo('Token agregado a request', {
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        hasToken: !!token,
+        tokenPreview: token.substring(0, 20) + '...'
+      });
+    } else {
+      logger.apiInfo('Request sin token', {
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        isAuthEndpoint: config.url?.includes('/auth/')
+      });
     }
     
     // Log de requests en desarrollo
     if (import.meta.env.DEV) {
-      console.log(`🌐 API Request: ${config.method?.toUpperCase()} ${config.url}`, config.data);
+      logger.debug(LogCategory.API, `Request: ${config.method?.toUpperCase()} ${config.url}`, config.data);
     }
     
     return config;
   },
   (error) => {
-    console.error('❌ Error en request interceptor:', error);
+    logger.apiError('Error en request interceptor', error);
     return Promise.reject(error);
   }
 );
@@ -39,8 +52,16 @@ api.interceptors.response.use(
   (response) => {
     // Log de responses en desarrollo
     if (import.meta.env.DEV) {
-      console.log(`✅ API Response: ${response.config.method?.toUpperCase()} ${response.config.url}`, response.data);
+      logger.debug(LogCategory.API, `Response: ${response.config.method?.toUpperCase()} ${response.config.url}`, response.data);
     }
+    
+    logger.apiInfo('Response exitosa', {
+      method: response.config.method?.toUpperCase(),
+      url: response.config.url,
+      status: response.status,
+      statusText: response.statusText
+    });
+    
     return response;
   },
   async (error) => {
@@ -48,12 +69,23 @@ api.interceptors.response.use(
 
     // Log de errores en desarrollo
     if (import.meta.env.DEV) {
-      console.error(`❌ API Error: ${error.config?.method?.toUpperCase()} ${error.config?.url}`, {
+      logger.apiError(`API Error: ${error.config?.method?.toUpperCase()} ${error.config?.url}`, error, {
         status: error.response?.status,
         data: error.response?.data,
         message: error.message
       });
     }
+
+    // Log detallado del error
+    logger.apiError('Error en respuesta de API', error, {
+      method: originalRequest?.method?.toUpperCase(),
+      url: originalRequest?.url,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      errorData: error.response?.data,
+      isNetworkError: !error.response,
+      isTimeout: error.code === 'ECONNABORTED'
+    });
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
@@ -61,10 +93,18 @@ api.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refresh_token');
         if (!refreshToken) {
+          logger.authError('No hay refresh token disponible', new Error('Refresh token no encontrado'), {
+            hasAccessToken: !!localStorage.getItem('access_token'),
+            hasRefreshToken: false
+          });
           throw new Error('No refresh token available');
         }
 
-        console.log('🔄 Intentando refresh token...');
+        logger.authInfo('Intentando refresh token', {
+          hasRefreshToken: !!refreshToken,
+          refreshTokenPreview: refreshToken.substring(0, 20) + '...'
+        });
+        
         const response = await api.post('/api/auth/refresh', { refreshToken });
         
         const { accessToken, refreshToken: newRefreshToken } = response.data;
@@ -72,20 +112,35 @@ api.interceptors.response.use(
         localStorage.setItem('access_token', accessToken);
         localStorage.setItem('refresh_token', newRefreshToken);
         
+        logger.authInfo('Token refrescado exitosamente', {
+          hasNewAccessToken: !!accessToken,
+          hasNewRefreshToken: !!newRefreshToken,
+          accessTokenPreview: accessToken.substring(0, 20) + '...'
+        });
+        
         // Notificar a la aplicación que el token fue refrescado para reautenticar WS
         window.dispatchEvent(new CustomEvent('auth:token-refreshed', { detail: { accessToken } }));
         
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         
-        console.log('✅ Token refrescado exitosamente');
+        logger.apiInfo('Reintentando request original con nuevo token', {
+          method: originalRequest.method?.toUpperCase(),
+          url: originalRequest.url
+        });
+        
         return api(originalRequest);
       } catch (refreshError) {
-        console.error('❌ Error refrescando token:', refreshError);
+        logger.authError('Error refrescando token', refreshError as Error, {
+          originalError: error.message,
+          refreshAttempted: true
+        });
         
         // Limpiar tokens y redirigir al login
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
+        
+        logger.authInfo('Tokens limpiados, redirigiendo al login');
         
         // Redirigir al login
         window.location.href = '/login';

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 import { motion, useAnimation } from 'framer-motion';
 import { 
   Sparkles, 
@@ -8,8 +9,8 @@ import {
   Moon
 } from 'lucide-react';
 import { LoginForm } from './components/LoginForm';
-import { BenefitsCarousel } from './components/BenefitsCarousel.js';
-import { Brand } from './components/Brand.js';
+import { BenefitsCarousel } from './components/BenefitsCarousel';
+import { Brand } from './components/Brand';
 import { useAuth } from './hooks/useAuth';
 
 export const AuthModule = () => {
@@ -41,9 +42,9 @@ export const AuthModule = () => {
 
   const toggleTheme = () => setIsDark(!isDark);
 
-  // Si ya está autenticado, no mostrar login
+  // Si ya está autenticado, redirigir al chat
   if (isAuthenticated) {
-    return null;
+    return <Navigate to="/chat" replace />;
   }
 
   return (

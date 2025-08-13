@@ -1,5 +1,5 @@
 import api from './api';
-import { APP_CONFIG, ERROR_MESSAGES } from '../config/constants';
+import { FILE_CONFIG, ERROR_MESSAGES } from '../config/constants';
 
 export interface FileUploadResponse {
   url: string;
@@ -31,10 +31,10 @@ export const fileUploadService = {
   // Subir imagen
   async uploadImage(file: File, conversationId: string): Promise<FileUploadResponse> {
     // Validar tipo y tamaño
-    if (!this.validateFileType(file, APP_CONFIG.ALLOWED_FILE_TYPES.IMAGE)) {
+    if (!this.validateFileType(file, FILE_CONFIG.ALLOWED_FILE_TYPES.IMAGE)) {
       throw new Error(ERROR_MESSAGES.INVALID_FILE_TYPE);
     }
-    if (!this.validateFileSize(file, APP_CONFIG.MAX_FILE_SIZE.IMAGE / (1024 * 1024))) {
+    if (!this.validateFileSize(file, FILE_CONFIG.MAX_FILE_SIZE.IMAGE / (1024 * 1024))) {
       throw new Error(ERROR_MESSAGES.FILE_TOO_LARGE);
     }
 
@@ -54,10 +54,10 @@ export const fileUploadService = {
   // Subir documento
   async uploadDocument(file: File, conversationId: string): Promise<FileUploadResponse> {
     // Validar tipo y tamaño
-    if (!this.validateFileType(file, APP_CONFIG.ALLOWED_FILE_TYPES.DOCUMENT)) {
+    if (!this.validateFileType(file, FILE_CONFIG.ALLOWED_FILE_TYPES.DOCUMENT)) {
       throw new Error(ERROR_MESSAGES.INVALID_FILE_TYPE);
     }
-    if (!this.validateFileSize(file, APP_CONFIG.MAX_FILE_SIZE.DOCUMENT / (1024 * 1024))) {
+    if (!this.validateFileSize(file, FILE_CONFIG.MAX_FILE_SIZE.DOCUMENT / (1024 * 1024))) {
       throw new Error(ERROR_MESSAGES.FILE_TOO_LARGE);
     }
 
@@ -77,10 +77,10 @@ export const fileUploadService = {
   // Subir audio
   async uploadAudio(file: File, conversationId: string): Promise<FileUploadResponse> {
     // Validar tipo y tamaño
-    if (!this.validateFileType(file, APP_CONFIG.ALLOWED_FILE_TYPES.AUDIO)) {
+    if (!this.validateFileType(file, FILE_CONFIG.ALLOWED_FILE_TYPES.AUDIO)) {
       throw new Error(ERROR_MESSAGES.INVALID_FILE_TYPE);
     }
-    if (!this.validateFileSize(file, APP_CONFIG.MAX_FILE_SIZE.AUDIO / (1024 * 1024))) {
+    if (!this.validateFileSize(file, FILE_CONFIG.MAX_FILE_SIZE.AUDIO / (1024 * 1024))) {
       throw new Error(ERROR_MESSAGES.FILE_TOO_LARGE);
     }
 
@@ -100,10 +100,10 @@ export const fileUploadService = {
   // Subir video
   async uploadVideo(file: File, conversationId: string): Promise<FileUploadResponse> {
     // Validar tipo y tamaño
-    if (!this.validateFileType(file, APP_CONFIG.ALLOWED_FILE_TYPES.VIDEO)) {
+    if (!this.validateFileType(file, FILE_CONFIG.ALLOWED_FILE_TYPES.VIDEO)) {
       throw new Error(ERROR_MESSAGES.INVALID_FILE_TYPE);
     }
-    if (!this.validateFileSize(file, APP_CONFIG.MAX_FILE_SIZE.VIDEO / (1024 * 1024))) {
+    if (!this.validateFileSize(file, FILE_CONFIG.MAX_FILE_SIZE.VIDEO / (1024 * 1024))) {
       throw new Error(ERROR_MESSAGES.FILE_TOO_LARGE);
     }
 
@@ -144,20 +144,20 @@ export const fileUploadService = {
 
     switch (messageType) {
       case 'image':
-        allowedTypes = APP_CONFIG.ALLOWED_FILE_TYPES.IMAGE;
-        maxSizeMB = APP_CONFIG.MAX_FILE_SIZE.IMAGE / (1024 * 1024);
+        allowedTypes = FILE_CONFIG.ALLOWED_FILE_TYPES.IMAGE;
+        maxSizeMB = FILE_CONFIG.MAX_FILE_SIZE.IMAGE / (1024 * 1024);
         break;
       case 'audio':
-        allowedTypes = APP_CONFIG.ALLOWED_FILE_TYPES.AUDIO;
-        maxSizeMB = APP_CONFIG.MAX_FILE_SIZE.AUDIO / (1024 * 1024);
+        allowedTypes = FILE_CONFIG.ALLOWED_FILE_TYPES.AUDIO;
+        maxSizeMB = FILE_CONFIG.MAX_FILE_SIZE.AUDIO / (1024 * 1024);
         break;
       case 'video':
-        allowedTypes = APP_CONFIG.ALLOWED_FILE_TYPES.VIDEO;
-        maxSizeMB = APP_CONFIG.MAX_FILE_SIZE.VIDEO / (1024 * 1024);
+        allowedTypes = FILE_CONFIG.ALLOWED_FILE_TYPES.VIDEO;
+        maxSizeMB = FILE_CONFIG.MAX_FILE_SIZE.VIDEO / (1024 * 1024);
         break;
       default:
-        allowedTypes = APP_CONFIG.ALLOWED_FILE_TYPES.DOCUMENT;
-        maxSizeMB = APP_CONFIG.MAX_FILE_SIZE.DOCUMENT / (1024 * 1024);
+        allowedTypes = FILE_CONFIG.ALLOWED_FILE_TYPES.DOCUMENT;
+        maxSizeMB = FILE_CONFIG.MAX_FILE_SIZE.DOCUMENT / (1024 * 1024);
         break;
     }
 
