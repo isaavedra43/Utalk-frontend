@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, User, Clock, Folder, MessageSquare, Users, BarChart3, Settings, LayoutDashboard } from 'lucide-react';
+import { Search, User, Clock, Folder, MessageSquare, Users, BarChart3, Settings, LayoutDashboard, Shield } from 'lucide-react';
 import { useConversations } from '../../hooks/useConversations';
 import { useAppStore } from '../../stores/useAppStore';
 
@@ -64,6 +64,19 @@ export const LeftSidebar: React.FC = () => {
       <div className="p-4 border-t border-gray-200">
         <h3 className="text-sm font-medium text-gray-700 mb-3">Módulos</h3>
         <div className="space-y-1">
+          {/* Auth */}
+          <button
+            onClick={() => navigateToModule('auth')}
+            className={`w-full flex items-center gap-3 p-2 rounded-lg text-sm transition-colors ${
+              currentModule === 'auth' 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <Shield className="h-4 w-4" />
+            <span>Auth</span>
+          </button>
+
           {/* Dashboard */}
           <button
             onClick={() => navigateToModule('dashboard')}

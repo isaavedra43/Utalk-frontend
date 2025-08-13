@@ -132,7 +132,7 @@ export interface AppState {
   loading: boolean;
   error: string | null;
   // NUEVO: Estado de navegación entre módulos
-  currentModule: 'chat' | 'contacts' | 'analytics' | 'settings' | 'dashboard';
+  currentModule: 'auth' | 'chat' | 'contacts' | 'analytics' | 'settings' | 'dashboard';
   moduleHistory: string[]; // Para navegación hacia atrás
 }
 

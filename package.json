@@ -28,6 +28,7 @@
     "@types/react-window": "^1.8.8",
     "axios": "^1.11.0",
     "date-fns": "^4.1.0",
+    "firebase": "^12.1.0",
     "framer-motion": "^12.23.12",
     "lucide-react": "^0.539.0",
     "react": "^19.1.1",

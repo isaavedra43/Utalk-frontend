@@ -1,6 +1,7 @@
 import React from 'react';
 import { LeftSidebar, RightSidebar, ThinSidebar } from './index';
 import { ConversationList, ChatArea } from '../chat/index';
+import { AuthModule } from '../../modules/auth/AuthModule';
 import { useAppStore } from '../../stores/useAppStore';
 
 export const MainLayout: React.FC = () => {
@@ -17,6 +18,7 @@ export const MainLayout: React.FC = () => {
       </div>
 
       {/* NUEVO: Renderizado condicional basado en módulo */}
+      {currentModule === 'auth' && <AuthModule />}
       {currentModule === 'chat' && (
         <>
           {/* Columna 2: Listado de Conversaciones */}
