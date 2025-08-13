@@ -19,33 +19,14 @@ import {
 // Tipos para las vistas móviles
 type MobileView = 'channels' | 'conversations' | 'chat' | 'details';
 
-export const ChatModule: React.FC = () => {
-  const { isAuthenticated, loading: authLoading } = useAuth();
+// Componente interno para el contenido autenticado
+const AuthenticatedChatContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'details' | 'copilot'>('copilot');
   const [mobileView, setMobileView] = useState<MobileView>('conversations');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
-  // Solo usar el hook de conversaciones si está autenticado
+  // Hook de conversaciones (solo se ejecuta si está autenticado)
   const { selectedConversationId } = useConversations();
-
-  // Si está cargando la autenticación, mostrar loading
-  if (authLoading) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Verificando autenticación...
-          </h3>
-        </div>
-      </div>
-    );
-  }
-
-  // Si no está autenticado, redirigir al login
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
 
   // Datos mock para el panel de detalles
   const mockClientProfile = {
@@ -376,4 +357,30 @@ export const ChatModule: React.FC = () => {
       </div>
     </div>
   );
+};
+
+export const ChatModule: React.FC = () => {
+  const { isAuthenticated, loading: authLoading } = useAuth();
+
+  // Si está cargando la autenticación, mostrar loading
+  if (authLoading) {
+    return (
+      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Verificando autenticación...
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
+  // Si no está autenticado, redirigir al login
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Si está autenticado, mostrar el contenido del chat
+  return <AuthenticatedChatContent />;
 }; 

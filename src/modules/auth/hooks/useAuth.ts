@@ -80,10 +80,24 @@ export const useAuth = () => {
             hasAccessToken: !!accessToken
           });
           
-          // Establecer usuario directamente sin verificar token (el interceptor se encargará)
-          setUser({ uid: user.id, email: user.email, displayName: user.displayName } as FirebaseUser);
-          setBackendUser(user);
-          logger.authInfo('Usuario autenticado establecido desde localStorage');
+          // Verificar que el token sea válido haciendo una llamada al backend
+          try {
+            logger.authInfo('Verificando validez del token');
+            await api.get('/api/auth/profile');
+            
+            // Si la llamada es exitosa, el token es válido
+            setUser({ uid: user.id, email: user.email, displayName: user.displayName } as FirebaseUser);
+            setBackendUser(user);
+            logger.authInfo('Usuario autenticado establecido desde localStorage');
+          } catch (tokenError) {
+            logger.authError('Token inválido, limpiando autenticación', tokenError as Error);
+            // Token inválido, limpiar todo
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            setUser(null);
+            setBackendUser(null);
+          }
         } else {
           logger.authInfo('No hay usuario autenticado en localStorage');
           setUser(null);
