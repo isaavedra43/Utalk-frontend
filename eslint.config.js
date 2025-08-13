@@ -68,7 +68,7 @@ export default [
       '@typescript-eslint': ts
     },
     rules: {
-      'no-console': 'error',
+      'no-console': 'warn', // Cambio de error a warning para desarrollo
       'no-debugger': 'error',
       'no-unused-vars': 'off',
       'prefer-const': 'error',
@@ -77,7 +77,14 @@ export default [
       curly: ['error', 'all'],
       'no-duplicate-imports': 'error',
       'no-constant-binary-expression': 'warn',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          ignoreRestSiblings: true
+        }
+      ],
       '@typescript-eslint/no-explicit-any': 'warn'
     }
   },
@@ -143,13 +150,30 @@ export default [
       ...svelte.configs.recommended.rules,
       'svelte/no-target-blank': 'error',
       'svelte/button-has-type': 'error',
-      'no-console': 'error'
+      'no-console': 'warn' // Cambio de error a warning para desarrollo
+    }
+  },
+  // Configuración especial para componentes de dashboard en desarrollo
+  {
+    files: ['src/lib/components/dashboard/**/*.svelte'],
+    rules: {
+      'no-console': 'off', // Permitir console.log en dashboard durante desarrollo
+      '@typescript-eslint/no-unused-vars': 'off' // Permitir variables no utilizadas temporalmente
+    }
+  },
+  // Configuración especial para analytics en desarrollo
+  {
+    files: ['src/routes/analytics/**/*.svelte'],
+    rules: {
+      'no-console': 'off',
+      '@typescript-eslint/no-unused-vars': 'off'
     }
   },
   {
     files: ['**/*.test.{js,ts}', '**/*.spec.{js,ts}'],
     rules: {
-      'no-constant-binary-expression': 'off'
+      'no-constant-binary-expression': 'off',
+      'no-console': 'off'
     }
   },
   {

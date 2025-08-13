@@ -1,214 +1,249 @@
-<!-- 
- * Página de Analytics - UTalk Frontend
- * Placeholder para futuras funcionalidades de análisis y estadísticas
+<!--
+ * Analytics Page - UTalk Dashboard
+ * Página completa de analytics con todos los componentes integrados
  -->
 
 <script lang="ts">
-  import { goto } from '$app/navigation';
-  import { authStore } from '$lib/stores/auth.store';
+  import { Download, Filter, RefreshCw, Search, Settings } from 'lucide-svelte';
   import { onMount } from 'svelte';
+  // Componentes del dashboard
+  import ActivityChart from '$lib/components/charts/ActivityChart.svelte';
+  import AgentRanking from '$lib/components/dashboard/AgentRanking.svelte';
+  import AIInsights from '$lib/components/dashboard/AIInsights.svelte';
+  import CalendarHeatmap from '$lib/components/dashboard/CalendarHeatmap.svelte';
+  import DashboardFilters from '$lib/components/dashboard/DashboardFilters.svelte';
+  import ExportPanel from '$lib/components/dashboard/ExportPanel.svelte';
+  import KPICard from '$lib/components/dashboard/KPICard.svelte';
+  import SentimentChart from '$lib/components/dashboard/SentimentChart.svelte';
+  import TopicsPanel from '$lib/components/dashboard/TopicsPanel.svelte';
+  // Componentes avanzados
+  import NotificationCenter from '$lib/components/dashboard/NotificationCenter.svelte';
+  // Store y servicios
+  import { dashboardService } from '$lib/services/dashboard.service';
+  import {
+    dashboardActions,
+    dashboardFilters,
+    dashboardState,
+    kpisWithTrends,
+    rankedAgents
+  } from '$lib/stores/dashboard.store';
 
-  let user: any = null;
+  // Estado local
   let loading = true;
+  let lastRefresh = new Date();
+  let searchQuery = '';
 
+  // Estados de componentes avanzados
+  let showFilters = false;
+  let showExport = false;
+  let showNotifications = false;
+
+  // Función para cargar datos del dashboard
+  async function loadDashboardData() {
+    try {
+      dashboardActions.setLoading(true);
+
+      const data = await dashboardService.getAllDashboardData();
+
+      dashboardActions.setKPIs(data.kpis);
+      dashboardActions.setActivity(data.activity);
+      dashboardActions.setAgents(data.agents);
+
+      lastRefresh = new Date();
+      dashboardActions.setLoading(false);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      dashboardActions.setError('Error cargando datos del dashboard');
+      dashboardActions.setLoading(false);
+    }
+  }
+
+  // Función para refrescar datos
+  async function refreshData() {
+    await loadDashboardData();
+  }
+
+  // Cargar datos al montar el componente
   onMount(() => {
-    // Verificar si el usuario está autenticado
-    authStore.subscribe(state => {
-      if (state.isAuthenticated && state.user) {
-        user = state.user;
-        loading = false;
-      } else if (!state.isAuthenticated) {
-        // Redirigir al login si no está autenticado
-        goto('/login');
-      }
-    });
+    loadDashboardData();
+    loading = false;
   });
+
+  // Formatear fecha del saludo
+  function formatGreeting() {
+    const now = new Date();
+    const hour = now.getHours();
+    let greeting = '';
+
+    if (hour < 12) greeting = 'Buenos días';
+    else if (hour < 18) greeting = 'Buenas tardes';
+    else greeting = 'Buenas noches';
+
+    return greeting;
+  }
+
+  // function formatTime(date: Date) {
+  //   return date.toLocaleTimeString('es-ES', {
+  //     hour: '2-digit',
+  //     minute: '2-digit'
+  //   });
+  // }
+
+  function formatDate(date: Date) {
+    return date.toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  }
+
+  // Funciones para componentes avanzados
+  function handleFiltersChanged(event: CustomEvent) {
+    const newFilters = event.detail;
+    // Aplicar filtros y recargar datos
+    console.log('Filtros aplicados:', newFilters);
+    loadDashboardData();
+  }
+
+  function handleExport(event: CustomEvent) {
+    const config = event.detail;
+    // Lógica de exportación
+    console.log('Configuración de exportación:', config);
+  }
+
+  function handleSchedule(event: CustomEvent) {
+    const config = event.detail;
+    // Lógica de programación de reportes
+    console.log('Configuración de programación:', config);
+  }
 </script>
 
-<div class="analytics-container">
-  {#if loading}
-    <div class="loading-state">
-      <div class="spinner"></div>
-      <p>Cargando analytics...</p>
-    </div>
-  {:else if user}
-    <div class="analytics-content">
-      <div class="analytics-header">
-        <h1 class="analytics-title">📊 Analytics</h1>
-        <p class="analytics-subtitle">Métricas y estadísticas del sistema</p>
-      </div>
+<svelte:head>
+  <title>Analytics • UTalk Dashboard</title>
+</svelte:head>
 
-      <div class="analytics-placeholder">
-        <div class="placeholder-icon">📈</div>
-        <h2>Dashboard de Analytics</h2>
-        <p>Aquí se mostrarán métricas, estadísticas y reportes del sistema de chat.</p>
+<div class="min-h-screen bg-gray-50">
+  <!-- Header principal -->
+  <div class="bg-white border-b border-gray-200 px-6 py-4">
+    <div class="max-w-7xl mx-auto">
+      <div class="flex items-center justify-between">
+        <!-- Saludo y fecha -->
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            {formatGreeting()}, Israel 👋
+          </h1>
+          <p class="text-sm text-gray-500 mt-1">
+            {formatDate(lastRefresh)} • Último actualizado hace 2 minutos
+          </p>
+        </div>
 
-        <div class="analytics-sections">
-          <div class="analytics-section">
-            <div class="section-icon">💬</div>
-            <h3>Conversaciones</h3>
-            <p>Total de conversaciones y tiempo de respuesta</p>
+        <!-- Controles del header -->
+        <div class="flex items-center gap-4">
+          <!-- Buscador -->
+          <div class="relative">
+            <Search
+              class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
+            />
+            <input
+              type="text"
+              placeholder="Buscar en dashboard..."
+              bind:value={searchQuery}
+              class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
           </div>
 
-          <div class="analytics-section">
-            <div class="section-icon">👥</div>
-            <h3>Usuarios</h3>
-            <p>Actividad de usuarios y agentes</p>
-          </div>
+          <!-- Filtros -->
+          <button
+            type="button"
+            on:click={() => (showFilters = true)}
+            class="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+          >
+            <Filter class="w-4 h-4" />
+            <span>Filtros</span>
+          </button>
 
-          <div class="analytics-section">
-            <div class="section-icon">📱</div>
-            <h3>Canales</h3>
-            <p>Distribución por canales de comunicación</p>
-          </div>
+          <!-- Exportar -->
+          <button
+            type="button"
+            on:click={() => (showExport = true)}
+            class="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+          >
+            <Download class="w-4 h-4" />
+            <span>Exportar</span>
+          </button>
 
-          <div class="analytics-section">
-            <div class="section-icon">⏱️</div>
-            <h3>Rendimiento</h3>
-            <p>Métricas de rendimiento y eficiencia</p>
-          </div>
+          <!-- Vista IA -->
+          <button
+            type="button"
+            class="flex items-center gap-2 px-3 py-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg text-sm hover:bg-purple-100"
+          >
+            <Settings class="w-4 h-4" />
+            <span>Vista IA</span>
+          </button>
+
+          <!-- Notificaciones -->
+          <NotificationCenter bind:isOpen={showNotifications} />
+
+          <!-- Refresh -->
+          <button
+            type="button"
+            on:click={refreshData}
+            class="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+          >
+            <RefreshCw class="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>
-  {/if}
+  </div>
+
+  <!-- Contenido principal -->
+  <div class="max-w-7xl mx-auto px-6 py-6">
+    <!-- Grid de KPIs -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      {#each $kpisWithTrends as kpi}
+        <KPICard data={kpi} {loading} />
+      {/each}
+    </div>
+
+    <!-- Primera fila de charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <!-- Activity Chart -->
+      <ActivityChart data={$dashboardState.activity} {loading} height={320} />
+
+      <!-- Agent Ranking -->
+      <AgentRanking agents={$rankedAgents} {loading} />
+    </div>
+
+    <!-- Segunda fila de charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <!-- Sentiment Chart -->
+      <SentimentChart data={$dashboardState.sentiment} {loading} height={320} />
+
+      <!-- Topics Panel -->
+      <TopicsPanel
+        topics={$dashboardState.topics}
+        riskCustomers={$dashboardState.riskCustomers}
+        {loading}
+      />
+
+      <!-- Calendar Heatmap -->
+      <CalendarHeatmap {loading} />
+    </div>
+
+    <!-- Insights de IA -->
+    <div class="mb-6">
+      <AIInsights insights={$dashboardState.insights} {loading} />
+    </div>
+  </div>
+
+  <!-- Componentes avanzados -->
+  <DashboardFilters
+    bind:isOpen={showFilters}
+    filters={$dashboardFilters}
+    agents={$rankedAgents}
+    on:filtersChanged={handleFiltersChanged}
+  />
+
+  <ExportPanel bind:isOpen={showExport} on:export={handleExport} on:schedule={handleSchedule} />
 </div>
-
-<style>
-  .analytics-container {
-    padding: 2rem;
-    min-height: 100vh;
-    background: #f7fafc;
-  }
-
-  .analytics-content {
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  .analytics-header {
-    text-align: center;
-    margin-bottom: 3rem;
-  }
-
-  .analytics-title {
-    font-size: 2.5rem;
-    font-weight: bold;
-    color: #2d3748;
-    margin: 0 0 0.5rem 0;
-  }
-
-  .analytics-subtitle {
-    font-size: 1.1rem;
-    color: #718096;
-    margin: 0;
-  }
-
-  .analytics-placeholder {
-    background: white;
-    border-radius: 16px;
-    padding: 4rem 2rem;
-    text-align: center;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    border: 1px solid #e2e8f0;
-  }
-
-  .placeholder-icon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
-  }
-
-  .analytics-placeholder h2 {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #2d3748;
-    margin: 0 0 1rem 0;
-  }
-
-  .analytics-placeholder p {
-    color: #718096;
-    font-size: 1rem;
-    margin: 0 0 3rem 0;
-    max-width: 500px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .analytics-sections {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 2rem;
-    margin-top: 2rem;
-  }
-
-  .analytics-section {
-    background: #f7fafc;
-    border-radius: 12px;
-    padding: 2rem;
-    text-align: center;
-    border: 1px solid #e2e8f0;
-    transition: all 0.2s ease;
-  }
-
-  .analytics-section:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-
-  .section-icon {
-    font-size: 2rem;
-    margin-bottom: 1rem;
-  }
-
-  .analytics-section h3 {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #2d3748;
-    margin: 0 0 0.5rem 0;
-  }
-
-  .analytics-section p {
-    color: #718096;
-    font-size: 0.9rem;
-    margin: 0;
-  }
-
-  .loading-state {
-    text-align: center;
-    color: #718096;
-    padding: 4rem 2rem;
-  }
-
-  .spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid #e2e8f0;
-    border-top: 4px solid #667eea;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 1rem;
-  }
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
-  }
-
-  /* Responsive */
-  @media (max-width: 768px) {
-    .analytics-container {
-      padding: 1rem;
-    }
-
-    .analytics-title {
-      font-size: 2rem;
-    }
-
-    .analytics-sections {
-      grid-template-columns: 1fr;
-    }
-  }
-</style>
