@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useWebSocketContext } from '../contexts/useWebSocketContext';
 import api from '../services/api';
+import { sanitizeConversationId, logConversationId } from '../utils/conversationUtils';
 
 interface Message {
   id: string;
@@ -53,11 +54,19 @@ export const useChat = (conversationId: string) => {
   const loadMessages = useCallback(async () => {
     if (!conversationId) return;
 
+    // Validar y sanitizar el ID de conversación
+    const sanitizedId = sanitizeConversationId(conversationId);
+    if (!sanitizedId) {
+      setError(`ID de conversación inválido: ${conversationId}`);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
       
-      const response = await api.get(`/api/messages?conversationId=${conversationId}&limit=50`);
+      logConversationId(sanitizedId, 'loadMessages');
+      const response = await api.get(`/api/messages?conversationId=${sanitizedId}&limit=50`);
       const loadedMessages = response.data.messages || [];
       
       // Filtrar mensajes optimistas que ya fueron confirmados
@@ -77,8 +86,16 @@ export const useChat = (conversationId: string) => {
   const loadConversation = useCallback(async () => {
     if (!conversationId) return;
 
+    // Validar y sanitizar el ID de conversación
+    const sanitizedId = sanitizeConversationId(conversationId);
+    if (!sanitizedId) {
+      setError(`ID de conversación inválido: ${conversationId}`);
+      return;
+    }
+
     try {
-      const response = await api.get(`/api/conversations/${conversationId}`);
+      logConversationId(sanitizedId, 'loadConversation');
+      const response = await api.get(`/api/conversations/${sanitizedId}`);
       setConversation(response.data);
     } catch (err: unknown) {
       console.error('Error cargando conversación:', err);
@@ -89,9 +106,18 @@ export const useChat = (conversationId: string) => {
   // Unirse a conversación cuando se conecta
   useEffect(() => {
     if (isConnected && conversationId) {
-      console.log('🔗 useChat - Uniéndose a conversación:', conversationId);
+      // Validar y sanitizar el ID de conversación
+      const sanitizedId = sanitizeConversationId(conversationId);
+      if (!sanitizedId) {
+        console.error('❌ useChat - ID de conversación inválido:', conversationId);
+        setError(`ID de conversación inválido: ${conversationId}`);
+        return;
+      }
+
+      console.log('🔗 useChat - Uniéndose a conversación:', sanitizedId);
+      logConversationId(sanitizedId, 'joinConversation');
       setIsJoined(false); // Resetear estado de confirmación
-      joinConversation(conversationId);
+      joinConversation(sanitizedId);
       loadMessages();
       loadConversation();
     }
@@ -101,9 +127,14 @@ export const useChat = (conversationId: string) => {
   useEffect(() => {
     return () => {
       if (conversationId && isConnected) {
-        console.log('🔌 useChat - Saliendo de conversación:', conversationId);
-        setIsJoined(false);
-        leaveConversation(conversationId);
+        // Validar y sanitizar el ID de conversación
+        const sanitizedId = sanitizeConversationId(conversationId);
+        if (sanitizedId) {
+          console.log('🔌 useChat - Saliendo de conversación:', sanitizedId);
+          logConversationId(sanitizedId, 'leaveConversation');
+          setIsJoined(false);
+          leaveConversation(sanitizedId);
+        }
       }
     };
   }, [conversationId, leaveConversation, isConnected]);
@@ -274,6 +305,13 @@ export const useChat = (conversationId: string) => {
   const sendMessage = useCallback(async (content: string, type: string = 'text', metadata: Record<string, unknown> = {}) => {
     if (!conversationId || !content.trim() || !isJoined) return;
 
+    // Validar y sanitizar el ID de conversación
+    const sanitizedId = sanitizeConversationId(conversationId);
+    if (!sanitizedId) {
+      setError(`ID de conversación inválido: ${conversationId}`);
+      return;
+    }
+
     try {
       setSending(true);
       setError(null);
@@ -298,8 +336,8 @@ export const useChat = (conversationId: string) => {
       scrollToBottom();
 
       // Enviar por WebSocket (tiempo real)
-      console.log('🚀 Enviando mensaje por WebSocket:', { conversationId, content, type, metadata });
-      const socketSuccess = socketSendMessage(conversationId, content, type, metadata);
+      console.log('🚀 Enviando mensaje por WebSocket:', { conversationId: sanitizedId, content, type, metadata });
+      const socketSuccess = socketSendMessage(sanitizedId, content, type, metadata);
 
       if (!socketSuccess) {
         console.warn('⚠️ WebSocket no disponible, enviando solo por API');
@@ -308,7 +346,7 @@ export const useChat = (conversationId: string) => {
       // También enviar por API para persistencia
       try {
         console.log('💾 Guardando mensaje en API');
-        const apiResponse = await api.post(`/api/conversations/${conversationId}/messages`, {
+        const apiResponse = await api.post(`/api/conversations/${sanitizedId}/messages`, {
           content,
           type,
           metadata

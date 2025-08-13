@@ -1,5 +1,6 @@
 import api from './api';
 import type { Conversation, ConversationFilters } from '../types';
+import { sanitizeConversationId, logConversationId } from '../utils/conversationUtils';
 
 // Tipo para respuesta de lista de conversaciones
 interface ConversationListResponse {
@@ -129,7 +130,14 @@ export const conversationsService = {
 
   // Obtener conversación específica
   async getConversation(conversationId: string): Promise<Conversation> {
-    const response = await api.get(`${CONVERSATIONS_API}/${conversationId}`);
+    // Validar y sanitizar el ID de conversación
+    const sanitizedId = sanitizeConversationId(conversationId);
+    if (!sanitizedId) {
+      throw new Error(`ID de conversación inválido: ${conversationId}`);
+    }
+    
+    logConversationId(sanitizedId, 'getConversation');
+    const response = await api.get(`${CONVERSATIONS_API}/${sanitizedId}`);
     return response.data;
   },
 
@@ -155,25 +163,53 @@ export const conversationsService = {
     tags?: string[];
     metadata?: Record<string, unknown>;
   }): Promise<Conversation> {
-    const response = await api.put(`${CONVERSATIONS_API}/${conversationId}`, updateData);
+    // Validar y sanitizar el ID de conversación
+    const sanitizedId = sanitizeConversationId(conversationId);
+    if (!sanitizedId) {
+      throw new Error(`ID de conversación inválido: ${conversationId}`);
+    }
+    
+    logConversationId(sanitizedId, 'updateConversation');
+    const response = await api.put(`${CONVERSATIONS_API}/${sanitizedId}`, updateData);
     return response.data;
   },
 
   // Asignar conversación
   async assignConversation(conversationId: string, agentEmail: string): Promise<Conversation> {
-    const response = await api.put(`${CONVERSATIONS_API}/${conversationId}/assign`, { agentEmail });
+    // Validar y sanitizar el ID de conversación
+    const sanitizedId = sanitizeConversationId(conversationId);
+    if (!sanitizedId) {
+      throw new Error(`ID de conversación inválido: ${conversationId}`);
+    }
+    
+    logConversationId(sanitizedId, 'assignConversation');
+    const response = await api.put(`${CONVERSATIONS_API}/${sanitizedId}/assign`, { agentEmail });
     return response.data;
   },
 
   // Desasignar conversación
   async unassignConversation(conversationId: string): Promise<Conversation> {
-    const response = await api.put(`${CONVERSATIONS_API}/${conversationId}/unassign`);
+    // Validar y sanitizar el ID de conversación
+    const sanitizedId = sanitizeConversationId(conversationId);
+    if (!sanitizedId) {
+      throw new Error(`ID de conversación inválido: ${conversationId}`);
+    }
+    
+    logConversationId(sanitizedId, 'unassignConversation');
+    const response = await api.put(`${CONVERSATIONS_API}/${sanitizedId}/unassign`);
     return response.data;
   },
 
   // Transferir conversación
   async transferConversation(conversationId: string, targetAgentEmail: string, reason: string): Promise<Conversation> {
-    const response = await api.post(`${CONVERSATIONS_API}/${conversationId}/transfer`, {
+    // Validar y sanitizar el ID de conversación
+    const sanitizedId = sanitizeConversationId(conversationId);
+    if (!sanitizedId) {
+      throw new Error(`ID de conversación inválido: ${conversationId}`);
+    }
+    
+    logConversationId(sanitizedId, 'transferConversation');
+    const response = await api.post(`${CONVERSATIONS_API}/${sanitizedId}/transfer`, {
       targetAgentEmail,
       reason
     });
@@ -182,30 +218,65 @@ export const conversationsService = {
 
   // Cambiar estado de conversación
   async changeConversationStatus(conversationId: string, status: string): Promise<Conversation> {
-    const response = await api.put(`${CONVERSATIONS_API}/${conversationId}/status`, { status });
+    // Validar y sanitizar el ID de conversación
+    const sanitizedId = sanitizeConversationId(conversationId);
+    if (!sanitizedId) {
+      throw new Error(`ID de conversación inválido: ${conversationId}`);
+    }
+    
+    logConversationId(sanitizedId, 'changeConversationStatus');
+    const response = await api.put(`${CONVERSATIONS_API}/${sanitizedId}/status`, { status });
     return response.data;
   },
 
   // Cambiar prioridad de conversación
   async changeConversationPriority(conversationId: string, priority: string): Promise<Conversation> {
-    const response = await api.put(`${CONVERSATIONS_API}/${conversationId}/priority`, { priority });
+    // Validar y sanitizar el ID de conversación
+    const sanitizedId = sanitizeConversationId(conversationId);
+    if (!sanitizedId) {
+      throw new Error(`ID de conversación inválido: ${conversationId}`);
+    }
+    
+    logConversationId(sanitizedId, 'changeConversationPriority');
+    const response = await api.put(`${CONVERSATIONS_API}/${sanitizedId}/priority`, { priority });
     return response.data;
   },
 
   // Marcar conversación como leída
   async markConversationAsRead(conversationId: string): Promise<Conversation> {
-    const response = await api.put(`${CONVERSATIONS_API}/${conversationId}/read-all`);
+    // Validar y sanitizar el ID de conversación
+    const sanitizedId = sanitizeConversationId(conversationId);
+    if (!sanitizedId) {
+      throw new Error(`ID de conversación inválido: ${conversationId}`);
+    }
+    
+    logConversationId(sanitizedId, 'markConversationAsRead');
+    const response = await api.put(`${CONVERSATIONS_API}/${sanitizedId}/read-all`);
     return response.data;
   },
 
   // Indicar escritura
   async indicateTyping(conversationId: string): Promise<void> {
-    const response = await api.post(`${CONVERSATIONS_API}/${conversationId}/typing`);
+    // Validar y sanitizar el ID de conversación
+    const sanitizedId = sanitizeConversationId(conversationId);
+    if (!sanitizedId) {
+      throw new Error(`ID de conversación inválido: ${conversationId}`);
+    }
+    
+    logConversationId(sanitizedId, 'indicateTyping');
+    const response = await api.post(`${CONVERSATIONS_API}/${sanitizedId}/typing`);
     return response.data;
   },
 
   // Eliminar conversación
   async deleteConversation(conversationId: string): Promise<void> {
-    await api.delete(`${CONVERSATIONS_API}/${conversationId}`);
+    // Validar y sanitizar el ID de conversación
+    const sanitizedId = sanitizeConversationId(conversationId);
+    if (!sanitizedId) {
+      throw new Error(`ID de conversación inválido: ${conversationId}`);
+    }
+    
+    logConversationId(sanitizedId, 'deleteConversation');
+    await api.delete(`${CONVERSATIONS_API}/${sanitizedId}`);
   }
 }; 

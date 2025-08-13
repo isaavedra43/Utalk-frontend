@@ -5,6 +5,7 @@ import { conversationsService } from '../services/conversations';
 import { useAppStore } from '../stores/useAppStore';
 import { useWebSocketContext } from '../contexts/useWebSocketContext';
 import { useAuth } from '../modules/auth/hooks/useAuth';
+import { sanitizeConversationId, logConversationId } from '../utils/conversationUtils';
 
 export const useConversations = (filters: ConversationFilters = {}) => {
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -276,7 +277,15 @@ export const useConversations = (filters: ConversationFilters = {}) => {
 
   // Función para seleccionar conversación
   const selectConversation = useCallback((conversationId: string) => {
-    const conversation = allConversations.find(conv => conv.id === conversationId);
+    // Validar y sanitizar el ID de conversación
+    const sanitizedId = sanitizeConversationId(conversationId);
+    if (!sanitizedId) {
+      console.error('❌ useConversations - ID de conversación inválido:', conversationId);
+      return;
+    }
+
+    logConversationId(sanitizedId, 'selectConversation');
+    const conversation = allConversations.find(conv => conv.id === sanitizedId);
     if (conversation) {
       setActiveConversation(conversation);
     }

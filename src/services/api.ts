@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { logger, LogCategory } from '../utils/logger';
+import { sanitizeConversationId, logConversationId } from '../utils/conversationUtils';
 
 // Usar URL del backend real
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || 'https://tu-backend.railway.app';
@@ -33,7 +34,7 @@ const api = axios.create({
   }
 });
 
-// Interceptor para agregar token
+// Interceptor para agregar token y validar IDs de conversación
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
@@ -51,6 +52,36 @@ api.interceptors.request.use(
         url: config.url,
         isAuthEndpoint: config.url?.includes('/auth/')
       });
+    }
+
+    // Validar IDs de conversación en URLs
+    if (config.url) {
+      const conversationIdMatch = config.url.match(/\/conversations\/([^\/\?]+)/);
+      if (conversationIdMatch) {
+        const conversationId = conversationIdMatch[1];
+        const sanitizedId = sanitizeConversationId(conversationId);
+        
+        if (!sanitizedId) {
+          logger.apiError('ID de conversación inválido detectado en URL', new Error(`Invalid conversation ID: ${conversationId}`), {
+            originalUrl: config.url,
+            invalidId: conversationId,
+            method: config.method?.toUpperCase()
+          });
+          return Promise.reject(new Error(`ID de conversación inválido: ${conversationId}`));
+        }
+        
+        if (sanitizedId !== conversationId) {
+          // Reemplazar el ID en la URL
+          config.url = config.url.replace(conversationId, sanitizedId);
+          logConversationId(sanitizedId, 'API Interceptor - URL sanitized');
+          logger.apiInfo('ID de conversación sanitizado en URL', {
+            originalId: conversationId,
+            sanitizedId,
+            method: config.method?.toUpperCase(),
+            url: config.url
+          });
+        }
+      }
     }
     
     // Log de requests en desarrollo
