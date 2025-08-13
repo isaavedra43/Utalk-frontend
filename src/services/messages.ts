@@ -26,13 +26,13 @@ export const messagesService = {
 
   // Enviar mensaje
   async sendMessage(conversationId: string, messageData: MessageInputData): Promise<Message> {
-    const response = await api.post(`/api/conversations/${conversationId}/messages`, messageData);
+    const response = await api.post(`${MESSAGES_API}/conversations/${conversationId}/messages`, messageData);
     return response.data;
   },
 
   // Marcar mensaje como leído
   async markMessageAsRead(conversationId: string, messageId: string): Promise<Message> {
-    const response = await api.put(`/api/conversations/${conversationId}/messages/${messageId}/read`, {
+    const response = await api.put(`${MESSAGES_API}/conversations/${conversationId}/messages/${messageId}/read`, {
       readAt: new Date().toISOString()
     });
     return response.data;
@@ -40,7 +40,7 @@ export const messagesService = {
 
   // Eliminar mensaje
   async deleteMessage(conversationId: string, messageId: string): Promise<void> {
-    await api.delete(`/api/conversations/${conversationId}/messages/${messageId}`);
+    await api.delete(`${MESSAGES_API}/conversations/${conversationId}/messages/${messageId}`);
   },
 
   // Enviar ubicación
