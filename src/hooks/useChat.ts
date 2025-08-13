@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useWebSocketContext } from '../contexts/useWebSocketContext';
 import api from '../services/api';
 import { sanitizeConversationId, logConversationId } from '../utils/conversationUtils';
+import { messagesCache, generateCacheKey } from '../utils/cacheUtils';
+import { retryWithBackoff, generateOperationKey, rateLimitBackoff } from '../utils/retryUtils';
+import { joinConversationThrottler, leaveConversationThrottler, sendMessageThrottler, throttledExecute } from '../utils/throttleUtils';
 
 interface Message {
   id: string;
@@ -50,7 +53,7 @@ export const useChat = (conversationId: string) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const optimisticMessagesRef = useRef<Set<string>>(new Set());
   
-  // Cargar mensajes iniciales
+  // Cargar mensajes iniciales con cache y retry
   const loadMessages = useCallback(async () => {
     if (!conversationId) return;
 
@@ -61,13 +64,36 @@ export const useChat = (conversationId: string) => {
       return;
     }
 
+    // Verificar cache primero
+    const cacheKey = generateCacheKey('messages', { conversationId: sanitizedId, limit: 50 });
+    const cachedMessages = messagesCache.get<Message[]>(cacheKey);
+    
+    if (cachedMessages) {
+      console.log('📋 useChat - Mensajes cargados desde cache:', cachedMessages.length);
+      const filteredMessages = cachedMessages.filter((msg: Message) => !optimisticMessagesRef.current.has(msg.id));
+      setMessages(filteredMessages);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
       
       logConversationId(sanitizedId, 'loadMessages');
-      const response = await api.get(`/api/messages?conversationId=${sanitizedId}&limit=50`);
+      
+      // Usar retry con backoff para la carga de mensajes
+      const operationKey = generateOperationKey('loadMessages', { conversationId: sanitizedId });
+      const response = await retryWithBackoff(
+        () => api.get(`/api/messages?conversationId=${sanitizedId}&limit=50`),
+        operationKey,
+        rateLimitBackoff
+      );
+      
       const loadedMessages = response.data.messages || [];
+      
+      // Guardar en cache
+      messagesCache.set(cacheKey, loadedMessages, 60000); // 1 minuto de cache
       
       // Filtrar mensajes optimistas que ya fueron confirmados
       const filteredMessages = loadedMessages.filter((msg: Message) => !optimisticMessagesRef.current.has(msg.id));
@@ -82,7 +108,7 @@ export const useChat = (conversationId: string) => {
     }
   }, [conversationId]);
 
-  // Cargar conversación
+  // Cargar conversación con cache y retry
   const loadConversation = useCallback(async () => {
     if (!conversationId) return;
 
@@ -93,17 +119,40 @@ export const useChat = (conversationId: string) => {
       return;
     }
 
+    // Verificar cache primero
+    const cacheKey = generateCacheKey('conversation', { conversationId: sanitizedId });
+    const cachedConversation = messagesCache.get<Conversation>(cacheKey);
+    
+    if (cachedConversation) {
+      console.log('📋 useChat - Conversación cargada desde cache');
+      setConversation(cachedConversation);
+      return;
+    }
+
     try {
       logConversationId(sanitizedId, 'loadConversation');
-      const response = await api.get(`/api/conversations/${sanitizedId}`);
-      setConversation(response.data);
+      
+      // Usar retry con backoff para la carga de conversación
+      const operationKey = generateOperationKey('loadConversation', { conversationId: sanitizedId });
+      const response = await retryWithBackoff(
+        () => api.get(`/api/conversations/${sanitizedId}`),
+        operationKey,
+        rateLimitBackoff
+      );
+      
+      const conversationData = response.data;
+      
+      // Guardar en cache
+      messagesCache.set(cacheKey, conversationData, 300000); // 5 minutos de cache
+      
+      setConversation(conversationData);
     } catch (err: unknown) {
       console.error('Error cargando conversación:', err);
       setError(err instanceof Error ? err.message : 'Error cargando conversación');
     }
   }, [conversationId]);
 
-  // Unirse a conversación cuando se conecta
+  // Unirse a conversación cuando se conecta con throttling
   useEffect(() => {
     if (isConnected && conversationId) {
       // Validar y sanitizar el ID de conversación
@@ -114,26 +163,54 @@ export const useChat = (conversationId: string) => {
         return;
       }
 
-      console.log('🔗 useChat - Uniéndose a conversación:', sanitizedId);
-      logConversationId(sanitizedId, 'joinConversation');
-      setIsJoined(false); // Resetear estado de confirmación
-      joinConversation(sanitizedId);
-      loadMessages();
-      loadConversation();
+      const joinOperation = async () => {
+        try {
+          console.log('🔗 useChat - Uniéndose a conversación:', sanitizedId);
+          logConversationId(sanitizedId, 'joinConversation');
+          setIsJoined(false); // Resetear estado de confirmación
+          
+          // Usar throttling para join conversation
+          await throttledExecute(
+            () => Promise.resolve(joinConversation(sanitizedId)),
+            joinConversationThrottler
+          );
+          
+          loadMessages();
+          loadConversation();
+        } catch (error) {
+          console.error('❌ useChat - Error uniéndose a conversación:', error);
+          setError('Error uniéndose a conversación');
+        }
+      };
+
+      joinOperation();
     }
   }, [isConnected, conversationId, joinConversation, loadMessages, loadConversation]);
 
-  // Salir de conversación al desmontar
+  // Salir de conversación al desmontar con throttling
   useEffect(() => {
     return () => {
       if (conversationId && isConnected) {
         // Validar y sanitizar el ID de conversación
         const sanitizedId = sanitizeConversationId(conversationId);
         if (sanitizedId) {
-          console.log('🔌 useChat - Saliendo de conversación:', sanitizedId);
-          logConversationId(sanitizedId, 'leaveConversation');
-          setIsJoined(false);
-          leaveConversation(sanitizedId);
+          const leaveOperation = async () => {
+            try {
+              console.log('🔌 useChat - Saliendo de conversación:', sanitizedId);
+              logConversationId(sanitizedId, 'leaveConversation');
+              setIsJoined(false);
+              
+              // Usar throttling para leave conversation
+              await throttledExecute(
+                () => Promise.resolve(leaveConversation(sanitizedId)),
+                leaveConversationThrottler
+              );
+            } catch (error) {
+              console.error('❌ useChat - Error saliendo de conversación:', error);
+            }
+          };
+
+          leaveOperation();
         }
       }
     };
@@ -301,7 +378,7 @@ export const useChat = (conversationId: string) => {
     };
   }, [socket, conversationId, on, off, isConnected]);
 
-  // Enviar mensaje con optimistic updates y rate limiting
+  // Enviar mensaje con optimistic updates, throttling y retry
   const sendMessage = useCallback(async (content: string, type: string = 'text', metadata: Record<string, unknown> = {}) => {
     if (!conversationId || !content.trim() || !isJoined) return;
 
@@ -335,22 +412,32 @@ export const useChat = (conversationId: string) => {
       setMessages(prev => [...prev, optimisticMessage]);
       scrollToBottom();
 
-      // Enviar por WebSocket (tiempo real)
+      // Enviar por WebSocket (tiempo real) con throttling
       console.log('🚀 Enviando mensaje por WebSocket:', { conversationId: sanitizedId, content, type, metadata });
-      const socketSuccess = socketSendMessage(sanitizedId, content, type, metadata);
+      
+      await throttledExecute(
+        () => Promise.resolve(socketSendMessage(sanitizedId, content, type, metadata)),
+        sendMessageThrottler
+      );
 
-      if (!socketSuccess) {
-        console.warn('⚠️ WebSocket no disponible, enviando solo por API');
-      }
-
-      // También enviar por API para persistencia
+      // También enviar por API para persistencia con retry
       try {
         console.log('💾 Guardando mensaje en API');
-        const apiResponse = await api.post(`/api/conversations/${sanitizedId}/messages`, {
-          content,
-          type,
-          metadata
+        
+        const operationKey = generateOperationKey('sendMessage', { 
+          conversationId: sanitizedId, 
+          content: content.substring(0, 50) // Usar solo los primeros 50 caracteres para la clave
         });
+        
+        const apiResponse = await retryWithBackoff(
+          () => api.post(`/api/conversations/${sanitizedId}/messages`, {
+            content,
+            type,
+            metadata
+          }),
+          operationKey,
+          rateLimitBackoff
+        );
 
         // Actualizar mensaje optimista con datos reales
         const realMessage = apiResponse.data;
