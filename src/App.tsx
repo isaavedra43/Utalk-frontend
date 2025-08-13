@@ -11,6 +11,9 @@ import { logger } from './utils/logger'
 import { useAppStore } from './stores/useAppStore'
 import { useAuth } from './modules/auth/hooks/useAuth'
 
+// FORZAR ACTUALIZACIÓN DE VERCEL - Commit a00c0f1 aplicado
+// Autenticación manual obligatoria implementada
+
 // Componente de protección de rutas
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
