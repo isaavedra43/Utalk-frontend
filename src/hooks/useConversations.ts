@@ -29,7 +29,8 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     filters.search,
     filters.status,
     filters.priority,
-    filters.assignedTo
+    filters.assignedTo,
+    filters
   ]);
 
   // Memoizar la función de sincronización con debouncing

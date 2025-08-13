@@ -124,13 +124,14 @@ export const useAuth = () => {
             
             // Mantener el usuario autenticado desde localStorage
             // Solo limpiar si es un error 401 específico
-            if ((tokenError as any)?.response?.status === 401) {
+            const apiError = tokenError as { response?: { status?: number }; message?: string };
+            if (apiError?.response?.status === 401) {
               logger.authError('Token inválido (401), limpiando autenticación', tokenError as Error);
               clearAuth();
             } else {
               logger.authInfo('Manteniendo autenticación local a pesar del error de verificación', {
-                errorStatus: (tokenError as any)?.response?.status,
-                errorMessage: (tokenError as any)?.message
+                errorStatus: apiError?.response?.status,
+                errorMessage: apiError?.message
               });
             }
           }

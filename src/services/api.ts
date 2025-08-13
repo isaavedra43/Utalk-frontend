@@ -56,7 +56,7 @@ api.interceptors.request.use(
 
     // Validar IDs de conversación en URLs
     if (config.url) {
-      const conversationIdMatch = config.url.match(/\/conversations\/([^\/\?]+)/);
+      const conversationIdMatch = config.url.match(/\/conversations\/([^/?]+)/);
       if (conversationIdMatch) {
         const conversationId = conversationIdMatch[1];
         const sanitizedId = sanitizeConversationId(conversationId);

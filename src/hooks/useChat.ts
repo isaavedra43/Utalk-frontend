@@ -99,14 +99,17 @@ export const useChat = (conversationId: string) => {
       const filteredMessages = loadedMessages.filter((msg: Message) => !optimisticMessagesRef.current.has(msg.id));
       setMessages(filteredMessages);
       
-      scrollToBottom();
+      // Scroll al final después de cargar mensajes
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     } catch (err: unknown) {
       console.error('Error cargando mensajes:', err);
       setError(err instanceof Error ? err.message : 'Error cargando mensajes');
     } finally {
       setLoading(false);
     }
-  }, [conversationId]);
+  }, [conversationId, optimisticMessagesRef]);
 
   // Cargar conversación con cache y retry
   const loadConversation = useCallback(async () => {
@@ -277,7 +280,10 @@ export const useChat = (conversationId: string) => {
           console.log('📨 useChat - Agregando nuevo mensaje:', messageData.message);
           return [...prev, messageData.message];
         });
-        scrollToBottom();
+        // Scroll al final después de nuevo mensaje
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
       }
     };
 
@@ -410,7 +416,10 @@ export const useChat = (conversationId: string) => {
 
       // Agregar mensaje optimista inmediatamente
       setMessages(prev => [...prev, optimisticMessage]);
-      scrollToBottom();
+      // Scroll al final después de agregar mensaje optimista
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
 
       // Enviar por WebSocket (tiempo real) con throttling
       console.log('🚀 Enviando mensaje por WebSocket:', { conversationId: sanitizedId, content, type, metadata });
