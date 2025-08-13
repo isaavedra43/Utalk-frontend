@@ -91,12 +91,17 @@ export const useAuth = () => {
             hasAccessToken: !!accessToken
           });
           
+          // Establecer usuario inmediatamente desde localStorage
+          setUser({ uid: user.id, email: user.email, displayName: user.displayName } as FirebaseUser);
+          setBackendUser(user);
+          
           // Verificar que el token sea válido haciendo una llamada al backend
+          // PERO no fallar si hay problemas temporales de red
           try {
-            logger.authInfo('Verificando validez del token');
+            logger.authInfo('Verificando validez del token con backend');
             const profileResponse = await api.get('/api/auth/profile');
             
-            // Si la llamada es exitosa, el token es válido
+            // Si la llamada es exitosa, actualizar con datos del backend
             const currentUser = profileResponse.data || user;
             setUser({ uid: currentUser.id, email: currentUser.email, displayName: currentUser.displayName } as FirebaseUser);
             setBackendUser(currentUser);
@@ -104,15 +109,30 @@ export const useAuth = () => {
             // Actualizar localStorage con datos actualizados
             localStorage.setItem('user', JSON.stringify(currentUser));
             
-            logger.authInfo('Usuario autenticado establecido desde localStorage', {
+            logger.authInfo('Usuario autenticado verificado con backend', {
               userId: currentUser.id,
               email: currentUser.email,
               hasProfileData: !!profileResponse.data
             });
           } catch (tokenError) {
-            logger.authError('Token inválido, limpiando autenticación', tokenError as Error);
-            // Token inválido, limpiar todo
-            clearAuth();
+            // NO limpiar autenticación si el token es válido pero hay problemas de red
+            logger.authInfo('Problema verificando token con backend, manteniendo autenticación local', {
+              hasValidToken: !!accessToken,
+              storedUser: user.email,
+              error: (tokenError as Error).message
+            });
+            
+            // Mantener el usuario autenticado desde localStorage
+            // Solo limpiar si es un error 401 específico
+            if ((tokenError as any)?.response?.status === 401) {
+              logger.authError('Token inválido (401), limpiando autenticación', tokenError as Error);
+              clearAuth();
+            } else {
+              logger.authInfo('Manteniendo autenticación local a pesar del error de verificación', {
+                errorStatus: (tokenError as any)?.response?.status,
+                errorMessage: (tokenError as any)?.message
+              });
+            }
           }
         } else {
           logger.authInfo('No hay usuario autenticado en localStorage');
