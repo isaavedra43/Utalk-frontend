@@ -97,6 +97,42 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // Actualizar estado del mensaje
     });
 
+    // CONFIRMACIONES DE CONVERSACIÓN - CRÍTICO PARA EL CHAT
+    on('conversation-joined', (data: unknown) => {
+      const eventData = data as { conversationId: string; roomId: string; onlineUsers: string[]; timestamp: string };
+      console.log('✅ Confirmado: Unido a conversación:', eventData);
+      
+      // Actualizar estado de conversación activa
+      setActiveConversations(prev => new Set(prev).add(eventData.conversationId));
+      
+      // Emitir evento personalizado para que los hooks lo escuchen
+      window.dispatchEvent(new CustomEvent('conversation:joined', { detail: eventData }));
+    });
+
+    on('conversation-left', (data: unknown) => {
+      const eventData = data as { conversationId: string; timestamp: string };
+      console.log('✅ Confirmado: Salido de conversación:', eventData);
+      
+      // Limpiar estado de conversación
+      setActiveConversations(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(eventData.conversationId);
+        return newSet;
+      });
+      
+      // Emitir evento personalizado para que los hooks lo escuchen
+      window.dispatchEvent(new CustomEvent('conversation:left', { detail: eventData }));
+    });
+
+    // MANEJO DE ERRORES DEL SERVIDOR - CRÍTICO
+    on('error', (data: unknown) => {
+      const errorData = data as { error: string; message: string; conversationId?: string };
+      console.error('❌ Error del servidor:', errorData);
+      
+      // Emitir evento personalizado para manejo de errores
+      window.dispatchEvent(new CustomEvent('websocket:error', { detail: errorData }));
+    });
+
     // Usuario escribiendo
     on('typing', (data: unknown) => {
       const eventData = data as { conversationId: string; userEmail: string };
@@ -183,6 +219,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // Limpiar listeners
       off('new-message');
       off('message-sent');
+      off('conversation-joined');
+      off('conversation-left');
+      off('error');
       off('typing');
       off('typing-stop');
       off('user-online');

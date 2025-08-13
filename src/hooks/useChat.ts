@@ -43,10 +43,15 @@ export const useChat = (conversationId: string) => {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [isJoined, setIsJoined] = useState(false); // NUEVO: Estado de confirmación
   
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const optimisticMessagesRef = useRef<Set<string>>(new Set());
+  
+  // RATE LIMITING - CRÍTICO PARA EVITAR SOBRECARGAR EL BACKEND
+  const messageRateLimitRef = useRef(0);
+  const typingRateLimitRef = useRef(0);
 
   // Cargar mensajes iniciales
   const loadMessages = useCallback(async () => {
@@ -89,6 +94,7 @@ export const useChat = (conversationId: string) => {
   useEffect(() => {
     if (isConnected && conversationId) {
       console.log('🔗 useChat - Uniéndose a conversación:', conversationId);
+      setIsJoined(false); // Resetear estado de confirmación
       joinConversation(conversationId);
       loadMessages();
       loadConversation();
@@ -100,10 +106,50 @@ export const useChat = (conversationId: string) => {
     return () => {
       if (conversationId && isConnected) {
         console.log('🔌 useChat - Saliendo de conversación:', conversationId);
+        setIsJoined(false);
         leaveConversation(conversationId);
       }
     };
   }, [conversationId, leaveConversation, isConnected]);
+
+  // ESCUCHAR CONFIRMACIONES DE CONVERSACIÓN - CRÍTICO
+  useEffect(() => {
+    const handleConversationJoined = (e: CustomEvent) => {
+      const eventData = e.detail as { conversationId: string; roomId: string; onlineUsers: string[]; timestamp: string };
+      if (eventData.conversationId === conversationId) {
+        console.log('✅ useChat - Confirmado unido a conversación:', conversationId);
+        setIsJoined(true);
+      }
+    };
+
+    const handleConversationLeft = (e: CustomEvent) => {
+      const eventData = e.detail as { conversationId: string; timestamp: string };
+      if (eventData.conversationId === conversationId) {
+        console.log('✅ useChat - Confirmado salido de conversación:', conversationId);
+        setIsJoined(false);
+      }
+    };
+
+    const handleWebSocketError = (e: CustomEvent) => {
+      const errorData = e.detail as { error: string; message: string; conversationId?: string };
+      if (errorData.conversationId === conversationId) {
+        console.error('❌ useChat - Error del servidor:', errorData);
+        setError(errorData.message);
+      }
+    };
+
+    // Registrar listeners de eventos personalizados
+    window.addEventListener('conversation:joined', handleConversationJoined as EventListener);
+    window.addEventListener('conversation:left', handleConversationLeft as EventListener);
+    window.addEventListener('websocket:error', handleWebSocketError as EventListener);
+
+    return () => {
+      // Limpiar listeners
+      window.removeEventListener('conversation:joined', handleConversationJoined as EventListener);
+      window.removeEventListener('conversation:left', handleConversationLeft as EventListener);
+      window.removeEventListener('websocket:error', handleWebSocketError as EventListener);
+    };
+  }, [conversationId]);
 
   // Configurar listeners de socket para esta conversación
   useEffect(() => {
@@ -228,9 +274,17 @@ export const useChat = (conversationId: string) => {
     };
   }, [socket, conversationId, on, off, isConnected]);
 
-  // Enviar mensaje con optimistic updates
+  // Enviar mensaje con optimistic updates y rate limiting
   const sendMessage = useCallback(async (content: string, type: string = 'text', metadata: Record<string, unknown> = {}) => {
-    if (!conversationId || !content.trim()) return;
+    if (!conversationId || !content.trim() || !isJoined) return;
+
+    // RATE LIMITING - Evitar sobrecargar el backend
+    const now = Date.now();
+    if (now - messageRateLimitRef.current < 100) {
+      console.warn('⚠️ Rate limit: esperar antes de enviar otro mensaje');
+      return;
+    }
+    messageRateLimitRef.current = now;
 
     try {
       setSending(true);
@@ -310,11 +364,18 @@ export const useChat = (conversationId: string) => {
     } finally {
       setSending(false);
     }
-  }, [conversationId, socketSendMessage]);
+  }, [conversationId, socketSendMessage, isJoined]);
 
-  // Indicar escritura con debouncing
+  // Indicar escritura con debouncing y rate limiting
   const handleTyping = useCallback(() => {
-    if (!conversationId || !isConnected) return;
+    if (!conversationId || !isConnected || !isJoined) return;
+
+    // RATE LIMITING - Evitar spam de typing
+    const now = Date.now();
+    if (now - typingRateLimitRef.current < 500) {
+      return;
+    }
+    typingRateLimitRef.current = now;
 
     if (!isTyping) {
       setIsTyping(true);
@@ -333,7 +394,7 @@ export const useChat = (conversationId: string) => {
       console.log('⏹️ Deteniendo indicador de escritura (timeout)');
       stopTyping(conversationId);
     }, 3000);
-  }, [conversationId, isConnected, isTyping, startTyping, stopTyping]);
+  }, [conversationId, isConnected, isTyping, startTyping, stopTyping, isJoined]);
 
   // Detener escritura
   const handleStopTyping = useCallback(() => {
@@ -420,6 +481,7 @@ export const useChat = (conversationId: string) => {
     sending,
     isTyping,
     isConnected,
+    isJoined, // NUEVO: Estado de confirmación de conversación
     
     // Acciones
     sendMessage,

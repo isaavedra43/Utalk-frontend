@@ -4,6 +4,7 @@ import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { ChatHeader } from './ChatHeader';
 import { TypingIndicator } from './TypingIndicator';
+import { ConversationStatus } from '../ConversationStatus';
 import type { Conversation as ConversationType, Message as MessageType } from '../../types/index';
 import './ChatComponent.css';
 
@@ -16,6 +17,7 @@ export const ChatComponent = ({ conversationId }: { conversationId: string }) =>
     sending,
     isTyping,
     isConnected,
+    isJoined, // NUEVO: Estado de confirmación
     typingUsers,
     sendMessage,
     handleTyping,
@@ -43,7 +45,7 @@ export const ChatComponent = ({ conversationId }: { conversationId: string }) =>
 
   // Manejar envío de mensaje
   const handleSend = async () => {
-    if (!inputValue.trim() || sending || !isConnected) return;
+    if (!inputValue.trim() || sending || !isConnected || !isJoined) return;
 
     try {
       await sendMessage(inputValue);
@@ -58,7 +60,7 @@ export const ChatComponent = ({ conversationId }: { conversationId: string }) =>
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
     
-    if (!isTyping) {
+    if (!isTyping && isJoined) {
       handleTyping();
     }
   };
@@ -86,6 +88,23 @@ export const ChatComponent = ({ conversationId }: { conversationId: string }) =>
               <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
               <p className="text-red-600 font-medium text-sm sm:text-base">Desconectado</p>
               <p className="text-gray-500 text-xs sm:text-sm">Intentando reconectar...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar estado de unión a conversación
+  if (!isJoined) {
+    return (
+      <div className="chat-container">
+        <div className="chat-loading">
+          <div className="flex items-center justify-center h-full p-4">
+            <div className="text-center">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600 text-sm sm:text-base">Uniéndose a la conversación...</p>
+              <p className="text-gray-500 text-xs sm:text-sm mt-2">Esperando confirmación del servidor</p>
             </div>
           </div>
         </div>
@@ -192,6 +211,16 @@ export const ChatComponent = ({ conversationId }: { conversationId: string }) =>
     <div className="chat-container">
       <ChatHeader conversation={convertConversation(conversation)} />
       
+      {/* Estado de la conversación */}
+      <div className="p-2 border-b border-gray-200">
+        <ConversationStatus
+          isConnected={isConnected}
+          isJoined={isJoined}
+          loading={loading}
+          error={error}
+        />
+      </div>
+      
       <div className="chat-messages">
         <MessageList 
           messages={convertMessages(messages)}
@@ -214,8 +243,14 @@ export const ChatComponent = ({ conversationId }: { conversationId: string }) =>
           onKeyPress={handleKeyPress}
           onSendMessage={handleSend}
           isSending={sending}
-          disabled={!isConnected}
-          placeholder={isConnected ? "Escribe un mensaje..." : "Desconectado..."}
+          disabled={!isConnected || !isJoined}
+          placeholder={
+            !isConnected 
+              ? "Desconectado..." 
+              : !isJoined 
+                ? "Conectando a la conversación..."
+                : "Escribe un mensaje..."
+          }
         />
       </div>
     </div>
