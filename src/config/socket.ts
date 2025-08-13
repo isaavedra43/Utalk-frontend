@@ -16,7 +16,7 @@ const SOCKET_CONFIG = {
 
 export const createSocket = (token: string) => {
   // Usar URL del backend real
-  const SOCKET_URL = import.meta.env.VITE_WS_URL || import.meta.env.VITE_BACKEND_URL || 'https://tu-backend.railway.app';
+  const SOCKET_URL = import.meta.env.VITE_WS_URL || import.meta.env.VITE_BACKEND_URL || 'https://utalk-backend-production.up.railway.app';
   
   console.log('🔌 Configurando socket con URL:', SOCKET_URL);
   console.log('🔌 Token disponible:', token ? 'Sí' : 'No');
@@ -32,6 +32,10 @@ export const createSocket = (token: string) => {
     },
     extraHeaders: {
       'Authorization': `Bearer ${token}`
+    },
+    path: '/socket.io/', // Asegurar que use el path correcto
+    query: {
+      token: token // Agregar token también como query parameter
     }
   });
 
@@ -47,6 +51,15 @@ export const createSocket = (token: string) => {
       name: error.name,
       stack: error.stack
     });
+    
+    // Manejar errores específicos de autenticación
+    if (error.message.includes('AUTHENTICATION_REQUIRED') || error.message.includes('JWT token required')) {
+      console.error('🔐 Error de autenticación: Token JWT requerido o inválido');
+      console.error('🔐 Token disponible:', token ? 'Sí' : 'No');
+      if (token) {
+        console.error('🔐 Token preview:', token.substring(0, 20) + '...');
+      }
+    }
   });
 
   socket.on('disconnect', (reason) => {

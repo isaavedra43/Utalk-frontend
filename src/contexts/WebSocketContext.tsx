@@ -51,7 +51,16 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const currentTime = Date.now() / 1000;
-      return payload.exp > currentTime + 300; // 5 minutos de margen
+      const isValid = payload.exp > currentTime + 300; // 5 minutos de margen
+      
+      console.log('🔐 Verificando token:', {
+        exp: payload.exp,
+        currentTime,
+        isValid,
+        expiresIn: Math.floor(payload.exp - currentTime)
+      });
+      
+      return isValid;
     } catch (error) {
       console.error('Error verificando token:', error);
       return false;
@@ -63,9 +72,12 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const token = localStorage.getItem('access_token');
     if (token && isTokenValid(token) && !isConnected) {
       console.log('🔌 WebSocketContext - Conectando automáticamente con token válido');
-      connect(token);
+      // Agregar un pequeño delay para asegurar que la autenticación esté completa
+      setTimeout(() => {
+        connect(token);
+      }, 1000);
     }
-  }, [connect, isConnected]);
+  }, [isConnected]); // Remover 'connect' de las dependencias para evitar bucles
 
   // Reautenticar socket cuando se refresca el access token
   useEffect(() => {
@@ -81,7 +93,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     window.addEventListener('auth:token-refreshed', handler as unknown as EventListener);
     return () => window.removeEventListener('auth:token-refreshed', handler as unknown as EventListener);
-  }, [connect, disconnect]);
+  }, []); // Remover dependencias para evitar bucles
 
   // Configurar listeners globales
   useEffect(() => {

@@ -14,10 +14,12 @@ export const useWebSocket = () => {
   // Conectar socket
   const connect = useCallback((token: string) => {
     if (socketRef.current?.connected) {
+      console.log('🔌 Socket ya conectado, saltando...');
       return;
     }
 
     try {
+      console.log('🔌 Iniciando conexión de socket...');
       const newSocket = createSocket(token);
       socketRef.current = newSocket;
       setSocket(newSocket);
@@ -36,7 +38,10 @@ export const useWebSocket = () => {
         
         if (reason === 'io server disconnect') {
           // Reconexión manual necesaria
-          setTimeout(() => connect(token), 1000);
+          console.log('🔄 Intentando reconexión manual...');
+          setTimeout(() => {
+            if (token) connect(token);
+          }, 1000);
         }
       });
 
@@ -52,6 +57,7 @@ export const useWebSocket = () => {
       });
 
       // Conectar
+      console.log('🔌 Conectando socket...');
       newSocket.connect();
 
     } catch (error: unknown) {
