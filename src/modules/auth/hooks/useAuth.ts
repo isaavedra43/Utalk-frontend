@@ -1,13 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  signInWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-  updatePassword,
   type User as FirebaseUser
 } from 'firebase/auth';
-import { auth } from '../../../config/firebase';
+// import { auth } from '../../../config/firebase';
 import api from '../../../services/api';
 import { logger } from '../../../utils/logger';
 
@@ -21,10 +16,7 @@ interface BackendUser {
   updatedAt: string;
 }
 
-interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-}
+
 
 export const useAuth = () => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -32,96 +24,97 @@ export const useAuth = () => {
   const [error, setError] = useState<string | null>(null);
   const [backendUser, setBackendUser] = useState<BackendUser | null>(null);
 
-  // Verificar estado de autenticación de Firebase
-  useEffect(() => {
-    logger.authInfo('Iniciando listener de estado de autenticación Firebase');
-    
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      logger.authInfo('Estado de autenticación Firebase cambiado', {
-        isAuthenticated: !!firebaseUser,
-        email: firebaseUser?.email,
-        uid: firebaseUser?.uid
+  // Refresh token automático
+  const refreshToken = useCallback(async () => {
+    try {
+      const storedRefreshToken = localStorage.getItem('refresh_token');
+      if (!storedRefreshToken) {
+        throw new Error('No hay refresh token disponible');
+      }
+
+      logger.authInfo('Refrescando token de acceso');
+      const response = await api.post('/api/auth/refresh', {
+        refreshToken: storedRefreshToken
       });
+
+      const { accessToken, refreshToken: newRefreshToken } = response.data;
       
-      if (firebaseUser) {
-        try {
-          logger.firebaseInfo('Usuario autenticado en Firebase', {
-            email: firebaseUser.email,
-            uid: firebaseUser.uid,
-            displayName: firebaseUser.displayName,
-            emailVerified: firebaseUser.emailVerified
+      // Actualizar tokens en localStorage
+      localStorage.setItem('access_token', accessToken);
+      localStorage.setItem('refresh_token', newRefreshToken);
+      
+      logger.authInfo('Token refrescado exitosamente');
+      return accessToken;
+    } catch (error) {
+      logger.authError('Error refrescando token', error as Error);
+      // Si falla el refresh, limpiar todo y redirigir al login
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      setUser(null);
+      setBackendUser(null);
+      throw error;
+    }
+  }, []);
+
+  // Verificar estado de autenticación desde localStorage
+  useEffect(() => {
+    logger.authInfo('Verificando estado de autenticación desde localStorage');
+    
+    const checkAuthState = async () => {
+      try {
+        const storedUser = localStorage.getItem('user');
+        const accessToken = localStorage.getItem('access_token');
+        
+        if (storedUser && accessToken) {
+          const user = JSON.parse(storedUser);
+          logger.authInfo('Usuario encontrado en localStorage', {
+            userId: user.id,
+            email: user.email,
+            hasAccessToken: !!accessToken
           });
           
-          // Obtener token de Firebase
-          logger.authInfo('Obteniendo token de Firebase');
-          const firebaseToken = await firebaseUser.getIdToken();
-          logger.firebaseInfo('Token de Firebase obtenido exitosamente', {
-            tokenLength: firebaseToken.length,
-            tokenPreview: firebaseToken.substring(0, 20) + '...'
-          });
-          
-          // Verificar/crear usuario en backend
-          logger.backendInfo('Iniciando verificación/creación de usuario en backend');
-          const backendResponse = await verifyBackendUser(firebaseToken, firebaseUser);
-          logger.backendInfo('Usuario verificado/creado exitosamente en backend', {
-            backendUserId: backendResponse.user.id,
-            role: backendResponse.user.role
-          });
-          
-          setUser(firebaseUser);
-          setBackendUser(backendResponse.user);
-          
-          // Guardar tokens
-          localStorage.setItem('access_token', backendResponse.accessToken);
-          localStorage.setItem('refresh_token', backendResponse.refreshToken);
-          localStorage.setItem('user', JSON.stringify(backendResponse.user));
-          
-          logger.authInfo('Tokens guardados en localStorage', {
-            hasAccessToken: !!backendResponse.accessToken,
-            hasRefreshToken: !!backendResponse.refreshToken,
-            hasUserData: !!backendResponse.user
-          });
-          
-          // Log de éxito completo
-          logger.logLoginSuccess(
-            firebaseUser.email || 'unknown',
-            firebaseUser as unknown as Record<string, unknown>,
-            backendResponse.user as unknown as Record<string, unknown>,
-            { 
-              timestamp: new Date().toISOString(),
-              sessionId: Date.now().toString()
+                     // Verificar si el token sigue siendo válido
+           try {
+             await api.get('/api/auth/profile');
+             setUser({ uid: user.id, email: user.email, displayName: user.displayName } as FirebaseUser);
+             setBackendUser(user);
+             logger.authInfo('Token válido, usuario autenticado');
+                      } catch {
+             logger.authInfo('Token expirado, intentando refresh');
+            try {
+              await refreshToken();
+              // Reintentar obtener perfil después del refresh
+              const profileResponse = await api.get('/api/auth/profile');
+              setUser({ uid: profileResponse.data.id, email: profileResponse.data.email, displayName: profileResponse.data.displayName } as FirebaseUser);
+              setBackendUser(profileResponse.data);
+              logger.authInfo('Token refrescado exitosamente');
+            } catch (refreshError) {
+              logger.authError('Error refrescando token, limpiando estado', refreshError as Error);
+              // Limpiar todo si falla el refresh
+              setUser(null);
+              setBackendUser(null);
+              localStorage.removeItem('access_token');
+              localStorage.removeItem('refresh_token');
+              localStorage.removeItem('user');
             }
-          );
-          
-        } catch (error) {
-          logger.authError('Error en proceso de autenticación', error as Error, {
-            firebaseUser: {
-              email: firebaseUser.email,
-              uid: firebaseUser.uid
-            }
-          });
-          
-          setError(error instanceof Error ? error.message : 'Error desconocido');
-          
-          // Si falla el backend, cerrar sesión de Firebase
-          logger.authInfo('Cerrando sesión de Firebase debido a error en backend');
-          await signOut(auth);
+          }
+        } else {
+          logger.authInfo('No hay usuario autenticado en localStorage');
+          setUser(null);
+          setBackendUser(null);
         }
-      } else {
-        // Usuario no autenticado
-        logger.authInfo('Usuario no autenticado, limpiando estado');
+      } catch (error) {
+        logger.authError('Error verificando estado de autenticación', error as Error);
         setUser(null);
         setBackendUser(null);
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
-    });
+    };
 
-    return unsubscribe;
-  }, []);
+    checkAuthState();
+  }, [refreshToken]);
 
   // Manejar bypass de desarrollo
   useEffect(() => {
@@ -157,103 +150,9 @@ export const useAuth = () => {
     };
   }, []);
 
-  // Verificar/crear usuario en backend
-  const verifyBackendUser = async (firebaseToken: string, firebaseUser: FirebaseUser): Promise<{ user: BackendUser } & AuthTokens> => {
-    try {
-      logger.backendInfo('Intentando login con backend', {
-        endpoint: '/api/auth/login',
-        firebaseTokenLength: firebaseToken.length,
-        userEmail: firebaseUser.email
-      });
-      
-      // Intentar login con Firebase token
-      const response = await api.post('/api/auth/login', {
-        firebaseToken,
-        email: firebaseUser.email,
-        displayName: firebaseUser.displayName,
-        photoURL: firebaseUser.photoURL
-      });
-      
-      logger.backendInfo('Login exitoso con backend', {
-        status: response.status,
-        hasAccessToken: !!response.data.accessToken,
-        hasRefreshToken: !!response.data.refreshToken,
-        hasUser: !!response.data.user
-      });
-      
-      return response.data;
-    } catch (error: unknown) {
-      const apiError = error as { response?: { status?: number; data?: { message?: string } } };
-      
-      logger.backendError('Error en login con backend', error as Error, {
-        status: apiError.response?.status,
-        errorData: apiError.response?.data,
-        firebaseUser: {
-          email: firebaseUser.email,
-          uid: firebaseUser.uid
-        }
-      });
-      
-      if (apiError.response?.status === 404) {
-        logger.backendInfo('Usuario no existe, creando nuevo usuario', {
-          endpoint: '/api/auth/create-user',
-          userEmail: firebaseUser.email
-        });
-        
-        // Usuario no existe, crear nuevo
-        const createResponse = await api.post('/api/auth/create-user', {
-          firebaseToken,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-          role: 'agent' // Rol por defecto
-        });
-        
-        logger.backendInfo('Usuario creado exitosamente', {
-          status: createResponse.status,
-          newUserId: createResponse.data.user?.id,
-          role: createResponse.data.user?.role
-        });
-        
-        return createResponse.data;
-      }
-      
-      // Manejar otros errores específicos
-      if (apiError.response?.status === 401) {
-        logger.backendError('Token de Firebase inválido o expirado', error as Error, {
-          status: 401,
-          operation: 'login'
-        });
-        throw new Error('Token de Firebase inválido o expirado');
-      }
-      
-      if (apiError.response?.status === 403) {
-        logger.backendError('Acceso denegado. Usuario no autorizado', error as Error, {
-          status: 403,
-          operation: 'login'
-        });
-        throw new Error('Acceso denegado. Usuario no autorizado');
-      }
-      
-      if (apiError.response?.status && apiError.response.status >= 500) {
-        logger.backendError('Error del servidor backend', error as Error, {
-          status: apiError.response.status,
-          operation: 'login'
-        });
-        throw new Error('Error del servidor. Intenta más tarde');
-      }
-      
-      // Error genérico
-      const errorMessage = apiError.response?.data?.message || 'Error de conexión con el backend';
-      logger.backendError('Error genérico en backend', error as Error, {
-        status: apiError.response?.status,
-        errorMessage
-      });
-      throw new Error(errorMessage);
-    }
-  };
 
-  // Login con email y password
+
+  // Login con email y password - Solo backend
   const login = useCallback(async (email: string, password: string) => {
     try {
       setError(null);
@@ -266,61 +165,70 @@ export const useAuth = () => {
         url: window.location.href
       });
       
-      logger.authInfo('Iniciando login con Firebase', { email });
+      logger.authInfo('Iniciando login con backend', { email });
       
-      // Login con Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      
-      logger.firebaseInfo('Login con Firebase exitoso', {
-        email: userCredential.user.email,
-        uid: userCredential.user.uid,
-        emailVerified: userCredential.user.emailVerified
+      // Login directo con backend
+      const response = await api.post('/api/auth/login', {
+        email,
+        password
       });
       
-      // Firebase automáticamente actualizará el estado
-      // y el useEffect se encargará del resto
+      logger.backendInfo('Login exitoso con backend', {
+        status: response.status,
+        hasAccessToken: !!response.data.accessToken,
+        hasRefreshToken: !!response.data.refreshToken,
+        hasUser: !!response.data.user
+      });
       
-      return userCredential.user;
+      // Guardar tokens y datos del usuario
+      const { accessToken, refreshToken, user } = response.data;
+      
+      localStorage.setItem('access_token', accessToken);
+      localStorage.setItem('refresh_token', refreshToken);
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      // Actualizar estado
+      setBackendUser(user);
+      setUser({ uid: user.id, email: user.email, displayName: user.displayName } as FirebaseUser);
+      
+      // Log de éxito completo
+      logger.logLoginSuccess(
+        user.email || 'unknown',
+        { uid: user.id, email: user.email } as unknown as Record<string, unknown>,
+        user as unknown as Record<string, unknown>,
+        { 
+          timestamp: new Date().toISOString(),
+          sessionId: Date.now().toString()
+        }
+      );
+      
+      return user;
     } catch (error: unknown) {
+      const apiError = error as { response?: { status?: number; data?: { message?: string } } };
       let errorMessage = 'Error en el login';
       
-      const firebaseError = error as { code?: string; message?: string };
-      
-      logger.firebaseError('Error de Firebase en login', error as Error, {
+      logger.backendError('Error en login con backend', error as Error, {
         email,
-        errorCode: firebaseError.code,
-        errorMessage: firebaseError.message
+        status: apiError.response?.status,
+        errorData: apiError.response?.data
       });
       
-      switch (firebaseError.code) {
-        case 'auth/user-not-found':
-          errorMessage = 'Usuario no encontrado';
-          break;
-        case 'auth/wrong-password':
-          errorMessage = 'Contraseña incorrecta';
-          break;
-        case 'auth/invalid-email':
-          errorMessage = 'Email inválido';
-          break;
-        case 'auth/too-many-requests':
-          errorMessage = 'Demasiados intentos. Intenta más tarde';
-          break;
-        case 'auth/user-disabled':
-          errorMessage = 'Usuario deshabilitado';
-          break;
-        case 'auth/network-request-failed':
-          errorMessage = 'Error de conexión. Verifica tu internet';
-          break;
-        case 'auth/operation-not-allowed':
-          errorMessage = 'Login con email/password no está habilitado';
-          break;
-        default:
-          errorMessage = firebaseError.message || 'Error desconocido';
+      // Manejar errores específicos del backend
+      if (apiError.response?.status === 401) {
+        errorMessage = 'Credenciales inválidas';
+      } else if (apiError.response?.status === 404) {
+        errorMessage = 'Usuario no encontrado';
+      } else if (apiError.response?.status === 403) {
+        errorMessage = 'Acceso denegado';
+      } else if (apiError.response?.status && apiError.response.status >= 500) {
+        errorMessage = 'Error del servidor. Intenta más tarde';
+      } else {
+        errorMessage = apiError.response?.data?.message || 'Error de conexión';
       }
       
       // Log del fallo de login
       logger.logLoginFailure(email, error as Error, {
-        errorCode: firebaseError.code,
+        status: apiError.response?.status,
         finalErrorMessage: errorMessage
       });
       
@@ -331,7 +239,7 @@ export const useAuth = () => {
     }
   }, []);
 
-  // Logout
+  // Logout - Solo backend
   const logout = useCallback(async () => {
     try {
       setLoading(true);
@@ -352,10 +260,9 @@ export const useAuth = () => {
         });
       }
       
-      // Logout de Firebase
-      logger.firebaseInfo('Ejecutando logout de Firebase');
-      await signOut(auth);
-      logger.firebaseInfo('Logout de Firebase exitoso');
+      // Limpiar estado local
+      setUser(null);
+      setBackendUser(null);
       
       // Limpiar localStorage
       localStorage.removeItem('access_token');
@@ -372,21 +279,19 @@ export const useAuth = () => {
     }
   }, [user, backendUser]);
 
-  // Cambiar contraseña
+  // Cambiar contraseña - Solo backend
   const changePassword = useCallback(async (newPassword: string) => {
     try {
-      if (!user) throw new Error('Usuario no autenticado');
+      if (!backendUser) throw new Error('Usuario no autenticado');
       
       logger.authInfo('Iniciando cambio de contraseña', {
-        userEmail: user.email,
+        userEmail: backendUser.email,
         hasNewPassword: !!newPassword
       });
       
-      await updatePassword(user, newPassword);
-      
-      // Actualizar en backend
+      // Cambiar contraseña en backend
       logger.backendInfo('Actualizando contraseña en backend');
-      await api.put('/api/auth/change-password', { newPassword });
+      await api.post('/api/auth/change-password', { newPassword });
       
       logger.authInfo('Contraseña cambiada exitosamente');
       
@@ -395,18 +300,18 @@ export const useAuth = () => {
       setError(error instanceof Error ? error.message : 'Error desconocido');
       throw error;
     }
-  }, [user]);
+  }, [backendUser]);
 
-  // Resetear contraseña
+  // Resetear contraseña - Solo backend
   const resetPassword = useCallback(async (email: string) => {
     try {
       logger.authInfo('Enviando email de reset de contraseña', { email });
-      await sendPasswordResetEmail(auth, email);
+      await api.post('/api/auth/reset-password', { email });
       logger.authInfo('Email de reset enviado exitosamente');
     } catch (error) {
-      logger.firebaseError('Error enviando email de reset', error as Error, {
+      logger.backendError('Error enviando email de reset', error as Error, {
         email,
-        operation: 'sendPasswordResetEmail'
+        operation: 'resetPassword'
       });
       setError(error instanceof Error ? error.message : 'Error desconocido');
       throw error;
@@ -465,6 +370,7 @@ export const useAuth = () => {
     logout,
     changePassword,
     resetPassword,
+    refreshToken,
     getProfile,
     updateProfile,
     isAuthenticated: !!user && !!backendUser
