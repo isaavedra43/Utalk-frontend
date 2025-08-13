@@ -46,38 +46,18 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [typingUsers, setTypingUsers] = useState<Map<string, Set<string>>>(new Map());
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
-  // Función para verificar si el token es válido
-  const isTokenValid = (token: string): boolean => {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const currentTime = Date.now() / 1000;
-      const isValid = payload.exp > currentTime + 300; // 5 minutos de margen
-      
-      console.log('🔐 Verificando token:', {
-        exp: payload.exp,
-        currentTime,
-        isValid,
-        expiresIn: Math.floor(payload.exp - currentTime)
-      });
-      
-      return isValid;
-    } catch (error) {
-      console.error('Error verificando token:', error);
-      return false;
-    }
-  };
-
   // Conectar automáticamente cuando hay un token válido
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (token && isTokenValid(token) && !isConnected && !connectionError) {
-      console.log('🔌 WebSocketContext - Conectando automáticamente con token válido');
-      // Agregar un pequeño delay para asegurar que la autenticación esté completa
-      setTimeout(() => {
-        connect(token);
-      }, 1000);
+    // DESHABILITADO: Conexión automática del WebSocket
+    // Solo conectar después del login manual para evitar problemas
+    console.log('🔌 WebSocketContext - Conexión automática deshabilitada - Esperar login manual');
+    
+    // Limpiar cualquier conexión residual
+    if (isConnected) {
+      console.log('🔌 WebSocketContext - Desconectando conexión residual');
+      disconnect();
     }
-  }, [isConnected, connect, connectionError]); // Incluir connectionError para evitar reconexiones en caso de error
+  }, [isConnected, connect, connectionError, disconnect]); // Incluir disconnect en dependencias
 
   // Reautenticar socket cuando se refresca el access token
   useEffect(() => {

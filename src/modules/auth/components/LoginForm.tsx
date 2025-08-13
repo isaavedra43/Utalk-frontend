@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,6 +21,14 @@ export const LoginForm: React.FC = () => {
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Limpiar localStorage al cargar el componente de login
+  useEffect(() => {
+    console.log('🧹 LoginForm - Limpiando localStorage para forzar login manual');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+  }, []);
 
   const {
     register,

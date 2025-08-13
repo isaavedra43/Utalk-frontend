@@ -74,72 +74,21 @@ export const useAuth = () => {
     const checkAuthState = async () => {
       try {
         setIsAuthenticating(true);
-        const storedUser = localStorage.getItem('user');
-        const accessToken = localStorage.getItem('access_token');
         
-        logger.authInfo('Estado de localStorage', {
-          hasStoredUser: !!storedUser,
-          hasAccessToken: !!accessToken,
-          storedUserPreview: storedUser ? JSON.parse(storedUser).email : null
-        });
+        // DESHABILITADO: Autenticación automática desde localStorage
+        // Siempre requerir login manual para evitar problemas
+        logger.authInfo('Autenticación automática deshabilitada - Requerir login manual');
         
-        if (storedUser && accessToken) {
-          const user = JSON.parse(storedUser);
-          logger.authInfo('Usuario encontrado en localStorage', {
-            userId: user.id,
-            email: user.email,
-            hasAccessToken: !!accessToken
-          });
-          
-          // Establecer usuario inmediatamente desde localStorage
-          setUser({ uid: user.id, email: user.email, displayName: user.displayName } as FirebaseUser);
-          setBackendUser(user);
-          
-          // Verificar que el token sea válido haciendo una llamada al backend
-          // PERO no fallar si hay problemas temporales de red
-          try {
-            logger.authInfo('Verificando validez del token con backend');
-            const profileResponse = await api.get('/api/auth/profile');
-            
-            // Si la llamada es exitosa, actualizar con datos del backend
-            const currentUser = profileResponse.data || user;
-            setUser({ uid: currentUser.id, email: currentUser.email, displayName: currentUser.displayName } as FirebaseUser);
-            setBackendUser(currentUser);
-            
-            // Actualizar localStorage con datos actualizados
-            localStorage.setItem('user', JSON.stringify(currentUser));
-            
-            logger.authInfo('Usuario autenticado verificado con backend', {
-              userId: currentUser.id,
-              email: currentUser.email,
-              hasProfileData: !!profileResponse.data
-            });
-          } catch (tokenError) {
-            // NO limpiar autenticación si el token es válido pero hay problemas de red
-            logger.authInfo('Problema verificando token con backend, manteniendo autenticación local', {
-              hasValidToken: !!accessToken,
-              storedUser: user.email,
-              error: (tokenError as Error).message
-            });
-            
-            // Mantener el usuario autenticado desde localStorage
-            // Solo limpiar si es un error 401 específico
-            const apiError = tokenError as { response?: { status?: number }; message?: string };
-            if (apiError?.response?.status === 401) {
-              logger.authError('Token inválido (401), limpiando autenticación', tokenError as Error);
-              clearAuth();
-            } else {
-              logger.authInfo('Manteniendo autenticación local a pesar del error de verificación', {
-                errorStatus: apiError?.response?.status,
-                errorMessage: apiError?.message
-              });
-            }
-          }
-        } else {
-          logger.authInfo('No hay usuario autenticado en localStorage');
-          setUser(null);
-          setBackendUser(null);
-        }
+        // Limpiar cualquier dato residual en localStorage
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        
+        setUser(null);
+        setBackendUser(null);
+        
+        logger.authInfo('Estado de autenticación: No autenticado (login manual requerido)');
+        
       } catch (error) {
         logger.authError('Error verificando estado de autenticación', error as Error);
         setUser(null);
