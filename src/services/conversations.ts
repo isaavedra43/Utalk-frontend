@@ -16,15 +16,25 @@ const CONVERSATIONS_API = '/api/conversations';
 export const conversationsService = {
   // Obtener lista de conversaciones
   async getConversations(filters: ConversationFilters & { page?: number; limit?: number } = {}): Promise<ConversationListResponse> {
-    const queryParams = new URLSearchParams({
+    // Construir parámetros de query omitiendo valores vacíos
+    const params: Record<string, string> = {
       page: (filters.page || 1).toString(),
       limit: (filters.limit || 50).toString(),
-      status: filters.status || 'all',
-      priority: filters.priority || '',
-      assignedTo: filters.assignedTo || '',
-      search: filters.search || ''
-    });
+      status: filters.status || 'all'
+    };
 
+    // Solo agregar parámetros si tienen valores válidos
+    if (filters.priority && filters.priority.trim() !== '') {
+      params.priority = filters.priority;
+    }
+    if (filters.assignedTo && filters.assignedTo.trim() !== '') {
+      params.assignedTo = filters.assignedTo;
+    }
+    if (filters.search && filters.search.trim() !== '') {
+      params.search = filters.search;
+    }
+
+    const queryParams = new URLSearchParams(params);
     const response = await api.get(`${CONVERSATIONS_API}?${queryParams}`);
     return response.data;
   },
