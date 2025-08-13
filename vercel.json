@@ -17,10 +17,5 @@
   ],
   "env": {
     "VITE_DEV_MODE": "false"
-  },
-  "functions": {
-    "app/api/**/*.ts": {
-      "maxDuration": 30
-    }
   }
 } 
