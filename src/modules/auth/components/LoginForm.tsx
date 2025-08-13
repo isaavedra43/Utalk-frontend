@@ -39,7 +39,13 @@ export const LoginForm: React.FC = () => {
     try {
       setIsLoading(true);
       await login(data.email, data.password);
+      
+      // Esperar un poco más para asegurar que el WebSocket se conecte
+      console.log('✅ Login exitoso, esperando conexión WebSocket...');
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
       // Redirigir al chat después del login exitoso
+      console.log('🚀 Navegando a /chat...');
       navigate('/chat');
     } catch (error) {
       console.error('Error en login:', error);

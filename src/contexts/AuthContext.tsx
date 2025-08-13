@@ -41,10 +41,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Verificar si el token es válido
         if (isTokenValid(token)) {
           console.log('🔐 AuthContext - Token válido, conectando WebSocket...');
-          // Agregar un pequeño delay para asegurar que todo esté listo
-          setTimeout(() => {
-            connectSocket(token);
-          }, 500);
+          // Conectar inmediatamente sin delay para evitar problemas de timing
+          connectSocket(token);
         } else {
           console.warn('🔐 AuthContext - Token expirado o inválido, no conectando WebSocket');
           // El token está expirado, debería refrescarse automáticamente
@@ -73,6 +71,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       window.removeEventListener('auth:authentication-failed', handleAuthFailed);
     };
   }, [disconnectSocket]);
+
+  // Escuchar evento de login exitoso para conectar WebSocket inmediatamente
+  useEffect(() => {
+    const handleLoginSuccess = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { user: unknown; accessToken: string } | undefined;
+      const accessToken = detail?.accessToken;
+      
+      if (accessToken && connectSocket && !isConnected) {
+        console.log('🔐 AuthContext - Login exitoso detectado, conectando WebSocket...');
+        connectSocket(accessToken);
+      }
+    };
+
+    window.addEventListener('auth:login-success', handleLoginSuccess as EventListener);
+    
+    return () => {
+      window.removeEventListener('auth:login-success', handleLoginSuccess as EventListener);
+    };
+  }, [connectSocket, isConnected]);
 
   return (
     <AuthContext.Provider value={auth}>

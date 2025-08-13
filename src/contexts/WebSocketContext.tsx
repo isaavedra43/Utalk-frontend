@@ -95,6 +95,22 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return () => window.removeEventListener('auth:token-refreshed', handler as unknown as EventListener);
   }, [connect, disconnect]); // Incluir dependencias necesarias
 
+  // Conectar WebSocket inmediatamente después del login exitoso
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { user: unknown; accessToken: string } | undefined;
+      const accessToken = detail?.accessToken;
+      if (!accessToken) return;
+      
+      console.log('🔌 WebSocketContext - Login exitoso, conectando WebSocket inmediatamente...');
+      // Conectar inmediatamente sin delay
+      connect(accessToken);
+    };
+
+    window.addEventListener('auth:login-success', handler as unknown as EventListener);
+    return () => window.removeEventListener('auth:login-success', handler as unknown as EventListener);
+  }, [connect]);
+
   // Configurar listeners globales
   useEffect(() => {
     if (!socket) return;

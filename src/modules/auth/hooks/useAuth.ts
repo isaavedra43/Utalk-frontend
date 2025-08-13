@@ -260,6 +260,13 @@ export const useAuth = () => {
         }
       );
       
+      // Disparar evento de login exitoso para sincronizar WebSocket
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('auth:login-success', {
+          detail: { user, accessToken }
+        }));
+      }, 100);
+      
       return user;
     } catch (error: unknown) {
       const apiError = error as { response?: { status?: number; data?: { message?: string } } };
