@@ -197,16 +197,18 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // Mostrar notificación y reconectar
     });
 
-    // Sincronización requerida
-    on('sync-required', (data: unknown) => {
-      console.log('🔄 Sincronización requerida:', data);
-      emit('sync-state', { syncId: Date.now() });
-    });
-
     // Estado sincronizado
     on('state-synced', (data: unknown) => {
-      console.log('✅ Estado sincronizado:', data);
-      // Actualizar estado global
+      console.log('✅ WebSocketContext - Estado sincronizado:', data);
+      // Emitir evento personalizado para que useConversations lo escuche
+      window.dispatchEvent(new CustomEvent('websocket:state-synced', { detail: data }));
+    });
+
+    // Sincronización requerida
+    on('sync-required', (data: unknown) => {
+      console.log('🔄 WebSocketContext - Sincronización requerida:', data);
+      // Emitir evento personalizado para que useConversations lo escuche
+      window.dispatchEvent(new CustomEvent('websocket:sync-required', { detail: data }));
     });
 
     // Respuesta de prueba

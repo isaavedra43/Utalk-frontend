@@ -1,12 +1,18 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { ConversationItem } from './ConversationItem';
+import { SyncStatus } from '../SyncStatus';
 import { useConversations } from '../../hooks/useConversations';
+import { useWebSocketContext } from '../../contexts/useWebSocketContext';
+import { useAuth } from '../../modules/auth/hooks/useAuth';
 
 export const ConversationList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  
+  const { isConnected } = useWebSocketContext();
+  const { isAuthenticated } = useAuth();
   
   const { 
     conversations, 
@@ -53,7 +59,10 @@ export const ConversationList: React.FC = () => {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="p-2 sm:p-3 border-b border-gray-200 flex-shrink-0">
-        <h2 className="text-xs sm:text-sm font-semibold text-gray-900 mb-2 sm:mb-3">Conversaciones</h2>
+        <div className="flex items-center justify-between mb-2 sm:mb-3">
+          <h2 className="text-xs sm:text-sm font-semibold text-gray-900">Conversaciones</h2>
+          <SyncStatus isConnected={isConnected} isAuthenticated={isAuthenticated} />
+        </div>
         
         {/* Search Bar */}
         <div className="relative mb-2 sm:mb-3">

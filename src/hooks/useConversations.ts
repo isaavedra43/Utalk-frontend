@@ -16,7 +16,88 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   } = useAppStore();
 
   // WebSocket context
-  const { on, off } = useWebSocketContext();
+  const { on, off, emit, isConnected } = useWebSocketContext();
+
+  // SINCRONIZACIÓN INICIAL - CRÍTICO PARA LISTA EN TIEMPO REAL
+  useEffect(() => {
+    if (isAuthenticated && !authLoading && isConnected) {
+      console.log('🔄 useConversations - Sincronizando estado inicial...');
+      emit('sync-state', { 
+        lastSync: new Date().toISOString(),
+        filters: filters
+      });
+    }
+  }, [isAuthenticated, authLoading, isConnected, emit, filters]);
+
+  // ESCUCHAR RESPUESTA DE SINCRONIZACIÓN - CRÍTICO
+  useEffect(() => {
+    const handleStateSynced = (data: unknown) => {
+      const syncData = data as { 
+        conversations: Conversation[]; 
+        messages: unknown[]; 
+        users: unknown[]; 
+        timestamp: string 
+      };
+      console.log('✅ useConversations - Estado sincronizado:', syncData);
+      
+      // Actualizar conversaciones con datos del servidor
+      if (syncData.conversations && syncData.conversations.length > 0) {
+        console.log('📋 useConversations - Actualizando conversaciones sincronizadas:', syncData.conversations.length);
+        setConversations(syncData.conversations);
+      }
+    };
+
+    // Registrar listener para sincronización
+    on('state-synced', handleStateSynced);
+
+    return () => {
+      off('state-synced');
+    };
+  }, [on, off, setConversations]);
+
+  // ESCUCHAR EVENTOS PERSONALIZADOS DE SINCRONIZACIÓN - CRÍTICO
+  useEffect(() => {
+    const handleWebSocketStateSynced = (e: CustomEvent) => {
+      const syncData = e.detail as { 
+        conversations: Conversation[]; 
+        messages: unknown[]; 
+        users: unknown[]; 
+        timestamp: string 
+      };
+      console.log('✅ useConversations - Estado sincronizado desde WebSocket:', syncData);
+      
+      // Actualizar conversaciones con datos del servidor
+      if (syncData.conversations && syncData.conversations.length > 0) {
+        console.log('📋 useConversations - Actualizando conversaciones sincronizadas:', syncData.conversations.length);
+        setConversations(syncData.conversations);
+      }
+    };
+
+    const handleWebSocketSyncRequired = (e: CustomEvent) => {
+      const syncData = e.detail as { reason: string; timestamp: string };
+      console.log('🔄 useConversations - Sincronización requerida desde WebSocket:', syncData);
+      
+      // Re-sincronizar estado
+      if (isAuthenticated && !authLoading && isConnected) {
+        console.log('🔄 useConversations - Re-sincronizando estado...');
+        emit('sync-state', { 
+          lastSync: new Date().toISOString(),
+          filters: filters,
+          reason: syncData.reason
+        });
+      }
+    };
+
+    // Registrar listeners de eventos personalizados
+    window.addEventListener('websocket:state-synced', handleWebSocketStateSynced as EventListener);
+    window.addEventListener('websocket:sync-required', handleWebSocketSyncRequired as EventListener);
+
+    return () => {
+      // Limpiar listeners
+      window.removeEventListener('websocket:state-synced', handleWebSocketStateSynced as EventListener);
+      window.removeEventListener('websocket:sync-required', handleWebSocketSyncRequired as EventListener);
+    };
+  }, [isAuthenticated, authLoading, isConnected, emit, filters, setConversations]);
 
   // Infinite Query para obtener conversaciones con paginación - solo si está autenticado
   const {
@@ -69,11 +150,11 @@ export const useConversations = (filters: ConversationFilters = {}) => {
 
   // Escuchar eventos de conversación en tiempo real - solo si está autenticado
   useEffect(() => {
-    if (!isAuthenticated || authLoading) return;
+    if (!isAuthenticated || authLoading || !isConnected) return;
 
     const handleConversationEvent = (data: unknown) => {
       const eventData = data as { conversationId: string; [key: string]: unknown };
-      console.log('💬 Evento de conversación recibido:', eventData);
+      console.log('💬 useConversations - Evento de conversación recibido:', eventData);
       
       // Actualizar conversación en el store
       updateStoreConversation(eventData.conversationId, eventData as Partial<Conversation>);
@@ -83,8 +164,8 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     };
 
     const handleNewMessage = (data: unknown) => {
-      const eventData = data as { conversationId: string; message: { content: string; timestamp: string } };
-      console.log('📨 Nuevo mensaje en conversación:', eventData);
+      const eventData = data as { conversationId: string; message: { content: string; timestamp: string; sender: string } };
+      console.log('📨 useConversations - Nuevo mensaje en conversación:', eventData);
       
       // Actualizar conversación con el último mensaje
       updateStoreConversation(eventData.conversationId, {
@@ -92,7 +173,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
           content: eventData.message.content,
           direction: 'inbound',
           messageId: `temp-${Date.now()}`,
-          sender: 'customer',
+          sender: eventData.message.sender,
           timestamp: eventData.message.timestamp
         },
         lastMessageAt: eventData.message.timestamp,
@@ -104,30 +185,55 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     };
 
     const handleMessageRead = (data: unknown) => {
-      const eventData = data as { conversationId: string; messageIds: string[] };
-      console.log('✅ Mensajes marcados como leídos:', eventData);
+      const eventData = data as { conversationId: string; messageIds: string[]; readBy: string };
+      console.log('✅ useConversations - Mensajes marcados como leídos:', eventData);
       
       // Actualizar conversación reduciendo el contador de no leídos
       const conversation = allConversations.find(c => c.id === eventData.conversationId);
       if (conversation) {
+        const newUnreadCount = Math.max(0, conversation.unreadCount - eventData.messageIds.length);
         updateStoreConversation(eventData.conversationId, {
-          unreadCount: Math.max(0, conversation.unreadCount - eventData.messageIds.length)
+          unreadCount: newUnreadCount
         });
       }
+    };
+
+    const handleConversationJoined = (data: unknown) => {
+      const eventData = data as { conversationId: string; roomId: string; onlineUsers: string[]; timestamp: string };
+      console.log('🔗 useConversations - Usuario unido a conversación:', eventData);
+      
+      // Actualizar conversación con información de actividad
+      updateStoreConversation(eventData.conversationId, {
+        updatedAt: eventData.timestamp
+      });
+    };
+
+    const handleConversationLeft = (data: unknown) => {
+      const eventData = data as { conversationId: string; timestamp: string };
+      console.log('🔌 useConversations - Usuario salió de conversación:', eventData);
+      
+      // Actualizar conversación con última actividad
+      updateStoreConversation(eventData.conversationId, {
+        updatedAt: eventData.timestamp
+      });
     };
 
     // Registrar listeners
     on('conversation-event', handleConversationEvent);
     on('new-message', handleNewMessage);
     on('message-read', handleMessageRead);
+    on('conversation-joined', handleConversationJoined);
+    on('conversation-left', handleConversationLeft);
 
     return () => {
       // Limpiar listeners
       off('conversation-event');
       off('new-message');
       off('message-read');
+      off('conversation-joined');
+      off('conversation-left');
     };
-  }, [on, off, updateStoreConversation, refetch, allConversations, isAuthenticated, authLoading]);
+  }, [on, off, updateStoreConversation, refetch, allConversations, isAuthenticated, authLoading, isConnected]);
 
   // Seleccionar automáticamente la primera conversación si no hay ninguna seleccionada - solo si está autenticado
   useEffect(() => {
