@@ -14,7 +14,8 @@ export interface Conversation {
   id: string; // conv_+5214773790184_+5214793176502
   customerName: string; // "Isra"
   customerPhone: string; // "+5214773790184"
-  status: 'open' | 'closed' | 'pending';
+  subject?: string; // Asunto de la conversación
+  status: 'open' | 'closed' | 'pending' | 'resolved';
   messageCount: number; // 22
   unreadCount: number; // 5
   participants: string[]; // ["+5214773790184", "system@utalk.local", "admin@company.com", ...]
@@ -25,8 +26,10 @@ export interface Conversation {
   lastMessageAt: string; // "11 de agosto de 2025, 4:21:25 p.m. UTC-6"
   lastMessage?: LastMessage;
   assignedTo?: string; // "admin@company.com"
+  assignedToName?: string; // "PS Pedro Sánchez"
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   tags?: string[]; // ["VIP", "Premium", "Order"]
+  metadata?: Record<string, unknown>; // Metadatos adicionales
 }
 
 export interface LastMessage {

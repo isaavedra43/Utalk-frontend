@@ -35,8 +35,28 @@ export const conversationsService = {
     return response.data;
   },
 
+  // Crear conversación
+  async createConversation(conversationData: {
+    customerPhone: string;
+    customerName: string;
+    subject?: string;
+    priority?: string;
+    tags?: string[];
+    metadata?: Record<string, unknown>;
+  }): Promise<Conversation> {
+    const response = await api.post(CONVERSATIONS_API, conversationData);
+    return response.data;
+  },
+
   // Actualizar conversación
-  async updateConversation(conversationId: string, updateData: Partial<Conversation>): Promise<Conversation> {
+  async updateConversation(conversationId: string, updateData: {
+    customerName?: string;
+    subject?: string;
+    status?: string;
+    priority?: string;
+    tags?: string[];
+    metadata?: Record<string, unknown>;
+  }): Promise<Conversation> {
     const response = await api.put(`${CONVERSATIONS_API}/${conversationId}`, updateData);
     return response.data;
   },
@@ -47,15 +67,42 @@ export const conversationsService = {
     return response.data;
   },
 
+  // Desasignar conversación
+  async unassignConversation(conversationId: string): Promise<Conversation> {
+    const response = await api.put(`${CONVERSATIONS_API}/${conversationId}/unassign`);
+    return response.data;
+  },
+
+  // Transferir conversación
+  async transferConversation(conversationId: string, targetAgentEmail: string, reason: string): Promise<Conversation> {
+    const response = await api.post(`${CONVERSATIONS_API}/${conversationId}/transfer`, {
+      targetAgentEmail,
+      reason
+    });
+    return response.data;
+  },
+
   // Cambiar estado de conversación
   async changeConversationStatus(conversationId: string, status: string): Promise<Conversation> {
     const response = await api.put(`${CONVERSATIONS_API}/${conversationId}/status`, { status });
     return response.data;
   },
 
+  // Cambiar prioridad de conversación
+  async changeConversationPriority(conversationId: string, priority: string): Promise<Conversation> {
+    const response = await api.put(`${CONVERSATIONS_API}/${conversationId}/priority`, { priority });
+    return response.data;
+  },
+
   // Marcar conversación como leída
   async markConversationAsRead(conversationId: string): Promise<Conversation> {
     const response = await api.put(`${CONVERSATIONS_API}/${conversationId}/read-all`);
+    return response.data;
+  },
+
+  // Indicar escritura
+  async indicateTyping(conversationId: string): Promise<void> {
+    const response = await api.post(`${CONVERSATIONS_API}/${conversationId}/typing`);
     return response.data;
   },
 
@@ -71,6 +118,7 @@ export const mockConversations: Conversation[] = [
     id: 'conv_+5214773790184_+5214793176502',
     customerName: 'Isra',
     customerPhone: '+5214773790184',
+    subject: 'Consulta sobre pedido #12345',
     status: 'open',
     messageCount: 22,
     unreadCount: 5,
@@ -94,8 +142,14 @@ export const mockConversations: Conversation[] = [
       timestamp: '11 de agosto de 2025, 4:21:25 p.m. UTC-6'
     },
     assignedTo: 'admin@company.com',
+    assignedToName: 'PS Pedro Sánchez',
     priority: 'medium',
-    tags: ['Order', 'VIP']
+    tags: ['Order', 'VIP'],
+    metadata: {
+      source: 'whatsapp',
+      channel: 'whatsapp',
+      language: 'es'
+    }
   },
   {
     id: 'conv_+5214775211_+5214793176502',
