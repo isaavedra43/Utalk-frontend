@@ -66,6 +66,12 @@ export const useAuth = () => {
         const storedUser = localStorage.getItem('user');
         const accessToken = localStorage.getItem('access_token');
         
+        logger.authInfo('Estado de localStorage', {
+          hasStoredUser: !!storedUser,
+          hasAccessToken: !!accessToken,
+          storedUserPreview: storedUser ? JSON.parse(storedUser).email : null
+        });
+        
         if (storedUser && accessToken) {
           const user = JSON.parse(storedUser);
           logger.authInfo('Usuario encontrado en localStorage', {
@@ -74,31 +80,10 @@ export const useAuth = () => {
             hasAccessToken: !!accessToken
           });
           
-                     // Verificar si el token sigue siendo válido
-           try {
-             await api.get('/api/auth/profile');
-             setUser({ uid: user.id, email: user.email, displayName: user.displayName } as FirebaseUser);
-             setBackendUser(user);
-             logger.authInfo('Token válido, usuario autenticado');
-                      } catch {
-             logger.authInfo('Token expirado, intentando refresh');
-            try {
-              await refreshToken();
-              // Reintentar obtener perfil después del refresh
-              const profileResponse = await api.get('/api/auth/profile');
-              setUser({ uid: profileResponse.data.id, email: profileResponse.data.email, displayName: profileResponse.data.displayName } as FirebaseUser);
-              setBackendUser(profileResponse.data);
-              logger.authInfo('Token refrescado exitosamente');
-            } catch (refreshError) {
-              logger.authError('Error refrescando token, limpiando estado', refreshError as Error);
-              // Limpiar todo si falla el refresh
-              setUser(null);
-              setBackendUser(null);
-              localStorage.removeItem('access_token');
-              localStorage.removeItem('refresh_token');
-              localStorage.removeItem('user');
-            }
-          }
+          // Establecer usuario directamente sin verificar token (el interceptor se encargará)
+          setUser({ uid: user.id, email: user.email, displayName: user.displayName } as FirebaseUser);
+          setBackendUser(user);
+          logger.authInfo('Usuario autenticado establecido desde localStorage');
         } else {
           logger.authInfo('No hay usuario autenticado en localStorage');
           setUser(null);
@@ -114,7 +99,7 @@ export const useAuth = () => {
     };
 
     checkAuthState();
-  }, [refreshToken]);
+  }, []);
 
   // Manejar bypass de desarrollo
   useEffect(() => {

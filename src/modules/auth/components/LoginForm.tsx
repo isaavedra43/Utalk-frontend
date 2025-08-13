@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Sparkles, ArrowRight, Zap } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { SocialButton } from './SocialButton';
 import { PasswordField } from './PasswordField';
 import { useAuth } from '../hooks/useAuth';
@@ -19,6 +20,7 @@ export const LoginForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const {
     register,
@@ -37,6 +39,8 @@ export const LoginForm: React.FC = () => {
     try {
       setIsLoading(true);
       await login(data.email, data.password);
+      // Redirigir al chat después del login exitoso
+      navigate('/chat');
     } catch (error) {
       console.error('Error en login:', error);
     } finally {
