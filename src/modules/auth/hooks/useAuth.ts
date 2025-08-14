@@ -25,6 +25,8 @@ export const useAuth = () => {
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
   const lastAuthStateRef = useRef<string>('');
   const clearAuthRef = useRef<(() => void) | null>(null);
+  const userRef = useRef<FirebaseUser | null>(null);
+  const backendUserRef = useRef<BackendUser | null>(null);
 
   // Refresh token automático
   const refreshToken = useCallback(async () => {
@@ -70,8 +72,10 @@ export const useAuth = () => {
     setError(null);
   }, []); // Sin dependencias para evitar re-renders
 
-  // Guardar referencia de clearAuth para evitar warnings de ESLint
+  // Guardar referencias para evitar warnings de ESLint
   clearAuthRef.current = clearAuth;
+  userRef.current = user;
+  backendUserRef.current = backendUser;
 
   // Verificar estado de autenticación desde localStorage con debounce
   useEffect(() => {
@@ -83,7 +87,7 @@ export const useAuth = () => {
     const checkAuthTimeoutRef = setTimeout(async () => {
       try {
         // Verificar si ya hay un usuario autenticado ANTES de hacer la verificación
-        const currentUser = user || backendUser;
+        const currentUser = userRef.current || backendUserRef.current;
         if (currentUser) {
           logger.authInfo('Usuario ya autenticado, saltando verificación automática');
           setHasCheckedAuth(true);
@@ -440,7 +444,7 @@ export const useAuth = () => {
         logger.authInfo('Estado de autenticación calculado', currentState);
       }
     }
-  }, [user, backendUser, isAuthenticating]); // Remover isAuthenticated para evitar ciclo
+  }, [user, backendUser, isAuthenticating, isAuthenticated]); // Incluir isAuthenticated para evitar warning
 
   return {
     user,
