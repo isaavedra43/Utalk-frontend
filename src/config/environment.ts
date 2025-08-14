@@ -8,19 +8,19 @@ export const ENV_CONFIG = {
   // Configuración de desarrollo
   DEV_MODE: import.meta.env.VITE_DEV_MODE === 'true',
   
-  // Configuración de WebSocket
-  WS_TIMEOUT: 15000, // 15 segundos
-  WS_RETRY_ATTEMPTS: 3,
-  WS_RECONNECTION_DELAY: 1000,
+  // Configuración de WebSocket - OPTIMIZADO PARA REDUCIR TIMEOUTS
+  WS_TIMEOUT: 30000, // 30 segundos para dar más tiempo al backend
+  WS_RETRY_ATTEMPTS: 5, // Más intentos de reconexión
+  WS_RECONNECTION_DELAY: 2000, // Más tiempo entre reconexiones
   
   // Configuración de autenticación
   AUTH_STORAGE_KEY: 'utalk_auth_tokens',
   REFRESH_TOKEN_KEY: 'utalk_refresh_token',
   
-  // Configuración de rate limiting
-  RATE_LIMIT_TYPING: 500,
-  RATE_LIMIT_MESSAGE: 100,
-  RATE_LIMIT_SYNC: 5000,
+  // Configuración de rate limiting - OPTIMIZADO PARA REDUCIR PETICIONES
+  RATE_LIMIT_TYPING: 1000, // Aumentado para reducir peticiones
+  RATE_LIMIT_MESSAGE: 200, // Aumentado para reducir peticiones
+  RATE_LIMIT_SYNC: 10000, // Aumentado para reducir peticiones
 } as const;
 
 // Función para validar configuración

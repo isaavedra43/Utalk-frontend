@@ -7,9 +7,9 @@ export interface JWTUserInfo {
   tenantId: string;
   userId: string | null;
   email: string | null;
-  role?: string;
-  exp?: number;
-  iat?: number;
+  role?: string | null;
+  exp?: number | null;
+  iat?: number | null;
 }
 
 /**

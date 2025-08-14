@@ -161,7 +161,7 @@ export const useChat = (conversationId: string) => {
     }
   }, [conversationId]);
 
-  // Unirse a conversación cuando se conecta con throttling
+  // Unirse a conversación cuando se conecta con throttling - OPTIMIZADO PARA EVITAR BUCLES
   useEffect(() => {
     if (isConnected && conversationId && !isJoined) {
       // Validar y sanitizar el ID de conversación
@@ -184,8 +184,8 @@ export const useChat = (conversationId: string) => {
             joinConversationThrottler
           );
           
-          // Solo cargar mensajes y conversación si no se han cargado ya
-          if (!messages.length) {
+          // Solo cargar mensajes y conversación si no se han cargado ya - EVITAR BUCLES
+          if (messages.length === 0) {
             loadMessages();
           }
           if (!conversation) {
@@ -199,7 +199,7 @@ export const useChat = (conversationId: string) => {
 
       joinOperation();
     }
-  }, [isConnected, conversationId, isJoined, messages.length, conversation, joinConversation, loadMessages, loadConversation]);
+  }, [isConnected, conversationId, isJoined, joinConversation]); // REMOVER messages.length, conversation, loadMessages, loadConversation para evitar bucles
 
   // Salir de conversación al desmontar con throttling
   useEffect(() => {

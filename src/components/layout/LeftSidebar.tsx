@@ -10,7 +10,7 @@ import { useAuthContext } from '../../contexts/useAuthContext';
 // import { useTeamNotifications } from '../../modules/team/hooks/useTeamNotifications'; // DESHABILITADO TEMPORALMENTE
 
 export const LeftSidebar: React.FC = () => {
-  const { currentModule, navigateToModule, teamData } = useAppStore();
+  const { currentModule, navigateToModule } = useAppStore();
   const { logout, backendUser } = useAuthContext();
   
   // Obtener notificaciones del equipo - DESHABILITADO TEMPORALMENTE

@@ -30,8 +30,8 @@ export const useWebSocket = () => {
       isConnectingRef.current = true;
       console.log('🔌 Iniciando conexión de socket...');
       
-      // CORREGIDO: Aumentar timeout por defecto a 20 segundos para evitar timeouts
-      const timeout = options?.timeout || 20000;
+      // OPTIMIZADO: Aumentar timeout por defecto a 30 segundos para dar más tiempo al backend
+      const timeout = options?.timeout || 30000;
       const newSocket = createSocket(token, { ...options, timeout });
       socketRef.current = newSocket;
       setSocket(newSocket);
@@ -65,14 +65,14 @@ export const useWebSocket = () => {
             clearTimeout(reconnectTimeoutRef.current);
           }
           
-          // Usar backoff exponencial para reconexión
+          // Usar backoff exponencial para reconexión - OPTIMIZADO
           const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
           console.log(`🔄 Reconexión en ${backoffDelay}ms (intento ${reconnectAttempts + 1})`);
           
           reconnectTimeoutRef.current = setTimeout(() => {
             if (token && !isConnectingRef.current) {
               setReconnectAttempts(prev => prev + 1);
-              connect(token, { timeout: 20000 }); // Usar timeout aumentado para reconexión
+              connect(token, { timeout: 30000 }); // Usar timeout aumentado para reconexión
             }
           }, backoffDelay);
         }

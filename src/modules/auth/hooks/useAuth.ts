@@ -78,13 +78,14 @@ export const useAuth = () => {
   userRef.current = user;
   backendUserRef.current = backendUser;
 
-  // Actualizar referencias cuando cambien los valores
+  // Actualizar referencias cuando cambien los valores - OPTIMIZADO PARA ESLINT
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     userRef.current = user;
     backendUserRef.current = backendUser;
-  }, [user, backendUser]);
+  }, [user, backendUser]); // Mantener dependencias para ESLint
 
-  // Verificar estado de autenticación desde localStorage - SOLO UNA VEZ
+  // Verificar estado de autenticación desde localStorage - OPTIMIZADO PARA EVITAR MÚLTIPLES PETICIONES
   useEffect(() => {
     // Solo ejecutar si NO se ha verificado y NO hay usuario autenticado
     if (hasVerifiedAuthRef.current || user || backendUser || isVerifyingAuthRef.current) {
@@ -95,7 +96,7 @@ export const useAuth = () => {
     hasVerifiedAuthRef.current = true;
     isVerifyingAuthRef.current = true;
     
-    // Verificación inmediata
+    // Verificación con debounce para evitar múltiples peticiones
     const checkAuth = async () => {
       try {
         logger.authInfo('Verificando estado de autenticación desde localStorage');
@@ -107,27 +108,32 @@ export const useAuth = () => {
         const userData = localStorage.getItem('user');
         
         if (accessToken && refreshToken && userData) {
-          // HAY DATOS DE AUTENTICACIÓN - NO LIMPIAR
-          logger.authInfo('Tokens encontrados en localStorage, verificando validez');
-          
-          try {
-            // Verificar token con backend
-            const response = await api.get('/api/auth/profile');
-            const user = response.data;
+          // HAY DATOS DE AUTENTICACIÓN - Verificar solo si no hay usuario ya establecido
+          if (!user && !backendUser) {
+            logger.authInfo('Tokens encontrados en localStorage, verificando validez');
             
-            setBackendUser(user);
-            setUser({ uid: user.id, email: user.email, displayName: user.displayName } as FirebaseUser);
-            
-            logger.authInfo('Autenticación automática exitosa desde localStorage');
-          } catch (error) {
-            logger.authError('Error verificando token, limpiando datos inválidos', error as Error);
-            // Solo limpiar si el token es realmente inválido (401)
-            if (error && typeof error === 'object' && 'response' in error) {
-              const apiError = error as { response?: { status?: number } };
-              if (apiError.response?.status === 401) {
-                clearAuthRef.current?.();
+            try {
+              // Verificar token con backend - SOLO UNA VEZ
+              const response = await api.get('/api/auth/profile');
+              const user = response.data;
+              
+              setBackendUser(user);
+              setUser({ uid: user.id, email: user.email, displayName: user.displayName } as FirebaseUser);
+              
+              logger.authInfo('Autenticación automática exitosa desde localStorage');
+            } catch (error) {
+              logger.authError('Error verificando token, limpiando datos inválidos', error as Error);
+              // Solo limpiar si el token es realmente inválido (401)
+              if (error && typeof error === 'object' && 'response' in error) {
+                const apiError = error as { response?: { status?: number } };
+                if (apiError.response?.status === 401) {
+                  clearAuthRef.current?.();
+                }
               }
             }
+          } else {
+            // Ya hay usuario establecido, no hacer petición adicional
+            logger.authInfo('Usuario ya autenticado, saltando verificación adicional');
           }
         } else {
           // NO HAY DATOS - Estado inicial
@@ -147,8 +153,12 @@ export const useAuth = () => {
       }
     };
 
-    // Ejecutar verificación inmediatamente
-    checkAuth();
+    // Ejecutar verificación con debounce para evitar múltiples peticiones simultáneas
+    const timeoutId = setTimeout(checkAuth, 100);
+    
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, []); // SIN DEPENDENCIAS - Solo se ejecuta UNA VEZ al montar el componente
 
   // Escuchar eventos de autenticación fallida
@@ -393,7 +403,7 @@ export const useAuth = () => {
     return authenticated;
   }, [user, backendUser, isAuthenticating]);
 
-  // Log del estado de autenticación solo cuando cambie realmente - OPTIMIZADO
+  // Log del estado de autenticación solo cuando cambie realmente - OPTIMIZADO PARA REDUCIR RE-RENDERS Y ESLINT
   useEffect(() => {
     const currentState = {
       hasUser: !!user,
@@ -409,12 +419,18 @@ export const useAuth = () => {
       lastAuthStateRef.current = stateKey;
       
       // Solo loggear cambios importantes, no cambios temporales durante la autenticación
-      // EVITAR LOGGING DURANTE LA VERIFICACIÓN AUTOMÁTICA
+      // EVITAR LOGGING DURANTE LA VERIFICACIÓN AUTOMÁTICA Y REDUCIR FRECUENCIA
       if (!isAuthenticating && (!!user && !!backendUser)) {
-        logger.authInfo('Estado de autenticación calculado', currentState);
+        // Debounce para evitar logs excesivos y ciclos
+        const timeoutId = setTimeout(() => {
+          logger.authInfo('Estado de autenticación calculado', currentState);
+        }, 500);
+        
+        return () => clearTimeout(timeoutId);
       }
     }
-  }, [user, backendUser, isAuthenticating]); // REMOVER isAuthenticated para evitar ciclos
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, backendUser, isAuthenticating]); // REMOVER isAuthenticated para evitar ciclos - ESLint ignorado intencionalmente
 
   return {
     user,

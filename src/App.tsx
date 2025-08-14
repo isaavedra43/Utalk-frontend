@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { WebSocketProvider } from './contexts/WebSocketContext'
@@ -9,7 +9,7 @@ import { MainLayout } from './components/layout/MainLayout'
 // import { DebugPanel } from './components/DebugPanel' // DEBUGPANEL DESHABILITADO TEMPORALMENTE
 
 
-import { logger } from './utils/logger'
+// import { logger } from './utils/logger' // DESHABILITADO - No se usa
 import { useAppStore } from './stores/useAppStore'
 import { useAuth } from './modules/auth/hooks/useAuth'
 
