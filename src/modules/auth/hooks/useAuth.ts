@@ -24,6 +24,7 @@ export const useAuth = () => {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
   const lastAuthStateRef = useRef<string>('');
+  const clearAuthRef = useRef<(() => void) | null>(null);
 
   // Refresh token automático
   const refreshToken = useCallback(async () => {
@@ -69,6 +70,9 @@ export const useAuth = () => {
     setError(null);
   }, []); // Sin dependencias para evitar re-renders
 
+  // Guardar referencia de clearAuth para evitar warnings de ESLint
+  clearAuthRef.current = clearAuth;
+
   // Verificar estado de autenticación desde localStorage con debounce
   useEffect(() => {
     if (hasCheckedAuth) {
@@ -106,7 +110,7 @@ export const useAuth = () => {
             if (error && typeof error === 'object' && 'response' in error) {
               const apiError = error as { response?: { status?: number } };
               if (apiError.response?.status === 401) {
-                clearAuth();
+                clearAuthRef.current?.();
               }
             }
           }
@@ -137,7 +141,7 @@ export const useAuth = () => {
   useEffect(() => {
     const handleAuthFailed = () => {
       logger.authInfo('Evento de autenticación fallida recibido');
-      clearAuth();
+      clearAuthRef.current?.();
     };
 
     window.addEventListener('auth:authentication-failed', handleAuthFailed);
@@ -145,7 +149,7 @@ export const useAuth = () => {
     return () => {
       window.removeEventListener('auth:authentication-failed', handleAuthFailed);
     };
-  }, []); // clearAuth es estable (useCallback sin dependencias)
+  }, []); // Usar referencia para evitar warnings de ESLint
 
   // Manejar bypass de desarrollo
   useEffect(() => {
@@ -307,7 +311,7 @@ export const useAuth = () => {
       }
       
       // Limpiar estado local
-      clearAuth();
+      clearAuthRef.current?.();
       
       logger.authInfo('Logout completado, localStorage limpiado');
       
