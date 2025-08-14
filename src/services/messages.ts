@@ -3,7 +3,8 @@ import type { Message, MessageInputData } from '../types';
 import { encodeConversationIdForUrl } from '../utils/conversationUtils';
 
 // Configuración de la API
-const MESSAGES_API = '/api/conversations';
+const MESSAGES_API = '/api/messages';
+const CONVERSATIONS_API = '/api/conversations';
 
 export const messagesService = {
   // Obtener mensajes de una conversación
@@ -14,17 +15,16 @@ export const messagesService = {
     after?: string;
   } = {}): Promise<{ messages: Message[]; hasMore: boolean; cursor?: string }> {
     const queryParams = new URLSearchParams({
+      conversationId: conversationId, // El backend espera conversationId como query parameter
       limit: params.limit?.toString() || '50',
       ...(params.cursor && { cursor: params.cursor }),
       ...(params.before && { before: params.before }),
       ...(params.after && { after: params.after })
     });
 
-    // SOLUCIÓN CRÍTICA: Codificar el ID de conversación para preservar los +
-    const encodedConversationId = encodeConversationIdForUrl(conversationId);
-    
-    // Usar el endpoint correcto: /api/conversations/:id/messages
-    const response = await api.get(`${MESSAGES_API}/${encodedConversationId}/messages?${queryParams}`);
+    // SOLUCIÓN CRÍTICA: Usar el endpoint correcto según el backend
+    // Backend espera: GET /api/messages?conversationId={conversationId}&limit=50
+    const response = await api.get(`${MESSAGES_API}?${queryParams}`);
     return response.data;
   },
 
@@ -33,7 +33,8 @@ export const messagesService = {
     // SOLUCIÓN CRÍTICA: Codificar el ID de conversación para preservar los +
     const encodedConversationId = encodeConversationIdForUrl(conversationId);
     
-    const response = await api.post(`${MESSAGES_API}/${encodedConversationId}/messages`, messageData);
+    // Backend espera: POST /api/conversations/{conversationId}/messages
+    const response = await api.post(`${CONVERSATIONS_API}/${encodedConversationId}/messages`, messageData);
     return response.data;
   },
 
@@ -42,7 +43,8 @@ export const messagesService = {
     // SOLUCIÓN CRÍTICA: Codificar el ID de conversación para preservar los +
     const encodedConversationId = encodeConversationIdForUrl(conversationId);
     
-    const response = await api.put(`${MESSAGES_API}/${encodedConversationId}/messages/${messageId}/read`, {
+    // Backend espera: PUT /api/conversations/{conversationId}/messages/{messageId}/read
+    const response = await api.put(`${CONVERSATIONS_API}/${encodedConversationId}/messages/${messageId}/read`, {
       readAt: new Date().toISOString()
     });
     return response.data;
@@ -53,7 +55,8 @@ export const messagesService = {
     // SOLUCIÓN CRÍTICA: Codificar el ID de conversación para preservar los +
     const encodedConversationId = encodeConversationIdForUrl(conversationId);
     
-    await api.delete(`${MESSAGES_API}/${encodedConversationId}/messages/${messageId}`);
+    // Backend espera: DELETE /api/conversations/{conversationId}/messages/{messageId}
+    await api.delete(`${CONVERSATIONS_API}/${encodedConversationId}/messages/${messageId}`);
   },
 
   // Enviar ubicación
