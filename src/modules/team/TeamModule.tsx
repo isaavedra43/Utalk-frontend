@@ -1,4 +1,4 @@
-import React, { useEffect, lazy, Suspense } from 'react';
+import React, { useEffect, lazy, Suspense, useState } from 'react';
 import { useAppStore } from '../../stores/useAppStore';
 import { useTeam } from './hooks/useTeam';
 import { logger } from '../../utils/logger';
@@ -10,9 +10,13 @@ const TeamMemberDetails = lazy(() => import('./components/TeamMemberDetails'));
 const PermissionsPanel = lazy(() => import('./components/PermissionsPanel'));
 const CoachingPanel = lazy(() => import('./components/CoachingPanel'));
 const SuggestedPlan = lazy(() => import('./components/SuggestedPlan'));
+const CreateAgentModal = lazy(() => import('./components/CreateAgentModal'));
 
 const TeamModule: React.FC = () => {
   const { setCurrentModule } = useAppStore();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  
   const { 
     members, 
     selectedMember, 
@@ -36,6 +40,22 @@ const TeamModule: React.FC = () => {
       inactiveMembers
     });
   }, [setCurrentModule, totalMembers, activeMembers, inactiveMembers]);
+
+  const handleCreateAgent = (agentData: {
+    name: string;
+    email: string;
+    password: string;
+    permissions: { read: boolean; write: boolean; approve: boolean; configure: boolean };
+  }) => {
+    // TODO: Implementar creación de agente
+    console.log('Creando agente:', agentData);
+    logger.systemInfo('Creating new agent', { agentData });
+    setIsCreateModalOpen(false);
+  };
+
+  const handleSearchChange = (term: string) => {
+    setSearchTerm(term);
+  };
 
   // Componente de loading para lazy components
   const LoadingSpinner = () => (
@@ -97,6 +117,8 @@ const TeamModule: React.FC = () => {
                 totalMembers={totalMembers}
                 activeMembers={activeMembers}
                 inactiveMembers={inactiveMembers}
+                onCreateAgent={() => setIsCreateModalOpen(true)}
+                onSearchChange={handleSearchChange}
               />
             </Suspense>
           </div>
@@ -109,6 +131,7 @@ const TeamModule: React.FC = () => {
               totalMembers={totalMembers}
               activeMembers={activeMembers}
               inactiveMembers={inactiveMembers}
+              searchTerm={searchTerm}
             />
           </Suspense>
         </div>
@@ -172,6 +195,15 @@ const TeamModule: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Modal para crear nuevo agente */}
+      <Suspense fallback={<LoadingSpinner />}>
+        <CreateAgentModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onSubmit={handleCreateAgent}
+        />
+      </Suspense>
     </div>
   );
 };
