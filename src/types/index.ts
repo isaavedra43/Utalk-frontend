@@ -132,8 +132,12 @@ export interface AppState {
   loading: boolean;
   error: string | null;
   // NUEVO: Estado de navegación entre módulos
-  currentModule: 'auth' | 'chat' | 'contacts' | 'analytics' | 'settings' | 'dashboard';
+  currentModule: 'auth' | 'chat' | 'contacts' | 'agents' | 'analytics' | 'settings' | 'dashboard' | 'docs' | 'automation' | 'support' | 'notifications' | 'calendar';
   moduleHistory: string[]; // Para navegación hacia atrás
+  // NUEVO: Estado del dashboard
+  dashboardData: DashboardData | null;
+  dashboardLoading: boolean;
+  dashboardError: string | null;
 }
 
 // Tipos de filtros
@@ -171,7 +175,15 @@ export interface SocketEvents {
   'user-offline': (data: { userId: string }) => void;
   'conversation-event': (data: Partial<Conversation>) => void;
   'message-read': (data: { conversationId: string; messageIds: string[] }) => void;
+  // NUEVO: Eventos del dashboard
+  'dashboard-update': (data: DashboardUpdate) => void;
 }
 
 // Re-exportar tipos de sidebar
 export * from './sidebar';
+
+// Re-exportar tipos del dashboard
+export * from './dashboard';
+
+// Importar tipos del dashboard para uso en este archivo
+import type { DashboardData, DashboardUpdate } from './dashboard';

@@ -6,4 +6,7 @@ export { ChatArea } from '../components/chat/ChatArea';
 export { ConversationList } from '../components/chat/ConversationList';
 
 // Exportar módulo de autenticación
-export { AuthModule } from './auth'; 
+export { AuthModule } from './auth';
+
+// Exportar módulo de dashboard
+export { DashboardModule } from './dashboard'; 

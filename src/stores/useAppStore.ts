@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { AppState, User, Conversation, Message, Contact } from '../types';
+import type { AppState, User, Conversation, Message, Contact, DashboardData, DashboardUpdate } from '../types';
 
 interface AppStore extends AppState {
   // Actions
@@ -22,6 +22,12 @@ interface AppStore extends AppState {
   setCurrentModule: (module: string) => void;
   navigateToModule: (module: string) => void;
   goBack: () => void;
+  // NUEVAS acciones del dashboard
+  setDashboardData: (data: DashboardData | null) => void;
+  updateDashboardData: (update: DashboardUpdate) => void;
+  setDashboardLoading: (loading: boolean) => void;
+  setDashboardError: (error: string | null) => void;
+  refreshDashboard: () => void;
 }
 
 const initialState: AppState = {
@@ -35,6 +41,10 @@ const initialState: AppState = {
   // NUEVO: Estado inicial de navegación
   currentModule: 'chat',
   moduleHistory: [],
+  // NUEVO: Estado inicial del dashboard
+  dashboardData: null,
+  dashboardLoading: false,
+  dashboardError: null,
 };
 
 export const useAppStore = create<AppStore>()(
@@ -121,6 +131,37 @@ export const useAppStore = create<AppStore>()(
           };
         }
         return state;
+      }),
+
+      // NUEVAS acciones del dashboard
+      setDashboardData: (data) => set({ 
+        dashboardData: data,
+        dashboardLoading: false,
+        dashboardError: null 
+      }),
+
+      updateDashboardData: (update) => set((state) => {
+        if (!state.dashboardData) return state;
+        
+        return {
+          dashboardData: {
+            ...state.dashboardData,
+            ...update.data,
+            lastUpdated: update.timestamp
+          }
+        };
+      }),
+
+      setDashboardLoading: (loading) => set({ dashboardLoading: loading }),
+
+      setDashboardError: (error) => set({ 
+        dashboardError: error,
+        dashboardLoading: false 
+      }),
+
+      refreshDashboard: () => set({
+        dashboardLoading: true,
+        dashboardError: null
       }),
     }),
     {
