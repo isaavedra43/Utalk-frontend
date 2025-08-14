@@ -1,18 +1,16 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Search } from 'lucide-react';
+import { Search, MessageSquare } from 'lucide-react';
 import { ConversationItem } from './ConversationItem';
-import { SyncStatus } from '../SyncStatus';
+
 import { useConversations } from '../../hooks/useConversations';
-import { useWebSocketContext } from '../../contexts/useWebSocketContext';
-import { useAuth } from '../../modules/auth/hooks/useAuth';
+
 
 export const ConversationList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   
-  const { isConnected } = useWebSocketContext();
-  const { isAuthenticated } = useAuth();
+
   
   const { 
     conversations, 
@@ -56,12 +54,11 @@ export const ConversationList: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="p-2 sm:p-3 border-b border-gray-200 flex-shrink-0">
         <div className="flex items-center justify-between mb-2 sm:mb-3">
           <h2 className="text-xs sm:text-sm font-semibold text-gray-900">Conversaciones</h2>
-          <SyncStatus isConnected={isConnected} isAuthenticated={isAuthenticated} />
         </div>
         
         {/* Search Bar */}
@@ -97,7 +94,7 @@ export const ConversationList: React.FC = () => {
       {/* Conversations List with Infinite Scroll */}
       <div 
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto"
+        className="flex-1 overflow-y-auto min-h-0"
       >
         {isLoading ? (
           <div className="p-2 sm:p-3">
@@ -123,27 +120,26 @@ export const ConversationList: React.FC = () => {
                 onClick={() => selectConversation(conversation.id)}
               />
             ))}
-            
-            {/* Loading indicator for infinite scroll */}
-            {isFetchingNextPage && (
-              <div className="p-2 sm:p-3 text-center">
-                <div className="inline-flex items-center space-x-2 sm:space-x-3">
-                  <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-xs sm:text-sm text-gray-500">Cargando más conversaciones...</span>
-                </div>
-              </div>
-            )}
-            
-            {/* End of list indicator */}
-            {!hasNextPage && conversations.length > 0 && (
-              <div className="p-2 sm:p-3 text-center">
-                <span className="text-xs sm:text-sm text-gray-400">No hay más conversaciones</span>
-              </div>
-            )}
           </div>
         ) : (
-          <div className="p-2 sm:p-3 text-center text-gray-500">
-            <p className="text-xs sm:text-sm">No se encontraron conversaciones</p>
+          <div className="flex items-center justify-center h-full p-4">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                <MessageSquare className="w-6 h-6 text-gray-400" />
+              </div>
+              <p className="text-sm text-gray-500">No hay conversaciones</p>
+              <p className="text-xs text-gray-400 mt-1">Las conversaciones aparecerán aquí</p>
+            </div>
+          </div>
+        )}
+
+        {/* Indicador de carga más conversaciones */}
+        {isFetchingNextPage && (
+          <div className="flex justify-center p-4">
+            <div className="inline-flex items-center space-x-2">
+              <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-xs text-gray-500">Cargando más...</span>
+            </div>
           </div>
         )}
       </div>

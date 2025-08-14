@@ -18,3 +18,10 @@ export { Tooltip, MetricTooltip, AgentTooltip } from './Tooltip';
 
 // Componentes de testing (solo en desarrollo)
 export { DashboardTestingPanel } from './DashboardTestingPanel';
+
+// Nuevos componentes del dashboard
+export { SentimentAnalysis } from './SentimentAnalysis';
+export { TopicsAndAlerts } from './TopicsAndAlerts';
+export { ActivityCalendar } from './ActivityCalendar';
+export { AIInsights } from './AIInsights';
+export { DailyMessages } from './DailyMessages';

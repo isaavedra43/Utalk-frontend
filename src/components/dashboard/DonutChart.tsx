@@ -1,130 +1,70 @@
-import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import type { SentimentDistribution } from '../../types/dashboard';
+import React, { memo } from 'react';
 
-interface DonutChartProps {
-  data: SentimentDistribution;
-  size?: number;
-  showLegend?: boolean;
-  showTooltip?: boolean;
+interface DonutChartData {
+  name: string;
+  value: number;
+  color: string;
 }
 
-export const DonutChart: React.FC<DonutChartProps> = ({
-  data,
-  size = 200,
-  showLegend = true,
-  showTooltip = true
-}) => {
-  // Transformar datos para recharts
-  const chartData = [
-    {
-      name: 'Positivo',
-      value: data.positive.count,
-      percentage: data.positive.percentage,
-      color: data.positive.color,
-      icon: data.positive.icon
-    },
-    {
-      name: 'Neutro',
-      value: data.neutral.count,
-      percentage: data.neutral.percentage,
-      color: data.neutral.color,
-      icon: data.neutral.icon
-    },
-    {
-      name: 'Negativo',
-      value: data.negative.count,
-      percentage: data.negative.percentage,
-      color: data.negative.color,
-      icon: data.negative.icon
-    }
-  ];
+interface DonutChartProps {
+  data: DonutChartData[];
+}
 
-  const COLORS = [data.positive.color, data.neutral.color, data.negative.color];
+export const DonutChart = memo<DonutChartProps>(({ data }) => {
+  const total = data.reduce((sum, item) => sum + item.value, 0);
+  let currentAngle = 0;
 
-  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; payload: { icon: string; percentage: number } }> }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0];
-      return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <div className="flex items-center space-x-2 mb-2">
-            <span className="text-2xl">{data.payload.icon}</span>
-            <span className="font-semibold text-gray-900">{data.name}</span>
-          </div>
-          <p className="text-sm text-gray-600">
-            <span className="font-medium">{data.value}</span> mensajes
-          </p>
-          <p className="text-sm text-gray-500">
-            {data.payload.percentage.toFixed(1)}% del total
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const CustomLegend = ({ payload }: { payload: Array<{ value: string; color: string; payload: { icon: string; value: number; percentage: number } }> }) => {
-    return (
-      <div className="flex flex-col space-y-3 mt-4">
-        {payload.map((entry, index: number) => (
-          <div key={`legend-${index}`} className="flex items-center space-x-3">
-            <div 
-              className="w-4 h-4 rounded-full"
-              style={{ backgroundColor: entry.color }}
-            />
-            <div className="flex items-center space-x-2">
-              <span className="text-lg">{entry.payload.icon}</span>
-              <span className="text-sm font-medium text-gray-700">
-                {entry.value}
-              </span>
-            </div>
-            <div className="flex-1 text-right">
-              <span className="text-sm text-gray-600">
-                {entry.payload.value} mensajes
-              </span>
-              <span className="text-sm text-gray-500 ml-2">
-                ({entry.payload.percentage.toFixed(1)}%)
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+  const createArc = (startAngle: number, endAngle: number, radius: number) => {
+    const startRad = (startAngle - 90) * (Math.PI / 180);
+    const endRad = (endAngle - 90) * (Math.PI / 180);
+    
+    const x1 = Math.cos(startRad) * radius;
+    const y1 = Math.sin(startRad) * radius;
+    const x2 = Math.cos(endRad) * radius;
+    const y2 = Math.sin(endRad) * radius;
+    
+    const largeArcFlag = endAngle - startAngle <= 180 ? 0 : 1;
+    
+    return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`;
   };
 
   return (
-    <div className="w-full">
-      <ResponsiveContainer width="100%" height={size}>
-        <PieChart>
-          <Pie
-            data={chartData}
-            cx="50%"
-            cy="50%"
-            innerRadius={size * 0.3}
-            outerRadius={size * 0.4}
-            paddingAngle={2}
-            dataKey="value"
-          >
-            {chartData.map((_, index) => (
-              <Cell 
-                key={`cell-${index}`} 
-                fill={COLORS[index % COLORS.length]}
-                stroke="white"
-                strokeWidth={2}
-              />
-            ))}
-          </Pie>
-          {showTooltip && <Tooltip content={<CustomTooltip />} />}
-        </PieChart>
-      </ResponsiveContainer>
+    <div className="relative">
+      <svg width="200" height="200" viewBox="-100 -100 200 200" className="transform -rotate-90">
+        {data.map((item, index) => {
+          const percentage = (item.value / total) * 100;
+          const startAngle = currentAngle;
+          const endAngle = currentAngle + (percentage * 360) / 100;
+          
+          const outerRadius = 80;
+          const innerRadius = 50;
+          
+          const path = createArc(startAngle, endAngle, outerRadius);
+          
+          currentAngle = endAngle;
+          
+          return (
+            <path
+              key={index}
+              d={path}
+              fill="none"
+              stroke={item.color}
+              strokeWidth={outerRadius - innerRadius}
+              strokeLinecap="round"
+            />
+          );
+        })}
+      </svg>
       
-      {showLegend && (
-        <CustomLegend payload={chartData.map((item, index) => ({
-          value: item.name,
-          color: COLORS[index],
-          payload: item
-        }))} />
-      )}
+      {/* Centro del donut */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-2xl font-bold text-gray-900">{total}%</div>
+          <div className="text-sm text-gray-600">Total</div>
+        </div>
+      </div>
     </div>
   );
-}; 
+});
+
+DonutChart.displayName = 'DonutChart'; 

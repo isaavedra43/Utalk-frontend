@@ -7,7 +7,7 @@ export const ChannelsColumn: React.FC = () => {
   const { stats } = useConversations();
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header - Canales */}
       <div className="p-3 sm:p-4 border-b border-gray-200 flex-shrink-0">
         <h2 className="text-sm sm:text-base font-semibold text-gray-900 mb-2 sm:mb-3">Canales</h2>
@@ -26,7 +26,7 @@ export const ChannelsColumn: React.FC = () => {
       </div>
 
       {/* Navegación con Badges */}
-      <div className="flex-1 p-3 sm:p-4 space-y-1 sm:space-y-2 overflow-y-auto">
+      <div className="flex-1 p-3 sm:p-4 space-y-1 sm:space-y-2 overflow-y-auto min-h-0">
         {/* Asignados a ti */}
         <div className="flex items-center justify-between p-2 sm:p-2.5 rounded-md hover:bg-gray-100 cursor-pointer transition-colors">
           <div className="flex items-center gap-2 sm:gap-3">

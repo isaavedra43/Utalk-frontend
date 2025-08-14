@@ -4,7 +4,7 @@ import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { ChatHeader } from './ChatHeader';
 import { TypingIndicator } from './TypingIndicator';
-import { ConversationStatus } from '../ConversationStatus';
+
 import type { Conversation as ConversationType, Message as MessageType } from '../../types/index';
 import './ChatComponent.css';
 
@@ -210,16 +210,6 @@ export const ChatComponent = ({ conversationId }: { conversationId: string }) =>
   return (
     <div className="chat-container">
       <ChatHeader conversation={convertConversation(conversation)} />
-      
-      {/* Estado de la conversación */}
-      <div className="p-2 border-b border-gray-200">
-        <ConversationStatus
-          isConnected={isConnected}
-          isJoined={isJoined}
-          loading={loading}
-          error={error}
-        />
-      </div>
       
       <div className="chat-messages">
         <MessageList 

@@ -27,27 +27,31 @@ const KPICard = memo<{
       description={description}
       trend={`${isPositive ? '+' : ''}${trend.toFixed(1)}%`}
     >
-      <div className={`bg-white rounded-xl border ${borderColor} p-6 hover:shadow-lg transition-all duration-200 cursor-pointer`}>
-        <div className="flex items-center justify-between mb-4">
-          <div className={`w-12 h-12 ${bgColor} rounded-lg flex items-center justify-center`}>
-            <span className="text-2xl">{icon}</span>
+      <div className={`bg-white rounded-xl border ${borderColor} p-4 hover:shadow-lg transition-all duration-200 cursor-pointer h-44 flex flex-col justify-between overflow-hidden`}>
+        {/* Header con icono y tendencia */}
+        <div className="flex items-center justify-between mb-3">
+          <div className={`w-10 h-10 ${bgColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
+            <span className="text-xl">{icon}</span>
           </div>
-          <div className={`flex items-center space-x-1 ${trendColor}`}>
+          <div className={`flex items-center space-x-1 ${trendColor} flex-shrink-0`}>
             {isPositive ? (
-              <TrendingUp className="w-4 h-4" />
+              <TrendingUp className="w-3 h-3" />
             ) : (
-              <TrendingDown className="w-4 h-4" />
+              <TrendingDown className="w-3 h-3" />
             )}
-            <span className="text-sm font-medium">
+            <span className="text-xs font-medium">
               {isPositive ? '+' : ''}{trend.toFixed(1)}%
             </span>
           </div>
         </div>
 
-        <div className="space-y-1">
-          <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
-          <p className="text-sm text-gray-600">{description}</p>
-          <p className="text-xs text-gray-500">Anterior: {previousValue}</p>
+        {/* Contenido principal */}
+        <div className="flex-1 flex flex-col justify-between min-h-0">
+          <div className="space-y-2 min-h-0">
+            <h3 className="text-xl font-bold text-gray-900 leading-tight truncate">{value}</h3>
+            <p className="text-xs text-gray-600 leading-tight line-clamp-2 overflow-hidden">{description}</p>
+          </div>
+          <p className="text-xs text-gray-500 mt-2 pt-1 border-t border-gray-100 truncate">Anterior: {previousValue}</p>
         </div>
       </div>
     </MetricTooltip>
@@ -81,17 +85,17 @@ export const KPICards = memo<KPICardsProps>(({ metrics }) => {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map(({ key, title, metric }) => (
-                 <KPICard
-           key={key}
-           title={title}
-           value={metric.value}
-           description={metric.description}
-           trend={metric.trend}
-           previousValue={metric.previousValue}
-           icon={metric.icon}
-         />
+        <KPICard
+          key={key}
+          title={title}
+          value={metric.value}
+          description={metric.description}
+          trend={metric.trend}
+          previousValue={metric.previousValue}
+          icon={metric.icon}
+        />
       ))}
     </div>
   );
