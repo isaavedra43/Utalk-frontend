@@ -18,15 +18,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       userEmail: auth.backendUser?.email || auth.user?.email
     });
 
-    // DESHABILITADO: Conexión automática del WebSocket
-    // Solo conectar después del login manual para evitar problemas
-    if (auth.isAuthenticated && auth.backendUser && !auth.loading) {
-      console.log('🔐 AuthContext - Usuario autenticado, pero conexión WebSocket deshabilitada - Esperar login manual');
-    } else if (disconnectSocket && isConnected && (!auth.isAuthenticated || !auth.backendUser)) {
+    // SOLO desconectar WebSocket si realmente no está autenticado
+    if (disconnectSocket && isConnected && !auth.isAuthenticated && !auth.loading) {
       console.log('🔐 AuthContext - Desconectando WebSocket (usuario no autenticado)');
       disconnectSocket();
     }
-  }, [auth.isAuthenticated, auth.backendUser, auth.loading, connectSocket, disconnectSocket, isConnected, auth.user?.email]);
+  }, [auth.isAuthenticated, auth.backendUser, auth.loading, disconnectSocket, isConnected]);
 
   // Escuchar eventos de autenticación fallida para desconectar WebSocket
   useEffect(() => {

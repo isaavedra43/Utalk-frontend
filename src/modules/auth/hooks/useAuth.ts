@@ -22,6 +22,7 @@ export const useAuth = () => {
   const [error, setError] = useState<string | null>(null);
   const [backendUser, setBackendUser] = useState<BackendUser | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   // Refresh token automático
   const refreshToken = useCallback(async () => {
@@ -65,29 +66,50 @@ export const useAuth = () => {
     setUser(null);
     setBackendUser(null);
     setError(null);
-  }, []);
+  }, []); // ← Sin dependencias para evitar re-renders
 
   // Verificar estado de autenticación desde localStorage
   useEffect(() => {
+    if (hasCheckedAuth) {
+      return; // Ya se verificó, no ejecutar de nuevo
+    }
+    
     logger.authInfo('Verificando estado de autenticación desde localStorage');
     
     const checkAuthState = async () => {
       try {
         setIsAuthenticating(true);
+        setHasCheckedAuth(true); // Marcar como verificado
         
-        // DESHABILITADO: Autenticación automática desde localStorage
-        // Siempre requerir login manual para evitar problemas
-        logger.authInfo('Autenticación automática deshabilitada - Requerir login manual');
+        // Verificar si hay tokens válidos en localStorage
+        const accessToken = localStorage.getItem('access_token');
+        const refreshToken = localStorage.getItem('refresh_token');
+        const userData = localStorage.getItem('user');
         
-        // Limpiar cualquier dato residual en localStorage
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
-        
-        setUser(null);
-        setBackendUser(null);
-        
-        logger.authInfo('Estado de autenticación: No autenticado (login manual requerido)');
+        if (accessToken && refreshToken && userData) {
+          // HAY DATOS DE AUTENTICACIÓN - NO LIMPIAR
+          logger.authInfo('Tokens encontrados en localStorage, verificando validez');
+          
+          try {
+            // Verificar token con backend
+            const response = await api.get('/api/auth/profile');
+            const user = response.data;
+            
+            setBackendUser(user);
+            setUser({ uid: user.id, email: user.email, displayName: user.displayName } as FirebaseUser);
+            
+            logger.authInfo('Autenticación automática exitosa desde localStorage');
+          } catch (error) {
+            logger.authError('Error verificando token, limpiando datos inválidos', error as Error);
+            // Solo limpiar si el token es inválido
+            clearAuth();
+          }
+        } else {
+          // NO HAY DATOS - Estado inicial
+          logger.authInfo('No hay datos de autenticación en localStorage');
+          setUser(null);
+          setBackendUser(null);
+        }
         
       } catch (error) {
         logger.authError('Error verificando estado de autenticación', error as Error);
@@ -100,7 +122,7 @@ export const useAuth = () => {
     };
 
     checkAuthState();
-  }, [clearAuth]);
+  }, [hasCheckedAuth]); // Solo depende de hasCheckedAuth
 
   // Escuchar eventos de autenticación fallida
   useEffect(() => {
