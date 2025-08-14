@@ -27,6 +27,7 @@ export const useAuth = () => {
   const userRef = useRef<FirebaseUser | null>(null);
   const backendUserRef = useRef<BackendUser | null>(null);
   const hasVerifiedAuthRef = useRef<boolean>(false);
+  const isVerifyingAuthRef = useRef<boolean>(false);
 
   // Refresh token automático
   const refreshToken = useCallback(async () => {
@@ -86,12 +87,13 @@ export const useAuth = () => {
   // Verificar estado de autenticación desde localStorage - SOLO UNA VEZ
   useEffect(() => {
     // Solo ejecutar si NO se ha verificado y NO hay usuario autenticado
-    if (hasVerifiedAuthRef.current || user || backendUser) {
+    if (hasVerifiedAuthRef.current || user || backendUser || isVerifyingAuthRef.current) {
       return;
     }
     
     // Marcar como verificado inmediatamente para evitar re-ejecuciones
     hasVerifiedAuthRef.current = true;
+    isVerifyingAuthRef.current = true;
     
     // Verificación inmediata
     const checkAuth = async () => {
@@ -141,6 +143,7 @@ export const useAuth = () => {
       } finally {
         setLoading(false);
         setIsAuthenticating(false);
+        isVerifyingAuthRef.current = false; // Resetear flag de verificación
       }
     };
 
@@ -390,7 +393,7 @@ export const useAuth = () => {
     return authenticated;
   }, [user, backendUser, isAuthenticating]);
 
-  // Log del estado de autenticación solo cuando cambie realmente
+  // Log del estado de autenticación solo cuando cambie realmente - OPTIMIZADO
   useEffect(() => {
     const currentState = {
       hasUser: !!user,
@@ -406,11 +409,12 @@ export const useAuth = () => {
       lastAuthStateRef.current = stateKey;
       
       // Solo loggear cambios importantes, no cambios temporales durante la autenticación
-      if (!isAuthenticating || (!!user && !!backendUser)) {
+      // EVITAR LOGGING DURANTE LA VERIFICACIÓN AUTOMÁTICA
+      if (!isAuthenticating && (!!user && !!backendUser)) {
         logger.authInfo('Estado de autenticación calculado', currentState);
       }
     }
-  }, [user, backendUser, isAuthenticating, isAuthenticated]); // Incluir isAuthenticated para logging completo
+  }, [user, backendUser, isAuthenticating]); // REMOVER isAuthenticated para evitar ciclos
 
   return {
     user,
