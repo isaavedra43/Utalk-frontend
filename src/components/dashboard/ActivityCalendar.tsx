@@ -1,4 +1,4 @@
-import React, { memo, useState } from 'react';
+import { memo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface DayData {

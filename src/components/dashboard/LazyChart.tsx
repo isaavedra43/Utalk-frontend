@@ -59,11 +59,15 @@ export const LazyChart: React.FC<LazyChartProps> = ({
     switch (type) {
       case 'donut':
         if ('positive' in data && 'neutral' in data && 'negative' in data) {
+          const sentimentData = data as SentimentDistribution;
+          const donutData = [
+            { name: 'Positivo', value: sentimentData.positive.percentage, color: '#10B981' },
+            { name: 'Neutral', value: sentimentData.neutral.percentage, color: '#6B7280' },
+            { name: 'Negativo', value: sentimentData.negative.percentage, color: '#EF4444' }
+          ];
           return (
             <DonutChart
-              data={data as SentimentDistribution}
-              size={height}
-              showTooltip={showTooltip}
+              data={donutData}
             />
           );
         }

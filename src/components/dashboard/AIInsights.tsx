@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { AlertTriangle, Lightbulb, RefreshCw, Copy, ArrowRight } from 'lucide-react';
 
 interface Insight {

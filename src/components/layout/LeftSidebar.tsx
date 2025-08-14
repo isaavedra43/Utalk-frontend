@@ -2,14 +2,19 @@ import React from 'react';
 import { 
   MessageSquare, 
   LayoutDashboard, 
+  Users,
   LogOut
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { useAuthContext } from '../../contexts/useAuthContext';
+import { useTeamNotifications } from '../../modules/team/hooks/useTeamNotifications';
 
 export const LeftSidebar: React.FC = () => {
-  const { currentModule, navigateToModule } = useAppStore();
+  const { currentModule, navigateToModule, teamData } = useAppStore();
   const { logout, backendUser } = useAuthContext();
+  
+  // Obtener notificaciones del equipo
+  const teamNotifications = useTeamNotifications(teamData?.members || []);
   
   const handleLogout = async () => {
     try {
@@ -22,15 +27,21 @@ export const LeftSidebar: React.FC = () => {
 
   const navigationItems = [
     {
+      id: 'dashboard',
+      icon: LayoutDashboard,
+      title: 'Dashboard'
+    },
+    {
+      id: 'team',
+      icon: Users,
+      title: 'Equipo & Performance',
+      badge: teamNotifications.getBadgeText()
+    },
+    {
       id: 'chat',
       icon: MessageSquare,
       title: 'Mensajes',
       badge: '9+'
-    },
-    {
-      id: 'dashboard',
-      icon: LayoutDashboard,
-      title: 'Dashboard'
     }
   ];
 

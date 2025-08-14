@@ -132,12 +132,16 @@ export interface AppState {
   loading: boolean;
   error: string | null;
   // NUEVO: Estado de navegación entre módulos
-  currentModule: 'auth' | 'chat' | 'contacts' | 'agents' | 'analytics' | 'settings' | 'dashboard' | 'docs' | 'automation' | 'support' | 'notifications' | 'calendar';
+  currentModule: 'auth' | 'chat' | 'contacts' | 'agents' | 'analytics' | 'settings' | 'dashboard' | 'team' | 'docs' | 'automation' | 'support' | 'notifications' | 'calendar';
   moduleHistory: string[]; // Para navegación hacia atrás
   // NUEVO: Estado del dashboard
   dashboardData: DashboardData | null;
   dashboardLoading: boolean;
   dashboardError: string | null;
+  // NUEVO: Estado del equipo
+  teamData: TeamState | null;
+  teamLoading: boolean;
+  teamError: string | null;
 }
 
 // Tipos de filtros
@@ -177,6 +181,12 @@ export interface SocketEvents {
   'message-read': (data: { conversationId: string; messageIds: string[] }) => void;
   // NUEVO: Eventos del dashboard
   'dashboard-update': (data: DashboardUpdate) => void;
+  // NUEVO: Eventos del equipo
+  'team-member-updated': (data: { member: TeamMember }) => void;
+  'team-member-status-changed': (data: { memberId: string; status: 'active' | 'inactive' }) => void;
+  'performance-metrics-updated': (data: { memberId: string; metrics: PerformanceMetrics }) => void;
+  'coaching-plan-updated': (data: { memberId: string; plan: CoachingPlan }) => void;
+  'permissions-changed': (data: { memberId: string; permissions: Permission[] }) => void;
 }
 
 // Re-exportar tipos de sidebar
@@ -185,5 +195,9 @@ export * from './sidebar';
 // Re-exportar tipos del dashboard
 export * from './dashboard';
 
+// Re-exportar tipos del equipo
+export * from './team';
+
 // Importar tipos del dashboard para uso en este archivo
 import type { DashboardData, DashboardUpdate } from './dashboard';
+import type { TeamState, TeamMember, PerformanceMetrics, CoachingPlan, Permission } from './team';
