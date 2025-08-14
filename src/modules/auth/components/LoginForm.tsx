@@ -73,20 +73,20 @@ export const LoginForm: React.FC = () => {
         }, 100);
       });
       
-      try {
-        await waitForSync;
-        console.log('✅ WebSocket sincronizado, navegando al chat...');
-        navigate('/chat');
+                        try {
+                    await waitForSync;
+                    console.log('✅ WebSocket sincronizado, navegando al dashboard...');
+                    navigate('/dashboard');
       } catch (syncError) {
         console.warn('⚠️ No se recibió sincronización en el tiempo esperado, verificando estado isSynced...', syncError);
         
         // Verificar si el estado isSynced está en true como respaldo
         if (isSynced) {
-          console.log('✅ Estado isSynced es true, navegando al chat...');
-          navigate('/chat');
+          console.log('✅ Estado isSynced es true, navegando al dashboard...');
+          navigate('/dashboard');
         } else {
           console.warn('⚠️ Estado isSynced también es false, navegando de todas formas...');
-          navigate('/chat');
+          navigate('/dashboard');
         }
       }
       
