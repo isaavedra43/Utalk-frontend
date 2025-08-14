@@ -3,6 +3,7 @@ import { LeftSidebar } from './LeftSidebar';
 import { ChatModule } from '../chat/ChatModule';
 import { DashboardModule } from '../../modules/dashboard';
 import { TeamModule } from '../../modules/team';
+import { ClientModule } from '../../modules/clients/ClientModule';
 import { ModulePlaceholder } from './ModulePlaceholder';
 import { useAppStore } from '../../stores/useAppStore';
 
@@ -19,7 +20,8 @@ export const MainLayout: React.FC = () => {
         {currentModule === 'chat' && <ChatModule />}
         {currentModule === 'dashboard' && <DashboardModule />}
         {currentModule === 'team' && <TeamModule />}
-        {currentModule !== 'chat' && currentModule !== 'dashboard' && currentModule !== 'team' && (
+        {currentModule === 'clients' && <ClientModule />}
+        {currentModule !== 'chat' && currentModule !== 'dashboard' && currentModule !== 'team' && currentModule !== 'clients' && (
           <ModulePlaceholder moduleName={currentModule} />
         )}
       </div>

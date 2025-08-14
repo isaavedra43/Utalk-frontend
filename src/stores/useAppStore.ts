@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { AppState, User, Conversation, Message, Contact, DashboardData, DashboardUpdate, TeamState } from '../types';
+import type { AppState, User, Conversation, Message, Contact, DashboardData, DashboardUpdate, TeamState, ClientState } from '../types';
 
 interface AppStore extends AppState {
   // Actions
@@ -33,6 +33,11 @@ interface AppStore extends AppState {
   setTeamLoading: (loading: boolean) => void;
   setTeamError: (error: string | null) => void;
   refreshTeam: () => void;
+  // NUEVAS acciones de clientes
+  setClientData: (data: ClientState | null) => void;
+  setClientLoading: (loading: boolean) => void;
+  setClientError: (error: string | null) => void;
+  refreshClients: () => void;
 }
 
 const initialState: AppState = {
@@ -54,6 +59,10 @@ const initialState: AppState = {
   teamData: null,
   teamLoading: false,
   teamError: null,
+  // NUEVO: Estado inicial de clientes
+  clientData: null,
+  clientLoading: false,
+  clientError: null,
 };
 
 export const useAppStore = create<AppStore>()(
@@ -190,6 +199,25 @@ export const useAppStore = create<AppStore>()(
       refreshTeam: () => set({
         teamLoading: true,
         teamError: null
+      }),
+
+      // NUEVAS acciones de clientes
+      setClientData: (data: ClientState | null) => set({ 
+        clientData: data,
+        clientLoading: false,
+        clientError: null 
+      }),
+
+      setClientLoading: (loading: boolean) => set({ clientLoading: loading }),
+
+      setClientError: (error: string | null) => set({ 
+        clientError: error,
+        clientLoading: false 
+      }),
+
+      refreshClients: () => set({
+        clientLoading: true,
+        clientError: null
       }),
     }),
     {

@@ -3,7 +3,8 @@ import {
   MessageSquare, 
   LayoutDashboard, 
   Users,
-  LogOut
+  LogOut,
+  Building2
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { useAuthContext } from '../../contexts/useAuthContext';
@@ -30,6 +31,12 @@ export const LeftSidebar: React.FC = () => {
       id: 'dashboard',
       icon: LayoutDashboard,
       title: 'Dashboard'
+    },
+    {
+      id: 'clients',
+      icon: Building2,
+      title: 'Customer Hub',
+      badge: '5'
     },
     {
       id: 'team',

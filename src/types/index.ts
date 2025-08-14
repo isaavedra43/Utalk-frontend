@@ -132,7 +132,7 @@ export interface AppState {
   loading: boolean;
   error: string | null;
   // NUEVO: Estado de navegación entre módulos
-  currentModule: 'auth' | 'chat' | 'contacts' | 'agents' | 'analytics' | 'settings' | 'dashboard' | 'team' | 'docs' | 'automation' | 'support' | 'notifications' | 'calendar';
+  currentModule: 'auth' | 'chat' | 'contacts' | 'agents' | 'analytics' | 'settings' | 'dashboard' | 'team' | 'docs' | 'automation' | 'support' | 'notifications' | 'calendar' | 'clients';
   moduleHistory: string[]; // Para navegación hacia atrás
   // NUEVO: Estado del dashboard
   dashboardData: DashboardData | null;
@@ -142,6 +142,10 @@ export interface AppState {
   teamData: TeamState | null;
   teamLoading: boolean;
   teamError: string | null;
+  // NUEVO: Estado de clientes
+  clientData: ClientState | null;
+  clientLoading: boolean;
+  clientError: string | null;
 }
 
 // Tipos de filtros
@@ -187,6 +191,14 @@ export interface SocketEvents {
   'performance-metrics-updated': (data: { memberId: string; metrics: PerformanceMetrics }) => void;
   'coaching-plan-updated': (data: { memberId: string; plan: CoachingPlan }) => void;
   'permissions-changed': (data: { memberId: string; permissions: Permission[] }) => void;
+  // NUEVO: Eventos de clientes
+  'client-updated': (data: { client: Client }) => void;
+  'client-created': (data: { client: Client }) => void;
+  'client-deleted': (data: { clientId: string }) => void;
+  'activity-added': (data: { activity: ClientActivity }) => void;
+  'deal-updated': (data: { deal: ClientDeal }) => void;
+  'metrics-updated': (data: { metrics: ClientMetrics }) => void;
+  'ai-recommendation': (data: { recommendation: ClientAIRecommendation }) => void;
 }
 
 // Re-exportar tipos de sidebar
@@ -198,6 +210,17 @@ export * from './dashboard';
 // Re-exportar tipos del equipo
 export * from './team';
 
+// Re-exportar tipos de clientes
+export * from './client';
+
 // Importar tipos del dashboard para uso en este archivo
 import type { DashboardData, DashboardUpdate } from './dashboard';
 import type { TeamState, TeamMember, PerformanceMetrics, CoachingPlan, Permission } from './team';
+import type { 
+  ClientState, 
+  Client, 
+  ClientActivity, 
+  ClientDeal, 
+  ClientMetrics, 
+  ClientAIRecommendation 
+} from './client';
