@@ -83,18 +83,18 @@ export const LoginForm: React.FC = () => {
       
       try {
         await waitForConnection;
-        console.log('✅ WebSocket conectado, navegando al chat...');
-        navigate('/chat');
+        console.log('✅ WebSocket conectado, navegando al dashboard...');
+        navigate('/dashboard');
       } catch (connectionError) {
         console.warn('⚠️ No se pudo verificar conexión WebSocket, verificando estado isSynced...', connectionError);
         
         // Verificar si el estado isSynced está en true como respaldo
         if (isSynced) {
-          console.log('✅ Estado isSynced es true, navegando al chat...');
-          navigate('/chat');
+          console.log('✅ Estado isSynced es true, navegando al dashboard...');
+          navigate('/dashboard');
         } else {
           console.warn('⚠️ Estado isSynced también es false, navegando de todas formas...');
-          navigate('/chat');
+          navigate('/dashboard');
         }
       }
       
