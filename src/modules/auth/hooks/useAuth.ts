@@ -403,19 +403,21 @@ export const useAuth = () => {
   // Calcular estado de autenticación de forma estable con useMemo
   const isAuthenticated = useMemo(() => {
     const authenticated = !!user && !!backendUser && !isAuthenticating;
+    
+    // Log del estado de autenticación solo cuando cambie realmente
+    // Usar setTimeout para evitar problemas de orden de hooks
+    setTimeout(() => {
+      logger.authInfo('Estado de autenticación calculado', {
+        hasUser: !!user,
+        hasBackendUser: !!backendUser,
+        isAuthenticating,
+        isAuthenticated: authenticated,
+        userEmail: user?.email || backendUser?.email
+      });
+    }, 0);
+    
     return authenticated;
   }, [user, backendUser, isAuthenticating]);
-
-  // Log del estado de autenticación solo cuando cambie realmente
-  useEffect(() => {
-    logger.authInfo('Estado de autenticación calculado', {
-      hasUser: !!user,
-      hasBackendUser: !!backendUser,
-      isAuthenticating,
-      isAuthenticated,
-      userEmail: user?.email || backendUser?.email
-    });
-  }, [user, backendUser, isAuthenticating, isAuthenticated]);
 
   return {
     user,
