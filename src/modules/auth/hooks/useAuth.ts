@@ -67,7 +67,7 @@ export const useAuth = () => {
     setUser(null);
     setBackendUser(null);
     setError(null);
-  }, []); // ← Sin dependencias para evitar re-renders
+  }, []); // Sin dependencias para evitar re-renders
 
   // Verificar estado de autenticación desde localStorage con debounce
   useEffect(() => {
@@ -423,7 +423,7 @@ export const useAuth = () => {
       lastAuthStateRef.current = stateKey;
       logger.authInfo('Estado de autenticación calculado', currentState);
     }
-  }, [user, backendUser, isAuthenticating]); // Removido isAuthenticated de las dependencias
+  }, [user, backendUser, isAuthenticating, isAuthenticated]); // Incluir isAuthenticated para evitar warning de ESLint
 
   return {
     user,
