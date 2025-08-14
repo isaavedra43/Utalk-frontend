@@ -27,12 +27,6 @@ export const LeftSidebar: React.FC = () => {
 
   const navigationItems = [
     {
-      id: 'chat',
-      icon: MessageSquare,
-      title: 'Mensajes',
-      badge: '9+'
-    },
-    {
       id: 'dashboard',
       icon: LayoutDashboard,
       title: 'Dashboard'
@@ -42,6 +36,12 @@ export const LeftSidebar: React.FC = () => {
       icon: Users,
       title: 'Equipo & Performance',
       badge: teamNotifications.getBadgeText()
+    },
+    {
+      id: 'chat',
+      icon: MessageSquare,
+      title: 'Mensajes',
+      badge: '9+'
     }
   ];
 

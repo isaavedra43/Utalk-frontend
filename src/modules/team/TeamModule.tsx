@@ -119,6 +119,7 @@ const TeamModule: React.FC = () => {
                 inactiveMembers={inactiveMembers}
                 onCreateAgent={() => setIsCreateModalOpen(true)}
                 onSearchChange={handleSearchChange}
+                isRefreshing={loading}
               />
             </Suspense>
           </div>
