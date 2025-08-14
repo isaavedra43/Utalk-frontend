@@ -68,16 +68,16 @@ export const useAuth = () => {
     setError(null);
   }, []); // ← Sin dependencias para evitar re-renders
 
-  // Verificar estado de autenticación desde localStorage
+  // Verificar estado de autenticación desde localStorage con debounce
   useEffect(() => {
     if (hasCheckedAuth) {
       return; // Ya se verificó, no ejecutar de nuevo
     }
     
-    logger.authInfo('Verificando estado de autenticación desde localStorage');
-    
-    const checkAuthState = async () => {
+    // Agregar debounce para evitar verificaciones excesivas
+    const checkAuthTimeoutRef = setTimeout(async () => {
       try {
+        logger.authInfo('Verificando estado de autenticación desde localStorage (con debounce)');
         setIsAuthenticating(true);
         setHasCheckedAuth(true); // Marcar como verificado
         
@@ -101,8 +101,13 @@ export const useAuth = () => {
             logger.authInfo('Autenticación automática exitosa desde localStorage');
           } catch (error) {
             logger.authError('Error verificando token, limpiando datos inválidos', error as Error);
-            // Solo limpiar si el token es inválido
-            clearAuth();
+            // Solo limpiar si el token es realmente inválido (401)
+            if (error && typeof error === 'object' && 'response' in error) {
+              const apiError = error as { response?: { status?: number } };
+              if (apiError.response?.status === 401) {
+                clearAuth();
+              }
+            }
           }
         } else {
           // NO HAY DATOS - Estado inicial
@@ -119,10 +124,13 @@ export const useAuth = () => {
         setLoading(false);
         setIsAuthenticating(false);
       }
-    };
+    }, 1000); // Debounce de 1 segundo
 
-    checkAuthState();
-  }, [hasCheckedAuth, clearAuth]); // Depende de hasCheckedAuth y clearAuth
+    // Cleanup del timeout
+    return () => {
+      clearTimeout(checkAuthTimeoutRef);
+    };
+  }, [hasCheckedAuth, clearAuth]); // Incluir clearAuth en dependencias
 
   // Escuchar eventos de autenticación fallida
   useEffect(() => {

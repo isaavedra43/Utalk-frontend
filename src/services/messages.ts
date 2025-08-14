@@ -1,8 +1,9 @@
 import api from './api';
 import type { Message, MessageInputData } from '../types';
+import { encodeConversationIdForUrl } from '../utils/conversationUtils';
 
 // Configuración de la API
-const MESSAGES_API = '/api/messages';
+const MESSAGES_API = '/api/conversations';
 
 export const messagesService = {
   // Obtener mensajes de una conversación
@@ -13,26 +14,35 @@ export const messagesService = {
     after?: string;
   } = {}): Promise<{ messages: Message[]; hasMore: boolean; cursor?: string }> {
     const queryParams = new URLSearchParams({
-      conversationId,
       limit: params.limit?.toString() || '50',
       ...(params.cursor && { cursor: params.cursor }),
       ...(params.before && { before: params.before }),
       ...(params.after && { after: params.after })
     });
 
-    const response = await api.get(`${MESSAGES_API}?${queryParams}`);
+    // SOLUCIÓN CRÍTICA: Codificar el ID de conversación para preservar los +
+    const encodedConversationId = encodeConversationIdForUrl(conversationId);
+    
+    // Usar el endpoint correcto: /api/conversations/:id/messages
+    const response = await api.get(`${MESSAGES_API}/${encodedConversationId}/messages?${queryParams}`);
     return response.data;
   },
 
   // Enviar mensaje
   async sendMessage(conversationId: string, messageData: MessageInputData): Promise<Message> {
-    const response = await api.post(`${MESSAGES_API}/conversations/${conversationId}/messages`, messageData);
+    // SOLUCIÓN CRÍTICA: Codificar el ID de conversación para preservar los +
+    const encodedConversationId = encodeConversationIdForUrl(conversationId);
+    
+    const response = await api.post(`${MESSAGES_API}/${encodedConversationId}/messages`, messageData);
     return response.data;
   },
 
   // Marcar mensaje como leído
   async markMessageAsRead(conversationId: string, messageId: string): Promise<Message> {
-    const response = await api.put(`${MESSAGES_API}/conversations/${conversationId}/messages/${messageId}/read`, {
+    // SOLUCIÓN CRÍTICA: Codificar el ID de conversación para preservar los +
+    const encodedConversationId = encodeConversationIdForUrl(conversationId);
+    
+    const response = await api.put(`${MESSAGES_API}/${encodedConversationId}/messages/${messageId}/read`, {
       readAt: new Date().toISOString()
     });
     return response.data;
@@ -40,7 +50,10 @@ export const messagesService = {
 
   // Eliminar mensaje
   async deleteMessage(conversationId: string, messageId: string): Promise<void> {
-    await api.delete(`${MESSAGES_API}/conversations/${conversationId}/messages/${messageId}`);
+    // SOLUCIÓN CRÍTICA: Codificar el ID de conversación para preservar los +
+    const encodedConversationId = encodeConversationIdForUrl(conversationId);
+    
+    await api.delete(`${MESSAGES_API}/${encodedConversationId}/messages/${messageId}`);
   },
 
   // Enviar ubicación
