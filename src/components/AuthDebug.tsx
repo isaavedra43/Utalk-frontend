@@ -108,8 +108,8 @@ export const AuthDebug: React.FC = () => {
             <div>Email: <span className="text-gray-600 font-mono">{auth.backendUser.email}</span></div>
             <div>ID: <span className="text-gray-600 font-mono">{auth.backendUser.id}</span></div>
             <div>Rol: <span className="text-gray-600 font-mono">{auth.backendUser.role}</span></div>
-            <div>Workspace ID: <span className="text-gray-600 font-mono">{auth.backendUser.workspaceId}</span></div>
-            <div>Tenant ID: <span className="text-gray-600 font-mono">{auth.backendUser.tenantId}</span></div>
+            <div>Workspace ID: <span className="text-gray-600 font-mono">{(auth.backendUser as any).workspaceId || 'default'}</span></div>
+            <div>Tenant ID: <span className="text-gray-600 font-mono">{(auth.backendUser as any).tenantId || 'na'}</span></div>
             <div>Creado: <span className="text-gray-600 font-mono">{new Date(auth.backendUser.createdAt).toLocaleString()}</span></div>
             <div>Actualizado: <span className="text-gray-600 font-mono">{new Date(auth.backendUser.updatedAt).toLocaleString()}</span></div>
           </div>
