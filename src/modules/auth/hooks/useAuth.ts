@@ -147,7 +147,7 @@ export const useAuth = () => {
 
     // Ejecutar verificación inmediatamente
     checkAuth();
-  }, [hasCheckedAuth, user, backendUser]); // Agregar dependencias para detectar cambios
+  }, [hasCheckedAuth]); // SOLO hasCheckedAuth para evitar re-ejecuciones
 
   // Escuchar eventos de autenticación fallida
   useEffect(() => {
