@@ -93,7 +93,7 @@ export const useAuth = () => {
     // Marcar como verificando para evitar múltiples ejecuciones
     isCheckingAuthRef.current = true;
     
-    // Verificación inmediata sin setTimeout
+        // Verificación inmediata sin setTimeout
     const checkAuth = async () => {
       try {
         // Verificar si ya hay un usuario autenticado ANTES de hacer la verificación
@@ -102,6 +102,7 @@ export const useAuth = () => {
           logger.authInfo('Usuario ya autenticado, saltando verificación automática');
           setHasCheckedAuth(true);
           setLoading(false);
+          isCheckingAuthRef.current = false; // Resetear flag
           return;
         }
         
