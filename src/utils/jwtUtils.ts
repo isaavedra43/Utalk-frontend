@@ -22,19 +22,20 @@ export const extractUserInfoFromToken = (token: string): JWTUserInfo => {
     // Decodificar el payload del JWT (segunda parte del token)
     const payload = JSON.parse(atob(token.split('.')[1]));
     
-    // Verificar que el token tenga la información mínima requerida
-    const workspaceId = payload.workspaceId || payload.ws;
-    const tenantId = payload.tenantId || payload.tenant;
-    const userId = payload.sub || payload.userId || payload.id;
+    // Extraer campos con valores por defecto según especificación del backend
+    const workspaceId = payload.workspaceId || payload.ws || 'default';
+    const tenantId = payload.tenantId || payload.tenant || 'na';
+    const userId = payload.sub || payload.userId || payload.id || null;
     
-    // Si faltan datos críticos, no usar valores por defecto problemáticos
-    if (!workspaceId || !tenantId || !userId) {
-      console.warn('⚠️ JWT - Token incompleto, faltan datos críticos:', {
-        workspaceId: !!workspaceId,
-        tenantId: !!tenantId,
-        userId: !!userId
+    // Log de información extraída (solo en desarrollo)
+    if (import.meta.env.DEV) {
+      console.log('🔐 JWT - Información extraída del token:', {
+        workspaceId,
+        tenantId,
+        userId,
+        email: payload.email,
+        role: payload.role
       });
-      throw new Error('Token incompleto');
     }
     
     return {
@@ -48,8 +49,16 @@ export const extractUserInfoFromToken = (token: string): JWTUserInfo => {
     };
   } catch (error) {
     console.warn('⚠️ Error decodificando JWT:', error);
-    // No retornar valores por defecto problemáticos
-    throw new Error('Token inválido o incompleto');
+    // Retornar valores por defecto según especificación del backend
+    return {
+      workspaceId: 'default',
+      tenantId: 'na',
+      userId: null,
+      email: null,
+      role: null,
+      exp: null,
+      iat: null
+    };
   }
 };
 
@@ -71,16 +80,14 @@ export const isTokenValid = (token: string): boolean => {
 };
 
 /**
- * Verifica si la información del usuario es válida (no usa valores por defecto problemáticos)
+ * Verifica si la información del usuario es válida (acepta valores por defecto del backend)
  * @param userInfo - Información del usuario a verificar
- * @returns true si la información es válida
+ * @returns true si la información es válida según especificación del backend
  */
 export const isValidUserInfo = (userInfo: JWTUserInfo): boolean => {
-  return !(
-    userInfo.workspaceId === 'default' || 
-    userInfo.tenantId === 'na' || 
-    userInfo.userId === null
-  );
+  // Según la especificación del backend, 'default' y 'na' son valores válidos por defecto
+  // Solo userId null es problemático
+  return userInfo.userId !== null;
 };
 
 /**
@@ -93,22 +100,26 @@ export const getUserInfo = (): JWTUserInfo => {
   // 1. Intentar obtener del token JWT (prioridad alta)
   const token = localStorage.getItem('access_token');
   if (token && isTokenValid(token)) {
-    const tokenInfo = extractUserInfoFromToken(token);
-    
-    // Verificar si el token tiene información válida (no valores por defecto problemáticos)
-    if (isValidUserInfo(tokenInfo)) {
-      console.log('🔐 JWT - Información extraída del token:', {
-        workspaceId: tokenInfo.workspaceId,
-        tenantId: tokenInfo.tenantId,
-        userId: tokenInfo.userId
-      });
-      return tokenInfo;
-    } else {
-      console.warn('⚠️ JWT - Token contiene valores por defecto problemáticos:', {
-        workspaceId: tokenInfo.workspaceId,
-        tenantId: tokenInfo.tenantId,
-        userId: tokenInfo.userId
-      });
+    try {
+      const tokenInfo = extractUserInfoFromToken(token);
+      
+      // Verificar si el token tiene información válida (acepta valores por defecto del backend)
+      if (isValidUserInfo(tokenInfo)) {
+        console.log('🔐 JWT - Información extraída del token:', {
+          workspaceId: tokenInfo.workspaceId,
+          tenantId: tokenInfo.tenantId,
+          userId: tokenInfo.userId
+        });
+        return tokenInfo;
+      } else {
+        console.warn('⚠️ JWT - Token con userId null, usando información parcial:', {
+          workspaceId: tokenInfo.workspaceId,
+          tenantId: tokenInfo.tenantId,
+          userId: tokenInfo.userId
+        });
+      }
+    } catch (error) {
+      console.warn('⚠️ JWT - Error extrayendo información del token:', error);
     }
   }
   
@@ -171,16 +182,16 @@ export const getUserInfo = (): JWTUserInfo => {
 
 /**
  * Genera un roomId con el formato correcto del backend
- * CORREGIDO: Mejorar manejo de valores por defecto
+ * ALINEADO: Acepta valores por defecto según especificación del backend
  * @param conversationId - ID de la conversación
  * @returns RoomId en formato ws:${workspaceId}:ten:${tenantId}:conv:${conversationId}
  */
 export const generateRoomId = (conversationId: string): string => {
   const userInfo = getUserInfo();
   
-  // CORREGIDO: Validar que no estemos usando valores por defecto problemáticos
-  if (!isValidUserInfo(userInfo)) {
-    console.warn('⚠️ Generando roomId con valores por defecto problemáticos:', {
+  // ALINEADO: Aceptar valores por defecto del backend ('default', 'na')
+  if (userInfo.userId === null) {
+    console.warn('⚠️ Generando roomId con userId null:', {
       workspaceId: userInfo.workspaceId,
       tenantId: userInfo.tenantId,
       conversationId
@@ -201,27 +212,19 @@ export const generateRoomId = (conversationId: string): string => {
 
 /**
  * Valida la configuración de rooms
- * CORREGIDO: Mejorar validación para detectar valores problemáticos
- * @returns true si la configuración es válida, false si usa valores por defecto
+ * ALINEADO: Acepta valores por defecto según especificación del backend
+ * @returns true si la configuración es válida, false si userId es null
  */
 export const validateRoomConfiguration = (): boolean => {
   const userInfo = getUserInfo();
   const isValid = isValidUserInfo(userInfo);
   
   if (!isValid) {
-    console.warn('⚠️ Configuración de rooms usando valores por defecto problemáticos:', {
+    console.warn('⚠️ Configuración de rooms con userId null:', {
       workspaceId: userInfo.workspaceId,
       tenantId: userInfo.tenantId,
       userId: userInfo.userId
     });
-    
-    // CORREGIDO: Intentar obtener valores del entorno como fallback
-    const envWorkspaceId = import.meta.env.VITE_WORKSPACE_ID;
-    const envTenantId = import.meta.env.VITE_TENANT_ID;
-    
-    if (envWorkspaceId && envTenantId) {
-      console.log('🔧 Sugerencia: Configurar variables de entorno VITE_WORKSPACE_ID y VITE_TENANT_ID');
-    }
   } else {
     console.log('✅ Configuración de rooms válida:', {
       workspaceId: userInfo.workspaceId,
