@@ -79,7 +79,6 @@ export const useAuth = () => {
   backendUserRef.current = backendUser;
 
   // Actualizar referencias cuando cambien los valores - OPTIMIZADO PARA ESLINT
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     userRef.current = user;
     backendUserRef.current = backendUser;
@@ -88,7 +87,8 @@ export const useAuth = () => {
   // Verificar estado de autenticación desde localStorage - OPTIMIZADO PARA EVITAR MÚLTIPLES PETICIONES
   useEffect(() => {
     // Solo ejecutar si NO se ha verificado y NO hay usuario autenticado
-    if (hasVerifiedAuthRef.current || user || backendUser || isVerifyingAuthRef.current) {
+    // EVITAR RE-EJECUCIÓN CUANDO YA HAY USUARIOS ESTABLECIDOS
+    if (hasVerifiedAuthRef.current || (user && backendUser) || isVerifyingAuthRef.current) {
       return;
     }
     
@@ -159,7 +159,7 @@ export const useAuth = () => {
     return () => {
       clearTimeout(timeoutId);
     };
-  }, []); // SIN DEPENDENCIAS - Solo se ejecuta UNA VEZ al montar el componente
+  }, [user, backendUser]); // INCLUIR DEPENDENCIAS PARA ESLINT - Solo se ejecuta cuando cambian user o backendUser
 
   // Escuchar eventos de autenticación fallida
   useEffect(() => {

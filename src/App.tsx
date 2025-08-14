@@ -76,6 +76,17 @@ const TeamPage: React.FC = () => {
   return <TeamModule />;
 };
 
+// Componente para establecer el módulo de clientes
+const ClientsPage: React.FC = () => {
+  const { setCurrentModule } = useAppStore();
+  
+  useEffect(() => {
+    setCurrentModule('clients');
+  }, [setCurrentModule]);
+  
+  return <MainLayout />;
+};
+
 function App() {
   // const [showDebugPanel, setShowDebugPanel] = useState(import.meta.env.DEV); // DEBUGPANEL DESHABILITADO TEMPORALMENTE
 
@@ -117,6 +128,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <TeamPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/clients" 
+                element={
+                  <ProtectedRoute>
+                    <ClientsPage />
                   </ProtectedRoute>
                 } 
               />
