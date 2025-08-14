@@ -145,7 +145,7 @@ export const useAuth = () => {
     return () => {
       window.removeEventListener('auth:authentication-failed', handleAuthFailed);
     };
-  }, [clearAuth]);
+  }, []); // clearAuth es estable (useCallback sin dependencias)
 
   // Manejar bypass de desarrollo
   useEffect(() => {
