@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   type User as FirebaseUser
 } from 'firebase/auth';
@@ -124,13 +124,13 @@ export const useAuth = () => {
         setLoading(false);
         setIsAuthenticating(false);
       }
-    }, 1000); // Debounce de 1 segundo
+    }, 100); // Debounce reducido a 100ms para verificación inicial
 
     // Cleanup del timeout
     return () => {
       clearTimeout(checkAuthTimeoutRef);
     };
-  }, [hasCheckedAuth, clearAuth]); // Incluir clearAuth en dependencias
+  }, [hasCheckedAuth]); // Remover clearAuth de las dependencias para evitar re-ejecuciones
 
   // Escuchar eventos de autenticación fallida
   useEffect(() => {
@@ -400,19 +400,21 @@ export const useAuth = () => {
     }
   }, []);
 
-  // Calcular estado de autenticación
-  const isAuthenticated = !!user && !!backendUser && !isAuthenticating;
-  
-  // Log del estado de autenticación
-  useEffect(() => {
+  // Calcular estado de autenticación de forma estable con useMemo
+  const isAuthenticated = useMemo(() => {
+    const authenticated = !!user && !!backendUser && !isAuthenticating;
+    
+    // Log del estado de autenticación solo cuando cambie
     logger.authInfo('Estado de autenticación calculado', {
       hasUser: !!user,
       hasBackendUser: !!backendUser,
       isAuthenticating,
-      isAuthenticated,
+      isAuthenticated: authenticated,
       userEmail: user?.email || backendUser?.email
     });
-  }, [user, backendUser, isAuthenticating, isAuthenticated]);
+    
+    return authenticated;
+  }, [user, backendUser, isAuthenticating]);
 
   return {
     user,

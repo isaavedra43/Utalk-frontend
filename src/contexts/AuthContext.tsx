@@ -8,7 +8,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const auth = useAuth();
   const { connect: connectSocket, disconnect: disconnectSocket, isConnected } = useContext(WebSocketContext) || {};
 
-  // Conectar WebSocket cuando se autentica
+  // Conectar WebSocket cuando se autentica - OPTIMIZADO
   useEffect(() => {
     console.log('🔐 AuthContext - Estado de autenticación:', {
       isAuthenticated: auth.isAuthenticated,
@@ -23,7 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('🔐 AuthContext - Desconectando WebSocket (usuario no autenticado)');
       disconnectSocket();
     }
-  }, [auth.isAuthenticated, auth.backendUser, auth.loading, auth.user?.email, disconnectSocket, isConnected]);
+  }, [auth.isAuthenticated, auth.loading, disconnectSocket, isConnected]); // Reducir dependencias
 
   // Escuchar eventos de autenticación fallida para desconectar WebSocket
   useEffect(() => {

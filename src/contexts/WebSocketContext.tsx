@@ -3,6 +3,7 @@ import { Socket } from 'socket.io-client';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useRateLimiter } from '../hooks/useRateLimiter';
 import { generateRoomId as generateRoomIdUtil, validateRoomConfiguration } from '../utils/jwtUtils';
+import { encodeConversationIdForWebSocket } from '../utils/conversationUtils';
 
 interface WebSocketContextType {
   socket: Socket | null;
@@ -84,10 +85,10 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (!accessToken) return;
       
       console.log('🔌 WebSocketContext - Login exitoso, conectando WebSocket inmediatamente...');
-      // CORREGIDO: Usar timeout aumentado para login (15 segundos mínimo)
-      connect(accessToken, { timeout: 15000 });
+      // CORREGIDO: Usar timeout aumentado para login (20 segundos mínimo)
+      connect(accessToken, { timeout: 20000 });
       
-      // FALLBACK: Si WebSocket falla después de 15 segundos, continuar con login HTTP exitoso
+      // FALLBACK: Si WebSocket falla después de 20 segundos, continuar con login HTTP exitoso
       const fallbackTimer = setTimeout(() => {
         if (!isConnected && !connectionError) {
           console.warn('⚠️ WebSocketContext - WebSocket timeout, continuando sin tiempo real');
@@ -105,7 +106,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           // Continuar con login exitoso - el usuario puede acceder a la aplicación
           // El estado de autenticación HTTP ya está establecido
         }
-      }, 15000);
+      }, 20000);
       
       // Limpiar timer si se conecta exitosamente
       const cleanupTimer = () => {
@@ -335,22 +336,28 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     off,
     joinConversation: (conversationId: string) => {
       console.log('🔗 Uniéndose a conversación:', conversationId);
-      const roomId = generateRoomId(conversationId);
+      
+      // CORREGIDO: Codificar conversationId para WebSocket
+      const encodedConversationId = encodeConversationIdForWebSocket(conversationId);
+      const roomId = generateRoomId(encodedConversationId);
       console.log('🔗 Room ID generado:', roomId);
       
       rateLimiter.executeWithRateLimit('join-conversation', () => {
         emit('join-conversation', { 
-          conversationId,
+          conversationId: encodedConversationId,
           roomId: roomId
         });
-        setActiveConversations(prev => new Set(prev).add(conversationId));
+        setActiveConversations(prev => new Set(prev).add(conversationId)); // Usar ID original para estado local
       }, (eventType, retryAfter) => {
         console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
       });
     },
     leaveConversation: (conversationId: string) => {
       console.log('🔌 Saliendo de conversación:', conversationId);
-      const roomId = generateRoomId(conversationId);
+      
+      // CORREGIDO: Codificar conversationId para WebSocket
+      const encodedConversationId = encodeConversationIdForWebSocket(conversationId);
+      const roomId = generateRoomId(encodedConversationId);
       console.log('🔌 Room ID para salir:', roomId);
       
       // Verificar que el socket esté conectado antes de intentar salir
@@ -367,12 +374,12 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       
       rateLimiter.executeWithRateLimit('leave-conversation', () => {
         emit('leave-conversation', { 
-          conversationId,
+          conversationId: encodedConversationId,
           roomId: roomId
         });
         setActiveConversations(prev => {
           const newSet = new Set(prev);
-          newSet.delete(conversationId);
+          newSet.delete(conversationId); // Usar ID original para estado local
           return newSet;
         });
       }, (eventType, retryAfter) => {
@@ -381,26 +388,38 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     },
     startTyping: (conversationId: string) => {
       console.log('✍️ Iniciando typing en conversación:', conversationId);
+      
+      // CORREGIDO: Codificar conversationId para WebSocket
+      const encodedConversationId = encodeConversationIdForWebSocket(conversationId);
+      
       rateLimiter.executeWithRateLimit('typing', () => {
-        emit('typing', { conversationId });
+        emit('typing', { conversationId: encodedConversationId });
       }, (eventType, retryAfter) => {
         console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
       });
     },
     stopTyping: (conversationId: string) => {
       console.log('⏹️ Deteniendo typing en conversación:', conversationId);
+      
+      // CORREGIDO: Codificar conversationId para WebSocket
+      const encodedConversationId = encodeConversationIdForWebSocket(conversationId);
+      
       rateLimiter.executeWithRateLimit('typing-stop', () => {
-        emit('typing-stop', { conversationId });
+        emit('typing-stop', { conversationId: encodedConversationId });
       }, (eventType, retryAfter) => {
         console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
       });
     },
     sendMessage: (conversationId: string, content: string, type = 'text', metadata = {}) => {
       console.log('📤 Enviando mensaje:', { conversationId, content, type, metadata });
+      
+      // CORREGIDO: Codificar conversationId para WebSocket
+      const encodedConversationId = encodeConversationIdForWebSocket(conversationId);
+      
       let success = false;
       rateLimiter.executeWithRateLimit('new-message', () => {
         success = emit('new-message', {
-          conversationId,
+          conversationId: encodedConversationId,
           content,
           type,
           metadata
@@ -412,9 +431,13 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     },
     markMessagesAsRead: (conversationId: string, messageIds: string[]) => {
       console.log('👁️ Marcando mensajes como leídos:', { conversationId, messageIds });
+      
+      // CORREGIDO: Codificar conversationId para WebSocket
+      const encodedConversationId = encodeConversationIdForWebSocket(conversationId);
+      
       rateLimiter.executeWithRateLimit('message-read', () => {
         emit('message-read', {
-          conversationId,
+          conversationId: encodedConversationId,
           messageIds
         });
       }, (eventType, retryAfter) => {

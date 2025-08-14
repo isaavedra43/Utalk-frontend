@@ -5,7 +5,7 @@ import { conversationsService } from '../services/conversations';
 import { useAppStore } from '../stores/useAppStore';
 import { useWebSocketContext } from '../contexts/useWebSocketContext';
 import { useAuth } from '../modules/auth/hooks/useAuth';
-import { sanitizeConversationId, logConversationId } from '../utils/conversationUtils';
+import { sanitizeConversationId, logConversationId, encodeConversationIdForUrl } from '../utils/conversationUtils';
 
 export const useConversations = (filters: ConversationFilters = {}) => {
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -274,8 +274,15 @@ export const useConversations = (filters: ConversationFilters = {}) => {
 
   // Mutation para actualizar conversación
   const updateConversationMutation = useMutation({
-    mutationFn: ({ conversationId, updateData }: { conversationId: string; updateData: Partial<Conversation> }) =>
-      conversationsService.updateConversation(conversationId, updateData),
+    mutationFn: ({ conversationId, updateData }: { conversationId: string; updateData: Partial<Conversation> }) => {
+      // CORREGIDO: Codificar conversationId para URL
+      const sanitizedId = sanitizeConversationId(conversationId);
+      if (!sanitizedId) {
+        throw new Error(`ID de conversación inválido: ${conversationId}`);
+      }
+      const encodedId = encodeConversationIdForUrl(sanitizedId);
+      return conversationsService.updateConversation(encodedId, updateData);
+    },
     onSuccess: (updatedConversation, variables) => {
       // Actualizar tanto el store como refetch
       updateStoreConversation(variables.conversationId, updatedConversation);
@@ -285,7 +292,15 @@ export const useConversations = (filters: ConversationFilters = {}) => {
 
   // Mutation para marcar como leído
   const markAsReadMutation = useMutation({
-    mutationFn: (conversationId: string) => conversationsService.markConversationAsRead(conversationId),
+    mutationFn: (conversationId: string) => {
+      // CORREGIDO: Codificar conversationId para URL
+      const sanitizedId = sanitizeConversationId(conversationId);
+      if (!sanitizedId) {
+        throw new Error(`ID de conversación inválido: ${conversationId}`);
+      }
+      const encodedId = encodeConversationIdForUrl(sanitizedId);
+      return conversationsService.markConversationAsRead(encodedId);
+    },
     onSuccess: (updatedConversation, variables) => {
       // Actualizar tanto el store como refetch
       updateStoreConversation(variables, updatedConversation);
@@ -295,8 +310,15 @@ export const useConversations = (filters: ConversationFilters = {}) => {
 
   // Mutation para cambiar estado
   const changeStatusMutation = useMutation({
-    mutationFn: ({ conversationId, status }: { conversationId: string; status: string }) =>
-      conversationsService.changeConversationStatus(conversationId, status),
+    mutationFn: ({ conversationId, status }: { conversationId: string; status: string }) => {
+      // CORREGIDO: Codificar conversationId para URL
+      const sanitizedId = sanitizeConversationId(conversationId);
+      if (!sanitizedId) {
+        throw new Error(`ID de conversación inválido: ${conversationId}`);
+      }
+      const encodedId = encodeConversationIdForUrl(sanitizedId);
+      return conversationsService.changeConversationStatus(encodedId, status);
+    },
     onSuccess: (updatedConversation, variables) => {
       // Actualizar tanto el store como refetch
       updateStoreConversation(variables.conversationId, updatedConversation);

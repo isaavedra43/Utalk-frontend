@@ -1,5 +1,6 @@
 import api from './api';
 import type { ClientProfile, ConversationDetails, NotificationSettings, AISuggestion } from '../types';
+import { encodeConversationIdForUrl } from '../utils/conversationUtils';
 
 // Configuración de la API
 const SIDEBAR_API = '/sidebar';
@@ -7,37 +8,43 @@ const SIDEBAR_API = '/sidebar';
 export const sidebarService = {
   // Obtener perfil del cliente
   async getClientProfile(conversationId: string): Promise<ClientProfile> {
-    const response = await api.get(`${SIDEBAR_API}/client-profile/${conversationId}`);
+    const encodedConversationId = encodeConversationIdForUrl(conversationId);
+    const response = await api.get(`${SIDEBAR_API}/client-profile/${encodedConversationId}`);
     return response.data;
   },
 
   // Obtener detalles de la conversación
   async getConversationDetails(conversationId: string): Promise<ConversationDetails> {
-    const response = await api.get(`${SIDEBAR_API}/conversation-details/${conversationId}`);
+    const encodedConversationId = encodeConversationIdForUrl(conversationId);
+    const response = await api.get(`${SIDEBAR_API}/conversation-details/${encodedConversationId}`);
     return response.data;
   },
 
   // Obtener configuración de notificaciones
   async getNotificationSettings(conversationId: string): Promise<NotificationSettings> {
-    const response = await api.get(`${SIDEBAR_API}/notification-settings/${conversationId}`);
+    const encodedConversationId = encodeConversationIdForUrl(conversationId);
+    const response = await api.get(`${SIDEBAR_API}/notification-settings/${encodedConversationId}`);
     return response.data;
   },
 
   // Actualizar configuración de notificaciones
   async updateNotificationSettings(conversationId: string, settings: Partial<NotificationSettings>): Promise<NotificationSettings> {
-    const response = await api.put(`${SIDEBAR_API}/notification-settings/${conversationId}`, settings);
+    const encodedConversationId = encodeConversationIdForUrl(conversationId);
+    const response = await api.put(`${SIDEBAR_API}/notification-settings/${encodedConversationId}`, settings);
     return response.data;
   },
 
   // Obtener sugerencias de IA
   async getAISuggestions(conversationId: string): Promise<AISuggestion[]> {
-    const response = await api.get(`${SIDEBAR_API}/ai-suggestions/${conversationId}`);
+    const encodedConversationId = encodeConversationIdForUrl(conversationId);
+    const response = await api.get(`${SIDEBAR_API}/ai-suggestions/${encodedConversationId}`);
     return response.data;
   },
 
   // Generar nueva sugerencia de IA
   async generateAISuggestion(conversationId: string, context?: string): Promise<AISuggestion> {
-    const response = await api.post(`${SIDEBAR_API}/ai-suggestions/${conversationId}/generate`, { context });
+    const encodedConversationId = encodeConversationIdForUrl(conversationId);
+    const response = await api.post(`${SIDEBAR_API}/ai-suggestions/${encodedConversationId}/generate`, { context });
     return response.data;
   }
 };
