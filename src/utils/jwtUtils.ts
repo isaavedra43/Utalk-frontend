@@ -36,6 +36,7 @@ export const extractUserInfoFromToken = (token: string): JWTUserInfo => {
         email: payload.email,
         role: payload.role
       });
+      console.log('🔐 JWT - Payload completo del token:', payload);
     }
     
     return {
