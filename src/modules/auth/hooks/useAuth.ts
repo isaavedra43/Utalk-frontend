@@ -27,7 +27,6 @@ export const useAuth = () => {
   const clearAuthRef = useRef<(() => void) | null>(null);
   const userRef = useRef<FirebaseUser | null>(null);
   const backendUserRef = useRef<BackendUser | null>(null);
-  const isCheckingAuthRef = useRef<boolean>(false);
 
   // Refresh token automático
   const refreshToken = useCallback(async () => {
@@ -84,31 +83,22 @@ export const useAuth = () => {
     backendUserRef.current = backendUser;
   }, [user, backendUser]);
 
-  // Verificar estado de autenticación desde localStorage
+    // Verificar estado de autenticación desde localStorage - SOLO UNA VEZ
   useEffect(() => {
-    if (hasCheckedAuth || isCheckingAuthRef.current) {
-      return; // Ya se verificó o está verificando, no ejecutar de nuevo
+    // Solo ejecutar si NO se ha verificado y NO hay usuario autenticado
+    if (hasCheckedAuth || user || backendUser) {
+      setHasCheckedAuth(true);
+      return;
     }
     
-    // Marcar como verificando para evitar múltiples ejecuciones
-    isCheckingAuthRef.current = true;
+    // Marcar como verificado inmediatamente para evitar re-ejecuciones
+    setHasCheckedAuth(true);
     
-        // Verificación inmediata sin setTimeout
+    // Verificación inmediata
     const checkAuth = async () => {
       try {
-        // Verificar si ya hay un usuario autenticado ANTES de hacer la verificación
-        const currentUser = userRef.current || backendUserRef.current;
-        if (currentUser) {
-          logger.authInfo('Usuario ya autenticado, saltando verificación automática');
-          setHasCheckedAuth(true);
-          setLoading(false);
-          isCheckingAuthRef.current = false; // Resetear flag
-          return;
-        }
-        
         logger.authInfo('Verificando estado de autenticación desde localStorage');
         setIsAuthenticating(true);
-        setHasCheckedAuth(true); // Marcar como verificado
         
         // Verificar si hay tokens válidos en localStorage
         const accessToken = localStorage.getItem('access_token');
@@ -157,7 +147,7 @@ export const useAuth = () => {
 
     // Ejecutar verificación inmediatamente
     checkAuth();
-  }, [hasCheckedAuth]); // SOLO hasCheckedAuth para evitar re-ejecuciones
+  }, []); // SIN DEPENDENCIAS - Solo se ejecuta UNA VEZ al montar el componente
 
   // Escuchar eventos de autenticación fallida
   useEffect(() => {
