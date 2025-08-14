@@ -27,6 +27,7 @@ export const useAuth = () => {
   const clearAuthRef = useRef<(() => void) | null>(null);
   const userRef = useRef<FirebaseUser | null>(null);
   const backendUserRef = useRef<BackendUser | null>(null);
+  const isCheckingAuthRef = useRef<boolean>(false);
 
   // Refresh token automático
   const refreshToken = useCallback(async () => {
@@ -79,9 +80,12 @@ export const useAuth = () => {
 
   // Verificar estado de autenticación desde localStorage
   useEffect(() => {
-    if (hasCheckedAuth) {
-      return; // Ya se verificó, no ejecutar de nuevo
+    if (hasCheckedAuth || isCheckingAuthRef.current) {
+      return; // Ya se verificó o está verificando, no ejecutar de nuevo
     }
+    
+    // Marcar como verificando para evitar múltiples ejecuciones
+    isCheckingAuthRef.current = true;
     
     // Verificación inmediata sin setTimeout
     const checkAuth = async () => {
