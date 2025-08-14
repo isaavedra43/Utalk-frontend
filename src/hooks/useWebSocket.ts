@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Socket } from 'socket.io-client';
 import { createSocket } from '../config/socket';
+import { generateRoomId as generateRoomIdUtil } from '../utils/jwtUtils';
 
 export const useWebSocket = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -13,7 +14,7 @@ export const useWebSocket = () => {
   const isConnectingRef = useRef(false);
 
   // Conectar socket
-  const connect = useCallback((token: string) => {
+  const connect = useCallback((token: string, options?: { timeout?: number }) => {
     if (socketRef.current?.connected) {
       console.log('🔌 Socket ya conectado, saltando...');
       return;
@@ -27,7 +28,7 @@ export const useWebSocket = () => {
     try {
       isConnectingRef.current = true;
       console.log('🔌 Iniciando conexión de socket...');
-      const newSocket = createSocket(token);
+      const newSocket = createSocket(token, options);
       socketRef.current = newSocket;
       setSocket(newSocket);
 
@@ -59,7 +60,29 @@ export const useWebSocket = () => {
 
       newSocket.on('connect_error', (error: Error) => {
         console.error('🔌 Error de conexión:', error);
-        setConnectionError(error.message);
+        console.error('🔌 Detalles del error:', {
+          message: error.message,
+          name: error.name,
+          type: error.constructor.name,
+          stack: error.stack
+        });
+        
+        // MEJORADO: Manejar errores específicos
+        if (error.message.includes('AUTHENTICATION_REQUIRED') || 
+            error.message.includes('JWT token required') ||
+            error.message.includes('Unauthorized')) {
+          console.error('🔐 Error de autenticación WebSocket');
+          setConnectionError('Error de autenticación: Token inválido o expirado');
+        } else if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
+          console.error('⏰ Timeout de conexión WebSocket');
+          setConnectionError('Timeout de conexión: El servidor no responde');
+        } else if (error.message.includes('ECONNREFUSED') || error.message.includes('ENOTFOUND')) {
+          console.error('🌐 Error de red WebSocket');
+          setConnectionError('Error de red: No se puede conectar al servidor');
+        } else {
+          setConnectionError(error.message);
+        }
+        
         setIsConnected(false);
         isConnectingRef.current = false;
       });
@@ -119,6 +142,12 @@ export const useWebSocket = () => {
     }
   }, []);
 
+  // Función para generar roomId correcto según formato del backend
+  const generateRoomId = useCallback((conversationId: string) => {
+    // Usar la utilidad centralizada que maneja JWT y fallbacks
+    return generateRoomIdUtil(conversationId);
+  }, []);
+
   // Emitir evento
   const emit = useCallback((event: string, data: unknown) => {
     if (!socketRef.current?.connected) {
@@ -126,9 +155,19 @@ export const useWebSocket = () => {
       return false;
     }
 
+    // CORREGIDO: Agregar roomId para eventos de conversación
+    if (event === 'join-conversation' || event === 'leave-conversation') {
+      const eventData = data as { conversationId: string; [key: string]: unknown };
+      if (eventData.conversationId && !eventData.roomId) {
+        const roomId = generateRoomId(eventData.conversationId);
+        console.log(`🔗 ${event} - Room ID generado:`, roomId);
+        eventData.roomId = roomId;
+      }
+    }
+
     socketRef.current.emit(event, data);
     return true;
-  }, []);
+  }, [generateRoomId]);
 
   // Limpiar al desmontar
   useEffect(() => {

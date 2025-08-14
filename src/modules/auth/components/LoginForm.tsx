@@ -47,38 +47,46 @@ export const LoginForm: React.FC = () => {
       setIsLoading(true);
       await login(data.email, data.password);
       
-      // Esperar a que el WebSocket se conecte y sincronice
-      console.log('✅ Login exitoso, esperando sincronización WebSocket...');
+      console.log('✅ Login exitoso, verificando conexión WebSocket...');
       
-      // Crear una promesa que se resuelva cuando se reciba la sincronización
-      const waitForSync = new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          console.warn('⏰ Timeout esperando sincronización WebSocket');
-          reject(new Error('Timeout esperando sincronización WebSocket'));
-        }, 10000); // 10 segundos de timeout
+      // MEJORADO: Verificar conexión WebSocket antes de esperar sincronización
+      const waitForConnection = new Promise<void>((resolve, reject) => {
+        const connectionTimeout = setTimeout(() => {
+          console.warn('⏰ Timeout esperando conexión WebSocket');
+          reject(new Error('Timeout esperando conexión WebSocket'));
+        }, 15000); // 15 segundos para conexión
         
-        const handleSync = (event: Event) => {
-          console.log('🎯 LoginForm - Evento websocket:state-synced recibido:', event);
-          clearTimeout(timeout);
-          window.removeEventListener('websocket:state-synced', handleSync);
-          resolve();
+        const checkConnection = () => {
+          // Verificar si el WebSocket está conectado
+          const socketElement = document.querySelector('[data-socket-status="connected"]');
+          if (socketElement) {
+            console.log('✅ WebSocket conectado detectado');
+            clearTimeout(connectionTimeout);
+            resolve();
+            return;
+          }
+          
+          // Verificar estado isConnected del contexto
+          if (isSynced) {
+            console.log('✅ Estado isSynced es true');
+            clearTimeout(connectionTimeout);
+            resolve();
+            return;
+          }
+          
+          // Reintentar en 500ms
+          setTimeout(checkConnection, 500);
         };
         
-        console.log('👂 LoginForm - Registrando listener para websocket:state-synced...');
-        window.addEventListener('websocket:state-synced', handleSync);
-        
-        // Verificar si el evento ya se disparó antes de registrar el listener
-        setTimeout(() => {
-          console.log('🔍 LoginForm - Verificando si el evento ya se disparó...');
-        }, 100);
+        checkConnection();
       });
       
       try {
-        await waitForSync;
-        console.log('✅ WebSocket sincronizado, navegando al chat...');
+        await waitForConnection;
+        console.log('✅ WebSocket conectado, navegando al chat...');
         navigate('/chat');
-      } catch (syncError) {
-        console.warn('⚠️ No se recibió sincronización en el tiempo esperado, verificando estado isSynced...', syncError);
+      } catch (connectionError) {
+        console.warn('⚠️ No se pudo verificar conexión WebSocket, verificando estado isSynced...', connectionError);
         
         // Verificar si el estado isSynced está en true como respaldo
         if (isSynced) {

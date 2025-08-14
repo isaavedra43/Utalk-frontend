@@ -5,6 +5,7 @@ import {
 // import { auth } from '../../../config/firebase';
 import api from '../../../services/api';
 import { logger } from '../../../utils/logger';
+import { extractUserInfoFromToken } from '../../../utils/jwtUtils';
 
 interface BackendUser {
   id: string;
@@ -12,6 +13,8 @@ interface BackendUser {
   displayName?: string;
   photoURL?: string;
   role: string;
+  workspaceId: string; // ✅ AGREGADO: ID del workspace del usuario
+  tenantId: string; // ✅ AGREGADO: ID del tenant del usuario
   createdAt: string;
   updatedAt: string;
 }
@@ -57,6 +60,34 @@ export const useAuth = () => {
     }
   }, []);
 
+  // Función para procesar datos del usuario y asegurar workspaceId/tenantId
+  const processUserData = useCallback((userData: any): BackendUser => {
+    // Extraer información del token JWT si está disponible
+    const token = localStorage.getItem('access_token');
+    let tokenInfo = null;
+    
+    if (token) {
+      try {
+        tokenInfo = extractUserInfoFromToken(token);
+      } catch (error) {
+        console.warn('⚠️ Error extrayendo información del token:', error);
+      }
+    }
+    
+    // Combinar datos del backend con información del token
+    return {
+      id: userData.id,
+      email: userData.email,
+      displayName: userData.displayName,
+      photoURL: userData.photoURL,
+      role: userData.role,
+      workspaceId: userData.workspaceId || tokenInfo?.workspaceId || 'default',
+      tenantId: userData.tenantId || tokenInfo?.tenantId || 'na',
+      createdAt: userData.createdAt,
+      updatedAt: userData.updatedAt
+    };
+  }, []);
+
   // Función para limpiar autenticación
   const clearAuth = useCallback(() => {
     logger.authInfo('Limpiando estado de autenticación');
@@ -95,7 +126,9 @@ export const useAuth = () => {
             const response = await api.get('/api/auth/profile');
             const user = response.data;
             
-            setBackendUser(user);
+            // Procesar datos del usuario para asegurar workspaceId/tenantId
+            const processedUser = processUserData(user);
+            setBackendUser(processedUser);
             setUser({ uid: user.id, email: user.email, displayName: user.displayName } as FirebaseUser);
             
             logger.authInfo('Autenticación automática exitosa desde localStorage');
@@ -149,8 +182,10 @@ export const useAuth = () => {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           const backendUser = JSON.parse(storedUser);
+          // Procesar datos del usuario para asegurar workspaceId/tenantId
+          const processedUser = processUserData(backendUser);
           setUser(mockFirebaseUser as FirebaseUser);
-          setBackendUser(backendUser);
+          setBackendUser(processedUser);
           setLoading(false);
           
           logger.authInfo('Bypass de desarrollo completado exitosamente', {
@@ -206,10 +241,13 @@ export const useAuth = () => {
       
       localStorage.setItem('access_token', accessToken);
       localStorage.setItem('refresh_token', refreshToken);
-      localStorage.setItem('user', JSON.stringify(user));
+      
+      // Procesar datos del usuario para asegurar workspaceId/tenantId
+      const processedUser = processUserData(user);
+      localStorage.setItem('user', JSON.stringify(processedUser));
       
       // Actualizar estado
-      setBackendUser(user);
+      setBackendUser(processedUser);
       setUser({ uid: user.id, email: user.email, displayName: user.displayName } as FirebaseUser);
       
       // Log del estado actualizado
@@ -349,39 +387,51 @@ export const useAuth = () => {
     }
   }, []);
 
-  // Obtener perfil del usuario
-  const getProfile = useCallback(async () => {
-    try {
-      logger.backendInfo('Obteniendo perfil de usuario');
-      const response = await api.get('/api/auth/profile');
-      setBackendUser(response.data);
-      localStorage.setItem('user', JSON.stringify(response.data));
-      logger.backendInfo('Perfil obtenido exitosamente', {
-        userId: response.data.id,
-        role: response.data.role
-      });
-      return response.data;
-    } catch (error) {
-      logger.backendError('Error obteniendo perfil', error as Error, {
-        operation: 'getProfile'
-      });
-      setError(error instanceof Error ? error.message : 'Error desconocido');
-      throw error;
-    }
-  }, []);
+        // Obtener perfil del usuario
+      const getProfile = useCallback(async () => {
+        try {
+          logger.backendInfo('Obteniendo perfil de usuario');
+          const response = await api.get('/api/auth/profile');
+          
+          // Procesar datos del usuario para asegurar workspaceId/tenantId
+          const processedUser = processUserData(response.data);
+          setBackendUser(processedUser);
+          localStorage.setItem('user', JSON.stringify(processedUser));
+          
+          logger.backendInfo('Perfil obtenido exitosamente', {
+            userId: processedUser.id,
+            role: processedUser.role,
+            workspaceId: processedUser.workspaceId,
+            tenantId: processedUser.tenantId
+          });
+          return processedUser;
+        } catch (error) {
+          logger.backendError('Error obteniendo perfil', error as Error, {
+            operation: 'getProfile'
+          });
+          setError(error instanceof Error ? error.message : 'Error desconocido');
+          throw error;
+        }
+      }, [processUserData]);
 
   // Actualizar perfil
   const updateProfile = useCallback(async (profileData: Partial<BackendUser>) => {
     try {
       logger.backendInfo('Actualizando perfil de usuario', { profileData });
       const response = await api.put('/api/auth/profile', profileData);
-      setBackendUser(response.data);
-      localStorage.setItem('user', JSON.stringify(response.data));
+      
+      // Procesar datos del usuario para asegurar workspaceId/tenantId
+      const processedUser = processUserData(response.data);
+      setBackendUser(processedUser);
+      localStorage.setItem('user', JSON.stringify(processedUser));
+      
       logger.backendInfo('Perfil actualizado exitosamente', {
-        userId: response.data.id,
-        updatedFields: Object.keys(profileData)
+        userId: processedUser.id,
+        updatedFields: Object.keys(profileData),
+        workspaceId: processedUser.workspaceId,
+        tenantId: processedUser.tenantId
       });
-      return response.data;
+      return processedUser;
     } catch (error) {
       logger.backendError('Error actualizando perfil', error as Error, {
         operation: 'updateProfile',
@@ -390,7 +440,7 @@ export const useAuth = () => {
       setError(error instanceof Error ? error.message : 'Error desconocido');
       throw error;
     }
-  }, []);
+  }, [processUserData]);
 
   // Calcular estado de autenticación
   const isAuthenticated = !!user && !!backendUser && !isAuthenticating;

@@ -1,13 +1,15 @@
-import React, { createContext, useEffect, useState } from 'react';
+import React, { createContext, useEffect, useState, useCallback } from 'react';
 import { Socket } from 'socket.io-client';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useRateLimiter } from '../hooks/useRateLimiter';
+import { generateRoomId as generateRoomIdUtil, validateRoomConfiguration } from '../utils/jwtUtils';
 
 interface WebSocketContextType {
   socket: Socket | null;
   isConnected: boolean;
   isSynced: boolean;
   connectionError: string | null;
+  isFallbackMode: boolean; // Nuevo estado para modo fallback
   activeConversations: Set<string>;
   typingUsers: Map<string, Set<string>>;
   onlineUsers: Set<string>;
@@ -47,9 +49,16 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [typingUsers, setTypingUsers] = useState<Map<string, Set<string>>>(new Map());
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [isSynced, setIsSynced] = useState(false);
+  const [isFallbackMode, setIsFallbackMode] = useState(false); // Estado para modo fallback
 
   // SOLUCIONADO: Eliminado el useEffect problemático que desconectaba el WebSocket
   // Ahora el WebSocket permanecerá conectado después del login exitoso
+
+  // Función para generar roomId correcto según formato del backend
+  const generateRoomId = useCallback((conversationId: string) => {
+    // Usar la utilidad centralizada que maneja JWT y fallbacks
+    return generateRoomIdUtil(conversationId);
+  }, []);
 
   // Reautenticar socket cuando se refresca el access token
   useEffect(() => {
@@ -67,7 +76,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return () => window.removeEventListener('auth:token-refreshed', handler as unknown as EventListener);
   }, [connect, disconnect]);
 
-  // Conectar WebSocket inmediatamente después del login exitoso
+  // Conectar WebSocket inmediatamente después del login exitoso con fallback
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as { user: unknown; accessToken: string } | undefined;
@@ -75,13 +84,72 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (!accessToken) return;
       
       console.log('🔌 WebSocketContext - Login exitoso, conectando WebSocket inmediatamente...');
-      // Conectar inmediatamente sin delay
-      connect(accessToken);
+      // CORREGIDO: Usar timeout aumentado para login (15 segundos mínimo)
+      connect(accessToken, { timeout: 15000 });
+      
+      // FALLBACK: Si WebSocket falla después de 15 segundos, continuar con login HTTP exitoso
+      const fallbackTimer = setTimeout(() => {
+        if (!isConnected && !connectionError) {
+          console.warn('⚠️ WebSocketContext - WebSocket timeout, continuando sin tiempo real');
+          console.warn('⚠️ WebSocketContext - Login HTTP exitoso, navegando al dashboard...');
+          
+          // Emitir evento de fallback para que otros componentes lo manejen
+          window.dispatchEvent(new CustomEvent('websocket:fallback', {
+            detail: { 
+              reason: 'timeout',
+              timestamp: new Date().toISOString(),
+              accessToken 
+            }
+          }));
+          
+          // Continuar con login exitoso - el usuario puede acceder a la aplicación
+          // El estado de autenticación HTTP ya está establecido
+        }
+      }, 15000);
+      
+      // Limpiar timer si se conecta exitosamente
+      const cleanupTimer = () => {
+        clearTimeout(fallbackTimer);
+      };
+      
+      // Escuchar conexión exitosa para limpiar timer
+      if (socket) {
+        socket.once('connect', cleanupTimer);
+      }
+      
+      return cleanupTimer;
     };
 
     window.addEventListener('auth:login-success', handler as unknown as EventListener);
     return () => window.removeEventListener('auth:login-success', handler as unknown as EventListener);
-  }, [connect]);
+  }, [connect, isConnected, connectionError, socket]);
+
+  // MEJORADO: Actualizar atributo data-socket-status en el DOM
+  useEffect(() => {
+    const status = isConnected ? 'connected' : 'disconnected';
+    document.documentElement.setAttribute('data-socket-status', status);
+    console.log('🔌 WebSocketContext - Estado actualizado en DOM:', status);
+  }, [isConnected]);
+
+  // Escuchar evento de fallback para activar modo offline
+  useEffect(() => {
+    const handleFallback = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { reason: string; timestamp: string };
+      console.warn('⚠️ WebSocketContext - Activando modo fallback:', detail);
+      setIsFallbackMode(true);
+      
+      // Mostrar notificación al usuario
+      console.warn('⚠️ Modo offline activado - Funcionalidad de tiempo real limitada');
+    };
+
+    window.addEventListener('websocket:fallback', handleFallback as EventListener);
+    return () => window.removeEventListener('websocket:fallback', handleFallback as EventListener);
+  }, []);
+
+  // Validar configuración de rooms al inicializar
+  useEffect(() => {
+    validateRoomConfiguration();
+  }, []);
 
   // Configurar listeners globales
   useEffect(() => {
@@ -256,6 +324,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     isConnected,
     isSynced,
     connectionError,
+    isFallbackMode,
     activeConversations,
     typingUsers,
     onlineUsers,
@@ -266,8 +335,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     off,
     joinConversation: (conversationId: string) => {
       console.log('🔗 Uniéndose a conversación:', conversationId);
+      const roomId = generateRoomId(conversationId);
+      console.log('🔗 Room ID generado:', roomId);
+      
       rateLimiter.executeWithRateLimit('join-conversation', () => {
-        emit('join-conversation', { conversationId });
+        emit('join-conversation', { 
+          conversationId,
+          roomId: roomId
+        });
         setActiveConversations(prev => new Set(prev).add(conversationId));
       }, (eventType, retryAfter) => {
         console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
@@ -275,6 +350,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     },
     leaveConversation: (conversationId: string) => {
       console.log('🔌 Saliendo de conversación:', conversationId);
+      const roomId = generateRoomId(conversationId);
+      console.log('🔌 Room ID para salir:', roomId);
       
       // Verificar que el socket esté conectado antes de intentar salir
       if (!socket || !isConnected) {
@@ -289,7 +366,10 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
       
       rateLimiter.executeWithRateLimit('leave-conversation', () => {
-        emit('leave-conversation', { conversationId });
+        emit('leave-conversation', { 
+          conversationId,
+          roomId: roomId
+        });
         setActiveConversations(prev => {
           const newSet = new Set(prev);
           newSet.delete(conversationId);

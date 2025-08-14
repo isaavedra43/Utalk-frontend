@@ -1,42 +1,45 @@
 import { io } from 'socket.io-client';
+import { ENV_CONFIG } from './environment';
 
 const SOCKET_CONFIG = {
   transports: ['websocket', 'polling'],
-  timeout: 30000,
+  timeout: ENV_CONFIG.WS_TIMEOUT,
   reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000,
+  reconnectionAttempts: ENV_CONFIG.WS_RETRY_ATTEMPTS,
+  reconnectionDelay: ENV_CONFIG.WS_RECONNECTION_DELAY,
   reconnectionDelayMax: 5000,
-  maxReconnectionAttempts: 10,
+  maxReconnectionAttempts: ENV_CONFIG.WS_RETRY_ATTEMPTS,
   autoConnect: false, // No conectar automáticamente
   forceNew: true,
   upgrade: true,
   rememberUpgrade: true
 };
 
-export const createSocket = (token: string) => {
-  // Usar URL del backend real
-  const SOCKET_URL = import.meta.env.VITE_WS_URL || import.meta.env.VITE_BACKEND_URL || 'https://utalk-backend-production.up.railway.app';
+export const createSocket = (token: string, options?: { timeout?: number }) => {
+  // CORREGIDO: Usar configuración centralizada
+  const SOCKET_URL = ENV_CONFIG.WS_URL;
   
   console.log('🔌 Configurando socket con URL:', SOCKET_URL);
   console.log('🔌 Token disponible:', token ? 'Sí' : 'No');
-  console.log('🔌 Variables de entorno:', {
-    VITE_WS_URL: import.meta.env.VITE_WS_URL,
-    VITE_BACKEND_URL: import.meta.env.VITE_BACKEND_URL
+  console.log('🔌 Configuración de entorno:', {
+    WS_URL: ENV_CONFIG.WS_URL,
+    BACKEND_URL: ENV_CONFIG.BACKEND_URL,
+    DEV_MODE: ENV_CONFIG.DEV_MODE
   });
   
-  const socket = io(SOCKET_URL, {
+  const socketConfig = {
     ...SOCKET_CONFIG,
+    // MEJORADO: Timeout personalizable para login (mínimo 15 segundos)
+    timeout: Math.max(options?.timeout || SOCKET_CONFIG.timeout, 15000)
+  };
+  
+  const socket = io(SOCKET_URL, {
+    ...socketConfig,
+    // SIMPLIFICADO: Solo usar auth para el token
     auth: {
       token: token
     },
-    extraHeaders: {
-      'Authorization': `Bearer ${token}`
-    },
     path: '/socket.io/', // Asegurar que use el path correcto
-    query: {
-      token: token // Agregar token también como query parameter
-    }
   });
 
   // Agregar logging adicional para debug
