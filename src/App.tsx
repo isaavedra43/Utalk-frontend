@@ -6,7 +6,7 @@ import { WebSocketProvider } from './contexts/WebSocketContext'
 import { AuthModule } from './modules/auth'
 import { TeamModule } from './modules/team'
 import { MainLayout } from './components/layout/MainLayout'
-import { DebugPanel } from './components/DebugPanel'
+// import { DebugPanel } from './components/DebugPanel' // DEBUGPANEL DESHABILITADO TEMPORALMENTE
 
 
 import { logger } from './utils/logger'
@@ -77,15 +77,15 @@ const TeamPage: React.FC = () => {
 };
 
 function App() {
-  const [showDebugPanel, setShowDebugPanel] = useState(import.meta.env.DEV);
+  // const [showDebugPanel, setShowDebugPanel] = useState(import.meta.env.DEV); // DEBUGPANEL DESHABILITADO TEMPORALMENTE
 
-  const toggleDebugPanel = () => {
-    setShowDebugPanel(!showDebugPanel);
-    logger.systemInfo('Debug panel toggled', { 
-      isVisible: !showDebugPanel,
-      timestamp: new Date().toISOString()
-    });
-  };
+  // const toggleDebugPanel = () => {
+  //   setShowDebugPanel(!showDebugPanel);
+  //   logger.systemInfo('Debug panel toggled', { 
+  //     isVisible: !showDebugPanel,
+  //     timestamp: new Date().toISOString()
+  //   });
+  // }; // DEBUGPANEL DESHABILITADO TEMPORALMENTE
 
   return (
     <Router>
@@ -123,18 +123,18 @@ function App() {
               <Route path="/" element={<Navigate to="/login" replace />} />
             </Routes>
             
-            {/* Debug Panel Toggle Button (solo en desarrollo) */}
-            {import.meta.env.DEV && (
+            {/* Debug Panel Toggle Button (solo en desarrollo) - DESHABILITADO TEMPORALMENTE */}
+            {/* {import.meta.env.DEV && (
               <button
                 onClick={toggleDebugPanel}
                 className="fixed top-4 right-4 z-50 px-3 py-2 bg-gray-800 text-white rounded-lg shadow-lg hover:bg-gray-700 text-sm"
               >
                 {showDebugPanel ? 'Hide Debug' : 'Show Debug'}
               </button>
-            )}
+            )} */}
             
-            {/* Debug Panel */}
-            <DebugPanel isVisible={showDebugPanel} onClose={() => setShowDebugPanel(false)} />
+            {/* Debug Panel - DESHABILITADO TEMPORALMENTE */}
+            {/* <DebugPanel isVisible={showDebugPanel} onClose={() => setShowDebugPanel(false)} /> */}
           </div>
         </WebSocketProvider>
       </AuthProvider>
