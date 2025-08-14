@@ -76,18 +76,19 @@ api.interceptors.request.use(
           return Promise.reject(new Error(`ID de conversación inválido: ${conversationId}`));
         }
         
-        // SOLUCIÓN CRÍTICA: Aplicar encodeURIComponent para preservar los + en la URL
-        const encodedSanitizedId = encodeURIComponent(sanitizedId);
+        // SOLUCIÓN: Enviar + directamente sin codificar para que el backend lo reciba correctamente
+        // El backend espera + literal, no %2B
+        const sanitizedForBackend = sanitizedId.replace(/%2B/g, '+');
         
-        if (encodedSanitizedId !== conversationId) {
-          // Reemplazar el ID en la URL con la versión correctamente codificada
-          config.url = config.url.replace(conversationId, encodedSanitizedId);
-          logConversationId(sanitizedId, 'API Interceptor - URL encoded');
-          logger.apiInfo('ID de conversación codificado correctamente en URL', {
+        if (sanitizedForBackend !== conversationId) {
+          // Reemplazar el ID en la URL con la versión que el backend espera
+          config.url = config.url.replace(conversationId, sanitizedForBackend);
+          logConversationId(sanitizedId, 'API Interceptor - Backend format');
+          logger.apiInfo('ID de conversación formateado para backend', {
             originalId: conversationId,
             decodedId: decodedConversationId,
             sanitizedId,
-            encodedId: encodedSanitizedId,
+            backendFormat: sanitizedForBackend,
             method: config.method?.toUpperCase(),
             url: config.url
           });

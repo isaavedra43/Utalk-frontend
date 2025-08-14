@@ -25,7 +25,22 @@ export const extractUserInfoFromToken = (token: string): JWTUserInfo => {
     // Extraer campos con valores por defecto según especificación del backend
     const workspaceId = payload.workspaceId || payload.ws || 'default';
     const tenantId = payload.tenantId || payload.tenant || 'na';
-    const userId = payload.sub || payload.userId || payload.id || null;
+    
+    // INTENTAR OBTENER userId DE MÚLTIPLES FUENTES
+    let userId = payload.sub || payload.userId || payload.id || null;
+    
+    // Si no hay userId en el JWT, intentar obtenerlo del localStorage
+    if (!userId) {
+      try {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          userId = userData.id || userData.userId || null;
+        }
+      } catch (error) {
+        console.warn('⚠️ Error obteniendo userId de localStorage:', error);
+      }
+    }
     
     // Log de información extraída (solo en desarrollo)
     if (import.meta.env.DEV) {

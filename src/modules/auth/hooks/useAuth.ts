@@ -163,39 +163,10 @@ export const useAuth = () => {
     };
   }, []); // Usar referencia para evitar warnings de ESLint
 
-  // Manejar bypass de desarrollo - DESHABILITADO TEMPORALMENTE
-  // useEffect(() => {
-  //   const handleDevBypass = async (event: CustomEvent) => {
-  //     try {
-  //       logger.authInfo('Ejecutando bypass de desarrollo');
-  //       const mockFirebaseUser = event.detail.user;
-  //       
-  //       // Simular backend user desde localStorage
-  //       const storedUser = localStorage.getItem('user');
-  //       if (storedUser) {
-  //         const backendUser = JSON.parse(storedUser);
-  //         setUser(mockFirebaseUser as FirebaseUser);
-  //         setBackendUser(backendUser);
-  //         setLoading(false);
-  //         
-  //         logger.authInfo('Bypass de desarrollo completado exitosamente', {
-  //           mockUser: mockFirebaseUser,
-  //           backendUser
-  //         });
-  //       }
-  //     } catch (error) {
-  //       logger.authError('Error en bypass de desarrollo', error as Error);
-  //       setError('Error en bypass de desarrollo');
-  //     }
-  //   };
-
-  //   // Escuchar evento de bypass de desarrollo
-  //   window.addEventListener('firebase-auth-state-changed', handleDevBypass as unknown as EventListener);
-
-  //   return () => {
-  //     window.removeEventListener('firebase-auth-state-changed', handleDevBypass as unknown as EventListener);
-  //   };
-  // }, []); // setUser, setBackendUser, setLoading, setError son estables (setters de useState)
+  // Placeholder para mantener orden de Hooks - BYPASS DESHABILITADO PERMANENTEMENTE
+  const bypassPlaceholder = useCallback(() => {
+    // Función vacía para mantener el orden de Hooks
+  }, []);
 
   // Login con email y password - Solo backend
   const login = useCallback(async (email: string, password: string) => {
@@ -458,6 +429,7 @@ export const useAuth = () => {
     getProfile,
     updateProfile,
     clearAuth,
-    isAuthenticated
+    isAuthenticated,
+    bypassPlaceholder // Incluir para evitar warning de linter
   };
 }; 
