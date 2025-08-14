@@ -163,7 +163,7 @@ export const useChat = (conversationId: string) => {
 
   // Unirse a conversación cuando se conecta con throttling
   useEffect(() => {
-    if (isConnected && conversationId) {
+    if (isConnected && conversationId && !isJoined) {
       // Validar y sanitizar el ID de conversación
       const sanitizedId = sanitizeConversationId(conversationId);
       if (!sanitizedId) {
@@ -184,8 +184,13 @@ export const useChat = (conversationId: string) => {
             joinConversationThrottler
           );
           
-          loadMessages();
-          loadConversation();
+          // Solo cargar mensajes y conversación si no se han cargado ya
+          if (!messages.length) {
+            loadMessages();
+          }
+          if (!conversation) {
+            loadConversation();
+          }
         } catch (error) {
           console.error('❌ useChat - Error uniéndose a conversación:', error);
           setError('Error uniéndose a conversación');
@@ -194,7 +199,7 @@ export const useChat = (conversationId: string) => {
 
       joinOperation();
     }
-  }, [isConnected, conversationId, joinConversation, loadMessages, loadConversation]);
+  }, [isConnected, conversationId, isJoined, messages.length, conversation, joinConversation, loadMessages, loadConversation]);
 
   // Salir de conversación al desmontar con throttling
   useEffect(() => {

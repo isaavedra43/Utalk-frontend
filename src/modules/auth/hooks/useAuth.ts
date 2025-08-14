@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
   type User as FirebaseUser
 } from 'firebase/auth';
@@ -23,6 +23,7 @@ export const useAuth = () => {
   const [backendUser, setBackendUser] = useState<BackendUser | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+  const lastAuthStateRef = useRef<string>('');
 
   // Refresh token automático
   const refreshToken = useCallback(async () => {
@@ -403,21 +404,26 @@ export const useAuth = () => {
   // Calcular estado de autenticación de forma estable con useMemo
   const isAuthenticated = useMemo(() => {
     const authenticated = !!user && !!backendUser && !isAuthenticating;
-    
-    // Log del estado de autenticación solo cuando cambie realmente
-    // Usar setTimeout para evitar problemas de orden de hooks
-    setTimeout(() => {
-      logger.authInfo('Estado de autenticación calculado', {
-        hasUser: !!user,
-        hasBackendUser: !!backendUser,
-        isAuthenticating,
-        isAuthenticated: authenticated,
-        userEmail: user?.email || backendUser?.email
-      });
-    }, 0);
-    
     return authenticated;
   }, [user, backendUser, isAuthenticating]);
+
+  // Log del estado de autenticación solo cuando cambie realmente
+  useEffect(() => {
+    const currentState = {
+      hasUser: !!user,
+      hasBackendUser: !!backendUser,
+      isAuthenticating,
+      isAuthenticated,
+      userEmail: user?.email || backendUser?.email
+    };
+
+    // Solo loggear si hay cambios significativos
+    const stateKey = JSON.stringify(currentState);
+    if (stateKey !== lastAuthStateRef.current) {
+      lastAuthStateRef.current = stateKey;
+      logger.authInfo('Estado de autenticación calculado', currentState);
+    }
+  }, [user, backendUser, isAuthenticating, isAuthenticated]);
 
   return {
     user,

@@ -22,10 +22,25 @@ export const extractUserInfoFromToken = (token: string): JWTUserInfo => {
     // Decodificar el payload del JWT (segunda parte del token)
     const payload = JSON.parse(atob(token.split('.')[1]));
     
+    // Verificar que el token tenga la información mínima requerida
+    const workspaceId = payload.workspaceId || payload.ws;
+    const tenantId = payload.tenantId || payload.tenant;
+    const userId = payload.sub || payload.userId || payload.id;
+    
+    // Si faltan datos críticos, no usar valores por defecto problemáticos
+    if (!workspaceId || !tenantId || !userId) {
+      console.warn('⚠️ JWT - Token incompleto, faltan datos críticos:', {
+        workspaceId: !!workspaceId,
+        tenantId: !!tenantId,
+        userId: !!userId
+      });
+      throw new Error('Token incompleto');
+    }
+    
     return {
-      workspaceId: payload.workspaceId || payload.ws || 'default',
-      tenantId: payload.tenantId || payload.tenant || 'na',
-      userId: payload.sub || payload.userId || payload.id || null,
+      workspaceId,
+      tenantId,
+      userId,
       email: payload.email || null,
       role: payload.role || null,
       exp: payload.exp || null,
@@ -33,12 +48,8 @@ export const extractUserInfoFromToken = (token: string): JWTUserInfo => {
     };
   } catch (error) {
     console.warn('⚠️ Error decodificando JWT:', error);
-    return { 
-      workspaceId: 'default', 
-      tenantId: 'na',
-      userId: null,
-      email: null
-    };
+    // No retornar valores por defecto problemáticos
+    throw new Error('Token inválido o incompleto');
   }
 };
 
