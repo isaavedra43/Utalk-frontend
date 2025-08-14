@@ -9,4 +9,7 @@ export { ConversationList } from '../components/chat/ConversationList';
 export { AuthModule } from './auth';
 
 // Exportar módulo de dashboard
-export { DashboardModule } from './dashboard'; 
+export { DashboardModule } from './dashboard';
+
+// Exportar módulo de equipo
+export { TeamModule } from './team'; 

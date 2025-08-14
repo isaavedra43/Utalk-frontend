@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { AppState, User, Conversation, Message, Contact, DashboardData, DashboardUpdate } from '../types';
+import type { AppState, User, Conversation, Message, Contact, DashboardData, DashboardUpdate, TeamState } from '../types';
 
 interface AppStore extends AppState {
   // Actions
@@ -28,6 +28,11 @@ interface AppStore extends AppState {
   setDashboardLoading: (loading: boolean) => void;
   setDashboardError: (error: string | null) => void;
   refreshDashboard: () => void;
+  // NUEVAS acciones del equipo
+  setTeamData: (data: TeamState | null) => void;
+  setTeamLoading: (loading: boolean) => void;
+  setTeamError: (error: string | null) => void;
+  refreshTeam: () => void;
 }
 
 const initialState: AppState = {
@@ -45,6 +50,10 @@ const initialState: AppState = {
   dashboardData: null,
   dashboardLoading: false,
   dashboardError: null,
+  // NUEVO: Estado inicial del equipo
+  teamData: null,
+  teamLoading: false,
+  teamError: null,
 };
 
 export const useAppStore = create<AppStore>()(
@@ -162,6 +171,25 @@ export const useAppStore = create<AppStore>()(
       refreshDashboard: () => set({
         dashboardLoading: true,
         dashboardError: null
+      }),
+
+      // NUEVAS acciones del equipo
+      setTeamData: (data: TeamState | null) => set({ 
+        teamData: data,
+        teamLoading: false,
+        teamError: null 
+      }),
+
+      setTeamLoading: (loading: boolean) => set({ teamLoading: loading }),
+
+      setTeamError: (error: string | null) => set({ 
+        teamError: error,
+        teamLoading: false 
+      }),
+
+      refreshTeam: () => set({
+        teamLoading: true,
+        teamError: null
       }),
     }),
     {

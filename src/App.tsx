@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext'
 import { WebSocketProvider } from './contexts/WebSocketContext'
 import { AuthModule } from './modules/auth'
+import { TeamModule } from './modules/team'
 import { MainLayout } from './components/layout/MainLayout'
 import { DebugPanel } from './components/DebugPanel'
 
@@ -64,6 +65,17 @@ const DashboardPage: React.FC = () => {
   return <MainLayout />;
 };
 
+// Componente para establecer el módulo de equipo
+const TeamPage: React.FC = () => {
+  const { setCurrentModule } = useAppStore();
+  
+  useEffect(() => {
+    setCurrentModule('team');
+  }, [setCurrentModule]);
+  
+  return <TeamModule />;
+};
+
 function App() {
   const [showDebugPanel, setShowDebugPanel] = useState(import.meta.env.DEV);
 
@@ -97,6 +109,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <DashboardPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/team" 
+                element={
+                  <ProtectedRoute>
+                    <TeamPage />
                   </ProtectedRoute>
                 } 
               />

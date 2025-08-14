@@ -1,4 +1,4 @@
-import React, { memo, useState } from 'react';
+import { memo, useState } from 'react';
 import { AlertTriangle, HelpCircle, Star, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface Topic {
