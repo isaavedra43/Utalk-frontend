@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -25,13 +25,9 @@ export const LoginForm: React.FC = () => {
   const navigate = useNavigate();
   const { isSynced } = useContext(WebSocketContext) || {};
 
-  // Limpiar localStorage al cargar el componente de login
-  useEffect(() => {
-    console.log('🧹 LoginForm - Limpiando localStorage para forzar login manual');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-  }, []);
+  // SOLUCIONADO: Removido el useEffect que limpiaba localStorage
+  // Este useEffect estaba interfiriendo con el flujo de autenticación exitoso
+  // y causando que el usuario fuera deslogueado después del login exitoso
 
   const {
     register,
