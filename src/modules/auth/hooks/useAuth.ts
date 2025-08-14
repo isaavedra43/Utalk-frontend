@@ -82,6 +82,14 @@ export const useAuth = () => {
     // Agregar debounce para evitar verificaciones excesivas
     const checkAuthTimeoutRef = setTimeout(async () => {
       try {
+        // Solo verificar si NO hay usuario autenticado
+        if (user || backendUser) {
+          logger.authInfo('Usuario ya autenticado, saltando verificación automática');
+          setHasCheckedAuth(true);
+          setLoading(false);
+          return;
+        }
+        
         logger.authInfo('Verificando estado de autenticación desde localStorage (con debounce)');
         setIsAuthenticating(true);
         setHasCheckedAuth(true); // Marcar como verificado
@@ -129,13 +137,13 @@ export const useAuth = () => {
         setLoading(false);
         setIsAuthenticating(false);
       }
-    }, 100); // Debounce reducido a 100ms para verificación inicial
+    }, 500); // Aumentar debounce a 500ms para reducir logs
 
     // Cleanup del timeout
     return () => {
       clearTimeout(checkAuthTimeoutRef);
     };
-  }, [hasCheckedAuth]); // Remover clearAuth de las dependencias para evitar re-ejecuciones
+  }, [hasCheckedAuth, user, backendUser]); // Agregar user y backendUser para detectar cambios
 
   // Escuchar eventos de autenticación fallida
   useEffect(() => {
@@ -421,11 +429,15 @@ export const useAuth = () => {
       userEmail: user?.email || backendUser?.email
     };
 
-    // Solo loggear si hay cambios significativos
+    // Solo loggear si hay cambios significativos y no es un cambio temporal
     const stateKey = JSON.stringify(currentState);
     if (stateKey !== lastAuthStateRef.current) {
       lastAuthStateRef.current = stateKey;
-      logger.authInfo('Estado de autenticación calculado', currentState);
+      
+      // Solo loggear cambios importantes, no cambios temporales durante la autenticación
+      if (!isAuthenticating || (!!user && !!backendUser)) {
+        logger.authInfo('Estado de autenticación calculado', currentState);
+      }
     }
   }, [user, backendUser, isAuthenticating, isAuthenticated]); // Incluir isAuthenticated para evitar warning de ESLint
 
