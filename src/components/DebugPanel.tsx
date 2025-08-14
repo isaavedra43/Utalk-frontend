@@ -31,7 +31,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) =>
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   // Función para agregar logs
-  const addLog = (level: LogEntry['level'], message: string, icon: string) => {
+  const addLog = useCallback((level: LogEntry['level'], message: string, icon: string) => {
     const newLog: LogEntry = {
       id: Date.now().toString(),
       timestamp: new Date(),
@@ -40,7 +40,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) =>
       icon
     };
     setLogs(prev => [...prev.slice(-49), newLog]); // Mantener solo los últimos 50 logs
-  };
+  }, []);
 
   // Auto-scroll para logs
   useEffect(() => {
@@ -64,21 +64,28 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) =>
       originalLog.apply(console, args);
       // Solo agregar log si el panel está visible para evitar re-renders innecesarios
       if (isVisible) {
-        addLog('info', args.join(' '), '📝');
+        // Usar setTimeout para evitar el bucle infinito
+        setTimeout(() => {
+          addLog('info', args.join(' '), '📝');
+        }, 0);
       }
     };
 
     console.warn = (...args) => {
       originalWarn.apply(console, args);
       if (isVisible) {
-        addLog('warn', args.join(' '), '⚠️');
+        setTimeout(() => {
+          addLog('warn', args.join(' '), '⚠️');
+        }, 0);
       }
     };
 
     console.error = (...args) => {
       originalError.apply(console, args);
       if (isVisible) {
-        addLog('error', args.join(' '), '❌');
+        setTimeout(() => {
+          addLog('error', args.join(' '), '❌');
+        }, 0);
       }
     };
 
@@ -94,7 +101,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) =>
         (console as any)._debugPanelIntercepted = false;
       }
     };
-  }, [isVisible]); // Solo re-ejecutar si cambia la visibilidad
+  }, [isVisible, addLog]); // Incluir addLog en las dependencias
 
   const handleTestConnection = () => {
     if (emit) {
