@@ -22,11 +22,11 @@ export const useAuth = () => {
   const [error, setError] = useState<string | null>(null);
   const [backendUser, setBackendUser] = useState<BackendUser | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
   const lastAuthStateRef = useRef<string>('');
   const clearAuthRef = useRef<(() => void) | null>(null);
   const userRef = useRef<FirebaseUser | null>(null);
   const backendUserRef = useRef<BackendUser | null>(null);
+  const hasVerifiedAuthRef = useRef<boolean>(false);
 
   // Refresh token automático
   const refreshToken = useCallback(async () => {
@@ -86,13 +86,12 @@ export const useAuth = () => {
   // Verificar estado de autenticación desde localStorage - SOLO UNA VEZ
   useEffect(() => {
     // Solo ejecutar si NO se ha verificado y NO hay usuario autenticado
-    if (hasCheckedAuth || user || backendUser) {
-      setHasCheckedAuth(true);
+    if (hasVerifiedAuthRef.current || user || backendUser) {
       return;
     }
     
     // Marcar como verificado inmediatamente para evitar re-ejecuciones
-    setHasCheckedAuth(true);
+    hasVerifiedAuthRef.current = true;
     
     // Verificación inmediata
     const checkAuth = async () => {
@@ -147,7 +146,7 @@ export const useAuth = () => {
 
     // Ejecutar verificación inmediatamente
     checkAuth();
-  }, [hasCheckedAuth]); // SOLO hasCheckedAuth para evitar re-ejecuciones múltiples
+  }, []); // SIN DEPENDENCIAS - Solo se ejecuta UNA VEZ al montar el componente
 
   // Escuchar eventos de autenticación fallida
   useEffect(() => {
