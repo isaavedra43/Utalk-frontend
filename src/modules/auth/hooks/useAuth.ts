@@ -179,7 +179,7 @@ export const useAuth = () => {
     return () => {
       window.removeEventListener('firebase-auth-state-changed', handleDevBypass as unknown as EventListener);
     };
-  }, [setUser, setBackendUser, setLoading, setError]);
+  }, []); // setUser, setBackendUser, setLoading, setError son estables (setters de useState)
 
   // Login con email y password - Solo backend
   const login = useCallback(async (email: string, password: string) => {
@@ -317,7 +317,7 @@ export const useAuth = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, backendUser, clearAuth]);
+  }, [user, backendUser]); // clearAuth es estable (useCallback sin dependencias)
 
   // Cambiar contraseña - Solo backend
   const changePassword = useCallback(async (newPassword: string) => {
