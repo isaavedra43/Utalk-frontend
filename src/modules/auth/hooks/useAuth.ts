@@ -76,14 +76,14 @@ export const useAuth = () => {
   clearAuthRef.current = clearAuth;
   userRef.current = user;
   backendUserRef.current = backendUser;
-  
+
   // Actualizar referencias cuando cambien los valores
   useEffect(() => {
     userRef.current = user;
     backendUserRef.current = backendUser;
   }, [user, backendUser]);
 
-    // Verificar estado de autenticación desde localStorage - SOLO UNA VEZ
+  // Verificar estado de autenticación desde localStorage - SOLO UNA VEZ
   useEffect(() => {
     // Solo ejecutar si NO se ha verificado y NO hay usuario autenticado
     if (hasCheckedAuth || user || backendUser) {
@@ -147,7 +147,7 @@ export const useAuth = () => {
 
     // Ejecutar verificación inmediatamente
     checkAuth();
-  }, []); // SIN DEPENDENCIAS - Solo se ejecuta UNA VEZ al montar el componente
+  }, [hasCheckedAuth]); // SOLO hasCheckedAuth para evitar re-ejecuciones múltiples
 
   // Escuchar eventos de autenticación fallida
   useEffect(() => {
@@ -163,10 +163,7 @@ export const useAuth = () => {
     };
   }, []); // Usar referencia para evitar warnings de ESLint
 
-  // Placeholder para mantener orden de Hooks - BYPASS DESHABILITADO PERMANENTEMENTE
-  const bypassPlaceholder = useCallback(() => {
-    // Función vacía para mantener el orden de Hooks
-  }, []);
+
 
   // Login con email y password - Solo backend
   const login = useCallback(async (email: string, password: string) => {
@@ -414,7 +411,7 @@ export const useAuth = () => {
         logger.authInfo('Estado de autenticación calculado', currentState);
       }
     }
-  }, [user, backendUser, isAuthenticating]); // Remover isAuthenticated para evitar ciclo infinito
+  }, [user, backendUser, isAuthenticating, isAuthenticated]); // Incluir isAuthenticated para logging completo
 
   return {
     user,
@@ -429,7 +426,6 @@ export const useAuth = () => {
     getProfile,
     updateProfile,
     clearAuth,
-    isAuthenticated,
-    bypassPlaceholder // Incluir para evitar warning de linter
+    isAuthenticated
   };
 }; 
