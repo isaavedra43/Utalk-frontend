@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useWebSocketContext } from '../contexts/useWebSocketContext';
 import { useAuth } from '../modules/auth/hooks/useAuth';
 import { WebSocketTest } from './WebSocketTest';

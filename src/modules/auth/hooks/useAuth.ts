@@ -403,18 +403,19 @@ export const useAuth = () => {
   // Calcular estado de autenticación de forma estable con useMemo
   const isAuthenticated = useMemo(() => {
     const authenticated = !!user && !!backendUser && !isAuthenticating;
-    
-    // Log del estado de autenticación solo cuando cambie
+    return authenticated;
+  }, [user, backendUser, isAuthenticating]);
+
+  // Log del estado de autenticación solo cuando cambie realmente
+  useEffect(() => {
     logger.authInfo('Estado de autenticación calculado', {
       hasUser: !!user,
       hasBackendUser: !!backendUser,
       isAuthenticating,
-      isAuthenticated: authenticated,
+      isAuthenticated,
       userEmail: user?.email || backendUser?.email
     });
-    
-    return authenticated;
-  }, [user, backendUser, isAuthenticating]);
+  }, [user, backendUser, isAuthenticating, isAuthenticated]);
 
   return {
     user,
