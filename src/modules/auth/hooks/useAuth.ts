@@ -77,6 +77,12 @@ export const useAuth = () => {
   clearAuthRef.current = clearAuth;
   userRef.current = user;
   backendUserRef.current = backendUser;
+  
+  // Actualizar referencias cuando cambien los valores
+  useEffect(() => {
+    userRef.current = user;
+    backendUserRef.current = backendUser;
+  }, [user, backendUser]);
 
   // Verificar estado de autenticación desde localStorage
   useEffect(() => {
