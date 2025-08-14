@@ -423,7 +423,7 @@ export const useAuth = () => {
       lastAuthStateRef.current = stateKey;
       logger.authInfo('Estado de autenticación calculado', currentState);
     }
-  }, [user, backendUser, isAuthenticating, isAuthenticated]);
+  }, [user, backendUser, isAuthenticating]); // Removido isAuthenticated de las dependencias
 
   return {
     user,
