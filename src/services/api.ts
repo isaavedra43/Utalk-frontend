@@ -54,29 +54,40 @@ api.interceptors.request.use(
       });
     }
 
-    // Validar IDs de conversación en URLs
+    // Validar IDs de conversación en URLs y aplicar URL encoding correcto
     if (config.url) {
       const conversationIdMatch = config.url.match(/\/conversations\/([^/?]+)/);
       if (conversationIdMatch) {
         const conversationId = conversationIdMatch[1];
-        const sanitizedId = sanitizeConversationId(conversationId);
+        
+        // SOLUCIÓN CRÍTICA: Decodificar el ID que puede tener espacios en lugar de +
+        // HTTP convierte automáticamente + en espacios, necesitamos revertir esto
+        const decodedConversationId = conversationId.replace(/\s/g, '+');
+        
+        const sanitizedId = sanitizeConversationId(decodedConversationId);
         
         if (!sanitizedId) {
           logger.apiError('ID de conversación inválido detectado en URL', new Error(`Invalid conversation ID: ${conversationId}`), {
             originalUrl: config.url,
             invalidId: conversationId,
+            decodedId: decodedConversationId,
             method: config.method?.toUpperCase()
           });
           return Promise.reject(new Error(`ID de conversación inválido: ${conversationId}`));
         }
         
-        if (sanitizedId !== conversationId) {
-          // Reemplazar el ID en la URL
-          config.url = config.url.replace(conversationId, sanitizedId);
-          logConversationId(sanitizedId, 'API Interceptor - URL sanitized');
-          logger.apiInfo('ID de conversación sanitizado en URL', {
+        // SOLUCIÓN CRÍTICA: Aplicar encodeURIComponent para preservar los + en la URL
+        const encodedSanitizedId = encodeURIComponent(sanitizedId);
+        
+        if (encodedSanitizedId !== conversationId) {
+          // Reemplazar el ID en la URL con la versión correctamente codificada
+          config.url = config.url.replace(conversationId, encodedSanitizedId);
+          logConversationId(sanitizedId, 'API Interceptor - URL encoded');
+          logger.apiInfo('ID de conversación codificado correctamente en URL', {
             originalId: conversationId,
+            decodedId: decodedConversationId,
             sanitizedId,
+            encodedId: encodedSanitizedId,
             method: config.method?.toUpperCase(),
             url: config.url
           });

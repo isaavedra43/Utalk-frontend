@@ -103,11 +103,15 @@ export const extractPhonesFromConversationId = (conversationId: string): { phone
  * @returns El ID limpio o null si es inválido
  */
 export const sanitizeConversationId = (conversationId: string): string | null => {
+  // SOLUCIÓN CRÍTICA: Manejar URLs que pueden tener espacios en lugar de +
+  // HTTP convierte automáticamente + en espacios, necesitamos revertir esto
+  const decodedConversationId = conversationId.replace(/\s/g, '+');
+  
   // Normalizar el ID
-  const normalized = normalizeConversationId(conversationId);
+  const normalized = normalizeConversationId(decodedConversationId);
   
   if (!normalized) {
-    console.warn('⚠️ ID de conversación inválido:', conversationId);
+    console.warn('⚠️ ID de conversación inválido:', conversationId, 'decoded:', decodedConversationId);
     return null;
   }
 
@@ -118,6 +122,41 @@ export const sanitizeConversationId = (conversationId: string): string | null =>
   }
 
   return normalized;
+};
+
+/**
+ * Codifica un ID de conversación para uso en URLs
+ * @param conversationId - El ID de conversación a codificar
+ * @returns El ID codificado para URL
+ */
+export const encodeConversationIdForUrl = (conversationId: string): string => {
+  const sanitized = sanitizeConversationId(conversationId);
+  if (!sanitized) {
+    throw new Error(`ID de conversación inválido para codificación: ${conversationId}`);
+  }
+  
+  // SOLUCIÓN CRÍTICA: Usar encodeURIComponent para preservar los + en la URL
+  return encodeURIComponent(sanitized);
+};
+
+/**
+ * Decodifica un ID de conversación desde una URL
+ * @param encodedConversationId - El ID codificado desde la URL
+ * @returns El ID decodificado
+ */
+export const decodeConversationIdFromUrl = (encodedConversationId: string): string => {
+  try {
+    // Decodificar la URL
+    const decoded = decodeURIComponent(encodedConversationId);
+    
+    // Revertir espacios a + si es necesario
+    const withPlus = decoded.replace(/\s/g, '+');
+    
+    return withPlus;
+  } catch (error) {
+    console.error('❌ Error decodificando ID de conversación:', encodedConversationId, error);
+    return encodedConversationId; // Retornar original si falla la decodificación
+  }
 };
 
 /**

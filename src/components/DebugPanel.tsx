@@ -49,33 +49,52 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) =>
     }
   }, [logs, autoScroll]);
 
-  // Interceptar console.log para capturar logs
+  // Interceptar console.log para capturar logs (SOLUCIONADO: Evitar bucle infinito)
   useEffect(() => {
+    // Verificar si ya se interceptó para evitar re-intercepción
+    if ((console as any)._debugPanelIntercepted) {
+      return;
+    }
+
     const originalLog = console.log;
     const originalWarn = console.warn;
     const originalError = console.error;
 
     console.log = (...args) => {
       originalLog.apply(console, args);
-      addLog('info', args.join(' '), '📝');
+      // Solo agregar log si el panel está visible para evitar re-renders innecesarios
+      if (isVisible) {
+        addLog('info', args.join(' '), '📝');
+      }
     };
 
     console.warn = (...args) => {
       originalWarn.apply(console, args);
-      addLog('warn', args.join(' '), '⚠️');
+      if (isVisible) {
+        addLog('warn', args.join(' '), '⚠️');
+      }
     };
 
     console.error = (...args) => {
       originalError.apply(console, args);
-      addLog('error', args.join(' '), '❌');
+      if (isVisible) {
+        addLog('error', args.join(' '), '❌');
+      }
     };
 
+    // Marcar como interceptado
+    (console as any)._debugPanelIntercepted = true;
+
     return () => {
-      console.log = originalLog;
-      console.warn = originalWarn;
-      console.error = originalError;
+      // Solo restaurar si el panel se desmonta completamente
+      if (!isVisible) {
+        console.log = originalLog;
+        console.warn = originalWarn;
+        console.error = originalError;
+        (console as any)._debugPanelIntercepted = false;
+      }
     };
-  }, []);
+  }, [isVisible]); // Solo re-ejecutar si cambia la visibilidad
 
   const handleTestConnection = () => {
     if (emit) {

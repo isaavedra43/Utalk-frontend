@@ -1,6 +1,6 @@
 import api from './api';
 import type { Conversation, ConversationFilters } from '../types';
-import { sanitizeConversationId, logConversationId } from '../utils/conversationUtils';
+import { sanitizeConversationId, logConversationId, encodeConversationIdForUrl } from '../utils/conversationUtils';
 
 // Tipo para respuesta de lista de conversaciones
 interface ConversationListResponse {
@@ -136,8 +136,11 @@ export const conversationsService = {
       throw new Error(`ID de conversación inválido: ${conversationId}`);
     }
     
+    // SOLUCIÓN CRÍTICA: Codificar el ID de conversación para preservar los +
+    const encodedConversationId = encodeConversationIdForUrl(sanitizedId);
+    
     logConversationId(sanitizedId, 'getConversation');
-    const response = await api.get(`${CONVERSATIONS_API}/${sanitizedId}`);
+    const response = await api.get(`${CONVERSATIONS_API}/${encodedConversationId}`);
     return response.data;
   },
 
