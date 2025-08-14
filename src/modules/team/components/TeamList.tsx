@@ -7,12 +7,17 @@ interface TeamListProps {
   selectedMember: TeamMember | null;
   onSelectMember: (member: TeamMember) => void;
   totalMembers: number;
+  activeMembers: number;
+  inactiveMembers: number;
 }
 
 const TeamList: React.FC<TeamListProps> = ({
   members,
   selectedMember,
-  onSelectMember
+  onSelectMember,
+  totalMembers,
+  activeMembers,
+  inactiveMembers
 }) => {
   if (members.length === 0) {
     return (
@@ -35,16 +40,39 @@ const TeamList: React.FC<TeamListProps> = ({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="p-4 space-y-3">
-        {members.map((member) => (
-          <TeamMemberCard
-            key={member.id}
-            member={member}
-            isSelected={selectedMember?.id === member.id}
-            onSelect={() => onSelectMember(member)}
-          />
-        ))}
+    <div className="flex-1 flex flex-col">
+      {/* Header de la lista */}
+      <div className="p-4 border-b border-gray-200 bg-gray-50">
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">
+          Lista de Vendedores
+        </h2>
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-600">
+            {totalMembers} miembros
+          </span>
+          <div className="flex items-center space-x-2">
+            <span className="text-xs text-gray-500">
+              {activeMembers} activos
+            </span>
+            <span className="text-xs text-gray-500">
+              {inactiveMembers} inactivos
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Lista de miembros */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4 space-y-3">
+          {members.map((member) => (
+            <TeamMemberCard
+              key={member.id}
+              member={member}
+              isSelected={selectedMember?.id === member.id}
+              onSelect={() => onSelectMember(member)}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

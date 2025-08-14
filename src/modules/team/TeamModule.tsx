@@ -87,39 +87,7 @@ const TeamModule: React.FC = () => {
       <div className="flex w-full h-full">
         {/* Panel izquierdo - Lista de vendedores */}
         <div className="w-80 lg:w-96 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
-          {/* Header del panel izquierdo */}
-          <div className="p-6 border-b border-gray-200 bg-white">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              Lista de Vendedores
-            </h2>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">
-                {totalMembers} miembros
-              </span>
-              <div className="flex items-center space-x-2">
-                <span className="text-xs text-gray-500">
-                  {activeMembers} activos
-                </span>
-                <span className="text-xs text-gray-500">
-                  {inactiveMembers} inactivos
-                </span>
-              </div>
-            </div>
-          </div>
-          
-          <Suspense fallback={<LoadingSpinner />}>
-            <TeamList 
-              members={members}
-              selectedMember={selectedMember}
-              onSelectMember={selectMember}
-              totalMembers={totalMembers}
-            />
-          </Suspense>
-        </div>
-
-        {/* Panel central - Detalles del miembro seleccionado */}
-        <div className="flex-1 bg-white flex flex-col min-w-0">
-          {/* Header del panel central */}
+          {/* Header del módulo con búsqueda y filtros */}
           <div className="p-6 border-b border-gray-200 bg-white">
             <Suspense fallback={<LoadingSpinner />}>
               <TeamHeader 
@@ -132,6 +100,21 @@ const TeamModule: React.FC = () => {
               />
             </Suspense>
           </div>
+          
+          <Suspense fallback={<LoadingSpinner />}>
+            <TeamList 
+              members={members}
+              selectedMember={selectedMember}
+              onSelectMember={selectMember}
+              totalMembers={totalMembers}
+              activeMembers={activeMembers}
+              inactiveMembers={inactiveMembers}
+            />
+          </Suspense>
+        </div>
+
+        {/* Panel central - Detalles del miembro seleccionado */}
+        <div className="flex-1 bg-white flex flex-col min-w-0">
           
           {selectedMember ? (
             <Suspense fallback={<LoadingSpinner />}>
