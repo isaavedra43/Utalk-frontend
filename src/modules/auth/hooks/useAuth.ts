@@ -82,14 +82,6 @@ export const useAuth = () => {
     // Agregar debounce para evitar verificaciones excesivas
     const checkAuthTimeoutRef = setTimeout(async () => {
       try {
-        // Solo verificar si NO hay usuario autenticado
-        if (user || backendUser) {
-          logger.authInfo('Usuario ya autenticado, saltando verificación automática');
-          setHasCheckedAuth(true);
-          setLoading(false);
-          return;
-        }
-        
         logger.authInfo('Verificando estado de autenticación desde localStorage (con debounce)');
         setIsAuthenticating(true);
         setHasCheckedAuth(true); // Marcar como verificado
@@ -143,7 +135,7 @@ export const useAuth = () => {
     return () => {
       clearTimeout(checkAuthTimeoutRef);
     };
-  }, [hasCheckedAuth, user, backendUser]); // Agregar user y backendUser para detectar cambios
+  }, [hasCheckedAuth]); // SOLO hasCheckedAuth para evitar re-ejecuciones
 
   // Escuchar eventos de autenticación fallida
   useEffect(() => {
