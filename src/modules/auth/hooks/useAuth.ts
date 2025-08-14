@@ -443,7 +443,7 @@ export const useAuth = () => {
         logger.authInfo('Estado de autenticación calculado', currentState);
       }
     }
-  }, [user, backendUser, isAuthenticating, isAuthenticated]); // Incluir isAuthenticated para evitar warning
+  }, [user, backendUser, isAuthenticating]); // Remover isAuthenticated para evitar ciclo infinito
 
   return {
     user,
