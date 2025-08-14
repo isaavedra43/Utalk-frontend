@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useWebSocketContext } from '../contexts/useWebSocketContext';
 import api from '../services/api';
-import { sanitizeConversationId, logConversationId } from '../utils/conversationUtils';
+import { sanitizeConversationId, logConversationId, encodeConversationIdForUrl } from '../utils/conversationUtils';
 import { messagesCache, generateCacheKey } from '../utils/cacheUtils';
 import { retryWithBackoff, generateOperationKey, rateLimitBackoff } from '../utils/retryUtils';
 import { joinConversationThrottler, leaveConversationThrottler, sendMessageThrottler, throttledExecute } from '../utils/throttleUtils';
@@ -64,6 +64,9 @@ export const useChat = (conversationId: string) => {
       return;
     }
 
+    // CORREGIDO: Codificar conversationId para URL
+    const encodedId = encodeConversationIdForUrl(sanitizedId);
+
     // Verificar cache primero
     const cacheKey = generateCacheKey('messages', { conversationId: sanitizedId, limit: 50 });
     const cachedMessages = messagesCache.get<Message[]>(cacheKey);
@@ -85,7 +88,7 @@ export const useChat = (conversationId: string) => {
       // Usar retry con backoff para la carga de mensajes
       const operationKey = generateOperationKey('loadMessages', { conversationId: sanitizedId });
       const response = await retryWithBackoff(
-        () => api.get(`/api/messages?conversationId=${sanitizedId}&limit=50`),
+        () => api.get(`/api/messages?conversationId=${encodedId}&limit=50`),
         operationKey,
         rateLimitBackoff
       );
@@ -122,6 +125,9 @@ export const useChat = (conversationId: string) => {
       return;
     }
 
+    // CORREGIDO: Codificar conversationId para URL
+    const encodedId = encodeConversationIdForUrl(sanitizedId);
+
     // Verificar cache primero
     const cacheKey = generateCacheKey('conversation', { conversationId: sanitizedId });
     const cachedConversation = messagesCache.get<Conversation>(cacheKey);
@@ -138,7 +144,7 @@ export const useChat = (conversationId: string) => {
       // Usar retry con backoff para la carga de conversación
       const operationKey = generateOperationKey('loadConversation', { conversationId: sanitizedId });
       const response = await retryWithBackoff(
-        () => api.get(`/api/conversations/${sanitizedId}`),
+        () => api.get(`/api/conversations/${encodedId}`),
         operationKey,
         rateLimitBackoff
       );
@@ -399,6 +405,9 @@ export const useChat = (conversationId: string) => {
       return;
     }
 
+    // CORREGIDO: Codificar conversationId para URL
+    const encodedId = encodeConversationIdForUrl(sanitizedId);
+
     try {
       setSending(true);
       setError(null);
@@ -443,7 +452,7 @@ export const useChat = (conversationId: string) => {
         });
         
         const apiResponse = await retryWithBackoff(
-          () => api.post(`/api/conversations/${sanitizedId}/messages`, {
+          () => api.post(`/api/conversations/${encodedId}/messages`, {
             content,
             type,
             metadata

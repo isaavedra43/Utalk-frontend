@@ -12,6 +12,7 @@ export const useWebSocket = () => {
   const socketRef = useRef<Socket | null>(null);
   const eventListenersRef = useRef(new Map<string, (...args: unknown[]) => void>());
   const isConnectingRef = useRef(false);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Conectar socket
   const connect = useCallback((token: string, options?: { timeout?: number }) => {
@@ -28,7 +29,10 @@ export const useWebSocket = () => {
     try {
       isConnectingRef.current = true;
       console.log('🔌 Iniciando conexión de socket...');
-      const newSocket = createSocket(token, options);
+      
+      // CORREGIDO: Aumentar timeout por defecto a 20 segundos para evitar timeouts
+      const timeout = options?.timeout || 20000;
+      const newSocket = createSocket(token, { ...options, timeout });
       socketRef.current = newSocket;
       setSocket(newSocket);
 
@@ -39,6 +43,12 @@ export const useWebSocket = () => {
         setConnectionError(null);
         setReconnectAttempts(0);
         isConnectingRef.current = false;
+        
+        // Limpiar timeout de reconexión si existe
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+          reconnectTimeoutRef.current = null;
+        }
       });
 
       newSocket.on('disconnect', (reason: string) => {
@@ -46,15 +56,25 @@ export const useWebSocket = () => {
         setIsConnected(false);
         isConnectingRef.current = false;
         
-        // Solo intentar reconexión automática si no fue una desconexión manual
+        // CORREGIDO: Mejorar lógica de reconexión automática
         if (reason === 'io server disconnect' || reason === 'transport close') {
           console.log('🔄 Intentando reconexión automática...');
-          setTimeout(() => {
+          
+          // Limpiar timeout anterior si existe
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+          }
+          
+          // Usar backoff exponencial para reconexión
+          const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+          console.log(`🔄 Reconexión en ${backoffDelay}ms (intento ${reconnectAttempts + 1})`);
+          
+          reconnectTimeoutRef.current = setTimeout(() => {
             if (token && !isConnectingRef.current) {
               setReconnectAttempts(prev => prev + 1);
-              connect(token);
+              connect(token, { timeout: 20000 }); // Usar timeout aumentado para reconexión
             }
-          }, 1000);
+          }, backoffDelay);
         }
       });
 
@@ -67,15 +87,26 @@ export const useWebSocket = () => {
           stack: error.stack
         });
         
-        // MEJORADO: Manejar errores específicos
+        // MEJORADO: Manejar errores específicos con mejor logging
         if (error.message.includes('AUTHENTICATION_REQUIRED') || 
             error.message.includes('JWT token required') ||
             error.message.includes('Unauthorized')) {
           console.error('🔐 Error de autenticación WebSocket');
           setConnectionError('Error de autenticación: Token inválido o expirado');
         } else if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
-          console.error('⏰ Timeout de conexión WebSocket');
+          console.error('⏰ Timeout de conexión WebSocket - Aumentando timeout');
           setConnectionError('Timeout de conexión: El servidor no responde');
+          
+          // CORREGIDO: Intentar reconexión con timeout mayor
+          if (reconnectAttempts < 3) {
+            console.log('🔄 Reintentando con timeout mayor...');
+            setTimeout(() => {
+              if (token && !isConnectingRef.current) {
+                setReconnectAttempts(prev => prev + 1);
+                connect(token, { timeout: 30000 }); // Timeout de 30 segundos
+              }
+            }, 2000);
+          }
         } else if (error.message.includes('ECONNREFUSED') || error.message.includes('ENOTFOUND')) {
           console.error('🌐 Error de red WebSocket');
           setConnectionError('Error de red: No se puede conectar al servidor');
@@ -93,7 +124,7 @@ export const useWebSocket = () => {
       });
 
       // Conectar
-      console.log('🔌 Conectando socket...');
+      console.log('🔌 Conectando socket con timeout de', timeout, 'ms...');
       newSocket.connect();
 
     } catch (error: unknown) {
@@ -101,7 +132,7 @@ export const useWebSocket = () => {
       setConnectionError(error instanceof Error ? error.message : 'Error desconocido');
       isConnectingRef.current = false;
     }
-  }, []);
+  }, [reconnectAttempts]);
 
   // Desconectar socket
   const disconnect = useCallback(() => {
@@ -113,6 +144,12 @@ export const useWebSocket = () => {
       setIsConnected(false);
       setConnectionError(null);
       isConnectingRef.current = false;
+      
+      // Limpiar timeout de reconexión
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
     }
   }, []);
 
@@ -175,6 +212,11 @@ export const useWebSocket = () => {
       if (socketRef.current) {
         console.log('🔌 Limpiando socket al desmontar componente...');
         socketRef.current.disconnect();
+      }
+      
+      // Limpiar timeout de reconexión
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
       }
     };
   }, []);

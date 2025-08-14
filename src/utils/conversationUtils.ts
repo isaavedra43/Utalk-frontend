@@ -126,6 +126,7 @@ export const sanitizeConversationId = (conversationId: string): string | null =>
 
 /**
  * Codifica un ID de conversación para uso en URLs
+ * CORREGIDO: Asegura que los caracteres + se codifiquen como %2B
  * @param conversationId - El ID de conversación a codificar
  * @returns El ID codificado para URL
  */
@@ -136,7 +137,44 @@ export const encodeConversationIdForUrl = (conversationId: string): string => {
   }
   
   // SOLUCIÓN CRÍTICA: Usar encodeURIComponent para preservar los + en la URL
-  return encodeURIComponent(sanitized);
+  // encodeURIComponent convierte + en %2B automáticamente
+  const encoded = encodeURIComponent(sanitized);
+  
+  console.log('🔗 ID de conversación codificado correctamente en URL | Data:', {
+    originalId: conversationId,
+    decodedId: sanitized,
+    sanitizedId: sanitized,
+    encodedId: encoded,
+    method: 'encodeConversationIdForUrl'
+  });
+  
+  return encoded;
+};
+
+/**
+ * Codifica un ID de conversación específicamente para WebSocket
+ * CORREGIDO: Asegura que los caracteres + se codifiquen como %2B en WebSocket
+ * @param conversationId - El ID de conversación a codificar
+ * @returns El ID codificado para WebSocket
+ */
+export const encodeConversationIdForWebSocket = (conversationId: string): string => {
+  const sanitized = sanitizeConversationId(conversationId);
+  if (!sanitized) {
+    throw new Error(`ID de conversación inválido para WebSocket: ${conversationId}`);
+  }
+  
+  // SOLUCIÓN CRÍTICA: Para WebSocket también necesitamos codificar los +
+  // Aunque WebSocket no es HTTP, algunos servidores pueden interpretar mal los +
+  const encoded = encodeURIComponent(sanitized);
+  
+  console.log('🔗 ID de conversación codificado para WebSocket | Data:', {
+    originalId: conversationId,
+    sanitizedId: sanitized,
+    encodedId: encoded,
+    method: 'encodeConversationIdForWebSocket'
+  });
+  
+  return encoded;
 };
 
 /**

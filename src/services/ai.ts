@@ -1,5 +1,6 @@
 import api from './api';
 import type { AISuggestion } from '../types';
+import { encodeConversationIdForUrl } from '../utils/conversationUtils';
 
 // Configuración de la API
 const AI_API = '/api/ai';
@@ -61,18 +62,20 @@ export const aiService = {
     limit?: number;
     status?: string;
   } = {}): Promise<AISuggestion[]> {
+    const encodedConversationId = encodeConversationIdForUrl(conversationId);
     const queryParams = new URLSearchParams({
       limit: params.limit?.toString() || '10',
       status: params.status || ''
     });
 
-    const response = await api.get(`${AI_API}/suggestions/${conversationId}?${queryParams}`);
+    const response = await api.get(`${AI_API}/suggestions/${encodedConversationId}?${queryParams}`);
     return response.data;
   },
 
   // Actualizar estado de sugerencia
   async updateSuggestionStatus(conversationId: string, suggestionId: string, status: 'used' | 'ignored' | 'improved'): Promise<void> {
-    const response = await api.put(`${AI_API}/suggestions/${conversationId}/${suggestionId}/status`, { status });
+    const encodedConversationId = encodeConversationIdForUrl(conversationId);
+    const response = await api.put(`${AI_API}/suggestions/${encodedConversationId}/${suggestionId}/status`, { status });
     return response.data;
   },
 

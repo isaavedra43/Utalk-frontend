@@ -14,8 +14,11 @@ export const messagesService = {
     before?: string;
     after?: string;
   } = {}): Promise<{ messages: Message[]; hasMore: boolean; cursor?: string }> {
+    // SOLUCIÓN CRÍTICA: Codificar el conversationId para preservar los +
+    const encodedConversationId = encodeConversationIdForUrl(conversationId);
+    
     const queryParams = new URLSearchParams({
-      conversationId: conversationId, // El backend espera conversationId como query parameter
+      conversationId: encodedConversationId, // Usar el ID codificado
       limit: params.limit?.toString() || '50',
       ...(params.cursor && { cursor: params.cursor }),
       ...(params.before && { before: params.before }),

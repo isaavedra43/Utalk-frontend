@@ -60,8 +60,22 @@ export const isTokenValid = (token: string): boolean => {
 };
 
 /**
+ * Verifica si la información del usuario es válida (no usa valores por defecto problemáticos)
+ * @param userInfo - Información del usuario a verificar
+ * @returns true si la información es válida
+ */
+export const isValidUserInfo = (userInfo: JWTUserInfo): boolean => {
+  return !(
+    userInfo.workspaceId === 'default' || 
+    userInfo.tenantId === 'na' || 
+    userInfo.userId === null
+  );
+};
+
+/**
  * Obtiene información del usuario desde múltiples fuentes
  * Prioridad: JWT > localStorage > valores por defecto
+ * CORREGIDO: Mejorar manejo de valores por defecto problemáticos
  * @returns Información del usuario
  */
 export const getUserInfo = (): JWTUserInfo => {
@@ -70,28 +84,35 @@ export const getUserInfo = (): JWTUserInfo => {
   if (token && isTokenValid(token)) {
     const tokenInfo = extractUserInfoFromToken(token);
     
-    // Si el token tiene información válida, usarla
-    if (tokenInfo.workspaceId !== 'default' || tokenInfo.tenantId !== 'na') {
+    // Verificar si el token tiene información válida (no valores por defecto problemáticos)
+    if (isValidUserInfo(tokenInfo)) {
       console.log('🔐 JWT - Información extraída del token:', {
         workspaceId: tokenInfo.workspaceId,
         tenantId: tokenInfo.tenantId,
         userId: tokenInfo.userId
       });
       return tokenInfo;
+    } else {
+      console.warn('⚠️ JWT - Token contiene valores por defecto problemáticos:', {
+        workspaceId: tokenInfo.workspaceId,
+        tenantId: tokenInfo.tenantId,
+        userId: tokenInfo.userId
+      });
     }
   }
   
   // 2. Intentar obtener del usuario en localStorage (fallback)
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (user.workspaceId || user.tenantId) {
+    if (user.workspaceId && user.workspaceId !== 'default' && 
+        user.tenantId && user.tenantId !== 'na') {
       console.log('🔐 localStorage - Información extraída del usuario:', {
         workspaceId: user.workspaceId,
         tenantId: user.tenantId
       });
       return {
-        workspaceId: user.workspaceId || 'default',
-        tenantId: user.tenantId || 'na',
+        workspaceId: user.workspaceId,
+        tenantId: user.tenantId,
         userId: user.id || null,
         email: user.email || null,
         role: user.role || null
@@ -101,23 +122,60 @@ export const getUserInfo = (): JWTUserInfo => {
     console.warn('⚠️ Error leyendo usuario de localStorage:', error);
   }
   
-  // 3. Valores por defecto
-  console.warn('⚠️ Usando valores por defecto para workspaceId/tenantId');
-  return {
-    workspaceId: 'default',
-    tenantId: 'na',
+  // 3. Intentar extraer del token JWT incluso si no tiene workspaceId/tenantId válidos
+  if (token && isTokenValid(token)) {
+    const tokenInfo = extractUserInfoFromToken(token);
+    if (tokenInfo.userId || tokenInfo.email) {
+      console.log('🔐 JWT - Usando información parcial del token:', {
+        workspaceId: tokenInfo.workspaceId,
+        tenantId: tokenInfo.tenantId,
+        userId: tokenInfo.userId,
+        email: tokenInfo.email
+      });
+      return tokenInfo;
+    }
+  }
+  
+  // 4. CORREGIDO: Usar valores por defecto más robustos como último recurso
+  console.warn('⚠️ Usando valores por defecto para workspaceId/tenantId - verificar configuración del backend');
+  
+  // Intentar obtener valores del entorno si están disponibles
+  const envWorkspaceId = import.meta.env.VITE_WORKSPACE_ID || 'default';
+  const envTenantId = import.meta.env.VITE_TENANT_ID || 'na';
+  
+  const fallbackInfo = {
+    workspaceId: envWorkspaceId,
+    tenantId: envTenantId,
     userId: null,
     email: null
   };
+  
+  console.log('🔐 Fallback - Usando valores de entorno:', {
+    workspaceId: fallbackInfo.workspaceId,
+    tenantId: fallbackInfo.tenantId
+  });
+  
+  return fallbackInfo;
 };
 
 /**
  * Genera un roomId con el formato correcto del backend
+ * CORREGIDO: Mejorar manejo de valores por defecto
  * @param conversationId - ID de la conversación
  * @returns RoomId en formato ws:${workspaceId}:ten:${tenantId}:conv:${conversationId}
  */
 export const generateRoomId = (conversationId: string): string => {
   const userInfo = getUserInfo();
+  
+  // CORREGIDO: Validar que no estemos usando valores por defecto problemáticos
+  if (!isValidUserInfo(userInfo)) {
+    console.warn('⚠️ Generando roomId con valores por defecto problemáticos:', {
+      workspaceId: userInfo.workspaceId,
+      tenantId: userInfo.tenantId,
+      conversationId
+    });
+  }
+  
   const roomId = `ws:${userInfo.workspaceId}:ten:${userInfo.tenantId}:conv:${conversationId}`;
   
   console.log('🔗 Room ID generado:', {
@@ -132,21 +190,32 @@ export const generateRoomId = (conversationId: string): string => {
 
 /**
  * Valida la configuración de rooms
+ * CORREGIDO: Mejorar validación para detectar valores problemáticos
  * @returns true si la configuración es válida, false si usa valores por defecto
  */
 export const validateRoomConfiguration = (): boolean => {
   const userInfo = getUserInfo();
-  const isValid = userInfo.workspaceId !== 'default' && userInfo.tenantId !== 'na';
+  const isValid = isValidUserInfo(userInfo);
   
   if (!isValid) {
-    console.warn('⚠️ Configuración de rooms usando valores por defecto:', {
+    console.warn('⚠️ Configuración de rooms usando valores por defecto problemáticos:', {
       workspaceId: userInfo.workspaceId,
-      tenantId: userInfo.tenantId
+      tenantId: userInfo.tenantId,
+      userId: userInfo.userId
     });
+    
+    // CORREGIDO: Intentar obtener valores del entorno como fallback
+    const envWorkspaceId = import.meta.env.VITE_WORKSPACE_ID;
+    const envTenantId = import.meta.env.VITE_TENANT_ID;
+    
+    if (envWorkspaceId && envTenantId) {
+      console.log('🔧 Sugerencia: Configurar variables de entorno VITE_WORKSPACE_ID y VITE_TENANT_ID');
+    }
   } else {
     console.log('✅ Configuración de rooms válida:', {
       workspaceId: userInfo.workspaceId,
-      tenantId: userInfo.tenantId
+      tenantId: userInfo.tenantId,
+      userId: userInfo.userId
     });
   }
   
