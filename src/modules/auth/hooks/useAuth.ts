@@ -144,7 +144,7 @@ export const useAuth = () => {
     return () => {
       clearTimeout(checkAuthTimeoutRef);
     };
-  }, [hasCheckedAuth, user, backendUser]); // Agregar user y backendUser para detectar cambios
+  }, [hasCheckedAuth]); // SOLO hasCheckedAuth para evitar re-ejecuciones
 
   // Escuchar eventos de autenticación fallida
   useEffect(() => {
