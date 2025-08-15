@@ -213,6 +213,9 @@ export * from './team';
 // Re-exportar tipos de clientes
 export * from './client';
 
+// Re-exportar tipos de notificaciones
+export * from './notification';
+
 // Importar tipos del dashboard para uso en este archivo
 import type { DashboardData, DashboardUpdate } from './dashboard';
 import type { TeamState, TeamMember, PerformanceMetrics, CoachingPlan, Permission } from './team';

@@ -4,7 +4,8 @@ import {
   LayoutDashboard, 
   Users,
   LogOut,
-  Building2
+  Building2,
+  Bell
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { useAuthContext } from '../../contexts/useAuthContext';
@@ -43,6 +44,12 @@ export const LeftSidebar: React.FC = () => {
       icon: Users,
       title: 'Equipo & Performance',
       badge: teamNotifications.getBadgeText()
+    },
+    {
+      id: 'notifications',
+      icon: Bell,
+      title: 'Centro de Notificaciones',
+      badge: '4'
     },
     {
       id: 'chat',

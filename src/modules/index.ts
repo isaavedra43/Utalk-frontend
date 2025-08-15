@@ -12,4 +12,7 @@ export { AuthModule } from './auth';
 export { DashboardModule } from './dashboard';
 
 // Exportar módulo de equipo
-export { TeamModule } from './team'; 
+export { TeamModule } from './team';
+
+// Exportar módulo de notificaciones
+export { NotificationModule } from './notifications'; 

@@ -5,6 +5,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { WebSocketProvider } from './contexts/WebSocketContext'
 import { AuthModule } from './modules/auth'
 import { TeamModule } from './modules/team'
+import { NotificationModule } from './modules/notifications'
 import { MainLayout } from './components/layout/MainLayout'
 import { DebugPanel } from './components/DebugPanel'
 
@@ -87,6 +88,17 @@ const ClientsPage: React.FC = () => {
   return <MainLayout />;
 };
 
+// Componente para establecer el módulo de notificaciones
+const NotificationsPage: React.FC = () => {
+  const { setCurrentModule } = useAppStore();
+  
+  useEffect(() => {
+    setCurrentModule('notifications');
+  }, [setCurrentModule]);
+  
+  return <NotificationModule />;
+};
+
 function App() {
   const [showDebugPanel, setShowDebugPanel] = useState(import.meta.env.DEV);
 
@@ -136,6 +148,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ClientsPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/notifications" 
+                element={
+                  <ProtectedRoute>
+                    <NotificationsPage />
                   </ProtectedRoute>
                 } 
               />
