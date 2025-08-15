@@ -179,10 +179,18 @@ export const useWebSocket = () => {
     }
   }, []);
 
-  // Función para generar roomId correcto según formato del backend
+  // CORREGIDO: Función para generar roomId con validación de autenticación
   const generateRoomId = useCallback((conversationId: string) => {
     // Usar la utilidad centralizada que maneja JWT y fallbacks
-    return generateRoomIdUtil(conversationId);
+    const roomId = generateRoomIdUtil(conversationId);
+    
+    // CORREGIDO: Verificar si se pudo generar el roomId
+    if (!roomId) {
+      console.log('🔗 useWebSocket - No se puede generar roomId (sin autenticación)');
+      return null;
+    }
+    
+    return roomId;
   }, []);
 
   // Emitir evento
@@ -197,6 +205,13 @@ export const useWebSocket = () => {
       const eventData = data as { conversationId: string; [key: string]: unknown };
       if (eventData.conversationId && !eventData.roomId) {
         const roomId = generateRoomId(eventData.conversationId);
+        
+        // CORREGIDO: Verificar si se pudo generar el roomId
+        if (!roomId) {
+          console.log(`🔗 ${event} - No se puede emitir (roomId null)`);
+          return false;
+        }
+        
         console.log(`🔗 ${event} - Room ID generado:`, roomId);
         eventData.roomId = roomId;
       }

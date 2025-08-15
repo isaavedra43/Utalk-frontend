@@ -198,17 +198,32 @@ export const getUserInfo = (): JWTUserInfo => {
 
 /**
  * Genera un roomId con el formato correcto del backend
- * CORREGIDO: Usar formato simple para coincidir con el backend
+ * CORREGIDO: Agregar validación de autenticación para evitar ejecución prematura
  * @param conversationId - ID de la conversación
- * @returns RoomId en formato conversation:${conversationId}
+ * @returns RoomId en formato conversation:${conversationId} o null si no hay autenticación
  */
-export const generateRoomId = (conversationId: string): string => {
+export const generateRoomId = (conversationId: string): string | null => {
+  // CORREGIDO: Verificar autenticación antes de generar roomId
+  const token = localStorage.getItem('access_token');
+  if (!token || !isTokenValid(token)) {
+    console.log('🔗 Room ID - No se puede generar (sin autenticación válida)');
+    return null;
+  }
+
+  // Verificar que el usuario esté autenticado
+  const userInfo = getUserInfo();
+  if (!userInfo.userId) {
+    console.log('🔗 Room ID - No se puede generar (userId null)');
+    return null;
+  }
+
   // CORREGIDO: Usar formato simple para coincidir con el backend
   const roomId = `conversation:${conversationId}`;
   
   console.log('🔗 Room ID generado (formato simplificado):', {
     conversationId,
-    roomId
+    roomId,
+    userId: userInfo.userId
   });
   
   return roomId;
@@ -216,10 +231,17 @@ export const generateRoomId = (conversationId: string): string => {
 
 /**
  * Valida la configuración de rooms
- * ALINEADO: Acepta valores por defecto según especificación del backend
- * @returns true si la configuración es válida, false si userId es null
+ * CORREGIDO: Agregar verificación de autenticación para evitar ejecución prematura
+ * @returns true si la configuración es válida, false si userId es null o no hay autenticación
  */
 export const validateRoomConfiguration = (): boolean => {
+  // CORREGIDO: Verificar autenticación antes de validar
+  const token = localStorage.getItem('access_token');
+  if (!token || !isTokenValid(token)) {
+    console.log('🔗 Room Config - No se puede validar (sin autenticación válida)');
+    return false;
+  }
+
   const userInfo = getUserInfo();
   const isValid = isValidUserInfo(userInfo);
   

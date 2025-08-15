@@ -34,6 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [hasConnectedWebSocket, setHasConnectedWebSocket] = useState(false); // NUEVO: Flag para evitar múltiples conexiones
   
   const { connect: connectSocket, disconnect: disconnectSocket, isConnected } = useContext(WebSocketContext) || {};
 
@@ -155,32 +156,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkInitialAuth();
   }, []);
 
-  // Log del estado actual
-  console.log('🔐 AuthProvider - Estado actual:', {
-    isAuthenticated,
-    loading,
-    isAuthenticating,
-    hasUser: !!user,
-    hasBackendUser: !!backendUser
-  });
-
-  // Conectar WebSocket cuando se autentica - OPTIMIZADO
+  // CORREGIDO: Log del estado actual solo cuando cambia significativamente
   useEffect(() => {
-    console.log('🔐 AuthContext - Estado de autenticación:', {
+    console.log('🔐 AuthProvider - Estado actual:', {
       isAuthenticated,
-      hasBackendUser: !!backendUser,
       loading,
       isAuthenticating,
-      isConnected: isConnected,
-      userEmail: backendUser?.email || user?.email
+      hasUser: !!user,
+      hasBackendUser: !!backendUser
     });
+  }, [isAuthenticated, loading, isAuthenticating, user, backendUser]);
 
+  // CORREGIDO: Conectar WebSocket cuando se autentica - SIN LOGS EXCESIVOS
+  useEffect(() => {
     // SOLO desconectar WebSocket si realmente no está autenticado y no está en proceso de autenticación
     if (disconnectSocket && isConnected && !isAuthenticated && !loading && !isAuthenticating) {
       console.log('🔐 AuthContext - Desconectando WebSocket (usuario no autenticado)');
+      setHasConnectedWebSocket(false); // Resetear flag al desconectar
       disconnectSocket();
     }
-  }, [isAuthenticated, loading, isAuthenticating, disconnectSocket, isConnected, backendUser, user?.email]);
+  }, [isAuthenticated, loading, isAuthenticating, disconnectSocket, isConnected]);
 
   // Escuchar eventos de autenticación fallida para desconectar WebSocket
   useEffect(() => {
@@ -204,8 +199,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const detail = (e as CustomEvent).detail as { user: unknown; accessToken: string } | undefined;
       const accessToken = detail?.accessToken;
       
-      if (accessToken && connectSocket && !isConnected) {
+      if (accessToken && connectSocket && !isConnected && !hasConnectedWebSocket) {
         console.log('🔐 AuthContext - Login exitoso detectado, conectando WebSocket...');
+        setHasConnectedWebSocket(true); // Marcar como conectado
         connectSocket(accessToken);
       }
     };
@@ -215,16 +211,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       window.removeEventListener('auth:login-success', handleLoginSuccess as EventListener);
     };
-  }, [connectSocket, isConnected]);
+  }, [connectSocket, isConnected, hasConnectedWebSocket]);
 
-  // Log del estado que se está pasando al contexto
-  console.log('🔐 AuthContext - Estado que se pasa al contexto:', {
-    isAuthenticated,
-    loading,
-    isAuthenticating,
-    hasUser: !!user,
-    hasBackendUser: !!backendUser
-  });
+  // CORREGIDO: Log del estado que se está pasando al contexto solo cuando cambia
+  useEffect(() => {
+    console.log('🔐 AuthContext - Estado que se pasa al contexto:', {
+      isAuthenticated,
+      loading,
+      isAuthenticating,
+      hasUser: !!user,
+      hasBackendUser: !!backendUser
+    });
+  }, [isAuthenticated, loading, isAuthenticating, user, backendUser]);
 
   const authValue: AuthState = {
     user,

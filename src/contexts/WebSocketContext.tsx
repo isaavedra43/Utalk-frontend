@@ -55,10 +55,18 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // SOLUCIONADO: Eliminado el useEffect problemático que desconectaba el WebSocket
   // Ahora el WebSocket permanecerá conectado después del login exitoso
 
-  // Función para generar roomId correcto según formato del backend
+  // CORREGIDO: Función para generar roomId con validación de autenticación
   const generateRoomId = useCallback((conversationId: string) => {
     // Usar la utilidad centralizada que maneja JWT y fallbacks
-    return generateRoomIdUtil(conversationId);
+    const roomId = generateRoomIdUtil(conversationId);
+    
+    // CORREGIDO: Verificar si se pudo generar el roomId
+    if (!roomId) {
+      console.log('🔗 WebSocketContext - No se puede generar roomId (sin autenticación)');
+      return null;
+    }
+    
+    return roomId;
   }, []);
 
   // Reautenticar socket cuando se refresca el access token
@@ -335,6 +343,19 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     on,
     off,
     joinConversation: (conversationId: string) => {
+      // CORREGIDO: Verificar autenticación antes de unirse
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        console.log('🔗 WebSocket: No se puede unir (sin autenticación)');
+        return;
+      }
+
+      // Evitar unirse si ya está en la conversación
+      if (activeConversations.has(conversationId)) {
+        console.log('🔗 WebSocket: Ya está en la conversación:', conversationId);
+        return;
+      }
+
       console.log('🔗 WebSocket: Uniéndose a conversación', {
         conversationId,
         timestamp: new Date().toISOString()
@@ -343,54 +364,65 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // CORREGIDO: Codificar conversationId para WebSocket
       const encodedConversationId = encodeConversationIdForWebSocket(conversationId);
       const roomId = generateRoomId(encodedConversationId);
+      
+      // CORREGIDO: Verificar si se pudo generar el roomId
+      if (!roomId) {
+        console.log('🔗 WebSocket: No se puede unir (roomId null)');
+        return;
+      }
+      
+      // SOLUCIONADO: Eliminar throttling excesivo para evitar rate limiting
+      emit('join-conversation', { 
+        conversationId: encodedConversationId,
+        roomId: roomId
+      });
+      setActiveConversations(prev => new Set([...prev, conversationId]));
+      
       console.log('✅ WebSocket: Unido a conversación', {
         conversationId,
         roomId,
         timestamp: new Date().toISOString()
       });
-      
-      rateLimiter.executeWithRateLimit('join-conversation', () => {
-        emit('join-conversation', { 
-          conversationId: encodedConversationId,
-          roomId: roomId
-        });
-        setActiveConversations(prev => new Set(prev).add(conversationId)); // Usar ID original para estado local
-      }, (eventType, retryAfter) => {
-        console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
-      });
     },
+    
     leaveConversation: (conversationId: string) => {
-      console.log('🔌 Saliendo de conversación:', conversationId);
+      // CORREGIDO: Verificar autenticación antes de salir
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        console.log('🔌 WebSocket: No se puede salir (sin autenticación)');
+        return;
+      }
+
+      // Evitar salir si no está en la conversación
+      if (!activeConversations.has(conversationId)) {
+        console.log('🔌 WebSocket: No está en la conversación:', conversationId);
+        return;
+      }
+
+      console.log('🔌 WebSocket: Saliendo de conversación', {
+        conversationId,
+        timestamp: new Date().toISOString()
+      });
       
       // CORREGIDO: Codificar conversationId para WebSocket
       const encodedConversationId = encodeConversationIdForWebSocket(conversationId);
       const roomId = generateRoomId(encodedConversationId);
-      console.log('🔌 Room ID para salir:', roomId);
       
-      // Verificar que el socket esté conectado antes de intentar salir
-      if (!socket || !isConnected) {
-        console.warn('⚠️ No se puede salir de conversación: socket no conectado');
-        // Limpiar estado local aunque no se pueda enviar al servidor
-        setActiveConversations(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(conversationId);
-          return newSet;
-        });
+      // CORREGIDO: Verificar si se pudo generar el roomId
+      if (!roomId) {
+        console.log('🔌 WebSocket: No se puede salir (roomId null)');
         return;
       }
       
-      rateLimiter.executeWithRateLimit('leave-conversation', () => {
-        emit('leave-conversation', { 
-          conversationId: encodedConversationId,
-          roomId: roomId
-        });
-        setActiveConversations(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(conversationId); // Usar ID original para estado local
-          return newSet;
-        });
-      }, (eventType, retryAfter) => {
-        console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
+      // SOLUCIONADO: Eliminar throttling excesivo para evitar rate limiting
+      emit('leave-conversation', { 
+        conversationId: encodedConversationId,
+        roomId: roomId
+      });
+      setActiveConversations(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(conversationId);
+        return newSet;
       });
     },
     startTyping: (conversationId: string) => {

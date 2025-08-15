@@ -9,14 +9,14 @@ interface RateLimitConfig {
 
 // Configuración de rate limits más conservadora para evitar "Too many requests"
 const DEFAULT_RATE_LIMITS: RateLimitConfig = {
-  'typing': { interval: 1000, maxAttempts: 1 },           // 1s entre typing
-  'typing-stop': { interval: 500, maxAttempts: 1 },       // 500ms entre stop
-  'join-conversation': { interval: 2000, maxAttempts: 1 }, // 2s entre joins
-  'leave-conversation': { interval: 2000, maxAttempts: 1 }, // 2s entre leaves
-  'new-message': { interval: 500, maxAttempts: 1 },       // 500ms entre mensajes
-  'message-read': { interval: 1000, maxAttempts: 3 },     // 1s entre reads
-  'user-status-change': { interval: 5000, maxAttempts: 1 }, // 5s entre cambios
-  'sync-state': { interval: 10000, maxAttempts: 1 }       // 10s entre syncs
+  'typing': { interval: 2000, maxAttempts: 1 },           // 2s entre typing
+  'typing-stop': { interval: 1000, maxAttempts: 1 },      // 1s entre stop
+  'join-conversation': { interval: 5000, maxAttempts: 1 }, // 5s entre joins
+  'leave-conversation': { interval: 5000, maxAttempts: 1 }, // 5s entre leaves
+  'new-message': { interval: 1000, maxAttempts: 1 },      // 1s entre mensajes
+  'message-read': { interval: 2000, maxAttempts: 2 },     // 2s entre reads
+  'user-status-change': { interval: 10000, maxAttempts: 1 }, // 10s entre cambios
+  'sync-state': { interval: 15000, maxAttempts: 1 }       // 15s entre syncs
 };
 
 export const useRateLimiter = (customLimits?: Partial<RateLimitConfig>) => {

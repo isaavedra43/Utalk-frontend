@@ -4,7 +4,6 @@ import api from '../services/api';
 import { sanitizeConversationId, logConversationId, encodeConversationIdForUrl } from '../utils/conversationUtils';
 import { messagesCache, generateCacheKey } from '../utils/cacheUtils';
 import { retryWithBackoff, generateOperationKey, rateLimitBackoff } from '../utils/retryUtils';
-import { joinConversationThrottler, leaveConversationThrottler, sendMessageThrottler, throttledExecute } from '../utils/throttleUtils';
 
 interface Message {
   id: string;
@@ -47,11 +46,13 @@ export const useChat = (conversationId: string) => {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
-  const [isJoined, setIsJoined] = useState(false); // NUEVO: Estado de confirmación
+  const [isJoined, setIsJoined] = useState(false);
   
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const optimisticMessagesRef = useRef<Set<string>>(new Set());
+  const joinAttemptedRef = useRef(false); // NUEVO: Flag para evitar múltiples intentos de join
+  const cleanupRef = useRef(false); // NUEVO: Flag para evitar cleanup múltiple
   
   // Cargar mensajes iniciales con cache y retry
   const loadMessages = useCallback(async () => {
@@ -112,7 +113,7 @@ export const useChat = (conversationId: string) => {
     } finally {
       setLoading(false);
     }
-  }, [conversationId, optimisticMessagesRef]);
+  }, [conversationId]);
 
   // Cargar conversación con cache y retry
   const loadConversation = useCallback(async () => {
@@ -161,9 +162,10 @@ export const useChat = (conversationId: string) => {
     }
   }, [conversationId]);
 
-  // Unirse a conversación cuando se conecta con throttling - OPTIMIZADO PARA EVITAR BUCLES
+  // SOLUCIONADO: Unirse a conversación solo una vez cuando se conecta
   useEffect(() => {
-    if (isConnected && conversationId && !isJoined) {
+    // Solo ejecutar si está conectado, hay conversationId, no está unido y no se ha intentado antes
+    if (isConnected && conversationId && !isJoined && !joinAttemptedRef.current) {
       // Validar y sanitizar el ID de conversación
       const sanitizedId = sanitizeConversationId(conversationId);
       if (!sanitizedId) {
@@ -172,59 +174,69 @@ export const useChat = (conversationId: string) => {
         return;
       }
 
+      joinAttemptedRef.current = true; // Marcar como intentado
+
       const joinOperation = async () => {
         try {
           console.log('🔗 useChat - Uniéndose a conversación:', sanitizedId);
           logConversationId(sanitizedId, 'joinConversation');
-          setIsJoined(false); // Resetear estado de confirmación
           
-          // Usar throttling para join conversation
-          await throttledExecute(
-            () => Promise.resolve(joinConversation(sanitizedId)),
-            joinConversationThrottler
-          );
+          // Unirse sin throttling para evitar el ciclo
+          joinConversation(sanitizedId);
           
-          // Solo cargar mensajes y conversación si no se han cargado ya - EVITAR BUCLES
-          if (messages.length === 0) {
-            loadMessages();
-          }
-          if (!conversation) {
-            loadConversation();
-          }
+          // Cargar datos después de unirse
+          loadMessages();
+          loadConversation();
+          
+          // SOLUCIONADO: Establecer isJoined después de un tiempo si no se recibe confirmación
+          // Pero también verificar si los mensajes se cargaron correctamente
+          setTimeout(() => {
+            if (!isJoined) {
+              console.log('⏰ useChat - Timeout de confirmación, estableciendo isJoined como true');
+              setIsJoined(true);
+            }
+          }, 3000); // 3 segundos de timeout
+          
         } catch (error) {
           console.error('❌ useChat - Error uniéndose a conversación:', error);
           setError('Error uniéndose a conversación');
+          joinAttemptedRef.current = false; // Resetear flag en caso de error
         }
       };
 
       joinOperation();
     }
-  }, [isConnected, conversationId, isJoined, joinConversation, conversation, loadConversation, loadMessages, messages.length]); // Incluir dependencias faltantes
+  }, [isConnected, conversationId, isJoined, joinConversation, loadMessages, loadConversation]);
 
-  // Salir de conversación al desmontar con throttling
+  // NUEVO: Mejorar el manejo de estado cuando los mensajes se cargan exitosamente
   useEffect(() => {
-    let hasLeft = false; // Flag para evitar múltiples salidas
-    
+    // Si los mensajes se cargaron correctamente pero isJoined sigue siendo false,
+    // establecer isJoined como true para permitir el renderizado
+    if (messages.length > 0 && !isJoined && !loading) {
+      console.log('✅ useChat - Mensajes cargados exitosamente, estableciendo isJoined como true');
+      setIsJoined(true);
+    }
+  }, [messages.length, isJoined, loading]);
+
+  // SOLUCIONADO: Salir de conversación solo al desmontar
+  useEffect(() => {
     return () => {
-      if (conversationId && isConnected && !hasLeft) {
+      if (conversationId && isConnected && !cleanupRef.current) {
+        cleanupRef.current = true; // Marcar como que ya se limpió
+        
         // Validar y sanitizar el ID de conversación
         const sanitizedId = sanitizeConversationId(conversationId);
         if (sanitizedId) {
-          hasLeft = true; // Marcar como que ya salió
           const leaveOperation = async () => {
             try {
               console.log('🔌 useChat - Saliendo de conversación:', sanitizedId);
               logConversationId(sanitizedId, 'leaveConversation');
               setIsJoined(false);
               
-              // Usar throttling para leave conversation
-              await throttledExecute(
-                () => Promise.resolve(leaveConversation(sanitizedId)),
-                leaveConversationThrottler
-              );
+              // Salir sin throttling para evitar el ciclo
+              leaveConversation(sanitizedId);
             } catch (error) {
               console.error('❌ useChat - Error saliendo de conversación:', error);
-              // No reintentar en caso de error para evitar bucles
             }
           };
 
@@ -399,7 +411,7 @@ export const useChat = (conversationId: string) => {
     };
   }, [socket, conversationId, on, off, isConnected]);
 
-  // Enviar mensaje con optimistic updates, throttling y retry
+  // Enviar mensaje con optimistic updates y retry
   const sendMessage = useCallback(async (content: string, type: string = 'text', metadata: Record<string, unknown> = {}) => {
     if (!conversationId || !content.trim() || !isJoined) return;
 
@@ -439,13 +451,10 @@ export const useChat = (conversationId: string) => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
 
-      // Enviar por WebSocket (tiempo real) con throttling
+      // Enviar por WebSocket (tiempo real)
       console.log('🚀 Enviando mensaje por WebSocket:', { conversationId: sanitizedId, content, type, metadata });
       
-      await throttledExecute(
-        () => Promise.resolve(socketSendMessage(sanitizedId, content, type, metadata)),
-        sendMessageThrottler
-      );
+      socketSendMessage(sanitizedId, content, type, metadata);
 
       // También enviar por API para persistencia con retry
       try {
@@ -506,7 +515,7 @@ export const useChat = (conversationId: string) => {
     }
   }, [conversationId, socketSendMessage, isJoined]);
 
-  // Indicar escritura con debouncing y rate limiting
+  // Indicar escritura con debouncing
   const handleTyping = useCallback(() => {
     if (!conversationId || !isConnected || !isJoined) return;
 
@@ -596,7 +605,7 @@ export const useChat = (conversationId: string) => {
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-    // Limpiar mensajes optimistasS
+    // Limpiar mensajes optimistas
     optimisticMessagesRef.current.clear();
   }, []);
 
@@ -617,7 +626,7 @@ export const useChat = (conversationId: string) => {
     sending,
     isTyping,
     isConnected,
-    isJoined, // NUEVO: Estado de confirmación de conversación
+    isJoined,
     
     // Acciones
     sendMessage,

@@ -151,6 +151,16 @@ export const ChatComponent = ({ conversationId }: { conversationId: string }) =>
     );
   }
 
+  // NUEVO: Logs para debugging del renderizado
+  console.log('🎨 ChatComponent - Estado de renderizado:', {
+    isConnected,
+    isJoined,
+    loading,
+    error,
+    messagesCount: messages.length,
+    conversationId
+  });
+
   // Convertir tipos para compatibilidad
   const convertConversation = (conv: { id: string; title?: string; participants?: string[]; unreadCount?: number; lastMessage?: string; lastMessageAt?: string } | null): ConversationType | null => {
     if (!conv) return null;
@@ -178,24 +188,100 @@ export const ChatComponent = ({ conversationId }: { conversationId: string }) =>
   };
 
   const convertMessages = (msgs: { id: string; content: string; direction: 'inbound' | 'outbound'; timestamp?: string; status: string; type: string }[]): MessageType[] => {
-    return msgs.map(msg => ({
-      id: msg.id,
-      conversationId: conversationId,
-      content: msg.content,
-      direction: msg.direction,
-      createdAt: msg.timestamp || new Date().toISOString(),
-      metadata: {
-        agentId: 'system',
-        ip: '127.0.0.1',
-        requestId: 'unknown',
-        sentBy: 'system',
-        source: 'web',
-        timestamp: msg.timestamp || new Date().toISOString()
-      },
-      status: msg.status as 'sent' | 'delivered' | 'read' | 'failed',
-      type: msg.type as 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker',
-      updatedAt: msg.timestamp || new Date().toISOString()
-    }));
+    console.log('🔄 convertMessages - Iniciando conversión de', msgs.length, 'mensajes');
+    
+    const convertedMessages = msgs.map((msg, index) => {
+      try {
+        // Validar que el mensaje tenga los campos requeridos
+        if (!msg.id || !msg.content) {
+          console.warn('⚠️ convertMessages - Mensaje inválido en índice', index, msg);
+          return null;
+        }
+
+        // Mapear status del API a status del componente
+        let mappedStatus: MessageType['status'];
+        switch (msg.status) {
+          case 'queued':
+            mappedStatus = 'queued';
+            break;
+          case 'received':
+            mappedStatus = 'received';
+            break;
+          case 'sent':
+            mappedStatus = 'sent';
+            break;
+          case 'delivered':
+            mappedStatus = 'delivered';
+            break;
+          case 'read':
+            mappedStatus = 'read';
+            break;
+          case 'failed':
+            mappedStatus = 'failed';
+            break;
+          default:
+            console.warn('⚠️ convertMessages - Status desconocido:', msg.status, 'usando "sent"');
+            mappedStatus = 'sent';
+        }
+
+        // Mapear tipo del API a tipo del componente
+        let mappedType: MessageType['type'];
+        switch (msg.type) {
+          case 'text':
+          case 'image':
+          case 'document':
+          case 'location':
+          case 'audio':
+          case 'voice':
+          case 'video':
+          case 'sticker':
+            mappedType = msg.type;
+            break;
+          default:
+            console.warn('⚠️ convertMessages - Tipo desconocido:', msg.type, 'usando "text"');
+            mappedType = 'text';
+        }
+
+        const convertedMessage: MessageType = {
+          id: msg.id,
+          conversationId: conversationId,
+          content: msg.content,
+          direction: msg.direction,
+          createdAt: msg.timestamp || new Date().toISOString(),
+          metadata: {
+            agentId: 'system',
+            ip: '127.0.0.1',
+            requestId: 'unknown',
+            sentBy: 'system',
+            source: 'web',
+            timestamp: msg.timestamp || new Date().toISOString()
+          },
+          status: mappedStatus,
+          type: mappedType,
+          updatedAt: msg.timestamp || new Date().toISOString()
+        };
+
+        console.log('✅ convertMessages - Mensaje convertido:', {
+          id: convertedMessage.id,
+          content: convertedMessage.content.substring(0, 50) + '...',
+          status: convertedMessage.status,
+          type: convertedMessage.type
+        });
+
+        return convertedMessage;
+      } catch (error) {
+        console.error('❌ convertMessages - Error convirtiendo mensaje en índice', index, ':', error, msg);
+        return null;
+      }
+    }).filter(Boolean) as MessageType[]; // Remover mensajes nulos
+
+    console.log('✅ convertMessages - Conversión completada:', {
+      mensajesOriginales: msgs.length,
+      mensajesConvertidos: convertedMessages.length,
+      mensajesFiltrados: convertedMessages.filter(Boolean).length
+    });
+
+    return convertedMessages;
   };
 
   const convertTypingUsers = (users: Set<string>) => {

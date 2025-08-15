@@ -8,7 +8,7 @@ import { useAuthContext } from '../contexts/useAuthContext';
 import { sanitizeConversationId, logConversationId, encodeConversationIdForUrl } from '../utils/conversationUtils';
 
 export const useConversations = (filters: ConversationFilters = {}) => {
-  const { isAuthenticated, loading: authLoading } = useAuthContext();
+  const { isAuthenticated, loading: authLoading, isAuthenticating } = useAuthContext();
   const {
     activeConversation,
     setConversations,
@@ -19,10 +19,11 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   // WebSocket context
   const { on, off, emit, isConnected } = useWebSocketContext();
 
-  // Estados para controlar la sincronización
+  // Estados para controlar la sincronización - CORREGIDO PARA EVITAR MÚLTIPLES EJECUCIONES
   const [isInitialSyncDone, setIsInitialSyncDone] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitializingRef = useRef<boolean>(false); // NUEVO: Flag para evitar múltiples inicializaciones
 
   // Memoizar filters para evitar re-renders innecesarios
   const memoizedFilters = useMemo(() => filters, [filters]);
@@ -55,13 +56,19 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     }, 1000);
   }, [isAuthenticated, authLoading, isConnected, emit, memoizedFilters, lastSyncTime]);
 
-  // SINCRONIZACIÓN INICIAL - OPTIMIZADA CON CONDICIONES DE SALIDA
+  // SINCRONIZACIÓN INICIAL - CORREGIDA PARA EVITAR MÚLTIPLES EJECUCIONES
   useEffect(() => {
-    // Solo sincronizar si no se ha hecho la sincronización inicial
-    if (isAuthenticated && !authLoading && isConnected && !isInitialSyncDone) {
+    // Solo sincronizar si no se ha hecho la sincronización inicial y no se está inicializando
+    if (isAuthenticated && !authLoading && isConnected && !isInitialSyncDone && !isInitializingRef.current) {
       console.log('🔄 useConversations - Sincronización inicial...');
+      isInitializingRef.current = true; // Marcar como inicializando
       setIsInitialSyncDone(true);
       debouncedSync('initial');
+      
+      // Resetear flag después de un tiempo
+      setTimeout(() => {
+        isInitializingRef.current = false;
+      }, 2000);
     }
   }, [isAuthenticated, authLoading, isConnected, isInitialSyncDone, debouncedSync]);
 
@@ -128,7 +135,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     };
   }, [handleWebSocketStateSynced, handleWebSocketSyncRequired]);
 
-  // Infinite Query para obtener conversaciones con paginación - solo si está autenticado
+  // CORREGIDO: Infinite Query para obtener conversaciones - SOLO DESPUÉS DEL LOGIN
   const {
     data: conversationsData,
     isLoading,
@@ -151,7 +158,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     },
     staleTime: 30000, // 30 segundos
     refetchOnWindowFocus: false,
-    enabled: isAuthenticated && !authLoading, // Solo ejecutar si está autenticado y no está cargando
+    enabled: isAuthenticated && !authLoading && !isAuthenticating, // CORREGIDO: Solo ejecutar si está autenticado, no cargando y no en proceso de autenticación
     retry: (failureCount, error) => {
       // No reintentar si es un error de autenticación
       if (error && typeof error === 'object' && 'response' in error) {
@@ -265,12 +272,12 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     };
   }, [on, off, handleConversationEvent, handleNewMessage, handleMessageRead, handleConversationJoined, handleConversationLeft, isAuthenticated, authLoading, isConnected]);
 
-  // Seleccionar automáticamente la primera conversación si no hay ninguna seleccionada - solo si está autenticado
-  useEffect(() => {
-    if (isAuthenticated && !authLoading && !activeConversation && allConversations.length > 0) {
-      setActiveConversation(allConversations[0]);
-    }
-  }, [activeConversation, allConversations, setActiveConversation, isAuthenticated, authLoading]);
+  // CORREGIDO: NO seleccionar automáticamente conversación - el usuario debe seleccionar manualmente
+  // useEffect(() => {
+  //   if (isAuthenticated && !authLoading && !activeConversation && allConversations.length > 0) {
+  //     setActiveConversation(allConversations[0]);
+  //   }
+  // }, [activeConversation, allConversations, setActiveConversation, isAuthenticated, authLoading]);
 
   // Mutation para actualizar conversación
   const updateConversationMutation = useMutation({

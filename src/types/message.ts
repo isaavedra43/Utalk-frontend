@@ -7,7 +7,7 @@ export interface Message {
   direction: 'inbound' | 'outbound';
   createdAt: string; // "11 de agosto de 2025, 12:58:20 p.m. UTC-6"
   metadata: MessageMetadata;
-  status: 'sent' | 'delivered' | 'read' | 'failed';
+  status: 'sent' | 'delivered' | 'read' | 'failed' | 'queued' | 'received'; // CORREGIDO: Agregado "queued" y "received"
   type: 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker';
   recipientIdentifier?: string; // "whatsapp:+5214773790"
   senderIdentifier?: string; // "agent:admin@company.com"
