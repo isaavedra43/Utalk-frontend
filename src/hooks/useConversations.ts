@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useInfiniteQuery } from '@tanstack/react-query';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { Conversation, ConversationFilters } from '../types';
 import { conversationsService } from '../services/conversations';
 import { useAppStore } from '../stores/useAppStore';
@@ -9,6 +10,9 @@ import { sanitizeConversationId, logConversationId, encodeConversationIdForUrl }
 
 export const useConversations = (filters: ConversationFilters = {}) => {
   const { isAuthenticated, loading: authLoading, isAuthenticating } = useAuthContext();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
   const {
     activeConversation,
     setConversations,
@@ -28,6 +32,25 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   // Memoizar filters para evitar re-renders innecesarios
   const memoizedFilters = useMemo(() => filters, [filters]);
 
+  // NUEVO: Sincronización con URL - Extraer conversationId de la URL
+  const urlConversationId = useMemo(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const conversationId = searchParams.get('conversation');
+    return conversationId ? decodeURIComponent(conversationId) : null;
+  }, [location.search]);
+
+  // NUEVO: Sincronizar URL con conversación seleccionada
+  useEffect(() => {
+    if (activeConversation?.id && activeConversation.id !== urlConversationId) {
+      const encodedId = encodeConversationIdForUrl(activeConversation.id);
+      const newSearchParams = new URLSearchParams(location.search);
+      newSearchParams.set('conversation', encodedId);
+      navigate(`${location.pathname}?${newSearchParams.toString()}`, { replace: true });
+    }
+  }, [activeConversation?.id, urlConversationId, navigate, location.pathname, location.search]);
+
+
+
   // Memoizar la función de sincronización con debouncing - OPTIMIZADO PARA REDUCIR PETICIONES
   const debouncedSync = useCallback((reason?: string) => {
     // Limpiar timeout anterior si existe
@@ -35,14 +58,14 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       clearTimeout(syncTimeoutRef.current);
     }
 
-    // Evitar sincronizaciones muy frecuentes (mínimo 5 segundos entre sincronizaciones)
+    // Evitar sincronizaciones muy frecuentes (mínimo 10 segundos entre sincronizaciones)
     const now = Date.now();
-    if (now - lastSyncTime < 5000) {
+    if (now - lastSyncTime < 10000) {
       console.log('🔄 useConversations - Sincronización ignorada (muy frecuente)');
       return;
     }
 
-    // Debouncing de 1000ms para reducir peticiones
+    // Debouncing de 3000ms para reducir peticiones
     syncTimeoutRef.current = setTimeout(() => {
       if (isAuthenticated && !authLoading && isConnected) {
         console.log('🔄 useConversations - Sincronizando estado inicial...', { reason });
@@ -53,7 +76,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
           reason
         });
       }
-    }, 1000);
+    }, 3000);
   }, [isAuthenticated, authLoading, isConnected, emit, memoizedFilters, lastSyncTime]);
 
   // SINCRONIZACIÓN INICIAL - CORREGIDA PARA EVITAR MÚLTIPLES EJECUCIONES
@@ -65,10 +88,10 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       setIsInitialSyncDone(true);
       debouncedSync('initial');
       
-      // Resetear flag después de un tiempo
+      // Resetear flag después de un tiempo más largo
       setTimeout(() => {
         isInitializingRef.current = false;
-      }, 2000);
+      }, 5000); // Aumentado de 2 a 5 segundos
     }
   }, [isAuthenticated, authLoading, isConnected, isInitialSyncDone, debouncedSync]);
 
@@ -172,10 +195,36 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   });
 
   // Aplanar todas las conversaciones de todas las páginas
-  const allConversations = useMemo(() => 
-    conversationsData?.pages.flatMap(page => page.conversations) || [], 
-    [conversationsData?.pages]
-  );
+  const allConversations = useMemo(() => {
+    const conversations = conversationsData?.pages.flatMap(page => page.conversations) || [];
+    
+    // NUEVO: Filtrar conversaciones duplicadas basadas en el número de teléfono
+    const uniqueConversations = conversations.reduce((acc, conversation) => {
+      const phone = conversation.customerPhone;
+      
+      // Buscar si ya existe una conversación con el mismo número
+      const existingIndex = acc.findIndex(conv => conv.customerPhone === phone);
+      
+      if (existingIndex === -1) {
+        // No existe, agregar
+        acc.push(conversation);
+      } else {
+        // Ya existe, mantener la más reciente
+        const existing = acc[existingIndex];
+        const existingTime = new Date(existing.lastMessageAt || existing.createdAt).getTime();
+        const newTime = new Date(conversation.lastMessageAt || conversation.createdAt).getTime();
+        
+        if (newTime > existingTime) {
+          // Reemplazar con la más reciente
+          acc[existingIndex] = conversation;
+        }
+      }
+      
+      return acc;
+    }, [] as typeof conversations);
+    
+    return uniqueConversations;
+  }, [conversationsData?.pages]);
 
   // Sincronizar datos del store con la query - solo si está autenticado
   useEffect(() => {
@@ -183,6 +232,19 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       setConversations(allConversations);
     }
   }, [allConversations, setConversations, isAuthenticated, authLoading]);
+
+  // NUEVO: Sincronizar conversación seleccionada con URL
+  useEffect(() => {
+    if (urlConversationId && (!activeConversation || activeConversation.id !== urlConversationId)) {
+      const sanitizedId = sanitizeConversationId(urlConversationId);
+      if (sanitizedId) {
+        const conversation = allConversations.find(conv => conv.id === sanitizedId);
+        if (conversation) {
+          setActiveConversation(conversation);
+        }
+      }
+    }
+  }, [urlConversationId, activeConversation, allConversations, setActiveConversation]);
 
   // Memoizar handlers de eventos para evitar recreaciones
   const handleConversationEvent = useCallback((data: unknown) => {
@@ -333,12 +395,32 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     }
   });
 
-  // Función para seleccionar conversación
+  // NUEVO: Cache para evitar errores repetitivos de IDs inválidos
+  const invalidIdCache = useRef<Set<string>>(new Set());
+  const lastErrorTime = useRef<number>(0);
+
+  // Función para manejar IDs inválidos sin spam de errores
+  const handleInvalidConversationId = useCallback((conversationId: string) => {
+    const now = Date.now();
+    
+    // Si ya reportamos este ID como inválido en los últimos 30 segundos, no reportar de nuevo
+    if (invalidIdCache.current.has(conversationId) && (now - lastErrorTime.current) < 30000) {
+      return;
+    }
+    
+    // Agregar al cache y reportar error
+    invalidIdCache.current.add(conversationId);
+    lastErrorTime.current = now;
+    
+    console.warn('⚠️ ID de conversación inválido:', conversationId, 'decoded:', decodeURIComponent(conversationId));
+    console.error('❌ useConversations - ID de conversación inválido:', conversationId);
+  }, []);
+
+  // Función para seleccionar conversación con manejo mejorado de errores
   const selectConversation = useCallback((conversationId: string) => {
-    // Validar y sanitizar el ID de conversación
     const sanitizedId = sanitizeConversationId(conversationId);
     if (!sanitizedId) {
-      console.error('❌ useConversations - ID de conversación inválido:', conversationId);
+      handleInvalidConversationId(conversationId);
       return;
     }
 
@@ -346,8 +428,14 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     const conversation = allConversations.find(conv => conv.id === sanitizedId);
     if (conversation) {
       setActiveConversation(conversation);
+      
+      // NUEVO: Actualizar URL cuando se selecciona una conversación
+      const encodedId = encodeConversationIdForUrl(sanitizedId);
+      const newSearchParams = new URLSearchParams(location.search);
+      newSearchParams.set('conversation', encodedId);
+      navigate(`${location.pathname}?${newSearchParams.toString()}`, { replace: true });
     }
-  }, [allConversations, setActiveConversation]);
+  }, [allConversations, setActiveConversation, handleInvalidConversationId, navigate, location.pathname, location.search]);
 
   // Función para cargar más conversaciones (scroll infinito)
   const loadMoreConversations = useCallback(() => {

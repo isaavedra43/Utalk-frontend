@@ -4,7 +4,7 @@ import { ConversationList } from './ConversationList';
 import { ChatComponent } from './ChatComponent';
 import { DetailsPanel } from '../layout/DetailsPanel';
 import { CopilotPanel } from '../layout/CopilotPanel';
-import { useConversations } from '../../hooks/useConversations';
+
 import { 
   MessageSquare, 
   Users, 
@@ -23,8 +23,7 @@ const AuthenticatedChatContent: React.FC = () => {
   const [mobileView, setMobileView] = useState<MobileView>('conversations');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
-  // Hook de conversaciones (solo se ejecuta si está autenticado)
-  const { selectedConversationId } = useConversations();
+
 
   // Datos mock para el panel de detalles
   const mockClientProfile = {
@@ -124,22 +123,7 @@ const AuthenticatedChatContent: React.FC = () => {
       case 'chat':
         return (
           <div className="h-full bg-gray-100">
-            {selectedConversationId ? (
-              <ChatComponent conversationId={selectedConversationId} />
-            ) : (
-              <div className="flex-1 flex items-center justify-center bg-gray-100">
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Selecciona una conversación
-                  </h3>
-                </div>
-              </div>
-            )}
+            <ChatComponent />
           </div>
         );
       case 'details':
@@ -272,22 +256,7 @@ const AuthenticatedChatContent: React.FC = () => {
         
         {/* 3. Área de Chat - La más ancha */}
         <div className="flex-1 flex flex-col bg-gray-100 min-w-0 overflow-hidden">
-          {selectedConversationId ? (
-            <ChatComponent conversationId={selectedConversationId} />
-          ) : (
-            <div className="flex-1 flex items-center justify-center bg-gray-100">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Selecciona una conversación
-                </h3>
-              </div>
-            </div>
-          )}
+          <ChatComponent />
         </div>
 
         {/* 4. Panel de Detalles/Copilot - Más delgado */}

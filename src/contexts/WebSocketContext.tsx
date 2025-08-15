@@ -85,6 +85,15 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return () => window.removeEventListener('auth:token-refreshed', handler as unknown as EventListener);
   }, [connect, disconnect]);
 
+  // Conectar WebSocket automáticamente si ya hay un token válido al cargar la aplicación
+  useEffect(() => {
+    const accessToken = localStorage.getItem('access_token');
+    if (accessToken && !isConnected && !connectionError) {
+      console.log('🔌 WebSocketContext - Token encontrado, conectando WebSocket automáticamente...');
+      connect(accessToken, { timeout: 45000 });
+    }
+  }, [connect, isConnected, connectionError]);
+
   // Conectar WebSocket inmediatamente después del login exitoso con fallback
   useEffect(() => {
     const handler = (e: Event) => {
@@ -327,6 +336,47 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       off('test-response');
     };
   }, [socket, on, off, emit]);
+
+  // NUEVO: Mejorar el manejo de reconexiones con backoff exponencial
+  const reconnectWithBackoff = useCallback((attempt: number = 1) => {
+    const maxAttempts = 5;
+    const baseDelay = 2000; // 2 segundos base
+    const maxDelay = 30000; // 30 segundos máximo
+    
+    if (attempt > maxAttempts) {
+      console.warn('⚠️ WebSocket - Máximo de intentos de reconexión alcanzado, activando modo fallback');
+      setIsFallbackMode(true);
+      return;
+    }
+
+    const delay = Math.min(baseDelay * Math.pow(2, attempt - 1), maxDelay);
+    
+    console.log(`🔄 WebSocket - Intentando reconexión ${attempt}/${maxAttempts} en ${delay}ms`);
+    
+    setTimeout(() => {
+      if (!isConnected && !isFallbackMode) {
+        const token = localStorage.getItem('access_token');
+        if (token) {
+          connect(token);
+        }
+      }
+    }, delay);
+  }, [isConnected, isFallbackMode, connect]);
+
+  // NUEVO: Mejorar el manejo de timeouts
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    const timeoutDuration = 120000; // 2 minutos en lugar de 30 segundos
+    const timeoutId = setTimeout(() => {
+      console.warn('⚠️ WebSocket - Timeout detectado, iniciando reconexión');
+      socket.disconnect();
+      setIsFallbackMode(true); // Activar modo fallback al timeout
+      reconnectWithBackoff(1);
+    }, timeoutDuration);
+
+    return () => clearTimeout(timeoutId);
+  }, [socket, isConnected, reconnectWithBackoff]);
 
   const value: WebSocketContextType = {
     socket,

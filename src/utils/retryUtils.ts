@@ -182,4 +182,55 @@ export const retryWithBackoff = async <T>(
   throw lastError;
 };
 
+// NUEVO: Sistema de deduplicación de peticiones
+const pendingRequests = new Map<string, Promise<unknown>>();
+
+/**
+ * Ejecuta una petición HTTP con deduplicación para evitar peticiones duplicadas
+ * @param requestKey - Clave única para identificar la petición
+ * @param requestFn - Función que ejecuta la petición HTTP
+ * @returns Promise con el resultado de la petición
+ */
+export const deduplicateRequest = async <T>(
+  requestKey: string,
+  requestFn: () => Promise<T>
+): Promise<T> => {
+  // Si ya hay una petición pendiente con la misma clave, retornar esa
+  if (pendingRequests.has(requestKey)) {
+    console.log('🔄 Deduplicando petición:', requestKey);
+    const existingRequest = pendingRequests.get(requestKey);
+    if (existingRequest) {
+      return existingRequest as Promise<T>;
+    }
+    throw new Error('Request not found');
+  }
+
+  // Crear nueva petición
+  const requestPromise = requestFn().finally(() => {
+    // Limpiar la petición del cache cuando termine
+    pendingRequests.delete(requestKey);
+  });
+
+  // Guardar la petición en el cache
+  pendingRequests.set(requestKey, requestPromise);
+  
+  return requestPromise;
+};
+
+/**
+ * Genera una clave única para una petición HTTP
+ * @param method - Método HTTP
+ * @param url - URL de la petición
+ * @param params - Parámetros de la petición
+ * @returns Clave única para la petición
+ */
+export const generateRequestKey = (
+  method: string,
+  url: string,
+  params?: Record<string, any>
+): string => {
+  const paramsString = params ? JSON.stringify(params) : '';
+  return `${method}:${url}:${paramsString}`;
+};
+
 export default ExponentialBackoff; 

@@ -1,14 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useChat } from '../../hooks/useChat';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { ChatHeader } from './ChatHeader';
 import { TypingIndicator } from './TypingIndicator';
+import { sanitizeConversationId } from '../../utils/conversationUtils';
 
 import type { Conversation as ConversationType, Message as MessageType } from '../../types/index';
 import './ChatComponent.css';
 
-export const ChatComponent = ({ conversationId }: { conversationId: string }) => {
+export const ChatComponent = ({ conversationId }: { conversationId?: string }) => {
+  const location = useLocation();
+  
+  // NUEVO: Obtener conversationId de la URL si no se proporciona uno
+  const effectiveConversationId = conversationId || (() => {
+    const searchParams = new URLSearchParams(location.search);
+    const urlConversationId = searchParams.get('conversation');
+    if (urlConversationId) {
+      const sanitizedId = sanitizeConversationId(decodeURIComponent(urlConversationId));
+      return sanitizedId || '';
+    }
+    return '';
+  })();
   const {
     messages,
     conversation,
@@ -26,15 +40,17 @@ export const ChatComponent = ({ conversationId }: { conversationId: string }) =>
     retryMessage,
     deleteOptimisticMessage,
     messagesEndRef
-  } = useChat(conversationId);
+  } = useChat(effectiveConversationId);
 
   const [inputValue, setInputValue] = useState('');
+
+
 
   // Marcar mensajes como leídos cuando se ven
   useEffect(() => {
     if (messages.length > 0) {
       const unreadMessages = messages
-        .filter((msg) => msg.direction === 'inbound' && !msg.readAt)
+        .filter((msg) => msg.direction === 'inbound' && msg.status !== 'read')
         .map((msg) => msg.id);
 
       if (unreadMessages.length > 0) {
@@ -43,16 +59,47 @@ export const ChatComponent = ({ conversationId }: { conversationId: string }) =>
     }
   }, [messages, markAsRead]);
 
+  // NUEVO: Logs para debugging del renderizado (REDUCIDO para evitar spam)
+  // Solo mostrar cuando cambien valores importantes
+  const prevRenderState = useRef({ isConnected, isJoined, loading, error, messagesCount: messages.length });
+  
+  useEffect(() => {
+    const currentState = { isConnected, isJoined, loading, error, messagesCount: messages.length };
+    const prevState = prevRenderState.current;
+    
+    // Solo log si hay cambios significativos
+    if (
+      prevState.isConnected !== currentState.isConnected ||
+      prevState.isJoined !== currentState.isJoined ||
+      prevState.loading !== currentState.loading ||
+      prevState.error !== currentState.error ||
+      Math.abs(prevState.messagesCount - currentState.messagesCount) > 10 // Solo si cambian más de 10 mensajes
+    ) {
+      console.log('🎨 ChatComponent - Estado de renderizado:', {
+        isConnected,
+        isJoined,
+        loading,
+        error,
+        messagesCount: messages.length,
+        conversationId: effectiveConversationId
+      });
+      prevRenderState.current = currentState;
+    }
+  }, [isConnected, isJoined, loading, error, messages.length, effectiveConversationId]);
+
   // Manejar envío de mensaje
   const handleSend = async () => {
-    if (!inputValue.trim() || sending || !isConnected || !isJoined) return;
-
+    if (!inputValue.trim() || sending) return;
+    
+    const messageContent = inputValue.trim();
+    setInputValue('');
+    
     try {
-      await sendMessage(inputValue);
-      setInputValue('');
-      handleStopTyping();
+      await sendMessage(messageContent);
     } catch (error) {
       console.error('Error enviando mensaje:', error);
+      // Restaurar el mensaje en caso de error
+      setInputValue(messageContent);
     }
   };
 
@@ -151,16 +198,6 @@ export const ChatComponent = ({ conversationId }: { conversationId: string }) =>
     );
   }
 
-  // NUEVO: Logs para debugging del renderizado
-  console.log('🎨 ChatComponent - Estado de renderizado:', {
-    isConnected,
-    isJoined,
-    loading,
-    error,
-    messagesCount: messages.length,
-    conversationId
-  });
-
   // Convertir tipos para compatibilidad
   const convertConversation = (conv: { id: string; title?: string; participants?: string[]; unreadCount?: number; lastMessage?: string; lastMessageAt?: string } | null): ConversationType | null => {
     if (!conv) return null;
@@ -187,6 +224,7 @@ export const ChatComponent = ({ conversationId }: { conversationId: string }) =>
     };
   };
 
+  // Función para convertir mensajes
   const convertMessages = (msgs: { id: string; content: string; direction: 'inbound' | 'outbound'; timestamp?: string; status: string; type: string }[]): MessageType[] => {
     console.log('🔄 convertMessages - Iniciando conversión de', msgs.length, 'mensajes');
     
@@ -244,7 +282,7 @@ export const ChatComponent = ({ conversationId }: { conversationId: string }) =>
 
         const convertedMessage: MessageType = {
           id: msg.id,
-          conversationId: conversationId,
+          conversationId: effectiveConversationId,
           content: msg.content,
           direction: msg.direction,
           createdAt: msg.timestamp || new Date().toISOString(),
@@ -261,12 +299,8 @@ export const ChatComponent = ({ conversationId }: { conversationId: string }) =>
           updatedAt: msg.timestamp || new Date().toISOString()
         };
 
-        console.log('✅ convertMessages - Mensaje convertido:', {
-          id: convertedMessage.id,
-          content: convertedMessage.content.substring(0, 50) + '...',
-          status: convertedMessage.status,
-          type: convertedMessage.type
-        });
+        // ELIMINADO: Log individual para cada mensaje (causaba spam)
+        // console.log('✅ convertMessages - Mensaje convertido:', { ... });
 
         return convertedMessage;
       } catch (error) {

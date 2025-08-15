@@ -13,10 +13,11 @@ export const isValidConversationId = (conversationId: string): boolean => {
     return false;
   }
 
-  // SOLUCIÓN CRÍTICA: Aceptar tanto + como %2B en los IDs
-  // El patrón debe permitir tanto el formato original como el codificado
+  // SOLUCIÓN CRÍTICA: Aceptar IDs con doble ++ para evitar errores repetitivos
+  // El patrón debe permitir tanto el formato original como el codificado y duplicado
   const conversationIdPattern = /^conv_[+]?\d+_[+]?\d+$/;
   const encodedConversationIdPattern = /^conv_%2B\d+_%2B\d+$/;
+  const doublePlusPattern = /^conv_\+\+\d+_\+\+\d+$/; // NUEVO: Aceptar doble ++
   
   // Verificar si es el formato original (con +)
   if (conversationIdPattern.test(conversationId)) {
@@ -25,6 +26,11 @@ export const isValidConversationId = (conversationId: string): boolean => {
   
   // Verificar si es el formato codificado (con %2B)
   if (encodedConversationIdPattern.test(conversationId)) {
+    return true;
+  }
+  
+  // NUEVO: Verificar formato con doble ++ (para evitar errores del backend)
+  if (doublePlusPattern.test(conversationId)) {
     return true;
   }
   
@@ -54,8 +60,16 @@ export const normalizeConversationId = (conversationId: string): string | null =
     return conversationId;
   }
 
-  // SOLUCIÓN CRÍTICA: Manejar IDs codificados con %2B
-  // Intentar extraer y reformatear si es posible, incluyendo formato codificado
+  // SOLUCIÓN CRÍTICA: Manejar IDs con doble ++ y codificados
+  // Intentar extraer y reformatear si es posible, incluyendo formato codificado y duplicado
+  
+  // NUEVO: Manejar formato con doble ++
+  const doublePlusMatch = conversationId.match(/^conv_\+\+(\d+)_\+\+(\d+)$/);
+  if (doublePlusMatch) {
+    const [, phone1, phone2] = doublePlusMatch;
+    return `conv_+${phone1}_+${phone2}`; // Normalizar a formato estándar
+  }
+  
   const match = conversationId.match(/^conv_([+]?\d+)_([+]?\d+)$/);
   if (match) {
     const [, phone1, phone2] = match;

@@ -1,6 +1,8 @@
-import axios from 'axios';
+import axios, { type InternalAxiosRequestConfig, type AxiosResponse } from 'axios';
+import { rateLimiter } from '../utils/rateLimiter';
+import { deduplicateRequest, generateRequestKey } from '../utils/retryUtils';
+import { sanitizeConversationId } from '../utils/conversationUtils';
 import { logger, LogCategory } from '../utils/logger';
-import { sanitizeConversationId, logConversationId } from '../utils/conversationUtils';
 
 // Usar URL del backend real
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || 'https://tu-backend.railway.app';
@@ -34,9 +36,29 @@ const api = axios.create({
   }
 });
 
-// Interceptor para agregar token y validar IDs de conversación
+// Interceptor de requests
 api.interceptors.request.use(
-  (config) => {
+  (config: InternalAxiosRequestConfig) => {
+    const url = config.url || '';
+    const method = config.method || 'GET';
+    
+    // NUEVO: Verificar rate limit antes de hacer la petición
+    if (!rateLimiter.checkRateLimit(url)) {
+      console.warn('🚫 Rate limit excedido, cancelando petición:', url);
+      throw new Error('Rate limit exceeded');
+    }
+
+    // NUEVO: Generar clave única para deduplicación
+    const requestKey = generateRequestKey(method, url, config.params);
+    
+    // NUEVO: Aplicar deduplicación para peticiones GET
+    if (method === 'GET') {
+      return deduplicateRequest(requestKey, () => {
+        // Continuar con la petición original
+        return Promise.resolve(config);
+      });
+    }
+
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -83,7 +105,6 @@ api.interceptors.request.use(
         if (sanitizedForBackend !== conversationId) {
           // Reemplazar el ID en la URL con la versión que el backend espera
           config.url = config.url.replace(conversationId, sanitizedForBackend);
-          logConversationId(sanitizedId, 'API Interceptor - Backend format');
           logger.apiInfo('ID de conversación formateado para backend', {
             originalId: conversationId,
             decodedId: decodedConversationId,
@@ -104,14 +125,19 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    logger.apiError('Error en request interceptor', error);
+    console.error('❌ Error en interceptor de request:', error);
     return Promise.reject(error);
   }
 );
 
-// Interceptor para refresh token
+// Interceptor de responses
 api.interceptors.response.use(
-  (response) => {
+  (response: AxiosResponse) => {
+    const url = response.config.url || '';
+    
+    // NUEVO: Registrar petición exitosa en el rate limiter
+    rateLimiter.recordRequest(url);
+    
     // Log de responses en desarrollo
     if (import.meta.env.DEV) {
       logger.debug(LogCategory.API, `Response: ${response.config.method?.toUpperCase()} ${response.config.url}`, response.data);
@@ -127,6 +153,11 @@ api.interceptors.response.use(
     return response;
   },
   async (error) => {
+    const url = error.config?.url || '';
+    
+    // NUEVO: Registrar petición fallida también
+    rateLimiter.recordRequest(url);
+
     const originalRequest = error.config;
 
     // Log de errores en desarrollo

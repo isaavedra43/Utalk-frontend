@@ -1,31 +1,39 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useWebSocketContext } from '../contexts/useWebSocketContext';
-import api from '../services/api';
-import { sanitizeConversationId, logConversationId, encodeConversationIdForUrl } from '../utils/conversationUtils';
+import { 
+  sanitizeConversationId, 
+  normalizeConversationId,
+  logConversationId, 
+  encodeConversationIdForUrl 
+} from '../utils/conversationUtils';
 import { messagesCache, generateCacheKey } from '../utils/cacheUtils';
 import { retryWithBackoff, generateOperationKey, rateLimitBackoff } from '../utils/retryUtils';
+import api from '../services/api';
 
 interface Message {
   id: string;
   content: string;
-  type: 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker';
   direction: 'inbound' | 'outbound';
-  timestamp: string;
-  status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
-  readAt?: string;
+  timestamp?: string;
+  status: string;
+  type: string;
   metadata?: Record<string, unknown>;
 }
 
 interface Conversation {
   id: string;
-  title: string;
-  participants: string[];
+  title?: string;
+  participants?: string[];
+  unreadCount?: number;
   lastMessage?: string;
   lastMessageAt?: string;
-  unreadCount: number;
 }
 
 export const useChat = (conversationId: string) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
   const {
     socket,
     isConnected,
@@ -33,7 +41,6 @@ export const useChat = (conversationId: string) => {
     leaveConversation,
     startTyping,
     stopTyping,
-    sendMessage: socketSendMessage,
     markMessagesAsRead,
     typingUsers,
     on,
@@ -73,7 +80,8 @@ export const useChat = (conversationId: string) => {
     const cachedMessages = messagesCache.get<Message[]>(cacheKey);
     
     if (cachedMessages) {
-      console.log('📋 useChat - Mensajes cargados desde cache:', cachedMessages.length);
+      // REDUCIDO: Log menos frecuente para evitar spam
+      // console.log('📋 useChat - Mensajes cargados desde cache:', cachedMessages.length);
       const filteredMessages = cachedMessages.filter((msg: Message) => !optimisticMessagesRef.current.has(msg.id));
       setMessages(filteredMessages);
       setLoading(false);
@@ -99,22 +107,22 @@ export const useChat = (conversationId: string) => {
       // Guardar en cache
       messagesCache.set(cacheKey, loadedMessages, 60000); // 1 minuto de cache
       
-      // SOLUCIONADO: Agregar log para verificar que los mensajes se cargaron
-      console.log('📋 useChat - Mensajes cargados desde API:', {
-        totalMessages: loadedMessages.length,
-        conversationId: sanitizedId,
-        cacheKey
-      });
+      // REDUCIDO: Log menos frecuente para evitar spam
+      // console.log('📋 useChat - Mensajes cargados desde API:', {
+      //   totalMessages: loadedMessages.length,
+      //   conversationId: sanitizedId,
+      //   cacheKey
+      // });
       
       // Filtrar mensajes optimistas que ya fueron confirmados
       const filteredMessages = loadedMessages.filter((msg: Message) => !optimisticMessagesRef.current.has(msg.id));
       
-      // SOLUCIONADO: Agregar log para verificar el filtrado
-      console.log('📋 useChat - Mensajes después del filtrado:', {
-        originalCount: loadedMessages.length,
-        filteredCount: filteredMessages.length,
-        optimisticCount: optimisticMessagesRef.current.size
-      });
+      // REDUCIDO: Log menos frecuente para evitar spam
+      // console.log('📋 useChat - Mensajes después del filtrado:', {
+      //   originalCount: loadedMessages.length,
+      //   filteredCount: filteredMessages.length,
+      //   optimisticCount: optimisticMessagesRef.current.size
+      // });
       
       setMessages(filteredMessages);
       
@@ -149,7 +157,8 @@ export const useChat = (conversationId: string) => {
     const cachedConversation = messagesCache.get<Conversation>(cacheKey);
     
     if (cachedConversation) {
-      console.log('📋 useChat - Conversación cargada desde cache');
+      // REDUCIDO: Log menos frecuente para evitar spam
+      // console.log('📋 useChat - Conversación cargada desde cache');
       setConversation(cachedConversation);
       return;
     }
@@ -184,9 +193,42 @@ export const useChat = (conversationId: string) => {
       // Validar y sanitizar el ID de conversación
       const sanitizedId = sanitizeConversationId(conversationId);
       if (!sanitizedId) {
-        console.error('❌ useChat - ID de conversación inválido:', conversationId);
-        setError(`ID de conversación inválido: ${conversationId}`);
-        return;
+        // NUEVO: Manejo mejorado de IDs inválidos sin spam de errores
+        console.warn('⚠️ useChat - ID de conversación inválido, intentando normalizar:', conversationId);
+        
+        // Intentar normalizar el ID
+        const normalizedId = normalizeConversationId(conversationId);
+        if (normalizedId) {
+          console.log('✅ useChat - ID normalizado exitosamente:', normalizedId);
+          // Continuar con el ID normalizado
+          joinAttemptedRef.current = true;
+          
+          const joinOperation = async () => {
+            try {
+              console.log('🔗 useChat - Uniéndose a conversación normalizada:', normalizedId);
+              logConversationId(normalizedId, 'joinConversation');
+              
+              joinConversation(normalizedId);
+              await loadMessages();
+              await loadConversation();
+              
+              console.log('✅ useChat - Mensajes cargados, estableciendo isJoined como true');
+              setIsJoined(true);
+              
+            } catch (error) {
+              console.error('❌ useChat - Error uniéndose a conversación normalizada:', error);
+              setError('Error uniéndose a conversación');
+              joinAttemptedRef.current = false;
+            }
+          };
+
+          joinOperation();
+          return;
+        } else {
+          console.error('❌ useChat - ID de conversación inválido y no se puede normalizar:', conversationId);
+          setError(`ID de conversación inválido: ${conversationId}`);
+          return;
+        }
       }
 
       joinAttemptedRef.current = true; // Marcar como intentado
@@ -229,15 +271,15 @@ export const useChat = (conversationId: string) => {
     }
   }, [messages.length, isJoined, loading]);
 
-  // NUEVO: Log para monitorear cambios en el estado de mensajes
-  useEffect(() => {
-    console.log('📊 useChat - Estado de mensajes actualizado:', {
-      messagesCount: messages.length,
-      isJoined,
-      loading,
-      conversationId
-    });
-  }, [messages.length, isJoined, loading, conversationId]);
+  // NUEVO: Log para monitorear cambios en el estado de mensajes (REDUCIDO para evitar spam)
+  // useEffect(() => {
+  //   console.log('📊 useChat - Estado de mensajes actualizado:', {
+  //     messagesCount: messages.length,
+  //     isJoined,
+  //     loading,
+  //     conversationId
+  //   });
+  // }, [messages.length, isJoined, loading, conversationId]);
 
   // SOLUCIONADO: Salir de conversación solo al desmontar
   useEffect(() => {
@@ -454,92 +496,43 @@ export const useChat = (conversationId: string) => {
     try {
       setSending(true);
       setError(null);
-
-      // Crear mensaje optimista
-      const optimisticId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const optimisticMessage: Message = {
-        id: optimisticId,
-        content,
-        type: type as Message['type'],
-        direction: 'outbound',
-        timestamp: new Date().toISOString(),
-        status: 'sending',
-        metadata
-      };
-
-      // Agregar a mensajes optimistas
-      optimisticMessagesRef.current.add(optimisticId);
-
-      // Agregar mensaje optimista inmediatamente
-      setMessages(prev => [...prev, optimisticMessage]);
-      // Scroll al final después de agregar mensaje optimista
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-
-      // Enviar por WebSocket (tiempo real)
-      console.log('🚀 Enviando mensaje por WebSocket:', { conversationId: sanitizedId, content, type, metadata });
       
-      socketSendMessage(sanitizedId, content, type, metadata);
+      logConversationId(sanitizedId, 'sendMessage');
+      
+      // Usar retry con backoff para enviar mensaje
+      const operationKey = generateOperationKey('sendMessage', { conversationId: sanitizedId });
+      const response = await retryWithBackoff(
+        () => api.post(`/api/messages?conversationId=${encodedId}`, {
+          content,
+          type,
+          metadata
+        }),
+        operationKey,
+        rateLimitBackoff
+      );
+      
+      const realMessage = response.data;
+      
+      // Actualizar mensaje optimista con datos reales
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === realMessage.id 
+            ? { ...realMessage, status: 'sent' }
+            : msg
+        )
+      );
 
-      // También enviar por API para persistencia con retry
-      try {
-        console.log('💾 Guardando mensaje en API');
-        
-        const operationKey = generateOperationKey('sendMessage', { 
-          conversationId: sanitizedId, 
-          content: content.substring(0, 50) // Usar solo los primeros 50 caracteres para la clave
-        });
-        
-        const apiResponse = await retryWithBackoff(
-          () => api.post(`/api/conversations/${encodedId}/messages`, {
-            content,
-            type,
-            metadata
-          }),
-          operationKey,
-          rateLimitBackoff
-        );
+      // Remover de mensajes optimistas
+      optimisticMessagesRef.current.delete(realMessage.id);
 
-        // Actualizar mensaje optimista con datos reales
-        const realMessage = apiResponse.data;
-        setMessages(prev => 
-          prev.map(msg => 
-            msg.id === optimisticId 
-              ? { ...realMessage, status: 'sent' }
-              : msg
-          )
-        );
-
-        // Remover de mensajes optimistas
-        optimisticMessagesRef.current.delete(optimisticId);
-
-        console.log('✅ Mensaje enviado exitosamente');
-      } catch (apiError) {
-        console.error('❌ Error enviando por API:', apiError);
-        
-        // Marcar como error si falla la API
-        setMessages(prev => 
-          prev.map(msg => 
-            msg.id === optimisticId 
-              ? { ...msg, status: 'failed' }
-              : msg
-          )
-        );
-
-        // Remover de mensajes optimistas
-        optimisticMessagesRef.current.delete(optimisticId);
-        
-        throw new Error('Error guardando mensaje en el servidor');
-      }
-
+      console.log('✅ Mensaje enviado exitosamente');
     } catch (error: unknown) {
       console.error('❌ Error enviando mensaje:', error);
       setError(error instanceof Error ? error.message : 'Error enviando mensaje');
     } finally {
       setSending(false);
     }
-  }, [conversationId, socketSendMessage, isJoined]);
+  }, [conversationId, isJoined]);
 
   // Indicar escritura con debouncing
   const handleTyping = useCallback(() => {
@@ -634,6 +627,19 @@ export const useChat = (conversationId: string) => {
     // Limpiar mensajes optimistas
     optimisticMessagesRef.current.clear();
   }, []);
+
+  // NUEVO: Sincronizar con URL cuando cambie conversationId
+  useEffect(() => {
+    if (conversationId) {
+      const sanitizedId = sanitizeConversationId(conversationId);
+      if (sanitizedId) {
+        const encodedId = encodeConversationIdForUrl(sanitizedId);
+        const newSearchParams = new URLSearchParams(location.search);
+        newSearchParams.set('conversation', encodedId);
+        navigate(`${location.pathname}?${newSearchParams.toString()}`, { replace: true });
+      }
+    }
+  }, [conversationId, navigate, location.pathname, location.search]);
 
   // Limpiar al desmontar
   useEffect(() => {
