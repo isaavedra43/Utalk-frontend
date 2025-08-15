@@ -7,7 +7,7 @@ const SOCKET_CONFIG = {
   reconnection: true,
   reconnectionAttempts: ENV_CONFIG.WS_RETRY_ATTEMPTS,
   reconnectionDelay: ENV_CONFIG.WS_RECONNECTION_DELAY,
-  reconnectionDelayMax: 5000,
+  reconnectionDelayMax: 10000, // Aumentado para dar más tiempo al backend
   maxReconnectionAttempts: ENV_CONFIG.WS_RETRY_ATTEMPTS,
   autoConnect: false, // No conectar automáticamente
   forceNew: true,
@@ -29,8 +29,8 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
   
   const socketConfig = {
     ...SOCKET_CONFIG,
-    // MEJORADO: Timeout personalizable para login (mínimo 15 segundos)
-    timeout: Math.max(options?.timeout || SOCKET_CONFIG.timeout, 15000)
+    // OPTIMIZADO: Timeout personalizable para login (mínimo 20 segundos)
+    timeout: Math.max(options?.timeout || SOCKET_CONFIG.timeout, 20000)
   };
   
   const socket = io(SOCKET_URL, {

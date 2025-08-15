@@ -9,14 +9,14 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { useAuthContext } from '../../contexts/useAuthContext';
-import { useTeamNotifications } from '../../modules/team/hooks/useTeamNotifications';
+// import { useTeamNotifications } from '../../modules/team/hooks/useTeamNotifications'; // DESHABILITADO TEMPORALMENTE
 
 export const LeftSidebar: React.FC = () => {
-  const { currentModule, navigateToModule, teamData } = useAppStore();
+  const { currentModule, navigateToModule } = useAppStore();
   const { logout, backendUser } = useAuthContext();
   
-  // Obtener notificaciones del equipo
-  const teamNotifications = useTeamNotifications(teamData?.members || []);
+  // Obtener notificaciones del equipo - DESHABILITADO TEMPORALMENTE
+  // const teamNotifications = useTeamNotifications(teamData?.members || []);
   
   const handleLogout = async () => {
     try {
@@ -43,7 +43,7 @@ export const LeftSidebar: React.FC = () => {
       id: 'team',
       icon: Users,
       title: 'Equipo & Performance',
-      badge: teamNotifications.getBadgeText()
+      badge: '0' // DESHABILITADO TEMPORALMENTE: teamNotifications.getBadgeText()
     },
     {
       id: 'notifications',

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { TeamMember } from '../../../types/team';
 import { logger } from '../../../utils/logger';
 
@@ -10,8 +10,8 @@ export const useTeamNotifications = (members: TeamMember[]) => {
     coachingUpdates: 0
   });
 
-  // Calcular notificaciones basadas en el estado del equipo
-  const calculateNotifications = useCallback(() => {
+  // Calcular notificaciones usando useMemo para evitar recálculos innecesarios
+  const calculatedNotifications = useMemo(() => {
     let pendingReviews = 0;
     let performanceAlerts = 0;
     let coachingUpdates = 0;
@@ -46,20 +46,29 @@ export const useTeamNotifications = (members: TeamMember[]) => {
     };
   }, [members]);
 
-  // Actualizar notificaciones cuando cambien los miembros
+  // Actualizar notificaciones solo cuando cambien los miembros
   useEffect(() => {
-    const newNotifications = calculateNotifications();
-    setNotifications(newNotifications);
+    setNotifications(calculatedNotifications);
     
-    logger.systemInfo('Team notifications updated', { notifications: newNotifications });
-  }, [calculateNotifications]);
+    // Solo loggear si hay cambios reales en las notificaciones
+    const hasChanges = (
+      notifications.total !== calculatedNotifications.total ||
+      notifications.pendingReviews !== calculatedNotifications.pendingReviews ||
+      notifications.performanceAlerts !== calculatedNotifications.performanceAlerts ||
+      notifications.coachingUpdates !== calculatedNotifications.coachingUpdates
+    );
+    
+    if (hasChanges) {
+      logger.systemInfo('Team notifications updated', { notifications: calculatedNotifications });
+    }
+  }, [calculatedNotifications, notifications]);
 
   // Obtener badge para mostrar en el sidebar
   const getBadgeText = useCallback(() => {
-    if (notifications.total === 0) return null;
-    if (notifications.total > 9) return '9+';
-    return notifications.total.toString();
-  }, [notifications.total]);
+    if (calculatedNotifications.total === 0) return null;
+    if (calculatedNotifications.total > 9) return '9+';
+    return calculatedNotifications.total.toString();
+  }, [calculatedNotifications.total]);
 
   // Obtener notificaciones por categoría
   const getNotificationsByCategory = useCallback(() => {
@@ -74,9 +83,8 @@ export const useTeamNotifications = (members: TeamMember[]) => {
   }, [members]);
 
   return {
-    notifications,
+    notifications: calculatedNotifications,
     getBadgeText,
-    getNotificationsByCategory,
-    calculateNotifications
+    getNotificationsByCategory
   };
 }; 

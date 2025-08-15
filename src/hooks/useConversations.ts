@@ -27,21 +27,21 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   // Memoizar filters para evitar re-renders innecesarios
   const memoizedFilters = useMemo(() => filters, [filters]);
 
-  // Memoizar la función de sincronización con debouncing
+  // Memoizar la función de sincronización con debouncing - OPTIMIZADO PARA REDUCIR PETICIONES
   const debouncedSync = useCallback((reason?: string) => {
     // Limpiar timeout anterior si existe
     if (syncTimeoutRef.current) {
       clearTimeout(syncTimeoutRef.current);
     }
 
-    // Evitar sincronizaciones muy frecuentes (mínimo 2 segundos entre sincronizaciones)
+    // Evitar sincronizaciones muy frecuentes (mínimo 5 segundos entre sincronizaciones)
     const now = Date.now();
-    if (now - lastSyncTime < 2000) {
+    if (now - lastSyncTime < 5000) {
       console.log('🔄 useConversations - Sincronización ignorada (muy frecuente)');
       return;
     }
 
-    // Debouncing de 500ms
+    // Debouncing de 1000ms para reducir peticiones
     syncTimeoutRef.current = setTimeout(() => {
       if (isAuthenticated && !authLoading && isConnected) {
         console.log('🔄 useConversations - Sincronizando estado inicial...', { reason });
@@ -52,7 +52,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
           reason
         });
       }
-    }, 500);
+    }, 1000);
   }, [isAuthenticated, authLoading, isConnected, emit, memoizedFilters, lastSyncTime]);
 
   // SINCRONIZACIÓN INICIAL - OPTIMIZADA CON CONDICIONES DE SALIDA

@@ -85,10 +85,10 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (!accessToken) return;
       
       console.log('🔌 WebSocketContext - Login exitoso, conectando WebSocket inmediatamente...');
-      // CORREGIDO: Usar timeout aumentado para login (20 segundos mínimo)
-      connect(accessToken, { timeout: 20000 });
+      // OPTIMIZADO: Usar timeout aumentado para login (30 segundos para dar más tiempo al backend)
+      connect(accessToken, { timeout: 30000 });
       
-      // FALLBACK: Si WebSocket falla después de 20 segundos, continuar con login HTTP exitoso
+      // FALLBACK: Si WebSocket falla después de 30 segundos, continuar con login HTTP exitoso
       const fallbackTimer = setTimeout(() => {
         if (!isConnected && !connectionError) {
           console.warn('⚠️ WebSocketContext - WebSocket timeout, continuando sin tiempo real');
@@ -106,7 +106,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           // Continuar con login exitoso - el usuario puede acceder a la aplicación
           // El estado de autenticación HTTP ya está establecido
         }
-      }, 20000);
+      }, 30000);
       
       // Limpiar timer si se conecta exitosamente
       const cleanupTimer = () => {

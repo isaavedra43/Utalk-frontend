@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
   type User as FirebaseUser
 } from 'firebase/auth';
@@ -22,7 +22,12 @@ export const useAuth = () => {
   const [error, setError] = useState<string | null>(null);
   const [backendUser, setBackendUser] = useState<BackendUser | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+  const lastAuthStateRef = useRef<string>('');
+  const clearAuthRef = useRef<(() => void) | null>(null);
+  const userRef = useRef<FirebaseUser | null>(null);
+  const backendUserRef = useRef<BackendUser | null>(null);
+  const hasVerifiedAuthRef = useRef<boolean>(false);
+  const isVerifyingAuthRef = useRef<boolean>(false);
 
   // Refresh token automático
   const refreshToken = useCallback(async () => {
@@ -66,20 +71,36 @@ export const useAuth = () => {
     setUser(null);
     setBackendUser(null);
     setError(null);
-  }, []); // ← Sin dependencias para evitar re-renders
+  }, []); // Sin dependencias para evitar re-renders
 
-  // Verificar estado de autenticación desde localStorage con debounce
+  // Guardar referencias para evitar warnings de ESLint
+  clearAuthRef.current = clearAuth;
+  userRef.current = user;
+  backendUserRef.current = backendUser;
+
+  // Actualizar referencias cuando cambien los valores - OPTIMIZADO PARA ESLINT
   useEffect(() => {
-    if (hasCheckedAuth) {
-      return; // Ya se verificó, no ejecutar de nuevo
+    userRef.current = user;
+    backendUserRef.current = backendUser;
+  }, [user, backendUser]); // Mantener dependencias para ESLint
+
+  // Verificar estado de autenticación desde localStorage - OPTIMIZADO PARA EVITAR MÚLTIPLES PETICIONES
+  useEffect(() => {
+    // Solo ejecutar si NO se ha verificado y NO hay usuario autenticado
+    // EVITAR RE-EJECUCIÓN CUANDO YA HAY USUARIOS ESTABLECIDOS
+    if (hasVerifiedAuthRef.current || (user && backendUser) || isVerifyingAuthRef.current) {
+      return;
     }
     
-    // Agregar debounce para evitar verificaciones excesivas
-    const checkAuthTimeoutRef = setTimeout(async () => {
+    // Marcar como verificado inmediatamente para evitar re-ejecuciones
+    hasVerifiedAuthRef.current = true;
+    isVerifyingAuthRef.current = true;
+    
+    // Verificación con debounce para evitar múltiples peticiones
+    const checkAuth = async () => {
       try {
-        logger.authInfo('Verificando estado de autenticación desde localStorage (con debounce)');
+        logger.authInfo('Verificando estado de autenticación desde localStorage');
         setIsAuthenticating(true);
-        setHasCheckedAuth(true); // Marcar como verificado
         
         // Verificar si hay tokens válidos en localStorage
         const accessToken = localStorage.getItem('access_token');
@@ -87,27 +108,32 @@ export const useAuth = () => {
         const userData = localStorage.getItem('user');
         
         if (accessToken && refreshToken && userData) {
-          // HAY DATOS DE AUTENTICACIÓN - NO LIMPIAR
-          logger.authInfo('Tokens encontrados en localStorage, verificando validez');
-          
-          try {
-            // Verificar token con backend
-            const response = await api.get('/api/auth/profile');
-            const user = response.data;
+          // HAY DATOS DE AUTENTICACIÓN - Verificar solo si no hay usuario ya establecido
+          if (!user && !backendUser) {
+            logger.authInfo('Tokens encontrados en localStorage, verificando validez');
             
-            setBackendUser(user);
-            setUser({ uid: user.id, email: user.email, displayName: user.displayName } as FirebaseUser);
-            
-            logger.authInfo('Autenticación automática exitosa desde localStorage');
-          } catch (error) {
-            logger.authError('Error verificando token, limpiando datos inválidos', error as Error);
-            // Solo limpiar si el token es realmente inválido (401)
-            if (error && typeof error === 'object' && 'response' in error) {
-              const apiError = error as { response?: { status?: number } };
-              if (apiError.response?.status === 401) {
-                clearAuth();
+            try {
+              // Verificar token con backend - SOLO UNA VEZ
+              const response = await api.get('/api/auth/profile');
+              const user = response.data;
+              
+              setBackendUser(user);
+              setUser({ uid: user.id, email: user.email, displayName: user.displayName } as FirebaseUser);
+              
+              logger.authInfo('Autenticación automática exitosa desde localStorage');
+            } catch (error) {
+              logger.authError('Error verificando token, limpiando datos inválidos', error as Error);
+              // Solo limpiar si el token es realmente inválido (401)
+              if (error && typeof error === 'object' && 'response' in error) {
+                const apiError = error as { response?: { status?: number } };
+                if (apiError.response?.status === 401) {
+                  clearAuthRef.current?.();
+                }
               }
             }
+          } else {
+            // Ya hay usuario establecido, no hacer petición adicional
+            logger.authInfo('Usuario ya autenticado, saltando verificación adicional');
           }
         } else {
           // NO HAY DATOS - Estado inicial
@@ -123,20 +149,23 @@ export const useAuth = () => {
       } finally {
         setLoading(false);
         setIsAuthenticating(false);
+        isVerifyingAuthRef.current = false; // Resetear flag de verificación
       }
-    }, 100); // Debounce reducido a 100ms para verificación inicial
-
-    // Cleanup del timeout
-    return () => {
-      clearTimeout(checkAuthTimeoutRef);
     };
-  }, [hasCheckedAuth]); // Remover clearAuth de las dependencias para evitar re-ejecuciones
+
+    // Ejecutar verificación con debounce para evitar múltiples peticiones simultáneas
+    const timeoutId = setTimeout(checkAuth, 100);
+    
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [user, backendUser]); // INCLUIR DEPENDENCIAS PARA ESLINT - Solo se ejecuta cuando cambian user o backendUser
 
   // Escuchar eventos de autenticación fallida
   useEffect(() => {
     const handleAuthFailed = () => {
       logger.authInfo('Evento de autenticación fallida recibido');
-      clearAuth();
+      clearAuthRef.current?.();
     };
 
     window.addEventListener('auth:authentication-failed', handleAuthFailed);
@@ -144,41 +173,9 @@ export const useAuth = () => {
     return () => {
       window.removeEventListener('auth:authentication-failed', handleAuthFailed);
     };
-  }, [clearAuth]);
+  }, []); // Usar referencia para evitar warnings de ESLint
 
-  // Manejar bypass de desarrollo
-  useEffect(() => {
-    const handleDevBypass = async (event: CustomEvent) => {
-      try {
-        logger.authInfo('Ejecutando bypass de desarrollo');
-        const mockFirebaseUser = event.detail.user;
-        
-        // Simular backend user desde localStorage
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          const backendUser = JSON.parse(storedUser);
-          setUser(mockFirebaseUser as FirebaseUser);
-          setBackendUser(backendUser);
-          setLoading(false);
-          
-          logger.authInfo('Bypass de desarrollo completado exitosamente', {
-            mockUser: mockFirebaseUser,
-            backendUser
-          });
-        }
-      } catch (error) {
-        logger.authError('Error en bypass de desarrollo', error as Error);
-        setError('Error en bypass de desarrollo');
-      }
-    };
 
-    // Escuchar evento de bypass de desarrollo
-    window.addEventListener('firebase-auth-state-changed', handleDevBypass as unknown as EventListener);
-
-    return () => {
-      window.removeEventListener('firebase-auth-state-changed', handleDevBypass as unknown as EventListener);
-    };
-  }, [setUser, setBackendUser, setLoading, setError]);
 
   // Login con email y password - Solo backend
   const login = useCallback(async (email: string, password: string) => {
@@ -306,7 +303,7 @@ export const useAuth = () => {
       }
       
       // Limpiar estado local
-      clearAuth();
+      clearAuthRef.current?.();
       
       logger.authInfo('Logout completado, localStorage limpiado');
       
@@ -316,7 +313,7 @@ export const useAuth = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, backendUser, clearAuth]);
+  }, [user, backendUser]); // clearAuth es estable (useCallback sin dependencias)
 
   // Cambiar contraseña - Solo backend
   const changePassword = useCallback(async (newPassword: string) => {
@@ -403,18 +400,37 @@ export const useAuth = () => {
   // Calcular estado de autenticación de forma estable con useMemo
   const isAuthenticated = useMemo(() => {
     const authenticated = !!user && !!backendUser && !isAuthenticating;
-    
-    // Log del estado de autenticación solo cuando cambie
-    logger.authInfo('Estado de autenticación calculado', {
+    return authenticated;
+  }, [user, backendUser, isAuthenticating]);
+
+  // Log del estado de autenticación solo cuando cambie realmente - OPTIMIZADO PARA REDUCIR RE-RENDERS Y ESLINT
+  useEffect(() => {
+    const currentState = {
       hasUser: !!user,
       hasBackendUser: !!backendUser,
       isAuthenticating,
-      isAuthenticated: authenticated,
+      isAuthenticated,
       userEmail: user?.email || backendUser?.email
-    });
-    
-    return authenticated;
-  }, [user, backendUser, isAuthenticating]);
+    };
+
+    // Solo loggear si hay cambios significativos y no es un cambio temporal
+    const stateKey = JSON.stringify(currentState);
+    if (stateKey !== lastAuthStateRef.current) {
+      lastAuthStateRef.current = stateKey;
+      
+      // Solo loggear cambios importantes, no cambios temporales durante la autenticación
+      // EVITAR LOGGING DURANTE LA VERIFICACIÓN AUTOMÁTICA Y REDUCIR FRECUENCIA
+      if (!isAuthenticating && (!!user && !!backendUser)) {
+        // Debounce para evitar logs excesivos y ciclos
+        const timeoutId = setTimeout(() => {
+          logger.authInfo('Estado de autenticación calculado', currentState);
+        }, 500);
+        
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, backendUser, isAuthenticating]); // REMOVER isAuthenticated para evitar ciclos - ESLint ignorado intencionalmente
 
   return {
     user,
