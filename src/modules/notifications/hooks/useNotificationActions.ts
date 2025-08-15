@@ -68,9 +68,7 @@ export const useNotificationActions = () => {
 
   // Exportar notificaciones
   const exportNotifications = useCallback(async (
-    format: 'csv' | 'json' | 'pdf' = 'csv',
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    filters?: { category?: string; priority?: string; type?: string }
+    format: 'csv' | 'json' | 'pdf' = 'csv'
   ): Promise<ActionResult> => {
     try {
       setIsLoading(true);

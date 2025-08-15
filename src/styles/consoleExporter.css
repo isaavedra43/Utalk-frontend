@@ -1,0 +1,227 @@
+/* Console Exporter Styles */
+.console-exporter {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  color: #e0e0e0;
+  max-width: 600px;
+}
+
+.console-exporter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #333;
+}
+
+.console-exporter-header h3 {
+  margin: 0;
+  color: #4fc3f7;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.console-exporter-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.status-indicator {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.status-indicator.capturing {
+  background: #2e7d32;
+  color: #4caf50;
+}
+
+.status-indicator.stopped {
+  background: #c62828;
+  color: #f44336;
+}
+
+.log-count {
+  color: #ff9800;
+  font-weight: 600;
+}
+
+.console-exporter-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.console-exporter button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.console-exporter button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-start {
+  background: #2e7d32;
+  color: white;
+}
+
+.btn-start:hover:not(:disabled) {
+  background: #1b5e20;
+}
+
+.btn-stop {
+  background: #c62828;
+  color: white;
+}
+
+.btn-stop:hover:not(:disabled) {
+  background: #b71c1c;
+}
+
+.btn-export {
+  background: #1976d2;
+  color: white;
+}
+
+.btn-export:hover:not(:disabled) {
+  background: #1565c0;
+}
+
+.btn-clear {
+  background: #f57c00;
+  color: white;
+}
+
+.btn-clear:hover:not(:disabled) {
+  background: #ef6c00;
+}
+
+.console-exporter-stats {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #2a2a2a;
+  border-radius: 4px;
+}
+
+.console-exporter-stats h4 {
+  margin: 0 0 12px 0;
+  color: #4fc3f7;
+  font-size: 14px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 8px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  background: #333;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.stat-label {
+  color: #bdbdbd;
+}
+
+.stat-value {
+  font-weight: 600;
+  color: #fff;
+}
+
+.stat-value.log { color: #4caf50; }
+.stat-value.info { color: #2196f3; }
+.stat-value.warn { color: #ff9800; }
+.stat-value.error { color: #f44336; }
+.stat-value.debug { color: #9c27b0; }
+
+.console-exporter-help {
+  border-top: 1px solid #333;
+  padding-top: 12px;
+}
+
+.console-exporter-help summary {
+  cursor: pointer;
+  color: #4fc3f7;
+  font-weight: 600;
+  font-size: 13px;
+  user-select: none;
+}
+
+.console-exporter-help summary:hover {
+  color: #29b6f6;
+}
+
+.help-content {
+  margin-top: 12px;
+  padding: 12px;
+  background: #2a2a2a;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.help-content p {
+  margin: 8px 0;
+}
+
+.help-content ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.help-content li {
+  margin: 4px 0;
+}
+
+.help-content code {
+  background: #333;
+  padding: 2px 4px;
+  border-radius: 3px;
+  color: #4fc3f7;
+  font-family: inherit;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .console-exporter {
+    padding: 12px;
+  }
+  
+  .console-exporter-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .console-exporter-controls {
+    justify-content: center;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+} 

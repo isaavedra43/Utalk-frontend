@@ -4,4 +4,4 @@ export { BenefitsCarousel } from './components/BenefitsCarousel';
 export { LoginForm } from './components/LoginForm';
 export { SocialButton } from './components/SocialButton';
 export { PasswordField } from './components/PasswordField';
-export { useAuth } from './hooks/useAuth'; 
+// useAuth eliminado - usar useAuthContext en su lugar 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useWebSocketContext } from '../contexts/useWebSocketContext';
-import { useAuth } from '../modules/auth/hooks/useAuth';
+import { useAuthContext } from '../contexts/useAuthContext';
 
 interface TestEvent {
   id: string;
@@ -12,7 +12,7 @@ interface TestEvent {
 
 export const WebSocketTest: React.FC = () => {
   const { isConnected, connectionError, connect, disconnect, emit, socket } = useWebSocketContext();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuthContext();
   const [testMessage, setTestMessage] = useState('');
   const [testEvents, setTestEvents] = useState<TestEvent[]>([]);
   const [autoTest, setAutoTest] = useState(false);

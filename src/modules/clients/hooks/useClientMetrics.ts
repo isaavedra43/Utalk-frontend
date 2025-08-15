@@ -20,75 +20,13 @@ export const useClientMetrics = (options: UseClientMetricsOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // Cargar métricas
+  // Cargar métricas - DESHABILITADO TEMPORALMENTE
   const loadMetrics = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      logger.info(LogCategory.API, 'Cargando métricas de clientes');
-
-      const metrics = await metricsService.getPipelineMetrics();
-      
-      // Actualizar el store global
-      setClientData({
-        ...clientData,
-        metrics,
-        loadingMetrics: false,
-        metricsError: null,
-        clients: clientData?.clients || [],
-        selectedClient: clientData?.selectedClient || null,
-        filters: clientData?.filters || { page: 1, limit: 20, sortBy: 'createdAt', sortOrder: 'desc' },
-        activities: clientData?.activities || {},
-        deals: clientData?.deals || {},
-        recommendations: clientData?.recommendations || {},
-        loading: clientData?.loading || false,
-        loadingActivities: clientData?.loadingActivities || false,
-        loadingDeals: clientData?.loadingDeals || false,
-        error: clientData?.error || null,
-        showFilters: clientData?.showFilters || false,
-        showDetailPanel: clientData?.showDetailPanel || false,
-        currentView: clientData?.currentView || 'list',
-        currentTab: clientData?.currentTab || 'perfil',
-        pagination: clientData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 }
-      });
-
-      setLastUpdated(new Date());
-
-      logger.info(LogCategory.API, 'Métricas de clientes cargadas exitosamente');
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al cargar métricas';
-      setError(errorMessage);
-      
-      logger.error(LogCategory.API, 'Error al cargar métricas de clientes', err instanceof Error ? err : new Error(String(err)));
-      
-      // Actualizar el store con el error
-      setClientData({
-        ...clientData,
-        loadingMetrics: false,
-        metricsError: errorMessage,
-        metrics: clientData?.metrics || null,
-        clients: clientData?.clients || [],
-        selectedClient: clientData?.selectedClient || null,
-        filters: clientData?.filters || { page: 1, limit: 20, sortBy: 'createdAt', sortOrder: 'desc' },
-        activities: clientData?.activities || {},
-        deals: clientData?.deals || {},
-        recommendations: clientData?.recommendations || {},
-        loading: clientData?.loading || false,
-        loadingActivities: clientData?.loadingActivities || false,
-        loadingDeals: clientData?.loadingDeals || false,
-        error: clientData?.error || null,
-        showFilters: clientData?.showFilters || false,
-        showDetailPanel: clientData?.showDetailPanel || false,
-        currentView: clientData?.currentView || 'list',
-        currentTab: clientData?.currentTab || 'perfil',
-        pagination: clientData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 }
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [clientData, setClientData]);
+    // DESHABILITADO - No hacer llamadas a API
+    console.log('Carga de métricas deshabilitada temporalmente');
+    setLoading(false);
+    setError(null);
+  }, []);
 
   // Refrescar métricas
   const refreshMetrics = useCallback(async () => {
@@ -199,23 +137,21 @@ export const useClientMetrics = (options: UseClientMetricsOptions = {}) => {
     }
   }, [clientData, setClientData]);
 
-  // Cargar métricas automáticamente al montar el hook
+  // Cargar métricas automáticamente al montar el hook - DESHABILITADO TEMPORALMENTE
   useEffect(() => {
     if (autoLoad) {
-      loadMetrics();
+      // DESHABILITADO - No cargar automáticamente
+      console.log('Auto-load de métricas deshabilitado temporalmente');
     }
-  }, [autoLoad, loadMetrics]);
+  }, [autoLoad]);
 
-  // Configurar intervalo de actualización automática
+  // Configurar intervalo de actualización automática - DESHABILITADO TEMPORALMENTE
   useEffect(() => {
     if (autoLoad && refreshInterval > 0) {
-      const interval = setInterval(() => {
-        loadMetrics();
-      }, refreshInterval);
-
-      return () => clearInterval(interval);
+      // DESHABILITADO - No configurar intervalos
+      console.log('Intervalo de actualización deshabilitado temporalmente');
     }
-  }, [autoLoad, refreshInterval, loadMetrics]);
+  }, [autoLoad, refreshInterval]);
 
   // Calcular KPIs derivados
   const calculatedKPIs = {

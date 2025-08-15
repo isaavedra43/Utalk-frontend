@@ -1,19 +1,39 @@
 import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   MessageSquare, 
   LayoutDashboard, 
   Users,
   LogOut,
   Building2,
-  Bell
+  Bell,
+  Download
 } from 'lucide-react';
-import { useAppStore } from '../../stores/useAppStore';
 import { useAuthContext } from '../../contexts/useAuthContext';
 // import { useTeamNotifications } from '../../modules/team/hooks/useTeamNotifications'; // DESHABILITADO TEMPORALMENTE
 
 export const LeftSidebar: React.FC = () => {
-  const { currentModule, navigateToModule } = useAppStore();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { logout, backendUser } = useAuthContext();
+  
+  // Determinar el módulo actual basado en la URL
+  const getCurrentModule = () => {
+    const path = location.pathname;
+    if (path === '/chat') return 'chat';
+    if (path === '/dashboard') return 'dashboard';
+    if (path === '/team') return 'team';
+    if (path === '/clients') return 'clients';
+    if (path === '/notifications') return 'notifications';
+    return 'dashboard'; // default
+  };
+  
+  const currentModule = getCurrentModule();
+  
+  // Función para navegar a un módulo
+  const navigateToModule = (moduleId: string) => {
+    navigate(`/${moduleId}`);
+  };
   
   // Obtener notificaciones del equipo - DESHABILITADO TEMPORALMENTE
   // const teamNotifications = useTeamNotifications(teamData?.members || []);
@@ -24,6 +44,16 @@ export const LeftSidebar: React.FC = () => {
       // El logout automáticamente redirigirá al login
     } catch (error) {
       console.error('Error en logout:', error);
+    }
+  };
+
+  const handleExportLogs = () => {
+    // Verificar si las funciones están disponibles
+    if (typeof (window as typeof window & { exportLogs?: (format: 'json' | 'txt') => void }).exportLogs === 'function') {
+      (window as typeof window & { exportLogs?: (format: 'json' | 'txt') => void }).exportLogs!('json');
+    } else {
+      // Si no están disponibles, mostrar mensaje
+      alert('Console Exporter no está disponible. Abre el panel de debug (Ctrl+Shift+D) y ve a la pestaña Console.');
     }
   };
 
@@ -116,6 +146,15 @@ export const LeftSidebar: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Botón de Exportar Logs */}
+        <button
+          onClick={handleExportLogs}
+          className="w-full h-10 flex items-center justify-center rounded-lg text-sm text-blue-500 hover:bg-blue-50 hover:text-blue-600 transition-colors border border-gray-200 hover:border-blue-300 mb-2"
+          title="Exportar Logs"
+        >
+          <Download className="h-5 w-5" />
+        </button>
 
         {/* Botón de Logout */}
         <button

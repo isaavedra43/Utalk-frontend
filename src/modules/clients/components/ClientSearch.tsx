@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, X, Clock, User, Building, Mail } from 'lucide-react';
 import type { Client } from '../../../types/client';
 
@@ -85,6 +85,18 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({
     setSelectedIndex(-1);
   }, [value, clients]);
 
+  const handleSuggestionSelect = useCallback((suggestion: SearchSuggestion) => {
+    onSearch(suggestion.value);
+    setIsFocused(false);
+    setSuggestions([]);
+    setSelectedIndex(-1);
+    
+    // Enfocar el input después de la selección
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [onSearch]);
+
   // Manejar navegación con teclado
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -121,7 +133,7 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isFocused, suggestions, selectedIndex, value, onSearch]);
+  }, [isFocused, suggestions, selectedIndex, value, onSearch, handleSuggestionSelect]);
 
   // Cerrar sugerencias al hacer clic fuera
   useEffect(() => {
@@ -136,6 +148,7 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+   
   }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,17 +169,7 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({
     }, 200);
   };
 
-  const handleSuggestionSelect = (suggestion: SearchSuggestion) => {
-    onSearch(suggestion.value);
-    setIsFocused(false);
-    setSuggestions([]);
-    setSelectedIndex(-1);
-    
-    // Enfocar el input después de la selección
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  };
+
 
   const handleClear = () => {
     onClear();

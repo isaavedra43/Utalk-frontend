@@ -16,32 +16,28 @@ export const ClientModule: React.FC = () => {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [currentView, setCurrentView] = useState<'list' | 'kanban' | 'cards'>('list');
 
-  // Hooks personalizados
+  // Hooks personalizados - DESHABILITADOS TEMPORALMENTE
   const {
     clients,
     loading: clientsLoading,
     error: clientsError,
-    loadClients,
-    updateFilters,
     changePage,
     sort,
     clearFilters,
     totalClients,
     hasFilters
   } = useClients({
-    autoLoad: true,
+    autoLoad: false, // DESHABILITADO
     pageSize: 20
   });
 
   const {
     kpis,
     loading: metricsLoading,
-    error: metricsError,
-    loadMetrics,
-    refreshMetrics
+    error: metricsError
   } = useClientMetrics({
-    autoLoad: true,
-    refreshInterval: 30000
+    autoLoad: false, // DESHABILITADO
+    refreshInterval: 0 // DESHABILITADO
   });
 
   const {
@@ -63,8 +59,8 @@ export const ClientModule: React.FC = () => {
     activeFiltersCount,
     activeFiltersSummary
   } = useClientFilters({
-    onFiltersChange: (newFilters) => {
-      updateFilters(newFilters);
+    onFiltersChange: () => {
+      // DESHABILITADO - No hacer nada
     }
   });
 
@@ -78,8 +74,8 @@ export const ClientModule: React.FC = () => {
   };
 
   const handleExport = () => {
-    // TODO: Implementar exportación
-    console.log('Exportando clientes...');
+    // DESHABILITADO TEMPORALMENTE
+    console.log('Exportación deshabilitada temporalmente');
   };
 
   const handleViewChange = (view: 'list' | 'kanban' | 'cards') => {
@@ -97,8 +93,8 @@ export const ClientModule: React.FC = () => {
   };
 
   const handleRefresh = () => {
-    loadClients();
-    loadMetrics();
+    // DESHABILITADO TEMPORALMENTE
+    console.log('Refresh deshabilitado temporalmente');
   };
 
   // Manejador de ordenamiento compatible con ClientList
@@ -157,7 +153,7 @@ export const ClientModule: React.FC = () => {
             kpis={kpis}
             loading={metricsLoading}
             error={metricsError}
-            onRefresh={refreshMetrics}
+            onRefresh={handleRefresh}
           />
         </div>
 

@@ -5,6 +5,11 @@ import App from './App.tsx'
 import './index.css'
 import './styles/dashboard.css'
 import { logger } from './utils/logger.ts'
+import './utils/consoleExporter.ts'
+import consoleExporter from './utils/consoleExporter';
+
+// Iniciar la captura de logs automáticamente al cargar la aplicación
+consoleExporter.startCapture();
 
 // Validar configuración al iniciar
 logger.systemInfo('Iniciando aplicación UTALK', {

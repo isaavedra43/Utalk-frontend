@@ -1,6 +1,13 @@
 import React from 'react';
+import { 
+  MessageSquare, 
+  Calendar, 
+  Clock, 
+  AlertTriangle, 
+  UserPlus,
+  Building2
+} from 'lucide-react';
 import type { Notification } from '../types/notification';
-import { NotificationIcon } from './NotificationIcon';
 import { NotificationStatusBadge } from './NotificationStatusBadge';
 
 interface NotificationItemProps {
@@ -45,6 +52,40 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     return 'read';
   };
 
+  const getNotificationIcon = () => {
+    switch (notification.type) {
+      case 'conversation':
+        return <MessageSquare size={16} />;
+      case 'meeting':
+        return <Calendar size={16} />;
+      case 'sla':
+        return <Clock size={16} />;
+      case 'churn':
+        return <AlertTriangle size={16} />;
+      case 'system':
+        return <UserPlus size={16} />;
+      case 'alert':
+        return <Building2 size={16} />;
+      default:
+        return <MessageSquare size={16} />;
+    }
+  };
+
+  const getIconColor = () => {
+    switch (notification.priority) {
+      case 'urgent':
+        return 'bg-red-500';
+      case 'high':
+        return 'bg-orange-500';
+      case 'medium':
+        return 'bg-blue-500';
+      case 'low':
+        return 'bg-green-500';
+      default:
+        return 'bg-gray-500';
+    }
+  };
+
   return (
     <div 
       className={`notification-item ${isSelected ? 'selected' : ''} ${getStatusClass()} priority-${getPriorityColor()}`}
@@ -62,11 +103,8 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
       </div>
 
       {/* Icono circular con color según tipo */}
-      <div className="notification-item-icon">
-        <NotificationIcon 
-          type={notification.icon} 
-          size="md"
-        />
+      <div className={`notification-item-icon ${getIconColor()} text-white`}>
+        {getNotificationIcon()}
       </div>
 
       {/* Contenido principal */}
@@ -101,13 +139,13 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
           </div>
         )}
 
-        {/* Botones de acción rápida */}
+        {/* Acciones rápidas */}
         {notification.quickActions.length > 0 && (
           <div className="notification-item-actions">
             {notification.quickActions.map((action) => (
               <button
                 key={action.id}
-                className={`notification-item-action ${action.color}`}
+                className={`notification-item-action ${action.color === 'primary' ? 'primary' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleQuickAction(action.id);
@@ -126,7 +164,7 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
           <div className="notification-item-unread-dot" title="No leída" />
         )}
         {notification.isNew && (
-          <div className="notification-item-new-sparkle" title="Nueva" />
+          <span className="notification-item-new-sparkle" title="Nueva">✨</span>
         )}
       </div>
 

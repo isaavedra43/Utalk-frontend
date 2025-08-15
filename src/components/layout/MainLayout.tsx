@@ -1,14 +1,28 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { LeftSidebar } from './LeftSidebar';
 import { ChatModule } from '../chat/ChatModule';
 import { DashboardModule } from '../../modules/dashboard';
 import { TeamModule } from '../../modules/team';
 import { ClientModule } from '../../modules/clients/ClientModule';
+import { NotificationModule } from '../../modules/notifications';
 import { ModulePlaceholder } from './ModulePlaceholder';
-import { useAppStore } from '../../stores/useAppStore';
 
 export const MainLayout: React.FC = () => {
-  const { currentModule } = useAppStore();
+  const location = useLocation();
+  
+  // Determinar el módulo basado en la URL
+  const getCurrentModule = () => {
+    const path = location.pathname;
+    if (path === '/chat') return 'chat';
+    if (path === '/dashboard') return 'dashboard';
+    if (path === '/team') return 'team';
+    if (path === '/clients') return 'clients';
+    if (path === '/notifications') return 'notifications';
+    return 'dashboard'; // default
+  };
+  
+  const currentModule = getCurrentModule();
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
@@ -21,7 +35,8 @@ export const MainLayout: React.FC = () => {
         {currentModule === 'dashboard' && <DashboardModule />}
         {currentModule === 'team' && <TeamModule />}
         {currentModule === 'clients' && <ClientModule />}
-        {currentModule !== 'chat' && currentModule !== 'dashboard' && currentModule !== 'team' && currentModule !== 'clients' && (
+        {currentModule === 'notifications' && <NotificationModule />}
+        {currentModule !== 'chat' && currentModule !== 'dashboard' && currentModule !== 'team' && currentModule !== 'clients' && currentModule !== 'notifications' && (
           <ModulePlaceholder moduleName={currentModule} />
         )}
       </div>

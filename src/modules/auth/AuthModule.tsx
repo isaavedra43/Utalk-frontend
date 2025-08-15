@@ -11,13 +11,13 @@ import {
 import { LoginForm } from './components/LoginForm';
 import { BenefitsCarousel } from './components/BenefitsCarousel';
 import { Brand } from './components/Brand';
-import { useAuth } from './hooks/useAuth';
+import { useAuthContext } from '../../contexts/useAuthContext';
 
 export const AuthModule = () => {
   const [isDark, setIsDark] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const controls = useAnimation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuthContext();
 
   // Animación flotante
   useEffect(() => {
@@ -42,9 +42,9 @@ export const AuthModule = () => {
 
   const toggleTheme = () => setIsDark(!isDark);
 
-  // Si ya está autenticado, redirigir al chat
+  // Si ya está autenticado, redirigir al dashboard
   if (isAuthenticated) {
-    return <Navigate to="/chat" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return (

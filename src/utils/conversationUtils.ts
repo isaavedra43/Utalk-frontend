@@ -13,11 +13,30 @@ export const isValidConversationId = (conversationId: string): boolean => {
     return false;
   }
 
-  // Patrón para IDs de conversación: conv_[número]_[número]
-  // Permite números con o sin el prefijo "+"
+  // SOLUCIÓN CRÍTICA: Aceptar tanto + como %2B en los IDs
+  // El patrón debe permitir tanto el formato original como el codificado
   const conversationIdPattern = /^conv_[+]?\d+_[+]?\d+$/;
+  const encodedConversationIdPattern = /^conv_%2B\d+_%2B\d+$/;
   
-  return conversationIdPattern.test(conversationId);
+  // Verificar si es el formato original (con +)
+  if (conversationIdPattern.test(conversationId)) {
+    return true;
+  }
+  
+  // Verificar si es el formato codificado (con %2B)
+  if (encodedConversationIdPattern.test(conversationId)) {
+    return true;
+  }
+  
+  // Verificar formato mixto (uno con + y otro con %2B)
+  const mixedPattern1 = /^conv_[+]?\d+_%2B\d+$/;
+  const mixedPattern2 = /^conv_%2B\d+_[+]?\d+$/;
+  
+  if (mixedPattern1.test(conversationId) || mixedPattern2.test(conversationId)) {
+    return true;
+  }
+  
+  return false;
 };
 
 /**
@@ -35,10 +54,31 @@ export const normalizeConversationId = (conversationId: string): string | null =
     return conversationId;
   }
 
-  // Intentar extraer y reformatear si es posible
+  // SOLUCIÓN CRÍTICA: Manejar IDs codificados con %2B
+  // Intentar extraer y reformatear si es posible, incluyendo formato codificado
   const match = conversationId.match(/^conv_([+]?\d+)_([+]?\d+)$/);
   if (match) {
     const [, phone1, phone2] = match;
+    return `conv_${phone1}_${phone2}`;
+  }
+  
+  // Intentar con formato codificado %2B
+  const encodedMatch = conversationId.match(/^conv_(%2B\d+)_(%2B\d+)$/);
+  if (encodedMatch) {
+    const [, phone1, phone2] = encodedMatch;
+    return `conv_${phone1}_${phone2}`;
+  }
+  
+  // Intentar formato mixto (uno con + y otro con %2B)
+  const mixedMatch1 = conversationId.match(/^conv_([+]?\d+)_(%2B\d+)$/);
+  if (mixedMatch1) {
+    const [, phone1, phone2] = mixedMatch1;
+    return `conv_${phone1}_${phone2}`;
+  }
+  
+  const mixedMatch2 = conversationId.match(/^conv_(%2B\d+)_([+]?\d+)$/);
+  if (mixedMatch2) {
+    const [, phone1, phone2] = mixedMatch2;
     return `conv_${phone1}_${phone2}`;
   }
 
@@ -85,15 +125,45 @@ export const extractPhonesFromConversationId = (conversationId: string): { phone
     return null;
   }
 
-  const match = conversationId.match(/^conv_([+]?\d+)_([+]?\d+)$/);
+  // SOLUCIÓN CRÍTICA: Manejar tanto formato original como codificado
+  let match = conversationId.match(/^conv_([+]?\d+)_([+]?\d+)$/);
+  
+  // Si no coincide con formato original, intentar con formato codificado
+  if (!match) {
+    match = conversationId.match(/^conv_(%2B\d+)_(%2B\d+)$/);
+  }
+  
+  // Si no coincide con formato codificado, intentar formato mixto
+  if (!match) {
+    match = conversationId.match(/^conv_([+]?\d+)_(%2B\d+)$/);
+  }
+  
+  if (!match) {
+    match = conversationId.match(/^conv_(%2B\d+)_([+]?\d+)$/);
+  }
+  
   if (!match) {
     return null;
   }
 
   const [, phone1, phone2] = match;
+  
+  // Normalizar los números de teléfono
+  const normalizePhone = (phone: string): string => {
+    // Si tiene %2B, convertirlo a +
+    if (phone.startsWith('%2B')) {
+      return phone.replace('%2B', '+');
+    }
+    // Si no tiene + al inicio, agregarlo
+    if (!phone.startsWith('+')) {
+      return `+${phone}`;
+    }
+    return phone;
+  };
+  
   return {
-    phone1: phone1.startsWith('+') ? phone1 : `+${phone1}`,
-    phone2: phone2.startsWith('+') ? phone2 : `+${phone2}`
+    phone1: normalizePhone(phone1),
+    phone2: normalizePhone(phone2)
   };
 };
 
@@ -140,7 +210,7 @@ export const encodeConversationIdForUrl = (conversationId: string): string => {
   // encodeURIComponent convierte + en %2B automáticamente
   const encoded = encodeURIComponent(sanitized);
   
-  console.log('🔗 ID de conversación codificado correctamente en URL | Data:', {
+  console.log('�� ID de conversación codificado correctamente en URL | Data:', {
     originalId: conversationId,
     decodedId: sanitized,
     sanitizedId: sanitized,

@@ -199,7 +199,7 @@ export const useChat = (conversationId: string) => {
 
       joinOperation();
     }
-  }, [isConnected, conversationId, isJoined, joinConversation]); // REMOVER messages.length, conversation, loadMessages, loadConversation para evitar bucles
+  }, [isConnected, conversationId, isJoined, joinConversation, conversation, loadConversation, loadMessages, messages.length]); // Incluir dependencias faltantes
 
   // Salir de conversación al desmontar con throttling
   useEffect(() => {

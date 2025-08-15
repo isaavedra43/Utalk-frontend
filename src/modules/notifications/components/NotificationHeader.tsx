@@ -1,4 +1,14 @@
 import React, { useState } from 'react';
+import { 
+  Search, 
+  Filter, 
+  Check, 
+  Moon, 
+  Settings, 
+  Download, 
+  RefreshCw,
+  Mail
+} from 'lucide-react';
 import { NotificationFilters } from './NotificationFilters';
 import type { NotificationStats } from '../types/notification';
 
@@ -66,7 +76,7 @@ export const NotificationHeader: React.FC<NotificationHeaderProps> = ({
           onChange={handleSearchChange}
           className="notification-search-input"
         />
-        <span className="notification-search-icon">🔍</span>
+        <Search className="notification-search-icon" size={16} />
       </div>
 
       {/* Controles globales */}
@@ -76,7 +86,7 @@ export const NotificationHeader: React.FC<NotificationHeaderProps> = ({
           onClick={onFilters}
           title="Filtros avanzados"
         >
-          <span className="notification-control-icon">🔽</span>
+          <Filter size={16} />
           <span className="notification-control-text">Filtros</span>
         </button>
         
@@ -85,7 +95,7 @@ export const NotificationHeader: React.FC<NotificationHeaderProps> = ({
           onClick={onMarkAllRead}
           title="Marcar todas como leídas"
         >
-          <span className="notification-control-icon">✅</span>
+          <Check size={16} />
           <span className="notification-control-text">Marcar todo leído</span>
         </button>
         
@@ -94,12 +104,8 @@ export const NotificationHeader: React.FC<NotificationHeaderProps> = ({
           onClick={handlePauseToggle}
           title={isPaused ? 'Reanudar notificaciones' : 'Pausar notificaciones'}
         >
-          <span className="notification-control-icon">
-            {isPaused ? '▶️' : '🌙'}
-          </span>
-          <span className="notification-control-text">
-            {isPaused ? 'Reanudar' : 'Pausar'}
-          </span>
+          <Moon size={16} />
+          <span className="notification-control-text">Pausar</span>
         </button>
         
         <button 
@@ -107,15 +113,15 @@ export const NotificationHeader: React.FC<NotificationHeaderProps> = ({
           onClick={onSettings}
           title="Configuración"
         >
-          <span className="notification-control-icon">⚙️</span>
+          <Settings size={16} />
         </button>
         
         <button 
           className="notification-control-btn icon-only"
           onClick={onExport}
-          title="Exportar notificaciones"
+          title="Exportar"
         >
-          <span className="notification-control-icon">📥</span>
+          <Download size={16} />
         </button>
         
         <button 
@@ -123,7 +129,15 @@ export const NotificationHeader: React.FC<NotificationHeaderProps> = ({
           onClick={onRefresh}
           title="Actualizar"
         >
-          <span className="notification-control-icon">🔄</span>
+          <RefreshCw size={16} />
+        </button>
+        
+        <button 
+          className="notification-control-btn icon-only"
+          onClick={() => console.log('Email')}
+          title="Email"
+        >
+          <Mail size={16} />
         </button>
       </div>
 

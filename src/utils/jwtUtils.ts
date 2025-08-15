@@ -198,28 +198,16 @@ export const getUserInfo = (): JWTUserInfo => {
 
 /**
  * Genera un roomId con el formato correcto del backend
- * ALINEADO: Acepta valores por defecto según especificación del backend
+ * CORREGIDO: Usar formato simple para coincidir con el backend
  * @param conversationId - ID de la conversación
- * @returns RoomId en formato ws:${workspaceId}:ten:${tenantId}:conv:${conversationId}
+ * @returns RoomId en formato conversation:${conversationId}
  */
 export const generateRoomId = (conversationId: string): string => {
-  const userInfo = getUserInfo();
+  // CORREGIDO: Usar formato simple para coincidir con el backend
+  const roomId = `conversation:${conversationId}`;
   
-  // ALINEADO: Aceptar valores por defecto del backend ('default', 'na')
-  if (userInfo.userId === null) {
-    console.warn('⚠️ Generando roomId con userId null:', {
-      workspaceId: userInfo.workspaceId,
-      tenantId: userInfo.tenantId,
-      conversationId
-    });
-  }
-  
-  const roomId = `ws:${userInfo.workspaceId}:ten:${userInfo.tenantId}:conv:${conversationId}`;
-  
-  console.log('🔗 Room ID generado:', {
+  console.log('🔗 Room ID generado (formato simplificado):', {
     conversationId,
-    workspaceId: userInfo.workspaceId,
-    tenantId: userInfo.tenantId,
     roomId
   });
   

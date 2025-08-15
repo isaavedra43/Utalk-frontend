@@ -4,11 +4,11 @@ import type { Conversation, ConversationFilters } from '../types';
 import { conversationsService } from '../services/conversations';
 import { useAppStore } from '../stores/useAppStore';
 import { useWebSocketContext } from '../contexts/useWebSocketContext';
-import { useAuth } from '../modules/auth/hooks/useAuth';
+import { useAuthContext } from '../contexts/useAuthContext';
 import { sanitizeConversationId, logConversationId, encodeConversationIdForUrl } from '../utils/conversationUtils';
 
 export const useConversations = (filters: ConversationFilters = {}) => {
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuthContext();
   const {
     activeConversation,
     setConversations,

@@ -85,10 +85,10 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (!accessToken) return;
       
       console.log('🔌 WebSocketContext - Login exitoso, conectando WebSocket inmediatamente...');
-      // OPTIMIZADO: Usar timeout aumentado para login (30 segundos para dar más tiempo al backend)
-      connect(accessToken, { timeout: 30000 });
+      // ALINEADO: Usar timeout de 45 segundos para coincidir con connectTimeout del backend
+      connect(accessToken, { timeout: 45000 });
       
-      // FALLBACK: Si WebSocket falla después de 30 segundos, continuar con login HTTP exitoso
+      // FALLBACK: Si WebSocket falla después de 45 segundos, continuar con login HTTP exitoso
       const fallbackTimer = setTimeout(() => {
         if (!isConnected && !connectionError) {
           console.warn('⚠️ WebSocketContext - WebSocket timeout, continuando sin tiempo real');
@@ -335,12 +335,19 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     on,
     off,
     joinConversation: (conversationId: string) => {
-      console.log('🔗 Uniéndose a conversación:', conversationId);
+      console.log('🔗 WebSocket: Uniéndose a conversación', {
+        conversationId,
+        timestamp: new Date().toISOString()
+      });
       
       // CORREGIDO: Codificar conversationId para WebSocket
       const encodedConversationId = encodeConversationIdForWebSocket(conversationId);
       const roomId = generateRoomId(encodedConversationId);
-      console.log('🔗 Room ID generado:', roomId);
+      console.log('✅ WebSocket: Unido a conversación', {
+        conversationId,
+        roomId,
+        timestamp: new Date().toISOString()
+      });
       
       rateLimiter.executeWithRateLimit('join-conversation', () => {
         emit('join-conversation', { 

@@ -3,7 +3,6 @@ import { useAppStore } from '../../../stores/useAppStore';
 import type { 
   Client, 
   ClientFilters, 
-  ClientPaginatedResponse,
   ClientApiResponse 
 } from '../../../types/client';
 import { logger, LogCategory } from '../../../utils/logger';
@@ -183,79 +182,13 @@ export const useClients = (options: UseClientsOptions = {}) => {
     return filteredClients.slice(startIndex, endIndex);
   }, [filteredClients, filters.page, filters.limit, pageSize]);
 
-  // Cargar clientes
-  const loadClients = useCallback(async (newFilters?: Partial<ClientFilters>) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const updatedFilters = { ...filters, ...newFilters };
-      setFilters(updatedFilters);
-
-      logger.info(LogCategory.API, 'Cargando clientes', { filters: updatedFilters });
-
-      const response: ClientPaginatedResponse<Client> = await clientService.getClients(updatedFilters);
-      
-      // Actualizar el store global
-      setClientData({
-        ...clientData,
-        clients: response.data,
-        pagination: response.pagination,
-        loading: false,
-        error: null,
-        selectedClient: clientData?.selectedClient || null,
-        filters: clientData?.filters || { page: 1, limit: 20, sortBy: 'createdAt', sortOrder: 'desc' },
-        metrics: clientData?.metrics || null,
-        activities: clientData?.activities || {},
-        deals: clientData?.deals || {},
-        recommendations: clientData?.recommendations || {},
-        loadingMetrics: clientData?.loadingMetrics || false,
-        loadingActivities: clientData?.loadingActivities || false,
-        loadingDeals: clientData?.loadingDeals || false,
-        metricsError: clientData?.metricsError || null,
-        showFilters: clientData?.showFilters || false,
-        showDetailPanel: clientData?.showDetailPanel || false,
-        currentView: clientData?.currentView || 'list',
-        currentTab: clientData?.currentTab || 'perfil'
-      });
-
-      logger.info(LogCategory.API, 'Clientes cargados exitosamente', { 
-        count: response.data.length,
-        total: response.pagination.total 
-      });
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al cargar clientes';
-      setError(errorMessage);
-      
-      logger.error(LogCategory.API, 'Error al cargar clientes', err instanceof Error ? err : new Error(String(err)));
-      
-      // Actualizar el store con el error
-      setClientData({
-        ...clientData,
-        loading: false,
-        error: errorMessage,
-        clients: clientData?.clients || [],
-        selectedClient: clientData?.selectedClient || null,
-        filters: clientData?.filters || { page: 1, limit: 20, sortBy: 'createdAt', sortOrder: 'desc' },
-        metrics: clientData?.metrics || null,
-        activities: clientData?.activities || {},
-        deals: clientData?.deals || {},
-        recommendations: clientData?.recommendations || {},
-        loadingMetrics: clientData?.loadingMetrics || false,
-        loadingActivities: clientData?.loadingActivities || false,
-        loadingDeals: clientData?.loadingDeals || false,
-        metricsError: clientData?.metricsError || null,
-        showFilters: clientData?.showFilters || false,
-        showDetailPanel: clientData?.showDetailPanel || false,
-        currentView: clientData?.currentView || 'list',
-        currentTab: clientData?.currentTab || 'perfil',
-        pagination: clientData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 }
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [filters, clientData, setClientData]);
+  // Cargar clientes - DESHABILITADO TEMPORALMENTE
+  const loadClients = useCallback(async () => {
+    // DESHABILITADO - No hacer llamadas a API
+    console.log('Carga de clientes deshabilitada temporalmente');
+    setLoading(false);
+    setError(null);
+  }, []);
 
   // Cargar cliente específico
   const loadClient = useCallback(async (clientId: string) => {
@@ -423,12 +356,13 @@ export const useClients = (options: UseClientsOptions = {}) => {
     });
   }, [pageSize]);
 
-  // Cargar clientes automáticamente al montar el hook
+  // Cargar clientes automáticamente al montar el hook - DESHABILITADO TEMPORALMENTE
   useEffect(() => {
     if (autoLoad) {
-      loadClients();
+      // DESHABILITADO - No cargar automáticamente
+      console.log('Auto-load de clientes deshabilitado temporalmente');
     }
-  }, [autoLoad, loadClients]);
+  }, [autoLoad]);
 
   // Verificar si hay filtros activos
   const hasFilters = useMemo(() => {

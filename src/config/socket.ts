@@ -29,35 +29,42 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
   
   const socketConfig = {
     ...SOCKET_CONFIG,
-    // OPTIMIZADO: Timeout personalizable para login (mínimo 20 segundos)
-    timeout: Math.max(options?.timeout || SOCKET_CONFIG.timeout, 20000)
+    // ALINEADO: Timeout personalizable para login (mínimo 45 segundos para coincidir con backend)
+    timeout: Math.max(options?.timeout || SOCKET_CONFIG.timeout, 45000)
   };
   
   const socket = io(SOCKET_URL, {
     ...socketConfig,
-    // SIMPLIFICADO: Solo usar auth para el token
+    // CORREGIDO: Usar auth.token y también Authorization header
     auth: {
       token: token
+    },
+    extraHeaders: {
+      'Authorization': `Bearer ${token}`
     },
     path: '/socket.io/', // Asegurar que use el path correcto
   });
 
-  // Agregar logging adicional para debug
+  // CORREGIDO: Logging más detallado para debugging
   socket.on('connect', () => {
-    console.log('🔌 Socket conectado exitosamente:', socket.id);
+    console.log('✅ WebSocket: Conectado exitosamente', {
+      socketId: socket.id,
+      url: SOCKET_URL,
+      timestamp: new Date().toISOString()
+    });
   });
 
   socket.on('connect_error', (error) => {
-    console.error('🔌 Error de conexión del socket:', error);
-    console.error('🔌 Detalles del error:', {
+    console.error('❌ WebSocket: Error de conexión', {
       message: error.message,
       name: error.name,
-      stack: error.stack
+      url: SOCKET_URL,
+      timestamp: new Date().toISOString()
     });
     
     // Manejar errores específicos de autenticación
     if (error.message.includes('AUTHENTICATION_REQUIRED') || error.message.includes('JWT token required')) {
-      console.error('🔐 Error de autenticación: Token JWT requerido o inválido');
+      console.error('🔐 WebSocket: Error de autenticación - Token JWT requerido o inválido');
       console.error('🔐 Token disponible:', token ? 'Sí' : 'No');
       if (token) {
         console.error('🔐 Token preview:', token.substring(0, 20) + '...');
@@ -66,7 +73,10 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
   });
 
   socket.on('disconnect', (reason) => {
-    console.log('🔌 Socket desconectado:', reason);
+    console.log('🔌 WebSocket: Desconectado', {
+      reason,
+      timestamp: new Date().toISOString()
+    });
   });
 
   return socket;

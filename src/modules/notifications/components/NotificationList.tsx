@@ -28,8 +28,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({
   loading,
   onSelectNotification,
   onQuickAction,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onCategoryChange: _onCategoryChange,
+  onCategoryChange,
   onSelectAll,
   filters
 }) => {
@@ -43,6 +42,13 @@ export const NotificationList: React.FC<NotificationListProps> = ({
       </div>
     );
   }
+
+  const filterTabs = [
+    { id: 'today', label: 'Hoy', count: stats.total },
+    { id: 'unread', label: 'No leídas', count: stats.unread },
+    { id: 'actionable', label: 'Accionables', count: stats.actionable },
+    { id: 'urgent', label: 'Urgentes', count: stats.urgent }
+  ];
 
   return (
     <div className="notification-list-container">
@@ -60,6 +66,19 @@ export const NotificationList: React.FC<NotificationListProps> = ({
         </button>
       </div>
 
+      {/* Filtros por categorías */}
+      <div className="notification-filters">
+        {filterTabs.map((tab) => (
+          <button
+            key={tab.id}
+            className={`notification-filter-tab ${filters.category === tab.id ? 'active' : ''}`}
+            onClick={() => onCategoryChange(tab.id)}
+          >
+            {tab.label} ({tab.count})
+          </button>
+        ))}
+      </div>
+
       {/* Resumen de estadísticas */}
       <div className="notification-stats-summary">
         <div className="notification-stats-item">
@@ -67,10 +86,10 @@ export const NotificationList: React.FC<NotificationListProps> = ({
         </div>
         <div className="notification-stats-badges">
           <span className="notification-stats-badge new">
-            {stats.new} nuevas
+            {stats.new} NUEVAS
           </span>
           <span className="notification-stats-badge total">
-            {stats.total} total
+            {stats.total} TOTAL
           </span>
         </div>
       </div>
@@ -98,19 +117,12 @@ export const NotificationList: React.FC<NotificationListProps> = ({
         )}
       </div>
 
-      {/* Footer con información adicional */}
-      {notifications.length > 0 && (
-        <div className="notification-list-footer">
-          <div className="notification-list-info">
-            <span>Mostrando {notifications.length} de {stats.total} notificaciones</span>
-          </div>
-          {filters.search && (
-            <div className="notification-search-info">
-              <span>Filtrado por: "{filters.search}"</span>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Footer con contador */}
+      <div className="notification-list-footer">
+        <span className="notification-list-footer-text">
+          Mostrando {notifications.length} de {stats.total} notificaciones
+        </span>
+      </div>
     </div>
   );
 }; 

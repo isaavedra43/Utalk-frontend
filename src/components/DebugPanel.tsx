@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useWebSocketContext } from '../contexts/useWebSocketContext';
-import { useAuth } from '../modules/auth/hooks/useAuth';
+import { useAuthContext } from '../contexts/useAuthContext';
 import { WebSocketTest } from './WebSocketTest';
 import { RateLimitStats } from './RateLimitStats';
 import { AuthDebug } from './AuthDebug';
@@ -8,6 +8,8 @@ import { PerformanceMonitor } from './PerformanceMonitor';
 import { ErrorTracker } from './ErrorTracker';
 import { NetworkMonitor } from './NetworkMonitor';
 import { AdvancedWebSocket } from './AdvancedWebSocket';
+import { ConsoleExporter } from './ConsoleExporter';
+import '../styles/consoleExporter.css';
 
 interface DebugPanelProps {
   isVisible: boolean;
@@ -24,8 +26,8 @@ interface LogEntry {
 
 export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) => {
   const { isConnected, isSynced, connectionError, socket, emit, activeConversations, typingUsers, onlineUsers } = useWebSocketContext();
-  const auth = useAuth();
-  const [activeTab, setActiveTab] = useState<'estado' | 'websocket' | 'auth' | 'logs' | 'tools' | 'performance' | 'errors' | 'network' | 'advanced'>('estado');
+  const auth = useAuthContext();
+  const [activeTab, setActiveTab] = useState<'estado' | 'websocket' | 'auth' | 'logs' | 'tools' | 'performance' | 'errors' | 'network' | 'advanced' | 'console'>('estado');
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -52,7 +54,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) =>
   // Interceptar console.log para capturar logs (SOLUCIONADO: Evitar bucle infinito)
   useEffect(() => {
     // Verificar si ya se interceptó para evitar re-intercepción
-    if ((console as any)._debugPanelIntercepted) {
+    if ((console as { _debugPanelIntercepted?: boolean })._debugPanelIntercepted) {
       return;
     }
 
@@ -90,7 +92,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) =>
     };
 
     // Marcar como interceptado
-    (console as any)._debugPanelIntercepted = true;
+    (console as { _debugPanelIntercepted?: boolean })._debugPanelIntercepted = true;
 
     return () => {
       // Solo restaurar si el panel se desmonta completamente
@@ -98,7 +100,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) =>
         console.log = originalLog;
         console.warn = originalWarn;
         console.error = originalError;
-        (console as any)._debugPanelIntercepted = false;
+        (console as { _debugPanelIntercepted?: boolean })._debugPanelIntercepted = false;
       }
     };
   }, [isVisible, addLog]); // Incluir addLog en las dependencias
@@ -179,6 +181,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) =>
             { id: 'websocket', label: 'WebSocket', icon: '🔌' },
             { id: 'auth', label: 'Auth', icon: '🔐' },
             { id: 'logs', label: 'Logs', icon: '📋' },
+            { id: 'console', label: 'Console', icon: '🔍' },
             { id: 'performance', label: 'Performance', icon: '⚡' },
             { id: 'errors', label: 'Errors', icon: '🚨' },
             { id: 'network', label: 'Network', icon: '🌐' },
@@ -187,7 +190,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) =>
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as 'estado' | 'websocket' | 'auth' | 'logs' | 'tools' | 'performance' | 'errors' | 'network' | 'advanced')}
+              onClick={() => setActiveTab(tab.id as 'estado' | 'websocket' | 'auth' | 'logs' | 'console' | 'tools' | 'performance' | 'errors' | 'network' | 'advanced')}
               className={`px-4 py-2 border-b-2 font-medium text-sm whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'
@@ -380,6 +383,13 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) =>
 
           {activeTab === 'advanced' && (
             <AdvancedWebSocket />
+          )}
+
+          {activeTab === 'console' && (
+            <div className="space-y-4">
+              <h3 className="font-semibold">🔍 Console Exporter</h3>
+              <ConsoleExporter />
+            </div>
           )}
 
           {activeTab === 'tools' && (

@@ -1,5 +1,4 @@
 
-import { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { WebSocketProvider } from './contexts/WebSocketContext'
@@ -11,15 +10,18 @@ import { MainLayout } from './components/layout/MainLayout'
 
 
 // import { logger } from './utils/logger' // DESHABILITADO - No se usa
-import { useAppStore } from './stores/useAppStore'
-import { useAuth } from './modules/auth/hooks/useAuth'
+
+import { useAuthContext } from './contexts/useAuthContext'
 
 // FORZAR ACTUALIZACIÓN DE VERCEL - Commit a00c0f1 aplicado
 // Autenticación manual obligatoria implementada
 
 // Componente de protección de rutas
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuthContext();
+
+  // Debug: Log del estado de autenticación
+  console.log('🔐 ProtectedRoute - Estado:', { isAuthenticated, loading });
 
   // Si está cargando, mostrar loading
   if (loading) {
@@ -44,58 +46,28 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
-// Componente para establecer el módulo de chat
+// Componente para el módulo de chat
 const ChatPage: React.FC = () => {
-  const { setCurrentModule } = useAppStore();
-  
-  useEffect(() => {
-    setCurrentModule('chat');
-  }, [setCurrentModule]);
-  
   return <MainLayout />;
 };
 
-// Componente para establecer el módulo de dashboard
+// Componente para el módulo de dashboard
 const DashboardPage: React.FC = () => {
-  const { setCurrentModule } = useAppStore();
-  
-  useEffect(() => {
-    setCurrentModule('dashboard');
-  }, [setCurrentModule]);
-  
   return <MainLayout />;
 };
 
-// Componente para establecer el módulo de equipo
+// Componente para el módulo de equipo
 const TeamPage: React.FC = () => {
-  const { setCurrentModule } = useAppStore();
-  
-  useEffect(() => {
-    setCurrentModule('team');
-  }, [setCurrentModule]);
-  
   return <TeamModule />;
 };
 
-// Componente para establecer el módulo de clientes
+// Componente para el módulo de clientes
 const ClientsPage: React.FC = () => {
-  const { setCurrentModule } = useAppStore();
-  
-  useEffect(() => {
-    setCurrentModule('clients');
-  }, [setCurrentModule]);
-  
   return <MainLayout />;
 };
 
-// Componente para establecer el módulo de notificaciones
+// Componente para el módulo de notificaciones
 const NotificationsPage: React.FC = () => {
-  const { setCurrentModule } = useAppStore();
-  
-  useEffect(() => {
-    setCurrentModule('notifications');
-  }, [setCurrentModule]);
-  
   return <NotificationModule />;
 };
 

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useAuth } from '../modules/auth/hooks/useAuth';
+import { useAuthContext } from '../contexts/useAuthContext';
 import { useWebSocketContext } from '../contexts/useWebSocketContext';
 
 export const AuthDebug: React.FC = () => {
-  const auth = useAuth();
+  const auth = useAuthContext();
   const { isConnected, connectionError } = useWebSocketContext();
   const [showTokenDetails, setShowTokenDetails] = useState(false);
 
@@ -108,8 +108,8 @@ export const AuthDebug: React.FC = () => {
             <div>Email: <span className="text-gray-600 font-mono">{auth.backendUser.email}</span></div>
             <div>ID: <span className="text-gray-600 font-mono">{auth.backendUser.id}</span></div>
             <div>Rol: <span className="text-gray-600 font-mono">{auth.backendUser.role}</span></div>
-            <div>Workspace ID: <span className="text-gray-600 font-mono">{(auth.backendUser as any).workspaceId || 'default'}</span></div>
-            <div>Tenant ID: <span className="text-gray-600 font-mono">{(auth.backendUser as any).tenantId || 'na'}</span></div>
+            <div>Workspace ID: <span className="text-gray-600 font-mono">{(auth.backendUser as { workspaceId?: string }).workspaceId || 'default'}</span></div>
+            <div>Tenant ID: <span className="text-gray-600 font-mono">{(auth.backendUser as { tenantId?: string }).tenantId || 'na'}</span></div>
             <div>Creado: <span className="text-gray-600 font-mono">{new Date(auth.backendUser.createdAt).toLocaleString()}</span></div>
             <div>Actualizado: <span className="text-gray-600 font-mono">{new Date(auth.backendUser.updatedAt).toLocaleString()}</span></div>
           </div>

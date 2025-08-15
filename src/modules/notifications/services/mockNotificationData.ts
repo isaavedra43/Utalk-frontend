@@ -513,8 +513,7 @@ export class MockNotificationSimulator {
   }
 
   // Generar notificación específica
-  public generateSpecificNotification(type: Notification['type'], // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  priority: Notification['priority'] = 'medium'): Notification {
+  public generateSpecificNotification(): Notification {
     return this.generateRandomNotification();
   }
 

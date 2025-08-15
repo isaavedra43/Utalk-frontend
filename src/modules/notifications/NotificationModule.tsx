@@ -3,11 +3,7 @@ import { NotificationHeader } from './components/NotificationHeader';
 import { NotificationList } from './components/NotificationList';
 import { NotificationDetail } from './components/NotificationDetail';
 import { NotificationPlaceholder } from './components/NotificationPlaceholder';
-import { NotificationSearch } from './components/NotificationSearch';
-import { NotificationQuickActions } from './components/NotificationQuickActions';
-import { NotificationAIRecommendationComponent } from './components/NotificationAIRecommendation';
-import { NotificationTimeline } from './components/NotificationTimeline';
-import { NotificationRelatedLinks } from './components/NotificationRelatedLinks';
+
 import { useNotifications } from './hooks/useNotifications';
 import { useNotificationFilters } from './hooks/useNotificationFilters';
 import { useNotificationActions } from './hooks/useNotificationActions';

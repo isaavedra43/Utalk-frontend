@@ -7,9 +7,8 @@ import { Sparkles, ArrowRight, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SocialButton } from './SocialButton';
 import { PasswordField } from './PasswordField';
-import { useAuth } from '../hooks/useAuth';
-import { WebSocketContext } from '../../../contexts/WebSocketContext';
-import { useContext } from 'react';
+import { useAuthContext } from '../../../contexts/useAuthContext';
+
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -21,9 +20,9 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export const LoginForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
-  const { login } = useAuth();
+  const { login } = useAuthContext();
   const navigate = useNavigate();
-  const { isSynced } = useContext(WebSocketContext) || {};
+
 
   // SOLUCIONADO: Removido el useEffect que limpiaba localStorage
   // Este useEffect estaba interfiriendo con el flujo de autenticación exitoso
@@ -47,56 +46,8 @@ export const LoginForm: React.FC = () => {
       setIsLoading(true);
       await login(data.email, data.password);
       
-      console.log('✅ Login exitoso, verificando conexión WebSocket...');
-      
-      // MEJORADO: Verificar conexión WebSocket antes de esperar sincronización
-      const waitForConnection = new Promise<void>((resolve, reject) => {
-        const connectionTimeout = setTimeout(() => {
-          console.warn('⏰ Timeout esperando conexión WebSocket');
-          reject(new Error('Timeout esperando conexión WebSocket'));
-        }, 15000); // 15 segundos para conexión
-        
-        const checkConnection = () => {
-          // Verificar si el WebSocket está conectado
-          const socketElement = document.querySelector('[data-socket-status="connected"]');
-          if (socketElement) {
-            console.log('✅ WebSocket conectado detectado');
-            clearTimeout(connectionTimeout);
-            resolve();
-            return;
-          }
-          
-          // Verificar estado isConnected del contexto
-          if (isSynced) {
-            console.log('✅ Estado isSynced es true');
-            clearTimeout(connectionTimeout);
-            resolve();
-            return;
-          }
-          
-          // Reintentar en 500ms
-          setTimeout(checkConnection, 500);
-        };
-        
-        checkConnection();
-      });
-      
-      try {
-        await waitForConnection;
-        console.log('✅ WebSocket conectado, navegando al dashboard...');
-        navigate('/dashboard');
-      } catch (connectionError) {
-        console.warn('⚠️ No se pudo verificar conexión WebSocket, verificando estado isSynced...', connectionError);
-        
-        // Verificar si el estado isSynced está en true como respaldo
-        if (isSynced) {
-          console.log('✅ Estado isSynced es true, navegando al dashboard...');
-          navigate('/dashboard');
-        } else {
-          console.warn('⚠️ Estado isSynced también es false, navegando de todas formas...');
-          navigate('/dashboard');
-        }
-      }
+      console.log('✅ Login exitoso, navegando al dashboard...');
+      navigate('/dashboard');
       
     } catch (error) {
       console.error('Error en login:', error);
