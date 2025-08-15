@@ -94,13 +94,28 @@ export const useChat = (conversationId: string) => {
         rateLimitBackoff
       );
       
-      const loadedMessages = response.data.messages || [];
+      const loadedMessages = response.data.data.messages || [];
       
       // Guardar en cache
       messagesCache.set(cacheKey, loadedMessages, 60000); // 1 minuto de cache
       
+      // SOLUCIONADO: Agregar log para verificar que los mensajes se cargaron
+      console.log('📋 useChat - Mensajes cargados desde API:', {
+        totalMessages: loadedMessages.length,
+        conversationId: sanitizedId,
+        cacheKey
+      });
+      
       // Filtrar mensajes optimistas que ya fueron confirmados
       const filteredMessages = loadedMessages.filter((msg: Message) => !optimisticMessagesRef.current.has(msg.id));
+      
+      // SOLUCIONADO: Agregar log para verificar el filtrado
+      console.log('📋 useChat - Mensajes después del filtrado:', {
+        originalCount: loadedMessages.length,
+        filteredCount: filteredMessages.length,
+        optimisticCount: optimisticMessagesRef.current.size
+      });
+      
       setMessages(filteredMessages);
       
       // Scroll al final después de cargar mensajes
@@ -185,17 +200,13 @@ export const useChat = (conversationId: string) => {
           joinConversation(sanitizedId);
           
           // Cargar datos después de unirse
-          loadMessages();
-          loadConversation();
+          await loadMessages();
+          await loadConversation();
           
-          // SOLUCIONADO: Establecer isJoined después de un tiempo si no se recibe confirmación
-          // Pero también verificar si los mensajes se cargaron correctamente
-          setTimeout(() => {
-            if (!isJoined) {
-              console.log('⏰ useChat - Timeout de confirmación, estableciendo isJoined como true');
-              setIsJoined(true);
-            }
-          }, 3000); // 3 segundos de timeout
+          // SOLUCIONADO: Establecer isJoined después de cargar los mensajes exitosamente
+          // Esto asegura que el componente se renderice correctamente
+          console.log('✅ useChat - Mensajes cargados, estableciendo isJoined como true');
+          setIsJoined(true);
           
         } catch (error) {
           console.error('❌ useChat - Error uniéndose a conversación:', error);
@@ -217,6 +228,16 @@ export const useChat = (conversationId: string) => {
       setIsJoined(true);
     }
   }, [messages.length, isJoined, loading]);
+
+  // NUEVO: Log para monitorear cambios en el estado de mensajes
+  useEffect(() => {
+    console.log('📊 useChat - Estado de mensajes actualizado:', {
+      messagesCount: messages.length,
+      isJoined,
+      loading,
+      conversationId
+    });
+  }, [messages.length, isJoined, loading, conversationId]);
 
   // SOLUCIONADO: Salir de conversación solo al desmontar
   useEffect(() => {
@@ -398,18 +419,23 @@ export const useChat = (conversationId: string) => {
     on('typing-stop', handleTypingStop);
     on('conversation-event', handleConversationUpdate);
 
+    // SOLUCIONADO: Solo limpiar listeners al desmontar el componente
+    // No limpiar en cada re-render para evitar el ciclo
     return () => {
-      console.log('🎧 useChat - Limpiando listeners para conversación:', conversationId);
-      // Limpiar todos los listeners
-      off('new-message');
-      off('message-sent');
-      off('message-delivered');
-      off('message-read');
-      off('typing');
-      off('typing-stop');
-      off('conversation-event');
+      // Solo limpiar si el componente se está desmontando
+      if (cleanupRef.current) {
+        console.log('🎧 useChat - Limpiando listeners para conversación:', conversationId);
+        // Limpiar todos los listeners
+        off('new-message');
+        off('message-sent');
+        off('message-delivered');
+        off('message-read');
+        off('typing');
+        off('typing-stop');
+        off('conversation-event');
+      }
     };
-  }, [socket, conversationId, on, off, isConnected]);
+  }, [socket, conversationId, on, off, isConnected]); // Removido isJoined de las dependencias
 
   // Enviar mensaje con optimistic updates y retry
   const sendMessage = useCallback(async (content: string, type: string = 'text', metadata: Record<string, unknown> = {}) => {
