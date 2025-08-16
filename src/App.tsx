@@ -4,7 +4,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { WebSocketProvider } from './contexts/WebSocketContext'
 import { AuthModule } from './modules/auth'
 import { MainLayout } from './components/layout/MainLayout'
-import { WorkspaceDebug } from './components/WorkspaceDebug'
+// import { WorkspaceDebug } from './components/WorkspaceDebug'
 // import { DebugPanel } from './components/DebugPanel' // DEBUGPANEL DESHABILITADO TEMPORALMENTE
 
 
@@ -86,8 +86,8 @@ function App() {
       <AuthProvider>
         <WebSocketProvider>
           <div className="app">
-            {/* Componente de debug para workspaceId - solo en desarrollo */}
-            <WorkspaceDebug show={import.meta.env.DEV} />
+            {/* Componente de debug para workspaceId - DESHABILITADO */}
+            {/* <WorkspaceDebug show={import.meta.env.DEV} /> */}
             
             <Routes>
               <Route path="/login" element={<AuthModule />} />
