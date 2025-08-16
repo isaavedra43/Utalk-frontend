@@ -15,6 +15,7 @@ interface MessageInputProps {
   onBlur?: () => void;
   onKeyPress?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   isSending?: boolean;
+  conversationId?: string;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -27,7 +28,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   onChange: externalOnChange,
   onBlur: externalOnBlur,
   onKeyPress: externalOnKeyPress,
-  isSending = false
+  isSending = false,
+  conversationId
 }) => {
   const [message, setMessage] = useState('');
   const [showAudioRecorder, setShowAudioRecorder] = useState(false);
@@ -156,7 +158,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       <div className="flex items-end space-x-2 sm:space-x-3">
         {/* Botones de acción */}
         <div className="flex space-x-1 sm:space-x-2">
-          <FileUploadManager onFileUpload={onSendMessage} />
+          <FileUploadManager onFileUpload={onSendMessage} conversationId={conversationId} />
           
           <button
             onClick={() => setShowAudioRecorder(!showAudioRecorder)}

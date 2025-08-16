@@ -11,6 +11,7 @@ import {
   Trash2,
   X
 } from 'lucide-react';
+import { fileUploadService } from '../../services/fileUpload';
 
 interface FilePreview {
   id: string;
@@ -24,9 +25,10 @@ interface FilePreview {
 
 interface FileUploadManagerProps {
   onFileUpload: (content: string, type?: string, metadata?: Record<string, unknown>) => void;
+  conversationId?: string;
 }
 
-export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUpload }) => {
+export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUpload, conversationId }) => {
   const [showMenu, setShowMenu] = useState(false);
   const [filePreviews, setFilePreviews] = useState<FilePreview[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -83,19 +85,13 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
         )
       );
 
-      // Simular subida con progreso
-      for (let i = 0; i <= 100; i += 10) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        setFilePreviews(prev => 
-          prev.map(fp => 
-            fp.id === filePreview.id 
-              ? { ...fp, progress: i }
-              : fp
-          )
-        );
+      // Subir archivo real usando el servicio
+      if (!conversationId) {
+        throw new Error('ConversationId es requerido para subir archivos');
       }
-
-      // Simular éxito
+      const response = await fileUploadService.uploadFile(filePreview.file, conversationId);
+      
+      // Actualizar con éxito
       setFilePreviews(prev => 
         prev.map(fp => 
           fp.id === filePreview.id 
@@ -104,12 +100,14 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
         )
       );
 
-      // Enviar archivo
-      const fileUrl = URL.createObjectURL(filePreview.file);
-      onFileUpload(fileUrl, filePreview.type, {
+      // Enviar archivo con URL real del backend
+      onFileUpload(response.url, filePreview.type, {
         fileName: filePreview.file.name,
         fileSize: filePreview.file.size,
-        fileType: filePreview.file.type
+        fileType: filePreview.file.type,
+        fileId: response.id,
+        duration: response.duration,
+        thumbnail: response.thumbnail
       });
 
     } catch (error) {

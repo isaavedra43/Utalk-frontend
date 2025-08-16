@@ -278,6 +278,42 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // Actualizar estado del mensaje
     });
 
+    // EVENTOS DE ARCHIVOS - ALINEACIÓN CON BACKEND
+    onRef.current('file-upload-start', (data: unknown) => {
+      console.log('📁 Inicio de subida de archivo:', data);
+      // El FileUploadManager manejará esto
+    });
+
+    onRef.current('file-upload-progress', (data: unknown) => {
+      console.log('📁 Progreso de subida:', data);
+      // El FileUploadManager manejará esto
+    });
+
+    onRef.current('file-upload-complete', (data: unknown) => {
+      console.log('✅ Subida de archivo completada:', data);
+      // El FileUploadManager manejará esto
+    });
+
+    onRef.current('file-upload-error', (data: unknown) => {
+      console.log('❌ Error en subida de archivo:', data);
+      // El FileUploadManager manejará esto
+    });
+
+    onRef.current('file-received', (data: unknown) => {
+      console.log('📁 Archivo recibido:', data);
+      // El chat manejará esto
+    });
+
+    onRef.current('file-processing', (data: unknown) => {
+      console.log('⚙️ Procesando archivo:', data);
+      // El chat manejará esto
+    });
+
+    onRef.current('file-ready', (data: unknown) => {
+      console.log('✅ Archivo listo:', data);
+      // El chat manejará esto
+    });
+
     // CONFIRMACIONES DE CONVERSACIÓN - CRÍTICO PARA EL CHAT
     onRef.current('conversation-joined', (data: unknown) => {
       const eventData = data as { conversationId: string; roomId: string; onlineUsers: string[]; timestamp: string };

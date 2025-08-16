@@ -19,7 +19,7 @@ export const fileUploadService = {
     formData.append('conversationId', conversationId);
     formData.append('type', file.type);
 
-    const response = await api.post('/api/upload/file', formData, {
+    const response = await api.post('/api/media/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -122,7 +122,7 @@ export const fileUploadService = {
 
   // Obtener URL de descarga
   getDownloadUrl(fileId: string): string {
-    return `${api.defaults.baseURL}/api/files/${fileId}/download`;
+    return `${api.defaults.baseURL}/api/media/file/${fileId}/download`;
   },
 
   // Validar tipo de archivo
