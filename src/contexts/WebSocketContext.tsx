@@ -6,6 +6,12 @@ import { useRateLimiter } from '../hooks/useRateLimiter';
 import { generateRoomId as generateRoomIdUtil, validateRoomConfiguration } from '../utils/jwtUtils';
 import { encodeConversationIdForWebSocket } from '../utils/conversationUtils';
 
+// FASE 5: Constantes para manejo de reconexión y health checks (futuro)
+// const RECONNECTION_ATTEMPTS = 5;
+// const RECONNECTION_DELAYS = [1000, 2000, 5000, 10000, 30000]; // Delays progresivos
+// const HEALTH_CHECK_INTERVAL = 30000; // 30 segundos
+// const EVENT_QUEUE_MAX_SIZE = 100;
+
 interface WebSocketContextType {
   socket: Socket | null;
   isConnected: boolean;
@@ -60,6 +66,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [isSynced, setIsSynced] = useState(false);
   const [isFallbackMode, setIsFallbackMode] = useState(false); // Estado para modo fallback
+
+  // FASE 5: Estados para manejo de reconexión y queue de eventos (futuro)
+  // const [reconnectionAttempts, setReconnectionAttempts] = useState(0);
+  // const [isReconnecting, setIsReconnecting] = useState(false);
+  // const [lastHealthCheck, setLastHealthCheck] = useState<number>(Date.now());
+  // const eventQueueRef = useRef<Array<{ event: string; data: unknown; timestamp: number }>>([]);
+  // const healthCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // const reconnectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // NUEVO: Mapa en memoria para almacenar el roomId devuelto por el backend por conversación
   const roomIdMapRef = React.useRef<Map<string, string>>(new Map());

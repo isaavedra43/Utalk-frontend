@@ -8,6 +8,11 @@ import { useWebSocketContext } from '../contexts/useWebSocketContext';
 import { useAuthContext } from '../contexts/useAuthContext';
 import { sanitizeConversationId, logConversationId, encodeConversationIdForUrl } from '../utils/conversationUtils';
 
+// FASE 5: Constantes para retry logic y fallbacks (futuro)
+// const RETRY_DELAYS = [1000, 2000, 5000]; // Delays progresivos para retry
+// const MAX_RETRY_ATTEMPTS = 3;
+// const WEBSOCKET_TIMEOUT = 10000; // 10 segundos para timeout de WebSocket (futuro)
+
 export const useConversations = (filters: ConversationFilters = {}) => {
   const { isAuthenticated, loading: authLoading, isAuthenticating } = useAuthContext();
   const navigate = useNavigate();
@@ -27,6 +32,12 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Eliminado: flags locales de sincronización inicial; ahora lo gestiona WebSocketContext
+
+  // FASE 5: Estados para manejo de errores y fallbacks (futuro)
+  // const [websocketFailed, setWebsocketFailed] = useState(false);
+  // const [retryCount, setRetryCount] = useState(0);
+  // const [lastError, setLastError] = useState<string | null>(null);
+  // const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Memoizar filters para evitar re-renders innecesarios
   const memoizedFilters = useMemo(() => filters, [filters]);
@@ -203,6 +214,71 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       }
     }, debounceTime);
   }, [isAuthenticated, authLoading, isConnected, syncState, lastSyncTime]);
+
+  // FASE 5: Función de retry logic para eventos fallidos (futuro)
+  // const retryEvent = useCallback((eventType: string, data: unknown, attempt: number = 0) => {
+  //   if (attempt >= MAX_RETRY_ATTEMPTS) {
+  //     console.error(`❌ useConversations - Máximo intentos de retry alcanzado para ${eventType}`);
+  //     setLastError(`Error en ${eventType} después de ${MAX_RETRY_ATTEMPTS} intentos`);
+  //     return;
+  //   }
+
+  //   const delay = RETRY_DELAYS[attempt] || RETRY_DELAYS[RETRY_DELAYS.length - 1];
+  //   console.log(`🔄 useConversations - Reintentando ${eventType} en ${delay}ms (intento ${attempt + 1})`);
+
+  //   retryTimeoutRef.current = setTimeout(() => {
+  //     try {
+  //         // Reintentar la operación
+  //         if (eventType === 'sync') {
+  //           syncState();
+  //         } else {
+  //           // Para otros eventos, podríamos implementar lógica específica
+  //           console.log(`🔄 useConversations - Reintentando evento: ${eventType}`);
+  //         }
+  //     } catch (error) {
+  //       console.error(`❌ useConversations - Error en retry ${eventType}:`, error);
+  //       retryEvent(eventType, data, attempt + 1);
+  //     }
+  //   }, delay);
+  // }, [syncState]);
+
+  // FASE 5: Función de fallback a React Query cuando WebSocket falla (futuro)
+  // const fallbackToReactQuery = useCallback(() => {
+  //   console.log('🔄 useConversations - Activando fallback a React Query');
+  //   setWebsocketFailed(true);
+  //   setRetryCount(0);
+  //   
+  //   // Forzar refetch de React Query
+  //   refetch();
+  //   
+  //   // Limpiar timeout de retry
+  //   if (retryTimeoutRef.current) {
+  //     clearTimeout(retryTimeoutRef.current);
+  //     retryTimeoutRef.current = null;
+  //   }
+  // }, [refetch]);
+
+  // FASE 5: Función de logging detallado para debugging (futuro)
+  // const logEvent = useCallback((event: string, data?: unknown, error?: unknown) => {
+  //   const timestamp = new Date().toISOString();
+  //   const logData = {
+  //     timestamp,
+  //     event,
+  //     websocketConnected: isConnected,
+  //     websocketFailed,
+  //     retryCount,
+  //     lastError,
+  //     data: data ? JSON.stringify(data).slice(0, 200) : undefined,
+  //     error: error ? JSON.stringify(error).slice(0, 200) : undefined
+  //   };
+  //   
+  //   console.log(`📝 useConversations - ${event}:`, logData);
+  //   
+  //   // En producción, podríamos enviar a un servicio de logging
+  //   if (process.env.NODE_ENV === 'production') {
+  //     // TODO: Implementar logging a servicio externo
+  //   }
+  // }, [isConnected, websocketFailed, retryCount, lastError]);
 
   // La sincronización inicial ahora es responsabilidad del WebSocketContext
   useEffect(() => {

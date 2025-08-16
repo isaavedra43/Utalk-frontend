@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { AppState, User, Conversation, Message, Contact, DashboardData, DashboardUpdate, TeamState, ClientState } from '../types';
+import { getTabSyncManager } from '../utils/tabSync';
 
 interface AppStore extends AppState {
   // Actions
@@ -21,6 +22,10 @@ interface AppStore extends AppState {
   // FASE 1: Nuevas acciones para sincronización con React Query
   syncConversationsWithQuery: (conversations: Conversation[]) => void;
   invalidateQueryCache: () => void;
+  // FASE 5: Funciones de sincronización multi-tab
+  syncWithOtherTabs: () => void;
+  persistCriticalState: () => void;
+  restoreCriticalState: () => unknown;
   // NUEVAS acciones de navegación
   setCurrentModule: (module: string) => void;
   navigateToModule: (module: string) => void;
@@ -157,6 +162,64 @@ export const useAppStore = create<AppStore>()(
         
         // FUTURO: Implementar invalidación real de React Query
         // queryClient.invalidateQueries(['conversations']);
+      },
+
+      // FASE 5: Funciones de sincronización multi-tab
+      syncWithOtherTabs: () => {
+        try {
+          const tabSync = getTabSyncManager();
+          const state = useAppStore.getState();
+          
+          // Sincronizar conversaciones
+          tabSync.updateConversations(state.conversations);
+          
+          // Sincronizar conversación activa
+          tabSync.selectConversation(state.activeConversation?.id || null);
+          
+          console.log('🔄 useAppStore - Estado sincronizado con otras pestañas');
+        } catch (error) {
+          console.warn('⚠️ useAppStore - Error sincronizando con otras pestañas:', error);
+        }
+      },
+
+      // FASE 5: Persistir estado crítico en localStorage
+      persistCriticalState: () => {
+        try {
+          const state = useAppStore.getState();
+          const criticalState = {
+            activeConversationId: state.activeConversation?.id,
+            lastSync: Date.now(),
+            conversationsCount: state.conversations.length
+          };
+          
+          localStorage.setItem('utalk-critical-state', JSON.stringify(criticalState));
+          console.log('💾 useAppStore - Estado crítico persistido');
+        } catch (error) {
+          console.warn('⚠️ useAppStore - Error persistiendo estado:', error);
+        }
+      },
+
+      // FASE 5: Restaurar estado crítico desde localStorage
+      restoreCriticalState: () => {
+        try {
+          const stored = localStorage.getItem('utalk-critical-state');
+          if (stored) {
+            const criticalState = JSON.parse(stored);
+            const now = Date.now();
+            const maxAge = 24 * 60 * 60 * 1000; // 24 horas
+            
+            if (now - criticalState.lastSync < maxAge) {
+              console.log('🔄 useAppStore - Estado crítico restaurado:', criticalState);
+              return criticalState;
+            } else {
+              localStorage.removeItem('utalk-critical-state');
+              console.log('🧹 useAppStore - Estado crítico expirado, eliminado');
+            }
+          }
+        } catch (error) {
+          console.warn('⚠️ useAppStore - Error restaurando estado:', error);
+        }
+        return null;
       },
 
       // NUEVAS acciones de navegación
