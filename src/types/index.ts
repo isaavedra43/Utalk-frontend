@@ -76,9 +76,11 @@ export interface MessageMetadata {
 }
 
 export interface MessageGroup {
-  date: string;
-  messages: Message[];
-  key?: string; // Clave única para evitar duplicados en React
+  type: 'date' | 'messages';
+  date?: string;
+  messages?: Message[];
+  key: string;
+  timestamp?: Date;
 }
 
 export interface TypingIndicator {

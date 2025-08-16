@@ -2,7 +2,7 @@ import React from 'react';
 import { Check, CheckCheck, RefreshCw, X } from 'lucide-react';
 import type { Message } from '../../types';
 import { MessageContent } from './MessageContent';
-import { format, isToday } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface MessageBubbleProps {
@@ -73,14 +73,19 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     try {
       const date = new Date(message.createdAt);
       if (isNaN(date.getTime())) return '';
-      if (isToday(date)) return format(date, 'p', { locale: es });
-      return format(date, 'Pp', { locale: es });
+      // Mostrar solo hora y minuto como WhatsApp
+      return format(date, 'HH:mm', { locale: es });
     } catch {
       return '';
     }
   };
 
   const isOutbound = message.direction === 'outbound';
+  
+  // Si es un espaciador, solo mostrar espacio
+  if (message.content === '' && message.id.startsWith('spacer-')) {
+    return <div className="h-4" />;
+  }
 
   return (
     <div className={`flex items-end gap-2 ${isOutbound ? 'justify-end' : 'justify-start'} ${!isLastInGroup ? 'mb-1' : 'mb-3'}`}>
@@ -96,24 +101,22 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       {/* Mensaje */}
       <div className={`max-w-xs lg:max-w-md ${isOutbound ? 'order-first' : ''}`}>
         <div
-          className={`message-bubble px-3 py-2 rounded-lg text-xs ${
+          className={`message-bubble px-3 py-2 rounded-lg text-xs relative ${
             isOutbound
               ? 'bg-blue-600 text-white'
               : 'bg-gray-100 text-gray-900'
           } ${!isLastInGroup ? 'rounded-br-md' : ''}`}
         >
           <MessageContent message={message} />
-        </div>
-        
-        {/* Timestamp y estado - solo mostrar en el último mensaje del grupo */}
-        {isLastInGroup && (
+          
+          {/* Timestamp dentro de la burbuja como WhatsApp */}
           <div className={`flex items-center gap-1 mt-1 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
-            <span className="text-xs text-gray-400">
+            <span className={`text-xs ${isOutbound ? 'text-blue-100' : 'text-gray-500'}`}>
               {formatTime()}
             </span>
             {isOutbound && getMessageStatus(message.status)}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

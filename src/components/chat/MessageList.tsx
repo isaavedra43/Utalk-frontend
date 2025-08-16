@@ -31,36 +31,46 @@ export const MessageList: React.FC<MessageListProps> = ({
   onRetryMessage,
   onDeleteMessage
 }) => {
-  const renderMessageGroup = (group: MessageGroup) => (
-    <div key={group.key || group.date} className="mb-6">
-      {/* Separador de fecha */}
-      <div className="flex items-center justify-center my-4">
-        <div className="bg-gray-100 px-3 py-1 rounded-full">
-          <span className="text-xs text-gray-500 font-medium capitalize">
-            {group.date}
-          </span>
+  const renderMessageGroup = (group: MessageGroup) => {
+    // Si es un separador de fecha
+    if (group.type === 'date') {
+      return (
+        <div key={group.key} className="flex items-center justify-center my-6">
+          <div className="bg-gray-200 px-4 py-1.5 rounded-full shadow-sm">
+            <span className="text-xs text-gray-600 font-medium">
+              {group.date}
+            </span>
+          </div>
         </div>
-      </div>
+      );
+    }
 
-      {/* Mensajes del grupo */}
-      {group.messages.map((message, index) => {
-        const isLastInGroup = index === group.messages.length - 1;
-        const showAvatar = isLastInGroup && message.direction === 'inbound';
-        
-        return (
-          <MessageBubble
-            key={message.id}
-            message={message}
-            customerName={customerName}
-            showAvatar={showAvatar}
-            isLastInGroup={isLastInGroup}
-            onRetry={onRetryMessage}
-            onDelete={onDeleteMessage}
-          />
-        );
-      })}
-    </div>
-  );
+    // Si es un grupo de mensajes
+    if (group.type === 'messages' && group.messages) {
+      return (
+        <div key={group.key} className="space-y-1 mb-4">
+          {group.messages.map((message, index) => {
+            const isLastInGroup = index === group.messages!.length - 1;
+            const showAvatar = isLastInGroup && message.direction === 'inbound';
+            
+            return (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                customerName={customerName}
+                showAvatar={showAvatar}
+                isLastInGroup={isLastInGroup}
+                onRetry={onRetryMessage}
+                onDelete={onDeleteMessage}
+              />
+            );
+          })}
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   const renderMessages = () => {
     if (messageGroups && messageGroups.length > 0) {
@@ -111,7 +121,7 @@ export const MessageList: React.FC<MessageListProps> = ({
           </div>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {renderMessages()}
         </div>
       )}

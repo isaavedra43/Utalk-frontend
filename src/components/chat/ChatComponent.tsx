@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { format, isSameDay } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useChat } from '../../hooks/useChat';
 import { MessageList } from './MessageList';
@@ -175,32 +175,75 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
       return ta - tb;
     });
 
-    // Agrupar por día natural con claves únicas
-    const groups: { date: string; messages: typeof sorted; key: string }[] = [];
+    // Agrupar por día con separadores de fecha como WhatsApp
+    const groups: { 
+      type: 'date' | 'messages'; 
+      date?: string; 
+      messages?: typeof sorted; 
+      key: string;
+      timestamp?: Date;
+    }[] = [];
+    
+    let currentDate: string | null = null;
+    let currentMessages: typeof sorted = [];
+    
     for (const msg of sorted) {
       const msgDate = new Date(msg.createdAt);
-      const groupLabel = format(msgDate, 'EEEE', { locale: es }); // ej. sábado, lunes
-      const dateKey = format(msgDate, 'yyyy-MM-dd'); // Clave única para evitar duplicados
-      const lastGroup = groups[groups.length - 1];
-      if (!lastGroup) {
-        groups.push({ 
-          date: groupLabel, 
-          messages: [msg],
-          key: dateKey // Clave única para React
+      const msgDateKey = format(msgDate, 'yyyy-MM-dd');
+      const msgDateLabel = format(msgDate, 'EEEE, d MMM', { locale: es }); // ej. "lunes, 22 jul"
+      
+      // Si es un nuevo día, crear separador de fecha
+      if (msgDateKey !== currentDate) {
+        // Guardar grupo anterior si existe
+        if (currentDate && currentMessages.length > 0) {
+          groups.push({
+            type: 'messages',
+            messages: currentMessages,
+            key: `messages-${currentDate}`,
+            timestamp: new Date(currentMessages[0].createdAt)
+          });
+        }
+        
+        // Agregar separador de fecha
+        groups.push({
+          type: 'date',
+          date: msgDateLabel,
+          key: `date-${msgDateKey}`
         });
-        continue;
-      }
-      const lastMsg = lastGroup.messages[lastGroup.messages.length - 1];
-      const lastDate = new Date(lastMsg.createdAt);
-      if (isSameDay(msgDate, lastDate)) {
-        lastGroup.messages.push(msg);
+        
+        // Iniciar nuevo grupo
+        currentDate = msgDateKey;
+        currentMessages = [msg];
       } else {
-        groups.push({ 
-          date: groupLabel, 
-          messages: [msg],
-          key: dateKey // Clave única para React
-        });
+        // Mismo día, verificar si hay mucha diferencia de tiempo
+        const lastMsg = currentMessages[currentMessages.length - 1];
+        const lastMsgTime = new Date(lastMsg.createdAt);
+        const timeDiff = Math.abs(msgDate.getTime() - lastMsgTime.getTime());
+        const fiveMinutes = 5 * 60 * 1000; // 5 minutos en milisegundos
+        
+        // Si hay más de 5 minutos de diferencia, agregar espaciado visual
+        if (timeDiff > fiveMinutes) {
+          // Agregar un mensaje espaciador invisible
+          currentMessages.push({
+            ...msg,
+            id: `spacer-${msg.id}`,
+            content: '',
+            type: 'spacer' as 'text'
+          });
+        }
+        
+        currentMessages.push(msg);
       }
+    }
+    
+    // Agregar el último grupo si existe
+    if (currentDate && currentMessages.length > 0) {
+      groups.push({
+        type: 'messages',
+        messages: currentMessages,
+        key: `messages-${currentDate}`,
+        timestamp: new Date(currentMessages[0].createdAt)
+      });
     }
 
     return { sortedMessages: sorted, groupedMessages: groups };
