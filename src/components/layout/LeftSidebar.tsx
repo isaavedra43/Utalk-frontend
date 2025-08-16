@@ -66,26 +66,22 @@ export const LeftSidebar: React.FC = () => {
     {
       id: 'clients',
       icon: Building2,
-      title: 'Customer Hub',
-      badge: '5'
+      title: 'Customer Hub'
     },
     {
       id: 'team',
       icon: Users,
-      title: 'Equipo & Performance',
-      badge: '0' // DESHABILITADO TEMPORALMENTE: teamNotifications.getBadgeText()
+      title: 'Equipo & Performance'
     },
     {
       id: 'notifications',
       icon: Bell,
-      title: 'Centro de Notificaciones',
-      badge: '4'
+      title: 'Centro de Notificaciones'
     },
     {
       id: 'chat',
       icon: MessageSquare,
-      title: 'Mensajes',
-      badge: '9+'
+      title: 'Mensajes'
     }
   ];
 
@@ -119,13 +115,6 @@ export const LeftSidebar: React.FC = () => {
                 title={item.title}
               >
                 <IconComponent className="h-5 w-5" />
-                
-                {/* Badge de notificación */}
-                {item.badge && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {item.badge}
-                  </span>
-                )}
               </button>
             );
           })}
