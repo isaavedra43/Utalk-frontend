@@ -3,6 +3,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Conversation } from '../../types';
 
+
+
 interface ConversationItemProps {
   conversation: Conversation;
   isSelected: boolean;
@@ -58,7 +60,10 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
   }, []);
 
   // FASE 3: Optimización - Memoizar función de iniciales
-  const getInitials = useCallback((name: string) => {
+  const getInitials = useCallback((name: string | undefined) => {
+    if (!name || typeof name !== 'string') {
+      return '??';
+    }
     return name
       .split(' ')
       .map(word => word.charAt(0))
@@ -79,7 +84,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
   );
 
   const statusColor = useMemo(() => 
-    conversation.status === 'open' 
+    (conversation.status || 'closed') === 'open' 
       ? 'bg-gradient-to-br from-green-400 to-green-600' 
       : 'bg-gradient-to-br from-gray-400 to-gray-600',
     [conversation.status]
@@ -122,13 +127,13 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
           <div className="flex items-center justify-between mb-1">
             <h3 className={`
               text-sm font-semibold truncate
-              ${conversation.unreadCount > 0 ? 'text-gray-900' : 'text-gray-700'}
+              ${(conversation.unreadCount || 0) > 0 ? 'text-gray-900' : 'text-gray-700'}
             `}>
-              {conversation.customerName}
+              {conversation.customerName || 'Cliente sin nombre'}
             </h3>
             <span className={`
               text-xs ml-2 flex-shrink-0
-              ${conversation.unreadCount > 0 ? 'text-blue-600 font-medium' : 'text-gray-500'}
+              ${(conversation.unreadCount || 0) > 0 ? 'text-blue-600 font-medium' : 'text-gray-500'}
             `}>
               {formattedTime}
             </span>
@@ -137,15 +142,15 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
           {/* Información del cliente */}
           <div className="flex items-center space-x-2 mb-2">
             <span className="text-xs text-gray-500 font-mono">
-              {conversation.customerPhone}
+              {conversation.customerPhone || 'Sin teléfono'}
             </span>
             <div className="flex items-center space-x-1">
               <div className={`
                 w-2 h-2 rounded-full
-                ${conversation.status === 'open' ? 'bg-green-500' : 'bg-gray-400'}
+                ${(conversation.status || 'closed') === 'open' ? 'bg-green-500' : 'bg-gray-400'}
               `} />
               <span className="text-xs text-gray-500 capitalize">
-                {conversation.status}
+                {conversation.status || 'closed'}
               </span>
             </div>
           </div>
@@ -154,13 +159,13 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
           <div className="flex items-center justify-between">
             <p className={`
               text-sm truncate flex-1
-              ${conversation.unreadCount > 0 ? 'text-gray-900 font-medium' : 'text-gray-600'}
+              ${(conversation.unreadCount || 0) > 0 ? 'text-gray-900 font-medium' : 'text-gray-600'}
             `}>
               {conversation.lastMessage?.content || 'Sin mensajes'}
             </p>
             
             {/* Badge de mensajes no leídos */}
-            {conversation.unreadCount > 0 && (
+            {(conversation.unreadCount || 0) > 0 && (
               <div className="flex items-center space-x-2 ml-2">
                 <span className={`
                   inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
@@ -175,7 +180,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
       </div>
 
       {/* Indicador de actividad */}
-      {conversation.unreadCount > 0 && (
+      {(conversation.unreadCount || 0) > 0 && (
         <div className="absolute bottom-2 right-2">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
         </div>

@@ -134,11 +134,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     if (isChatRoute && token && !isConnected && !connectionError) {
-      console.log('🔌 WebSocketContext - Ruta /chat: conectando WebSocket...');
       connect(token, { timeout: 45000 });
     }
     if (!isChatRoute && isConnected) {
-      console.log('🔌 WebSocketContext - Saliendo de /chat: desconectando WebSocket');
       disconnect();
       setIsSynced(false);
       setIsFallbackMode(false);
@@ -160,12 +158,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return;
       }
       if (loginConnectInFlightRef.current) {
-        console.log('🔌 Conexión de login ya en progreso, ignorando duplicado');
         return;
       }
       loginConnectInFlightRef.current = true;
-      
-      console.log('🔌 WebSocketContext - Login exitoso, conectando WebSocket inmediatamente...');
       // ALINEADO: Usar timeout de 45 segundos para coincidir con connectTimeout del backend
       connect(accessToken, { timeout: 45000 });
       
@@ -174,9 +169,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         clearTimeout(loginFallbackTimeoutRef.current);
       }
       loginFallbackTimeoutRef.current = setTimeout(() => {
-        if (!isConnected && !connectionError) {
-          console.warn('⚠️ WebSocketContext - WebSocket timeout, continuando sin tiempo real');
-          console.warn('⚠️ WebSocketContext - Login HTTP exitoso, navegando al dashboard...');
+              if (!isConnected && !connectionError) {
           
           // Emitir evento de fallback para que otros componentes lo manejen
           window.dispatchEvent(new CustomEvent('websocket:fallback', {
@@ -222,7 +215,6 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // NUEVO: Disparar sincronización inicial una sola vez al conectar en /chat
   useEffect(() => {
     if (isConnected && isChatRoute && !initialSyncTriggeredRef.current) {
-      console.log('🔄 WebSocketContext - Sincronización inicial (global)...');
       initialSyncTriggeredRef.current = true;
       
       const success = rateLimiter.makeRequest(() => {

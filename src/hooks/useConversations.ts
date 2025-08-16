@@ -7,6 +7,7 @@ import { useAppStore } from '../stores/useAppStore';
 import { useWebSocketContext } from '../contexts/useWebSocketContext';
 import { useAuthContext } from '../contexts/useAuthContext';
 import { sanitizeConversationId, logConversationId, encodeConversationIdForUrl } from '../utils/conversationUtils';
+import { infoLog } from '../config/logger';
 
 // FASE 5: Constantes para retry logic y fallbacks (futuro)
 // const RETRY_DELAYS = [1000, 2000, 5000]; // Delays progresivos para retry
@@ -105,13 +106,11 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   const allConversations = useMemo(() => {
     // Si hay datos en el store, usarlos como fuente principal
     if (storeConversations.length > 0) {
-      console.log('📊 useConversations - Usando datos del store (tiempo real):', storeConversations.length);
       return storeConversations;
     }
     
     // Fallback: usar datos de React Query para carga inicial
     const queryConversations = conversationsData?.pages.flatMap(page => page.conversations) || [];
-    console.log('📊 useConversations - Usando datos de React Query (carga inicial):', queryConversations.length);
     
     // Filtrar conversaciones duplicadas basadas en el número de teléfono
     const uniqueConversations = queryConversations.reduce((acc, conversation) => {
@@ -147,7 +146,6 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       // Solo sincronizar si el store está vacío y tenemos datos de React Query
       const queryConversations = conversationsData.pages.flatMap(page => page.conversations);
       if (queryConversations.length > 0) {
-        console.log('📊 useConversations - Sincronizando datos iniciales al store:', queryConversations.length);
         setConversations(queryConversations);
       }
     }
@@ -157,7 +155,6 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   useEffect(() => {
     // Si no hay conversación activa pero hay conversationId en la URL, limpiar la URL
     if (!activeConversation && urlConversationId) {
-      console.log('🧹 useConversations - Limpiando URL sin conversación activa');
       const newSearchParams = new URLSearchParams(location.search);
       newSearchParams.delete('conversation');
       navigate(`${location.pathname}?${newSearchParams.toString()}`, { replace: true });
@@ -198,7 +195,6 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     const minInterval = reason === 'new-message' ? 1000 : 2000; // 1s para mensajes, 2s para otros
     
     if (now - lastSyncTime < minInterval) {
-      console.log('🔄 useConversations - Sincronización ignorada (muy frecuente):', { reason, interval: minInterval });
       return;
     }
 
@@ -293,11 +289,11 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       users: unknown[]; 
       timestamp: string 
     };
-    console.log('✅ useConversations - Estado sincronizado:', syncData);
+    infoLog('✅ useConversations - Estado sincronizado:', syncData);
     
     // Actualizar conversaciones con datos del servidor
     if (syncData.conversations && syncData.conversations.length > 0) {
-      console.log('📋 useConversations - Actualizando conversaciones sincronizadas:', syncData.conversations.length);
+      infoLog('📋 useConversations - Actualizando conversaciones sincronizadas:', syncData.conversations.length);
       setConversations(syncData.conversations);
     }
   }, [setConversations]);
@@ -319,11 +315,11 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       users: unknown[]; 
       timestamp: string 
     };
-    console.log('✅ useConversations - Estado sincronizado desde WebSocket:', syncData);
+    infoLog('✅ useConversations - Estado sincronizado desde WebSocket:', syncData);
     
     // Actualizar conversaciones con datos del servidor
     if (syncData.conversations && syncData.conversations.length > 0) {
-      console.log('📋 useConversations - Actualizando conversaciones sincronizadas:', syncData.conversations.length);
+      infoLog('📋 useConversations - Actualizando conversaciones sincronizadas:', syncData.conversations.length);
       setConversations(syncData.conversations);
     }
   }, [setConversations]);

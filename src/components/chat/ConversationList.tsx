@@ -55,6 +55,61 @@ export const ConversationList: React.FC = () => {
     { id: 'urg', label: 'Urg' }
   ], []);
 
+  // Función para manejar cambios en el input de búsqueda
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  }, []);
+
+  // Función para manejar cambios de filtro
+  const handleFilterChange = useCallback((filterId: string) => {
+    setActiveFilter(filterId);
+  }, []);
+
+  // Función para manejar clic en conversación
+  const handleConversationClick = useCallback((conversationId: string) => {
+    selectConversation(conversationId);
+  }, [selectConversation]);
+
+  // Memoizar el skeleton de carga
+  const loadingSkeleton = useMemo(() => (
+    <div className="p-2 sm:p-3">
+      <div className="animate-pulse space-y-2 sm:space-y-3">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="flex items-center space-x-3 sm:space-x-4">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-300 rounded-full"></div>
+            <div className="flex-1">
+              <div className="h-3 sm:h-4 bg-gray-300 rounded w-3/4"></div>
+              <div className="h-2 sm:h-3 bg-gray-300 rounded w-1/2 mt-1 sm:mt-2"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  ), []);
+
+  // Memoizar el estado vacío
+  const emptyState = useMemo(() => (
+    <div className="flex items-center justify-center h-full p-4">
+      <div className="text-center">
+        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
+          <MessageSquare className="w-6 h-6 text-gray-400" />
+        </div>
+        <p className="text-sm text-gray-500">
+          {searchTerm || activeFilter !== 'all' 
+            ? 'No se encontraron conversaciones' 
+            : 'No hay conversaciones'
+          }
+        </p>
+        <p className="text-xs text-gray-400 mt-1">
+          {searchTerm || activeFilter !== 'all'
+            ? 'Intenta con otros filtros o términos de búsqueda'
+            : 'Las conversaciones aparecerán aquí cuando lleguen mensajes'
+          }
+        </p>
+      </div>
+    </div>
+  ), [searchTerm, activeFilter]);
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
@@ -79,7 +134,7 @@ export const ConversationList: React.FC = () => {
             type="text"
             placeholder="Buscar..."
             value={searchTerm}
-            onChange={useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value), [])}
+            onChange={handleSearchChange}
             className="w-full pl-7 sm:pl-8 pr-3 py-2 sm:py-2.5 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
@@ -89,7 +144,7 @@ export const ConversationList: React.FC = () => {
           {filters.map((filter) => (
             <button
               key={filter.id}
-              onClick={useCallback(() => setActiveFilter(filter.id), [filter.id])}
+              onClick={() => handleFilterChange(filter.id)}
               className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-medium rounded-md transition-colors ${
                 activeFilter === filter.id
                   ? 'bg-blue-600 text-white'
@@ -108,19 +163,7 @@ export const ConversationList: React.FC = () => {
         className="flex-1 overflow-y-auto min-h-0"
       >
         {isLoading ? (
-          <div className="p-2 sm:p-3">
-            <div className="animate-pulse space-y-2 sm:space-y-3">
-              {useMemo(() => [...Array(5)].map((_, i) => (
-                <div key={i} className="flex items-center space-x-3 sm:space-x-4">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-300 rounded-full"></div>
-                  <div className="flex-1">
-                    <div className="h-3 sm:h-4 bg-gray-300 rounded w-3/4"></div>
-                    <div className="h-2 sm:h-3 bg-gray-300 rounded w-1/2 mt-1 sm:mt-2"></div>
-                  </div>
-                </div>
-              )), [])}
-            </div>
-          </div>
+          loadingSkeleton
         ) : conversations.length > 0 ? (
           <div className="divide-y divide-gray-100">
             {conversations.map((conversation) => (
@@ -128,32 +171,12 @@ export const ConversationList: React.FC = () => {
                 key={conversation.id}
                 conversation={conversation}
                 isSelected={selectedConversationId === conversation.id}
-                onClick={useCallback(() => selectConversation(conversation.id), [selectConversation, conversation.id])}
+                onClick={() => handleConversationClick(conversation.id)}
               />
             ))}
           </div>
         ) : (
-          useMemo(() => (
-            <div className="flex items-center justify-center h-full p-4">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <MessageSquare className="w-6 h-6 text-gray-400" />
-                </div>
-                <p className="text-sm text-gray-500">
-                  {searchTerm || activeFilter !== 'all' 
-                    ? 'No se encontraron conversaciones' 
-                    : 'No hay conversaciones'
-                  }
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {searchTerm || activeFilter !== 'all'
-                    ? 'Intenta con otros filtros o términos de búsqueda'
-                    : 'Las conversaciones aparecerán aquí cuando lleguen mensajes'
-                  }
-                </p>
-              </div>
-            </div>
-          ), [searchTerm, activeFilter])
+          emptyState
         )}
 
         {/* Indicador de carga más conversaciones */}
