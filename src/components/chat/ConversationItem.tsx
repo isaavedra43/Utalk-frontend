@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Conversation } from '../../types';
@@ -37,8 +37,8 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
     setPrevUnreadCount(conversation.unreadCount);
   }, [conversation.unreadCount, prevUnreadCount]);
 
-  // Formatear tiempo del último mensaje
-  const formatLastMessageTime = (timestamp: string) => {
+  // FASE 3: Optimización - Memoizar funciones para evitar recreaciones
+  const formatLastMessageTime = useCallback((timestamp: string) => {
     try {
       const date = new Date(timestamp);
       const now = new Date();
@@ -55,17 +55,35 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
     } catch {
       return 'Reciente';
     }
-  };
+  }, []);
 
-  // Obtener iniciales del nombre del cliente
-  const getInitials = (name: string) => {
+  // FASE 3: Optimización - Memoizar función de iniciales
+  const getInitials = useCallback((name: string) => {
     return name
       .split(' ')
       .map(word => word.charAt(0))
       .join('')
       .toUpperCase()
       .slice(0, 2);
-  };
+  }, []);
+
+  // FASE 3: Optimización - Memoizar valores calculados
+  const formattedTime = useMemo(() => 
+    formatLastMessageTime(conversation.lastMessageAt), 
+    [formatLastMessageTime, conversation.lastMessageAt]
+  );
+
+  const customerInitials = useMemo(() => 
+    getInitials(conversation.customerName), 
+    [getInitials, conversation.customerName]
+  );
+
+  const statusColor = useMemo(() => 
+    conversation.status === 'open' 
+      ? 'bg-gradient-to-br from-green-400 to-green-600' 
+      : 'bg-gradient-to-br from-gray-400 to-gray-600',
+    [conversation.status]
+  );
 
   return (
     <div
@@ -91,13 +109,10 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
         <div className="flex-shrink-0">
           <div className={`
             w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm
-            ${conversation.status === 'open' 
-              ? 'bg-gradient-to-br from-green-400 to-green-600' 
-              : 'bg-gradient-to-br from-gray-400 to-gray-600'
-            }
+            ${statusColor}
             ${isNewMessage ? 'animate-pulse' : ''}
           `}>
-            {getInitials(conversation.customerName)}
+            {customerInitials}
           </div>
         </div>
 
@@ -115,7 +130,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
               text-xs ml-2 flex-shrink-0
               ${conversation.unreadCount > 0 ? 'text-blue-600 font-medium' : 'text-gray-500'}
             `}>
-              {formatLastMessageTime(conversation.lastMessageAt)}
+              {formattedTime}
             </span>
           </div>
 
