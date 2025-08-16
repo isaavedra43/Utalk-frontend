@@ -24,7 +24,7 @@ import { logger, LogCategory } from '../utils/logger';
 
 export class DashboardService {
   private static instance: DashboardService;
-  private useMockData: boolean = true; // Cambiar a false cuando tengamos datos reales
+  private useMockData: boolean = false; // Cambiar a false cuando tengamos datos reales
 
   public static getInstance(): DashboardService {
     if (!DashboardService.instance) {
