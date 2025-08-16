@@ -78,13 +78,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           </button>
 
           {/* Notificaciones */}
-          <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+          <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
             <Bell className="h-5 w-5" />
-            {header.actions.notifications > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {header.actions.notifications > 9 ? '9+' : header.actions.notifications}
-              </span>
-            )}
           </button>
 
           {/* Avatar del usuario */}

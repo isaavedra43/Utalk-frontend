@@ -117,7 +117,7 @@ const DashboardModule = memo(() => {
             actions: {
               aiView: aiViewEnabled,
               refresh: false,
-              notifications: 3
+              notifications: 0
             },
             user: {
               name: "Israel",
