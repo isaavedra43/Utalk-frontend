@@ -18,6 +18,9 @@ interface AppStore extends AppState {
   setError: (error: string | null) => void;
   clearError: () => void;
   reset: () => void;
+  // FASE 1: Nuevas acciones para sincronización con React Query
+  syncConversationsWithQuery: (conversations: Conversation[]) => void;
+  invalidateQueryCache: () => void;
   // NUEVAS acciones de navegación
   setCurrentModule: (module: string) => void;
   navigateToModule: (module: string) => void;
@@ -131,6 +134,27 @@ export const useAppStore = create<AppStore>()(
       clearError: () => set({ error: null }),
 
       reset: () => set(initialState),
+
+      // FASE 1: Nuevas acciones para sincronización con React Query
+      syncConversationsWithQuery: (conversations) => set((state) => {
+        // Combinar conversaciones del store con las de React Query
+        const existingIds = new Set(state.conversations.map(c => c.id));
+        const newConversations = conversations.filter(c => !existingIds.has(c.id));
+        
+        if (newConversations.length > 0) {
+          console.log('🔄 useAppStore - Sincronizando nuevas conversaciones:', newConversations.length);
+          return {
+            conversations: [...state.conversations, ...newConversations]
+          };
+        }
+        return state;
+      }),
+
+      invalidateQueryCache: () => {
+        // Esta función se puede usar para invalidar cache de React Query
+        // Por ahora solo log, se implementará cuando sea necesario
+        console.log('🔄 useAppStore - Cache invalidation request');
+      },
 
       // NUEVAS acciones de navegación
       setCurrentModule: (module) => set({ currentModule: module as AppState['currentModule'] }),

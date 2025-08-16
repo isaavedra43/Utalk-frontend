@@ -87,12 +87,23 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     }
   });
 
-  // Aplanar todas las conversaciones de todas las páginas
+  // FASE 1: Unificar fuente de verdad - Usar store como principal, React Query como fallback
+  const storeConversations = useAppStore(state => state.conversations);
+  
+  // Combinar datos del store (tiempo real) con datos de React Query (carga inicial)
   const allConversations = useMemo(() => {
-    const conversations = conversationsData?.pages.flatMap(page => page.conversations) || [];
+    // Si hay datos en el store, usarlos como fuente principal
+    if (storeConversations.length > 0) {
+      console.log('📊 useConversations - Usando datos del store (tiempo real):', storeConversations.length);
+      return storeConversations;
+    }
     
-    // NUEVO: Filtrar conversaciones duplicadas basadas en el número de teléfono
-    const uniqueConversations = conversations.reduce((acc, conversation) => {
+    // Fallback: usar datos de React Query para carga inicial
+    const queryConversations = conversationsData?.pages.flatMap(page => page.conversations) || [];
+    console.log('📊 useConversations - Usando datos de React Query (carga inicial):', queryConversations.length);
+    
+    // Filtrar conversaciones duplicadas basadas en el número de teléfono
+    const uniqueConversations = queryConversations.reduce((acc, conversation) => {
       const phone = conversation.customerPhone;
       
       // Buscar si ya existe una conversación con el mismo número
@@ -114,17 +125,22 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       }
       
       return acc;
-    }, [] as typeof conversations);
+    }, [] as typeof queryConversations);
     
     return uniqueConversations;
-  }, [conversationsData?.pages]);
+  }, [storeConversations, conversationsData?.pages]);
 
-  // Sincronizar datos del store con la query - solo si está autenticado
+  // FASE 1: Sincronizar datos de React Query al store solo para carga inicial
   useEffect(() => {
-    if (isAuthenticated && !authLoading && allConversations.length > 0) {
-      setConversations(allConversations);
+    if (isAuthenticated && !authLoading && conversationsData?.pages && storeConversations.length === 0) {
+      // Solo sincronizar si el store está vacío y tenemos datos de React Query
+      const queryConversations = conversationsData.pages.flatMap(page => page.conversations);
+      if (queryConversations.length > 0) {
+        console.log('📊 useConversations - Sincronizando datos iniciales al store:', queryConversations.length);
+        setConversations(queryConversations);
+      }
     }
-  }, [allConversations, setConversations, isAuthenticated, authLoading]);
+  }, [conversationsData?.pages, setConversations, isAuthenticated, authLoading, storeConversations.length]);
 
   // NUEVO: Limpiar URL cuando no hay conversación seleccionada
   useEffect(() => {
@@ -257,18 +273,21 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     const eventData = data as { conversationId: string; [key: string]: unknown };
     console.log('💬 useConversations - Evento de conversación recibido:', eventData);
     
-    // Actualizar conversación en el store
+    // FASE 1: Actualizar conversación en el store (fuente principal)
     updateStoreConversation(eventData.conversationId, eventData as Partial<Conversation>);
     
-    // Refetch para obtener datos actualizados
-    refetch();
-  }, [updateStoreConversation, refetch]);
+    // FASE 1: NO hacer refetch - el store es la fuente de verdad
+    console.log('💬 useConversations - Evento de conversación procesado (sin refetch)');
+  }, [updateStoreConversation]);
 
   const handleNewMessage = useCallback((data: unknown) => {
     const eventData = data as { conversationId: string; message: { content: string; timestamp: string; sender: string } };
     console.log('📨 useConversations - Nuevo mensaje en conversación:', eventData);
     
-    // Actualizar conversación con el último mensaje y flags de animación
+    // FASE 1: Actualizar conversación en el store (fuente principal)
+    const currentConversation = storeConversations.find(c => c.id === eventData.conversationId);
+    const currentUnreadCount = currentConversation?.unreadCount || 0;
+    
     updateStoreConversation(eventData.conversationId, {
       lastMessage: {
         content: eventData.message.content,
@@ -278,7 +297,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
         timestamp: eventData.message.timestamp
       },
       lastMessageAt: eventData.message.timestamp,
-      unreadCount: (allConversations.find(c => c.id === eventData.conversationId)?.unreadCount || 0) + 1,
+      unreadCount: currentUnreadCount + 1,
       isNewMessage: true, // Flag para animación
       hasNewMessage: true // Flag para punto verde
     });
@@ -291,23 +310,24 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       });
     }, 3000);
     
-    // Refetch para obtener datos actualizados
-    refetch();
-  }, [updateStoreConversation, refetch, allConversations]);
+    // FASE 1: NO hacer refetch - el store es la fuente de verdad
+    // Solo invalidar cache de React Query para futuras cargas
+    console.log('📨 useConversations - Actualización en tiempo real completada (sin refetch)');
+  }, [updateStoreConversation, storeConversations]);
 
   const handleMessageRead = useCallback((data: unknown) => {
     const eventData = data as { conversationId: string; messageIds: string[]; readBy: string };
     console.log('✅ useConversations - Mensajes marcados como leídos:', eventData);
     
-    // Actualizar conversación reduciendo el contador de no leídos
-    const conversation = allConversations.find(c => c.id === eventData.conversationId);
+    // FASE 1: Actualizar conversación en el store (fuente principal)
+    const conversation = storeConversations.find(c => c.id === eventData.conversationId);
     if (conversation) {
       const newUnreadCount = Math.max(0, conversation.unreadCount - eventData.messageIds.length);
       updateStoreConversation(eventData.conversationId, {
         unreadCount: newUnreadCount
       });
     }
-  }, [updateStoreConversation, allConversations]);
+  }, [updateStoreConversation, storeConversations]);
 
   const handleConversationJoined = useCallback((data: unknown) => {
     const eventData = data as { conversationId: string; roomId: string; onlineUsers: string[]; timestamp: string };
