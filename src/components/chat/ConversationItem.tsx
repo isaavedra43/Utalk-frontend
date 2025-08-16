@@ -9,7 +9,7 @@ interface ConversationItemProps {
   onClick: () => void;
 }
 
-export const ConversationItem: React.FC<ConversationItemProps> = ({
+export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
   conversation,
   isSelected,
   onClick
@@ -19,17 +19,20 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
   const [isHighlighted, setIsHighlighted] = useState(false);
   const [prevUnreadCount, setPrevUnreadCount] = useState(conversation.unreadCount);
 
-  // Detectar cuando llega un nuevo mensaje
+  // FASE 1: Optimización - Detectar cuando llega un nuevo mensaje con memoización
   useEffect(() => {
     if (conversation.unreadCount > prevUnreadCount) {
       setIsNewMessage(true);
       setIsHighlighted(true);
       
       // Resetear animaciones después de un tiempo
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setIsNewMessage(false);
         setIsHighlighted(false);
       }, 3000);
+      
+      // Cleanup para evitar memory leaks
+      return () => clearTimeout(timeoutId);
     }
     setPrevUnreadCount(conversation.unreadCount);
   }, [conversation.unreadCount, prevUnreadCount]);
@@ -164,4 +167,4 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
       )}
     </div>
   );
-}; 
+}); 

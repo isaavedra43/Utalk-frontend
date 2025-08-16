@@ -389,9 +389,10 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       return conversationsService.updateConversation(encodedId, updateData);
     },
     onSuccess: (updatedConversation, variables) => {
-      // Actualizar tanto el store como refetch
+      // FASE 1: Solo actualizar el store (fuente principal)
       updateStoreConversation(variables.conversationId, updatedConversation);
-      refetch();
+      // FASE 1: NO hacer refetch - el store es la fuente de verdad
+      console.log('✅ useConversations - Conversación actualizada en store (sin refetch)');
     }
   });
 
@@ -407,9 +408,10 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       return conversationsService.markConversationAsRead(encodedId);
     },
     onSuccess: (updatedConversation, variables) => {
-      // Actualizar tanto el store como refetch
+      // FASE 1: Solo actualizar el store (fuente principal)
       updateStoreConversation(variables, updatedConversation);
-      refetch();
+      // FASE 1: NO hacer refetch - el store es la fuente de verdad
+      console.log('✅ useConversations - Mensajes marcados como leídos en store (sin refetch)');
     }
   });
 
@@ -425,9 +427,10 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       return conversationsService.changeConversationStatus(encodedId, status);
     },
     onSuccess: (updatedConversation, variables) => {
-      // Actualizar tanto el store como refetch
+      // FASE 1: Solo actualizar el store (fuente principal)
       updateStoreConversation(variables.conversationId, updatedConversation);
-      refetch();
+      // FASE 1: NO hacer refetch - el store es la fuente de verdad
+      console.log('✅ useConversations - Estado de conversación actualizado en store (sin refetch)');
     }
   });
 

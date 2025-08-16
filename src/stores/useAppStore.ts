@@ -151,9 +151,12 @@ export const useAppStore = create<AppStore>()(
       }),
 
       invalidateQueryCache: () => {
-        // Esta función se puede usar para invalidar cache de React Query
+        // FASE 1: Invalidar cache de React Query cuando sea necesario
         // Por ahora solo log, se implementará cuando sea necesario
         console.log('🔄 useAppStore - Cache invalidation request');
+        
+        // FUTURO: Implementar invalidación real de React Query
+        // queryClient.invalidateQueries(['conversations']);
       },
 
       // NUEVAS acciones de navegación
