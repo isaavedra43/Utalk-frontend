@@ -182,14 +182,18 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       clearTimeout(syncTimeoutRef.current);
     }
 
-    // Evitar sincronizaciones muy frecuentes (mínimo 10 segundos entre sincronizaciones)
+    // FASE 2: Reducir debounce de 10 segundos a 2 segundos para eventos críticos
     const now = Date.now();
-    if (now - lastSyncTime < 10000) {
-      console.log('🔄 useConversations - Sincronización ignorada (muy frecuente)');
+    const minInterval = reason === 'new-message' ? 1000 : 2000; // 1s para mensajes, 2s para otros
+    
+    if (now - lastSyncTime < minInterval) {
+      console.log('🔄 useConversations - Sincronización ignorada (muy frecuente):', { reason, interval: minInterval });
       return;
     }
 
-    // Debouncing de 3000ms para reducir peticiones
+    // FASE 2: Debouncing reducido de 3000ms a 500ms para eventos críticos
+    const debounceTime = reason === 'new-message' ? 200 : 500; // 200ms para mensajes, 500ms para otros
+    
     syncTimeoutRef.current = setTimeout(() => {
       if (isAuthenticated && !authLoading && isConnected) {
         console.log('�� useConversations - Solicitando sincronización (delegada al contexto)...', { reason });
@@ -197,7 +201,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
         // Delegar al contexto para evitar duplicados entre múltiples instancias
         syncState();
       }
-    }, 3000);
+    }, debounceTime);
   }, [isAuthenticated, authLoading, isConnected, syncState, lastSyncTime]);
 
   // La sincronización inicial ahora es responsabilidad del WebSocketContext
@@ -349,9 +353,19 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     });
   }, [updateStoreConversation]);
 
-  // Escuchar eventos de conversación en tiempo real - solo si está autenticado
+  // FASE 2: Escuchar eventos de conversación en tiempo real - MEJORADO
   useEffect(() => {
-    if (!isAuthenticated || authLoading || !isConnected) return;
+    // Solo registrar listeners cuando esté autenticado, no cargando y conectado
+    if (!isAuthenticated || authLoading || !isConnected) {
+      console.log('🔌 useConversations - No registrando listeners:', { 
+        isAuthenticated, 
+        authLoading, 
+        isConnected 
+      });
+      return;
+    }
+
+    console.log('🔌 useConversations - Registrando listeners de eventos WebSocket');
 
     // Registrar listeners
     on('conversation-event', handleConversationEvent);
@@ -361,6 +375,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     on('conversation-left', handleConversationLeft);
 
     return () => {
+      console.log('🔌 useConversations - Limpiando listeners de eventos WebSocket');
       // Limpiar listeners
       off('conversation-event');
       off('new-message');

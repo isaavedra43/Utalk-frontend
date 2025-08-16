@@ -48,11 +48,11 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const location = useLocation();
   const isChatRoute = location.pathname === '/chat';
 
-  // Rate limiter para eventos del WebSocket - MEJORADO
+  // FASE 2: Rate limiter diferenciado para eventos del WebSocket
   const rateLimiter = useRateLimiter({
-    maxRequests: 3, // Reducido para evitar spam
-    timeWindow: 2000, // 2 segundos
-    retryDelay: 1000
+    maxRequests: 5, // Aumentado para eventos críticos
+    timeWindow: 1000, // 1 segundo (más permisivo)
+    retryDelay: 500 // Reducido para respuesta más rápida
   });
 
   const [activeConversations, setActiveConversations] = useState<Set<string>>(new Set());
