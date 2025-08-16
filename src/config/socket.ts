@@ -1,5 +1,6 @@
 import { io } from 'socket.io-client';
 import { ENV_CONFIG } from './environment';
+import { getUserInfo } from '../utils/jwtUtils';
 
 const SOCKET_CONFIG = {
   transports: ['websocket', 'polling'],
@@ -27,6 +28,15 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
     DEV_MODE: ENV_CONFIG.DEV_MODE
   });
   
+  // NUEVO: Obtener información del usuario para incluir en la autenticación
+  const userInfo = getUserInfo();
+  console.log('🔌 Información del usuario para socket:', {
+    workspaceId: userInfo.workspaceId,
+    tenantId: userInfo.tenantId,
+    userId: userInfo.userId,
+    email: userInfo.email
+  });
+  
   const socketConfig = {
     ...SOCKET_CONFIG,
     // ALINEADO: Timeout personalizable para login (mínimo 45 segundos para coincidir con backend)
@@ -37,10 +47,20 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
     ...socketConfig,
     // CORREGIDO: Usar auth.token y también Authorization header
     auth: {
-      token: token
+      token: token,
+      // NUEVO: Incluir workspaceId y tenantId en la autenticación
+      workspaceId: userInfo.workspaceId,
+      tenantId: userInfo.tenantId,
+      userId: userInfo.userId,
+      email: userInfo.email
     },
     extraHeaders: {
-      'Authorization': `Bearer ${token}`
+      'Authorization': `Bearer ${token}`,
+      // NUEVO: Headers adicionales para workspaceId y tenantId
+      'X-Workspace-ID': userInfo.workspaceId,
+      'X-Tenant-ID': userInfo.tenantId,
+      'X-User-ID': userInfo.userId || '',
+      'X-User-Email': userInfo.email || ''
     },
     path: '/socket.io/', // Asegurar que use el path correcto
   });
@@ -50,7 +70,10 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
     console.log('✅ WebSocket: Conectado exitosamente', {
       socketId: socket.id,
       url: SOCKET_URL,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      workspaceId: userInfo.workspaceId,
+      tenantId: userInfo.tenantId,
+      userId: userInfo.userId
     });
   });
 
@@ -59,7 +82,10 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
       message: error.message,
       name: error.name,
       url: SOCKET_URL,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      workspaceId: userInfo.workspaceId,
+      tenantId: userInfo.tenantId,
+      userId: userInfo.userId
     });
     
     // Manejar errores específicos de autenticación
@@ -70,11 +96,20 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
         console.error('🔐 Token preview:', token.substring(0, 20) + '...');
       }
     }
+    
+    // NUEVO: Manejar errores específicos de workspaceId
+    if (error.message.includes('workspace') || error.message.includes('tenant')) {
+      console.error('🔐 WebSocket: Error de workspace/tenant - Verificar configuración:', {
+        workspaceId: userInfo.workspaceId,
+        tenantId: userInfo.tenantId
+      });
+    }
   });
 
   socket.on('disconnect', (reason) => {
     console.log('🔌 WebSocket: Desconectado', {
       reason,
+      socketId: socket.id,
       timestamp: new Date().toISOString()
     });
   });

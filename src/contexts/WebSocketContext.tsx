@@ -48,8 +48,12 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const location = useLocation();
   const isChatRoute = location.pathname === '/chat';
 
-  // Rate limiter para eventos del WebSocket
-  const rateLimiter = useRateLimiter();
+  // Rate limiter para eventos del WebSocket - MEJORADO
+  const rateLimiter = useRateLimiter({
+    maxRequests: 3, // Reducido para evitar spam
+    timeWindow: 2000, // 2 segundos
+    retryDelay: 1000
+  });
 
   const [activeConversations, setActiveConversations] = useState<Set<string>>(new Set());
   const [typingUsers, setTypingUsers] = useState<Map<string, Set<string>>>(new Map());
@@ -82,6 +86,19 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     
     return roomId;
   }, []);
+
+  // NUEVO: función centralizada para solicitar sincronización de estado con control de rate limit
+  const doSyncState = useCallback((reason?: string) => {
+    console.log('🔄 WebSocketContext - Sincronizando estado', { reason });
+    const success = rateLimiter.makeRequest(() => {
+      emit('sync-state', { syncId: Date.now(), reason });
+    });
+    
+    if (!success) {
+      console.warn(`⚠️ Rate limit excedido para sync-state, reintentando más tarde`);
+    }
+  }, [emit, rateLimiter]);
+  const doSyncStateRef = React.useRef(doSyncState);
 
   // Reautenticar socket cuando se refresca el access token (solo si estamos en /chat)
   useEffect(() => {
@@ -184,33 +201,30 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [isConnected, connectionError]);
 
-  // NUEVO: función centralizada para solicitar sincronización de estado con control de rate limit
-  const doSyncState = useCallback((reason?: string) => {
-    console.log('🔄 WebSocketContext - Sincronizando estado', { reason });
-    rateLimiter.executeWithRateLimit('sync-state', () => {
-      emit('sync-state', { syncId: Date.now(), reason });
-    }, (eventType, retryAfter) => {
-      console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
-    });
-  }, [emit, rateLimiter]);
-  const doSyncStateRef = React.useRef(doSyncState);
+
   // Mantener refs actualizadas sin re-registrar listeners
   useEffect(() => { onRef.current = on; offRef.current = off; emitRef.current = emit; }, [on, off, emit]);
-  useEffect(() => { doSyncStateRef.current = doSyncState; }, [doSyncState]);
 
   // NUEVO: Disparar sincronización inicial una sola vez al conectar en /chat
   useEffect(() => {
     if (isConnected && isChatRoute && !initialSyncTriggeredRef.current) {
       console.log('🔄 WebSocketContext - Sincronización inicial (global)...');
       initialSyncTriggeredRef.current = true;
-      doSyncState('initial');
+      
+      const success = rateLimiter.makeRequest(() => {
+        emit('sync-state', { syncId: Date.now(), reason: 'initial' });
+      });
+      
+      if (!success) {
+        console.log('⚠️ WebSocketContext - Sync inicial rate limited, reintentando más tarde');
+      }
     }
     if (!isConnected) {
       // Reset al desconectar para futuras sesiones
       initialSyncTriggeredRef.current = false;
       setIsSynced(false);
     }
-  }, [isConnected, isChatRoute, doSyncState]);
+  }, [isConnected, isChatRoute, rateLimiter, emit]);
 
   // MEJORADO: Actualizar atributo data-socket-status en el DOM
   useEffect(() => {
@@ -520,11 +534,13 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // CORREGIDO: Codificar conversationId para WebSocket
       const encodedConversationId = encodeConversationIdForWebSocket(conversationId);
       
-      rateLimiter.executeWithRateLimit('typing', () => {
+      const success = rateLimiter.makeRequest(() => {
         emit('typing', { conversationId: encodedConversationId });
-      }, (eventType, retryAfter) => {
-        console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
       });
+      
+      if (!success) {
+        console.warn(`⚠️ Rate limit excedido para typing, reintentando más tarde`);
+      }
     },
     stopTyping: (conversationId: string) => {
       console.log('⏹️ Deteniendo typing en conversación:', conversationId);
@@ -532,11 +548,13 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       // CORREGIDO: Codificar conversationId para WebSocket
       const encodedConversationId = encodeConversationIdForWebSocket(conversationId);
       
-      rateLimiter.executeWithRateLimit('typing-stop', () => {
+      const success = rateLimiter.makeRequest(() => {
         emit('typing-stop', { conversationId: encodedConversationId });
-      }, (eventType, retryAfter) => {
-        console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
       });
+      
+      if (!success) {
+        console.warn(`⚠️ Rate limit excedido para typing-stop, reintentando más tarde`);
+      }
     },
     sendMessage: (conversationId: string, content: string, type = 'text', metadata = {}) => {
       console.log('📤 Enviando mensaje:', { conversationId, content, type, metadata });
@@ -545,16 +563,18 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const encodedConversationId = encodeConversationIdForWebSocket(conversationId);
       
       let success = false;
-      rateLimiter.executeWithRateLimit('new-message', () => {
+      const rateLimitSuccess = rateLimiter.makeRequest(() => {
         success = emit('new-message', {
           conversationId: encodedConversationId,
           content,
           type,
           metadata
         });
-      }, (eventType, retryAfter) => {
-        console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
       });
+      
+      if (!rateLimitSuccess) {
+        console.warn(`⚠️ Rate limit excedido para new-message, reintentando más tarde`);
+      }
       return success;
     },
     markMessagesAsRead: (conversationId: string, messageIds: string[]) => {
@@ -569,26 +589,42 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return;
       }
       
-      rateLimiter.executeWithRateLimit('message-read', () => {
+      const success = rateLimiter.makeRequest(() => {
         emit('message-read', {
           conversationId: encodedConversationId,
           roomId: selectedRoomId,
           messageIds
         });
-      }, (eventType, retryAfter) => {
-        console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
       });
+      
+      if (!success) {
+        console.warn(`⚠️ Rate limit excedido para message-read, reintentando más tarde`);
+      }
     },
     changeUserStatus: (status: string) => {
       console.log('👤 Cambiando estado de usuario:', status);
-      rateLimiter.executeWithRateLimit('user-status-change', () => {
+      const success = rateLimiter.makeRequest(() => {
         emit('user-status-change', { status });
-      }, (eventType, retryAfter) => {
-        console.warn(`⚠️ Rate limit excedido para ${eventType}, reintentando en ${retryAfter}ms`);
       });
+      
+      if (!success) {
+        console.warn(`⚠️ Rate limit excedido para user-status-change, reintentando más tarde`);
+      }
     },
     syncState: () => {
-      doSyncState();
+      if (!isConnected || !socket) {
+        console.log('🔌 WebSocketContext - No se puede sincronizar (socket no conectado)');
+        return;
+      }
+
+      const success = rateLimiter.makeRequest(() => {
+        console.log('🔄 WebSocketContext - Sincronizando estado', { reason: 'manual' });
+        emit('sync-state', { syncId: Date.now(), reason: 'manual' });
+      });
+
+      if (!success) {
+        console.log('⚠️ WebSocketContext - Sync-state rate limited, reintentando más tarde');
+      }
     }
   };
 

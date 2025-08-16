@@ -160,15 +160,15 @@ export const MessageContainer: React.FC<MessageContainerProps> = ({
                 
                 {/* Mensajes del grupo */}
                 <div className="space-y-1 px-3">
-                  {group.messages.map((message, messageIndex) => (
+                  {group.messages?.map((message, messageIndex) => (
                     <MessageBubble
                       key={message.id}
                       message={message}
                       customerName={customerName}
                       showAvatar={message.direction === 'inbound'}
                       isLastInGroup={
-                        messageIndex === group.messages.length - 1 ||
-                        group.messages[messageIndex + 1]?.direction !== message.direction
+                        messageIndex === (group.messages?.length || 0) - 1 ||
+                        group.messages?.[messageIndex + 1]?.direction !== message.direction
                       }
                     />
                   ))}

@@ -2,6 +2,8 @@
  * Utilidades para manejo de tokens JWT
  */
 
+import { WORKSPACE_CONFIG } from '../config/workspace';
+
 export interface JWTUserInfo {
   workspaceId: string;
   tenantId: string;
@@ -174,21 +176,18 @@ export const getUserInfo = (): JWTUserInfo => {
     }
   }
   
-  // 4. CORREGIDO: Usar valores por defecto más robustos como último recurso
-  console.warn('⚠️ Usando valores por defecto para workspaceId/tenantId - verificar configuración del backend');
-  
-  // Intentar obtener valores del entorno si están disponibles
-  const envWorkspaceId = import.meta.env.VITE_WORKSPACE_ID || 'default';
-  const envTenantId = import.meta.env.VITE_TENANT_ID || 'na';
+  // 4. CORREGIDO: Usar configuración de workspace como último recurso
+  console.warn('⚠️ Usando configuración de workspace como fallback');
   
   const fallbackInfo = {
-    workspaceId: envWorkspaceId,
-    tenantId: envTenantId,
+    workspaceId: WORKSPACE_CONFIG.workspaceId,
+    tenantId: WORKSPACE_CONFIG.tenantId,
     userId: null,
-    email: null
+    email: null,
+    role: null
   };
   
-  console.log('🔐 Fallback - Usando valores de entorno:', {
+  console.log('🔐 Fallback - Usando configuración de workspace:', {
     workspaceId: fallbackInfo.workspaceId,
     tenantId: fallbackInfo.tenantId
   });

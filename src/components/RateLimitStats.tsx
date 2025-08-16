@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useRateLimiter } from '../hooks/useRateLimiter';
 
 interface RateLimitStat {
-  queueLength: number;
-  attemptCount: number;
-  lastExecution: number;
-  config: { interval: number; maxAttempts?: number } | undefined;
-  canExecute: boolean;
+  requestCount: number;
+  maxRequests: number;
+  timeWindow: number;
+  lastRequestTime: number;
+  lastResetTime: number;
 }
 
 export const RateLimitStats: React.FC = () => {
@@ -28,7 +28,7 @@ export const RateLimitStats: React.FC = () => {
 
       const newStats: Record<string, RateLimitStat> = {};
       eventTypes.forEach(eventType => {
-        newStats[eventType] = rateLimiter.getStats(eventType);
+        newStats[eventType] = rateLimiter.getStats();
       });
 
       setStats(newStats);
@@ -45,8 +45,8 @@ export const RateLimitStats: React.FC = () => {
     const stat = stats[eventType];
     if (!stat) return 'text-gray-500';
     
-    if (stat.queueLength > 0) return 'text-red-600';
-    if (stat.attemptCount > 0) return 'text-yellow-600';
+    if (stat.requestCount >= stat.maxRequests) return 'text-red-600';
+    if (stat.requestCount > 0) return 'text-yellow-600';
     return 'text-green-600';
   };
 
@@ -59,10 +59,10 @@ export const RateLimitStats: React.FC = () => {
             <span className="font-mono">{eventType}:</span>
             <div className="flex items-center gap-2">
               <span className={getStatusColor(eventType)}>
-                {stat.queueLength > 0 ? `⏳ ${stat.queueLength}` : '✅'}
+                {stat.requestCount >= stat.maxRequests ? `⏳ ${stat.requestCount}/${stat.maxRequests}` : '✅'}
               </span>
               <span className="text-gray-500">
-                {stat.attemptCount > 0 ? `${stat.attemptCount}` : '0'}
+                {stat.requestCount > 0 ? `${stat.requestCount}` : '0'}
               </span>
             </div>
           </div>
