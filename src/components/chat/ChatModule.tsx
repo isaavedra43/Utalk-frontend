@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ChannelsColumn } from './ChannelsColumn';
 import { ConversationList } from './ConversationList';
 import { ChatComponent } from './ChatComponent';
-import { DetailsPanel } from '../layout/DetailsPanel';
+import { RightSidebar } from '../layout/RightSidebar';
 import { useAppStore } from '../../stores/useAppStore';
 
 import { 
@@ -365,13 +365,7 @@ const AuthenticatedChatContent: React.FC = () => {
           <ChatComponent conversationId={activeConversation?.id} />
         </div>
         <div className="w-80 border-l border-gray-200 bg-white">
-          <DetailsPanel
-            clientProfile={mockClientProfile}
-            conversationDetails={mockConversationDetails}
-            notificationSettings={mockNotificationSettings}
-            onUpdateNotificationSettings={() => {}}
-            isLoading={false}
-          />
+          <RightSidebar />
         </div>
       </div>
     </div>
