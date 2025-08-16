@@ -49,6 +49,13 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
     }));
 
     setFilePreviews(prev => [...prev, ...newFiles]);
+    
+    // AUTO-SUBIR ARCHIVOS INMEDIATAMENTE
+    setTimeout(() => {
+      newFiles.forEach(filePreview => {
+        uploadFile(filePreview);
+      });
+    }, 100);
   }, []);
 
   const getFileType = (file: File): string => {
@@ -77,6 +84,8 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
 
   const uploadFile = async (filePreview: FilePreview) => {
     try {
+      console.log('🚀 Iniciando subida de archivo:', filePreview.file.name, 'ConversationId:', conversationId);
+      
       setFilePreviews(prev => 
         prev.map(fp => 
           fp.id === filePreview.id 
@@ -89,7 +98,10 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
       if (!conversationId) {
         throw new Error('ConversationId es requerido para subir archivos');
       }
+      
+      console.log('📤 Enviando request a fileUploadService...');
       const response = await fileUploadService.uploadFile(filePreview.file, conversationId);
+      console.log('✅ Archivo subido exitosamente:', response);
       
       // Actualizar con éxito
       setFilePreviews(prev => 
@@ -111,7 +123,15 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
       });
 
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error('❌ Error uploading file:', error);
+      console.error('📋 Detalles del error:', {
+        fileName: filePreview.file.name,
+        fileSize: filePreview.file.size,
+        fileType: filePreview.file.type,
+        conversationId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      
       setFilePreviews(prev => 
         prev.map(fp => 
           fp.id === filePreview.id 
