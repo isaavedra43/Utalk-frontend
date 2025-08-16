@@ -3,7 +3,7 @@ import { ChannelsColumn } from './ChannelsColumn';
 import { ConversationList } from './ConversationList';
 import { ChatComponent } from './ChatComponent';
 import { DetailsPanel } from '../layout/DetailsPanel';
-import { CopilotPanel } from '../layout/CopilotPanel';
+import { useAppStore } from '../../stores/useAppStore';
 
 import { 
   MessageSquare, 
@@ -11,7 +11,11 @@ import {
   Settings, 
   ChevronLeft, 
   Menu,
-  X
+  X,
+  Grid3X3,
+  Building2,
+  Bell,
+  LayoutDashboard
 } from 'lucide-react';
 
 // Tipos para las vistas móviles
@@ -19,11 +23,11 @@ type MobileView = 'channels' | 'conversations' | 'chat' | 'details';
 
 // Componente interno para el contenido autenticado
 const AuthenticatedChatContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'details' | 'copilot'>('copilot');
   const [mobileView, setMobileView] = useState<MobileView>('conversations');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
-
+  // NUEVO: Obtener la conversación seleccionada del store
+  const { activeConversation } = useAppStore();
 
   // Datos mock para el panel de detalles
   const mockClientProfile = {
@@ -60,86 +64,178 @@ const AuthenticatedChatContent: React.FC = () => {
     pushNotifications: true
   };
 
-  // Datos mock para el panel de copilot
-  const mockCopilotState = {
-    isMockMode: true,
-    activeTab: 'suggestions' as const,
-    suggestions: [],
-    chatHistory: [],
-    isLoading: false
-  };
-
-  const mockAiSuggestions = [
-    {
-      id: '1',
-      title: 'Respuesta rápida',
-      content: '¡Hola! Gracias por contactarnos. ¿En qué puedo ayudarte hoy?',
-      confidence: 'high' as const,
-      category: 'respuesta',
-      tags: ['respuesta', 'cordial'],
-      actions: { copy: true, improve: true, use: true }
-    }
-  ];
-
   // Función para manejar navegación móvil
   const handleMobileNavigation = (view: MobileView) => {
     setMobileView(view);
     setShowMobileMenu(false);
   };
 
-  // Renderizar vista móvil
+  // Navegación móvil moderna
+  const mobileNavigationItems = [
+    {
+      id: 'channels' as MobileView,
+      icon: Grid3X3,
+      label: 'Canales',
+      badge: '5'
+    },
+    {
+      id: 'conversations' as MobileView,
+      icon: MessageSquare,
+      label: 'Chats',
+      badge: '9+'
+    },
+    {
+      id: 'details' as MobileView,
+      icon: Settings,
+      label: 'Detalles'
+    }
+  ];
+
+  // Renderizar vista móvil moderna
   const renderMobileView = () => {
     switch (mobileView) {
       case 'channels':
         return (
           <div className="h-full bg-white">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h1 className="text-lg font-semibold text-gray-900">Canales</h1>
+            {/* Header moderno */}
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">U</span>
+                </div>
+                <h1 className="text-lg font-semibold">Canales</h1>
+              </div>
               <button
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
-                className="p-2 rounded-lg hover:bg-gray-100"
+                onClick={() => setShowMobileMenu(true)}
+                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
               >
-                <Menu className="w-5 h-5 text-gray-600" />
+                <Menu className="h-5 w-5" />
               </button>
             </div>
-            <ChannelsColumn />
+            
+            {/* Contenido de canales */}
+            <div className="p-4">
+              <div className="mb-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Filtrar canales..."
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  />
+                  <Grid3X3 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                </div>
+              </div>
+              
+              {/* Lista de canales */}
+              <div className="space-y-3">
+                {[
+                  { name: 'Asignados a ti', count: 0, icon: Users },
+                  { name: 'Sin contestar', count: 8, icon: Bell },
+                  { name: 'Abiertos', count: 2, icon: MessageSquare },
+                  { name: 'Urgentes', count: 0, icon: Building2 }
+                ].map((channel, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                        <channel.icon className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <span className="font-medium text-gray-900">{channel.name}</span>
+                    </div>
+                    {channel.count > 0 && (
+                      <span className="bg-red-500 text-white text-sm font-medium px-2 py-1 rounded-full">
+                        {channel.count}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         );
+
       case 'conversations':
         return (
           <div className="h-full bg-white">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h1 className="text-lg font-semibold text-gray-900">Conversaciones</h1>
+            {/* Header moderno */}
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">U</span>
+                </div>
+                <h1 className="text-lg font-semibold">Conversaciones</h1>
+              </div>
               <button
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
-                className="p-2 rounded-lg hover:bg-gray-100"
+                onClick={() => setShowMobileMenu(true)}
+                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
               >
-                <Menu className="w-5 h-5 text-gray-600" />
+                <Menu className="h-5 w-5" />
               </button>
             </div>
-            <ConversationList />
+            
+            {/* Contenido de conversaciones */}
+            <div className="flex-1 overflow-hidden">
+              <ConversationList />
+            </div>
           </div>
         );
+
       case 'chat':
         return (
-          <div className="h-full bg-gray-100">
-            <ChatComponent />
+          <div className="h-full bg-white">
+            {/* Header del chat */}
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => setMobileView('conversations')}
+                  className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                    <span className="text-white font-medium text-sm">
+                      {activeConversation?.customerName?.charAt(0) || 'C'}
+                    </span>
+                  </div>
+                  <div>
+                    <h2 className="font-semibold">{activeConversation?.customerName || 'Cliente'}</h2>
+                    <p className="text-sm text-white/80">En línea</p>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setMobileView('details')}
+                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+              >
+                <Settings className="h-5 w-5" />
+              </button>
+            </div>
+            
+            {/* Contenido del chat */}
+            <div className="flex-1 overflow-hidden">
+              <ChatComponent conversationId={activeConversation?.id} />
+            </div>
           </div>
         );
+
       case 'details':
         return (
           <div className="h-full bg-white">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <button
-                onClick={() => handleMobileNavigation('chat')}
-                className="p-2 rounded-lg hover:bg-gray-100"
-              >
-                <ChevronLeft className="w-5 h-5 text-gray-600" />
-              </button>
-              <h1 className="text-lg font-semibold text-gray-900">Detalles</h1>
-              <div className="w-10"></div>
+            {/* Header de detalles */}
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white">
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => setMobileView('chat')}
+                  className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <h1 className="text-lg font-semibold">Detalles</h1>
+              </div>
             </div>
-            <div className="p-4">
+            
+            {/* Contenido de detalles */}
+            <div className="flex-1 overflow-y-auto">
               <DetailsPanel
                 clientProfile={mockClientProfile}
                 conversationDetails={mockConversationDetails}
@@ -150,163 +246,132 @@ const AuthenticatedChatContent: React.FC = () => {
             </div>
           </div>
         );
+
       default:
         return null;
     }
   };
 
-  return (
-    <div className="h-full w-full bg-gray-100 overflow-hidden">
-      {/* Vista Móvil */}
-      <div className="lg:hidden h-full overflow-hidden">
-        {/* Barra de navegación inferior */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-          <div className="flex justify-around py-2">
-            <button
-              onClick={() => handleMobileNavigation('channels')}
-              className={`flex flex-col items-center p-2 rounded-lg transition-colors ${
-                mobileView === 'channels' ? 'text-blue-600 bg-blue-50' : 'text-gray-600'
-              }`}
-            >
-              <Users className="w-5 h-5 mb-1" />
-              <span className="text-xs">Canales</span>
-            </button>
-            <button
-              onClick={() => handleMobileNavigation('conversations')}
-              className={`flex flex-col items-center p-2 rounded-lg transition-colors ${
-                mobileView === 'conversations' ? 'text-blue-600 bg-blue-50' : 'text-gray-600'
-              }`}
-            >
-              <MessageSquare className="w-5 h-5 mb-1" />
-              <span className="text-xs">Chats</span>
-            </button>
-            <button
-              onClick={() => handleMobileNavigation('details')}
-              className={`flex flex-col items-center p-2 rounded-lg transition-colors ${
-                mobileView === 'details' ? 'text-blue-600 bg-blue-50' : 'text-gray-600'
-              }`}
-            >
-              <Settings className="w-5 h-5 mb-1" />
-              <span className="text-xs">Detalles</span>
-            </button>
-          </div>
-        </div>
+  // Menú lateral móvil moderno
+  const renderMobileMenu = () => {
+    if (!showMobileMenu) return null;
 
-        {/* Contenido principal con padding inferior para la barra de navegación */}
-        <div className="h-full pb-16 overflow-hidden">
-          {renderMobileView()}
-        </div>
-
-        {/* Menú móvil lateral */}
-        {showMobileMenu && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 lg:hidden">
-            <div className="absolute right-0 top-0 h-full w-64 bg-white shadow-lg">
-              <div className="p-4 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">Menú</h2>
-                  <button
-                    onClick={() => setShowMobileMenu(false)}
-                    className="p-2 rounded-lg hover:bg-gray-100"
+    return (
+      <div className="fixed inset-0 z-50 lg:hidden">
+        {/* Overlay */}
+        <div 
+          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowMobileMenu(false)}
+        />
+        
+        {/* Menú lateral */}
+        <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-2xl transform transition-transform">
+          <div className="flex flex-col h-full">
+            {/* Header del menú */}
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+              <h2 className="text-lg font-semibold">Menú</h2>
+              <button
+                onClick={() => setShowMobileMenu(false)}
+                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            {/* Navegación del menú */}
+            <div className="flex-1 p-4">
+              <div className="space-y-2">
+                {[
+                  { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+                  { id: 'clients', icon: Building2, label: 'Clientes', path: '/clients', badge: '5' },
+                  { id: 'team', icon: Users, label: 'Equipo', path: '/team', badge: '0' },
+                  { id: 'notifications', icon: Bell, label: 'Notificaciones', path: '/notifications', badge: '4' }
+                ].map((item) => (
+                  <a
+                    key={item.id}
+                    href={item.path}
+                    className="flex items-center justify-between p-4 rounded-xl bg-gray-50 hover:bg-blue-50 transition-colors"
                   >
-                    <X className="w-5 h-5 text-gray-600" />
-                  </button>
-                </div>
-              </div>
-              <div className="p-4">
-                <div className="space-y-2">
-                  <button
-                    onClick={() => handleMobileNavigation('channels')}
-                    className="w-full flex items-center p-3 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <Users className="w-5 h-5 text-gray-600 mr-3" />
-                    <span>Canales</span>
-                  </button>
-                  <button
-                    onClick={() => handleMobileNavigation('conversations')}
-                    className="w-full flex items-center p-3 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <MessageSquare className="w-5 h-5 text-gray-600 mr-3" />
-                    <span>Conversaciones</span>
-                  </button>
-                  <button
-                    onClick={() => handleMobileNavigation('details')}
-                    className="w-full flex items-center p-3 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <Settings className="w-5 h-5 text-gray-600 mr-3" />
-                    <span>Detalles</span>
-                  </button>
-                </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <item.icon className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <span className="font-medium text-gray-900">{item.label}</span>
+                    </div>
+                    {item.badge && (
+                      <span className="bg-red-500 text-white text-sm font-medium px-2 py-1 rounded-full">
+                        {item.badge}
+                      </span>
+                    )}
+                  </a>
+                ))}
               </div>
             </div>
           </div>
-        )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Vista móvil moderna */}
+      <div className="lg:hidden h-full">
+        {renderMobileView()}
+        {renderMobileMenu()}
+        
+        {/* Navegación inferior moderna */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg lg:hidden">
+          <div className="flex items-center justify-around p-2">
+            {mobileNavigationItems.map((item) => {
+              const IconComponent = item.icon;
+              const isActive = mobileView === item.id;
+              
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleMobileNavigation(item.id)}
+                  className={`flex flex-col items-center p-3 rounded-xl transition-all ${
+                    isActive 
+                      ? 'bg-blue-50 text-blue-600' 
+                      : 'text-gray-500 hover:text-blue-600'
+                  }`}
+                >
+                  <div className="relative">
+                    <IconComponent className="h-6 w-6" />
+                    {item.badge && (
+                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-medium h-5 w-5 rounded-full flex items-center justify-center">
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs font-medium mt-1">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
-      {/* Vista Desktop - Solo el contenido principal sin sidebar */}
-      <div className="hidden lg:flex h-full w-full bg-gray-100 overflow-hidden">
-        {/* 1. Columna de Canales - La más estrecha */}
-        <div className="w-48 bg-white border-r border-gray-200 flex-shrink-0 overflow-hidden">
+      {/* Vista desktop - Mantener diseño existente */}
+      <div className="hidden lg:flex h-full">
+        <div className="w-80 border-r border-gray-200 bg-white">
           <ChannelsColumn />
         </div>
-        
-        {/* 2. Columna de Lista de Conversaciones - Más delgada */}
-        <div className="w-64 bg-white border-r border-gray-200 flex-shrink-0 overflow-hidden">
+        <div className="w-96 border-r border-gray-200 bg-white">
           <ConversationList />
         </div>
-        
-        {/* 3. Área de Chat - La más ancha */}
-        <div className="flex-1 flex flex-col bg-gray-100 min-w-0 overflow-hidden">
-          <ChatComponent />
+        <div className="flex-1 bg-white">
+          <ChatComponent conversationId={activeConversation?.id} />
         </div>
-
-        {/* 4. Panel de Detalles/Copilot - Más delgado */}
-        <div className="w-64 bg-white border-l border-gray-200 flex-shrink-0 overflow-hidden">
-          {/* Tabs de navegación */}
-          <div className="flex border-b border-gray-200 flex-shrink-0">
-            <button
-              onClick={() => setActiveTab('details')}
-              className={`flex-1 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'details'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Details
-            </button>
-            <button
-              onClick={() => setActiveTab('copilot')}
-              className={`flex-1 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'copilot'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Copilot
-            </button>
-          </div>
-
-          {/* Contenido del panel */}
-          <div className="flex-1 overflow-y-auto min-h-0">
-            {activeTab === 'details' ? (
-              <DetailsPanel
-                clientProfile={mockClientProfile}
-                conversationDetails={mockConversationDetails}
-                notificationSettings={mockNotificationSettings}
-                onUpdateNotificationSettings={() => {}}
-                isLoading={false}
-              />
-            ) : (
-              <CopilotPanel
-                copilotState={mockCopilotState}
-                aiSuggestions={mockAiSuggestions}
-                onSetCopilotTab={() => {}}
-                onCopySuggestion={() => {}}
-                onImproveSuggestion={() => {}}
-                onGenerateSuggestion={() => {}}
-                isLoading={false}
-              />
-            )}
-          </div>
+        <div className="w-80 border-l border-gray-200 bg-white">
+          <DetailsPanel
+            clientProfile={mockClientProfile}
+            conversationDetails={mockConversationDetails}
+            notificationSettings={mockNotificationSettings}
+            onUpdateNotificationSettings={() => {}}
+            isLoading={false}
+          />
         </div>
       </div>
     </div>

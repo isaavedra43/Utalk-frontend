@@ -227,7 +227,7 @@ export const deduplicateRequest = async <T>(
 export const generateRequestKey = (
   method: string,
   url: string,
-  params?: Record<string, any>
+  params?: Record<string, unknown>
 ): string => {
   const paramsString = params ? JSON.stringify(params) : '';
   return `${method}:${url}:${paramsString}`;

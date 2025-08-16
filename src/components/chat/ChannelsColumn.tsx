@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Search, User, Clock, Folder } from 'lucide-react';
-import { useConversations } from '../../hooks/useConversations';
+import { useConversationStats } from '../../hooks/useConversationStats';
 
 export const ChannelsColumn: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const { stats } = useConversations();
+  const stats = useConversationStats();
 
   return (
     <div className="flex flex-col h-full overflow-hidden">

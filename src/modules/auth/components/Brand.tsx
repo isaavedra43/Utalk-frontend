@@ -17,7 +17,7 @@ export const Brand: React.FC = () => {
       {/* Marca */}
       <div className="text-left">
         <h2 className="text-xl sm:text-2xl font-bold text-white">UTalk</h2>
-        <p className="text-blue-200 text-xs sm:text-sm font-light">Connect. Communicate. Collaborate.</p>
+        <p className="text-blue-200 text-xs sm:text-sm font-light">Conecta. Comunica. Colabora.</p>
       </div>
     </motion.div>
   );

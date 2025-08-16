@@ -21,16 +21,18 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   } = useAppStore();
 
   // WebSocket context
-  const { on, off, emit, isConnected } = useWebSocketContext();
+  const { on, off, isConnected, syncState } = useWebSocketContext();
 
   // Estados para controlar la sincronización - CORREGIDO PARA EVITAR MÚLTIPLES EJECUCIONES
-  const [isInitialSyncDone, setIsInitialSyncDone] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isInitializingRef = useRef<boolean>(false); // NUEVO: Flag para evitar múltiples inicializaciones
+  // Eliminado: flags locales de sincronización inicial; ahora lo gestiona WebSocketContext
 
   // Memoizar filters para evitar re-renders innecesarios
   const memoizedFilters = useMemo(() => filters, [filters]);
+
+  // NUEVO: Flag para evitar carrera URL <-> estado durante la selección
+  const isSelectingRef = useRef(false);
 
   // NUEVO: Sincronización con URL - Extraer conversationId de la URL
   const urlConversationId = useMemo(() => {
@@ -48,115 +50,6 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       navigate(`${location.pathname}?${newSearchParams.toString()}`, { replace: true });
     }
   }, [activeConversation?.id, urlConversationId, navigate, location.pathname, location.search]);
-
-
-
-  // Memoizar la función de sincronización con debouncing - OPTIMIZADO PARA REDUCIR PETICIONES
-  const debouncedSync = useCallback((reason?: string) => {
-    // Limpiar timeout anterior si existe
-    if (syncTimeoutRef.current) {
-      clearTimeout(syncTimeoutRef.current);
-    }
-
-    // Evitar sincronizaciones muy frecuentes (mínimo 10 segundos entre sincronizaciones)
-    const now = Date.now();
-    if (now - lastSyncTime < 10000) {
-      console.log('🔄 useConversations - Sincronización ignorada (muy frecuente)');
-      return;
-    }
-
-    // Debouncing de 3000ms para reducir peticiones
-    syncTimeoutRef.current = setTimeout(() => {
-      if (isAuthenticated && !authLoading && isConnected) {
-        console.log('🔄 useConversations - Sincronizando estado inicial...', { reason });
-        setLastSyncTime(Date.now());
-        emit('sync-state', { 
-          lastSync: new Date().toISOString(),
-          filters: memoizedFilters,
-          reason
-        });
-      }
-    }, 3000);
-  }, [isAuthenticated, authLoading, isConnected, emit, memoizedFilters, lastSyncTime]);
-
-  // SINCRONIZACIÓN INICIAL - CORREGIDA PARA EVITAR MÚLTIPLES EJECUCIONES
-  useEffect(() => {
-    // Solo sincronizar si no se ha hecho la sincronización inicial y no se está inicializando
-    if (isAuthenticated && !authLoading && isConnected && !isInitialSyncDone && !isInitializingRef.current) {
-      console.log('🔄 useConversations - Sincronización inicial...');
-      isInitializingRef.current = true; // Marcar como inicializando
-      setIsInitialSyncDone(true);
-      debouncedSync('initial');
-      
-      // Resetear flag después de un tiempo más largo
-      setTimeout(() => {
-        isInitializingRef.current = false;
-      }, 5000); // Aumentado de 2 a 5 segundos
-    }
-  }, [isAuthenticated, authLoading, isConnected, isInitialSyncDone, debouncedSync]);
-
-  // ESCUCHAR RESPUESTA DE SINCRONIZACIÓN - OPTIMIZADO
-  const handleStateSynced = useCallback((data: unknown) => {
-    const syncData = data as { 
-      conversations: Conversation[]; 
-      messages: unknown[]; 
-      users: unknown[]; 
-      timestamp: string 
-    };
-    console.log('✅ useConversations - Estado sincronizado:', syncData);
-    
-    // Actualizar conversaciones con datos del servidor
-    if (syncData.conversations && syncData.conversations.length > 0) {
-      console.log('📋 useConversations - Actualizando conversaciones sincronizadas:', syncData.conversations.length);
-      setConversations(syncData.conversations);
-    }
-  }, [setConversations]);
-
-  useEffect(() => {
-    // Registrar listener para sincronización
-    on('state-synced', handleStateSynced);
-
-    return () => {
-      off('state-synced');
-    };
-  }, [on, off, handleStateSynced]);
-
-  // ESCUCHAR EVENTOS PERSONALIZADOS DE SINCRONIZACIÓN - OPTIMIZADO
-  const handleWebSocketStateSynced = useCallback((e: CustomEvent) => {
-    const syncData = e.detail as { 
-      conversations: Conversation[]; 
-      messages: unknown[]; 
-      users: unknown[]; 
-      timestamp: string 
-    };
-    console.log('✅ useConversations - Estado sincronizado desde WebSocket:', syncData);
-    
-    // Actualizar conversaciones con datos del servidor
-    if (syncData.conversations && syncData.conversations.length > 0) {
-      console.log('📋 useConversations - Actualizando conversaciones sincronizadas:', syncData.conversations.length);
-      setConversations(syncData.conversations);
-    }
-  }, [setConversations]);
-
-  const handleWebSocketSyncRequired = useCallback((e: CustomEvent) => {
-    const syncData = e.detail as { reason: string; timestamp: string };
-    console.log('🔄 useConversations - Sincronización requerida desde WebSocket:', syncData);
-    
-    // Re-sincronizar estado con debouncing
-    debouncedSync(syncData.reason);
-  }, [debouncedSync]);
-
-  useEffect(() => {
-    // Registrar listeners de eventos personalizados
-    window.addEventListener('websocket:state-synced', handleWebSocketStateSynced as EventListener);
-    window.addEventListener('websocket:sync-required', handleWebSocketSyncRequired as EventListener);
-
-    return () => {
-      // Limpiar listeners
-      window.removeEventListener('websocket:state-synced', handleWebSocketStateSynced as EventListener);
-      window.removeEventListener('websocket:sync-required', handleWebSocketSyncRequired as EventListener);
-    };
-  }, [handleWebSocketStateSynced, handleWebSocketSyncRequired]);
 
   // CORREGIDO: Infinite Query para obtener conversaciones - SOLO DESPUÉS DEL LOGIN
   const {
@@ -233,18 +126,131 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     }
   }, [allConversations, setConversations, isAuthenticated, authLoading]);
 
-  // NUEVO: Sincronizar conversación seleccionada con URL
+  // NUEVO: Limpiar URL cuando no hay conversación seleccionada
   useEffect(() => {
-    if (urlConversationId && (!activeConversation || activeConversation.id !== urlConversationId)) {
+    // Si no hay conversación activa pero hay conversationId en la URL, limpiar la URL
+    if (!activeConversation && urlConversationId) {
+      console.log('🧹 useConversations - Limpiando URL sin conversación activa');
+      const newSearchParams = new URLSearchParams(location.search);
+      newSearchParams.delete('conversation');
+      navigate(`${location.pathname}?${newSearchParams.toString()}`, { replace: true });
+    }
+  }, [activeConversation, urlConversationId, navigate, location.pathname, location.search]);
+
+  // NUEVO: Sincronizar conversación seleccionada con URL - CORREGIDO
+  useEffect(() => {
+    // Solo sincronizar si hay una conversación activa seleccionada manualmente
+    // NO seleccionar automáticamente basado en URL al entrar a /chat
+    if (isSelectingRef.current) {
+      // Saltar mientras navegamos para no sobrescribir la selección en curso
+      return;
+    }
+    
+    // Solo sincronizar si ya hay una conversación activa y la URL no coincide
+    if (activeConversation && urlConversationId && activeConversation.id !== urlConversationId) {
       const sanitizedId = sanitizeConversationId(urlConversationId);
-      if (sanitizedId) {
-        const conversation = allConversations.find(conv => conv.id === sanitizedId);
-        if (conversation) {
-          setActiveConversation(conversation);
-        }
+      if (sanitizedId && sanitizedId === activeConversation.id) {
+        // La URL ya está correcta, no hacer nada
+        return;
       }
     }
+    
+    // NO seleccionar automáticamente conversación desde URL al cargar la página
+    // El usuario debe seleccionar manualmente
   }, [urlConversationId, activeConversation, allConversations, setActiveConversation]);
+
+  // Memoizar la función de sincronización con debouncing - OPTIMIZADO PARA REDUCIR PETICIONES
+  const debouncedSync = useCallback((reason?: string) => {
+    // Limpiar timeout anterior si existe
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+
+    // Evitar sincronizaciones muy frecuentes (mínimo 10 segundos entre sincronizaciones)
+    const now = Date.now();
+    if (now - lastSyncTime < 10000) {
+      console.log('🔄 useConversations - Sincronización ignorada (muy frecuente)');
+      return;
+    }
+
+    // Debouncing de 3000ms para reducir peticiones
+    syncTimeoutRef.current = setTimeout(() => {
+      if (isAuthenticated && !authLoading && isConnected) {
+        console.log('�� useConversations - Solicitando sincronización (delegada al contexto)...', { reason });
+        setLastSyncTime(Date.now());
+        // Delegar al contexto para evitar duplicados entre múltiples instancias
+        syncState();
+      }
+    }, 3000);
+  }, [isAuthenticated, authLoading, isConnected, syncState, lastSyncTime]);
+
+  // La sincronización inicial ahora es responsabilidad del WebSocketContext
+  useEffect(() => {
+    // No-op
+  }, [isAuthenticated, authLoading, isConnected]);
+
+  // ESCUCHAR RESPUESTA DE SINCRONIZACIÓN - OPTIMIZADO
+  const handleStateSynced = useCallback((data: unknown) => {
+    const syncData = data as { 
+      conversations: Conversation[]; 
+      messages: unknown[]; 
+      users: unknown[]; 
+      timestamp: string 
+    };
+    console.log('✅ useConversations - Estado sincronizado:', syncData);
+    
+    // Actualizar conversaciones con datos del servidor
+    if (syncData.conversations && syncData.conversations.length > 0) {
+      console.log('📋 useConversations - Actualizando conversaciones sincronizadas:', syncData.conversations.length);
+      setConversations(syncData.conversations);
+    }
+  }, [setConversations]);
+
+  useEffect(() => {
+    // Registrar listener para sincronización
+    on('state-synced', handleStateSynced);
+
+    return () => {
+      off('state-synced');
+    };
+  }, [on, off, handleStateSynced]);
+
+  // ESCUCHAR EVENTOS PERSONALIZADOS DE SINCRONIZACIÓN - OPTIMIZADO
+  const handleWebSocketStateSynced = useCallback((e: CustomEvent) => {
+    const syncData = e.detail as { 
+      conversations: Conversation[]; 
+      messages: unknown[]; 
+      users: unknown[]; 
+      timestamp: string 
+    };
+    console.log('✅ useConversations - Estado sincronizado desde WebSocket:', syncData);
+    
+    // Actualizar conversaciones con datos del servidor
+    if (syncData.conversations && syncData.conversations.length > 0) {
+      console.log('📋 useConversations - Actualizando conversaciones sincronizadas:', syncData.conversations.length);
+      setConversations(syncData.conversations);
+    }
+  }, [setConversations]);
+
+  const handleWebSocketSyncRequired = useCallback((e: CustomEvent) => {
+    const syncData = e.detail as { reason: string; timestamp: string };
+    console.log('🔄 useConversations - Sincronización requerida desde WebSocket:', syncData);
+    
+    // Re-sincronizar estado con debouncing
+    debouncedSync(syncData.reason);
+  }, [debouncedSync]);
+
+  useEffect(() => {
+    // Registrar listeners de eventos personalizados
+    window.addEventListener('websocket:state-synced', handleWebSocketStateSynced as EventListener);
+    window.addEventListener('websocket:sync-required', handleWebSocketSyncRequired as EventListener);
+
+    return () => {
+      // Limpiar listeners
+      window.removeEventListener('websocket:state-synced', handleWebSocketStateSynced as EventListener);
+      window.removeEventListener('websocket:sync-required', handleWebSocketSyncRequired as EventListener);
+    };
+  }, [handleWebSocketStateSynced, handleWebSocketSyncRequired]);
 
   // Memoizar handlers de eventos para evitar recreaciones
   const handleConversationEvent = useCallback((data: unknown) => {
@@ -262,7 +268,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     const eventData = data as { conversationId: string; message: { content: string; timestamp: string; sender: string } };
     console.log('📨 useConversations - Nuevo mensaje en conversación:', eventData);
     
-    // Actualizar conversación con el último mensaje
+    // Actualizar conversación con el último mensaje y flags de animación
     updateStoreConversation(eventData.conversationId, {
       lastMessage: {
         content: eventData.message.content,
@@ -272,8 +278,18 @@ export const useConversations = (filters: ConversationFilters = {}) => {
         timestamp: eventData.message.timestamp
       },
       lastMessageAt: eventData.message.timestamp,
-      unreadCount: (allConversations.find(c => c.id === eventData.conversationId)?.unreadCount || 0) + 1
+      unreadCount: (allConversations.find(c => c.id === eventData.conversationId)?.unreadCount || 0) + 1,
+      isNewMessage: true, // Flag para animación
+      hasNewMessage: true // Flag para punto verde
     });
+    
+    // Remover flags de animación después de un tiempo
+    setTimeout(() => {
+      updateStoreConversation(eventData.conversationId, {
+        isNewMessage: false,
+        hasNewMessage: false
+      });
+    }, 3000);
     
     // Refetch para obtener datos actualizados
     refetch();
@@ -416,7 +432,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     console.error('❌ useConversations - ID de conversación inválido:', conversationId);
   }, []);
 
-  // Función para seleccionar conversación con manejo mejorado de errores
+  // Función para seleccionar conversación con manejo mejorado de errores - CORREGIDA
   const selectConversation = useCallback((conversationId: string) => {
     const sanitizedId = sanitizeConversationId(conversationId);
     if (!sanitizedId) {
@@ -424,18 +440,54 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       return;
     }
 
+    // Si ya está seleccionada, no hacer nada
+    if (activeConversation?.id === sanitizedId) {
+      console.log('🔄 useConversations - Conversación ya seleccionada:', sanitizedId);
+      return;
+    }
+
     logConversationId(sanitizedId, 'selectConversation');
     const conversation = allConversations.find(conv => conv.id === sanitizedId);
     if (conversation) {
+      console.log('✅ useConversations - Seleccionando conversación:', conversation.customerName);
+      
+      // Activar flag para evitar que el efecto URL interfiera
+      isSelectingRef.current = true;
+      
+      // Seleccionar la conversación
       setActiveConversation(conversation);
       
       // NUEVO: Actualizar URL cuando se selecciona una conversación
       const encodedId = encodeConversationIdForUrl(sanitizedId);
       const newSearchParams = new URLSearchParams(location.search);
-      newSearchParams.set('conversation', encodedId);
-      navigate(`${location.pathname}?${newSearchParams.toString()}`, { replace: true });
+      const currentEncoded = new URLSearchParams(location.search).get('conversation');
+      
+      // Navegar solo si cambia realmente el parámetro
+      if (currentEncoded !== encodedId) {
+        newSearchParams.set('conversation', encodedId);
+        navigate(`${location.pathname}?${newSearchParams.toString()}`, { replace: true });
+      }
+
+      // Desarmar el flag tras una pausa más larga para asegurar que todo se estabilice
+      setTimeout(() => {
+        isSelectingRef.current = false;
+        console.log('🔄 useConversations - Flag de selección desactivado');
+      }, 500);
+    } else {
+      console.warn('⚠️ useConversations - Conversación no encontrada:', sanitizedId);
     }
-  }, [allConversations, setActiveConversation, handleInvalidConversationId, navigate, location.pathname, location.search]);
+  }, [allConversations, activeConversation?.id, setActiveConversation, handleInvalidConversationId, navigate, location.pathname, location.search]);
+
+  // NUEVO: Función para limpiar conversación activa
+  const clearActiveConversation = useCallback(() => {
+    console.log('🧹 useConversations - Limpiando conversación activa');
+    setActiveConversation(null);
+    
+    // Limpiar URL
+    const newSearchParams = new URLSearchParams(location.search);
+    newSearchParams.delete('conversation');
+    navigate(`${location.pathname}?${newSearchParams.toString()}`, { replace: true });
+  }, [setActiveConversation, navigate, location.pathname, location.search]);
 
   // Función para cargar más conversaciones (scroll infinito)
   const loadMoreConversations = useCallback(() => {
@@ -494,6 +546,9 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       if (syncTimeoutRef.current) {
         clearTimeout(syncTimeoutRef.current);
       }
+      // SOLUCIONADO: No limpiar conversación activa automáticamente
+      // Esto estaba causando problemas con la selección inicial
+      // La conversación se limpiará solo cuando el usuario navegue a otro módulo
     };
   }, []);
 
@@ -512,6 +567,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     
     // Acciones
     selectConversation,
+    clearActiveConversation,
     loadMoreConversations,
     refetch,
     updateConversation: updateConversationMutation.mutate,

@@ -96,12 +96,122 @@
 
 /* Focus styles */
 .focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+  outline: none;
+}
+
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #3b82f6, 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+/* ===== ANIMACIONES PARA NUEVOS MENSAJES ===== */
+
+/* 1. Animación de Slide-in para Nueva Conversación */
+@keyframes slideIn {
+  0% {
+    transform: translateX(-20px);
+    opacity: 0;
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+  50% {
+    transform: translateX(-5px);
+    background-color: rgba(59, 130, 246, 0.15);
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+    background-color: transparent;
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.6s ease-out;
+}
+
+/* 2. Animación de Badge de Mensajes No Leídos */
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0,0,0);
+  }
+  40%, 43% {
+    transform: translate3d(0,-8px,0);
+  }
+  70% {
+    transform: translate3d(0,-4px,0);
+  }
+  90% {
+    transform: translate3d(0,-2px,0);
+  }
+}
+
+.animate-bounce-custom {
+  animation: bounce 0.8s ease-in-out;
+}
+
+/* 3. Animación de Punto Verde de Actividad */
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.animate-ping-custom {
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* 4. Animación de Contador Incremental */
+@keyframes scaleIn {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.4s ease-out;
+}
+
+/* Animación de highlight para conversaciones con nuevos mensajes */
+@keyframes highlight {
+  0% {
+    background-color: rgba(59, 130, 246, 0.05);
+    border-left-color: rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-left-color: rgba(59, 130, 246, 0.6);
+  }
+  100% {
+    background-color: transparent;
+    border-left-color: transparent;
+  }
+}
+
+.animate-highlight {
+  animation: highlight 2s ease-out;
 }
 
 /* Button hover effects */
 .btn-hover {
-  @apply transition-all duration-300 hover:scale-105 active:scale-95;
+  transition: all 0.3s ease;
+}
+
+.btn-hover:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+.btn-hover:active {
+  transform: scale(0.95);
+  opacity: 0.8;
 }
 
 /* Text gradient animations */
@@ -140,21 +250,31 @@
 
 /* Form field animations */
 .form-field {
-  @apply transition-all duration-300;
+  transition: all 0.3s ease;
 }
 
 .form-field:focus {
-  @apply transform scale-105;
+  transform: scale(1.05);
 }
 
 /* Card hover effects */
 .card-hover {
-  @apply transition-all duration-300 hover:shadow-2xl hover:-translate-y-1;
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  transform: translateY(-0.25rem);
 }
 
 /* Social button animations */
 .social-btn {
-  @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5;
+  transition: all 0.2s ease;
+}
+
+.social-btn:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  transform: translateY(-0.125rem);
 }
 
 /* Responsive utilities */
@@ -204,7 +324,8 @@
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .auto-dark {
-    @apply bg-gray-900 text-white;
+    background-color: #111827;
+    color: #ffffff;
   }
 }
 
@@ -217,19 +338,24 @@
 
 /* Mejoras específicas para el login responsivo */
 .login-mobile-optimized {
-  @apply mobile-optimized;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .login-form-mobile {
-  @apply mobile-spacing;
+  padding: 12px;
+  margin: 8px 0;
 }
 
 .login-input-mobile {
-  @apply mobile-input;
+  font-size: 16px;
+  padding: 12px 16px;
 }
 
 .login-button-mobile {
-  @apply mobile-button;
+  min-height: 44px;
+  padding: 12px 20px;
+  font-size: 16px;
 }
 
 /* Ajustes para pantallas muy pequeñas */
@@ -269,59 +395,102 @@
 
 /* Estilos específicos para el módulo de chat responsivo */
 .chat-mobile-optimized {
-  @apply mobile-optimized;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .chat-mobile-touch {
-  @apply mobile-touch;
+  min-height: 44px;
+  min-width: 44px;
 }
 
 .chat-mobile-spacing {
-  @apply mobile-spacing;
+  padding: 12px;
+  margin: 8px 0;
 }
 
 /* Navegación móvil del chat */
 .chat-mobile-nav {
-  @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  z-index: 50;
 }
 
 .chat-mobile-nav-item {
-  @apply flex flex-col items-center p-2 rounded-lg transition-colors;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out;
 }
 
 .chat-mobile-nav-item.active {
-  @apply text-blue-600 bg-blue-50;
+  color: #2563eb;
+  background-color: #eff6ff;
 }
 
 .chat-mobile-nav-item:not(.active) {
-  @apply text-gray-600;
+  color: #4b5563;
 }
 
 /* Menú lateral móvil */
 .chat-mobile-menu {
-  @apply fixed inset-0 bg-black bg-opacity-50 z-50 lg:hidden;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 50;
+}
+
+@media (min-width: 1024px) {
+  .chat-mobile-menu {
+    display: none;
+  }
 }
 
 .chat-mobile-menu-content {
-  @apply absolute right-0 top-0 h-full w-64 bg-white shadow-xl;
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 16rem;
+  background-color: #ffffff;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 /* Contenido del chat móvil */
 .chat-mobile-content {
-  @apply h-full pb-16;
+  height: 100%;
+  padding-bottom: 4rem;
 }
 
 /* Headers móviles del chat */
 .chat-mobile-header {
-  @apply flex items-center justify-between p-4 border-b border-gray-200;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .chat-mobile-back-button {
-  @apply p-2 text-gray-600 hover:text-gray-900;
+  padding: 0.5rem;
+  color: #4b5563;
+  transition: color 0.15s ease-in-out;
+}
+
+.chat-mobile-back-button:hover {
+  color: #111827;
 }
 
 .chat-mobile-title {
-  @apply text-lg font-semibold text-gray-900;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
 }
 
 /* Optimizaciones para el chat en móviles */
@@ -387,7 +556,7 @@
 
 /* Animaciones para transiciones móviles */
 .chat-mobile-transition {
-  @apply transition-all duration-300 ease-in-out;
+  transition: all 0.3s ease-in-out;
 }
 
 .chat-mobile-slide-in {
@@ -431,5 +600,193 @@
     bottom: 0;
     background: white;
     z-index: 10;
+  }
+}
+
+/* ===== ESTILOS ADICIONALES PARA CHAT MÓVIL ===== */
+
+/* Mejoras para navegación móvil */
+.mobile-nav-item {
+  transition: all 0.2s ease-in-out;
+}
+
+.mobile-nav-item:active {
+  transform: scale(0.95);
+}
+
+/* Mejoras para headers móviles */
+.mobile-header {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  backdrop-filter: blur(10px);
+}
+
+/* Mejoras para cards de conversación */
+.conversation-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.conversation-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.conversation-card:active {
+  transform: translateY(0);
+}
+
+/* Mejoras para badges */
+.badge-pulse {
+  animation: badgePulse 2s infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+/* Mejoras para avatares */
+.avatar-gradient {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.avatar-gradient.inactive {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+/* Mejoras para inputs de búsqueda */
+.search-input {
+  background: rgba(249, 250, 251, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(229, 231, 235, 0.5);
+}
+
+.search-input:focus {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Mejoras para menú lateral */
+.mobile-menu-overlay {
+  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.mobile-menu-content {
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Mejoras para botones */
+.btn-modern {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-modern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-modern:hover::before {
+  left: 100%;
+}
+
+.btn-modern:active {
+  transform: scale(0.98);
+}
+
+/* Mejoras para scroll */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.7);
+}
+
+/* Mejoras para estados de carga */
+.loading-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Mejoras para notificaciones */
+.notification-badge {
+  animation: notificationPop 0.3s ease-out;
+}
+
+@keyframes notificationPop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Mejoras para responsive */
+@media (max-width: 640px) {
+  .mobile-optimized-text {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  
+  .mobile-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .mobile-safe-area {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Mejoras para dark mode (futuro) */
+@media (prefers-color-scheme: dark) {
+  .dark-mode-support {
+    background-color: #1f2937;
+    color: #f9fafb;
   }
 }

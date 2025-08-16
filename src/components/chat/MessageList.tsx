@@ -32,7 +32,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   onDeleteMessage
 }) => {
   const renderMessageGroup = (group: MessageGroup) => (
-    <div key={group.date} className="mb-6">
+    <div key={group.key || group.date} className="mb-6">
       {/* Separador de fecha */}
       <div className="flex items-center justify-center my-4">
         <div className="bg-gray-100 px-3 py-1 rounded-full">

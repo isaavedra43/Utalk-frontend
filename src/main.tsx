@@ -11,41 +11,40 @@ import consoleExporter from './utils/consoleExporter';
 // Iniciar la captura de logs automáticamente al cargar la aplicación
 consoleExporter.startCapture();
 
+// Iniciar la captura de peticiones de red para detectar rate limit
+consoleExporter.startNetworkCapture();
+
 // Validar configuración al iniciar
 logger.systemInfo('Iniciando aplicación UTALK', {
-  version: import.meta.env.VITE_APP_VERSION || '1.0.0',
-  environment: import.meta.env.VITE_NODE_ENV || 'development',
-  debug: import.meta.env.VITE_DEBUG === 'true',
+  version: '1.0.0',
+  environment: import.meta.env.MODE,
+  debug: import.meta.env.DEV,
   timestamp: new Date().toISOString()
 });
 
-// Validar configuración
-const { isValid, errors } = logger.validateConfiguration();
-if (!isValid) {
-  logger.configCritical('Errores de configuración detectados al iniciar', new Error('Configuración inválida'), {
-    errors,
-    environment: import.meta.env.VITE_NODE_ENV,
-    timestamp: new Date().toISOString()
-  });
-} else {
-  logger.configInfo('Configuración válida al iniciar', {
-    allSystemsReady: true,
-    timestamp: new Date().toISOString()
-  });
-}
-
-// Configurar QueryClient
+// Configurar QueryClient con retry y cache optimizados
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      retry: (failureCount, error) => {
+        // No reintentar si es un error de autenticación
+        if (error && typeof error === 'object' && 'response' in error) {
+          const apiError = error as { response?: { status?: number } };
+          if (apiError.response?.status === 401) {
+            return false;
+          }
+        }
+        return failureCount < 3;
+      },
       staleTime: 5 * 60 * 1000, // 5 minutos
-      retry: 1,
+      gcTime: 10 * 60 * 1000, // 10 minutos
       refetchOnWindowFocus: false,
+      refetchOnReconnect: true
     },
     mutations: {
-      retry: 1,
-    },
-  },
+      retry: 1
+    }
+  }
 });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

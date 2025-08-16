@@ -2,6 +2,8 @@ import React from 'react';
 import { Check, CheckCheck, RefreshCw, X } from 'lucide-react';
 import type { Message } from '../../types';
 import { MessageContent } from './MessageContent';
+import { format, isToday } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface MessageBubbleProps {
   message: Message;
@@ -68,8 +70,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   };
 
   const formatTime = () => {
-    // Simular tiempo relativo
-    return 'hace un momento';
+    try {
+      const date = new Date(message.createdAt);
+      if (isNaN(date.getTime())) return '';
+      if (isToday(date)) return format(date, 'p', { locale: es });
+      return format(date, 'Pp', { locale: es });
+    } catch {
+      return '';
+    }
   };
 
   const isOutbound = message.direction === 'outbound';

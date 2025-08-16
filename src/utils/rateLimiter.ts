@@ -17,6 +17,8 @@ interface RateLimitEntry {
 class RateLimiter {
   private requests: Map<string, RateLimitEntry[]> = new Map();
   private configs: Map<string, RateLimitConfig> = new Map();
+  // NUEVO: Backoff por endpoint para respetar Retry-After del backend
+  private backoffUntilMsByKey: Map<string, number> = new Map();
 
   constructor() {
     // Configuración por defecto
@@ -58,6 +60,14 @@ class RateLimiter {
     const config = this.getConfig(endpoint);
     const now = Date.now();
     const key = this.getKey(endpoint);
+
+    // Respetar backoff explícito (Retry-After)
+    const backoffUntil = this.backoffUntilMsByKey.get(key) || 0;
+    if (now < backoffUntil) {
+      const remaining = backoffUntil - now;
+      console.warn('⏳ Backoff activo por Retry-After, bloqueando petición:', endpoint, { remainingMs: remaining });
+      return false;
+    }
 
     // Obtener entradas existentes
     let entries = this.requests.get(key) || [];
@@ -102,6 +112,16 @@ class RateLimiter {
     }
     
     this.requests.set(key, entries);
+  }
+
+  /**
+   * Establece un periodo de backoff (en ms) para un endpoint después de un 429
+   */
+  public setBackoff(endpoint: string, backoffMs: number): void {
+    const key = this.getKey(endpoint);
+    const until = Date.now() + Math.max(0, backoffMs);
+    this.backoffUntilMsByKey.set(key, until);
+    console.warn('⏳ Backoff configurado por Retry-After:', { endpoint: key, backoffMs });
   }
 
   /**
@@ -168,7 +188,8 @@ class RateLimiter {
         limit: config.limit,
         current: totalRequests,
         remaining: Math.max(0, config.limit - totalRequests),
-        window: config.window
+        window: config.window,
+        backoffRemainingMs: Math.max(0, (this.backoffUntilMsByKey.get(key) || 0) - now)
       };
     }
     

@@ -3,8 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext'
 import { WebSocketProvider } from './contexts/WebSocketContext'
 import { AuthModule } from './modules/auth'
-import { TeamModule } from './modules/team'
-import { NotificationModule } from './modules/notifications'
 import { MainLayout } from './components/layout/MainLayout'
 // import { DebugPanel } from './components/DebugPanel' // DEBUGPANEL DESHABILITADO TEMPORALMENTE
 
@@ -58,7 +56,7 @@ const DashboardPage: React.FC = () => {
 
 // Componente para el módulo de equipo
 const TeamPage: React.FC = () => {
-  return <TeamModule />;
+  return <MainLayout />;
 };
 
 // Componente para el módulo de clientes
@@ -68,7 +66,7 @@ const ClientsPage: React.FC = () => {
 
 // Componente para el módulo de notificaciones
 const NotificationsPage: React.FC = () => {
-  return <NotificationModule />;
+  return <MainLayout />;
 };
 
 function App() {

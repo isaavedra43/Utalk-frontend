@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
+import { format, isSameDay } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { useChat } from '../../hooks/useChat';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
@@ -9,6 +11,7 @@ import { sanitizeConversationId } from '../../utils/conversationUtils';
 
 import type { Conversation as ConversationType, Message as MessageType } from '../../types/index';
 import './ChatComponent.css';
+import { MessageSquare } from 'lucide-react';
 
 export const ChatComponent = ({ conversationId }: { conversationId?: string }) => {
   const location = useLocation();
@@ -23,6 +26,7 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
     }
     return '';
   })();
+
   const {
     messages,
     conversation,
@@ -44,21 +48,6 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
 
   const [inputValue, setInputValue] = useState('');
 
-
-
-  // Marcar mensajes como leídos cuando se ven
-  useEffect(() => {
-    if (messages.length > 0) {
-      const unreadMessages = messages
-        .filter((msg) => msg.direction === 'inbound' && msg.status !== 'read')
-        .map((msg) => msg.id);
-
-      if (unreadMessages.length > 0) {
-        markAsRead(unreadMessages);
-      }
-    }
-  }, [messages, markAsRead]);
-
   // NUEVO: Logs para debugging del renderizado (REDUCIDO para evitar spam)
   // Solo mostrar cuando cambien valores importantes
   const prevRenderState = useRef({ isConnected, isJoined, loading, error, messagesCount: messages.length });
@@ -73,23 +62,176 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
       prevState.isJoined !== currentState.isJoined ||
       prevState.loading !== currentState.loading ||
       prevState.error !== currentState.error ||
-      Math.abs(prevState.messagesCount - currentState.messagesCount) > 10 // Solo si cambian más de 10 mensajes
+      Math.abs(prevState.messagesCount - currentState.messagesCount) > 5
     ) {
-      console.log('🎨 ChatComponent - Estado de renderizado:', {
-        isConnected,
-        isJoined,
-        loading,
-        error,
-        messagesCount: messages.length,
-        conversationId: effectiveConversationId
+      console.log('📊 ChatComponent - Estado actualizado:', {
+        conversationId: effectiveConversationId,
+        isConnected: currentState.isConnected,
+        isJoined: currentState.isJoined,
+        loading: currentState.loading,
+        error: currentState.error,
+        messagesCount: currentState.messagesCount
       });
       prevRenderState.current = currentState;
     }
   }, [isConnected, isJoined, loading, error, messages.length, effectiveConversationId]);
 
-  // Manejar envío de mensaje
+  // Marcar mensajes como leídos cuando se ven
+  useEffect(() => {
+    if (messages.length > 0) {
+      const unreadMessages = messages
+        .filter((msg) => msg.direction === 'inbound' && msg.status !== 'read')
+        .map((msg) => msg.id);
+
+      if (unreadMessages.length > 0) {
+        markAsRead(unreadMessages);
+      }
+    }
+  }, [messages, markAsRead]);
+
+  // Conversión de mensajes (declarada arriba para no romper el orden de hooks)
+  const convertMessages = useCallback((msgs: { id: string; content: string; direction: 'inbound' | 'outbound'; timestamp?: string; status: string; type: string }[]): MessageType[] => {
+    console.debug('🔄 convertMessages - Iniciando conversión de', msgs.length, 'mensajes');
+    
+    const convertedMessages = msgs.map((msg, index) => {
+      try {
+        if (!msg.id || !msg.content) {
+          console.warn('⚠️ convertMessages - Mensaje inválido en índice', index, msg);
+          return null;
+        }
+
+        let mappedStatus: MessageType['status'];
+        switch (msg.status) {
+          case 'queued': mappedStatus = 'queued'; break;
+          case 'received': mappedStatus = 'received'; break;
+          case 'sent': mappedStatus = 'sent'; break;
+          case 'delivered': mappedStatus = 'delivered'; break;
+          case 'read': mappedStatus = 'read'; break;
+          case 'failed': mappedStatus = 'failed'; break;
+          default:
+            console.warn('⚠️ convertMessages - Status desconocido:', msg.status, 'usando "sent"');
+            mappedStatus = 'sent';
+        }
+
+        let mappedType: MessageType['type'];
+        switch (msg.type) {
+          case 'text':
+          case 'image':
+          case 'document':
+          case 'location':
+          case 'audio':
+          case 'voice':
+          case 'video':
+          case 'sticker':
+            mappedType = msg.type; break;
+          default:
+            console.warn('⚠️ convertMessages - Tipo desconocido:', msg.type, 'usando "text"');
+            mappedType = 'text';
+        }
+
+        const convertedMessage: MessageType = {
+          id: msg.id,
+          conversationId: effectiveConversationId,
+          content: msg.content,
+          direction: msg.direction,
+          createdAt: msg.timestamp || new Date().toISOString(),
+          metadata: {
+            agentId: 'system',
+            ip: '127.0.0.1',
+            requestId: 'unknown',
+            sentBy: 'system',
+            source: 'web',
+            timestamp: msg.timestamp || new Date().toISOString()
+          },
+          status: mappedStatus,
+          type: mappedType,
+          updatedAt: msg.timestamp || new Date().toISOString()
+        };
+
+        return convertedMessage;
+      } catch (error) {
+        console.error('❌ convertMessages - Error convirtiendo mensaje en índice', index, ':', error, msg);
+        return null;
+      }
+    }).filter(Boolean) as MessageType[];
+
+    console.debug('✅ convertMessages - Conversión completada:', {
+      mensajesOriginales: msgs.length,
+      mensajesConvertidos: convertedMessages.length,
+      mensajesFiltrados: convertedMessages.filter(Boolean).length
+    });
+
+    return convertedMessages;
+  }, [effectiveConversationId]);
+
+  const convertedMessages = useMemo(() => convertMessages(messages), [messages, convertMessages]);
+
+  // Ordenar mensajes por fecha ascendente y agrupar por día
+  const { sortedMessages, groupedMessages } = useMemo(() => {
+    // Asegurar timestamps válidos y ordenar ascendente (antiguos arriba, nuevos abajo)
+    const sorted = [...convertedMessages].sort((a, b) => {
+      const ta = new Date(a.createdAt).getTime();
+      const tb = new Date(b.createdAt).getTime();
+      return ta - tb;
+    });
+
+    // Agrupar por día natural con claves únicas
+    const groups: { date: string; messages: typeof sorted; key: string }[] = [];
+    for (const msg of sorted) {
+      const msgDate = new Date(msg.createdAt);
+      const groupLabel = format(msgDate, 'EEEE', { locale: es }); // ej. sábado, lunes
+      const dateKey = format(msgDate, 'yyyy-MM-dd'); // Clave única para evitar duplicados
+      const lastGroup = groups[groups.length - 1];
+      if (!lastGroup) {
+        groups.push({ 
+          date: groupLabel, 
+          messages: [msg],
+          key: dateKey // Clave única para React
+        });
+        continue;
+      }
+      const lastMsg = lastGroup.messages[lastGroup.messages.length - 1];
+      const lastDate = new Date(lastMsg.createdAt);
+      if (isSameDay(msgDate, lastDate)) {
+        lastGroup.messages.push(msg);
+      } else {
+        groups.push({ 
+          date: groupLabel, 
+          messages: [msg],
+          key: dateKey // Clave única para React
+        });
+      }
+    }
+
+    return { sortedMessages: sorted, groupedMessages: groups };
+  }, [convertedMessages]);
+
+  // NUEVO: Mostrar estado cuando no hay conversación seleccionada
+  if (!effectiveConversationId || !effectiveConversationId.trim()) {
+    return (
+      <div className="chat-container">
+        <div className="chat-no-conversation">
+          <div className="flex items-center justify-center h-full p-4">
+            <div className="text-center">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Selecciona una conversación
+              </h3>
+              <p className="text-gray-500 text-sm">
+                Elige una conversación para comenzar a chatear
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Función para enviar mensaje
   const handleSend = async () => {
-    if (!inputValue.trim() || sending) return;
+    if (!inputValue.trim() || !isConnected || !isJoined) return;
     
     const messageContent = inputValue.trim();
     setInputValue('');
@@ -224,100 +366,6 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
     };
   };
 
-  // Función para convertir mensajes
-  const convertMessages = (msgs: { id: string; content: string; direction: 'inbound' | 'outbound'; timestamp?: string; status: string; type: string }[]): MessageType[] => {
-    console.log('🔄 convertMessages - Iniciando conversión de', msgs.length, 'mensajes');
-    
-    const convertedMessages = msgs.map((msg, index) => {
-      try {
-        // Validar que el mensaje tenga los campos requeridos
-        if (!msg.id || !msg.content) {
-          console.warn('⚠️ convertMessages - Mensaje inválido en índice', index, msg);
-          return null;
-        }
-
-        // Mapear status del API a status del componente
-        let mappedStatus: MessageType['status'];
-        switch (msg.status) {
-          case 'queued':
-            mappedStatus = 'queued';
-            break;
-          case 'received':
-            mappedStatus = 'received';
-            break;
-          case 'sent':
-            mappedStatus = 'sent';
-            break;
-          case 'delivered':
-            mappedStatus = 'delivered';
-            break;
-          case 'read':
-            mappedStatus = 'read';
-            break;
-          case 'failed':
-            mappedStatus = 'failed';
-            break;
-          default:
-            console.warn('⚠️ convertMessages - Status desconocido:', msg.status, 'usando "sent"');
-            mappedStatus = 'sent';
-        }
-
-        // Mapear tipo del API a tipo del componente
-        let mappedType: MessageType['type'];
-        switch (msg.type) {
-          case 'text':
-          case 'image':
-          case 'document':
-          case 'location':
-          case 'audio':
-          case 'voice':
-          case 'video':
-          case 'sticker':
-            mappedType = msg.type;
-            break;
-          default:
-            console.warn('⚠️ convertMessages - Tipo desconocido:', msg.type, 'usando "text"');
-            mappedType = 'text';
-        }
-
-        const convertedMessage: MessageType = {
-          id: msg.id,
-          conversationId: effectiveConversationId,
-          content: msg.content,
-          direction: msg.direction,
-          createdAt: msg.timestamp || new Date().toISOString(),
-          metadata: {
-            agentId: 'system',
-            ip: '127.0.0.1',
-            requestId: 'unknown',
-            sentBy: 'system',
-            source: 'web',
-            timestamp: msg.timestamp || new Date().toISOString()
-          },
-          status: mappedStatus,
-          type: mappedType,
-          updatedAt: msg.timestamp || new Date().toISOString()
-        };
-
-        // ELIMINADO: Log individual para cada mensaje (causaba spam)
-        // console.log('✅ convertMessages - Mensaje convertido:', { ... });
-
-        return convertedMessage;
-      } catch (error) {
-        console.error('❌ convertMessages - Error convirtiendo mensaje en índice', index, ':', error, msg);
-        return null;
-      }
-    }).filter(Boolean) as MessageType[]; // Remover mensajes nulos
-
-    console.log('✅ convertMessages - Conversión completada:', {
-      mensajesOriginales: msgs.length,
-      mensajesConvertidos: convertedMessages.length,
-      mensajesFiltrados: convertedMessages.filter(Boolean).length
-    });
-
-    return convertedMessages;
-  };
-
   const convertTypingUsers = (users: Set<string>) => {
     return Array.from(users).map(userId => ({
       userId,
@@ -333,7 +381,8 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
       
       <div className="chat-messages">
         <MessageList 
-          messages={convertMessages(messages)}
+          messages={sortedMessages}
+          messageGroups={groupedMessages}
           onRetryMessage={retryMessage}
           onDeleteMessage={deleteOptimisticMessage}
         />

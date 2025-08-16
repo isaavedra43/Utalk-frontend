@@ -25,9 +25,11 @@ export const MainLayout: React.FC = () => {
   const currentModule = getCurrentModule();
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden">
-      {/* Sidebar izquierdo - Siempre presente */}
-      <LeftSidebar />
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* Sidebar izquierdo - Oculto en móviles, visible en desktop */}
+      <div className="hidden lg:block">
+        <LeftSidebar />
+      </div>
       
       {/* Contenido principal */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">

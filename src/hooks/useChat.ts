@@ -1,15 +1,18 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useWebSocketContext } from '../contexts/useWebSocketContext';
+import { useAuthContext } from '../contexts/useAuthContext';
 import { 
   sanitizeConversationId, 
   normalizeConversationId,
   logConversationId, 
-  encodeConversationIdForUrl 
+  encodeConversationIdForUrl,
+  extractPhonesFromConversationId
 } from '../utils/conversationUtils';
 import { messagesCache, generateCacheKey } from '../utils/cacheUtils';
 import { retryWithBackoff, generateOperationKey, rateLimitBackoff } from '../utils/retryUtils';
 import api from '../services/api';
+import { messagesService } from '../services/messages';
 
 interface Message {
   id: string;
@@ -20,6 +23,8 @@ interface Message {
   type: string;
   metadata?: Record<string, unknown>;
 }
+
+
 
 interface Conversation {
   id: string;
@@ -33,6 +38,7 @@ interface Conversation {
 export const useChat = (conversationId: string) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { backendUser } = useAuthContext();
   
   const {
     socket,
@@ -47,9 +53,13 @@ export const useChat = (conversationId: string) => {
     off
   } = useWebSocketContext();
 
+  // Estabilizar leaveConversation para cumplir exhaustiveness del linter
+  const leaveConversationStableRef = useRef(leaveConversation);
+  useEffect(() => { leaveConversationStableRef.current = leaveConversation; }, [leaveConversation]);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversation, setConversation] = useState<Conversation | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // CAMBIADO: Inicializar como false
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -58,17 +68,49 @@ export const useChat = (conversationId: string) => {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const optimisticMessagesRef = useRef<Set<string>>(new Set());
-  const joinAttemptedRef = useRef(false); // NUEVO: Flag para evitar múltiples intentos de join
-  const cleanupRef = useRef(false); // NUEVO: Flag para evitar cleanup múltiple
-  
-  // Cargar mensajes iniciales con cache y retry
+  const joinAttemptedRef = useRef(false);
+  const cleanupRef = useRef(false);
+  const currentConversationIdRef = useRef<string | null>(null); // NUEVO: Trackear conversationId actual
+  const sendMessageInProgressRef = useRef(false); // SOLUCIONADO: Protección contra doble envío
+
+  // NUEVO: Resetear estado cuando cambia conversationId con señal anti-carrera
+  const activeRequestTokenRef = useRef<number>(0);
+  useEffect(() => {
+    if (currentConversationIdRef.current !== conversationId) {
+      console.log('🔄 useChat - Cambio de conversación detectado:', {
+        anterior: currentConversationIdRef.current,
+        nueva: conversationId
+      });
+
+      const token = Date.now();
+      activeRequestTokenRef.current = token;
+
+      // Limpiar estado anterior
+      setMessages([]);
+      setConversation(null);
+      setLoading(false);
+      setError(null);
+      setIsJoined(false);
+      joinAttemptedRef.current = false;
+      cleanupRef.current = false;
+
+      currentConversationIdRef.current = conversationId;
+    }
+  }, [conversationId]);
+
+  // CORREGIDO: Solo cargar mensajes si hay conversationId válido
   const loadMessages = useCallback(async () => {
-    if (!conversationId) return;
+    if (!conversationId || !conversationId.trim()) {
+      console.log('ℹ️ useChat - No hay conversationId, saltando carga de mensajes');
+      setLoading(false);
+      return;
+    }
 
     // Validar y sanitizar el ID de conversación
     const sanitizedId = sanitizeConversationId(conversationId);
     if (!sanitizedId) {
       setError(`ID de conversación inválido: ${conversationId}`);
+      setLoading(false);
       return;
     }
 
@@ -102,10 +144,10 @@ export const useChat = (conversationId: string) => {
         rateLimitBackoff
       );
       
-      const loadedMessages = response.data.data.messages || [];
+      const loadedMessages = response.data?.data?.messages ?? [];
       
-      // Guardar en cache
-      messagesCache.set(cacheKey, loadedMessages, 60000); // 1 minuto de cache
+      // Guardar en cache por 1 minuto
+      messagesCache.set(cacheKey, loadedMessages, 60000);
       
       // REDUCIDO: Log menos frecuente para evitar spam
       // console.log('📋 useChat - Mensajes cargados desde API:', {
@@ -140,7 +182,10 @@ export const useChat = (conversationId: string) => {
 
   // Cargar conversación con cache y retry
   const loadConversation = useCallback(async () => {
-    if (!conversationId) return;
+    if (!conversationId || !conversationId.trim()) {
+      console.log('ℹ️ useChat - No hay conversationId, saltando carga de conversación');
+      return;
+    }
 
     // Validar y sanitizar el ID de conversación
     const sanitizedId = sanitizeConversationId(conversationId);
@@ -174,7 +219,7 @@ export const useChat = (conversationId: string) => {
         rateLimitBackoff
       );
       
-      const conversationData = response.data;
+      const conversationData = response.data?.data;
       
       // Guardar en cache
       messagesCache.set(cacheKey, conversationData, 300000); // 5 minutos de cache
@@ -186,79 +231,89 @@ export const useChat = (conversationId: string) => {
     }
   }, [conversationId]);
 
-  // SOLUCIONADO: Unirse a conversación solo una vez cuando se conecta
+  // CORREGIDO: Unirse a conversación solo cuando hay conversationId válido
   useEffect(() => {
-    // Solo ejecutar si está conectado, hay conversationId, no está unido y no se ha intentado antes
-    if (isConnected && conversationId && !isJoined && !joinAttemptedRef.current) {
-      // Validar y sanitizar el ID de conversación
-      const sanitizedId = sanitizeConversationId(conversationId);
-      if (!sanitizedId) {
-        // NUEVO: Manejo mejorado de IDs inválidos sin spam de errores
-        console.warn('⚠️ useChat - ID de conversación inválido, intentando normalizar:', conversationId);
-        
-        // Intentar normalizar el ID
-        const normalizedId = normalizeConversationId(conversationId);
-        if (normalizedId) {
-          console.log('✅ useChat - ID normalizado exitosamente:', normalizedId);
-          // Continuar con el ID normalizado
-          joinAttemptedRef.current = true;
+    // SOLUCIONADO: Agregar delay para permitir que WebSocket se conecte después del refresh
+    const timeoutId = setTimeout(() => {
+      // Solo ejecutar si está conectado, hay conversationId válido, no está unido y no se ha intentado antes
+      if (isConnected && conversationId && conversationId.trim() && !isJoined && !joinAttemptedRef.current) {
+        // Validar y sanitizar el ID de conversación
+        const sanitizedId = sanitizeConversationId(conversationId);
+        if (!sanitizedId) {
+          // NUEVO: Manejo mejorado de IDs inválidos sin spam de errores
+          console.warn('⚠️ useChat - ID de conversación inválido, intentando normalizar:', conversationId);
           
-          const joinOperation = async () => {
-            try {
-              console.log('🔗 useChat - Uniéndose a conversación normalizada:', normalizedId);
-              logConversationId(normalizedId, 'joinConversation');
-              
-              joinConversation(normalizedId);
-              await loadMessages();
-              await loadConversation();
-              
-              console.log('✅ useChat - Mensajes cargados, estableciendo isJoined como true');
-              setIsJoined(true);
-              
-            } catch (error) {
-              console.error('❌ useChat - Error uniéndose a conversación normalizada:', error);
-              setError('Error uniéndose a conversación');
-              joinAttemptedRef.current = false;
-            }
-          };
+          // Intentar normalizar el ID
+          const normalizedId = normalizeConversationId(conversationId);
+          if (normalizedId) {
+            console.log('✅ useChat - ID normalizado exitosamente:', normalizedId);
+            // Continuar con el ID normalizado
+            joinAttemptedRef.current = true;
+            
+            const joinOperation = async () => {
+              try {
+                console.log('🔗 useChat - Uniéndose a conversación normalizada:', normalizedId);
+                logConversationId(normalizedId, 'joinConversation');
+                
+                joinConversation(normalizedId);
+                await loadMessages();
+                await loadConversation();
+                
+                console.log('✅ useChat - Mensajes cargados, estableciendo isJoined como true');
+                setIsJoined(true);
+                
+              } catch (error) {
+                console.error('❌ useChat - Error uniéndose a conversación normalizada:', error);
+                setError('Error uniéndose a conversación');
+                joinAttemptedRef.current = false;
+              }
+            };
 
-          joinOperation();
-          return;
-        } else {
-          console.error('❌ useChat - ID de conversación inválido y no se puede normalizar:', conversationId);
-          setError(`ID de conversación inválido: ${conversationId}`);
-          return;
+            joinOperation();
+            return;
+          } else {
+            console.error('❌ useChat - ID de conversación inválido y no se puede normalizar:', conversationId);
+            setError(`ID de conversación inválido: ${conversationId}`);
+            return;
+          }
         }
+
+        joinAttemptedRef.current = true; // Marcar como intentado
+
+        const joinOperation = async () => {
+          try {
+            console.log('🔗 useChat - Uniéndose a conversación:', sanitizedId);
+            logConversationId(sanitizedId, 'joinConversation');
+            
+            // Unirse sin throttling para evitar el ciclo
+            joinConversation(sanitizedId);
+            
+            // Cargar datos después de unirse
+            const startToken = activeRequestTokenRef.current;
+            await loadMessages();
+            if (startToken !== activeRequestTokenRef.current) return; // Ignorar si cambió la conversación
+            await loadConversation();
+            
+            // SOLUCIONADO: Establecer isJoined después de cargar los mensajes exitosamente
+            // Esto asegura que el componente se renderice correctamente
+            console.log('✅ useChat - Mensajes cargados, estableciendo isJoined como true');
+            setIsJoined(true);
+            
+          } catch (error) {
+            console.error('❌ useChat - Error uniéndose a conversación:', error);
+            setError('Error uniéndose a conversación');
+            joinAttemptedRef.current = false; // Resetear flag en caso de error
+          }
+        };
+
+        joinOperation();
       }
+    }, 1000); // SOLUCIONADO: Delay de 1 segundo para permitir que WebSocket se conecte
 
-      joinAttemptedRef.current = true; // Marcar como intentado
-
-      const joinOperation = async () => {
-        try {
-          console.log('🔗 useChat - Uniéndose a conversación:', sanitizedId);
-          logConversationId(sanitizedId, 'joinConversation');
-          
-          // Unirse sin throttling para evitar el ciclo
-          joinConversation(sanitizedId);
-          
-          // Cargar datos después de unirse
-          await loadMessages();
-          await loadConversation();
-          
-          // SOLUCIONADO: Establecer isJoined después de cargar los mensajes exitosamente
-          // Esto asegura que el componente se renderice correctamente
-          console.log('✅ useChat - Mensajes cargados, estableciendo isJoined como true');
-          setIsJoined(true);
-          
-        } catch (error) {
-          console.error('❌ useChat - Error uniéndose a conversación:', error);
-          setError('Error uniéndose a conversación');
-          joinAttemptedRef.current = false; // Resetear flag en caso de error
-        }
-      };
-
-      joinOperation();
-    }
+    // SOLUCIONADO: Limpiar timeout al desmontar
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [isConnected, conversationId, isJoined, joinConversation, loadMessages, loadConversation]);
 
   // NUEVO: Mejorar el manejo de estado cuando los mensajes se cargan exitosamente
@@ -281,23 +336,39 @@ export const useChat = (conversationId: string) => {
   //   });
   // }, [messages.length, isJoined, loading, conversationId]);
 
-  // SOLUCIONADO: Salir de conversación solo al desmontar
+  // SOLUCIONADO/ROBUSTO: Salir de conversación solo al desmontar real (ignorar cleanup de Strict Mode)
+  const cleanupRunCountRef = useRef(0);
+  const lastConversationIdRef = useRef<string | null>(null);
+  const isConnectedRef = useRef(false);
+
+  useEffect(() => { lastConversationIdRef.current = conversationId || null; }, [conversationId]);
+  useEffect(() => { isConnectedRef.current = isConnected; }, [isConnected]);
+
   useEffect(() => {
     return () => {
-      if (conversationId && isConnected && !cleanupRef.current) {
+      // En desarrollo con Strict Mode, React ejecuta un "unmount simulado" inmediatamente.
+      if (import.meta.env.DEV) {
+        cleanupRunCountRef.current += 1;
+        if (cleanupRunCountRef.current === 1) {
+          // Primera limpieza: es el ciclo simulado. No salir de la conversación.
+          return;
+        }
+      }
+
+      const currentId = lastConversationIdRef.current;
+      const currentConnected = isConnectedRef.current;
+
+      if (currentId && currentConnected && !cleanupRef.current) {
         cleanupRef.current = true; // Marcar como que ya se limpió
-        
-        // Validar y sanitizar el ID de conversación
-        const sanitizedId = sanitizeConversationId(conversationId);
+
+        const sanitizedId = sanitizeConversationId(currentId);
         if (sanitizedId) {
           const leaveOperation = async () => {
             try {
               console.log('🔌 useChat - Saliendo de conversación:', sanitizedId);
               logConversationId(sanitizedId, 'leaveConversation');
               setIsJoined(false);
-              
-              // Salir sin throttling para evitar el ciclo
-              leaveConversation(sanitizedId);
+              leaveConversationStableRef.current(sanitizedId);
             } catch (error) {
               console.error('❌ useChat - Error saliendo de conversación:', error);
             }
@@ -307,7 +378,7 @@ export const useChat = (conversationId: string) => {
         }
       }
     };
-  }, [conversationId, leaveConversation, isConnected]);
+  }, []);
 
   // ESCUCHAR CONFIRMACIONES DE CONVERSACIÓN - CRÍTICO
   useEffect(() => {
@@ -466,7 +537,7 @@ export const useChat = (conversationId: string) => {
     return () => {
       // Solo limpiar si el componente se está desmontando
       if (cleanupRef.current) {
-        console.log('🎧 useChat - Limpiando listeners para conversación:', conversationId);
+        console.debug('🎧 useChat - Limpiando listeners para conversación:', conversationId);
         // Limpiar todos los listeners
         off('new-message');
         off('message-sent');
@@ -480,8 +551,33 @@ export const useChat = (conversationId: string) => {
   }, [socket, conversationId, on, off, isConnected]); // Removido isJoined de las dependencias
 
   // Enviar mensaje con optimistic updates y retry
-  const sendMessage = useCallback(async (content: string, type: string = 'text', metadata: Record<string, unknown> = {}) => {
+  const sendMessage = useCallback(async (
+    content: string,
+    type: 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker' = 'text',
+    metadata: Record<string, unknown> = {}
+  ) => {
     if (!conversationId || !content.trim() || !isJoined) return;
+    
+    // SOLUCIONADO: Protección más robusta contra doble envío
+    if (sending || sendMessageInProgressRef.current) {
+      console.log('⚠️ useChat - Mensaje ya se está enviando, ignorando envío duplicado');
+      return;
+    }
+    
+    // SOLUCIONADO: Marcar como en progreso
+    sendMessageInProgressRef.current = true;
+    
+    // SOLUCIONADO: Verificar si ya existe un mensaje idéntico reciente
+    const recentMessage = messages.find(msg => 
+      msg.content === content && 
+      msg.direction === 'outbound' &&
+      msg.timestamp && new Date().getTime() - new Date(msg.timestamp).getTime() < 5000 // Últimos 5 segundos
+    );
+    
+    if (recentMessage) {
+      console.log('⚠️ useChat - Mensaje idéntico enviado recientemente, ignorando:', content);
+      return;
+    }
 
     // Validar y sanitizar el ID de conversación
     const sanitizedId = sanitizeConversationId(conversationId);
@@ -490,39 +586,49 @@ export const useChat = (conversationId: string) => {
       return;
     }
 
-    // CORREGIDO: Codificar conversationId para URL
-    const encodedId = encodeConversationIdForUrl(sanitizedId);
-
     try {
       setSending(true);
       setError(null);
       
       logConversationId(sanitizedId, 'sendMessage');
       
-      // Usar retry con backoff para enviar mensaje
-      const operationKey = generateOperationKey('sendMessage', { conversationId: sanitizedId });
-      const response = await retryWithBackoff(
-        () => api.post(`/api/messages?conversationId=${encodedId}`, {
-          content,
-          type,
-          metadata
-        }),
-        operationKey,
-        rateLimitBackoff
-      );
-      
-      const realMessage = response.data;
-      
-      // Actualizar mensaje optimista con datos reales
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === realMessage.id 
-            ? { ...realMessage, status: 'sent' }
-            : msg
-        )
-      );
+      // Construir identificadores requeridos por el backend
+      const phones = extractPhonesFromConversationId(sanitizedId);
+      const customerPhone = phones?.phone1 || '';
+      const senderIdentifier = `agent:${backendUser?.email || 'unknown'}`;
+      const recipientIdentifier = `whatsapp:${customerPhone}`;
 
-      // Remover de mensajes optimistas
+      // Enviar 1 sola vez sin retry en 400
+      const response = await messagesService.sendMessage(sanitizedId, {
+        content,
+        type,
+        metadata,
+        // Campos obligatorios para backend (extensión del contrato del backend)
+        senderIdentifier: senderIdentifier as unknown as string,
+        recipientIdentifier: recipientIdentifier as unknown as string
+      } as unknown as { content: string; type?: typeof type; metadata?: Record<string, unknown> });
+      
+      // SOLUCIONADO: Extraer el mensaje real del objeto de respuesta
+      const realMessage = (response as unknown as { data?: { message?: Message } }).data?.message || response as unknown as Message;
+      
+      // SOLUCIONADO: Agregar el mensaje real al estado local
+      setMessages(prev => {
+        // Verificar si el mensaje ya existe (para evitar duplicados)
+        const exists = prev.some(msg => msg.id === realMessage.id);
+        if (exists) {
+          // Si existe, actualizar con los datos reales
+          return prev.map(msg => 
+            msg.id === realMessage.id 
+              ? { ...realMessage, status: 'sent' } as unknown as Message
+              : msg
+          ) as unknown as Message[];
+        } else {
+          // Si no existe, agregarlo al final
+          return [...prev, { ...realMessage, status: 'sent' } as unknown as Message];
+        }
+      });
+
+      // Remover de mensajes optimistas si existe
       optimisticMessagesRef.current.delete(realMessage.id);
 
       console.log('✅ Mensaje enviado exitosamente');
@@ -531,8 +637,10 @@ export const useChat = (conversationId: string) => {
       setError(error instanceof Error ? error.message : 'Error enviando mensaje');
     } finally {
       setSending(false);
+      // SOLUCIONADO: Limpiar flag de envío en progreso
+      sendMessageInProgressRef.current = false;
     }
-  }, [conversationId, isJoined]);
+      }, [conversationId, isJoined, sending, backendUser?.email, messages]);
 
   // Indicar escritura con debouncing
   const handleTyping = useCallback(() => {
@@ -573,7 +681,7 @@ export const useChat = (conversationId: string) => {
 
   // Marcar mensajes como leídos
   const markAsRead = useCallback((messageIds: string[]) => {
-    if (!conversationId || !messageIds.length || !isConnected) return;
+    if (!conversationId || !messageIds.length || !isConnected || !isJoined) return;
 
     console.log('👁️ Marcando mensajes como leídos:', messageIds);
     
@@ -586,9 +694,12 @@ export const useChat = (conversationId: string) => {
       )
     );
 
-    // Enviar al servidor
-    markMessagesAsRead(conversationId, messageIds);
-  }, [conversationId, isConnected, markMessagesAsRead]);
+    // Enviar al servidor con ID normalizado
+    const sanitizedId = sanitizeConversationId(conversationId);
+    if (sanitizedId) {
+      markMessagesAsRead(sanitizedId, messageIds);
+    }
+  }, [conversationId, isConnected, isJoined, markMessagesAsRead]);
 
   // Scroll al final
   const scrollToBottom = useCallback(() => {
@@ -607,7 +718,11 @@ export const useChat = (conversationId: string) => {
       setMessages(prev => prev.filter(msg => msg.id !== messageId));
       
       // Reenviar
-      sendMessage(failedMessage.content, failedMessage.type, failedMessage.metadata);
+      sendMessage(
+        failedMessage.content,
+        failedMessage.type as 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker',
+        failedMessage.metadata as Record<string, unknown>
+      );
     }
   }, [messages, sendMessage]);
 

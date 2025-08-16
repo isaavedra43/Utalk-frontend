@@ -46,8 +46,8 @@ export const LoginForm: React.FC = () => {
       setIsLoading(true);
       await login(data.email, data.password);
       
-      console.log('✅ Login exitoso, navegando al dashboard...');
-      navigate('/dashboard');
+      console.log('✅ Login exitoso, navegando al chat...');
+      navigate('/chat');
       
     } catch (error) {
       console.error('Error en login:', error);
@@ -129,13 +129,13 @@ export const LoginForm: React.FC = () => {
       >
         <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 mb-3 sm:mb-4">
           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
-          <span className="text-xs sm:text-sm font-medium text-blue-800">Welcome back</span>
+          <span className="text-xs sm:text-sm font-medium text-blue-800">Bienvenido de vuelta</span>
         </div>
         <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
-          Sign in to UTalk
+          Inicia sesión en UTalk
         </h2>
         <p className="text-gray-600 text-xs sm:text-sm font-medium">
-          Enter your credentials to access your account
+          Ingresa tus credenciales para acceder a tu cuenta
         </p>
       </motion.div>
 
@@ -166,14 +166,14 @@ export const LoginForm: React.FC = () => {
       >
         <SocialButton
           icon="google"
-          text="Continue with Google"
+          text="Continuar con Google"
           onClick={() => handleSocialLogin('google')}
           loading={socialLoading === 'google'}
         />
         
         <SocialButton
           icon="apple"
-          text="Continue with Apple"
+          text="Continuar con Apple"
           onClick={() => handleSocialLogin('apple')}
           loading={socialLoading === 'apple'}
         />
@@ -190,7 +190,7 @@ export const LoginForm: React.FC = () => {
           <div className="w-full border-t border-gray-300" />
         </div>
         <div className="relative flex justify-center text-xs sm:text-sm">
-          <span className="px-2 bg-white text-gray-500">Or continue with email</span>
+          <span className="px-2 bg-white text-gray-500">O continúa con email</span>
         </div>
       </motion.div>
 
@@ -205,12 +205,12 @@ export const LoginForm: React.FC = () => {
         {/* Campo Email */}
         <div className="space-y-1.5 sm:space-y-2">
           <label className="block text-xs sm:text-sm font-medium text-gray-700">
-            Email
+            Correo electrónico
           </label>
           <input
             {...register('email')}
             type="email"
-            placeholder="you@company.com"
+            placeholder="tu@empresa.com"
             disabled={isLoading}
             className={`w-full px-3 py-2 sm:py-2.5 border rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
               errors.email 
@@ -233,6 +233,8 @@ export const LoginForm: React.FC = () => {
         <PasswordField
           value={password || ''}
           onChange={(value) => setValue('password', value)}
+          placeholder="mínimo 8 caracteres"
+          label="Contraseña"
           error={errors.password?.message}
           disabled={isLoading}
         />
@@ -255,11 +257,11 @@ export const LoginForm: React.FC = () => {
               {isLoading ? (
                 <>
                   <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Signing in...
+                  Iniciando sesión...
                 </>
               ) : (
                 <>
-                  Sign In
+                  Iniciar Sesión
                   <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
@@ -279,15 +281,15 @@ export const LoginForm: React.FC = () => {
           href="/forgot-password" 
           className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
         >
-          Forgot password?
+          ¿Olvidaste tu contraseña?
         </a>
         <div className="text-xs sm:text-sm text-gray-600">
-          Don't have an account?{' '}
+          ¿No tienes una cuenta?{' '}
           <a 
             href="/signup" 
             className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
           >
-            Sign Up
+            Registrarse
           </a>
         </div>
       </motion.div>
@@ -301,10 +303,10 @@ export const LoginForm: React.FC = () => {
       >
         <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4 text-xs text-gray-500">
           <a href="/privacy" className="hover:text-gray-700 transition-colors">
-            Privacy Policy
+            Política de Privacidad
           </a>
           <a href="/support" className="hover:text-gray-700 transition-colors">
-            Support
+            Soporte
           </a>
         </div>
       </motion.div>

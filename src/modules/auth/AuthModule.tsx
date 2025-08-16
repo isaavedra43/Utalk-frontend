@@ -44,7 +44,7 @@ export const AuthModule = () => {
 
   // Si ya está autenticado, redirigir al dashboard
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/chat" replace />;
   }
 
   return (
@@ -138,15 +138,15 @@ export const AuthModule = () => {
             transition={{ duration: 1, delay: 0.2 }}
             className="text-2xl sm:text-3xl md:text-4xl xl:text-5xl font-bold leading-tight mt-4 sm:mt-6"
           >
-            <span className="text-white">One Platform to</span>
+            <span className="text-white">Una Plataforma para</span>
             <br />
             <span className="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent font-extrabold">
-              Streamline Online
+              Optimizar Online
             </span>
             <br />
-            <span className="text-white">All Product</span>
+            <span className="text-white">Todo el Análisis</span>
             <span className="bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 bg-clip-text text-transparent ml-2 sm:ml-4">
-              Analytics
+              de Productos
             </span>
           </motion.h1>
 
@@ -157,7 +157,7 @@ export const AuthModule = () => {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-sm sm:text-base text-blue-100 mt-3 sm:mt-4 font-light"
           >
-            Grow <strong>20% MoM</strong> with better campaign tools.
+            Crece <strong>20% MoM</strong> con mejores herramientas de campaña.
           </motion.p>
 
           {/* Badges de Características - Responsivo */}
@@ -169,15 +169,15 @@ export const AuthModule = () => {
           >
             <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
               <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" />
-              <span className="text-xs sm:text-sm text-white font-medium">AI-Powered</span>
+              <span className="text-xs sm:text-sm text-white font-medium">Con IA</span>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
               <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-cyan-400" />
-              <span className="text-xs sm:text-sm text-white font-medium">Real-time</span>
+              <span className="text-xs sm:text-sm text-white font-medium">Tiempo Real</span>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
               <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
-              <span className="text-xs sm:text-sm text-white font-medium">Secure</span>
+              <span className="text-xs sm:text-sm text-white font-medium">Seguro</span>
             </div>
           </motion.div>
 

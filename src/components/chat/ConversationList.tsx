@@ -16,6 +16,7 @@ export const ConversationList: React.FC = () => {
     conversations, 
     selectedConversationId, 
     selectConversation, 
+    clearActiveConversation,
     isLoading, 
     isFetchingNextPage,
     hasNextPage,
@@ -59,6 +60,15 @@ export const ConversationList: React.FC = () => {
       <div className="p-2 sm:p-3 border-b border-gray-200 flex-shrink-0">
         <div className="flex items-center justify-between mb-2 sm:mb-3">
           <h2 className="text-xs sm:text-sm font-semibold text-gray-900">Conversaciones</h2>
+          {selectedConversationId && (
+            <button
+              onClick={clearActiveConversation}
+              className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+              title="Limpiar selección"
+            >
+              Limpiar
+            </button>
+          )}
         </div>
         
         {/* Search Bar */}
@@ -127,8 +137,18 @@ export const ConversationList: React.FC = () => {
               <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
                 <MessageSquare className="w-6 h-6 text-gray-400" />
               </div>
-              <p className="text-sm text-gray-500">No hay conversaciones</p>
-              <p className="text-xs text-gray-400 mt-1">Las conversaciones aparecerán aquí</p>
+              <p className="text-sm text-gray-500">
+                {searchTerm || activeFilter !== 'all' 
+                  ? 'No se encontraron conversaciones' 
+                  : 'No hay conversaciones'
+                }
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                {searchTerm || activeFilter !== 'all'
+                  ? 'Intenta con otros filtros o términos de búsqueda'
+                  : 'Las conversaciones aparecerán aquí cuando lleguen mensajes'
+                }
+              </p>
             </div>
           </div>
         )}

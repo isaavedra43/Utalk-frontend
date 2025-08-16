@@ -160,6 +160,21 @@ api.interceptors.response.use(
 
     const originalRequest = error.config;
 
+    // NUEVO: Respetar Retry-After en 429 (aplica backoff en el rateLimiter)
+    if (error.response?.status === 429) {
+      const retryAfterHeader = error.response.headers?.['retry-after'];
+      // Retry-After puede venir en segundos o fecha. Priorizamos ms si el backend envía payload.
+      let backoffMs = 0;
+      if (retryAfterHeader && !isNaN(Number(retryAfterHeader))) {
+        backoffMs = Number(retryAfterHeader) * 1000;
+      } else if (error.response?.data?.retryAfterMs) {
+        backoffMs = Number(error.response.data.retryAfterMs) || 0;
+      }
+      if (backoffMs > 0) {
+        rateLimiter.setBackoff(url, backoffMs);
+      }
+    }
+
     // Log de errores en desarrollo
     if (import.meta.env.DEV) {
       logger.apiError(`API Error: ${error.config?.method?.toUpperCase()} ${error.config?.url}`, error, {

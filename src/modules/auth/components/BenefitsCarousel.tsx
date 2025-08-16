@@ -5,18 +5,18 @@ import { MessageSquare, BarChart3, Users } from 'lucide-react';
 const benefits = [
   {
     icon: MessageSquare,
-    title: "Unified Inbox",
-    description: "Manage all your communications from one place with our integrated messaging platform."
+    title: "Bandeja Unificada",
+    description: "Gestiona todas tus comunicaciones desde un solo lugar con nuestra plataforma de mensajería integrada."
   },
   {
     icon: BarChart3,
-    title: "Real-time Insights",
-    description: "Track performance metrics and user engagement in real-time with detailed analytics dashboards."
+    title: "Información en Tiempo Real",
+    description: "Rastrea métricas de rendimiento y participación de usuarios en tiempo real con paneles de análisis detallados."
   },
   {
     icon: Users,
-    title: "Team Collaboration",
-    description: "Work seamlessly with your team using advanced collaboration tools and shared workspaces."
+    title: "Colaboración en Equipo",
+    description: "Trabaja sin problemas con tu equipo usando herramientas avanzadas de colaboración y espacios de trabajo compartidos."
   }
 ];
 

@@ -30,6 +30,9 @@ export interface Conversation {
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   tags?: string[]; // ["VIP", "Premium", "Order"]
   metadata?: Record<string, unknown>; // Metadatos adicionales
+  // Propiedades para animaciones
+  isNewMessage?: boolean; // Flag para animación de slide-in
+  hasNewMessage?: boolean; // Flag para animación de punto verde
 }
 
 export interface LastMessage {
@@ -75,6 +78,7 @@ export interface MessageMetadata {
 export interface MessageGroup {
   date: string;
   messages: Message[];
+  key?: string; // Clave única para evitar duplicados en React
 }
 
 export interface TypingIndicator {

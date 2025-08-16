@@ -87,29 +87,27 @@ export const useWebSocket = () => {
           stack: error.stack
         });
         
-        // MEJORADO: Manejar errores específicos con mejor logging
-        if (error.message.includes('AUTHENTICATION_REQUIRED') || 
-            error.message.includes('JWT token required') ||
-            error.message.includes('Unauthorized')) {
+        // Clasificación de errores transitorios vs definitivos
+        const msg = error.message.toLowerCase();
+        const isAuthError = msg.includes('authentication_required') || msg.includes('jwt token required') || msg.includes('unauthorized');
+        const isTimeout = msg.includes('timeout') || msg.includes('etimedout');
+        const isTransport = msg.includes('transport');
+        const isRefused = msg.includes('econnrefused') || msg.includes('enotfound');
+
+        if (isAuthError) {
           console.error('🔐 Error de autenticación WebSocket');
           setConnectionError('Error de autenticación: Token inválido o expirado');
-        } else if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
-          console.error('⏰ Timeout de conexión WebSocket - Aumentando timeout');
-          setConnectionError('Timeout de conexión: El servidor no responde');
-          
-          // CORREGIDO: Intentar reconexión con timeout mayor
+        } else if (isTimeout || isTransport || isRefused) {
+          // Errores transitorios: no fijar connectionError para no bloquear la UI; dejar que reconecte
+          console.warn('⏳ Error transitorio de WebSocket: se intentará reconectar automáticamente');
           if (reconnectAttempts < 3) {
-            console.log('🔄 Reintentando con timeout mayor...');
             setTimeout(() => {
               if (token && !isConnectingRef.current) {
                 setReconnectAttempts(prev => prev + 1);
-                connect(token, { timeout: 30000 }); // Timeout de 30 segundos
+                connect(token, { timeout: 30000 });
               }
-            }, 2000);
+            }, 1500);
           }
-        } else if (error.message.includes('ECONNREFUSED') || error.message.includes('ENOTFOUND')) {
-          console.error('🌐 Error de red WebSocket');
-          setConnectionError('Error de red: No se puede conectar al servidor');
         } else {
           setConnectionError(error.message);
         }

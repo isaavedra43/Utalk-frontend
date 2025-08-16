@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Activity, Wifi, WifiOff, AlertTriangle, Clock, Zap } from 'lucide-react';
+import consoleExporter from '../utils/consoleExporter';
 
 interface NetworkRequest {
-  id: string;
   timestamp: Date;
   method: string;
   url: string;
@@ -18,59 +19,75 @@ interface NetworkStats {
   successfulRequests: number;
   failedRequests: number;
   averageResponseTime: number;
-  totalDataTransferred: number;
   requestsPerMinute: number;
+  lastRequestTime: Date | null;
+  rateLimitWarnings: number;
+  duplicateRequests: number;
 }
 
 export const NetworkMonitor: React.FC = () => {
+  const [isMonitoring, setIsMonitoring] = useState(false);
   const [requests, setRequests] = useState<NetworkRequest[]>([]);
   const [stats, setStats] = useState<NetworkStats>({
     totalRequests: 0,
     successfulRequests: 0,
     failedRequests: 0,
     averageResponseTime: 0,
-    totalDataTransferred: 0,
-    requestsPerMinute: 0
+    requestsPerMinute: 0,
+    lastRequestTime: null,
+    rateLimitWarnings: 0,
+    duplicateRequests: 0
   });
-  const [isMonitoring, setIsMonitoring] = useState(false);
-  const [filters, setFilters] = useState({
-    method: 'all' as 'all' | 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
-    status: 'all' as 'all' | 'success' | 'error'
-  });
+  const [showDetails, setShowDetails] = useState(false);
+  const [autoScroll, setAutoScroll] = useState(true);
+  const logsEndRef = useRef<HTMLDivElement>(null);
 
-  // Función para agregar request
-  const addRequest = (request: Omit<NetworkRequest, 'id'>) => {
-    const newRequest: NetworkRequest = {
-      ...request,
-      id: Date.now().toString()
-    };
-    
-    setRequests(prev => [...prev.slice(-99), newRequest]); // Mantener solo los últimos 100 requests
+  // Función para agregar una nueva petición
+  const addRequest = (request: NetworkRequest) => {
+    setRequests(prev => {
+      const newRequests = [...prev, request].slice(-100); // Mantener solo las últimas 100
+      return newRequests;
+    });
   };
 
   // Función para calcular estadísticas
-  const calculateStats = (requestList: NetworkRequest[]): NetworkStats => {
-    const total = requestList.length;
-    const successful = requestList.filter(r => r.success).length;
-    const failed = total - successful;
-    const avgResponseTime = total > 0 ? requestList.reduce((sum, r) => sum + r.responseTime, 0) / total : 0;
-    const totalData = requestList.reduce((sum, r) => sum + r.size, 0);
+  const calculateStats = useCallback(() => {
+    const now = Date.now();
+    const oneMinuteAgo = now - 60 * 1000;
     
-    // Calcular requests por minuto (últimos 60 segundos)
-    const oneMinuteAgo = new Date(Date.now() - 60000);
-    const recentRequests = requestList.filter(r => r.timestamp > oneMinuteAgo).length;
+    const recentRequests = requests.filter(req => req.timestamp.getTime() > oneMinuteAgo);
+    const successful = requests.filter(req => req.success);
+    const failed = requests.filter(req => !req.success);
     
-    return {
-      totalRequests: total,
-      successfulRequests: successful,
-      failedRequests: failed,
-      averageResponseTime: Math.round(avgResponseTime),
-      totalDataTransferred: totalData,
-      requestsPerMinute: recentRequests
-    };
-  };
+    const totalResponseTime = requests.reduce((sum, req) => sum + req.responseTime, 0);
+    const averageResponseTime = requests.length > 0 ? totalResponseTime / requests.length : 0;
+    
+    // Detectar peticiones duplicadas (misma URL en menos de 5 segundos)
+    const duplicateRequests = requests.filter((req, index) => {
+      if (index === 0) return false;
+      const prevRequest = requests[index - 1];
+      const timeDiff = req.timestamp.getTime() - prevRequest.timestamp.getTime();
+      return req.url === prevRequest.url && timeDiff < 5000;
+    }).length;
 
+    // Detectar posibles rate limit warnings
+    const rateLimitWarnings = requests.filter(req => 
+      req.status === 429 || 
+      req.status === 503 || 
+      req.responseTime > 10000
+    ).length;
 
+    setStats({
+      totalRequests: requests.length,
+      successfulRequests: successful.length,
+      failedRequests: failed.length,
+      averageResponseTime: Math.round(averageResponseTime),
+      requestsPerMinute: recentRequests.length,
+      lastRequestTime: requests.length > 0 ? requests[requests.length - 1].timestamp : null,
+      rateLimitWarnings,
+      duplicateRequests
+    });
+  }, [requests]);
 
   // Iniciar/detener monitoring
   useEffect(() => {
@@ -141,197 +158,215 @@ export const NetworkMonitor: React.FC = () => {
     }
   }, [isMonitoring]);
 
-  // Calcular estadísticas cuando cambian los requests
+  // Actualizar estadísticas cuando cambian las peticiones
   useEffect(() => {
-    const filteredRequests = requests.filter(request => {
-      if (filters.method !== 'all' && request.method !== filters.method) return false;
-      if (filters.status === 'success' && !request.success) return false;
-      if (filters.status === 'error' && request.success) return false;
-      return true;
-    });
-    
-    setStats(calculateStats(filteredRequests));
-  }, [requests, filters]);
+    calculateStats();
+  }, [requests, calculateStats]);
 
-  const handleClearRequests = () => {
-    setRequests([]);
-  };
+  // Auto-scroll
+  useEffect(() => {
+    if (autoScroll && logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [requests, autoScroll]);
 
-  const handleExportRequests = () => {
-    const requestData = {
-      timestamp: new Date().toISOString(),
-      stats,
-      requests: requests.map(r => ({
-        ...r,
-        timestamp: r.timestamp.toISOString()
-      }))
-    };
-
-    const blob = new Blob([JSON.stringify(requestData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `network-report-${new Date().toISOString().slice(0, 19)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const getStatusColor = (status: number) => {
-    if (status >= 200 && status < 300) return 'text-green-600';
-    if (status >= 300 && status < 400) return 'text-blue-600';
-    if (status >= 400 && status < 500) return 'text-yellow-600';
-    if (status >= 500) return 'text-red-600';
-    return 'text-gray-600';
-  };
-
-  const getMethodColor = (method: string) => {
-    switch (method) {
-      case 'GET': return 'bg-green-100 text-green-800';
-      case 'POST': return 'bg-blue-100 text-blue-800';
-      case 'PUT': return 'bg-yellow-100 text-yellow-800';
-      case 'DELETE': return 'bg-red-100 text-red-800';
-      case 'PATCH': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
+  // Obtener logs de consoleExporter
+  const getConsoleExporterStats = () => {
+    try {
+      return consoleExporter.getStats();
+    } catch {
+      return { total: 0, byLevel: {}, httpRequests: 0, errors: 0 };
     }
   };
 
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  const consoleStats = getConsoleExporterStats();
+
+  const getStatusColor = () => {
+    if (stats.rateLimitWarnings > 0) return 'text-red-500';
+    if (stats.requestsPerMinute > 50) return 'text-yellow-500';
+    return 'text-green-500';
+  };
+
+  const getStatusIcon = () => {
+    if (stats.rateLimitWarnings > 0) return <AlertTriangle className="w-4 h-4" />;
+    if (stats.requestsPerMinute > 50) return <Clock className="w-4 h-4" />;
+    return <Wifi className="w-4 h-4" />;
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="font-semibold">🌐 Network Monitor</h3>
-        <div className="flex gap-2">
+    <div className="bg-white rounded-lg shadow-md p-4">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-2">
+          <Activity className="w-5 h-5 text-blue-600" />
+          <h3 className="text-lg font-semibold text-gray-900">Monitor de Red</h3>
+          <div className={`flex items-center space-x-1 ${getStatusColor()}`}>
+            {getStatusIcon()}
+            <span className="text-sm font-medium">
+              {stats.rateLimitWarnings > 0 ? 'Rate Limit Detectado' : 
+               stats.requestsPerMinute > 50 ? 'Alto Tráfico' : 'Normal'}
+            </span>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-2">
           <button
             onClick={() => setIsMonitoring(!isMonitoring)}
-            className={`px-3 py-1 rounded text-sm ${
+            className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
               isMonitoring 
-                ? 'bg-red-500 text-white hover:bg-red-600' 
-                : 'bg-green-500 text-white hover:bg-green-600'
+                ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+                : 'bg-green-100 text-green-700 hover:bg-green-200'
             }`}
           >
-            {isMonitoring ? 'Stop Monitoring' : 'Start Monitoring'}
+            {isMonitoring ? 'Detener' : 'Iniciar'}
           </button>
-          <button
-            onClick={handleClearRequests}
-            className="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600"
-          >
-            Clear All
-          </button>
-          <button
-            onClick={handleExportRequests}
-            className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-          >
-            Export
-          </button>
-        </div>
-      </div>
-
-      {/* Filtros */}
-      <div className="flex gap-4">
-        <div>
-          <label className="text-sm font-medium">Method:</label>
-                      <select
-              value={filters.method}
-              onChange={(e) => setFilters(prev => ({ ...prev, method: e.target.value as 'all' | 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' }))}
-              className="ml-2 px-2 py-1 border rounded text-sm"
-            >
-            <option value="all">All Methods</option>
-            <option value="GET">GET</option>
-            <option value="POST">POST</option>
-            <option value="PUT">PUT</option>
-            <option value="DELETE">DELETE</option>
-            <option value="PATCH">PATCH</option>
-          </select>
-        </div>
-        <div>
-          <label className="text-sm font-medium">Status:</label>
-                      <select
-              value={filters.status}
-              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value as 'all' | 'success' | 'error' }))}
-              className="ml-2 px-2 py-1 border rounded text-sm"
-            >
-            <option value="all">All Status</option>
-            <option value="success">Success</option>
-            <option value="error">Error</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Estadísticas */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <div className="border rounded-lg p-4 bg-gradient-to-r from-blue-50 to-blue-100">
-          <div className="text-2xl font-bold text-blue-600">{stats.totalRequests}</div>
-          <div className="text-sm text-blue-700">Total Requests</div>
-        </div>
-        <div className="border rounded-lg p-4 bg-gradient-to-r from-green-50 to-green-100">
-          <div className="text-2xl font-bold text-green-600">{stats.successfulRequests}</div>
-          <div className="text-sm text-green-700">Successful</div>
-        </div>
-        <div className="border rounded-lg p-4 bg-gradient-to-r from-red-50 to-red-100">
-          <div className="text-2xl font-bold text-red-600">{stats.failedRequests}</div>
-          <div className="text-sm text-red-700">Failed</div>
-        </div>
-        <div className="border rounded-lg p-4 bg-gradient-to-r from-purple-50 to-purple-100">
-          <div className="text-2xl font-bold text-purple-600">{stats.averageResponseTime}ms</div>
-          <div className="text-sm text-purple-700">Avg Response</div>
-        </div>
-        <div className="border rounded-lg p-4 bg-gradient-to-r from-yellow-50 to-yellow-100">
-          <div className="text-2xl font-bold text-yellow-600">{formatBytes(stats.totalDataTransferred)}</div>
-          <div className="text-sm text-yellow-700">Data Transferred</div>
-        </div>
-        <div className="border rounded-lg p-4 bg-gradient-to-r from-indigo-50 to-indigo-100">
-          <div className="text-2xl font-bold text-indigo-600">{stats.requestsPerMinute}</div>
-          <div className="text-sm text-indigo-700">Req/Min</div>
-        </div>
-      </div>
-
-      {/* Lista de Requests */}
-      <div className="space-y-4">
-        <h4 className="font-semibold">📊 Recent Requests ({requests.length})</h4>
-        <div className="max-h-96 overflow-y-auto space-y-2">
-          {requests.map(request => (
-            <div key={request.id} className="border rounded-lg p-3 bg-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded text-xs ${getMethodColor(request.method)}`}>
-                    {request.method}
-                  </span>
-                  <span className={`font-semibold ${getStatusColor(request.status)}`}>
-                    {request.status} {request.statusText}
-                  </span>
-                </div>
-                <div className="text-sm text-gray-500">
-                  {request.responseTime}ms | {formatBytes(request.size)}
-                </div>
-              </div>
-              <div className="mt-2">
-                <div className="text-sm font-mono text-gray-700 truncate" title={request.url}>
-                  {request.url}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {request.timestamp.toLocaleTimeString()}
-                  {request.error && (
-                    <span className="text-red-600 ml-2">Error: {request.error}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
           
-          {requests.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              {isMonitoring ? 'No requests tracked yet' : 'Network monitoring is disabled'}
-            </div>
-          )}
+          <button
+            onClick={() => setShowDetails(!showDetails)}
+            className="px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 transition-colors"
+          >
+            {showDetails ? 'Ocultar' : 'Detalles'}
+          </button>
         </div>
       </div>
+
+      {/* Estadísticas principales */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+        <div className="bg-blue-50 p-3 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <Zap className="w-4 h-4 text-blue-600" />
+            <span className="text-sm font-medium text-blue-700">Total Peticiones</span>
+          </div>
+          <p className="text-2xl font-bold text-blue-900">{stats.totalRequests}</p>
+          <p className="text-xs text-blue-600">{stats.requestsPerMinute}/min</p>
+        </div>
+
+        <div className="bg-green-50 p-3 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <Wifi className="w-4 h-4 text-green-600" />
+            <span className="text-sm font-medium text-green-700">Exitosas</span>
+          </div>
+          <p className="text-2xl font-bold text-green-900">{stats.successfulRequests}</p>
+          <p className="text-xs text-green-600">
+            {stats.totalRequests > 0 ? Math.round((stats.successfulRequests / stats.totalRequests) * 100) : 0}%
+          </p>
+        </div>
+
+        <div className="bg-red-50 p-3 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <WifiOff className="w-4 h-4 text-red-600" />
+            <span className="text-sm font-medium text-red-700">Fallidas</span>
+          </div>
+          <p className="text-2xl font-bold text-red-900">{stats.failedRequests}</p>
+          <p className="text-xs text-red-600">
+            {stats.totalRequests > 0 ? Math.round((stats.failedRequests / stats.totalRequests) * 100) : 0}%
+          </p>
+        </div>
+
+        <div className="bg-yellow-50 p-3 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <Clock className="w-4 h-4 text-yellow-600" />
+            <span className="text-sm font-medium text-yellow-700">Tiempo Promedio</span>
+          </div>
+          <p className="text-2xl font-bold text-yellow-900">{stats.averageResponseTime}ms</p>
+          <p className="text-xs text-yellow-600">Respuesta</p>
+        </div>
+      </div>
+
+      {/* Alertas */}
+      {(stats.rateLimitWarnings > 0 || stats.duplicateRequests > 0) && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center space-x-2 mb-2">
+            <AlertTriangle className="w-4 h-4 text-red-600" />
+            <span className="text-sm font-medium text-red-700">Alertas Detectadas</span>
+          </div>
+          <div className="space-y-1">
+            {stats.rateLimitWarnings > 0 && (
+              <p className="text-sm text-red-600">
+                ⚠️ {stats.rateLimitWarnings} posibles rate limit warnings detectados
+              </p>
+            )}
+            {stats.duplicateRequests > 0 && (
+              <p className="text-sm text-red-600">
+                🔄 {stats.duplicateRequests} peticiones duplicadas detectadas
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Estadísticas de ConsoleExporter */}
+      <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+        <h4 className="text-sm font-medium text-gray-700 mb-2">ConsoleExporter Stats</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+          <div>
+            <span className="text-gray-600">Total Logs:</span>
+            <span className="ml-1 font-medium">{consoleStats.total}</span>
+          </div>
+          <div>
+            <span className="text-gray-600">HTTP Requests:</span>
+            <span className="ml-1 font-medium">{consoleStats.httpRequests}</span>
+          </div>
+          <div>
+            <span className="text-gray-600">Errores:</span>
+            <span className="ml-1 font-medium">{consoleStats.errors}</span>
+          </div>
+          <div>
+            <span className="text-gray-600">Última Petición:</span>
+            <span className="ml-1 font-medium">
+              {stats.lastRequestTime ? stats.lastRequestTime.toLocaleTimeString() : 'N/A'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Detalles de peticiones */}
+      {showDetails && (
+        <div className="border-t pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-medium text-gray-700">Últimas Peticiones</h4>
+            <label className="flex items-center space-x-2 text-xs">
+              <input
+                type="checkbox"
+                checked={autoScroll}
+                onChange={(e) => setAutoScroll(e.target.checked)}
+                className="rounded"
+              />
+              <span>Auto-scroll</span>
+            </label>
+          </div>
+          
+          <div className="max-h-64 overflow-y-auto bg-gray-50 rounded-lg p-2">
+            {requests.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-4">No hay peticiones registradas</p>
+            ) : (
+              <div className="space-y-1">
+                {requests.slice().reverse().map((request, index) => (
+                  <div
+                    key={index}
+                    className={`p-2 rounded text-xs ${
+                      request.success ? 'bg-green-100' : 'bg-red-100'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`font-medium ${
+                        request.success ? 'text-green-700' : 'text-red-700'
+                      }`}>
+                        {request.method} {request.status}
+                      </span>
+                      <span className="text-gray-600">{request.responseTime}ms</span>
+                    </div>
+                    <div className="text-gray-600 truncate">{request.url}</div>
+                    {request.error && (
+                      <div className="text-red-600 text-xs">{request.error}</div>
+                    )}
+                  </div>
+                ))}
+                <div ref={logsEndRef} />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }; 

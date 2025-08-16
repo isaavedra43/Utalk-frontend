@@ -246,19 +246,32 @@ export const encodeConversationIdForWebSocket = (conversationId: string): string
   if (!sanitized) {
     throw new Error(`ID de conversación inválido para WebSocket: ${conversationId}`);
   }
-  
-  // SOLUCIÓN CRÍTICA: Para WebSocket también necesitamos codificar los +
-  // Aunque WebSocket no es HTTP, algunos servidores pueden interpretar mal los +
-  const encoded = encodeURIComponent(sanitized);
-  
-  console.log('🔗 ID de conversación codificado para WebSocket | Data:', {
+
+  // Para WebSocket, el backend espera el ID con '+' literalmente, no codificado.
+  // Convertimos cualquier variante con %2B de vuelta a '+'.
+  const phones = extractPhonesFromConversationId(sanitized);
+  if (!phones) {
+    // Si no pudimos extraer, como fallback, reemplazar %2B por '+' en todo el ID
+    const plusId = sanitized.replaceAll('%2B', '+');
+    console.log('🔗 ID de conversación normalizado para WebSocket (fallback):', {
+      originalId: conversationId,
+      sanitizedId: sanitized,
+      plusId,
+      method: 'encodeConversationIdForWebSocket'
+    });
+    return plusId;
+  }
+
+  const plusId = `conv_${phones.phone1}_${phones.phone2}`; // ambos con '+'
+
+  console.log('🔗 ID de conversación normalizado para WebSocket:', {
     originalId: conversationId,
     sanitizedId: sanitized,
-    encodedId: encoded,
+    plusId,
     method: 'encodeConversationIdForWebSocket'
   });
-  
-  return encoded;
+
+  return plusId;
 };
 
 /**
