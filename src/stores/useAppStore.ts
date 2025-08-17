@@ -19,6 +19,10 @@ interface AppStore extends AppState {
   setError: (error: string | null) => void;
   clearError: () => void;
   reset: () => void;
+  // NUEVAS acciones para mensajes sin leer
+  calculateUnreadCount: (conversationId: string) => number;
+  markConversationAsRead: (conversationId: string) => void;
+  markMessageAsRead: (conversationId: string, messageId: string) => void;
   // FASE 1: Nuevas acciones para sincronización con React Query
   syncConversationsWithQuery: (conversations: Conversation[]) => void;
   invalidateQueryCache: () => void;
@@ -309,6 +313,55 @@ export const useAppStore = create<AppStore>()(
         clientLoading: true,
         clientError: null
       }),
+
+      // NUEVAS acciones para mensajes sin leer
+      calculateUnreadCount: (conversationId: string) => {
+        const state = useAppStore.getState();
+        const messages = state.messages[conversationId] || [];
+        
+        // Contar mensajes entrantes no leídos
+        const unreadCount = messages.filter((message: Message) => 
+          message.direction === 'inbound' && 
+          message.status !== 'read'
+        ).length;
+        
+        return unreadCount;
+      },
+
+      markConversationAsRead: (conversationId: string) => {
+        set((state) => {
+          const messages = state.messages[conversationId] || [];
+          const updatedMessages = messages.map((message: Message) => ({
+            ...message,
+            status: message.direction === 'inbound' ? 'read' as const : message.status
+          }));
+          
+          return {
+            messages: {
+              ...state.messages,
+              [conversationId]: updatedMessages
+            }
+          };
+        });
+      },
+
+      markMessageAsRead: (conversationId: string, messageId: string) => {
+        set((state) => {
+          const messages = state.messages[conversationId] || [];
+          const updatedMessages = messages.map((message: Message) => 
+            message.id === messageId 
+              ? { ...message, status: 'read' as const }
+              : message
+          );
+          
+          return {
+            messages: {
+              ...state.messages,
+              [conversationId]: updatedMessages
+            }
+          };
+        });
+      },
     }),
     {
       name: 'utalk-store',

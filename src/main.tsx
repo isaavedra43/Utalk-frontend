@@ -6,13 +6,13 @@ import './index.css'
 import './styles/dashboard.css'
 import { logger } from './utils/logger.ts'
 import './utils/consoleExporter.ts'
-// import consoleExporter from './utils/consoleExporter';
+import consoleExporter from './utils/consoleExporter';
 
-// DESHABILITADO: Captura automática de logs
-// consoleExporter.startCapture();
+// HABILITADO: Captura automática de logs
+consoleExporter.startCapture();
 
-// DESHABILITADO: Captura de peticiones de red
-// consoleExporter.startNetworkCapture();
+// HABILITADO: Captura de peticiones de red
+consoleExporter.startNetworkCapture();
 
 // Validar configuración al iniciar
 logger.systemInfo('Iniciando aplicación UTALK', {

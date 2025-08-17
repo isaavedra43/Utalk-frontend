@@ -46,6 +46,7 @@ const DashboardModule = memo(() => {
   }, [debouncedSearch]);
 
   const handleRefresh = useCallback(() => {
+    console.log('Refrescar dashboard');
     loadDashboardData();
   }, [loadDashboardData]);
 
@@ -116,8 +117,8 @@ const DashboardModule = memo(() => {
             searchPlaceholder: "Buscar en dashboard...",
             actions: {
               aiView: aiViewEnabled,
-              refresh: false,
-              notifications: 3
+              refresh: dashboardLoading,
+              notifications: 0
             },
             user: {
               name: "Israel",

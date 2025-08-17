@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Conversation } from '../../types';
+import { useAppStore } from '../../stores/useAppStore';
 
 
 
@@ -19,11 +20,22 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
   // Estados para controlar animaciones
   const [isNewMessage, setIsNewMessage] = useState(false);
   const [isHighlighted, setIsHighlighted] = useState(false);
-  const [prevUnreadCount, setPrevUnreadCount] = useState(conversation.unreadCount);
+  const { calculateUnreadCount, markConversationAsRead } = useAppStore();
+  
+  // Calcular unreadCount dinámicamente
+  const unreadCount = calculateUnreadCount(conversation.id);
+  const [prevUnreadCount, setPrevUnreadCount] = useState(unreadCount);
+
+  // Marcar conversación como leída cuando se selecciona
+  useEffect(() => {
+    if (isSelected && unreadCount > 0) {
+      markConversationAsRead(conversation.id);
+    }
+  }, [isSelected, unreadCount, conversation.id, markConversationAsRead]);
 
   // FASE 1: Optimización - Detectar cuando llega un nuevo mensaje con memoización
   useEffect(() => {
-    if (conversation.unreadCount > prevUnreadCount) {
+    if (unreadCount > prevUnreadCount) {
       setIsNewMessage(true);
       setIsHighlighted(true);
       
@@ -36,11 +48,15 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
       // Cleanup para evitar memory leaks
       return () => clearTimeout(timeoutId);
     }
-    setPrevUnreadCount(conversation.unreadCount);
-  }, [conversation.unreadCount, prevUnreadCount]);
+    setPrevUnreadCount(unreadCount);
+  }, [unreadCount, prevUnreadCount]);
 
   // FASE 3: Optimización - Memoizar funciones para evitar recreaciones
-  const formatLastMessageTime = useCallback((timestamp: string) => {
+  const formatLastMessageTime = useCallback((timestamp: string | undefined) => {
+    if (!timestamp) {
+      return 'Reciente';
+    }
+    
     try {
       const date = new Date(timestamp);
       const now = new Date();
@@ -127,13 +143,13 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
           <div className="flex items-center justify-between mb-1">
             <h3 className={`
               text-sm font-semibold truncate
-              ${(conversation.unreadCount || 0) > 0 ? 'text-gray-900' : 'text-gray-700'}
+              ${unreadCount > 0 ? 'text-gray-900' : 'text-gray-700'}
             `}>
               {conversation.customerName || 'Cliente sin nombre'}
             </h3>
             <span className={`
               text-xs ml-2 flex-shrink-0
-              ${(conversation.unreadCount || 0) > 0 ? 'text-blue-600 font-medium' : 'text-gray-500'}
+              ${unreadCount > 0 ? 'text-blue-600 font-medium' : 'text-gray-500'}
             `}>
               {formattedTime}
             </span>
@@ -165,13 +181,13 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
             </p>
             
             {/* Badge de mensajes no leídos */}
-            {(conversation.unreadCount || 0) > 0 && (
+            {unreadCount > 0 && (
               <div className="flex items-center space-x-2 ml-2">
                 <span className={`
                   inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
                   ${isNewMessage ? 'animate-bounce bg-red-500 text-white' : 'bg-blue-100 text-blue-700'}
                 `}>
-                  +{conversation.unreadCount}
+                  +{unreadCount}
                 </span>
               </div>
             )}
@@ -180,7 +196,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
       </div>
 
       {/* Indicador de actividad */}
-      {(conversation.unreadCount || 0) > 0 && (
+      {unreadCount > 0 && (
         <div className="absolute bottom-2 right-2">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
         </div>

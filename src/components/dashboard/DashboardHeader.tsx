@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Star, RefreshCw, Bell, User } from 'lucide-react';
+import { Search, Star, RefreshCw, Bell } from 'lucide-react';
 import type { DashboardHeader as DashboardHeaderType } from '../../types/dashboard';
 
 interface DashboardHeaderProps {
@@ -71,36 +71,20 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           {/* Botón de actualizar */}
           <button
             onClick={onRefresh}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className={`p-2 rounded-lg transition-colors ${
+              header.actions.refresh 
+                ? 'text-blue-600 bg-blue-50' 
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
             title="Actualizar dashboard"
           >
-            <RefreshCw className="h-5 w-5" />
+            <RefreshCw className={`h-5 w-5 ${header.actions.refresh ? 'animate-spin' : ''}`} />
           </button>
 
           {/* Notificaciones */}
-          <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+          <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
             <Bell className="h-5 w-5" />
-            {header.actions.notifications > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {header.actions.notifications > 9 ? '9+' : header.actions.notifications}
-              </span>
-            )}
           </button>
-
-          {/* Avatar del usuario */}
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-              {header.user.avatar ? (
-                <img 
-                  src={header.user.avatar} 
-                  alt={header.user.name}
-                  className="w-8 h-8 rounded-full object-cover"
-                />
-              ) : (
-                <User className="h-4 w-4 text-white" />
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </div>

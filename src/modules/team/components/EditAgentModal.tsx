@@ -1,0 +1,468 @@
+import React, { useState, useEffect } from 'react';
+import type { TeamMember } from '../../../types/team';
+
+interface EditAgentModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (agentData: EditAgentData) => Promise<void>;
+  member: TeamMember | null;
+}
+
+interface EditAgentData {
+  name: string;
+  email: string;
+  password: string;
+  role: string;
+  permissions: {
+    read: boolean;
+    write: boolean;
+    approve: boolean;
+    configure: boolean;
+  };
+  notifications: {
+    email: boolean;
+    push: boolean;
+    sms: boolean;
+    desktop: boolean;
+  };
+  visualizations: {
+    dashboard: boolean;
+    reports: boolean;
+    analytics: boolean;
+    teamView: boolean;
+  };
+  settings: {
+    language: string;
+    timezone: string;
+    theme: 'light' | 'dark' | 'auto';
+    autoLogout: boolean;
+    twoFactorAuth: boolean;
+  };
+}
+
+export const EditAgentModal: React.FC<EditAgentModalProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  member
+}) => {
+  const [formData, setFormData] = useState<EditAgentData>({
+    name: '',
+    email: '',
+    password: '',
+    role: '',
+    permissions: {
+      read: false,
+      write: false,
+      approve: false,
+      configure: false
+    },
+    notifications: {
+      email: true,
+      push: true,
+      sms: false,
+      desktop: true
+    },
+    visualizations: {
+      dashboard: true,
+      reports: true,
+      analytics: false,
+      teamView: true
+    },
+    settings: {
+      language: 'es',
+      timezone: 'America/Mexico_City',
+      theme: 'light',
+      autoLogout: true,
+      twoFactorAuth: false
+    }
+  });
+
+  const [activeTab, setActiveTab] = useState<'profile' | 'permissions' | 'notifications' | 'settings'>('profile');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Cargar datos del miembro cuando se abre el modal
+  useEffect(() => {
+    if (member && isOpen) {
+      setFormData({
+        name: member.fullName || '',
+        email: member.email || '',
+        password: '',
+        role: member.role || '',
+        permissions: {
+          read: member.permissions?.some(p => p.name === 'read') || false,
+          write: member.permissions?.some(p => p.name === 'write') || false,
+          approve: member.permissions?.some(p => p.name === 'approve') || false,
+          configure: member.permissions?.some(p => p.name === 'configure') || false
+        },
+        notifications: {
+          email: true,
+          push: true,
+          sms: false,
+          desktop: true
+        },
+        visualizations: {
+          dashboard: true,
+          reports: true,
+          analytics: false,
+          teamView: true
+        },
+        settings: {
+          language: 'es',
+          timezone: 'America/Mexico_City',
+          theme: 'light',
+          autoLogout: true,
+          twoFactorAuth: false
+        }
+      });
+    }
+  }, [member, isOpen]);
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handlePermissionChange = (permission: string, value: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      permissions: {
+        ...prev.permissions,
+        [permission]: value
+      }
+    }));
+  };
+
+  const handleNotificationChange = (notification: string, value: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      notifications: {
+        ...prev.notifications,
+        [notification]: value
+      }
+    }));
+  };
+
+
+
+  const handleSettingChange = (setting: string, value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        [setting]: value
+      }
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      await onSubmit(formData);
+      onClose();
+    } catch (error) {
+      console.error('Error al actualizar agente:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const tabs = [
+    { id: 'profile', label: 'Perfil', icon: '👤' },
+    { id: 'permissions', label: 'Permisos', icon: '🔐' },
+    { id: 'notifications', label: 'Notificaciones', icon: '🔔' },
+    { id: 'settings', label: 'Configuración', icon: '⚙️' }
+  ] as const;
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Editar Agente: {member?.fullName}
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="px-6 py-3 border-b border-gray-200">
+          <nav className="flex space-x-8">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Tab: Perfil */}
+            {activeTab === 'profile' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nombre Completo
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Correo Electrónico
+                    </label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Contraseña
+                    </label>
+                    <input
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      placeholder="Dejar en blanco para no cambiar"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Rol
+                    </label>
+                    <select
+                      value={formData.role}
+                      onChange={(e) => handleInputChange('role', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    >
+                      <option value="">Seleccionar rol</option>
+                      <option value="Ejecutivo WhatsApp Senior">Ejecutivo WhatsApp Senior</option>
+                      <option value="Ejecutivo WhatsApp Junior">Ejecutivo WhatsApp Junior</option>
+                      <option value="Supervisor">Supervisor</option>
+                      <option value="Manager">Manager</option>
+                      <option value="Administrador">Administrador</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab: Permisos */}
+            {activeTab === 'permissions' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {Object.entries({
+                    read: { label: 'Leer', description: 'Ver conversaciones y datos de clientes', level: 'advanced' },
+                    write: { label: 'Escribir', description: 'Enviar mensajes y responder a clientes', level: 'advanced' },
+                    approve: { label: 'Aprobar', description: 'Aprobar campañas y decisiones importantes', level: 'intermediate' },
+                    configure: { label: 'Configurar', description: 'Acceso a configuración del sistema', level: 'basic' }
+                  }).map(([key, permission]) => (
+                    <div key={key} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`permission-${key}`}
+                            checked={formData.permissions[key as keyof typeof formData.permissions]}
+                            onChange={(e) => handlePermissionChange(key, e.target.checked)}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <label htmlFor={`permission-${key}`} className="text-sm font-medium text-gray-900">
+                            {permission.label}
+                          </label>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          permission.level === 'advanced' ? 'bg-red-100 text-red-800' :
+                          permission.level === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-green-100 text-green-800'
+                        }`}>
+                          {permission.level}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600">{permission.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Tab: Notificaciones */}
+            {activeTab === 'notifications' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {Object.entries({
+                    email: { label: 'Notificaciones por Email', description: 'Recibir alertas por correo electrónico' },
+                    push: { label: 'Notificaciones Push', description: 'Alertas en tiempo real en el navegador' },
+                    sms: { label: 'Notificaciones SMS', description: 'Mensajes de texto para alertas críticas' },
+                    desktop: { label: 'Notificaciones de Escritorio', description: 'Alertas del sistema operativo' }
+                  }).map(([key, notification]) => (
+                    <div key={key} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`notification-${key}`}
+                            checked={formData.notifications[key as keyof typeof formData.notifications]}
+                            onChange={(e) => handleNotificationChange(key, e.target.checked)}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <label htmlFor={`notification-${key}`} className="text-sm font-medium text-gray-900">
+                            {notification.label}
+                          </label>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1">{notification.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Tab: Configuración */}
+            {activeTab === 'settings' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Idioma
+                    </label>
+                    <select
+                      value={formData.settings.language}
+                      onChange={(e) => handleSettingChange('language', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="es">Español</option>
+                      <option value="en">English</option>
+                      <option value="fr">Français</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Zona Horaria
+                    </label>
+                    <select
+                      value={formData.settings.timezone}
+                      onChange={(e) => handleSettingChange('timezone', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="America/Mexico_City">México (GMT-6)</option>
+                      <option value="America/New_York">Nueva York (GMT-5)</option>
+                      <option value="America/Los_Angeles">Los Ángeles (GMT-8)</option>
+                      <option value="Europe/Madrid">Madrid (GMT+1)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tema
+                    </label>
+                    <select
+                      value={formData.settings.theme}
+                      onChange={(e) => handleSettingChange('theme', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="light">Claro</option>
+                      <option value="dark">Oscuro</option>
+                      <option value="auto">Automático</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900">Cerrar sesión automáticamente</h4>
+                      <p className="text-xs text-gray-600">Cerrar sesión después de 30 minutos de inactividad</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={formData.settings.autoLogout}
+                      onChange={(e) => handleSettingChange('autoLogout', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900">Autenticación de dos factores</h4>
+                      <p className="text-xs text-gray-600">Requerir código adicional para iniciar sesión</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={formData.settings.twoFactorAuth}
+                      onChange={(e) => handleSettingChange('twoFactorAuth', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </form>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              disabled={isLoading}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? 'Guardando...' : 'Guardar Cambios'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}; 

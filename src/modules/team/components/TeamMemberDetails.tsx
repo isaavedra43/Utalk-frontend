@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { TeamMember } from '../../../types/team';
+import { EditAgentModal } from './EditAgentModal';
 
 interface TeamMemberDetailsProps {
   member: TeamMember;
@@ -7,9 +8,36 @@ interface TeamMemberDetailsProps {
 }
 
 const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
-  member
+  member,
+  onRefresh
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'kpis' | 'trends'>('overview');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const handleEditAgent = async (agentData: {
+    name: string;
+    email: string;
+    password: string;
+    role: string;
+    permissions: Record<string, boolean>;
+    notifications: Record<string, boolean>;
+    visualizations: Record<string, boolean>;
+    settings: Record<string, string | boolean>;
+  }) => {
+    try {
+      console.log('Actualizando agente:', agentData);
+      // TODO: Implementar actualización del agente
+      // Aquí se haría la llamada a la API para actualizar los datos
+      
+      // Simular actualización exitosa
+      setTimeout(() => {
+        console.log('Agente actualizado exitosamente');
+        onRefresh(); // Refrescar la lista
+      }, 1000);
+    } catch (error) {
+      console.error('Error al actualizar agente:', error);
+    }
+  };
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
@@ -38,18 +66,21 @@ const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
                 </div>
               </div>
             </div>
-            <div className="flex space-x-2">
-              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center space-x-2 transition-colors">
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+              <button 
+                onClick={() => setIsEditModalOpen(true)}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center space-x-2 transition-colors text-sm"
+              >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
                 <span>Editar Perfil</span>
               </button>
-              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center space-x-2 transition-colors">
+              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center space-x-2 transition-colors text-sm">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                <span>Reas</span>
+                <span>Reasignar</span>
               </button>
             </div>
           </div>
@@ -200,6 +231,14 @@ const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
           </div>
         )}
       </div>
+
+      {/* Modal para editar agente */}
+      <EditAgentModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSubmit={handleEditAgent}
+        member={member}
+      />
     </div>
   );
 };

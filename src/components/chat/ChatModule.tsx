@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ChannelsColumn } from './ChannelsColumn';
 import { ConversationList } from './ConversationList';
 import { ChatComponent } from './ChatComponent';
-import { DetailsPanel } from '../layout/DetailsPanel';
+import { RightSidebar } from '../layout/RightSidebar';
 import { useAppStore } from '../../stores/useAppStore';
 
 import { 
@@ -283,9 +283,9 @@ const AuthenticatedChatContent: React.FC = () => {
               <div className="space-y-2">
                 {[
                   { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-                  { id: 'clients', icon: Building2, label: 'Clientes', path: '/clients', badge: '5' },
-                  { id: 'team', icon: Users, label: 'Equipo', path: '/team', badge: '0' },
-                  { id: 'notifications', icon: Bell, label: 'Notificaciones', path: '/notifications', badge: '4' }
+                  { id: 'clients', icon: Building2, label: 'Clientes', path: '/clients' },
+                  { id: 'team', icon: Users, label: 'Equipo', path: '/team' },
+                  { id: 'notifications', icon: Bell, label: 'Notificaciones', path: '/notifications' }
                 ].map((item) => (
                   <a
                     key={item.id}
@@ -298,11 +298,6 @@ const AuthenticatedChatContent: React.FC = () => {
                       </div>
                       <span className="font-medium text-gray-900">{item.label}</span>
                     </div>
-                    {item.badge && (
-                      <span className="bg-red-500 text-white text-sm font-medium px-2 py-1 rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
                   </a>
                 ))}
               </div>
@@ -365,13 +360,7 @@ const AuthenticatedChatContent: React.FC = () => {
           <ChatComponent conversationId={activeConversation?.id} />
         </div>
         <div className="w-80 border-l border-gray-200 bg-white">
-          <DetailsPanel
-            clientProfile={mockClientProfile}
-            conversationDetails={mockConversationDetails}
-            notificationSettings={mockNotificationSettings}
-            onUpdateNotificationSettings={() => {}}
-            isLoading={false}
-          />
+          <RightSidebar />
         </div>
       </div>
     </div>
