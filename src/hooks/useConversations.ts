@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useInfiniteQuery } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
-import type { Conversation, ConversationFilters } from '../types';
+import type { Conversation, ConversationFilters, AppState } from '../types';
 import { conversationsService } from '../services/conversations';
 import { useAppStore } from '../stores/useAppStore';
 import { useWebSocketContext } from '../contexts/useWebSocketContext';
@@ -88,7 +88,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   });
 
   // FASE 1: Unificar fuente de verdad - Usar store como principal, React Query como fallback
-  const storeConversations = useAppStore(state => state.conversations);
+  const storeConversations = useAppStore((state: AppState) => state.conversations);
   
   // Combinar datos del store (tiempo real) con datos de React Query (carga inicial)
   const allConversations = useMemo(() => {
@@ -285,7 +285,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     console.log('📨 useConversations - Nuevo mensaje en conversación:', eventData);
     
     // FASE 1: Actualizar conversación en el store (fuente principal)
-    const currentConversation = storeConversations.find(c => c.id === eventData.conversationId);
+    const currentConversation = storeConversations.find((c: Conversation) => c.id === eventData.conversationId);
     const currentUnreadCount = currentConversation?.unreadCount || 0;
     
     updateStoreConversation(eventData.conversationId, {
@@ -320,7 +320,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     console.log('✅ useConversations - Mensajes marcados como leídos:', eventData);
     
     // FASE 1: Actualizar conversación en el store (fuente principal)
-    const conversation = storeConversations.find(c => c.id === eventData.conversationId);
+    const conversation = storeConversations.find((c: Conversation) => c.id === eventData.conversationId);
     if (conversation) {
       const newUnreadCount = Math.max(0, conversation.unreadCount - eventData.messageIds.length);
       updateStoreConversation(eventData.conversationId, {
@@ -470,7 +470,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     }
 
     logConversationId(sanitizedId, 'selectConversation');
-    const conversation = allConversations.find(conv => conv.id === sanitizedId);
+    const conversation = allConversations.find((conv: Conversation) => conv.id === sanitizedId);
     if (conversation) {
       console.log('✅ useConversations - Seleccionando conversación:', conversation.customerName);
       
@@ -524,7 +524,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   const selectedConversationId = activeConversation?.id || null;
 
   // Función para filtrar conversaciones
-  const filteredConversations = useMemo(() => allConversations.filter(conversation => {
+  const filteredConversations = useMemo(() => allConversations.filter((conversation: Conversation) => {
     // Filtro por búsqueda
     if (memoizedFilters.search) {
       const searchLower = memoizedFilters.search.toLowerCase();
@@ -557,10 +557,10 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   // Estadísticas - solo si está autenticado
   const stats = useMemo(() => ({
     total: conversationsData?.pages[0]?.total || 0,
-    unread: filteredConversations.reduce((sum, conv) => sum + (conv?.unreadCount || 0), 0),
-    assigned: filteredConversations.filter(conv => conv?.assignedTo).length,
-    urgent: filteredConversations.filter(conv => conv?.priority === 'urgent').length,
-    open: filteredConversations.filter(conv => conv?.status === 'open').length
+    unread: filteredConversations.reduce((sum: number, conv: Conversation) => sum + (conv?.unreadCount || 0), 0),
+    assigned: filteredConversations.filter((conv: Conversation) => conv?.assignedTo).length,
+    urgent: filteredConversations.filter((conv: Conversation) => conv?.priority === 'urgent').length,
+    open: filteredConversations.filter((conv: Conversation) => conv?.status === 'open').length
   }), [conversationsData?.pages, filteredConversations]);
 
   // Cleanup al desmontar el componente

@@ -158,14 +158,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // CORREGIDO: Log del estado actual solo cuando cambia significativamente
   useEffect(() => {
-    console.log('🔐 AuthProvider - Estado actual:', {
-      isAuthenticated,
-      loading,
-      isAuthenticating,
-      hasUser: !!user,
-      hasBackendUser: !!backendUser
-    });
-  }, [isAuthenticated, loading, isAuthenticating, user, backendUser]);
+    // REDUCIR LOGS: Solo log en cambios críticos
+    if (loading || error || isAuthenticating) {
+      console.log('🔐 AuthProvider - Estado actual:', {
+        isAuthenticated,
+        loading,
+        isAuthenticating,
+        hasUser: !!user,
+        hasBackendUser: !!backendUser,
+        error
+      });
+    }
+  }, [isAuthenticated, loading, isAuthenticating, user, backendUser, error]);
 
   // CORREGIDO: Conectar WebSocket cuando se autentica - SIN LOGS EXCESIVOS
   useEffect(() => {
@@ -215,14 +219,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // CORREGIDO: Log del estado que se está pasando al contexto solo cuando cambia
   useEffect(() => {
-    console.log('🔐 AuthContext - Estado que se pasa al contexto:', {
-      isAuthenticated,
-      loading,
-      isAuthenticating,
-      hasUser: !!user,
-      hasBackendUser: !!backendUser
-    });
-  }, [isAuthenticated, loading, isAuthenticating, user, backendUser]);
+    // REDUCIR LOGS: Solo log en cambios críticos
+    if (loading || error || isAuthenticating) {
+      console.log('🔐 AuthContext - Estado que se pasa al contexto:', {
+        isAuthenticated,
+        loading,
+        isAuthenticating,
+        hasUser: !!user,
+        hasBackendUser: !!backendUser,
+        error
+      });
+    }
+  }, [isAuthenticated, loading, isAuthenticating, user, backendUser, error]);
 
   const authValue: AuthState = {
     user,

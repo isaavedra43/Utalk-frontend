@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App.tsx'
 import './index.css'
+import './utils/logCleaner' // Importar para disponibilizar funciones globales de logging
 import './styles/dashboard.css'
 import { logger } from './utils/logger.ts'
 import './utils/consoleExporter.ts'

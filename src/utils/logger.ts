@@ -33,6 +33,7 @@ class Logger {
   private maxLogs = 1000;
   private isDevelopment = import.meta.env.DEV;
   private isDebug = import.meta.env.VITE_DEBUG === 'true';
+  private currentCategory: LogCategory = LogCategory.SYSTEM;
 
   private formatMessage(level: LogLevel, category: LogCategory, message: string, data?: Record<string, unknown>, error?: Error, context?: Record<string, unknown>): string {
     const timestamp = new Date().toISOString();
@@ -59,6 +60,9 @@ class Logger {
   }
 
   private addLog(level: LogLevel, category: LogCategory, message: string, data?: Record<string, unknown>, error?: Error, context?: Record<string, unknown>) {
+    // Actualizar categoría actual
+    this.currentCategory = category;
+    
     const logEntry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -99,9 +103,19 @@ class Logger {
   }
 
   private shouldLog(level: LogLevel): boolean {
+    // NUEVO: Usar configuración de entorno para determinar si loggear
     if (!this.isDevelopment && !this.isDebug) {
       return level === LogLevel.ERROR || level === LogLevel.CRITICAL;
     }
+    
+    // En desarrollo, aplicar filtros adicionales
+    if (this.isDevelopment) {
+      // No loggear logs de clientes a menos que sean errores críticos
+      if (level === LogLevel.INFO && this.currentCategory === LogCategory.API) {
+        return false; // Reducir logs de API en desarrollo
+      }
+    }
+    
     return true;
   }
 

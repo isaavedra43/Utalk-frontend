@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Conversation } from '../../types';
 import { useAppStore } from '../../stores/useAppStore';
+import { convertFirebaseTimestamp } from '../../utils/timestampUtils';
 
 interface ConversationItemProps {
   conversation: Conversation;
@@ -18,6 +19,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
   // Estados para controlar animaciones
   const [isNewMessage, setIsNewMessage] = useState(false);
   const [isHighlighted, setIsHighlighted] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const { calculateUnreadCount, markConversationAsRead } = useAppStore();
   
   // Calcular unreadCount dinámicamente
@@ -49,14 +51,37 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
     setPrevUnreadCount(unreadCount);
   }, [unreadCount, prevUnreadCount]);
 
-  // Formatear tiempo del último mensaje
-  const formatLastMessageTime = (timestamp: string | undefined) => {
+  // Animación al seleccionar/deseleccionar
+  useEffect(() => {
+    setIsAnimating(true);
+    const timeoutId = setTimeout(() => {
+      setIsAnimating(false);
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [isSelected]);
+
+  // FASE 3: Optimización - Memoizar funciones para evitar recreaciones
+  const formatLastMessageTime = useCallback((timestamp: string | { _seconds: number; _nanoseconds: number } | undefined) => {
     if (!timestamp) {
       return 'Reciente';
     }
     
     try {
-      const date = new Date(timestamp);
+      // Convertir timestamp de Firebase si es necesario
+      const convertedTimestamp = convertFirebaseTimestamp(timestamp);
+      if (!convertedTimestamp) {
+        console.warn('⚠️ Fecha inválida en ConversationItem:', timestamp);
+        return 'Reciente';
+      }
+      
+      const date = new Date(convertedTimestamp);
+      
+      // Verificar si la fecha es válida
+      if (isNaN(date.getTime())) {
+        console.warn('⚠️ Fecha inválida en ConversationItem después de conversión:', convertedTimestamp);
+        return 'Reciente';
+      }
+      
       const now = new Date();
       const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
       
@@ -68,13 +93,14 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
           month: 'short' 
         });
       }
-    } catch {
+    } catch (error) {
+      console.warn('⚠️ Error al formatear fecha en ConversationItem:', error, 'timestamp:', timestamp);
       return 'Reciente';
     }
-  };
+  }, []);
 
-  // Obtener iniciales del nombre del cliente
-  const getInitials = (name: string | undefined) => {
+  // FASE 3: Optimización - Memoizar función de iniciales
+  const getInitials = useCallback((name: string | undefined) => {
     if (!name || typeof name !== 'string') {
       return '??';
     }
@@ -84,20 +110,33 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
       .join('')
       .toUpperCase()
       .slice(0, 2);
-  };
+  }, []);
+
+  // FASE 3: Optimización - Memoizar valores calculados
+  const formattedTime = useMemo(() => 
+    formatLastMessageTime(conversation.lastMessageAt), 
+    [formatLastMessageTime, conversation.lastMessageAt]
+  );
+
+  const customerInitials = useMemo(() => 
+    getInitials(conversation.customerName), 
+    [getInitials, conversation.customerName]
+  );
 
   return (
     <div
       onClick={onClick}
       className={`
-        relative p-4 cursor-pointer transition-all duration-300 ease-out
+        conversation-item relative p-4 cursor-pointer transition-all duration-500 ease-out transform
         ${isSelected 
-          ? 'bg-blue-50 border-l-4 border-blue-500 shadow-sm' 
-          : 'bg-white hover:bg-gray-50 border-l-4 border-transparent'
+          ? 'selected bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 shadow-lg scale-[1.02]' 
+          : 'bg-white hover:bg-gray-50 border-l-4 border-transparent hover:border-l-4 hover:border-blue-200 hover:shadow-md'
         }
         ${isNewMessage ? 'animate-slide-in' : ''}
         ${isHighlighted ? 'ring-2 ring-blue-200' : ''}
+        ${isAnimating ? 'animate-scale-bounce' : ''}
         lg:border-l-4 lg:border-transparent lg:hover:border-l-4 lg:hover:border-blue-200
+        hover:scale-[1.01] active:scale-[0.99]
       `}
     >
       {/* Indicador de mensaje nuevo */}
@@ -106,17 +145,16 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
       )}
 
       <div className="flex items-start space-x-3">
-        {/* Avatar del cliente */}
+        {/* Avatar del cliente con fondo azul radiante */}
         <div className="flex-shrink-0">
           <div className={`
-            w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm
-            ${conversation.status === 'open' 
-              ? 'bg-gradient-to-br from-green-400 to-green-600' 
-              : 'bg-gradient-to-br from-gray-400 to-gray-600'
-            }
+            avatar-purple-gradient w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm
+            bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700
+            shadow-lg hover:shadow-xl transition-all duration-300
             ${isNewMessage ? 'animate-pulse' : ''}
+            ${isSelected ? 'ring-2 ring-blue-300 scale-110 animate-glow-pulse' : 'hover:scale-105'}
           `}>
-            {getInitials(conversation.customerName)}
+            {customerInitials}
           </div>
         </div>
 
@@ -125,50 +163,46 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
           {/* Header con nombre y tiempo */}
           <div className="flex items-center justify-between mb-1">
             <h3 className={`
-              text-sm font-semibold truncate
-              ${unreadCount > 0 ? 'text-gray-900' : 'text-gray-700'}
+              text-sm font-semibold truncate transition-colors duration-300
+              ${(conversation.unreadCount || 0) > 0 ? 'text-gray-900' : 'text-gray-700'}
+              ${isSelected ? 'text-blue-900' : ''}
             `}>
-              {conversation.customerName}
+              {conversation.customerName || 'Cliente sin nombre'}
             </h3>
             <span className={`
-              text-xs ml-2 flex-shrink-0
-              ${unreadCount > 0 ? 'text-blue-600 font-medium' : 'text-gray-500'}
+              text-xs ml-2 flex-shrink-0 transition-colors duration-300
+              ${(conversation.unreadCount || 0) > 0 ? 'text-blue-600 font-medium' : 'text-gray-500'}
+              ${isSelected ? 'text-blue-700' : ''}
             `}>
-              {formatLastMessageTime(conversation.lastMessageAt)}
+              {formattedTime}
             </span>
           </div>
 
           {/* Información del cliente */}
           <div className="flex items-center space-x-2 mb-2">
             <span className="text-xs text-gray-500 font-mono">
-              {conversation.customerPhone}
+              {conversation.customerPhone || 'Sin teléfono'}
             </span>
-            <div className="flex items-center space-x-1">
-              <div className={`
-                w-2 h-2 rounded-full
-                ${conversation.status === 'open' ? 'bg-green-500' : 'bg-gray-400'}
-              `} />
-              <span className="text-xs text-gray-500 capitalize">
-                {conversation.status}
-              </span>
-            </div>
           </div>
 
           {/* Último mensaje */}
           <div className="flex items-center justify-between">
             <p className={`
-              text-sm truncate flex-1
-              ${conversation.unreadCount > 0 ? 'text-gray-900 font-medium' : 'text-gray-600'}
+              text-sm truncate flex-1 transition-colors duration-300
+              ${(conversation.unreadCount || 0) > 0 ? 'text-gray-900 font-medium' : 'text-gray-600'}
+              ${isSelected ? 'text-blue-900' : ''}
             `}>
               {conversation.lastMessage?.content || 'Sin mensajes'}
             </p>
             
             {/* Badge de mensajes no leídos */}
-            {unreadCount > 0 && (
+            {(conversation.unreadCount || 0) > 0 && (
               <div className="flex items-center space-x-2 ml-2">
                 <span className={`
                   inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                  transition-all duration-300
                   ${isNewMessage ? 'animate-bounce bg-red-500 text-white' : 'bg-blue-100 text-blue-700'}
+                  ${isSelected ? 'bg-blue-200 text-blue-800' : ''}
                 `}>
                   +{unreadCount}
                 </span>
@@ -177,13 +211,6 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
           </div>
         </div>
       </div>
-
-      {/* Indicador de actividad */}
-      {unreadCount > 0 && (
-        <div className="absolute bottom-2 right-2">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-        </div>
-      )}
     </div>
   );
 }); 

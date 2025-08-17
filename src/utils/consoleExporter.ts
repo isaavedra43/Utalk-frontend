@@ -284,6 +284,18 @@ class ConsoleExporter {
    * Capturar un log individual
    */
   captureLog(level: LogEntry['level'], message: string, data?: unknown): void {
+    // REDUCIR LOGS: Solo capturar logs críticos para evitar spam
+    const shouldCapture = 
+      level === 'error' || 
+      (level === 'warn' && !message.includes('cliente')) ||
+      (level === 'http' && message.includes('ERROR') && !message.includes('cliente')) ||
+      (level === 'info' && (message.includes('AUTH') || message.includes('CRITICAL'))) ||
+      (level === 'log' && (message.includes('🔐') || message.includes('🔌')));
+
+    if (!shouldCapture) {
+      return;
+    }
+
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,

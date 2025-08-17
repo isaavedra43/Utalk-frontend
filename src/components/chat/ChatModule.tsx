@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { ChannelsColumn } from './ChannelsColumn';
 import { ConversationList } from './ConversationList';
 import { ChatComponent } from './ChatComponent';
 import { RightSidebar } from '../layout/RightSidebar';
+import { DetailsPanel } from '../layout/DetailsPanel';
 import { useAppStore } from '../../stores/useAppStore';
 
 import { 
@@ -12,14 +12,13 @@ import {
   ChevronLeft, 
   Menu,
   X,
-  Grid3X3,
   Building2,
   Bell,
   LayoutDashboard
 } from 'lucide-react';
 
 // Tipos para las vistas móviles
-type MobileView = 'channels' | 'conversations' | 'chat' | 'details';
+type MobileView = 'conversations' | 'chat' | 'details';
 
 // Componente interno para el contenido autenticado
 const AuthenticatedChatContent: React.FC = () => {
@@ -73,12 +72,6 @@ const AuthenticatedChatContent: React.FC = () => {
   // Navegación móvil moderna
   const mobileNavigationItems = [
     {
-      id: 'channels' as MobileView,
-      icon: Grid3X3,
-      label: 'Canales',
-      badge: '5'
-    },
-    {
       id: 'conversations' as MobileView,
       icon: MessageSquare,
       label: 'Chats',
@@ -94,65 +87,6 @@ const AuthenticatedChatContent: React.FC = () => {
   // Renderizar vista móvil moderna
   const renderMobileView = () => {
     switch (mobileView) {
-      case 'channels':
-        return (
-          <div className="h-full bg-white">
-            {/* Header moderno */}
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">U</span>
-                </div>
-                <h1 className="text-lg font-semibold">Canales</h1>
-              </div>
-              <button
-                onClick={() => setShowMobileMenu(true)}
-                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
-              >
-                <Menu className="h-5 w-5" />
-              </button>
-            </div>
-            
-            {/* Contenido de canales */}
-            <div className="p-4">
-              <div className="mb-4">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Filtrar canales..."
-                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                  <Grid3X3 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                </div>
-              </div>
-              
-              {/* Lista de canales */}
-              <div className="space-y-3">
-                {[
-                  { name: 'Asignados a ti', count: 0, icon: Users },
-                  { name: 'Sin contestar', count: 8, icon: Bell },
-                  { name: 'Abiertos', count: 2, icon: MessageSquare },
-                  { name: 'Urgentes', count: 0, icon: Building2 }
-                ].map((channel, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                        <channel.icon className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <span className="font-medium text-gray-900">{channel.name}</span>
-                    </div>
-                    {channel.count > 0 && (
-                      <span className="bg-red-500 text-white text-sm font-medium px-2 py-1 rounded-full">
-                        {channel.count}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-
       case 'conversations':
         return (
           <div className="h-full bg-white">
@@ -348,18 +282,15 @@ const AuthenticatedChatContent: React.FC = () => {
         </div>
       </div>
 
-      {/* Vista desktop - Mantener diseño existente */}
+      {/* Vista desktop - Layout reorganizado sin canales */}
       <div className="hidden lg:flex h-full">
         <div className="w-80 border-r border-gray-200 bg-white">
-          <ChannelsColumn />
-        </div>
-        <div className="w-96 border-r border-gray-200 bg-white">
           <ConversationList />
         </div>
-        <div className="flex-1 bg-white">
+        <div className="flex-1 bg-white min-w-0">
           <ChatComponent conversationId={activeConversation?.id} />
         </div>
-        <div className="w-80 border-l border-gray-200 bg-white">
+        <div className="w-96 border-l border-gray-200 bg-white">
           <RightSidebar />
         </div>
       </div>
