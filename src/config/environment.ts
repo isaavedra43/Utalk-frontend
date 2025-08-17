@@ -77,3 +77,21 @@ export const shouldLog = (category: string, level: string): boolean => {
   
   return currentLevelIndex >= configLevelIndex;
 };
+
+// Configuración de entorno para WebSocket y otras funcionalidades
+export const ENV_CONFIG = {
+  // URLs
+  WS_URL: import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:3000',
+  BACKEND_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
+  
+  // Configuración de WebSocket
+  WS_TIMEOUT: parseInt(import.meta.env.VITE_WS_TIMEOUT || '45000'),
+  WS_RETRY_ATTEMPTS: parseInt(import.meta.env.VITE_WS_RETRY_ATTEMPTS || '5'),
+  WS_RECONNECTION_DELAY: parseInt(import.meta.env.VITE_WS_RECONNECTION_DELAY || '1000'),
+  
+  // Modo de desarrollo
+  DEV_MODE: import.meta.env.DEV,
+  
+  // Configuración de debug
+  DEBUG: import.meta.env.VITE_DEBUG === 'true',
+};
