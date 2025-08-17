@@ -125,12 +125,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
     [getInitials, conversation.customerName]
   );
 
-  const statusColor = useMemo(() => 
-    (conversation.status || 'closed') === 'open' 
-      ? 'bg-gradient-to-br from-green-400 to-green-600' 
-      : 'bg-gradient-to-br from-gray-400 to-gray-600',
-    [conversation.status]
-  );
+
 
   return (
     <div

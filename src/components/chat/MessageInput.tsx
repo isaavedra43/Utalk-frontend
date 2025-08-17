@@ -14,7 +14,6 @@ interface MessageInputProps {
   onBlur?: () => void;
   onKeyPress?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   isSending?: boolean;
-  conversationId?: string;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -27,8 +26,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   onChange: externalOnChange,
   onBlur: externalOnBlur,
   onKeyPress: externalOnKeyPress,
-  isSending = false,
-  conversationId
+  isSending = false
 }) => {
   const [message, setMessage] = useState('');
   const [showAudioRecorder, setShowAudioRecorder] = useState(false);
