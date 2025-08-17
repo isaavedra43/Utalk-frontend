@@ -1,4 +1,5 @@
 
+import React, { memo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { WebSocketProvider } from './contexts/WebSocketContext'
@@ -15,12 +16,12 @@ import { useAuthContext } from './contexts/useAuthContext'
 // FORZAR ACTUALIZACIÓN DE VERCEL - Commit a00c0f1 aplicado
 // Autenticación manual obligatoria implementada
 
-// Componente de protección de rutas
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// Componente de protección de rutas - OPTIMIZADO
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = memo(({ children }) => {
   const { isAuthenticated, loading } = useAuthContext();
 
-  // Debug: Log del estado de autenticación
-  console.log('🔐 ProtectedRoute - Estado:', { isAuthenticated, loading });
+  // Debug: Log del estado de autenticación - REDUCIDO
+  // console.log('🔐 ProtectedRoute - Estado:', { isAuthenticated, loading });
 
   // Si está cargando, mostrar loading
   if (loading) {
@@ -43,7 +44,9 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   // Si está autenticado, mostrar el contenido
   return <>{children}</>;
-};
+});
+
+ProtectedRoute.displayName = 'ProtectedRoute';
 
 // Componente para el módulo de chat
 const ChatPage: React.FC = () => {

@@ -245,7 +245,7 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({
       {isFocused && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
-          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto"
+                      className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto no-scrollbar"
         >
           <div className="py-2">
             {suggestions.map((suggestion, index) => (

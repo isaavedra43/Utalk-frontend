@@ -30,7 +30,7 @@ export const StickerPicker: React.FC<StickerPickerProps> = ({ onSelectSticker, o
         </button>
       </div>
       
-      <div className="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto">
+              <div className="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto no-scrollbar">
         {STICKERS.map((sticker, index) => (
           <button
             key={index}

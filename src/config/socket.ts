@@ -3,17 +3,29 @@ import { ENV_CONFIG } from './environment';
 import { getUserInfo } from '../utils/jwtUtils';
 
 const SOCKET_CONFIG = {
-  transports: ['websocket', 'polling'],
-  timeout: ENV_CONFIG.WS_TIMEOUT,
+  transports: ['websocket', 'polling'], // NUEVO: Permitir fallback a polling
+  timeout: 60000, // NUEVO: Aumentado a 60 segundos
   reconnection: true,
-  reconnectionAttempts: ENV_CONFIG.WS_RETRY_ATTEMPTS,
-  reconnectionDelay: ENV_CONFIG.WS_RECONNECTION_DELAY,
-  reconnectionDelayMax: 10000, // Aumentado para dar más tiempo al backend
-  maxReconnectionAttempts: ENV_CONFIG.WS_RETRY_ATTEMPTS,
+  reconnectionAttempts: 5, // NUEVO: Reducido para evitar loops infinitos
+  reconnectionDelay: 2000, // NUEVO: Delay inicial de 2 segundos
+  reconnectionDelayMax: 30000, // NUEVO: Máximo 30 segundos
+  maxReconnectionAttempts: 5, // NUEVO: Máximo 5 intentos
   autoConnect: false, // No conectar automáticamente
   forceNew: true,
   upgrade: true,
-  rememberUpgrade: true
+  rememberUpgrade: true,
+  // NUEVO: Configuraciones adicionales para estabilidad
+  pingTimeout: 60000, // NUEVO: Timeout de ping de 60 segundos
+  pingInterval: 25000, // NUEVO: Ping cada 25 segundos
+  closeOnBeforeunload: false, // NUEVO: No cerrar en beforeunload
+  // NUEVO: Configuraciones de transporte
+  transportOptions: {
+    websocket: {
+      // NUEVO: Configuraciones específicas de WebSocket
+      perMessageDeflate: false, // NUEVO: Deshabilitar compresión para evitar problemas
+      maxPayload: 1000000 // NUEVO: Máximo 1MB de payload
+    }
+  }
 };
 
 export const createSocket = (token: string, options?: { timeout?: number }) => {
@@ -39,30 +51,22 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
   
   const socketConfig = {
     ...SOCKET_CONFIG,
-    // ALINEADO: Timeout personalizable para login (mínimo 45 segundos para coincidir con backend)
-    timeout: Math.max(options?.timeout || SOCKET_CONFIG.timeout, 45000)
+    // NUEVO: Timeout más largo para dar tiempo al backend
+    timeout: Math.max(options?.timeout || SOCKET_CONFIG.timeout, 60000)
   };
   
   const socket = io(SOCKET_URL, {
     ...socketConfig,
-    // CORREGIDO: Usar auth.token y también Authorization header
+    // NUEVO: Configuración de autenticación simplificada
     auth: {
-      token: token,
-      // NUEVO: Incluir workspaceId y tenantId en la autenticación
-      workspaceId: userInfo.workspaceId,
-      tenantId: userInfo.tenantId,
-      userId: userInfo.userId,
-      email: userInfo.email
+      token: token
     },
     extraHeaders: {
-      'Authorization': `Bearer ${token}`,
-      // NUEVO: Headers adicionales para workspaceId y tenantId
-      'X-Workspace-ID': userInfo.workspaceId,
-      'X-Tenant-ID': userInfo.tenantId,
-      'X-User-ID': userInfo.userId || '',
-      'X-User-Email': userInfo.email || ''
+      'Authorization': `Bearer ${token}`
     },
-    path: '/socket.io/', // Asegurar que use el path correcto
+    path: '/socket.io/',
+    // NUEVO: Configuraciones adicionales para estabilidad
+    withCredentials: true, // NUEVO: Incluir credenciales
   });
 
   // CORREGIDO: Logging más detallado para debugging
@@ -74,6 +78,13 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
       workspaceId: userInfo.workspaceId,
       tenantId: userInfo.tenantId,
       userId: userInfo.userId
+    });
+  });
+
+  socket.on('connecting', () => {
+    console.log('🔄 WebSocket: Conectando...', {
+      url: SOCKET_URL,
+      timestamp: new Date().toISOString()
     });
   });
 
@@ -113,6 +124,18 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
       timestamp: new Date().toISOString()
     });
   });
+
+  socket.on('disconnecting', (reason) => {
+    console.log('🔌 WebSocket: Desconectando...', {
+      reason,
+      socketId: socket.id,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // NUEVO: Conectar explícitamente el socket
+  console.log('🔌 Conectando socket explícitamente...');
+  socket.connect();
 
   return socket;
 }; 

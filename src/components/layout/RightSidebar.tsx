@@ -4,6 +4,7 @@ import { CopilotPanel } from './CopilotPanel';
 import { useAppStore } from '../../stores/useAppStore';
 import { useClientProfileStore } from '../../stores/useClientProfileStore';
 import type { ClientProfile } from '../../services/clientProfile';
+import { User, Bot } from 'lucide-react';
 
 export const RightSidebar: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'details' | 'copilot'>('copilot');
@@ -15,49 +16,98 @@ export const RightSidebar: React.FC = () => {
   const [clientProfile, setClientProfile] = useState<ClientProfile | null>(null);
   const [isLoadingClientProfile, setIsLoadingClientProfile] = useState(false);
 
-  const loadClientProfile = useCallback(async (conversationId: string) => {
-    // Evitar cargar si ya está cargando
-    if (isLoadingClientProfile) {
-      return;
-    }
-    
-    setIsLoadingClientProfile(true);
-    try {
-      const profile = await getProfile(conversationId);
-      if (profile) {
-        setClientProfile(profile);
-      } else {
-        console.log('No se pudo obtener el perfil del cliente');
-        setClientProfile(null);
-      }
-    } catch (error) {
-      console.error('Error cargando perfil del cliente:', error);
-      setClientProfile(null);
-    } finally {
-      setIsLoadingClientProfile(false);
-    }
-  }, [isLoadingClientProfile, getProfile]);
-
-  // Cargar información del cliente cuando cambie la conversación
-  useEffect(() => {
-    if (selectedConversationId) {
-      loadClientProfile(selectedConversationId);
-    } else {
-      setClientProfile(null);
-    }
-  }, [selectedConversationId, loadClientProfile]);
-
-  // Configuración de notificaciones (mock por ahora)
-  const notificationSettings = {
+  // NUEVO: Estado real para configuraciones de notificación
+  const [notificationSettings, setNotificationSettings] = useState({
     conversationNotifications: true,
     reports: true,
     autoFollowUp: false,
     emailNotifications: true,
     pushNotifications: true
-  };
+  });
 
-  const updateNotificationSettings = () => {
-    console.log('Actualizando configuración de notificaciones');
+  const loadClientProfile = useCallback(async (conversationId: string) => {
+    if (isLoadingClientProfile) {
+      if (import.meta.env.DEV) {
+        console.log('🔄 [DEBUG] Ya cargando perfil, saltando...');
+      }
+      return;
+    }
+
+    setIsLoadingClientProfile(true);
+    
+    try {
+      if (import.meta.env.DEV) {
+        console.log('📞 [DEBUG] Llamando a getProfile...');
+      }
+      const profile = await getProfile(conversationId);
+      
+      if (import.meta.env.DEV) {
+        console.log('📊 [DEBUG] Resultado de getProfile:', {
+          conversationId,
+          hasProfile: !!profile,
+          profileName: profile?.name,
+          profilePhone: profile?.phone,
+          profileChannel: profile?.channel
+        });
+      }
+      
+      if (profile) {
+        if (import.meta.env.DEV) {
+          console.log('✅ [DEBUG] Perfil obtenido, actualizando estado...');
+        }
+        setClientProfile(profile);
+      } else {
+        if (import.meta.env.DEV) {
+          console.log('❌ [DEBUG] No se pudo obtener el perfil del cliente');
+        }
+        setClientProfile(null);
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('❌ [DEBUG] Error cargando perfil del cliente:', {
+          conversationId,
+          errorType: typeof error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorObject: error
+        });
+      }
+      setClientProfile(null);
+    } finally {
+      if (import.meta.env.DEV) {
+        console.log('🏁 [DEBUG] Finalizando carga...');
+      }
+      setIsLoadingClientProfile(false);
+    }
+  }, [getProfile, isLoadingClientProfile]); // NUEVO: Agregada isLoadingClientProfile como dependencia
+
+  // Cargar información del cliente cuando cambie la conversación
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log('🔄 [DEBUG] useEffect RightSidebar - selectedConversationId cambió:', { selectedConversationId });
+    }
+    
+    if (selectedConversationId) {
+      if (import.meta.env.DEV) {
+        console.log('📞 [DEBUG] Llamando a loadClientProfile...');
+      }
+      loadClientProfile(selectedConversationId);
+    } else {
+      if (import.meta.env.DEV) {
+        console.log('🧹 [DEBUG] No hay conversación seleccionada, limpiando perfil...');
+      }
+      setClientProfile(null);
+    }
+  }, [selectedConversationId, loadClientProfile]);
+
+  // Configuración de notificaciones (mock por ahora)
+  const updateNotificationSettings = (updates: Partial<typeof notificationSettings>) => {
+    if (import.meta.env.DEV) {
+      console.log('🔄 [DEBUG] Actualizando configuración de notificaciones:', updates);
+    }
+    setNotificationSettings(prev => ({
+      ...prev,
+      ...updates
+    }));
   };
 
   // Si no hay conversación seleccionada
@@ -79,32 +129,37 @@ export const RightSidebar: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Tabs */}
-      <div className="flex border-b border-gray-200">
-        <button
-          onClick={() => setActiveTab('details')}
-          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-            activeTab === 'details'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Details
-        </button>
-        <button
-          onClick={() => setActiveTab('copilot')}
-          className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-            activeTab === 'copilot'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Copilot
-        </button>
+      {/* Header con título */}
+      <div className="p-3 border-b border-gray-200">
+        <h2 className="text-base font-semibold text-gray-900 mb-2">INFO/IA</h2>
+        <div className="flex space-x-1">
+          <button
+            onClick={() => setActiveTab('details')}
+            className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center justify-center space-x-1 ${
+              activeTab === 'details'
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <User className="w-3 h-3" />
+            <span>Details</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('copilot')}
+            className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center justify-center space-x-1 ${
+              activeTab === 'copilot'
+                ? 'bg-blue-100 text-blue-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <Bot className="w-3 h-3" />
+            <span>Copilot</span>
+          </button>
+        </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto no-scrollbar">
         {activeTab === 'details' ? (
           clientProfile ? (
             <DetailsPanel

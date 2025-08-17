@@ -221,7 +221,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 no-scrollbar">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Tab: Perfil */}
             {activeTab === 'profile' && (

@@ -210,7 +210,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) =>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto no-scrollbar">
           {activeTab === 'estado' && (
             <div className="space-y-4">
               {/* Estado General */}
@@ -355,7 +355,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) =>
               </div>
 
               {/* Logs */}
-              <div className="bg-gray-100 p-4 rounded text-xs font-mono h-96 overflow-y-auto">
+              <div className="bg-gray-100 p-4 rounded text-xs font-mono h-96 overflow-y-auto no-scrollbar">
                 {logs.map(log => (
                   <div
                     key={log.id}

@@ -335,7 +335,7 @@ export const NetworkMonitor: React.FC = () => {
             </label>
           </div>
           
-          <div className="max-h-64 overflow-y-auto bg-gray-50 rounded-lg p-2">
+          <div className="max-h-64 overflow-y-auto bg-gray-50 rounded-lg p-2 no-scrollbar">
             {requests.length === 0 ? (
               <p className="text-sm text-gray-500 text-center py-4">No hay peticiones registradas</p>
             ) : (

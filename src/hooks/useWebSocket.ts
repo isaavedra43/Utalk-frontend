@@ -30,15 +30,19 @@ export const useWebSocket = () => {
       isConnectingRef.current = true;
       console.log('🔌 Iniciando conexión de socket...');
       
-      // OPTIMIZADO: Aumentar timeout por defecto a 30 segundos para dar más tiempo al backend
-      const timeout = options?.timeout || 30000;
+      // NUEVO: Timeout más largo para dar tiempo al backend
+      const timeout = options?.timeout || 60000;
       const newSocket = createSocket(token, { ...options, timeout });
       socketRef.current = newSocket;
       setSocket(newSocket);
 
-      // Configurar listeners de conexión
+      // NUEVO: Configurar listeners de conexión mejorados
       newSocket.on('connect', () => {
-        console.log('✅ Socket conectado:', newSocket.id);
+        console.log('✅ Socket conectado exitosamente:', {
+          socketId: newSocket.id,
+          timestamp: new Date().toISOString(),
+          reconnectAttempts
+        });
         setIsConnected(true);
         setConnectionError(null);
         setReconnectAttempts(0);
@@ -52,42 +56,55 @@ export const useWebSocket = () => {
       });
 
       newSocket.on('disconnect', (reason: string) => {
-        console.log('❌ Socket desconectado:', reason);
+        console.log('❌ Socket desconectado:', {
+          reason,
+          socketId: newSocket.id,
+          timestamp: new Date().toISOString(),
+          reconnectAttempts
+        });
         setIsConnected(false);
         isConnectingRef.current = false;
         
-        // CORREGIDO: Mejorar lógica de reconexión automática
+        // NUEVO: Lógica de reconexión mejorada
         if (reason === 'io server disconnect' || reason === 'transport close') {
-          console.log('🔄 Intentando reconexión automática...');
-          
-          // Limpiar timeout anterior si existe
-          if (reconnectTimeoutRef.current) {
-            clearTimeout(reconnectTimeoutRef.current);
-          }
-          
-          // Usar backoff exponencial para reconexión - OPTIMIZADO
-          const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
-          console.log(`🔄 Reconexión en ${backoffDelay}ms (intento ${reconnectAttempts + 1})`);
-          
-          reconnectTimeoutRef.current = setTimeout(() => {
-            if (token && !isConnectingRef.current) {
-              setReconnectAttempts(prev => prev + 1);
-              connect(token, { timeout: 30000 }); // Usar timeout aumentado para reconexión
+          // NUEVO: Solo reconectar si no hemos excedido el máximo de intentos
+          if (reconnectAttempts < 5) {
+            console.log('🔄 Intentando reconexión automática...');
+            
+            // Limpiar timeout anterior si existe
+            if (reconnectTimeoutRef.current) {
+              clearTimeout(reconnectTimeoutRef.current);
             }
-          }, backoffDelay);
+            
+            // NUEVO: Backoff exponencial más agresivo
+            const backoffDelay = Math.min(2000 * Math.pow(2, reconnectAttempts), 30000);
+            console.log(`🔄 Reconexión en ${backoffDelay}ms (intento ${reconnectAttempts + 1}/5)`);
+            
+            reconnectTimeoutRef.current = setTimeout(() => {
+              if (token && !isConnectingRef.current) {
+                setReconnectAttempts(prev => prev + 1);
+                connect(token, { timeout: 60000 }); // NUEVO: Timeout aumentado para reconexión
+              }
+            }, backoffDelay);
+          } else {
+            console.error('❌ Máximo de intentos de reconexión alcanzado');
+            setConnectionError('No se pudo establecer conexión después de 5 intentos');
+          }
+        } else if (reason === 'io client disconnect') {
+          console.log('🔌 Desconexión iniciada por el cliente');
+          setConnectionError('Desconexión iniciada por el cliente');
         }
       });
 
       newSocket.on('connect_error', (error: Error) => {
-        console.error('🔌 Error de conexión:', error);
-        console.error('🔌 Detalles del error:', {
+        console.error('🔌 Error de conexión:', {
           message: error.message,
           name: error.name,
-          type: error.constructor.name,
-          stack: error.stack
+          timestamp: new Date().toISOString(),
+          reconnectAttempts
         });
         
-        // Clasificación de errores transitorios vs definitivos
+        // NUEVO: Clasificación mejorada de errores
         const msg = error.message.toLowerCase();
         const isAuthError = msg.includes('authentication_required') || msg.includes('jwt token required') || msg.includes('unauthorized');
         const isTimeout = msg.includes('timeout') || msg.includes('etimedout');
@@ -97,37 +114,59 @@ export const useWebSocket = () => {
         if (isAuthError) {
           console.error('🔐 Error de autenticación WebSocket');
           setConnectionError('Error de autenticación: Token inválido o expirado');
+          isConnectingRef.current = false;
         } else if (isTimeout || isTransport || isRefused) {
-          // Errores transitorios: no fijar connectionError para no bloquear la UI; dejar que reconecte
-          console.warn('⏳ Error transitorio de WebSocket: se intentará reconectar automáticamente');
-          if (reconnectAttempts < 3) {
-            setTimeout(() => {
-              if (token && !isConnectingRef.current) {
-                setReconnectAttempts(prev => prev + 1);
-                connect(token, { timeout: 30000 });
-              }
-            }, 1500);
-          }
+          console.log('🔄 Error transitorio, intentando reconexión...');
+          // NUEVO: No establecer error para errores transitorios
+          isConnectingRef.current = false;
         } else {
-          setConnectionError(error.message);
+          console.error('❌ Error desconocido de conexión');
+          setConnectionError(`Error de conexión: ${error.message}`);
+          isConnectingRef.current = false;
         }
-        
-        setIsConnected(false);
-        isConnectingRef.current = false;
       });
 
+      // NUEVO: Listener para errores de transporte
       newSocket.on('error', (error: Error) => {
-        console.error('🚨 Error de socket:', error);
-        setConnectionError(error.message);
+        console.error('🔌 Error de transporte:', {
+          message: error.message,
+          name: error.name,
+          timestamp: new Date().toISOString()
+        });
       });
 
-      // Conectar
-      console.log('🔌 Conectando socket con timeout de', timeout, 'ms...');
-      newSocket.connect();
+      // NUEVO: Listener para reconexión
+      newSocket.on('reconnect', (attemptNumber: number) => {
+        console.log('✅ Socket reconectado exitosamente:', {
+          attemptNumber,
+          socketId: newSocket.id,
+          timestamp: new Date().toISOString()
+        });
+        setIsConnected(true);
+        setConnectionError(null);
+        setReconnectAttempts(0);
+      });
 
-    } catch (error: unknown) {
-      console.error('Error creando socket:', error);
-      setConnectionError(error instanceof Error ? error.message : 'Error desconocido');
+      // NUEVO: Listener para intento de reconexión
+      newSocket.on('reconnect_attempt', (attemptNumber: number) => {
+        console.log('🔄 Intentando reconexión:', {
+          attemptNumber,
+          timestamp: new Date().toISOString()
+        });
+      });
+
+      // NUEVO: Listener para fallo de reconexión
+      newSocket.on('reconnect_failed', () => {
+        console.error('❌ Fallo en la reconexión después de todos los intentos');
+        setConnectionError('No se pudo reconectar después de múltiples intentos');
+      });
+
+      // NUEVO: El socket ya se conecta automáticamente en createSocket
+      console.log('🔌 Socket creado, conexión iniciada automáticamente');
+
+    } catch (error) {
+      console.error('❌ Error al crear socket:', error);
+      setConnectionError(`Error al crear socket: ${error instanceof Error ? error.message : 'Error desconocido'}`);
       isConnectingRef.current = false;
     }
   }, [reconnectAttempts]);

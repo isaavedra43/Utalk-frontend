@@ -98,7 +98,7 @@ export const MessageContainer: React.FC<MessageContainerProps> = ({
 
   if (isLoading && messageGroups.length === 0) {
     return (
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 no-scrollbar">
         <div className="space-y-4">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="flex items-start space-x-2">
@@ -119,11 +119,7 @@ export const MessageContainer: React.FC<MessageContainerProps> = ({
       {/* Contenedor principal de mensajes */}
       <div 
         ref={containerRef}
-        className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400"
-        style={{
-          scrollbarWidth: 'thin',
-          scrollbarColor: '#D1D5DB transparent'
-        }}
+        className="h-full overflow-y-auto no-scrollbar"
       >
         {/* Indicador de carga más mensajes (solo cuando está cargando) */}
         {isFetchingNextPage && (
@@ -166,16 +162,11 @@ export const MessageContainer: React.FC<MessageContainerProps> = ({
                 
                 {/* Mensajes del grupo */}
                 <div className="space-y-1 px-3">
-                  {group.messages?.map((message, messageIndex) => (
+                  {group.messages?.map((message) => (
                     <MessageBubble
                       key={message.id}
                       message={message}
                       customerName={customerName}
-                      showAvatar={message.direction === 'inbound'}
-                      isLastInGroup={
-                        messageIndex === (group.messages?.length || 0) - 1 ||
-                        group.messages?.[messageIndex + 1]?.direction !== message.direction
-                      }
                     />
                   ))}
                 </div>

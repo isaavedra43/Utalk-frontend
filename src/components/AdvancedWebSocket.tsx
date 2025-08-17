@@ -396,7 +396,7 @@ export const AdvancedWebSocket: React.FC = () => {
       {/* Lista de Eventos */}
       <div className="space-y-4">
         <h4 className="font-semibold">📋 Recent Events ({events.length})</h4>
-        <div className="max-h-96 overflow-y-auto space-y-2">
+        <div className="max-h-96 overflow-y-auto space-y-2 no-scrollbar">
           {events.map(event => (
             <div key={event.id} className="border rounded-lg p-3 bg-white">
               <div className="flex items-center justify-between">

@@ -93,7 +93,7 @@ const TeamList: React.FC<TeamListProps> = ({
       
       {/* Lista de miembros */}
       <div className="flex-1 flex flex-col">
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto no-scrollbar">
           <div className="p-4 space-y-3">
             {currentMembers.map((member) => (
               <TeamMemberCard

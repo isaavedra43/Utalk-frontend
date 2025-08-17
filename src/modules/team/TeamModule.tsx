@@ -169,7 +169,7 @@ const TeamModule: React.FC = () => {
         {/* Panel derecho - Permisos y Coaching */}
         <div className="w-96 xl:w-[420px] bg-white border-l border-gray-200 flex flex-col flex-shrink-0">
           {selectedMember ? (
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto no-scrollbar">
               <Suspense fallback={<LoadingSpinner />}>
                 <PermissionsPanel member={selectedMember} />
               </Suspense>

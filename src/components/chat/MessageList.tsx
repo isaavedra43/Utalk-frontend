@@ -53,22 +53,15 @@ export const MessageList: React.FC<MessageListProps> = ({
     if (group.type === 'messages' && group.messages) {
       return (
         <div key={group.key} className="space-y-1 mb-4">
-          {group.messages.map((message, index) => {
-            const isLastInGroup = index === group.messages!.length - 1;
-            const showAvatar = isLastInGroup && message.direction === 'inbound';
-            
-            return (
-              <MessageBubble
-                key={message.id}
-                message={message}
-                customerName={customerName}
-                showAvatar={showAvatar}
-                isLastInGroup={isLastInGroup}
-                onRetry={onRetryMessage}
-                onDelete={onDeleteMessage}
-              />
-            );
-          })}
+          {group.messages.map((message) => (
+            <MessageBubble
+              key={message.id}
+              message={message}
+              customerName={customerName}
+              onRetry={onRetryMessage}
+              onDelete={onDeleteMessage}
+            />
+          ))}
         </div>
       );
     }
@@ -82,27 +75,19 @@ export const MessageList: React.FC<MessageListProps> = ({
     }
 
     // Fallback: renderizar mensajes sin agrupar
-    return messages.map((message, index) => {
-      const isLastInGroup = index === messages.length - 1 || 
-        messages[index + 1]?.direction !== message.direction;
-      const showAvatar = isLastInGroup && message.direction === 'inbound';
-      
-      return (
-        <MessageBubble
-          key={message.id}
-          message={message}
-          customerName={customerName}
-          showAvatar={showAvatar}
-          isLastInGroup={isLastInGroup}
-          onRetry={onRetryMessage}
-          onDelete={onDeleteMessage}
-        />
-      );
-    });
+    return messages.map((message) => (
+      <MessageBubble
+        key={message.id}
+        message={message}
+        customerName={customerName}
+        onRetry={onRetryMessage}
+        onDelete={onDeleteMessage}
+      />
+    ));
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
       {/* Botón para cargar más mensajes */}
       {hasMore && (
         <div className="flex justify-center">

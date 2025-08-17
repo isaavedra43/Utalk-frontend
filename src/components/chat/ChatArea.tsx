@@ -76,7 +76,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
       </div>
       
       {/* Mensajes */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto no-scrollbar">
         <MessageList 
           messages={messages}
         />

@@ -298,7 +298,7 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
             </button>
           </div>
           
-          <div className="space-y-2 max-h-48 overflow-y-auto">
+          <div className="space-y-2 max-h-48 overflow-y-auto no-scrollbar">
             {filePreviews.map((filePreview) => (
               <div key={filePreview.id} className="flex items-center space-x-2 p-2 bg-gray-50 rounded-md">
                 {/* Preview/Icono */}

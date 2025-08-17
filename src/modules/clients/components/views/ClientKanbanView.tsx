@@ -216,7 +216,7 @@ export const ClientKanbanView: React.FC<ClientKanbanViewProps> = ({
               </div>
 
               {/* Lista de clientes */}
-              <div className="p-2 space-y-2 max-h-96 overflow-y-auto">
+              <div className="p-2 space-y-2 max-h-96 overflow-y-auto no-scrollbar">
                 {column.clients.map((client) => (
                   <div
                     key={client.id}

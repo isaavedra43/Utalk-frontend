@@ -279,7 +279,7 @@ export const WebSocketTest: React.FC = () => {
           </div>
         </div>
         
-        <div className="bg-white p-3 rounded border max-h-48 overflow-y-auto">
+        <div className="bg-white p-3 rounded border max-h-48 overflow-y-auto no-scrollbar">
           {testEvents.map(event => (
             <div
               key={event.id}

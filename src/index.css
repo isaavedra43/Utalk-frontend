@@ -98,6 +98,16 @@
   background: rgba(255, 255, 255, 0.5);
 }
 
+/* Ocultar scrollbar pero mantener funcionalidad */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
 /* Focus styles */
 .focus-ring {
   outline: none;

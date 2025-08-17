@@ -1,0 +1,157 @@
+/* Layout de 4 columnas para mejor accesibilidad */
+
+.four-column-layout {
+  @apply hidden lg:flex h-full;
+}
+
+/* Columna 1: Lista de conversaciones */
+.conversations-column {
+  @apply w-64 border-r border-gray-200 bg-white;
+  min-width: 256px;
+  max-width: 320px;
+}
+
+/* Columna 2: Chat (con más ancho) */
+.chat-column {
+  @apply flex-1 bg-white min-w-0 border-r border-gray-200;
+  min-width: 380px;
+}
+
+/* Columna 3: Sugerencias */
+.suggestions-column {
+  @apply w-96 border-r border-gray-200 bg-white;
+  min-width: 384px;
+  max-width: 480px;
+}
+
+/* Columna 4: Detalles + Copiloto */
+.details-copilot-column {
+  @apply w-96 bg-white;
+  min-width: 384px;
+  max-width: 480px;
+}
+
+/* Responsive breakpoints */
+@media (min-width: 1920px) {
+  .conversations-column {
+    @apply w-72;
+    min-width: 288px;
+    max-width: 360px;
+  }
+  
+  .suggestions-column {
+    @apply w-[28rem];
+    min-width: 448px;
+    max-width: 560px;
+  }
+  
+  .details-copilot-column {
+    @apply w-[28rem];
+    min-width: 448px;
+    max-width: 560px;
+  }
+}
+
+@media (max-width: 1536px) {
+  .conversations-column {
+    @apply w-60;
+    min-width: 240px;
+    max-width: 300px;
+  }
+  
+  .suggestions-column {
+    @apply w-80;
+    min-width: 320px;
+    max-width: 400px;
+  }
+  
+  .details-copilot-column {
+    @apply w-80;
+    min-width: 320px;
+    max-width: 400px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .four-column-layout {
+    @apply hidden;
+  }
+}
+
+/* Transiciones suaves */
+.column-transition {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+/* Scrollbars personalizados para cada columna */
+.conversations-column::-webkit-scrollbar,
+.suggestions-column::-webkit-scrollbar,
+.details-copilot-column::-webkit-scrollbar {
+  width: 6px;
+}
+
+.conversations-column::-webkit-scrollbar-track,
+.suggestions-column::-webkit-scrollbar-track,
+.details-copilot-column::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+.conversations-column::-webkit-scrollbar-thumb,
+.suggestions-column::-webkit-scrollbar-thumb,
+.details-copilot-column::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
+}
+
+.conversations-column::-webkit-scrollbar-thumb:hover,
+.suggestions-column::-webkit-scrollbar-thumb:hover,
+.details-copilot-column::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
+
+/* Separadores visuales mejorados */
+.column-separator {
+  @apply border-gray-200;
+  box-shadow: 1px 0 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Estados de hover para las columnas */
+.conversations-column:hover,
+.suggestions-column:hover,
+.details-copilot-column:hover {
+  @apply shadow-sm;
+}
+
+/* Animaciones de entrada */
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.conversations-column {
+  animation: slideInFromLeft 0.3s ease-out;
+}
+
+.suggestions-column {
+  animation: slideInFromRight 0.3s ease-out 0.1s both;
+}
+
+.details-copilot-column {
+  animation: slideInFromRight 0.3s ease-out 0.2s both;
+} 

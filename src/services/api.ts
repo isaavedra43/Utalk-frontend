@@ -42,16 +42,16 @@ api.interceptors.request.use(
     const url = config.url || '';
     const method = config.method || 'GET';
     
-    // NUEVO: Verificar rate limit antes de hacer la petición (solo para métodos no-GET)
-    if (config.method !== 'GET' && !rateLimiter.checkRateLimit(url)) {
+    // Verificar rate limit antes de hacer la petición
+    if (!rateLimiter.checkRateLimit(url)) {
       console.warn('🚫 Rate limit excedido, cancelando petición:', url);
       throw new Error('Rate limit exceeded');
     }
 
-    // NUEVO: Generar clave única para deduplicación
+    // Generar clave única para deduplicación
     const requestKey = generateRequestKey(method, url, config.params);
     
-    // NUEVO: Aplicar deduplicación para peticiones GET
+    // Aplicar deduplicación para peticiones GET
     if (method === 'GET') {
       return deduplicateRequest(requestKey, () => {
         // Continuar con la petición original
@@ -129,16 +129,10 @@ api.interceptors.request.use(
       logger.debug(LogCategory.API, `Request: ${config.method?.toUpperCase()} ${config.url}`, config.data);
     }
     
-    // DESHABILITAR COMPLETAMENTE logs de GET requests para evitar spam
-    if (config.method === 'GET') {
-      // No loggear nada para GET requests
-      return config;
-    }
-    
     return config;
   },
   (error) => {
-    console.error('❌ Error en interceptor de request:', error);
+    logger.apiError('Error en interceptor de request', error);
     return Promise.reject(error);
   }
 );
@@ -178,19 +172,19 @@ api.interceptors.response.use(
 
     const originalRequest = error.config;
 
-    // NUEVO: Respetar Retry-After en 429 (aplica backoff en el rateLimiter)
+    // Manejar rate limiting (429)
     if (error.response?.status === 429) {
-      const retryAfterHeader = error.response.headers?.['retry-after'];
-      // Retry-After puede venir en segundos o fecha. Priorizamos ms si el backend envía payload.
-      let backoffMs = 0;
+      const retryAfterHeader = error.response.headers['retry-after'];
+      let backoffMs = 5000; // Default 5 segundos
+      
       if (retryAfterHeader && !isNaN(Number(retryAfterHeader))) {
         backoffMs = Number(retryAfterHeader) * 1000;
       } else if (error.response?.data?.retryAfterMs) {
         backoffMs = Number(error.response.data.retryAfterMs) || 0;
       }
-      if (backoffMs > 0) {
-        rateLimiter.setBackoff(url, backoffMs);
-      }
+      
+      // Log del rate limit sin usar setBackoff
+      console.warn('🚫 Rate limit excedido, esperando', backoffMs, 'ms antes de reintentar');
     }
 
     // Log de errores en desarrollo

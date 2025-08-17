@@ -131,7 +131,7 @@ const DashboardModule = memo(() => {
         />
 
         {/* Contenido principal */}
-        <div className="flex-1 p-6 space-y-6 overflow-y-auto min-h-0">
+        <div className="flex-1 p-6 space-y-6 overflow-y-auto min-h-0 no-scrollbar">
           {/* Tarjetas de métricas principales */}
           <ErrorBoundary>
             <KPICards metrics={dashboardData.metrics} />

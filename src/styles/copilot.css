@@ -89,6 +89,7 @@
   font-weight: 900;
   text-shadow: 0 0 40px rgba(139, 92, 246, 0.4);
   letter-spacing: -0.025em;
+  display: inline-block;
 }
 
 /* Efecto de resplandor para el texto */

@@ -9,7 +9,6 @@ import { convertFirebaseTimestamp } from '../../utils/timestampUtils';
 interface MessageBubbleProps {
   message: Message;
   customerName: string;
-  isLastInGroup?: boolean;
   onRetry?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
 }
@@ -17,7 +16,6 @@ interface MessageBubbleProps {
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   customerName,
-  isLastInGroup = true,
   onRetry,
   onDelete
 }) => {
@@ -134,32 +132,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   };
 
   return (
-    <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${!isLastInGroup ? 'mb-1' : 'mb-4'}`}>
-      {/* Header con tiempo y nombre del remitente */}
-      <div className={`flex items-center gap-2 mb-1 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
-        <span className="text-xs text-gray-400">
-          {formatTime()}
-        </span>
-        <span className="text-xs font-semibold text-gray-700">
-          {isOutbound ? 'Tú' : customerName}
-        </span>
-      </div>
-
-      {/* Mensaje con diseño morado */}
-      <div className={`relative max-w-xs lg:max-w-md ${isOutbound ? 'ml-auto' : 'mr-auto'}`}>
-        {/* Menú de tres puntos */}
-        <div ref={menuRef} className="absolute -left-8 top-0">
+    <div className={`flex ${isOutbound ? 'justify-end' : 'justify-start'} mb-2`}>
+      {/* Menú de tres puntos - solo para mensajes salientes */}
+      {isOutbound && (
+        <div ref={menuRef} className="relative mr-1">
           <button
             onClick={handleMenuClick}
             className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
             title="Opciones del mensaje"
           >
-            <MoreVertical className="w-4 h-4" />
+            <MoreVertical className="w-3 h-3" />
           </button>
           
           {/* Menú desplegable */}
           {showMenu && (
-            <div className="absolute left-0 top-6 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
+            <div className="absolute right-0 top-6 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
               <button
                 onClick={() => handleMenuAction('copy')}
                 className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg"
@@ -185,29 +172,49 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </div>
           )}
         </div>
+      )}
 
-        {/* Burbuja de mensaje con fondo azul */}
+      {/* Burbuja de mensaje con estilo del copiloto */}
+      <div className="relative">
         <div
           className={`
-            message-bubble px-3 py-1 rounded-2xl text-sm relative
+            max-w-xs px-2 py-1.5 rounded-lg text-xs
             ${isOutbound
-              ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white'
+              ? 'bg-blue-600 text-white'
               : 'bg-gray-100 text-gray-900'
             }
-            shadow-sm
           `}
         >
-          <div className="flex items-center justify-center gap-1 min-h-[1.5rem]">
-            <MessageContent message={message} />
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex-1">
+              <MessageContent message={message} />
+            </div>
             
-            {/* Status del mensaje al lado del texto - solo para mensajes salientes */}
+            {/* Status del mensaje y hora - solo para mensajes salientes */}
             {isOutbound && (
-              <div className="flex items-center justify-center">
-                {getMessageStatus(message.status)}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <div className="flex items-center justify-center">
+                  {getMessageStatus(message.status)}
+                </div>
+                <span className="text-[10px] opacity-70">
+                  {formatTime()}
+                </span>
               </div>
             )}
           </div>
         </div>
+        
+        {/* Hora para mensajes entrantes */}
+        {!isOutbound && (
+          <div className="flex items-center gap-1 mt-1 ml-1">
+            <span className="text-[10px] text-gray-400">
+              {formatTime()}
+            </span>
+            <span className="text-[10px] text-gray-400">
+              {customerName}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

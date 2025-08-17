@@ -81,8 +81,8 @@ export const shouldLog = (category: string, level: string): boolean => {
 // Configuración de entorno para WebSocket y otras funcionalidades
 export const ENV_CONFIG = {
   // URLs
-  WS_URL: import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:3000',
-  BACKEND_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
+  WS_URL: import.meta.env.VITE_WEBSOCKET_URL || 'wss://utalk-backend-production.up.railway.app',
+  BACKEND_URL: import.meta.env.VITE_API_BASE_URL || 'https://utalk-backend-production.up.railway.app',
   
   // Configuración de WebSocket
   WS_TIMEOUT: parseInt(import.meta.env.VITE_WS_TIMEOUT || '45000'),

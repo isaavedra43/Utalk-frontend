@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
 import type { Conversation } from '../../types';
 import { useAppStore } from '../../stores/useAppStore';
 import { convertFirebaseTimestamp } from '../../utils/timestampUtils';
@@ -65,7 +63,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
   // FASE 3: Optimización - Memoizar funciones para evitar recreaciones
   const formatLastMessageTime = useCallback((timestamp: string | { _seconds: number; _nanoseconds: number } | undefined) => {
     if (!timestamp) {
-      return 'Reciente';
+      return '12:00 AM';
     }
     
     try {
@@ -73,7 +71,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
       const convertedTimestamp = convertFirebaseTimestamp(timestamp);
       if (!convertedTimestamp) {
         console.warn('⚠️ Fecha inválida en ConversationItem:', timestamp);
-        return 'Reciente';
+        return '12:00 AM';
       }
       
       const date = new Date(convertedTimestamp);
@@ -81,23 +79,18 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
       // Verificar si la fecha es válida
       if (isNaN(date.getTime())) {
         console.warn('⚠️ Fecha inválida en ConversationItem después de conversión:', convertedTimestamp);
-        return 'Reciente';
+        return '12:00 AM';
       }
       
-      const now = new Date();
-      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-      
-      if (diffInHours < 24) {
-        return formatDistanceToNow(date, { addSuffix: true, locale: es });
-      } else {
-        return date.toLocaleDateString('es-ES', { 
-          day: 'numeric', 
-          month: 'short' 
-        });
-      }
+      // Formato corto de hora: "12:00 AM" o "3:30 PM"
+      return date.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true 
+      });
     } catch (error) {
       console.warn('⚠️ Error al formatear fecha en ConversationItem:', error, 'timestamp:', timestamp);
-      return 'Reciente';
+      return '12:00 AM';
     }
   }, []);
 
@@ -131,7 +124,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
     <div
       onClick={onClick}
       className={`
-        conversation-item relative p-4 cursor-pointer transition-all duration-500 ease-out transform
+        conversation-item relative p-3 cursor-pointer transition-all duration-500 ease-out transform
         ${isSelected 
           ? 'selected bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 shadow-lg scale-[1.02]' 
           : 'bg-white hover:bg-gray-50 border-l-4 border-transparent hover:border-l-4 hover:border-blue-200 hover:shadow-md'
@@ -148,11 +141,11 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
         <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full animate-ping" />
       )}
 
-      <div className="flex items-start space-x-3">
+      <div className="flex items-start space-x-2">
         {/* Avatar del cliente con fondo azul radiante */}
         <div className="flex-shrink-0">
           <div className={`
-            avatar-purple-gradient w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm
+            avatar-purple-gradient w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs
             bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700
             shadow-lg hover:shadow-xl transition-all duration-300
             ${isNewMessage ? 'animate-pulse' : ''}
@@ -165,17 +158,16 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
         {/* Contenido principal */}
         <div className="flex-1 min-w-0">
           {/* Header con nombre y tiempo */}
-          <div className="flex items-center justify-between mb-1">
+          <div className="flex items-start justify-between mb-1">
             <h3 className={`
-              text-sm font-semibold truncate transition-colors duration-300
+              text-xs font-semibold truncate transition-colors duration-300 flex-1 mr-2
               ${(conversation.unreadCount || 0) > 0 ? 'text-gray-900' : 'text-gray-700'}
               ${isSelected ? 'text-blue-900' : ''}
             `}>
               {conversation.customerName || 'Cliente sin nombre'}
             </h3>
             <span className={`
-              text-xs ml-2 flex-shrink-0 transition-colors duration-300
-              ${(conversation.unreadCount || 0) > 0 ? 'text-blue-600 font-medium' : 'text-gray-500'}
+              text-xs flex-shrink-0 transition-colors duration-300 text-blue-600 font-medium
               ${isSelected ? 'text-blue-700' : ''}
             `}>
               {formattedTime}
@@ -183,25 +175,16 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
           </div>
 
           {/* Información del cliente */}
-          <div className="flex items-center space-x-2 mb-2">
-            <span className="text-xs text-gray-500 font-mono">
+          <div className="flex items-center space-x-1 mb-1.5">
+            <span className="text-xs text-gray-500 font-mono truncate">
               {conversation.customerPhone || 'Sin teléfono'}
             </span>
-            <div className="flex items-center space-x-1">
-              <div className={`
-                w-2 h-2 rounded-full
-                ${(conversation.status || 'closed') === 'open' ? 'bg-green-500' : 'bg-gray-400'}
-              `} />
-              <span className="text-xs text-gray-500 capitalize">
-                {conversation.status || 'closed'}
-              </span>
-            </div>
           </div>
 
           {/* Último mensaje */}
           <div className="flex items-center justify-between">
             <p className={`
-              text-sm truncate flex-1 transition-colors duration-300
+              text-xs truncate flex-1 transition-colors duration-300
               ${(conversation.unreadCount || 0) > 0 ? 'text-gray-900 font-medium' : 'text-gray-600'}
               ${isSelected ? 'text-blue-900' : ''}
             `}>
@@ -210,9 +193,9 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
             
             {/* Badge de mensajes no leídos */}
             {(conversation.unreadCount || 0) > 0 && (
-              <div className="flex items-center space-x-2 ml-2">
+              <div className="flex items-center space-x-1 ml-1">
                 <span className={`
-                  inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                  inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium
                   transition-all duration-300
                   ${isNewMessage ? 'animate-bounce bg-red-500 text-white' : 'bg-blue-100 text-blue-700'}
                   ${isSelected ? 'bg-blue-200 text-blue-800' : ''}

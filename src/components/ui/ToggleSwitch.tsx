@@ -24,12 +24,22 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
   const handleToggle = () => {
     if (disabled) return;
     
+    // NUEVO: Logging para debug
+    if (import.meta.env.DEV) {
+      console.log('🔄 [DEBUG] ToggleSwitch clicked:', { current: checked, new: !checked });
+    }
+    
     setIsAnimating(true);
     onChange(!checked);
     
     // Resetear animación después de un breve delay
     setTimeout(() => setIsAnimating(false), 150);
   };
+
+  // NUEVO: Logging para debug del estado
+  if (import.meta.env.DEV) {
+    console.log('🔄 [DEBUG] ToggleSwitch render:', { checked, isAnimating });
+  }
 
   // Configuraciones de tamaño
   const sizeConfig = {

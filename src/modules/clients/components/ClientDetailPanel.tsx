@@ -131,7 +131,7 @@ export const ClientDetailPanel: React.FC<ClientDetailPanelProps> = ({
       </div>
 
       {/* Contenido del tab */}
-      <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-6 no-scrollbar">
         {renderTabContent()}
       </div>
     </div>

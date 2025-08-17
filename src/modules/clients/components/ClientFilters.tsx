@@ -183,7 +183,7 @@ export const ClientFiltersComponent: React.FC<ClientFiltersComponentProps> = ({
     quickSearch !== '';
 
   return (
-    <div className="fixed inset-y-0 left-0 w-80 bg-white border-r border-gray-200 shadow-lg z-50 lg:relative lg:z-auto overflow-y-auto">
+            <div className="fixed inset-y-0 left-0 w-80 bg-white border-r border-gray-200 shadow-lg z-50 lg:relative lg:z-auto overflow-y-auto no-scrollbar">
       <div className="p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

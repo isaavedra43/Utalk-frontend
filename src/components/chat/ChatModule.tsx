@@ -3,19 +3,20 @@ import { ConversationList } from './ConversationList';
 import { ChatComponent } from './ChatComponent';
 import { RightSidebar } from '../layout/RightSidebar';
 import { DetailsPanel } from '../layout/DetailsPanel';
-import { useAppStore } from '../../stores/useAppStore';
-
+import { SuggestionsPanel } from '../layout/SuggestionsPanel';
+import { useConversations } from '../../hooks/useConversations';
 import { 
+  ChevronLeft, 
+  Settings, 
+  Menu, 
+  X, 
   MessageSquare, 
   Users, 
-  Settings, 
-  ChevronLeft, 
-  Menu,
-  X,
-  Building2,
-  Bell,
-  LayoutDashboard
+  Bell, 
+  LayoutDashboard, 
+  Building2 
 } from 'lucide-react';
+import '../../styles/four-column-layout.css';
 
 // Tipos para las vistas móviles
 type MobileView = 'conversations' | 'chat' | 'details';
@@ -24,21 +25,20 @@ type MobileView = 'conversations' | 'chat' | 'details';
 const AuthenticatedChatContent: React.FC = () => {
   const [mobileView, setMobileView] = useState<MobileView>('conversations');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-
-  // NUEVO: Obtener la conversación seleccionada del store
-  const { activeConversation } = useAppStore();
+  
+  // NUEVO: Una sola instancia del hook useConversations
+  const conversationsData = useConversations({});
 
   // Datos mock para el panel de detalles
   const mockClientProfile = {
     id: '1',
-    name: 'Isra',
-    phone: '+5214773790184',
+    name: 'Cliente Ejemplo',
+    email: 'cliente@ejemplo.com',
+    phone: '+1234567890',
+    company: 'Empresa Ejemplo',
+    status: 'active' as const,
     channel: 'whatsapp' as const,
-    lastContact: 'hace un momento',
-    clientSince: '2024',
-    whatsappId: '5214773790184',
-    tags: ['VIP', 'Premium'],
-    status: 'active' as const
+    tags: ['VIP', 'Premium']
   };
 
   const mockConversationDetails = {
@@ -51,7 +51,7 @@ const AuthenticatedChatContent: React.FC = () => {
     updatedAt: '2024-01-01',
     lastMessageAt: '2024-01-01',
     messageCount: 10,
-    participants: ['+5214773790184'],
+    participants: ['+1234567890'],
     tags: ['VIP']
   };
 
@@ -63,39 +63,25 @@ const AuthenticatedChatContent: React.FC = () => {
     pushNotifications: true
   };
 
-  // Función para manejar navegación móvil
-  const handleMobileNavigation = (view: MobileView) => {
-    setMobileView(view);
-    setShowMobileMenu(false);
-  };
-
-  // Navegación móvil moderna
+  // Navegación móvil
   const mobileNavigationItems = [
-    {
-      id: 'conversations' as MobileView,
-      icon: MessageSquare,
-      label: 'Chats',
-      badge: '9+'
-    },
-    {
-      id: 'details' as MobileView,
-      icon: Settings,
-      label: 'Detalles'
-    }
+    { id: 'conversations', icon: MessageSquare, label: 'Chat', badge: null },
+    { id: 'details', icon: Settings, label: 'Detalles', badge: null }
   ];
 
-  // Renderizar vista móvil moderna
+  const handleMobileNavigation = (view: MobileView) => {
+    setMobileView(view);
+  };
+
+  // Renderizar vista móvil
   const renderMobileView = () => {
     switch (mobileView) {
       case 'conversations':
         return (
-          <div className="h-full bg-white">
-            {/* Header moderno */}
+          <div className="h-full bg-white flex flex-col">
+            {/* Header de conversaciones */}
             <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">U</span>
-                </div>
                 <h1 className="text-lg font-semibold">Conversaciones</h1>
               </div>
               <button
@@ -108,7 +94,7 @@ const AuthenticatedChatContent: React.FC = () => {
             
             {/* Contenido de conversaciones */}
             <div className="flex-1 overflow-hidden">
-              <ConversationList />
+              <ConversationList {...conversationsData} />
             </div>
           </div>
         );
@@ -128,11 +114,11 @@ const AuthenticatedChatContent: React.FC = () => {
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                     <span className="text-white font-medium text-sm">
-                      {activeConversation?.customerName?.charAt(0) || 'C'}
+                      {conversationsData.activeConversation?.customerName?.charAt(0) || 'C'}
                     </span>
                   </div>
                   <div>
-                    <h2 className="font-semibold">{activeConversation?.customerName || 'Cliente'}</h2>
+                    <h2 className="font-semibold">{conversationsData.activeConversation?.customerName || 'Cliente'}</h2>
                     <p className="text-sm text-white/80">En línea</p>
                   </div>
                 </div>
@@ -147,7 +133,7 @@ const AuthenticatedChatContent: React.FC = () => {
             
             {/* Contenido del chat */}
             <div className="flex-1 overflow-hidden">
-              <ChatComponent conversationId={activeConversation?.id} />
+              <ChatComponent conversationId={conversationsData.activeConversation?.id} />
             </div>
           </div>
         );
@@ -169,7 +155,7 @@ const AuthenticatedChatContent: React.FC = () => {
             </div>
             
             {/* Contenido de detalles */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto no-scrollbar">
               <DetailsPanel
                 clientProfile={mockClientProfile}
                 conversationDetails={mockConversationDetails}
@@ -198,8 +184,8 @@ const AuthenticatedChatContent: React.FC = () => {
           onClick={() => setShowMobileMenu(false)}
         />
         
-        {/* Menú lateral */}
-        <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-2xl transform transition-transform">
+        {/* Menú */}
+        <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl">
           <div className="flex flex-col h-full">
             {/* Header del menú */}
             <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
@@ -259,7 +245,7 @@ const AuthenticatedChatContent: React.FC = () => {
               return (
                 <button
                   key={item.id}
-                  onClick={() => handleMobileNavigation(item.id)}
+                  onClick={() => handleMobileNavigation(item.id as MobileView)}
                   className={`flex flex-col items-center p-3 rounded-xl transition-all ${
                     isActive 
                       ? 'bg-blue-50 text-blue-600' 
@@ -282,15 +268,25 @@ const AuthenticatedChatContent: React.FC = () => {
         </div>
       </div>
 
-      {/* Vista desktop - Layout reorganizado sin canales */}
-      <div className="hidden lg:flex h-full">
-        <div className="w-80 border-r border-gray-200 bg-white">
-          <ConversationList />
+      {/* Vista desktop - Layout de 4 columnas */}
+      <div className="four-column-layout">
+        {/* Columna 1: Lista de conversaciones */}
+        <div className="conversations-column column-separator">
+          <ConversationList {...conversationsData} />
         </div>
-        <div className="flex-1 bg-white min-w-0">
-          <ChatComponent conversationId={activeConversation?.id} />
+        
+        {/* Columna 2: Chat (con más ancho) */}
+        <div className="chat-column column-separator">
+          <ChatComponent conversationId={conversationsData.activeConversation?.id} />
         </div>
-        <div className="w-96 border-l border-gray-200 bg-white">
+        
+        {/* Columna 3: Sugerencias (independiente) */}
+        <div className="suggestions-column column-separator">
+          <SuggestionsPanel />
+        </div>
+        
+        {/* Columna 4: Detalles + Copiloto */}
+        <div className="details-copilot-column">
           <RightSidebar />
         </div>
       </div>
