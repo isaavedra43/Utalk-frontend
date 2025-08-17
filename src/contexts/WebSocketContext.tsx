@@ -134,6 +134,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     if (isChatRoute && token && !isConnected && !connectionError) {
+      console.log('🔌 WebSocketContext - Conectando WebSocket en ruta /chat');
       connect(token, { timeout: 45000 });
     }
     if (!isChatRoute && isConnected) {
@@ -144,6 +145,16 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       roomIdMapRef.current.clear();
     }
   }, [isChatRoute, isConnected, connectionError, connect, disconnect]);
+
+  // NUEVO: Logging del estado de conexión para debugging
+  useEffect(() => {
+    console.log('🔌 WebSocketContext - Estado de conexión actualizado:', {
+      isConnected,
+      isChatRoute,
+      hasSocket: !!socket,
+      connectionError
+    });
+  }, [isConnected, isChatRoute, socket, connectionError]);
 
   // Conectar WebSocket inmediatamente después del login exitoso con fallback (control de duplicados)
   const loginConnectInFlightRef = React.useRef(false);

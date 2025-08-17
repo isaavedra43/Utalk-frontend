@@ -439,12 +439,42 @@ export const useConversations = (filters: ConversationFilters = {}) => {
 
     console.log('🔌 useConversations - Registrando listeners de eventos WebSocket');
 
-    // Registrar listeners
+    // Registrar listeners para eventos de conversación
     on('conversation-event', handleConversationEvent);
     on('new-message', handleNewMessage);
     on('message-read', handleMessageRead);
     on('conversation-joined', handleConversationJoined);
     on('conversation-left', handleConversationLeft);
+    
+    // NUEVO: Registrar listeners para eventos específicos de nuevas conversaciones
+    on('conversation:created', (data: unknown) => {
+      console.log('🔌 useConversations - Nueva conversación creada:', data);
+      // Actualizar el store con la nueva conversación
+      const eventData = data as { conversation?: Conversation };
+      if (eventData.conversation) {
+        const currentConversations = useAppStore.getState().conversations;
+        const exists = currentConversations.find((c: Conversation) => c.id === eventData.conversation!.id);
+        if (!exists) {
+          setConversations([eventData.conversation!, ...currentConversations]);
+        }
+      }
+    });
+    
+    on('conversation:updated', (data: unknown) => {
+      console.log('🔌 useConversations - Conversación actualizada:', data);
+      const eventData = data as { conversation?: Conversation };
+      if (eventData.conversation) {
+        updateStoreConversation(eventData.conversation.id, eventData.conversation);
+      }
+    });
+    
+    on('state-synced', (data: unknown) => {
+      console.log('🔌 useConversations - Estado sincronizado:', data);
+      const eventData = data as { conversations?: Conversation[] };
+      if (eventData.conversations) {
+        setConversations(eventData.conversations);
+      }
+    });
 
     return () => {
       console.log('🔌 useConversations - Limpiando listeners de eventos WebSocket');
@@ -454,8 +484,11 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       off('message-read');
       off('conversation-joined');
       off('conversation-left');
+      off('conversation:created');
+      off('conversation:updated');
+      off('state-synced');
     };
-  }, [on, off, handleConversationEvent, handleNewMessage, handleMessageRead, handleConversationJoined, handleConversationLeft, isAuthenticated, authLoading, isConnected]);
+  }, [on, off, handleConversationEvent, handleNewMessage, handleMessageRead, handleConversationJoined, handleConversationLeft, setConversations, updateStoreConversation, isAuthenticated, authLoading, isConnected]);
 
   // CORREGIDO: NO seleccionar automáticamente conversación - el usuario debe seleccionar manualmente
   // useEffect(() => {
