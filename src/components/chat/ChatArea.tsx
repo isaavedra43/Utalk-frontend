@@ -98,7 +98,6 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
         onKeyPress={handleKeyPress}
         onSendMessage={handleSendMessage}
         isSending={false}
-        conversationId={conversationId}
         placeholder="Escribe un mensaje..."
       />
     </div>
