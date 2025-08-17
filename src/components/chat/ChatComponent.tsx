@@ -8,6 +8,8 @@ import { MessageInput } from './MessageInput';
 import { ChatHeader } from './ChatHeader';
 import { TypingIndicator } from './TypingIndicator';
 import { sanitizeConversationId } from '../../utils/conversationUtils';
+import { convertFirebaseTimestamp } from '../../utils/timestampUtils';
+import { useWarningLogger } from '../../hooks/useWarningLogger';
 
 import type { Conversation as ConversationType, Message as MessageType } from '../../types/index';
 import './ChatComponent.css';
@@ -15,6 +17,7 @@ import { MessageSquare } from 'lucide-react';
 
 export const ChatComponent = ({ conversationId }: { conversationId?: string }) => {
   const location = useLocation();
+  const { logWarningOnce } = useWarningLogger();
   
   // NUEVO: Obtener conversationId de la URL si no se proporciona uno
   const effectiveConversationId = conversationId || (() => {
@@ -56,15 +59,13 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
     const currentState = { isConnected, isJoined, loading, error, messagesCount: messages.length };
     const prevState = prevRenderState.current;
     
-    // Solo log si hay cambios significativos
+    // Solo log si hay cambios significativos Y hay errores
     if (
-      prevState.isConnected !== currentState.isConnected ||
-      prevState.isJoined !== currentState.isJoined ||
-      prevState.loading !== currentState.loading ||
-      prevState.error !== currentState.error ||
-      Math.abs(prevState.messagesCount - currentState.messagesCount) > 5
+      (prevState.error !== currentState.error && currentState.error) ||
+      (prevState.isConnected !== currentState.isConnected && !currentState.isConnected) ||
+      (prevState.isJoined !== currentState.isJoined && !currentState.isJoined)
     ) {
-      console.log('📊 ChatComponent - Estado actualizado:', {
+      console.log('📊 ChatComponent - Estado actualizado (CRÍTICO):', {
         conversationId: effectiveConversationId,
         isConnected: currentState.isConnected,
         isJoined: currentState.isJoined,
@@ -90,14 +91,65 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
   }, [messages, markAsRead]);
 
   // Conversión de mensajes (declarada arriba para no romper el orden de hooks)
-  const convertMessages = useCallback((msgs: { id: string; content: string; direction: 'inbound' | 'outbound'; timestamp?: string; status: string; type: string }[]): MessageType[] => {
-    console.debug('🔄 convertMessages - Iniciando conversión de', msgs.length, 'mensajes');
+  const convertMessages = useCallback((msgs: { id: string; content: string; direction: 'inbound' | 'outbound'; timestamp?: string | { _seconds: number; _nanoseconds: number }; status: string; type: string; mediaUrl?: string; metadata?: Record<string, unknown> }[]): MessageType[] => {
+    // REDUCIR LOGS: Solo log si hay muchos mensajes o errores
+    if (msgs.length > 50) {
+      console.debug('🔄 convertMessages - Iniciando conversión de', msgs.length, 'mensajes');
+    }
     
     const convertedMessages = msgs.map((msg, index) => {
       try {
-        if (!msg.id || !msg.content) {
-          console.warn('⚠️ convertMessages - Mensaje inválido en índice', index, msg);
+        // Validación mejorada para diferentes tipos de mensaje
+        if (!msg.id) {
+          console.warn('⚠️ convertMessages - Mensaje sin ID en índice', index, msg);
           return null;
+        }
+
+        // Para mensajes de texto, requerir contenido
+        if (msg.type === 'text' && !msg.content) {
+          console.warn('⚠️ convertMessages - Mensaje de texto sin contenido en índice', index, msg);
+          return null;
+        }
+
+        // Convertir timestamp de Firebase a ISO string (mover aquí para usar en placeholder)
+        const convertedTimestamp = convertFirebaseTimestamp(msg.timestamp);
+        const finalTimestamp = convertedTimestamp || new Date().toISOString();
+
+        // Para mensajes de media, verificar que tenga mediaUrl o contenido en metadata
+        if (['image', 'document', 'audio', 'voice', 'video', 'sticker', 'media'].includes(msg.type)) {
+          const hasMediaUrl = msg.mediaUrl && msg.mediaUrl !== null;
+          const mediaMetadata = msg.metadata?.media as { urls?: string[]; processed?: unknown[] } | undefined;
+          const hasMediaInMetadata = (mediaMetadata?.urls?.length ?? 0) > 0 || (mediaMetadata?.processed?.length ?? 0) > 0;
+          
+          // SOLUCIÓN: Mostrar placeholder en lugar de eliminar mensajes de media
+          if (!hasMediaUrl && !hasMediaInMetadata && !msg.content) {
+            // Solo loggear una vez por conversación, no por cada mensaje
+            logWarningOnce(
+              'media-missing-content',
+              '⚠️ convertMessages - Detectados mensajes de media sin URL ni contenido. Esto es normal para mensajes de WhatsApp que aún no se han procesado.'
+            );
+            
+            // Retornar mensaje placeholder en lugar de null
+            return {
+              id: msg.id,
+              conversationId: effectiveConversationId,
+              content: 'Cargando media...',
+              direction: msg.direction,
+              createdAt: finalTimestamp,
+              metadata: {
+                agentId: 'system',
+                ip: '127.0.0.1',
+                requestId: 'unknown',
+                sentBy: 'system',
+                source: 'web',
+                timestamp: finalTimestamp,
+                originalMetadata: msg.metadata
+              },
+              status: 'sent',
+              type: 'text', // Cambiar a texto para mostrar placeholder
+              updatedAt: finalTimestamp
+            };
+          }
         }
 
         let mappedStatus: MessageType['status'];
@@ -109,7 +161,10 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
           case 'read': mappedStatus = 'read'; break;
           case 'failed': mappedStatus = 'failed'; break;
           default:
-            console.warn('⚠️ convertMessages - Status desconocido:', msg.status, 'usando "sent"');
+            // REDUCIR LOGS: Solo log si es un status realmente desconocido
+            if (!['queued', 'received', 'sent', 'delivered', 'read', 'failed'].includes(msg.status)) {
+              console.warn('⚠️ convertMessages - Status desconocido:', msg.status, 'usando "sent"');
+            }
             mappedStatus = 'sent';
         }
 
@@ -125,27 +180,54 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
           case 'sticker':
             mappedType = msg.type; break;
           default:
-            console.warn('⚠️ convertMessages - Tipo desconocido:', msg.type, 'usando "text"');
+            // REDUCIR LOGS: Solo log si es un tipo realmente desconocido
+            if (!['text', 'image', 'document', 'location', 'audio', 'voice', 'video', 'sticker'].includes(msg.type)) {
+              console.warn('⚠️ convertMessages - Tipo desconocido:', msg.type, 'usando "text"');
+            }
             mappedType = 'text';
         }
+
+        // Para mensajes de media, usar mediaUrl como contenido si está disponible
+        let messageContent = msg.content;
+        if (['image', 'document', 'audio', 'voice', 'video', 'sticker', 'media'].includes(msg.type)) {
+          // Priorizar mediaUrl si está disponible
+          if (msg.mediaUrl) {
+            messageContent = msg.mediaUrl;
+          } else {
+            // Buscar URLs en metadata si no hay mediaUrl directo
+            const mediaMetadata = msg.metadata?.media as { urls?: string[]; processed?: unknown[] } | undefined;
+            if (mediaMetadata && mediaMetadata.urls && mediaMetadata.urls.length > 0) {
+              messageContent = mediaMetadata.urls[0];
+            } else if (mediaMetadata && mediaMetadata.processed && mediaMetadata.processed.length > 0) {
+              const processed = mediaMetadata.processed[0] as { url?: string };
+              if (processed && processed.url) {
+                messageContent = processed.url;
+              }
+            }
+          }
+        }
+
+        // Usar timestamp ya convertido arriba
 
         const convertedMessage: MessageType = {
           id: msg.id,
           conversationId: effectiveConversationId,
-          content: msg.content,
+          content: messageContent,
           direction: msg.direction,
-          createdAt: msg.timestamp || new Date().toISOString(),
+          createdAt: finalTimestamp,
           metadata: {
             agentId: 'system',
             ip: '127.0.0.1',
             requestId: 'unknown',
             sentBy: 'system',
             source: 'web',
-            timestamp: msg.timestamp || new Date().toISOString()
+            timestamp: finalTimestamp,
+            // Incluir metadata original si existe
+            ...(msg.metadata && { originalMetadata: msg.metadata })
           },
           status: mappedStatus,
           type: mappedType,
-          updatedAt: msg.timestamp || new Date().toISOString()
+          updatedAt: finalTimestamp
         };
 
         return convertedMessage;
@@ -155,14 +237,18 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
       }
     }).filter(Boolean) as MessageType[];
 
-    console.debug('✅ convertMessages - Conversión completada:', {
-      mensajesOriginales: msgs.length,
-      mensajesConvertidos: convertedMessages.length,
-      mensajesFiltrados: convertedMessages.filter(Boolean).length
-    });
+    // REDUCIR LOGS: Solo log si hay problemas
+    const filteredCount = convertedMessages.filter(Boolean).length;
+    if (filteredCount < msgs.length) {
+      console.debug('✅ convertMessages - Conversión completada con filtros:', {
+        mensajesOriginales: msgs.length,
+        mensajesConvertidos: convertedMessages.length,
+        mensajesFiltrados: filteredCount
+      });
+    }
 
     return convertedMessages;
-  }, [effectiveConversationId]);
+  }, [effectiveConversationId, logWarningOnce]);
 
   const convertedMessages = useMemo(() => convertMessages(messages), [messages, convertMessages]);
 
@@ -254,18 +340,16 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
     return (
       <div className="chat-container">
         <div className="chat-no-conversation">
-          <div className="flex items-center justify-center h-full p-4">
-            <div className="text-center">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Selecciona una conversación
-              </h3>
-              <p className="text-gray-500 text-sm">
-                Elige una conversación para comenzar a chatear
-              </p>
+          <div className="text-center">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
             </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Selecciona una conversación
+            </h3>
+            <p className="text-gray-500 text-sm">
+              Elige una conversación para comenzar a chatear
+            </p>
           </div>
         </div>
       </div>

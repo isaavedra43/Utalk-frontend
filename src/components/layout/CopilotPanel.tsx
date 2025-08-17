@@ -1,91 +1,43 @@
 import React, { useState } from 'react';
+import { Filter, Send, Lightbulb, Users, TrendingUp, Shield, Zap, Star } from 'lucide-react';
+import '../../styles/copilot.css';
 
-interface CopilotPanelProps {
-  copilotState: any;
-  aiSuggestions: any[];
-  onSetCopilotTab: (tab: 'suggestions' | 'chat') => void;
-  onCopySuggestion: (suggestion: any) => void;
-  onImproveSuggestion: (suggestionId: string) => void;
-  onGenerateSuggestion: (context?: string) => void;
-  isLoading?: boolean;
-}
-
-interface Product {
+interface Message {
   id: string;
-  name: string;
-  price: number;
-  description: string;
-  category: string;
-  image?: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
 }
 
-export const CopilotPanel: React.FC<CopilotPanelProps> = ({
-  copilotState,
-  aiSuggestions,
-  onSetCopilotTab,
-  onCopySuggestion,
-  onImproveSuggestion,
-  onGenerateSuggestion,
-  isLoading = false
-}) => {
+export const CopilotPanel: React.FC = () => {
   const [chatInput, setChatInput] = useState('');
-  const [chatHistory, setChatHistory] = useState<Array<{
-    id: string;
-    role: 'user' | 'assistant';
-    content: string;
-    timestamp: string;
-  }>>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
-
-  // Productos recomendados simulados
-  const recommendedProducts: Product[] = [
-    {
-      id: '1',
-      name: 'Plan Premium Pro',
-      price: 299.99,
-      description: 'Plan completo con soporte 24/7 y funciones avanzadas',
-      category: 'Premium'
-    },
-    {
-      id: '2',
-      name: 'Servicio de Consultoría',
-      price: 150.00,
-      description: 'Sesión de consultoría personalizada de 2 horas',
-      category: 'Consultoría'
-    },
-    {
-      id: '3',
-      name: 'Paquete Básico',
-      price: 99.99,
-      description: 'Plan básico ideal para pequeñas empresas',
-      category: 'Básico'
-    }
-  ];
 
   const handleChatSend = () => {
     if (chatInput.trim()) {
       // Agregar mensaje del usuario
-      const userMessage = {
+      const userMessage: Message = {
         id: Date.now().toString(),
-        role: 'user' as const,
+        role: 'user',
         content: chatInput.trim(),
         timestamp: new Date().toISOString()
       };
       
-      setChatHistory(prev => [...prev, userMessage]);
+      setMessages(prev => [...prev, userMessage]);
       setChatInput('');
       setIsTyping(true);
 
       // Simular respuesta de la IA después de 1 segundo
       setTimeout(() => {
-        const aiResponse = {
+        const aiResponse: Message = {
           id: (Date.now() + 1).toString(),
-          role: 'assistant' as const,
+          role: 'assistant',
           content: generateAIResponse(chatInput.trim()),
           timestamp: new Date().toISOString()
         };
         
-        setChatHistory(prev => [...prev, aiResponse]);
+        setMessages(prev => [...prev, aiResponse]);
         setIsTyping(false);
       }, 1000);
     }
@@ -130,240 +82,180 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
     }
   };
 
-  const handleViewProductDetails = (product: Product) => {
-    console.log('Ver ficha técnica del producto:', product.name);
-    // Aquí se implementaría la lógica para mostrar la ficha técnica
+  const handleSuggestionClick = (suggestion: string) => {
+    setChatInput(suggestion);
   };
 
-  const handleSendProductToChat = (product: Product) => {
-    const productMessage = {
-      id: Date.now().toString(),
-      role: 'assistant' as const,
-      content: `📦 **${product.name}**\n💰 Precio: $${product.price}\n📝 Descripción: ${product.description}\n🏷️ Categoría: ${product.category}`,
-      timestamp: new Date().toISOString()
-    };
-    
-    setChatHistory(prev => [...prev, productMessage]);
-    console.log('Producto enviado al chat:', product.name);
-  };
+  const showIntro = messages.length === 0;
+
+  const suggestedPrompts = [
+    {
+      id: 1,
+      icon: <Lightbulb className="w-4 h-4" />,
+      title: "Generar respuesta profesional",
+      description: "Ayúdame a crear una respuesta cordial y profesional para un cliente",
+      prompt: "Genera una respuesta profesional y cordial para un cliente que pregunta sobre nuestros servicios"
+    },
+    {
+      id: 2,
+      icon: <Users className="w-4 h-4" />,
+      title: "Analizar conversación",
+      description: "Analiza el tono y sentimiento de una conversación reciente",
+      prompt: "Analiza el tono y sentimiento de la conversación con el cliente para identificar oportunidades de mejora"
+    },
+    {
+      id: 3,
+      icon: <TrendingUp className="w-4 h-4" />,
+      title: "Optimizar respuesta",
+      description: "Mejora una respuesta existente para que sea más efectiva",
+      prompt: "Optimiza esta respuesta para que sea más clara y persuasiva"
+    },
+    {
+      id: 4,
+      icon: <Shield className="w-4 h-4" />,
+      title: "Estrategia de atención",
+      description: "Sugiere estrategias para mejorar la atención al cliente",
+      prompt: "Sugiere estrategias para mejorar la atención al cliente en situaciones difíciles"
+    },
+    {
+      id: 5,
+      icon: <Zap className="w-4 h-4" />,
+      title: "Respuesta rápida",
+      description: "Crea una respuesta concisa para consultas urgentes",
+      prompt: "Crea una respuesta rápida y efectiva para una consulta urgente del cliente"
+    },
+    {
+      id: 6,
+      icon: <Star className="w-4 h-4" />,
+      title: "Mejorar experiencia",
+      description: "Identifica oportunidades para mejorar la experiencia del cliente",
+      prompt: "Identifica oportunidades para mejorar la experiencia del cliente en nuestro proceso de atención"
+    }
+  ];
 
   return (
-    <div className="p-3 space-y-3 flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <div className="h-4 w-4 text-blue-600">✨</div>
-          <h3 className="text-sm font-medium text-gray-900">Copiloto IA</h3>
+    <div className="flex flex-col h-full bg-white text-gray-900">
+      {/* Header - solo se muestra si no hay mensajes */}
+      {showIntro && (
+        <div className="p-4 pb-6">
+          <div className="text-center">
+            <h1 className="text-3xl font-extrabold animated-gradient-text relative" data-text="El Copiloto está aquí para ayudar. Solo pregunta.">
+              El Copiloto está aquí para ayudar. Solo pregunta.
+            </h1>
+          </div>
         </div>
-        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-          Mock Mode
-        </span>
-      </div>
+      )}
 
-      <p className="text-xs text-gray-600">Copilot is here to help. Just ask.</p>
-
-      {/* Tabs */}
-      <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
-        <button
-          onClick={() => onSetCopilotTab('suggestions')}
-          className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
-            copilotState.activeTab === 'suggestions'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          Sugerencias
-        </button>
-        <button
-          onClick={() => onSetCopilotTab('chat')}
-          className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
-            copilotState.activeTab === 'chat'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          Chat IA
-        </button>
-      </div>
-
-      {/* Contenido de tabs */}
-      {copilotState.activeTab === 'suggestions' ? (
-        <div className="space-y-3 flex flex-col h-full">
-          {/* Sugerencias de IA */}
-          <div className="space-y-2">
-            {isLoading ? (
-              <div className="text-center py-6">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                <p className="text-xs text-gray-500">Generando sugerencias...</p>
-              </div>
-            ) : aiSuggestions.length === 0 ? (
-              <div className="text-center py-6">
-                <div className="h-10 w-10 text-gray-300 mx-auto mb-2">💬</div>
-                <p className="text-xs text-gray-500 mb-1">No hay sugerencias disponibles</p>
-                <p className="text-xs text-gray-400">El copiloto generará sugerencias automáticamente</p>
-              </div>
-            ) : (
-              aiSuggestions.map((suggestion) => (
-                <div key={suggestion.id} className="border border-gray-200 rounded-lg p-2">
-                  <div className="flex items-start justify-between mb-1.5">
-                    <h4 className="text-xs font-medium text-gray-900">{suggestion.title}</h4>
-                    <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-100 text-green-800">
-                      Alta confianza
-                    </span>
-                  </div>
-                  
-                  <p className="text-xs text-gray-700 mb-2">{suggestion.content}</p>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-wrap gap-1">
-                      {suggestion.tags.map((tag: string) => (
-                        <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-1 py-0.5 rounded">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                    
-                    <div className="flex items-center space-x-1">
-                      <button
-                        onClick={() => onCopySuggestion(suggestion)}
-                        className="p-0.5 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700"
-                        title="Copiar"
-                      >
-                        📋
-                      </button>
-                      <button
-                        onClick={() => onImproveSuggestion(suggestion.id)}
-                        className="p-0.5 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700"
-                        title="Mejorar"
-                      >
-                        🔄
-                      </button>
+      {/* Peticiones Sugeridas - solo se muestra si no hay mensajes */}
+      {showIntro && (
+        <div className="px-4 pb-4 flex-1">
+          <div className="grid grid-cols-2 gap-2">
+            {suggestedPrompts.map((suggestion) => (
+              <button
+                key={suggestion.id}
+                onClick={() => handleSuggestionClick(suggestion.prompt)}
+                className="group relative p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md hover:shadow-blue-100 transition-all duration-300 text-left overflow-hidden"
+              >
+                {/* Efecto de gradiente de fondo */}
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                
+                <div className="relative flex items-start space-x-2">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm overflow-hidden relative">
+                    {/* Fondo animado del icono - siempre visible */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 animate-gradient-xy"></div>
+                    <div className="relative z-10 text-white">
+                      {suggestion.icon}
                     </div>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Separador */}
-          <div className="border-t border-gray-200 pt-3">
-            <h4 className="text-xs font-medium text-gray-900 mb-2">🛍️ Productos Recomendados</h4>
-            <p className="text-xs text-gray-600 mb-3">Basándome en la conversación, te recomiendo estos productos:</p>
-          </div>
-
-          {/* Productos Recomendados */}
-          <div className="space-y-2 flex-1 overflow-y-auto">
-            {recommendedProducts.map((product) => (
-              <div key={product.id} className="border border-gray-200 rounded-lg p-2 bg-white">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
-                    <h5 className="text-xs font-medium text-gray-900">{product.name}</h5>
-                    <p className="text-xs text-gray-600 mt-1">{product.description}</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs font-bold text-green-600">${product.price}</span>
-                      <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full">
-                        {product.category}
-                      </span>
-                    </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-xs font-semibold text-gray-900 group-hover:text-blue-900 mb-1 transition-colors duration-300">
+                      {suggestion.title}
+                    </h4>
+                    <p className="text-xs text-gray-600 group-hover:text-gray-700 leading-relaxed transition-colors duration-300">
+                      {suggestion.description}
+                    </p>
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-1">
-                  <button
-                    onClick={() => handleViewProductDetails(product)}
-                    className="flex-1 px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-                  >
-                    📋 Ver Ficha Técnica
-                  </button>
-                  <button
-                    onClick={() => handleSendProductToChat(product)}
-                    className="flex-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                  >
-                    💬 Enviar al Chat
-                  </button>
-                </div>
-              </div>
+                {/* Indicador de hover */}
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+              </button>
             ))}
           </div>
         </div>
-      ) : (
-        <div className="space-y-3 flex flex-col h-full">
-          {/* Chat History */}
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            {chatHistory.length === 0 ? (
-              <div className="text-center py-6">
-                <div className="h-10 w-10 text-gray-300 mx-auto mb-2">💬</div>
-                <p className="text-xs text-gray-500 mb-1">Pregunta lo que necesites</p>
-                <p className="text-xs text-gray-400">El copiloto está aquí para ayudarte</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {chatHistory.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-xs px-2 py-1.5 rounded-lg text-xs ${
-                        message.role === 'user'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-900'
-                      }`}
-                    >
-                      {message.content}
-                    </div>
-                  </div>
-                ))}
-                
-                {/* Indicador de escritura */}
-                {isTyping && (
-                  <div className="flex justify-start">
-                    <div className="bg-gray-100 text-gray-900 px-2 py-1.5 rounded-lg text-xs">
-                      <div className="flex space-x-1">
-                        <div className="w-1 h-1 bg-gray-500 rounded-full animate-bounce"></div>
-                        <div className="w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                        <div className="w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+      )}
 
-          {/* Chat Input */}
-          <div className="flex items-end space-x-2">
-            <div className="flex-1">
+      {/* Chat Messages - ocupa el espacio disponible */}
+      {messages.length > 0 && (
+        <div className="flex-1 overflow-y-auto space-y-2 p-4 min-h-0">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-xs px-2 py-1.5 rounded-lg text-xs ${
+                  message.role === 'user'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-900'
+                }`}
+              >
+                {message.content}
+              </div>
+            </div>
+          ))}
+          
+          {/* Indicador de escritura */}
+          {isTyping && (
+            <div className="flex justify-start">
+              <div className="bg-gray-100 text-gray-900 px-2 py-1.5 rounded-lg text-xs">
+                <div className="flex space-x-1">
+                  <div className="w-1 h-1 bg-gray-500 rounded-full animate-bounce"></div>
+                  <div className="w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Message Input with Radiant Colors Animation - siempre en la parte inferior */}
+      <div className="p-4 pt-2">
+        <div className="relative">
+          {/* Radiant Colors Border Animation */}
+          <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 p-[2px] animate-gradient-xy">
+            <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-75 blur-sm"></div>
+          </div>
+          
+          {/* Input Container */}
+          <div className="relative bg-white rounded-lg p-[2px]">
+            <div className="flex items-center space-x-2 p-2">
               <input
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyPress={handleChatKeyPress}
-                placeholder="Escribe tu pregunta..."
-                className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                disabled={isTyping}
+                placeholder="Haz una pregunta..."
+                className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 text-xs focus:outline-none"
               />
+              
+              <div className="flex items-center space-x-1">
+                <button className="p-1 text-gray-500 hover:text-gray-700 transition-colors">
+                  <Filter className="w-3 h-3" />
+                </button>
+                
+                <button
+                  onClick={handleChatSend}
+                  disabled={!chatInput.trim() || isTyping}
+                  className="p-1.5 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Send className="w-3 h-3" />
+                </button>
+              </div>
             </div>
-            <button
-              onClick={handleChatSend}
-              disabled={!chatInput.trim() || isTyping}
-              className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-            >
-              {isTyping ? (
-                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <span>📤</span>
-              )}
-            </button>
           </div>
         </div>
-      )}
-
-      {/* Status Indicator */}
-      <div className="pt-3 border-t border-gray-200">
-        <p className="text-xs text-gray-500 text-center">
-          Modo simulado - sin backend real
-        </p>
       </div>
     </div>
   );

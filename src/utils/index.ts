@@ -1,4 +1,5 @@
 // Exportar utilidades de conversación
 export * from './conversationUtils';
 export * from './logger';
-export * from './cacheUtils'; 
+export * from './cacheUtils';
+export * from './timestampUtils'; 

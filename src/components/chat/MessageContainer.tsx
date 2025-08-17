@@ -152,10 +152,16 @@ export const MessageContainer: React.FC<MessageContainerProps> = ({
             {messageGroups.map((group, groupIndex) => (
               <div key={groupIndex}>
                 {/* Separador de fecha */}
-                <div className="flex justify-center mb-3">
-                  <span className="date-separator text-xs text-gray-500 px-3 py-1 rounded-full">
-                    {group.date}
-                  </span>
+                <div className="flex items-center justify-center my-4">
+                  <div className="date-separator-container">
+                    <div className="date-separator-line"></div>
+                    <div className="date-separator-badge">
+                      <span className="date-separator-text">
+                        {group.date}
+                      </span>
+                    </div>
+                    <div className="date-separator-line"></div>
+                  </div>
                 </div>
                 
                 {/* Mensajes del grupo */}

@@ -7,6 +7,7 @@ import type {
 } from '../../../types/client';
 import { logger, LogCategory } from '../../../utils/logger';
 import { clientService } from '../services/clientService';
+import { logClientError } from '../../../config/logging';
 
 interface UseClientsOptions {
   autoLoad?: boolean;
@@ -218,7 +219,7 @@ export const useClients = (options: UseClientsOptions = {}) => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al cargar cliente';
       setError(errorMessage);
-      logger.error(LogCategory.API, 'Error al cargar cliente', err instanceof Error ? err : new Error(String(err)));
+      logClientError('Error al cargar cliente', err, { clientId });
     } finally {
       setLoading(false);
     }
@@ -252,7 +253,7 @@ export const useClients = (options: UseClientsOptions = {}) => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al actualizar cliente';
       setError(errorMessage);
-      logger.error(LogCategory.API, 'Error al actualizar cliente', err instanceof Error ? err : new Error(String(err)));
+      logClientError('Error al actualizar cliente', err, { clientId, updates });
     } finally {
       setLoading(false);
     }
@@ -283,7 +284,7 @@ export const useClients = (options: UseClientsOptions = {}) => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al crear cliente';
       setError(errorMessage);
-      logger.error(LogCategory.API, 'Error al crear cliente', err instanceof Error ? err : new Error(String(err)));
+      logClientError('Error al crear cliente', err, { clientData: newClientData });
       throw err;
     } finally {
       setLoading(false);
@@ -316,7 +317,7 @@ export const useClients = (options: UseClientsOptions = {}) => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al eliminar cliente';
       setError(errorMessage);
-      logger.error(LogCategory.API, 'Error al eliminar cliente', err instanceof Error ? err : new Error(String(err)));
+      logClientError('Error al eliminar cliente', err, { clientId });
     } finally {
       setLoading(false);
     }

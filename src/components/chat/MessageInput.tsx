@@ -1,7 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Send, Mic, MapPin, Smile } from 'lucide-react';
+import { Send, Mic, MapPin, Smile, Paperclip } from 'lucide-react';
 import { AudioRecorder } from './AudioRecorder';
-import { FileUploadManager } from './FileUploadManager';
 import { StickerPicker } from './StickerPicker';
 
 interface MessageInputProps {
@@ -155,38 +154,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         </div>
       )}
 
-      <div className="flex items-end space-x-2 sm:space-x-3">
-        {/* Botones de acción */}
-        <div className="flex space-x-1 sm:space-x-2">
-          <FileUploadManager onFileUpload={onSendMessage} conversationId={conversationId} />
-          
-          <button
-            onClick={() => setShowAudioRecorder(!showAudioRecorder)}
-            className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            disabled={disabled}
-          >
-            <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
-          
-          <button
-            onClick={handleLocationClick}
-            className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            disabled={disabled}
-          >
-            <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
-          
-          <button
-            onClick={() => setShowStickerPicker(!showStickerPicker)}
-            className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            disabled={disabled}
-          >
-            <Smile className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
-        </div>
-
+      {/* Contenedor principal del input con íconos integrados */}
+      <div className="relative bg-white border border-gray-300 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
         {/* Input de texto */}
-        <div className="flex-1">
+        <div className="flex items-end">
           <textarea
             ref={inputRef}
             value={currentValue}
@@ -195,20 +166,86 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             onKeyPress={handleKeyPress}
             placeholder={placeholder}
             disabled={disabled || isSending}
-            className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed text-sm sm:text-base"
+            className="flex-1 px-4 py-3 pr-20 resize-none focus:outline-none disabled:bg-gray-50 disabled:cursor-not-allowed text-sm bg-transparent border-0"
             rows={1}
-            style={{ minHeight: '44px', maxHeight: '120px' }}
+            style={{ minHeight: '48px', maxHeight: '120px' }}
           />
+          
+          {/* Íconos integrados en el lado derecho */}
+          <div className="flex items-center space-x-1 pr-2 pb-2">
+            {/* Ícono de micrófono */}
+            <button
+              onClick={() => setShowAudioRecorder(!showAudioRecorder)}
+              className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
+              disabled={disabled}
+              title="Grabar audio"
+            >
+              <Mic className="w-4 h-4" />
+            </button>
+            
+            {/* Ícono de archivo/imagen */}
+            <button
+              onClick={() => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*,audio/*,video/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx';
+                input.multiple = true;
+                input.onchange = (e) => {
+                  const files = (e.target as HTMLInputElement)?.files;
+                  if (files) {
+                    Array.from(files).forEach(file => {
+                      const fileUrl = URL.createObjectURL(file);
+                      const fileType = file.type.startsWith('image/') ? 'image' : 
+                                     file.type.startsWith('audio/') ? 'audio' : 
+                                     file.type.startsWith('video/') ? 'video' : 'document';
+                      onSendMessage(fileUrl, fileType, {
+                        fileName: file.name,
+                        fileSize: file.size,
+                        fileType: file.type
+                      });
+                    });
+                  }
+                };
+                input.click();
+              }}
+              className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
+              disabled={disabled}
+              title="Adjuntar archivo"
+            >
+              <Paperclip className="w-4 h-4" />
+            </button>
+            
+            {/* Ícono de emoji */}
+            <button
+              onClick={() => setShowStickerPicker(!showStickerPicker)}
+              className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
+              disabled={disabled}
+              title="Emojis y stickers"
+            >
+              <Smile className="w-4 h-4" />
+            </button>
+            
+            {/* Ícono de enviar */}
+            <button
+              onClick={handleSend}
+              disabled={!currentValue.trim() || disabled || isSending}
+              className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Enviar mensaje"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+            
+            {/* Ícono de ubicación */}
+            <button
+              onClick={handleLocationClick}
+              className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
+              disabled={disabled}
+              title="Compartir ubicación"
+            >
+              <MapPin className="w-4 h-4" />
+            </button>
+          </div>
         </div>
-
-        {/* Botón de enviar */}
-        <button
-          onClick={handleSend}
-          disabled={!currentValue.trim() || disabled || isSending}
-          className="p-1.5 sm:p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-        >
-          <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-        </button>
       </div>
     </div>
   );

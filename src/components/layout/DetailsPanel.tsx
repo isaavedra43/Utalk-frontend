@@ -1,6 +1,7 @@
-import React from 'react';
-import { Copy, MoreVertical, Phone, Mail, Calendar, MapPin } from 'lucide-react';
+import React, { useState } from 'react';
+import { Copy, MoreVertical, Phone, Mail, Calendar, MapPin, Bell, FileText, RefreshCw, Mail as MailIcon, Smartphone } from 'lucide-react';
 import type { ClientProfile, ConversationDetails, NotificationSettings } from '../../types';
+import { ToggleSwitch } from '../ui/ToggleSwitch';
 
 interface DetailsPanelProps {
   clientProfile: ClientProfile;
@@ -17,8 +18,16 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
   onUpdateNotificationSettings,
   isLoading = false
 }) => {
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const copyToClipboard = async (text: string, fieldName: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(fieldName);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch (err) {
+      console.error('Error al copiar al portapapeles:', err);
+    }
   };
 
   // Generar iniciales del nombre
@@ -74,10 +83,11 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-medium">{clientProfile.phone}</span>
               <button 
-                onClick={() => copyToClipboard(clientProfile.phone)}
-                className="p-0.5 hover:bg-gray-100 rounded"
+                onClick={() => copyToClipboard(clientProfile.phone, 'phone')}
+                className="p-0.5 hover:bg-gray-100 rounded transition-colors"
+                title={copiedField === 'phone' ? '¡Copiado!' : 'Copiar teléfono'}
               >
-                <Copy className="w-2.5 h-2.5 text-gray-400" />
+                <Copy className={`w-2.5 h-2.5 ${copiedField === 'phone' ? 'text-green-500' : 'text-gray-400'}`} />
               </button>
             </div>
           </div>
@@ -112,10 +122,11 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-medium">{clientProfile.whatsappId}</span>
                 <button 
-                  onClick={() => copyToClipboard(clientProfile.whatsappId!)}
-                  className="p-0.5 hover:bg-gray-100 rounded"
+                  onClick={() => copyToClipboard(clientProfile.whatsappId!, 'whatsapp')}
+                  className="p-0.5 hover:bg-gray-100 rounded transition-colors"
+                  title={copiedField === 'whatsapp' ? '¡Copiado!' : 'Copiar WhatsApp ID'}
                 >
-                  <Copy className="w-2.5 h-2.5 text-gray-400" />
+                  <Copy className={`w-2.5 h-2.5 ${copiedField === 'whatsapp' ? 'text-green-500' : 'text-gray-400'}`} />
                 </button>
               </div>
             </div>
@@ -145,54 +156,76 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
 
       {/* Notificaciones y Configuración */}
       <div>
-        <h4 className="font-medium text-gray-900 text-sm mb-2">Notificaciones y Configuración</h4>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-600">Recibir notificaciones de esta conversación</span>
-            <button
-              onClick={() => onUpdateNotificationSettings({ conversationNotifications: !notificationSettings.conversationNotifications })}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                notificationSettings.conversationNotifications ? 'bg-blue-600' : 'bg-gray-200'
-              }`}
-            >
-              <span
-                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                  notificationSettings.conversationNotifications ? 'translate-x-5' : 'translate-x-0.5'
-                }`}
-              />
-            </button>
+        <h4 className="font-medium text-gray-900 text-sm mb-3">Notificaciones y Configuración</h4>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-gray-50 transition-colors">
+            <div className="flex items-center flex-1">
+              <Bell className="w-4 h-4 text-gray-400 mr-3" />
+              <div>
+                <div className="text-sm font-medium text-gray-900">Notificaciones de conversación</div>
+                <div className="text-xs text-gray-500 mt-1">Recibir alertas de nuevos mensajes</div>
+              </div>
+            </div>
+            <ToggleSwitch
+              checked={notificationSettings.conversationNotifications}
+              onChange={(checked) => onUpdateNotificationSettings({ conversationNotifications: checked })}
+            />
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-600">Incluir en reportes de actividad</span>
-            <button
-              onClick={() => onUpdateNotificationSettings({ reports: !notificationSettings.reports })}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                notificationSettings.reports ? 'bg-blue-600' : 'bg-gray-200'
-              }`}
-            >
-              <span
-                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                  notificationSettings.reports ? 'translate-x-5' : 'translate-x-0.5'
-                }`}
-              />
-            </button>
+          <div className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-gray-50 transition-colors">
+            <div className="flex items-center flex-1">
+              <FileText className="w-4 h-4 text-gray-400 mr-3" />
+              <div>
+                <div className="text-sm font-medium text-gray-900">Incluir en reportes</div>
+                <div className="text-xs text-gray-500 mt-1">Mostrar en reportes de actividad</div>
+              </div>
+            </div>
+            <ToggleSwitch
+              checked={notificationSettings.reports}
+              onChange={(checked) => onUpdateNotificationSettings({ reports: checked })}
+            />
           </div>
 
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-600">Recordatorios automáticos</span>
-            <button
-              onClick={() => onUpdateNotificationSettings({ autoFollowUp: !notificationSettings.autoFollowUp })}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                notificationSettings.autoFollowUp ? 'bg-blue-600' : 'bg-gray-200'
-              }`}
-            >
-              <span
-                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                  notificationSettings.autoFollowUp ? 'translate-x-5' : 'translate-x-0.5'
-                }`}
-              />
-            </button>
+          <div className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-gray-50 transition-colors">
+            <div className="flex items-center flex-1">
+              <RefreshCw className="w-4 h-4 text-gray-400 mr-3" />
+              <div>
+                <div className="text-sm font-medium text-gray-900">Recordatorios automáticos</div>
+                <div className="text-xs text-gray-500 mt-1">Seguimiento automático de conversaciones</div>
+              </div>
+            </div>
+            <ToggleSwitch
+              checked={notificationSettings.autoFollowUp}
+              onChange={(checked) => onUpdateNotificationSettings({ autoFollowUp: checked })}
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-gray-50 transition-colors">
+            <div className="flex items-center flex-1">
+              <MailIcon className="w-4 h-4 text-gray-400 mr-3" />
+              <div>
+                <div className="text-sm font-medium text-gray-900">Notificaciones por email</div>
+                <div className="text-xs text-gray-500 mt-1">Recibir alertas por correo electrónico</div>
+              </div>
+            </div>
+            <ToggleSwitch
+              checked={notificationSettings.emailNotifications}
+              onChange={(checked) => onUpdateNotificationSettings({ emailNotifications: checked })}
+            />
+          </div>
+
+          <div className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-gray-50 transition-colors">
+            <div className="flex items-center flex-1">
+              <Smartphone className="w-4 h-4 text-gray-400 mr-3" />
+              <div>
+                <div className="text-sm font-medium text-gray-900">Notificaciones push</div>
+                <div className="text-xs text-gray-500 mt-1">Alertas en tiempo real en el dispositivo</div>
+              </div>
+            </div>
+            <ToggleSwitch
+              checked={notificationSettings.pushNotifications}
+              onChange={(checked) => onUpdateNotificationSettings({ pushNotifications: checked })}
+            />
           </div>
         </div>
       </div>

@@ -42,8 +42,8 @@ api.interceptors.request.use(
     const url = config.url || '';
     const method = config.method || 'GET';
     
-    // NUEVO: Verificar rate limit antes de hacer la petición
-    if (!rateLimiter.checkRateLimit(url)) {
+    // NUEVO: Verificar rate limit antes de hacer la petición (solo para métodos no-GET)
+    if (config.method !== 'GET' && !rateLimiter.checkRateLimit(url)) {
       console.warn('🚫 Rate limit excedido, cancelando petición:', url);
       throw new Error('Rate limit exceeded');
     }
@@ -62,13 +62,17 @@ api.interceptors.request.use(
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      logger.apiInfo('Token agregado a request', {
-        method: config.method?.toUpperCase(),
-        url: config.url,
-        hasToken: !!token,
-        tokenPreview: token.substring(0, 20) + '...'
-      });
-    } else {
+      // Solo loggear token para métodos no-GET
+      if (config.method !== 'GET') {
+        logger.apiInfo('Token agregado a request', {
+          method: config.method?.toUpperCase(),
+          url: config.url,
+          hasToken: !!token,
+          tokenPreview: token.substring(0, 20) + '...'
+        });
+      }
+    } else if (config.method !== 'GET') {
+      // Solo loggear requests sin token para métodos no-GET
       logger.apiInfo('Request sin token', {
         method: config.method?.toUpperCase(),
         url: config.url,
@@ -105,21 +109,30 @@ api.interceptors.request.use(
         if (sanitizedForBackend !== conversationId) {
           // Reemplazar el ID en la URL con la versión que el backend espera
           config.url = config.url.replace(conversationId, sanitizedForBackend);
-          logger.apiInfo('ID de conversación formateado para backend', {
-            originalId: conversationId,
-            decodedId: decodedConversationId,
-            sanitizedId,
-            backendFormat: sanitizedForBackend,
-            method: config.method?.toUpperCase(),
-            url: config.url
-          });
+          // Solo loggear formateo de ID en desarrollo
+          if (import.meta.env.DEV) {
+            logger.apiInfo('ID de conversación formateado para backend', {
+              originalId: conversationId,
+              decodedId: decodedConversationId,
+              sanitizedId,
+              backendFormat: sanitizedForBackend,
+              method: config.method?.toUpperCase(),
+              url: config.url
+            });
+          }
         }
       }
     }
     
-    // Log de requests en desarrollo
-    if (import.meta.env.DEV) {
+    // Log de requests solo en desarrollo y solo para métodos no-GET
+    if (import.meta.env.DEV && config.method !== 'GET') {
       logger.debug(LogCategory.API, `Request: ${config.method?.toUpperCase()} ${config.url}`, config.data);
+    }
+    
+    // DESHABILITAR COMPLETAMENTE logs de GET requests para evitar spam
+    if (config.method === 'GET') {
+      // No loggear nada para GET requests
+      return config;
     }
     
     return config;
@@ -135,20 +148,25 @@ api.interceptors.response.use(
   (response: AxiosResponse) => {
     const url = response.config.url || '';
     
-    // NUEVO: Registrar petición exitosa en el rate limiter
-    rateLimiter.recordRequest(url);
+    // NUEVO: Registrar petición exitosa en el rate limiter (solo para métodos no-GET)
+    if (response.config.method !== 'GET') {
+      rateLimiter.recordRequest(url);
+    }
     
-    // Log de responses en desarrollo
-    if (import.meta.env.DEV) {
+    // Log de responses solo en desarrollo y solo para métodos no-GET
+    if (import.meta.env.DEV && response.config.method !== 'GET') {
       logger.debug(LogCategory.API, `Response: ${response.config.method?.toUpperCase()} ${response.config.url}`, response.data);
     }
     
-    logger.apiInfo('Response exitosa', {
-      method: response.config.method?.toUpperCase(),
-      url: response.config.url,
-      status: response.status,
-      statusText: response.statusText
-    });
+    // Solo loggear responses exitosas para métodos no-GET
+    if (response.config.method !== 'GET') {
+      logger.apiInfo('Response exitosa', {
+        method: response.config.method?.toUpperCase(),
+        url: response.config.url,
+        status: response.status,
+        statusText: response.statusText
+      });
+    }
     
     return response;
   },

@@ -87,12 +87,12 @@ export const useAppStore = create<AppStore>()(
       setConversations: (conversations) => set({ conversations }),
 
       addConversation: (conversation) =>
-        set((state) => ({
+        set((state: AppState) => ({
           conversations: [conversation, ...state.conversations],
         })),
 
       updateConversation: (id, updates) =>
-        set((state) => ({
+        set((state: AppState) => ({
           conversations: state.conversations.map((conv) =>
             conv.id === id ? { ...conv, ...updates } : conv
           ),
@@ -316,7 +316,7 @@ export const useAppStore = create<AppStore>()(
 
       // NUEVAS acciones para mensajes sin leer
       calculateUnreadCount: (conversationId: string) => {
-        const state = useAppStore.getState();
+        const state = useAppStore.getState() as AppState;
         const messages = state.messages[conversationId] || [];
         
         // Contar mensajes entrantes no leídos

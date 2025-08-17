@@ -7,4 +7,6 @@ export { useOptimisticUpdates } from './useOptimisticUpdates';
 export { useAI } from './useAI';
 export { useContacts } from './useContacts';
 export { useSidebar } from './useSidebar';
-export { useChat } from './useChat'; 
+export { useChat } from './useChat';
+export { useAuthenticatedImage } from './useAuthenticatedImage';
+export { useAuthenticatedMedia } from './useAuthenticatedMedia'; 

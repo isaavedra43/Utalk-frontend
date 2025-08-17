@@ -1,59 +1,53 @@
-import React, { useState } from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
+import React, { useState, useEffect, useCallback } from 'react';
 import { DetailsPanel } from './DetailsPanel';
 import { CopilotPanel } from './CopilotPanel';
 import { useAppStore } from '../../stores/useAppStore';
+import { useClientProfileStore } from '../../stores/useClientProfileStore';
+import type { ClientProfile } from '../../services/clientProfile';
 
 export const RightSidebar: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'details' | 'copilot'>('copilot');
-  const { activeConversation, calculateUnreadCount } = useAppStore();
+  const { activeConversation } = useAppStore();
   const selectedConversationId = activeConversation?.id || null;
 
-  // Datos reales basados en la conversación activa
-  const clientProfile = activeConversation ? {
-    id: activeConversation.id,
-    name: activeConversation.customerName || 'Cliente',
-    phone: activeConversation.customerPhone,
-    channel: 'whatsapp' as const,
-    lastContact: (() => {
-      if (!activeConversation.lastMessageAt) return 'hace un momento';
-      try {
-        const date = new Date(activeConversation.lastMessageAt);
-        if (isNaN(date.getTime())) return 'hace un momento';
-        return formatDistanceToNow(date, { addSuffix: true, locale: es });
-      } catch {
-        return 'hace un momento';
-      }
-    })(),
-    clientSince: (() => {
-      try {
-        const date = new Date(activeConversation.createdAt);
-        if (isNaN(date.getTime())) return '2024';
-        return date.getFullYear().toString();
-      } catch {
-        return '2024';
-      }
-    })(),
-    whatsappId: activeConversation.customerPhone.replace('+', ''),
-    tags: activeConversation.tags || ['Cliente'],
-    status: 'active' as const
-  } : null;
+  // Usar el store global para perfiles de cliente
+  const { getProfile } = useClientProfileStore();
+  const [clientProfile, setClientProfile] = useState<ClientProfile | null>(null);
+  const [isLoadingClientProfile, setIsLoadingClientProfile] = useState(false);
 
-  const conversationDetails = activeConversation ? {
-    id: activeConversation.id,
-    status: activeConversation.status,
-    priority: activeConversation.priority || 'medium',
-    unreadCount: calculateUnreadCount(activeConversation.id),
-    assignedToName: activeConversation.assignedToName || 'Tú',
-    createdAt: activeConversation.createdAt,
-    updatedAt: activeConversation.updatedAt,
-    lastMessageAt: activeConversation.lastMessageAt,
-    messageCount: activeConversation.messageCount || 0,
-    participants: activeConversation.participants || [],
-    tags: activeConversation.tags || []
-  } : null;
+  const loadClientProfile = useCallback(async (conversationId: string) => {
+    // Evitar cargar si ya está cargando
+    if (isLoadingClientProfile) {
+      return;
+    }
+    
+    setIsLoadingClientProfile(true);
+    try {
+      const profile = await getProfile(conversationId);
+      if (profile) {
+        setClientProfile(profile);
+      } else {
+        console.log('No se pudo obtener el perfil del cliente');
+        setClientProfile(null);
+      }
+    } catch (error) {
+      console.error('Error cargando perfil del cliente:', error);
+      setClientProfile(null);
+    } finally {
+      setIsLoadingClientProfile(false);
+    }
+  }, [isLoadingClientProfile, getProfile]);
 
+  // Cargar información del cliente cuando cambie la conversación
+  useEffect(() => {
+    if (selectedConversationId) {
+      loadClientProfile(selectedConversationId);
+    } else {
+      setClientProfile(null);
+    }
+  }, [selectedConversationId, loadClientProfile]);
+
+  // Configuración de notificaciones (mock por ahora)
   const notificationSettings = {
     conversationNotifications: true,
     reports: true,
@@ -62,63 +56,9 @@ export const RightSidebar: React.FC = () => {
     pushNotifications: true
   };
 
-  const aiSuggestions = [
-    {
-      id: '1',
-      title: 'Respuesta profesional',
-      content: 'Gracias por contactarnos. ¿En qué puedo ayudarte hoy?',
-      confidence: 'high',
-      tags: ['profesional', 'cordial'],
-      actions: { copy: true, improve: true }
-    },
-    {
-      id: '2',
-      title: 'Solución rápida',
-      content: 'Entiendo tu consulta. Te ayudo a resolverlo de inmediato.',
-      confidence: 'medium',
-      tags: ['rápido', 'solución'],
-      actions: { copy: true, improve: true }
-    }
-  ];
-
-  const [copilotTab, setCopilotTabState] = useState<'suggestions' | 'chat'>('suggestions');
-  
-  const copilotState = {
-    isMockMode: true,
-    activeTab: copilotTab,
-    suggestions: aiSuggestions,
-    chatHistory: [],
-    isLoading: false
-  };
-
   const updateNotificationSettings = () => {
     console.log('Actualizando configuración de notificaciones');
   };
-  
-  const setCopilotTab = (tab: 'suggestions' | 'chat') => {
-    console.log('Cambiando tab del copilot a:', tab);
-    setCopilotTabState(tab);
-  };
-  
-  const copySuggestion = (suggestionId: string) => {
-    console.log('Copiando sugerencia:', suggestionId);
-    // Aquí se implementaría la lógica para copiar al portapapeles
-  };
-  
-  const improveSuggestion = (suggestionId: string) => {
-    console.log('Mejorando sugerencia:', suggestionId);
-    // Aquí se implementaría la lógica para mejorar la sugerencia
-  };
-  
-  const generateAISuggestion = (context?: string) => {
-    console.log('Generando sugerencia IA con contexto:', context);
-    // Aquí se implementaría la lógica para generar sugerencias
-  };
-
-  const isLoadingClientProfile = false;
-  const isLoadingConversationDetails = false;
-  const isLoadingNotificationSettings = false;
-  const isLoadingAISuggestions = false;
 
   // Si no hay conversación seleccionada
   if (!selectedConversationId) {
@@ -166,29 +106,43 @@ export const RightSidebar: React.FC = () => {
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
         {activeTab === 'details' ? (
-          clientProfile && conversationDetails && notificationSettings ? (
+          clientProfile ? (
             <DetailsPanel
-              clientProfile={clientProfile}
-              conversationDetails={conversationDetails}
+              clientProfile={{
+                id: selectedConversationId,
+                name: clientProfile.name,
+                phone: clientProfile.phone,
+                channel: clientProfile.channel as 'whatsapp' | 'telegram' | 'email' | 'phone',
+                lastContact: clientProfile.lastContact,
+                clientSince: clientProfile.clientSince,
+                whatsappId: clientProfile.whatsappId,
+                tags: clientProfile.tags,
+                status: clientProfile.status as 'active' | 'inactive' | 'blocked'
+              }}
+              conversationDetails={{
+                id: selectedConversationId,
+                status: clientProfile.conversation.status as 'open' | 'closed' | 'pending' | 'resolved',
+                priority: clientProfile.conversation.priority as 'low' | 'medium' | 'high' | 'urgent',
+                unreadCount: clientProfile.conversation.unreadMessages,
+                assignedToName: clientProfile.conversation.assignedTo,
+                createdAt: clientProfile.contactDetails?.createdAt || '',
+                updatedAt: clientProfile.contactDetails?.updatedAt || '',
+                lastMessageAt: clientProfile.lastContact,
+                messageCount: clientProfile.contactDetails?.totalMessages || 0,
+                participants: [],
+                tags: clientProfile.tags
+              }}
               notificationSettings={notificationSettings}
               onUpdateNotificationSettings={updateNotificationSettings}
-              isLoading={isLoadingClientProfile || isLoadingConversationDetails || isLoadingNotificationSettings}
+              isLoading={isLoadingClientProfile}
             />
           ) : (
             <div className="p-4 text-center text-gray-500">
-              {activeConversation ? 'Cargando detalles...' : 'Selecciona una conversación para ver los detalles'}
+              {isLoadingClientProfile ? 'Cargando detalles...' : 'Error al cargar los detalles del cliente'}
             </div>
           )
         ) : (
-          <CopilotPanel
-            copilotState={copilotState}
-            aiSuggestions={aiSuggestions}
-            onSetCopilotTab={setCopilotTab}
-            onCopySuggestion={(suggestion) => copySuggestion(suggestion.id)}
-            onImproveSuggestion={improveSuggestion}
-            onGenerateSuggestion={generateAISuggestion}
-            isLoading={isLoadingAISuggestions}
-          />
+          <CopilotPanel />
         )}
       </div>
     </div>

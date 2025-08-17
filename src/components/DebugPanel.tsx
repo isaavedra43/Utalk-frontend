@@ -64,12 +64,15 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) =>
 
     console.log = (...args) => {
       originalLog.apply(console, args);
-      // Solo agregar log si el panel está visible para evitar re-renders innecesarios
+      // Solo agregar log si el panel está visible y no es un log de cliente
       if (isVisible) {
-        // Usar setTimeout para evitar el bucle infinito
-        setTimeout(() => {
-          addLog('info', args.join(' '), '📝');
-        }, 0);
+        const message = args.join(' ');
+        // Filtrar logs de clientes para reducir spam
+        if (!message.includes('cliente') && !message.includes('client')) {
+          setTimeout(() => {
+            addLog('info', message, '📝');
+          }, 0);
+        }
       }
     };
 
@@ -85,9 +88,13 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({ isVisible, onClose }) =>
     console.error = (...args) => {
       originalError.apply(console, args);
       if (isVisible) {
-        setTimeout(() => {
-          addLog('error', args.join(' '), '❌');
-        }, 0);
+        const message = args.join(' ');
+        // Filtrar errores de clientes para reducir spam
+        if (!message.includes('cliente') && !message.includes('client')) {
+          setTimeout(() => {
+            addLog('error', message, '❌');
+          }, 0);
+        }
       }
     };
 

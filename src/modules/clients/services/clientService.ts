@@ -7,6 +7,7 @@ import type {
   ClientDeal
 } from '../../../types/client';
 import { logger, LogCategory } from '../../../utils/logger';
+import { logClientError } from '../../../config/logging';
 
 // Mock data para desarrollo
 const mockClients: Client[] = [
@@ -367,7 +368,7 @@ export const clientService = {
       
       return result;
     } catch (error) {
-      logger.error(LogCategory.API, 'Error al obtener clientes', error instanceof Error ? error : new Error(String(error)));
+      logClientError('Error al obtener clientes', error, { filters });
       throw error;
     }
   },
@@ -393,7 +394,7 @@ export const clientService = {
         message: 'Cliente obtenido exitosamente'
       };
     } catch (error) {
-      logger.error(LogCategory.API, 'Error al obtener cliente por ID', error instanceof Error ? error : new Error(String(error)));
+      logClientError('Error al obtener cliente por ID', error, { clientId });
       throw error;
     }
   },

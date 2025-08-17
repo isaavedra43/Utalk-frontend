@@ -32,9 +32,9 @@ class RateLimiter {
       window: 60000 // 1 minuto
     });
 
-    // Configuración específica para conversaciones
+    // Configuración específica para conversaciones - Aumentado para evitar rate limits
     this.configs.set('/api/conversations', {
-      limit: 5,
+      limit: 20, // Aumentado de 5 a 20
       window: 60000 // 1 minuto
     });
 

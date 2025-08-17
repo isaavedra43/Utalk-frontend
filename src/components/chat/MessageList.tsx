@@ -35,11 +35,15 @@ export const MessageList: React.FC<MessageListProps> = ({
     // Si es un separador de fecha
     if (group.type === 'date') {
       return (
-        <div key={group.key} className="flex items-center justify-center my-6">
-          <div className="bg-gray-200 px-4 py-1.5 rounded-full shadow-sm">
-            <span className="text-xs text-gray-600 font-medium">
-              {group.date}
-            </span>
+        <div key={group.key} className="flex items-center justify-center my-4">
+          <div className="date-separator-container">
+            <div className="date-separator-line"></div>
+            <div className="date-separator-badge">
+              <span className="date-separator-text">
+                {group.date}
+              </span>
+            </div>
+            <div className="date-separator-line"></div>
           </div>
         </div>
       );
