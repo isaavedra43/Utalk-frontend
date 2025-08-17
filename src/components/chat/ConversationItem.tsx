@@ -192,7 +192,6 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
             <span className="text-xs text-gray-500 font-mono">
               {conversation.customerPhone || 'Sin teléfono'}
             </span>
-<<<<<<< HEAD
             <div className="flex items-center space-x-1">
               <div className={`
                 w-2 h-2 rounded-full
@@ -202,21 +201,14 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
                 {conversation.status || 'closed'}
               </span>
             </div>
-=======
->>>>>>> 8cc84d7f7beb5b130eea3837b7e69266271aba91
           </div>
 
           {/* Último mensaje */}
           <div className="flex items-center justify-between">
             <p className={`
-<<<<<<< HEAD
-              text-sm truncate flex-1
-              ${(conversation.unreadCount || 0) > 0 ? 'text-gray-900 font-medium' : 'text-gray-600'}
-=======
               text-sm truncate flex-1 transition-colors duration-300
               ${(conversation.unreadCount || 0) > 0 ? 'text-gray-900 font-medium' : 'text-gray-600'}
               ${isSelected ? 'text-blue-900' : ''}
->>>>>>> 8cc84d7f7beb5b130eea3837b7e69266271aba91
             `}>
               {conversation.lastMessage?.content || 'Sin mensajes'}
             </p>
