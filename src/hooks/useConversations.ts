@@ -9,6 +9,49 @@ import { useAuthContext } from '../contexts/useAuthContext';
 import { sanitizeConversationId, logConversationId, encodeConversationIdForUrl } from '../utils/conversationUtils';
 import { infoLog } from '../config/logger';
 
+// NUEVO: Función para normalizar conversaciones según la estructura del backend
+const normalizeConversation = (conversation: Conversation): Conversation => {
+  // CORREGIDO: Verificar si realmente no hay datos de contacto
+  // El backend puede enviar contact con campos undefined, pero eso no significa que no haya datos
+  const hasContactData = conversation.contact && (
+    conversation.contact.name || 
+    conversation.contact.profileName || 
+    conversation.contact.phoneNumber || 
+    conversation.contact.id ||
+    conversation.contact.waId
+  );
+
+  if (!hasContactData) {
+    // REDUCIR LOGS: Solo mostrar una vez por conversación
+    if (import.meta.env.DEV && !conversation.needsContactData) {
+      console.warn('⚠️ [DEBUG] Conversación sin datos de contacto:', conversation.id);
+    }
+    return {
+      ...conversation,
+      contact: null,
+      needsContactData: true
+    };
+  }
+  
+  // CORREGIDO: Normalizar la estructura del contacto según el backend
+  // Manejar casos donde algunos campos pueden ser undefined
+  return {
+    ...conversation,
+    contact: {
+      id: conversation.contact?.id || conversation.customerPhone,
+      name: conversation.contact?.name || conversation.contact?.profileName || conversation.customerPhone,
+      profileName: conversation.contact?.profileName || conversation.contact?.name,
+      phoneNumber: conversation.contact?.phoneNumber || conversation.customerPhone,
+      waId: conversation.contact?.waId,
+      hasProfilePhoto: conversation.contact?.avatar ? true : false,
+      avatar: conversation.contact?.avatar || null,
+      channel: conversation.contact?.channel || 'whatsapp',
+      lastSeen: conversation.contact?.lastSeen
+    },
+    needsContactData: false
+  };
+};
+
 // NUEVO: Singleton mejorado con control de instancias y estabilidad
 class ConversationsManager {
   private static instance: ConversationsManager | null = null;
@@ -194,7 +237,10 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   useEffect(() => {
     // Solo limpiar listeners si realmente se desconecta
     if (!isAuthenticated || !isConnected) {
-      console.log('🔌 useConversations - Cleanup por desconexión...');
+      // REDUCIDO: Solo loggear en desarrollo
+      if (import.meta.env.DEV) {
+        console.log('🔌 useConversations - Cleanup por desconexión...');
+      }
       manager.setListenersRegistered(false);
     }
   }, [isAuthenticated, isConnected, manager]);
@@ -426,9 +472,10 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     if (syncData.conversations && syncData.conversations.length > 0) {
       infoLog('📋 useConversations - Actualizando conversaciones sincronizadas:', syncData.conversations.length);
       
-      // NUEVO: Siempre actualizar con las conversaciones del servidor
+      // NUEVO: Normalizar conversaciones antes de actualizar
       console.log('🎉 useConversations - Actualizando conversaciones del servidor:', syncData.conversations.length);
-      setConversations(syncData.conversations);
+      const normalizedConversations = syncData.conversations.map(normalizeConversation);
+      setConversations(normalizedConversations);
     }
   }, [setConversations]);
 
@@ -443,16 +490,21 @@ export const useConversations = (filters: ConversationFilters = {}) => {
       
       if (existingIndex === -1) {
         console.log('✅ useConversations - Agregando nueva conversación desde webhook:', eventData.conversation.id);
-        setConversations([eventData.conversation, ...currentConversations]);
+        const normalizedConversation = normalizeConversation(eventData.conversation);
+        setConversations([normalizedConversation, ...currentConversations]);
       } else {
         console.log('✅ useConversations - Actualizando conversación existente desde webhook:', eventData.conversation.id);
-        updateStoreConversation(eventData.conversation.id, eventData.conversation);
+        const normalizedConversation = normalizeConversation(eventData.conversation);
+        updateStoreConversation(eventData.conversation.id, normalizedConversation);
       }
     }
   }, [setConversations, updateStoreConversation]);
 
   // NUEVO: Handler para eventos de webhook de nuevos mensajes
   const handleWebhookNewMessage = useCallback((data: unknown) => {
+    console.log('🎯 useConversations - Handler webhook:new-message llamado con datos:', data);
+    console.log('🎯 useConversations - Timestamp del handler:', new Date().toISOString());
+    
     const eventData = data as { 
       conversationId: string; 
       message: { content: string; timestamp: string; sender: string };
@@ -460,28 +512,78 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     };
     console.log('📨 useConversations - Nuevo mensaje desde webhook:', eventData);
     
+    // NUEVO: Log del estado actual antes de actualizar
+    const currentConversations = useAppStore.getState().conversations;
+    console.log('📊 useConversations - Estado actual antes de actualizar:', {
+      currentConversationsCount: currentConversations.length,
+      currentConversationIds: currentConversations.map(c => c.id)
+    });
+    
+    // NUEVO: Procesar la conversación completa si viene en el evento
     if (eventData.conversation) {
       const currentConversations = useAppStore.getState().conversations;
       const existingIndex = currentConversations.findIndex((c: Conversation) => c.id === eventData.conversation!.id);
       
       if (existingIndex === -1) {
+        // NUEVO: Agregar nueva conversación al inicio de la lista
         console.log('✅ useConversations - Agregando nueva conversación desde webhook new-message:', eventData.conversation.id);
-        setConversations([eventData.conversation, ...currentConversations]);
+        const normalizedConversation = normalizeConversation(eventData.conversation);
+        setConversations([normalizedConversation, ...currentConversations]);
       } else {
+        // NUEVO: Actualizar conversación existente y moverla al inicio
         console.log('✅ useConversations - Actualizando conversación existente desde webhook new-message:', eventData.conversation.id);
-        updateStoreConversation(eventData.conversation.id, eventData.conversation);
+        const updatedConversations = [...currentConversations];
+        const normalizedConversation = normalizeConversation(eventData.conversation);
+        updatedConversations[existingIndex] = {
+          ...updatedConversations[existingIndex],
+          ...normalizedConversation,
+          updatedAt: new Date().toISOString()
+        };
+        
+        // NUEVO: Reordenar por fecha de actualización (más reciente primero)
+        updatedConversations.sort((a, b) => {
+          const aTime = new Date(a.updatedAt || a.lastMessageAt || a.createdAt).getTime();
+          const bTime = new Date(b.updatedAt || b.lastMessageAt || b.createdAt).getTime();
+          return bTime - aTime;
+        });
+        
+        setConversations(updatedConversations);
       }
     } else {
-      // Si no viene la conversación completa, actualizar la existente
+      // NUEVO: Si no viene la conversación completa, actualizar la existente con el nuevo mensaje
       const currentConversation = storeConversations.find((c: Conversation) => c.id === eventData.conversationId);
       if (currentConversation) {
-        updateStoreConversation(eventData.conversationId, {
+        const updatedConversation = {
           ...currentConversation,
           lastMessageAt: eventData.message.timestamp,
-          unreadCount: (currentConversation.unreadCount || 0) + 1
+          lastMessage: {
+            content: eventData.message.content,
+            direction: eventData.message.sender === 'customer' ? 'inbound' as const : 'outbound' as const,
+            messageId: `temp_${Date.now()}`, // ID temporal para el último mensaje
+            sender: eventData.message.sender === 'customer' ? `customer:${eventData.conversationId}` : `agent:admin@company.com`,
+            timestamp: eventData.message.timestamp
+          },
+          unreadCount: (currentConversation.unreadCount || 0) + 1,
+          updatedAt: new Date().toISOString()
+        };
+        
+        // NUEVO: Actualizar en el store y reordenar la lista
+        updateStoreConversation(eventData.conversationId, updatedConversation);
+        
+        // NUEVO: Reordenar conversaciones por fecha de actualización
+        const currentConversations = useAppStore.getState().conversations;
+        const updatedConversations = [...currentConversations].sort((a, b) => {
+          const aTime = new Date(a.updatedAt || a.lastMessageAt || a.createdAt).getTime();
+          const bTime = new Date(b.updatedAt || b.lastMessageAt || b.createdAt).getTime();
+          return bTime - aTime;
         });
+        
+        setConversations(updatedConversations);
       }
     }
+    
+    // NUEVO: Log final de confirmación
+    console.log('🎉 useConversations - Handler webhook:new-message completado exitosamente');
   }, [setConversations, updateStoreConversation, storeConversations]);
 
   // NUEVO: Handlers optimizados con useCallback para evitar re-renders
@@ -492,19 +594,136 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   }, [updateStoreConversation]);
 
   const handleNewMessage = useCallback((data: unknown) => {
-    const eventData = data as { conversationId: string; message: unknown; timestamp: string };
+    const eventData = data as { 
+      conversationId: string; 
+      message: unknown; 
+      timestamp: string;
+      isNewConversation?: boolean;
+    };
     console.log('🔌 useConversations - Nuevo mensaje recibido:', eventData);
+    console.log('🔌 useConversations - Timestamp del handler:', new Date().toISOString());
     
-    // Actualizar conversación con nuevo mensaje
+    // NUEVO: Log del estado actual antes de actualizar
+    const currentConversations = useAppStore.getState().conversations;
+    console.log('📊 useConversations - Estado actual antes de actualizar:', {
+      currentConversationsCount: currentConversations.length,
+      currentConversationIds: currentConversations.map(c => c.id),
+      isNewConversation: eventData.isNewConversation
+    });
+    
+    // NUEVO: Si es una nueva conversación, crear la conversación completa
+    if (eventData.isNewConversation) {
+      console.log('🆕 useConversations - Procesando nueva conversación desde new-message');
+      
+      // Extraer información del mensaje para crear la conversación
+      const messageData = eventData.message as {
+        content: string;
+        timestamp: string;
+        sender: string;
+        metadata?: {
+          contact?: {
+            phoneNumber: string;
+            profileName: string;
+          };
+        };
+      };
+      
+      const newConversation: Conversation = {
+        id: eventData.conversationId,
+        customerName: messageData.metadata?.contact?.profileName || 'Cliente sin nombre',
+        customerPhone: messageData.metadata?.contact?.phoneNumber || eventData.conversationId.split('_')[1] || '',
+        contact: messageData.metadata?.contact ? {
+          id: messageData.metadata.contact.phoneNumber,
+          name: messageData.metadata.contact.profileName,
+          profileName: messageData.metadata.contact.profileName,
+          phoneNumber: messageData.metadata.contact.phoneNumber,
+          channel: 'whatsapp'
+        } : null,
+        status: 'open',
+        messageCount: 1,
+        unreadCount: 1,
+        participants: [messageData.metadata?.contact?.phoneNumber || '', 'admin@company.com'],
+        tenantId: 'default_tenant',
+        workspaceId: 'default_workspace',
+        createdAt: messageData.timestamp,
+        updatedAt: new Date().toISOString(),
+        lastMessageAt: messageData.timestamp,
+        lastMessage: {
+          content: messageData.content,
+          direction: messageData.sender === 'customer' ? 'inbound' as const : 'outbound' as const,
+          messageId: `temp_${Date.now()}`,
+          sender: messageData.sender === 'customer' ? `customer:${eventData.conversationId}` : `agent:admin@company.com`,
+          timestamp: messageData.timestamp
+        },
+        assignedTo: 'admin@company.com'
+      };
+      
+      console.log('✅ useConversations - Creando nueva conversación:', newConversation);
+      
+      // Agregar la nueva conversación al inicio de la lista
+      setConversations([newConversation, ...currentConversations]);
+      
+      // NUEVO: Emitir evento para animación de nueva conversación
+      window.dispatchEvent(new CustomEvent('new-conversation-added', {
+        detail: {
+          conversationId: eventData.conversationId,
+          conversation: newConversation,
+          timestamp: new Date().toISOString()
+        }
+      }));
+      
+      console.log('✅ useConversations - Nueva conversación agregada exitosamente');
+      return;
+    }
+    
+    // NUEVO: Actualizar conversación existente con nuevo mensaje y reordenar lista
     const currentConversation = storeConversations.find((c: Conversation) => c.id === eventData.conversationId);
     if (currentConversation) {
-      updateStoreConversation(eventData.conversationId, {
+      const updatedConversation = {
         ...currentConversation,
         lastMessageAt: eventData.timestamp,
-        unreadCount: (currentConversation.unreadCount || 0) + 1
+        lastMessage: {
+          content: typeof eventData.message === 'object' && eventData.message !== null && 'content' in eventData.message 
+            ? (eventData.message as { content: string }).content 
+            : 'Nuevo mensaje',
+          direction: 'inbound' as const,
+          messageId: `temp_${Date.now()}`,
+          sender: `customer:${eventData.conversationId}`,
+          timestamp: eventData.timestamp
+        },
+        unreadCount: (currentConversation.unreadCount || 0) + 1,
+        updatedAt: new Date().toISOString()
+      };
+      
+      // NUEVO: Actualizar en el store
+      updateStoreConversation(eventData.conversationId, updatedConversation);
+      
+      // NUEVO: Reordenar conversaciones por fecha de actualización
+      const updatedConversations = [...currentConversations].sort((a, b) => {
+        const aTime = new Date(a.updatedAt || a.lastMessageAt || a.createdAt).getTime();
+        const bTime = new Date(b.updatedAt || b.lastMessageAt || b.createdAt).getTime();
+        return bTime - aTime;
       });
+      
+      setConversations(updatedConversations);
+      
+      // NUEVO: Emitir evento para animación de conversación actualizada
+      window.dispatchEvent(new CustomEvent('new-conversation-added', {
+        detail: {
+          conversationId: eventData.conversationId,
+          conversation: updatedConversation,
+          timestamp: new Date().toISOString()
+        }
+      }));
+      
+      console.log('✅ useConversations - Conversación existente actualizada exitosamente');
+    } else {
+      console.log('⚠️ useConversations - Conversación no encontrada para actualizar:', eventData.conversationId);
     }
-  }, [storeConversations, updateStoreConversation]);
+    
+    // NUEVO: Log final de confirmación
+    console.log('🎉 useConversations - Handler new-message completado exitosamente');
+  }, [storeConversations, updateStoreConversation, setConversations]);
 
   const handleMessageRead = useCallback((data: unknown) => {
     const eventData = data as { conversationId: string; messageIds: string[]; timestamp: string };
@@ -539,21 +758,27 @@ export const useConversations = (filters: ConversationFilters = {}) => {
   // ESCUCHAR EVENTOS DE CONVERSACIÓN - OPTIMIZADO PARA EVITAR RECONEXIONES
   useEffect(() => {
     if (!isAuthenticated || authLoading || !isConnected) {
-      console.log('🔌 useConversations - No registrando listeners:', { 
-        isAuthenticated, 
-        authLoading, 
-        isConnected 
-      });
+      if (import.meta.env.VITE_DEBUG === 'true') {
+        console.debug('[DEBUG][Conversations] No registrando listeners', { 
+          isAuthenticated, 
+          authLoading, 
+          isConnected 
+        });
+      }
       return;
     }
 
     // NUEVO: Usar singleton mejorado para evitar registro duplicado
     if (manager.isListenersRegistered()) {
-      console.log('🔌 useConversations - Listeners ya registrados, saltando...');
+      if (import.meta.env.VITE_DEBUG === 'true') {
+        console.debug('[DEBUG][Conversations] Listeners ya registrados, saltando');
+      }
       return;
     }
 
-    console.log('🔌 useConversations - Registrando listeners de eventos WebSocket');
+    if (import.meta.env.VITE_DEBUG === 'true') {
+      console.debug('[DEBUG][Conversations] Registrando listeners de WS');
+    }
 
     // Registrar listeners para eventos de conversación
     on('conversation-event', handleConversationEvent);
@@ -566,6 +791,7 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     // NUEVO: Registrar listeners para eventos de webhook
     on('webhook:conversation-created', handleWebhookConversationCreated);
     on('webhook:new-message', handleWebhookNewMessage);
+    console.log('🔌 useConversations - Listener webhook:new-message registrado correctamente');
     
     // NUEVO: Registrar listeners para eventos personalizados del DOM
     const handleWebSocketStateSynced = (e: Event) => {
@@ -600,7 +826,9 @@ export const useConversations = (filters: ConversationFilters = {}) => {
     return () => {
       // Solo limpiar si realmente se está desmontando o desconectando
       if (!isAuthenticated || !isConnected) {
-        console.log('🔌 useConversations - Limpiando listeners de eventos WebSocket (desconexión)');
+        if (import.meta.env.VITE_DEBUG === 'true') {
+          console.debug('[DEBUG][Conversations] Limpiando listeners de WS (desconexión)');
+        }
         off('conversation-event');
         off('new-message');
         off('message-read');

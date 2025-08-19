@@ -146,5 +146,57 @@ export const messagesService = {
   async replyToMessage(messageId: string, replyData: MessageInputData): Promise<Message> {
     const response = await api.post(`${MESSAGES_API}/${messageId}/reply`, replyData);
     return response.data;
+  },
+
+  // Enviar mensaje con archivos adjuntos (NUEVO - según backend)
+  async sendMessageWithAttachments(
+    conversationId: string, 
+    content: string, 
+    files: File[], 
+    metadata?: Record<string, unknown>
+  ): Promise<Message> {
+    
+    // Convertir archivos a base64
+    const attachments = await Promise.all(
+      files.map(async (file) => {
+        const base64 = await this.fileToBase64(file);
+        return {
+          buffer: base64,
+          originalname: file.name,
+          mimetype: file.type,
+          size: file.size
+        };
+      })
+    );
+
+    const payload = {
+      conversationId,
+      content,
+      attachments,
+      ...(metadata && { metadata })
+    };
+
+    const response = await api.post(`${MESSAGES_API}/send-with-attachments`, payload, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    return response.data;
+  },
+
+  // Convertir archivo a base64 (método privado)
+  async fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        // Remover data:image/jpeg;base64, del inicio
+        const base64Data = base64.split(',')[1];
+        resolve(base64Data);
+      };
+      reader.onerror = error => reject(error);
+    });
   }
 }; 

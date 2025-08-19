@@ -30,9 +30,23 @@ export interface Conversation {
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   tags?: string[]; // ["VIP", "Premium", "Order"]
   metadata?: Record<string, unknown>; // Metadatos adicionales
+  // NUEVO: Datos del contacto según el backend
+  contact?: {
+    id: string;
+    name: string;
+    profileName?: string;
+    phoneNumber: string;
+    waId?: string;
+    hasProfilePhoto?: boolean;
+    avatar?: string | null;
+    channel: string;
+    lastSeen?: string;
+  } | null;
   // Propiedades para animaciones
   isNewMessage?: boolean; // Flag para animación de slide-in
   hasNewMessage?: boolean; // Flag para animación de punto verde
+  // NUEVO: Flag para indicar si necesita datos de contacto
+  needsContactData?: boolean;
 }
 
 export interface LastMessage {

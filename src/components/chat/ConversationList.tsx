@@ -48,6 +48,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   
   // NUEVO: Estado para mostrar indicador de sincronización
   const [isSyncing, setIsSyncing] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [newConversationIds, setNewConversationIds] = useState<Set<string>>(new Set()); // NUEVO: Trackear conversaciones nuevas
 
   // NUEVO: Listener para mostrar indicador de sincronización
   useEffect(() => {
@@ -60,12 +62,60 @@ export const ConversationList: React.FC<ConversationListProps> = ({
       setIsSyncing(false);
     };
 
+    // NUEVO: Listener para actualizaciones en tiempo real
+    const handleWebhookNewMessage = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      console.log('📨 ConversationList - Recibido evento webhook:new-message:', detail);
+      setLastUpdate(new Date());
+      
+      // NUEVO: Agregar conversación nueva al set de tracking
+      if (detail?.conversationId) {
+        setNewConversationIds(prev => new Set([...prev, detail.conversationId]));
+        
+        // Remover después de 3 segundos
+        setTimeout(() => {
+          setNewConversationIds(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(detail.conversationId);
+            return newSet;
+          });
+        }, 3000);
+      }
+      
+      // Mostrar indicador de actualización
+      setIsSyncing(true);
+      setTimeout(() => setIsSyncing(false), 1000);
+    };
+
+    // NUEVO: Listener para nuevas conversaciones agregadas
+    const handleNewConversationAdded = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      console.log('🆕 ConversationList - Nueva conversación agregada:', detail);
+      
+      if (detail?.conversationId) {
+        setNewConversationIds(prev => new Set([...prev, detail.conversationId]));
+        
+        // Remover después de 3 segundos
+        setTimeout(() => {
+          setNewConversationIds(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(detail.conversationId);
+            return newSet;
+          });
+        }, 3000);
+      }
+    };
+
     window.addEventListener('sync-start', handleSyncStart);
     window.addEventListener('sync-end', handleSyncEnd);
+    window.addEventListener('webhook:new-message', handleWebhookNewMessage);
+    window.addEventListener('new-conversation-added', handleNewConversationAdded);
 
     return () => {
       window.removeEventListener('sync-start', handleSyncStart);
       window.removeEventListener('sync-end', handleSyncEnd);
+      window.removeEventListener('webhook:new-message', handleWebhookNewMessage);
+      window.removeEventListener('new-conversation-added', handleNewConversationAdded);
     };
   }, []);
 
@@ -97,6 +147,17 @@ export const ConversationList: React.FC<ConversationListProps> = ({
     { id: 'asig', label: 'Asig' },
     { id: 'urg', label: 'Urg' }
   ], []);
+
+  // NUEVO: Indicador de última actualización
+  const lastUpdateText = useMemo(() => {
+    if (!lastUpdate) return null;
+    const now = new Date();
+    const diff = now.getTime() - lastUpdate.getTime();
+    const seconds = Math.floor(diff / 1000);
+    if (seconds < 60) return `Actualizado hace ${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    return `Actualizado hace ${minutes}m`;
+  }, [lastUpdate]);
 
   // Función para manejar cambios en el input de búsqueda
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -208,6 +269,11 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                 <span>Sincronizando...</span>
               </div>
             )}
+            {lastUpdateText && (
+              <div className="text-xs text-gray-500">
+                {lastUpdateText}
+              </div>
+            )}
           </div>
         </div>
 
@@ -266,6 +332,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                 conversation={conversation}
                 isSelected={selectedConversationId === conversation.id}
                 onClick={() => handleConversationClick(conversation.id)}
+                isNewConversation={newConversationIds.has(conversation.id)} // Pasar la prop isNew
               />
             ))}
             

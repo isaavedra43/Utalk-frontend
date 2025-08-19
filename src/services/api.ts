@@ -48,35 +48,24 @@ api.interceptors.request.use(
       throw new Error('Rate limit exceeded');
     }
 
-    // Generar clave única para deduplicación
-    const requestKey = generateRequestKey(method, url, config.params);
-    
-    // Aplicar deduplicación para peticiones GET
-    if (method === 'GET') {
-      return deduplicateRequest(requestKey, () => {
-        // Continuar con la petición original
-        return Promise.resolve(config);
-      });
-    }
-
+    // AÑADIR TOKEN ANTES DE DEDUP PARA SOPORTAR GET /api/media/proxy
     const token = localStorage.getItem('access_token');
-    if (token) {
+    const shouldAddToken = method !== 'GET' || url.includes('/api/media/proxy');
+    
+    if (token && shouldAddToken) {
       config.headers.Authorization = `Bearer ${token}`;
-      // Solo loggear token para métodos no-GET
-      if (config.method !== 'GET') {
-        logger.apiInfo('Token agregado a request', {
-          method: config.method?.toUpperCase(),
-          url: config.url,
-          hasToken: !!token,
-          tokenPreview: token.substring(0, 20) + '...'
-        });
-      }
-    } else if (config.method !== 'GET') {
-      // Solo loggear requests sin token para métodos no-GET
+      logger.apiInfo('Token agregado a request', {
+        method: method?.toUpperCase(),
+        url: url,
+        hasToken: !!token,
+        tokenPreview: token.substring(0, 20) + '...'
+      });
+    } else if (shouldAddToken && !token) {
+      // Loggear requests sin token para métodos no-GET y proxy de medios
       logger.apiInfo('Request sin token', {
-        method: config.method?.toUpperCase(),
-        url: config.url,
-        isAuthEndpoint: config.url?.includes('/auth/')
+        method: method?.toUpperCase(),
+        url: url,
+        isAuthEndpoint: url.includes('/auth/')
       });
     }
 
@@ -97,7 +86,7 @@ api.interceptors.request.use(
             originalUrl: config.url,
             invalidId: conversationId,
             decodedId: decodedConversationId,
-            method: config.method?.toUpperCase()
+            method: method?.toUpperCase()
           });
           return Promise.reject(new Error(`ID de conversación inválido: ${conversationId}`));
         }
@@ -116,12 +105,21 @@ api.interceptors.request.use(
               decodedId: decodedConversationId,
               sanitizedId,
               backendFormat: sanitizedForBackend,
-              method: config.method?.toUpperCase(),
+              method: method?.toUpperCase(),
               url: config.url
             });
           }
         }
       }
+    }
+
+    // DEDUPLICACIÓN DESPUÉS DE TOKEN/URL NORMALIZADOS
+    const requestKey = generateRequestKey(method, url, config.params);
+    if (method === 'GET') {
+      return deduplicateRequest(requestKey, () => {
+        // Continuar con la petición original
+        return Promise.resolve(config);
+      });
     }
     
     // Log de requests solo en desarrollo y solo para métodos no-GET

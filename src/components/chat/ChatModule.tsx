@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ConversationList } from './ConversationList';
 import { ChatComponent } from './ChatComponent';
 import { RightSidebar } from '../layout/RightSidebar';
@@ -14,7 +14,7 @@ import {
   Users, 
   Bell, 
   LayoutDashboard, 
-  Building2 
+  Building2
 } from 'lucide-react';
 import '../../styles/four-column-layout.css';
 
@@ -28,6 +28,28 @@ const AuthenticatedChatContent: React.FC = () => {
   
   // NUEVO: Una sola instancia del hook useConversations
   const conversationsData = useConversations({});
+
+  // Logs de debugging desactivados por defecto
+  if (import.meta.env.VITE_DEBUG === 'true') {
+    console.debug('[DEBUG][ChatModule] Datos de conversaciones', {
+      conversations: conversationsData.conversations,
+      activeConversation: conversationsData.activeConversation,
+      isLoading: conversationsData.isLoading,
+      error: conversationsData.error,
+      conversationsCount: conversationsData.conversations?.length || 0
+    });
+  }
+
+  // NUEVO: Verificar si hay datos pero no se renderizan
+  useEffect(() => {
+    if (import.meta.env.VITE_DEBUG === 'true') {
+      if (conversationsData.conversations && conversationsData.conversations.length > 0) {
+        console.debug('[DEBUG][ChatModule] Conversaciones disponibles', conversationsData.conversations.length);
+      } else if (!conversationsData.isLoading) {
+        console.debug('[DEBUG][ChatModule] No hay conversaciones y no está cargando');
+      }
+    }
+  }, [conversationsData.conversations, conversationsData.isLoading]);
 
   // Datos mock para el panel de detalles
   const mockClientProfile = {
@@ -114,11 +136,17 @@ const AuthenticatedChatContent: React.FC = () => {
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                     <span className="text-white font-medium text-sm">
-                      {conversationsData.activeConversation?.customerName?.charAt(0) || 'C'}
+                      {conversationsData.activeConversation?.contact?.profileName?.charAt(0)?.toUpperCase() || 
+                       conversationsData.activeConversation?.contact?.name?.charAt(0)?.toUpperCase() || 
+                       conversationsData.activeConversation?.customerName?.charAt(0)?.toUpperCase() || 'C'}
                     </span>
                   </div>
                   <div>
-                    <h2 className="font-semibold">{conversationsData.activeConversation?.customerName || 'Cliente'}</h2>
+                    <h2 className="font-semibold">
+                      {conversationsData.activeConversation?.contact?.profileName || 
+                       conversationsData.activeConversation?.contact?.name || 
+                       conversationsData.activeConversation?.customerName || 'Cliente'}
+                    </h2>
                     <p className="text-sm text-white/80">En línea</p>
                   </div>
                 </div>
@@ -230,6 +258,18 @@ const AuthenticatedChatContent: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col">
+      {/* Debugger para verificar layout - DESHABILITADO */}
+      {/* <LayoutDebugger isVisible={showDebugger} /> */}
+      
+      {/* Botón para mostrar/ocultar debugger - DESHABILITADO */}
+      {/* <button
+        onClick={() => setShowDebugger(!showDebugger)}
+        className="fixed top-4 right-4 z-50 p-2 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
+        title="Mostrar/Ocultar Debug Layout"
+      >
+        <Monitor className="w-4 h-4" />
+      </button> */}
+
       {/* Vista móvil moderna */}
       <div className="lg:hidden h-full">
         {renderMobileView()}
@@ -272,12 +312,37 @@ const AuthenticatedChatContent: React.FC = () => {
       <div className="four-column-layout">
         {/* Columna 1: Lista de conversaciones */}
         <div className="conversations-column column-separator">
-          <ConversationList {...conversationsData} />
+          {conversationsData.isLoading ? (
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-600">Cargando conversaciones...</p>
+              </div>
+            </div>
+          ) : conversationsData.error ? (
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center text-red-600">
+                <p>Error al cargar conversaciones</p>
+                <p className="text-sm">{conversationsData.error.message}</p>
+              </div>
+            </div>
+          ) : (
+            <ConversationList {...conversationsData} />
+          )}
         </div>
         
         {/* Columna 2: Chat (con más ancho) */}
         <div className="chat-column column-separator">
-          <ChatComponent conversationId={conversationsData.activeConversation?.id} />
+          {conversationsData.isLoading ? (
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-600">Cargando chat...</p>
+              </div>
+            </div>
+          ) : (
+            <ChatComponent conversationId={conversationsData.activeConversation?.id} />
+          )}
         </div>
         
         {/* Columna 3: Sugerencias (independiente) */}
@@ -289,6 +354,45 @@ const AuthenticatedChatContent: React.FC = () => {
         <div className="details-copilot-column">
           <RightSidebar />
         </div>
+      </div>
+
+      {/* NUEVO: Fallback para pantallas pequeñas cuando el layout de 4 columnas no se muestra */}
+      <div className="lg:hidden h-full">
+        {conversationsData.isLoading ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600">Cargando aplicación...</p>
+            </div>
+          </div>
+        ) : conversationsData.error ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center text-red-600">
+              <p>Error al cargar la aplicación</p>
+              <p className="text-sm">{conversationsData.error.message}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="h-full bg-white flex flex-col">
+            {/* Header de conversaciones */}
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+              <div className="flex items-center space-x-3">
+                <h1 className="text-lg font-semibold">Conversaciones</h1>
+              </div>
+              <button
+                onClick={() => setShowMobileMenu(true)}
+                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            </div>
+            
+            {/* Contenido de conversaciones */}
+            <div className="flex-1 overflow-hidden">
+              <ConversationList {...conversationsData} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

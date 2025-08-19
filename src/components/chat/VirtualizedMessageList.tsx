@@ -2,6 +2,7 @@ import React from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { MessageBubble } from './MessageBubble';
 import type { Message } from '../../types';
+import { useConversations } from '../../hooks/useConversations';
 
 interface VirtualizedMessageListProps {
   messages: Message[];
@@ -16,11 +17,18 @@ export const VirtualizedMessageList: React.FC<VirtualizedMessageListProps> = ({
   width = "100%",
   itemSize = 80 
 }) => {
+  // Obtener el nombre del cliente del contexto de conversaciones
+  const { activeConversation } = useConversations({});
+  
+  const customerName = activeConversation?.contact?.profileName || 
+                      activeConversation?.contact?.name || 
+                      activeConversation?.customerName || 'Usuario';
+
   const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => (
     <div style={style}>
       <MessageBubble 
         message={messages[index]} 
-        customerName="Usuario" // TODO: Obtener del contexto de conversación
+        customerName={customerName}
       />
     </div>
   );

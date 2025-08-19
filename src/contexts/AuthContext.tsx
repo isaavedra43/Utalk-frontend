@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { WebSocketContext } from './WebSocketContext';
 import api from '../services/api';
 import { logger } from '../utils/logger';
+import { performanceMonitor } from '../utils/performanceMonitor';
 
 interface BackendUser {
   id: string;
@@ -34,14 +35,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [hasConnectedWebSocket, setHasConnectedWebSocket] = useState(false); // NUEVO: Flag para evitar múltiples conexiones
+  const [hasConnectedWebSocket, setHasConnectedWebSocket] = useState(false);
   
   const { connect: connectSocket, disconnect: disconnectSocket, isConnected } = useContext(WebSocketContext) || {};
 
-  // Calcular estado de autenticación
-  const isAuthenticated = !!user && !!backendUser && !isAuthenticating;
+  // OPTIMIZADO: Usar useMemo para calcular estado de autenticación
+  const isAuthenticated = useMemo(() => {
+    return !!user && !!backendUser && !isAuthenticating;
+  }, [user, backendUser, isAuthenticating]);
 
-  // Función de login
+  // OPTIMIZADO: Función de login con useCallback
   const login = useCallback(async (email: string, password: string) => {
     try {
       setError(null);
@@ -71,6 +74,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         window.dispatchEvent(new CustomEvent('auth:login-success', {
           detail: { user: userData, accessToken }
         }));
+        // Log de performance
+        performanceMonitor.logLoginSuccess();
       }, 100);
       
       return userData;
@@ -84,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Función para limpiar autenticación
+  // OPTIMIZADO: Función para limpiar autenticación
   const clearAuth = useCallback(() => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
@@ -96,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAuthenticating(false);
   }, []);
 
-  // Función para actualizar perfil
+  // OPTIMIZADO: Función para actualizar perfil
   const updateProfile = useCallback(async (data: { displayName?: string; email?: string }) => {
     try {
       setLoading(true);
@@ -121,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [backendUser]);
 
-  // Función de logout
+  // OPTIMIZADO: Función de logout
   const logout = useCallback(async () => {
     try {
       setLoading(true);
@@ -133,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [clearAuth]);
 
-  // Verificar estado inicial de autenticación
+  // OPTIMIZADO: Verificar estado inicial de autenticación
   useEffect(() => {
     const checkInitialAuth = async () => {
       try {
@@ -156,32 +161,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkInitialAuth();
   }, []);
 
-  // CORREGIDO: Log del estado actual solo cuando cambia significativamente
+  // OPTIMIZADO: Log del estado actual solo en errores críticos
   useEffect(() => {
-    // REDUCIR LOGS: Solo log en cambios críticos
-    if (loading || error || isAuthenticating) {
-      console.log('🔐 AuthProvider - Estado actual:', {
+    // Solo log en errores críticos
+    if (error) {
+      console.log('🔐 AuthProvider - Error crítico:', {
+        error,
         isAuthenticated,
-        loading,
-        isAuthenticating,
-        hasUser: !!user,
-        hasBackendUser: !!backendUser,
-        error
+        loading
       });
     }
-  }, [isAuthenticated, loading, isAuthenticating, user, backendUser, error]);
+  }, [error, isAuthenticated, loading]);
 
-  // CORREGIDO: Conectar WebSocket cuando se autentica - SIN LOGS EXCESIVOS
+  // OPTIMIZADO: Conectar WebSocket cuando se autentica
   useEffect(() => {
     // SOLO desconectar WebSocket si realmente no está autenticado y no está en proceso de autenticación
     if (disconnectSocket && isConnected && !isAuthenticated && !loading && !isAuthenticating) {
       console.log('🔐 AuthContext - Desconectando WebSocket (usuario no autenticado)');
-      setHasConnectedWebSocket(false); // Resetear flag al desconectar
+      setHasConnectedWebSocket(false);
       disconnectSocket();
     }
   }, [isAuthenticated, loading, isAuthenticating, disconnectSocket, isConnected]);
 
-  // Escuchar eventos de autenticación fallida para desconectar WebSocket
+  // OPTIMIZADO: Escuchar eventos de autenticación fallida
   useEffect(() => {
     const handleAuthFailed = () => {
       console.log('🔐 AuthContext - Autenticación fallida, desconectando WebSocket');
@@ -197,7 +199,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [disconnectSocket]);
 
-  // Escuchar evento de login exitoso para conectar WebSocket inmediatamente
+  // OPTIMIZADO: Escuchar evento de login exitoso
   useEffect(() => {
     const handleLoginSuccess = (e: Event) => {
       const detail = (e as CustomEvent).detail as { user: unknown; accessToken: string } | undefined;
@@ -205,7 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (accessToken && connectSocket && !isConnected && !hasConnectedWebSocket) {
         console.log('🔐 AuthContext - Login exitoso detectado, conectando WebSocket...');
-        setHasConnectedWebSocket(true); // Marcar como conectado
+        setHasConnectedWebSocket(true);
         connectSocket(accessToken);
       }
     };
@@ -217,22 +219,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [connectSocket, isConnected, hasConnectedWebSocket]);
 
-  // CORREGIDO: Log del estado que se está pasando al contexto solo cuando cambia
-  useEffect(() => {
-    // REDUCIR LOGS: Solo log en cambios críticos
-    if (loading || error || isAuthenticating) {
-      console.log('🔐 AuthContext - Estado que se pasa al contexto:', {
-        isAuthenticated,
-        loading,
-        isAuthenticating,
-        hasUser: !!user,
-        hasBackendUser: !!backendUser,
-        error
-      });
-    }
-  }, [isAuthenticated, loading, isAuthenticating, user, backendUser, error]);
+  // Logs de contexto eliminados - redundantes con AuthProvider
 
-  const authValue: AuthState = {
+  // OPTIMIZADO: Usar useMemo para el valor del contexto
+  const authValue: AuthState = useMemo(() => ({
     user,
     backendUser,
     loading,
@@ -243,7 +233,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     clearAuth,
     updateProfile
-  };
+  }), [user, backendUser, loading, error, isAuthenticated, isAuthenticating, login, logout, clearAuth, updateProfile]);
 
   return (
     <AuthContext.Provider value={authValue}>

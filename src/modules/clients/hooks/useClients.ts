@@ -7,7 +7,7 @@ import type {
 } from '../../../types/client';
 import { logger, LogCategory } from '../../../utils/logger';
 import { clientService } from '../services/clientService';
-import { logClientError } from '../../../config/logging';
+import { clientProfileLogger } from '../../../config/logging';
 
 interface UseClientsOptions {
   autoLoad?: boolean;
@@ -219,7 +219,7 @@ export const useClients = (options: UseClientsOptions = {}) => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al cargar cliente';
       setError(errorMessage);
-      logClientError('Error al cargar cliente', err, { clientId });
+      clientProfileLogger.error('Error al cargar cliente', { error: err, clientId });
     } finally {
       setLoading(false);
     }
@@ -253,7 +253,7 @@ export const useClients = (options: UseClientsOptions = {}) => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al actualizar cliente';
       setError(errorMessage);
-      logClientError('Error al actualizar cliente', err, { clientId, updates });
+      clientProfileLogger.error('Error al actualizar cliente', { error: err, clientId, updates });
     } finally {
       setLoading(false);
     }
@@ -284,7 +284,7 @@ export const useClients = (options: UseClientsOptions = {}) => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al crear cliente';
       setError(errorMessage);
-      logClientError('Error al crear cliente', err, { clientData: newClientData });
+      clientProfileLogger.error('Error al crear cliente', { error: err, clientData: newClientData });
       throw err;
     } finally {
       setLoading(false);
@@ -317,7 +317,7 @@ export const useClients = (options: UseClientsOptions = {}) => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al eliminar cliente';
       setError(errorMessage);
-      logClientError('Error al eliminar cliente', err, { clientId });
+      clientProfileLogger.error('Error al eliminar cliente', { error: err, clientId });
     } finally {
       setLoading(false);
     }

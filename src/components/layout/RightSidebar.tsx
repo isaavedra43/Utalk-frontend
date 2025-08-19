@@ -4,7 +4,8 @@ import { CopilotPanel } from './CopilotPanel';
 import { useAppStore } from '../../stores/useAppStore';
 import { useClientProfileStore } from '../../stores/useClientProfileStore';
 import type { ClientProfile } from '../../services/clientProfile';
-import { User, Bot } from 'lucide-react';
+import { User, Bot, MessageSquare } from 'lucide-react';
+import '../../styles/details-copilot-optimized.css';
 
 export const RightSidebar: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'details' | 'copilot'>('copilot');
@@ -114,13 +115,40 @@ export const RightSidebar: React.FC = () => {
   if (!selectedConversationId) {
     return (
       <div className="flex flex-col h-full">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Detalles</h2>
+        <div className="p-3 border-b border-gray-200">
+          <h2 className="text-base font-semibold text-gray-900 mb-2">INFO/IA</h2>
+          <div className="flex space-x-1">
+            <button
+              onClick={() => setActiveTab('details')}
+              className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center justify-center space-x-1 ${
+                activeTab === 'details'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <User className="w-3 h-3" />
+              <span>Details</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('copilot')}
+              className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center justify-center space-x-1 ${
+                activeTab === 'copilot'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <Bot className="w-3 h-3" />
+              <span>Copilot</span>
+            </button>
+          </div>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center text-gray-500">
-            <p>Selecciona una conversación</p>
-            <p className="text-sm">para ver los detalles</p>
+          <div className="text-center text-gray-500 p-4">
+            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <MessageSquare className="w-6 h-6 text-gray-400" />
+            </div>
+            <p className="text-sm font-medium mb-1">Selecciona una conversación</p>
+            <p className="text-xs">para ver los detalles del cliente y el copiloto</p>
           </div>
         </div>
       </div>

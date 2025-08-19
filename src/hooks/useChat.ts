@@ -13,6 +13,8 @@ import { messagesCache, generateCacheKey } from '../utils/cacheUtils';
 import { retryWithBackoff, generateOperationKey, rateLimitBackoff } from '../utils/retryUtils';
 import api from '../services/api';
 import { messagesService } from '../services/messages';
+import { conversationsService } from '../services/conversations';
+import type { Conversation } from '../types';
 
 interface Message {
   id: string;
@@ -26,14 +28,7 @@ interface Message {
 
 
 
-interface Conversation {
-  id: string;
-  title?: string;
-  participants?: string[];
-  unreadCount?: number;
-  lastMessage?: string;
-  lastMessageAt?: string;
-}
+
 
 export const useChat = (conversationId: string) => {
   const location = useLocation();
@@ -194,9 +189,6 @@ export const useChat = (conversationId: string) => {
       return;
     }
 
-    // CORREGIDO: Codificar conversationId para URL
-    const encodedId = encodeConversationIdForUrl(sanitizedId);
-
     // Verificar cache primero
     const cacheKey = generateCacheKey('conversation', { conversationId: sanitizedId });
     const cachedConversation = messagesCache.get<Conversation>(cacheKey);
@@ -213,16 +205,21 @@ export const useChat = (conversationId: string) => {
       
       // Usar retry con backoff para la carga de conversación
       const operationKey = generateOperationKey('loadConversation', { conversationId: sanitizedId });
-      const response = await retryWithBackoff(
-        () => api.get(`/api/conversations/${encodedId}`),
+      const conversationData = await retryWithBackoff(
+        () => conversationsService.getConversation(sanitizedId),
         operationKey,
         rateLimitBackoff
       );
       
-      const conversationData = response.data?.data;
-      
       // Guardar en cache
       messagesCache.set(cacheKey, conversationData, 300000); // 5 minutos de cache
+      
+      // Log para verificar que se está cargando la información correcta
+      console.log('✅ useChat - Conversación cargada:', {
+        id: conversationData.id,
+        customerName: conversationData.customerName,
+        customerPhone: conversationData.customerPhone
+      });
       
       setConversation(conversationData);
     } catch (err: unknown) {
@@ -428,6 +425,16 @@ export const useChat = (conversationId: string) => {
     const handleNewMessage = (data: unknown) => {
       const messageData = data as { conversationId: string; message: Message };
       console.log('📨 useChat - Nuevo mensaje recibido:', messageData);
+      
+      // DEBUG: Log específico para mensajes de imagen
+      if (messageData.message.type === 'image') {
+        console.log('🖼️ useChat - Mensaje de imagen detectado:', {
+          messageId: messageData.message.id,
+          content: messageData.message.content,
+          type: messageData.message.type,
+          metadata: messageData.message.metadata
+        });
+      }
       
       if (messageData.conversationId === conversationId) {
         setMessages(prev => {

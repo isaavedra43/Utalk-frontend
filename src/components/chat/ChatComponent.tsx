@@ -468,29 +468,9 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
   }
 
   // Convertir tipos para compatibilidad
-  const convertConversation = (conv: { id: string; title?: string; participants?: string[]; unreadCount?: number; lastMessage?: string; lastMessageAt?: string } | null): ConversationType | null => {
+  const convertConversation = (conv: ConversationType | null): ConversationType | null => {
     if (!conv) return null;
-    return {
-      id: conv.id,
-      customerName: conv.title || 'Usuario',
-      customerPhone: conv.participants?.[0] || '',
-      status: 'open',
-      messageCount: 0,
-      unreadCount: conv.unreadCount || 0,
-      participants: conv.participants || [],
-      tenantId: 'default_tenant',
-      workspaceId: 'default_workspace',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      lastMessageAt: conv.lastMessageAt || new Date().toISOString(),
-      lastMessage: conv.lastMessage ? {
-        content: conv.lastMessage,
-        direction: 'inbound',
-        messageId: 'temp-id',
-        sender: 'system',
-        timestamp: conv.lastMessageAt || new Date().toISOString()
-      } : undefined
-    };
+    return conv;
   };
 
   const convertTypingUsers = (users: Set<string>) => {
@@ -510,6 +490,9 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
         <MessageList 
           messages={sortedMessages}
           messageGroups={groupedMessages}
+          customerName={conversation?.contact?.profileName || 
+                      conversation?.contact?.name || 
+                      conversation?.customerName || 'Usuario'}
           onRetryMessage={retryMessage}
           onDeleteMessage={deleteOptimisticMessage}
         />
@@ -530,6 +513,7 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
           onSendMessage={handleSend}
           isSending={sending}
           disabled={!isConnected || !isJoined}
+          conversationId={effectiveConversationId} // NUEVO: Pasar conversationId para subir archivos
           placeholder={
             !isConnected 
               ? "Desconectado..." 

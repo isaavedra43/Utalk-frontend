@@ -44,16 +44,16 @@ export const extractUserInfoFromToken = (token: string): JWTUserInfo => {
       }
     }
     
-    // Log de información extraída (solo en desarrollo)
-    if (import.meta.env.DEV) {
-      console.log('🔐 JWT - Información extraída del token:', {
+    // Log de información extraída (solo en modo debug explícito)
+    if (import.meta.env.VITE_DEBUG === 'true') {
+      // Reducido: no imprimir payload completo por defecto
+      console.debug('[DEBUG][JWT] Info extraída del token', {
         workspaceId,
         tenantId,
         userId,
         email: payload.email,
         role: payload.role
       });
-      console.log('🔐 JWT - Payload completo del token:', payload);
     }
     
     return {
@@ -123,11 +123,13 @@ export const getUserInfo = (): JWTUserInfo => {
       
       // Verificar si el token tiene información válida (acepta valores por defecto del backend)
       if (isValidUserInfo(tokenInfo)) {
-        console.log('🔐 JWT - Información extraída del token:', {
-          workspaceId: tokenInfo.workspaceId,
-          tenantId: tokenInfo.tenantId,
-          userId: tokenInfo.userId
-        });
+        if (import.meta.env.VITE_DEBUG === 'true') {
+          console.debug('[DEBUG][JWT] Info token válida', {
+            workspaceId: tokenInfo.workspaceId,
+            tenantId: tokenInfo.tenantId,
+            userId: tokenInfo.userId
+          });
+        }
         return tokenInfo;
       } else {
         console.warn('⚠️ JWT - Token con userId null, usando información parcial:', {
@@ -146,10 +148,12 @@ export const getUserInfo = (): JWTUserInfo => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (user.workspaceId && user.workspaceId !== 'default' && 
         user.tenantId && user.tenantId !== 'na') {
-      console.log('🔐 localStorage - Información extraída del usuario:', {
-        workspaceId: user.workspaceId,
-        tenantId: user.tenantId
-      });
+      if (import.meta.env.VITE_DEBUG === 'true') {
+        console.debug('[DEBUG][JWT] Info desde localStorage', {
+          workspaceId: user.workspaceId,
+          tenantId: user.tenantId
+        });
+      }
       return {
         workspaceId: user.workspaceId,
         tenantId: user.tenantId,
@@ -166,12 +170,14 @@ export const getUserInfo = (): JWTUserInfo => {
   if (token && isTokenValid(token)) {
     const tokenInfo = extractUserInfoFromToken(token);
     if (tokenInfo.userId || tokenInfo.email) {
-      console.log('🔐 JWT - Usando información parcial del token:', {
-        workspaceId: tokenInfo.workspaceId,
-        tenantId: tokenInfo.tenantId,
-        userId: tokenInfo.userId,
-        email: tokenInfo.email
-      });
+      if (import.meta.env.VITE_DEBUG === 'true') {
+        console.debug('[DEBUG][JWT] Usando info parcial del token', {
+          workspaceId: tokenInfo.workspaceId,
+          tenantId: tokenInfo.tenantId,
+          userId: tokenInfo.userId,
+          email: tokenInfo.email
+        });
+      }
       return tokenInfo;
     }
   }
@@ -187,10 +193,12 @@ export const getUserInfo = (): JWTUserInfo => {
     role: null
   };
   
-  console.log('🔐 Fallback - Usando configuración de workspace:', {
-    workspaceId: fallbackInfo.workspaceId,
-    tenantId: fallbackInfo.tenantId
-  });
+  if (import.meta.env.VITE_DEBUG === 'true') {
+    console.debug('[DEBUG][JWT] Fallback usando configuración de workspace', {
+      workspaceId: fallbackInfo.workspaceId,
+      tenantId: fallbackInfo.tenantId
+    });
+  }
   
   return fallbackInfo;
 };

@@ -8,6 +8,7 @@ import './styles/dashboard.css'
 import { logger } from './utils/logger.ts'
 import './utils/consoleExporter.ts'
 import consoleExporter from './utils/consoleExporter';
+import './utils/debugUtils'; // Importar utilidades de debug
 
 // HABILITADO: Captura automática de logs
 consoleExporter.startCapture();

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuthContext } from '../contexts/useAuthContext';
+import api from '../services/api';
 
 interface UseAuthenticatedImageReturn {
   imageUrl: string | null;
@@ -7,136 +8,169 @@ interface UseAuthenticatedImageReturn {
   error: string | null;
 }
 
+// Cache simple en memoria: originalUrl -> blobObjectUrl
+const imageBlobCache = new Map<string, string>();
+// Deduplicación: originalUrl -> promesa que resuelve a blobObjectUrl
+const inflightByUrl = new Map<string, Promise<string>>();
+
 export const useAuthenticatedImage = (originalUrl: string): UseAuthenticatedImageReturn => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const currentBlobUrlRef = useRef<string | null>(null);
+  const inFlightRef = useRef<boolean>(false);
   
-  // Usar el contexto de autenticación para obtener el token
   const { isAuthenticated } = useAuthContext();
 
-  const getAccessToken = (): string | null => {
-    return localStorage.getItem('access_token');
-  };
+  const isTwilioUrl = (url: string) => url.includes('api.twilio.com');
+  const isProtectedProxy = (url: string) => url.includes('/api/media/proxy');
+  const isPublicProxy = (url: string) => url.includes('/media/proxy-public');
 
+  // Efecto 1: URLs públicas del proxy (no depende de auth)
   useEffect(() => {
-    const loadAuthenticatedImage = async () => {
-      if (!originalUrl) {
-        setError('No se proporcionó URL');
+    if (!originalUrl || !isPublicProxy(originalUrl)) return;
+
+    let canceled = false;
+
+    const loadPublic = async () => {
+      console.log('🖼️ useAuthenticatedImage/public - URL:', originalUrl);
+
+      // Cache
+      const cached = imageBlobCache.get(originalUrl);
+      if (cached) {
+        setImageUrl(cached);
+        setIsLoading(false);
         return;
       }
 
-      // Si no es una URL de Twilio, usar directamente
-      if (!originalUrl.includes('api.twilio.com')) {
-        setImageUrl(originalUrl);
-        return;
-      }
-
-      // Verificar que el usuario esté autenticado
-      if (!isAuthenticated) {
-        setError('Usuario no autenticado');
-        return;
+      // Deduplicación
+      let promise = inflightByUrl.get(originalUrl);
+      if (!promise) {
+        promise = (async () => {
+          const res = await fetch(originalUrl);
+          if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
+          const ct = res.headers.get('content-type');
+          if (!ct || !ct.startsWith('image/')) throw new Error('La respuesta no es imagen');
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          return url;
+        })()
+          .then((url) => {
+            imageBlobCache.set(originalUrl, url);
+            return url;
+          })
+          .finally(() => inflightByUrl.delete(originalUrl));
+        inflightByUrl.set(originalUrl, promise);
       }
 
       setIsLoading(true);
       setError(null);
 
       try {
-        // Extraer el SID del mensaje y el SID del media de la URL
-        const messageMatch = originalUrl.match(/Messages\/([^/]+)/);
-        const mediaMatch = originalUrl.match(/Media\/([^/]+)/);
-        
-        if (!messageMatch || !mediaMatch) {
-          throw new Error('URL de Twilio inválida');
-        }
-
-        const messageSid = messageMatch[1];
-        const mediaSid = mediaMatch[1];
-        
-        // Construir URL del proxy del backend
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://utalk-backend-production.up.railway.app';
-        const proxyUrl = `${backendUrl}/api/media/proxy?messageSid=${messageSid}&mediaSid=${mediaSid}`;
-
-        // Obtener token de autenticación
-        const token = getAccessToken();
-        if (!token) {
-          throw new Error('Token de autenticación no encontrado');
-        }
-
-        // REDUCIR LOGS: Solo log en caso de error
-        // console.log('🖼️ Cargando imagen autenticada:', {
-        //   url: proxyUrl,
-        //   hasToken: !!token,
-        //   tokenLength: token.length
-        // });
-
-        // Hacer petición autenticada
-        const response = await fetch(proxyUrl, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        // REDUCIR LOGS: Solo log en caso de error
-        if (!response.ok) {
-          console.log('🖼️ Respuesta del servidor (ERROR):', {
-            status: response.status,
-            statusText: response.statusText,
-            contentType: response.headers.get('content-type')
-          });
-        }
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error('Token de autenticación inválido o expirado');
-          } else if (response.status === 403) {
-            throw new Error('No tienes permisos para acceder a este recurso');
-          } else {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-          }
-        }
-
-        // Verificar que la respuesta sea una imagen
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.startsWith('image/')) {
-          console.warn('🖼️ Respuesta no es una imagen:', contentType);
-          // Intentar leer como texto para debug
-          const textResponse = await response.text();
-          console.warn('🖼️ Contenido de respuesta:', textResponse.substring(0, 200));
-          throw new Error('La respuesta del servidor no es una imagen válida');
-        }
-
-        // Convertir la respuesta a blob
-        const blob = await response.blob();
-        
-        // Crear URL temporal para la imagen
-        const objectUrl = URL.createObjectURL(blob);
-        setImageUrl(objectUrl);
-
-        // REDUCIR LOGS: Solo log en caso de éxito (sin detalles)
-        // console.log('🖼️ Imagen cargada exitosamente:', {
-        //   blobSize: blob.size,
-        //   blobType: blob.type,
-        //   objectUrl: objectUrl.substring(0, 50) + '...'
-        // });
-
-      } catch (err) {
-        console.error('🖼️ Error cargando imagen autenticada:', err);
-        setError(err instanceof Error ? err.message : 'Error desconocido');
+        const url = await promise;
+        if (canceled) return;
+        currentBlobUrlRef.current = url;
+        setImageUrl(url);
+      } catch (e) {
+        if (!canceled) setError(e instanceof Error ? e.message : 'Error desconocido');
       } finally {
-        setIsLoading(false);
+        if (!canceled) setIsLoading(false);
       }
     };
 
-    loadAuthenticatedImage();
+    loadPublic();
 
-    // Cleanup: revocar URL temporal cuando el componente se desmonte
     return () => {
-      if (imageUrl && imageUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(imageUrl);
+      canceled = true;
+      const current = currentBlobUrlRef.current;
+      const cached = imageBlobCache.get(originalUrl);
+      if (current && current !== cached && current.startsWith('blob:')) URL.revokeObjectURL(current);
+    };
+  }, [originalUrl]);
+
+  // Efecto 2: URLs protegidas (Twilio o /api/media/proxy)
+  useEffect(() => {
+    if (!originalUrl) return;
+    const needsAuth = isTwilioUrl(originalUrl) || isProtectedProxy(originalUrl);
+    if (!needsAuth) return; // este efecto solo maneja protegidas
+
+    let canceled = false;
+
+    const loadProtected = async () => {
+      console.log('🖼️ useAuthenticatedImage/protected - URL:', originalUrl, 'auth:', isAuthenticated);
+
+      if (!isAuthenticated) {
+        setError('Usuario no autenticado');
+        return;
       }
+
+      // Cache
+      const cached = imageBlobCache.get(originalUrl);
+      if (cached) {
+        setImageUrl(cached);
+        setIsLoading(false);
+        return;
+      }
+
+      // Evitar múltiples peticiones por componente
+      if (inFlightRef.current) return;
+      inFlightRef.current = true;
+
+      setIsLoading(true);
+      setError(null);
+
+      const getUrl = async (): Promise<string> => {
+        let requestUrl = originalUrl;
+        if (isTwilioUrl(originalUrl)) {
+          const messageMatch = originalUrl.match(/Messages\/([^/]+)/);
+          const mediaMatch = originalUrl.match(/Media\/([^/]+)/);
+          if (!messageMatch || !mediaMatch) throw new Error('URL de Twilio inválida');
+          const messageSid = messageMatch[1];
+          const mediaSid = mediaMatch[1];
+          const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://utalk-backend-production.up.railway.app';
+          requestUrl = `${backendUrl}/api/media/proxy?messageSid=${messageSid}&mediaSid=${mediaSid}`;
+        }
+
+        const axiosResponse = await api.get(requestUrl, { responseType: 'blob' });
+        if (axiosResponse.status !== 200) throw new Error(`Error ${axiosResponse.status}: ${axiosResponse.statusText}`);
+        const ct = axiosResponse.headers['content-type'];
+        if (!ct || !ct.startsWith('image/')) throw new Error('La respuesta no es imagen');
+        const blob = axiosResponse.data as Blob;
+        const url = URL.createObjectURL(blob);
+        return url;
+      };
+
+      try {
+        let promise = inflightByUrl.get(originalUrl);
+        if (!promise) {
+          promise = getUrl()
+            .then((url) => {
+              imageBlobCache.set(originalUrl, url);
+              return url;
+            })
+            .finally(() => inflightByUrl.delete(originalUrl));
+          inflightByUrl.set(originalUrl, promise);
+        }
+
+        const url = await promise;
+        if (canceled) return;
+        currentBlobUrlRef.current = url;
+        setImageUrl(url);
+      } catch (e) {
+        if (!canceled) setError(e instanceof Error ? e.message : 'Error desconocido');
+      } finally {
+        inFlightRef.current = false;
+        if (!canceled) setIsLoading(false);
+      }
+    };
+
+    loadProtected();
+
+    return () => {
+      canceled = true;
+      const current = currentBlobUrlRef.current;
+      const cached = imageBlobCache.get(originalUrl);
+      if (current && current !== cached && current.startsWith('blob:')) URL.revokeObjectURL(current);
     };
   }, [originalUrl, isAuthenticated]);
 

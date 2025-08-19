@@ -377,9 +377,9 @@ export const CopilotPanel: React.FC = () => {
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
+                className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 text-xs focus:outline-none"
                 onKeyPress={handleChatKeyPress}
                 placeholder="Haz una pregunta..."
-                className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 text-xs focus:outline-none"
               />
               
               <div className="flex items-center space-x-1">

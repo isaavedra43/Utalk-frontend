@@ -36,10 +36,17 @@ interface BackendConversation {
     _seconds: number;
     _nanoseconds: number;
   };
+  // ACTUALIZADO: el backend ya puede enviar name y profileName
   contact: {
-    phone: string;
+    phone?: string;
+    phoneNumber?: string;
     name?: string;
-  };
+    profileName?: string;
+    waId?: string;
+    avatar?: string | null;
+    channel?: string;
+    id?: string;
+  } | null;
   createdAt: {
     _seconds: number;
     _nanoseconds: number;
@@ -94,30 +101,53 @@ export const conversationsService = {
     const backendData = response.data as BackendResponse;
     
     // Transformar las conversaciones del backend al formato esperado
-    const conversations = backendData.data.map((conv: BackendConversation) => ({
-      id: conv.id,
-      customerName: conv.contact?.name || conv.customerPhone, // Usar nombre del contacto o teléfono como fallback
-      customerPhone: conv.customerPhone,
-      status: conv.status as 'open' | 'closed' | 'pending' | 'resolved',
-      messageCount: conv.messageCount || 0,
-      unreadCount: conv.unreadCount || 0,
-      participants: conv.participants || [],
-      tenantId: conv.tenantId,
-      workspaceId: conv.workspaceId,
-      createdAt: conv.createdAt ? new Date(conv.createdAt._seconds * 1000).toISOString() : new Date().toISOString(),
-      updatedAt: conv.updatedAt ? new Date(conv.updatedAt._seconds * 1000).toISOString() : new Date().toISOString(),
-      lastMessageAt: conv.lastMessageAt ? new Date(conv.lastMessageAt._seconds * 1000).toISOString() : new Date().toISOString(),
-      lastMessage: conv.lastMessage ? {
-        content: conv.lastMessage.content,
-        direction: conv.lastMessage.direction as 'inbound' | 'outbound',
-        messageId: conv.lastMessage.messageId,
-        sender: conv.lastMessage.sender,
-        timestamp: conv.lastMessage.timestampISO || new Date().toISOString()
-      } : undefined,
-      assignedTo: conv.assignedTo,
-      priority: conv.priority as 'low' | 'medium' | 'high' | 'urgent' | undefined,
-      tags: conv.tags || []
-    }));
+    const conversations = backendData.data.map((conv: BackendConversation) => {
+      // Normalizar datos de contacto provenientes del backend
+      const contactPhone = conv.contact?.phone || conv.contact?.phoneNumber || conv.customerPhone;
+      const contactName = conv.contact?.profileName || conv.contact?.name;
+      const normalizedContact = conv.contact
+        ? {
+            id: conv.contact.id || contactPhone,
+            name: conv.contact.name || conv.contact.profileName || contactPhone,
+            profileName: conv.contact.profileName,
+            phoneNumber: contactPhone,
+            waId: conv.contact.waId,
+            hasProfilePhoto: typeof conv.contact.avatar === 'string' ? true : undefined,
+            avatar: conv.contact.avatar ?? null,
+            channel: conv.contact.channel || 'whatsapp',
+            lastSeen: undefined,
+          }
+        : null;
+
+      return {
+        id: conv.id,
+        customerName: contactName || conv.customerPhone, // Priorizar profileName -> name -> phone
+        customerPhone: contactPhone,
+        status: conv.status as 'open' | 'closed' | 'pending' | 'resolved',
+        messageCount: conv.messageCount || 0,
+        unreadCount: conv.unreadCount || 0,
+        participants: conv.participants || [],
+        tenantId: conv.tenantId,
+        workspaceId: conv.workspaceId,
+        createdAt: conv.createdAt ? new Date(conv.createdAt._seconds * 1000).toISOString() : new Date().toISOString(),
+        updatedAt: conv.updatedAt ? new Date(conv.updatedAt._seconds * 1000).toISOString() : new Date().toISOString(),
+        lastMessageAt: conv.lastMessageAt ? new Date(conv.lastMessageAt._seconds * 1000).toISOString() : new Date().toISOString(),
+        lastMessage: conv.lastMessage
+          ? {
+              content: conv.lastMessage.content,
+              direction: conv.lastMessage.direction as 'inbound' | 'outbound',
+              messageId: conv.lastMessage.messageId,
+              sender: conv.lastMessage.sender,
+              timestamp: conv.lastMessage.timestampISO || new Date().toISOString(),
+            }
+          : undefined,
+        assignedTo: conv.assignedTo,
+        priority: conv.priority as 'low' | 'medium' | 'high' | 'urgent' | undefined,
+        tags: conv.tags || [],
+        // ACTUALIZADO: propagar el contacto completo para que ConversationItem y ChatHeader lo usen
+        contact: normalizedContact,
+      } as Conversation;
+    });
 
     return {
       conversations,
@@ -258,28 +288,5 @@ export const conversationsService = {
     return response.data;
   },
 
-  // Indicar escritura
-  async indicateTyping(conversationId: string): Promise<void> {
-    // Validar y sanitizar el ID de conversación
-    const sanitizedId = sanitizeConversationId(conversationId);
-    if (!sanitizedId) {
-      throw new Error(`ID de conversación inválido: ${conversationId}`);
-    }
-    
-    logConversationId(sanitizedId, 'indicateTyping');
-    const response = await api.post(`${CONVERSATIONS_API}/${sanitizedId}/typing`);
-    return response.data;
-  },
-
-  // Eliminar conversación
-  async deleteConversation(conversationId: string): Promise<void> {
-    // Validar y sanitizar el ID de conversación
-    const sanitizedId = sanitizeConversationId(conversationId);
-    if (!sanitizedId) {
-      throw new Error(`ID de conversación inválido: ${conversationId}`);
-    }
-    
-    logConversationId(sanitizedId, 'deleteConversation');
-    await api.delete(`${CONVERSATIONS_API}/${sanitizedId}`);
-  }
+  // Enviar mensaje (placeholder)
 }; 

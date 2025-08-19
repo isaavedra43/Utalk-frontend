@@ -11,27 +11,28 @@
   max-width: 320px;
 }
 
-/* Columna 2: Chat (con más ancho) */
+/* Columna 2: Chat (ancho equilibrado) */
 .chat-column {
   @apply flex-1 bg-white min-w-0 border-r border-gray-200;
-  min-width: 380px;
+  min-width: 400px;
+  max-width: 800px;
 }
 
-/* Columna 3: Sugerencias */
+/* Columna 3: Sugerencias (más ancha) */
 .suggestions-column {
-  @apply w-96 border-r border-gray-200 bg-white;
-  min-width: 384px;
-  max-width: 480px;
+  @apply w-[28rem] border-r border-gray-200 bg-white;
+  min-width: 448px;
+  max-width: 560px;
 }
 
-/* Columna 4: Detalles + Copiloto */
+/* Columna 4: Detalles + Copiloto (mismo tamaño que sugerencias) */
 .details-copilot-column {
-  @apply w-96 bg-white;
-  min-width: 384px;
-  max-width: 480px;
+  @apply w-[28rem] bg-white;
+  min-width: 448px;
+  max-width: 560px;
 }
 
-/* Responsive breakpoints */
+/* Responsive breakpoints - AJUSTADOS para mostrar 4 columnas en más pantallas */
 @media (min-width: 1920px) {
   .conversations-column {
     @apply w-72;
@@ -60,7 +61,38 @@
   }
   
   .suggestions-column {
-    @apply w-80;
+    @apply w-96;
+    min-width: 384px;
+    max-width: 480px;
+  }
+  
+  .details-copilot-column {
+    @apply w-96;
+    min-width: 384px;
+    max-width: 480px;
+  }
+}
+
+/* NUEVO: Layout de 4 columnas para pantallas medianas-grandes */
+@media (min-width: 1280px) and (max-width: 1535px) {
+  .four-column-layout {
+    @apply flex h-full;
+  }
+  
+  .conversations-column {
+    @apply w-56;
+    min-width: 224px;
+    max-width: 280px;
+  }
+  
+  .chat-column {
+    @apply flex-1 bg-white min-w-0 border-r border-gray-200;
+    min-width: 320px;
+    max-width: 600px;
+  }
+  
+  .suggestions-column {
+    @apply w-80 border-r border-gray-200 bg-white;
     min-width: 320px;
     max-width: 400px;
   }
@@ -72,7 +104,38 @@
   }
 }
 
-@media (max-width: 1280px) {
+/* Layout de 3 columnas para pantallas medianas */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .four-column-layout {
+    @apply flex h-full;
+  }
+  
+  .conversations-column {
+    @apply w-64 border-r border-gray-200 bg-white;
+    min-width: 256px;
+    max-width: 320px;
+  }
+  
+  .chat-column {
+    @apply flex-1 bg-white min-w-0 border-r border-gray-200;
+    min-width: 320px;
+  }
+  
+  .suggestions-column {
+    @apply w-80 border-r border-gray-200 bg-white;
+    min-width: 320px;
+    max-width: 400px;
+  }
+  
+  .details-copilot-column {
+    @apply w-80;
+    min-width: 320px;
+    max-width: 400px;
+  }
+}
+
+/* Layout de 2 columnas para pantallas pequeñas */
+@media (max-width: 1023px) {
   .four-column-layout {
     @apply hidden;
   }

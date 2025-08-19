@@ -38,12 +38,7 @@ export interface ClientProfile {
 
 export interface ConversationData {
   id: string;
-  contact: {
-    id: string;
-    name: string;
-    avatar?: string;
-    channel: string;
-  };
+  contact: BackendContact | null;
   status: string;
   priority: string;
   tags: string[];
@@ -70,6 +65,19 @@ export interface ContactData {
   createdAt: string;
   updatedAt: string;
   customFields?: Record<string, unknown>;
+}
+
+// NUEVO: Estructura de contacto según el backend
+export interface BackendContact {
+  id: string;
+  name: string;
+  profileName?: string;
+  phoneNumber: string;
+  waId?: string;
+  hasProfilePhoto?: boolean;
+  avatar?: string | null;
+  channel: string;
+  lastSeen?: string;
 }
 
 class ClientProfileService {
@@ -264,30 +272,22 @@ class ClientProfileService {
             });
           }
           
-          // NUEVO: Validaciones robustas para datos incompletos del backend
-          if (!conversationData.contact) {
-            if (import.meta.env.DEV) {
-              console.warn('⚠️ [DEBUG] Backend devolvió conversación sin datos de contacto, creando estructura por defecto');
-            }
-            conversationData.contact = {
-              id: conversationId,
-              name: 'Cliente sin nombre',
-              channel: 'whatsapp'
-            };
-          }
+          // CORREGIDO: Validación mejorada usando la estructura correcta del backend
+          // Verificar si realmente no hay datos de contacto (no solo si contact es null)
+          const hasContactData = conversationData.contact && (
+            conversationData.contact.name || 
+            conversationData.contact.profileName || 
+            conversationData.contact.phoneNumber || 
+            conversationData.contact.id ||
+            conversationData.contact.waId
+          );
           
-          if (!conversationData.contact.name) {
+          if (!hasContactData) {
             if (import.meta.env.DEV) {
-              console.warn('⚠️ [DEBUG] Backend devolvió contacto sin nombre, usando valor por defecto');
+              console.warn('⚠️ [DEBUG] Backend devolvió conversación sin datos de contacto');
             }
-            conversationData.contact.name = 'Cliente sin nombre';
-          }
-          
-          if (!conversationData.contact.channel) {
-            if (import.meta.env.DEV) {
-              console.warn('⚠️ [DEBUG] Backend devolvió contacto sin canal, usando whatsapp por defecto');
-            }
-            conversationData.contact.channel = 'whatsapp';
+            // No crear estructura por defecto, manejar en el frontend
+            conversationData.contact = null;
           }
           
           if (!conversationData.customerPhone) {
@@ -338,11 +338,11 @@ class ClientProfileService {
           }
           
           const clientProfile: ClientProfile = {
-            // Información básica del cliente
-            name: conversationData.contact.name || 'Cliente sin nombre',
+            // Información básica del cliente - CORREGIDO: Usar profileName como prioridad
+            name: conversationData.contact?.profileName || conversationData.contact?.name || 'Cliente sin nombre',
             phone: conversationData.customerPhone,
             status: "Activo",
-            channel: conversationData.contact.channel,
+            channel: conversationData.contact?.channel || 'whatsapp',
             
             // Información de contacto - CORREGIDO: Validaciones de fecha
             lastContact: this.formatTimeAgo(conversationData.lastMessageAt),
@@ -362,7 +362,7 @@ class ClientProfileService {
             
             // Información adicional del contacto (si existe, sino usar datos de la conversación)
             contactDetails: contactDetails || {
-              id: conversationData.contact.id,
+              id: conversationData.contact?.id || conversationData.customerPhone,
               isActive: true,
               totalMessages: conversationData.unreadCount || 0,
               createdAt: conversationData.createdAt,
@@ -773,7 +773,7 @@ class ClientProfileService {
         day: 'numeric', 
         month: 'short' 
       });
-    } catch (error) {
+    } catch {
       return 'No disponible';
     }
   }

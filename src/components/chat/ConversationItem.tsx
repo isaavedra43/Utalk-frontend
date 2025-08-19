@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Conversation } from '../../types';
 import { useAppStore } from '../../stores/useAppStore';
 import { convertFirebaseTimestamp } from '../../utils/timestampUtils';
+import { useClientProfileStore } from '../../stores/useClientProfileStore';
 
 
 
@@ -9,17 +10,39 @@ interface ConversationItemProps {
   conversation: Conversation;
   isSelected: boolean;
   onClick: () => void;
+  isNewConversation?: boolean; // NUEVO: Prop para identificar conversaciones nuevas
 }
 
 export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
   conversation,
   isSelected,
-  onClick
+  onClick,
+  isNewConversation = false // NUEVO: Prop para animación de nueva conversación
 }) => {
+  // Cargar perfil (nombre/teléfono) como en Detalle de Cliente
+  const getProfile = useClientProfileStore((s) => s.getProfile);
+  const [profileName, setProfileName] = useState<string | null>(null);
+  const [profilePhone, setProfilePhone] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (conversation.id) {
+        const p = await getProfile(conversation.id);
+        if (mounted) {
+          setProfileName(p?.name || null);
+          setProfilePhone(p?.phone || null);
+        }
+      }
+    })();
+    return () => { mounted = false; };
+  }, [conversation.id, getProfile]);
+
   // Estados para controlar animaciones
   const [isNewMessage, setIsNewMessage] = useState(false);
   const [isHighlighted, setIsHighlighted] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isNewConversationAnimating, setIsNewConversationAnimating] = useState(isNewConversation); // NUEVO: Estado para animación de nueva conversación
   const { calculateUnreadCount, markConversationAsRead } = useAppStore();
   
   // Calcular unreadCount dinámicamente
@@ -32,6 +55,20 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
       markConversationAsRead(conversation.id);
     }
   }, [isSelected, unreadCount, conversation.id, markConversationAsRead]);
+
+  // NUEVO: Animación para nueva conversación
+  useEffect(() => {
+    if (isNewConversation) {
+      setIsNewConversationAnimating(true);
+      
+      // Animación de entrada con delay
+      const enterTimeout = setTimeout(() => {
+        setIsNewConversationAnimating(false);
+      }, 2000); // 2 segundos de animación
+      
+      return () => clearTimeout(enterTimeout);
+    }
+  }, [isNewConversation]);
 
   // FASE 1: Optimización - Detectar cuando llega un nuevo mensaje con memoización
   useEffect(() => {
@@ -113,12 +150,30 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
     [formatLastMessageTime, conversation.lastMessageAt]
   );
 
-  const customerInitials = useMemo(() => 
-    getInitials(conversation.customerName), 
-    [getInitials, conversation.customerName]
-  );
+  const customerInitials = useMemo(() => {
+    const customerName = profileName ||
+                        conversation.contact?.profileName || 
+                        conversation.contact?.name || 
+                        conversation.customerName ||
+                        profilePhone ||
+                        conversation.customerPhone;
+    return getInitials(customerName);
+  }, [getInitials, profileName, profilePhone, conversation.contact?.profileName, conversation.contact?.name, conversation.customerName, conversation.customerPhone]);
 
+  const displayName = useMemo(() => (
+    profileName ||
+    conversation.contact?.profileName || 
+    conversation.contact?.name || 
+    conversation.customerName ||
+    profilePhone ||
+    conversation.customerPhone || 'Cliente sin nombre'
+  ), [profileName, profilePhone, conversation.contact?.profileName, conversation.contact?.name, conversation.customerName, conversation.customerPhone]);
 
+  const displayPhone = useMemo(() => (
+    profilePhone ||
+    conversation.contact?.phoneNumber ||
+    conversation.customerPhone || 'Sin teléfono'
+  ), [profilePhone, conversation.contact?.phoneNumber, conversation.customerPhone]);
 
   return (
     <div
@@ -132,6 +187,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
         ${isNewMessage ? 'animate-slide-in' : ''}
         ${isHighlighted ? 'ring-2 ring-blue-200' : ''}
         ${isAnimating ? 'animate-scale-bounce' : ''}
+        ${isNewConversationAnimating ? 'animate-new-conversation-enter bg-gradient-to-r from-green-50 to-blue-50 border-l-4 border-green-500 shadow-xl scale-[1.02] ring-2 ring-green-300 animate-new-conversation-pulse' : ''}
         lg:border-l-4 lg:border-transparent lg:hover:border-l-4 lg:hover:border-blue-200
         hover:scale-[1.01] active:scale-[0.99]
       `}
@@ -139,6 +195,18 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
       {/* Indicador de mensaje nuevo */}
       {isNewMessage && (
         <div className="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full animate-ping" />
+      )}
+
+      {/* NUEVO: Indicador de nueva conversación */}
+      {isNewConversationAnimating && (
+        <div className="absolute top-2 right-2 w-3 h-3 bg-green-500 rounded-full animate-ping" />
+      )}
+
+      {/* NUEVO: Badge de nueva conversación */}
+      {isNewConversationAnimating && (
+        <div className="absolute top-1 left-1 bg-green-500 text-white text-xs px-2 py-1 rounded-full animate-bounce font-bold">
+          NUEVA
+        </div>
       )}
 
       <div className="flex items-start space-x-2">
@@ -164,7 +232,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
               ${(conversation.unreadCount || 0) > 0 ? 'text-gray-900' : 'text-gray-700'}
               ${isSelected ? 'text-blue-900' : ''}
             `}>
-              {conversation.customerName || 'Cliente sin nombre'}
+              {displayName}
             </h3>
             <span className={`
               text-xs flex-shrink-0 transition-colors duration-300 text-blue-600 font-medium
@@ -177,7 +245,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
           {/* Información del cliente */}
           <div className="flex items-center space-x-1 mb-1.5">
             <span className="text-xs text-gray-500 font-mono truncate">
-              {conversation.customerPhone || 'Sin teléfono'}
+              {displayPhone}
             </span>
           </div>
 

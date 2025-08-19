@@ -5,6 +5,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { useRateLimiter } from '../hooks/useRateLimiter';
 import { generateRoomId as generateRoomIdUtil, validateRoomConfiguration } from '../utils/jwtUtils';
 import { encodeConversationIdForWebSocket } from '../utils/conversationUtils';
+import { performanceMonitor } from '../utils/performanceMonitor';
 
 // FASE 5: Constantes para manejo de reconexión y health checks (futuro)
 // const RECONNECTION_ATTEMPTS = 5;
@@ -54,11 +55,11 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const location = useLocation();
   const isChatRoute = location.pathname === '/chat';
 
-  // FASE 2: Rate limiter diferenciado para eventos del WebSocket
+  // CORREGIDO: Rate limiter más conservador para evitar rate limiting del servidor
   const rateLimiter = useRateLimiter({
-    maxRequests: 20, // Aumentado de 10 a 20 para eventos críticos
-    timeWindow: 1000, // 1 segundo (más permisivo)
-    retryDelay: 200 // Reducido para respuesta más rápida
+    maxRequests: 10, // Reducido de 20 a 10 para ser más conservador
+    timeWindow: 5000, // Aumentado a 5 segundos para ser más conservador
+    retryDelay: 1000 // Aumentado a 1 segundo para evitar spam
   });
 
   const [activeConversations, setActiveConversations] = useState<Set<string>>(new Set());
@@ -95,23 +96,37 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const roomId = generateRoomIdUtil(conversationId);
     
     // CORREGIDO: Verificar si se pudo generar el roomId
-    if (!roomId) {
-      console.log('🔗 WebSocketContext - No se puede generar roomId (sin autenticación)');
-      return null;
-    }
+          if (!roomId) {
+        if (import.meta.env.VITE_DEBUG === 'true') {
+          console.debug('[DEBUG][WS] No se puede generar roomId (sin autenticación)');
+        }
+        return null;
+      }
     
     return roomId;
   }, []);
 
-  // NUEVO: función centralizada para solicitar sincronización de estado con control de rate limit
+  // CORREGIDO: función centralizada para solicitar sincronización de estado con control de rate limit
   const doSyncState = useCallback((reason?: string) => {
-    console.log('🔄 WebSocketContext - Sincronizando estado', { reason });
+    if (import.meta.env.VITE_DEBUG === 'true') {
+      console.debug('[DEBUG][WS] Sincronizando estado', { reason });
+    }
     
     // Evitar sincronizaciones duplicadas en un corto período
     const now = Date.now();
     
-    if (now - lastSyncRef.current < 2000) { // Aumentado a 2 segundos mínimo entre sincronizaciones
-      console.log('🔄 WebSocketContext - Sincronización reciente, saltando...');
+    if (now - lastSyncRef.current < 5000) { // Aumentado a 5 segundos mínimo entre sincronizaciones
+      if (import.meta.env.VITE_DEBUG === 'true') {
+        console.debug('[DEBUG][WS] Sincronización reciente, saltando...');
+      }
+      return;
+    }
+    
+    // Verificar si el socket está realmente conectado antes de enviar
+    if (!isConnected || !socket) {
+      if (import.meta.env.VITE_DEBUG === 'true') {
+        console.debug('[DEBUG][WS] Socket no conectado, saltando sincronización');
+      }
       return;
     }
     
@@ -121,9 +136,11 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
     
     if (!success) {
-      console.log('⚠️ WebSocketContext - Sync-state rate limited, reintentando más tarde');
+      if (import.meta.env.VITE_DEBUG === 'true') {
+        console.debug('[DEBUG][WS] Sync-state rate limited, reintentando más tarde');
+      }
     }
-  }, [emit, rateLimiter]);
+  }, [emit, rateLimiter, isConnected, socket]);
   const doSyncStateRef = React.useRef(doSyncState);
 
   // Reautenticar socket cuando se refresca el access token (solo si estamos en /chat)
@@ -133,7 +150,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const accessToken = detail?.accessToken;
       if (!accessToken) return;
       if (!isChatRoute) return;
-      console.log('🔌 WebSocketContext - Token refrescado, reconectando (ruta /chat)...');
+      if (import.meta.env.VITE_DEBUG === 'true') {
+        console.debug('[DEBUG][WS] Token refrescado, reconectando (/chat)');
+      }
       disconnect();
       connect(accessToken);
     };
@@ -142,37 +161,51 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return () => window.removeEventListener('auth:token-refreshed', handler as unknown as EventListener);
   }, [connect, disconnect, isChatRoute]);
 
-  // NUEVO: Conectar/desconectar WS según la ruta - OPTIMIZADO
+  // CORREGIDO: Conectar/desconectar WS según la ruta - OPTIMIZADO
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     
-    // NUEVO: Solo conectar si hay token, estamos en /chat, no conectado y sin error
+    // CORREGIDO: Solo conectar si hay token, estamos en /chat, no conectado y sin error
     if (isChatRoute && token && !isConnected && !connectionError) {
-      console.log('🔌 WebSocketContext - Conectando WebSocket en ruta /chat');
-      connect(token, { timeout: 60000 }); // NUEVO: Timeout aumentado
+      if (import.meta.env.VITE_DEBUG === 'true') {
+        console.debug('[DEBUG][WS] Conectando WebSocket en /chat');
+      }
+      connect(token, { timeout: 60000 });
     }
     
-    // NUEVO: Mantener WebSocket conectado siempre que esté autenticado
-    // Solo desconectar si no estamos autenticados
+    // CORREGIDO: Solo desconectar si no hay token Y está conectado
     if (!token && isConnected) {
-      console.log('🔌 WebSocketContext - Desconectando WebSocket (sin autenticación)');
+      if (import.meta.env.VITE_DEBUG === 'true') {
+        console.debug('[DEBUG][WS] Desconectando WebSocket (sin auth)');
+      }
       disconnect();
       setIsSynced(false);
       setIsFallbackMode(false);
       setActiveConversations(new Set());
       roomIdMapRef.current.clear();
     }
+    
+    // NUEVO: Evitar reconexiones automáticas si hay error de rate limiting
+    if (connectionError && connectionError.includes('RATE_LIMITED')) {
+      if (import.meta.env.VITE_DEBUG === 'true') {
+        console.debug('[DEBUG][WS] Rate limited detectado, no reconectar');
+      }
+      return;
+    }
   }, [isChatRoute, isConnected, connectionError, connect, disconnect]);
 
-  // NUEVO: Logging del estado de conexión para debugging
+  // OPTIMIZADO: Logging del estado de conexión solo en errores
   useEffect(() => {
-    console.log('🔌 WebSocketContext - Estado de conexión actualizado:', {
-      isConnected,
-      isChatRoute,
-      hasSocket: !!socket,
-      connectionError
-    });
-  }, [isConnected, isChatRoute, socket, connectionError]);
+    // Solo log en errores de conexión
+    if (connectionError) {
+      // Log solo en error (mantener)
+      console.error('[WS] Error de conexión', {
+        connectionError,
+        isConnected,
+        isChatRoute
+      });
+    }
+  }, [connectionError, isConnected, isChatRoute]);
 
   // NUEVO: Conectar WebSocket cuando el usuario esté autenticado y esté en /chat
   useEffect(() => {
@@ -181,10 +214,12 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     
     // Conectar si tenemos token, usuario, estamos en /chat y no estamos conectados
     if (token && user && isChatRoute && !isConnected && !connectionError) {
-      console.log('🔌 WebSocketContext - Usuario autenticado detectado, conectando WebSocket...');
+      if (import.meta.env.VITE_DEBUG === 'true') {
+        console.debug('[DEBUG][WS] Usuario autenticado, conectando WS...');
+      }
       connect(token, { timeout: 60000 });
     }
-  }, [isChatRoute, isConnected, connectionError, connect]);
+  }, [isChatRoute, isConnected, connectionError, connect, disconnect]);
 
   // Conectar WebSocket inmediatamente después del login exitoso con fallback (control de duplicados)
   const loginConnectInFlightRef = React.useRef(false);
@@ -199,16 +234,22 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return;
       }
       if (loginConnectInFlightRef.current) {
-        console.log('🔌 WebSocketContext - Conexión de login ya en progreso, saltando...');
+        if (import.meta.env.VITE_DEBUG === 'true') {
+          console.debug('[DEBUG][WS] Conexión de login ya en progreso, saltando');
+        }
         return;
       }
       if (isConnected) {
-        console.log('🔌 WebSocketContext - Ya conectado, saltando conexión de login...');
+        if (import.meta.env.VITE_DEBUG === 'true') {
+          console.debug('[DEBUG][WS] Ya conectado, saltando conexión de login');
+        }
         return;
       }
       
       loginConnectInFlightRef.current = true;
-      console.log('🔌 WebSocketContext - Login exitoso, conectando WebSocket...');
+      if (import.meta.env.VITE_DEBUG === 'true') {
+        console.debug('[DEBUG][WS] Login exitoso, conectando WS...');
+      }
       
       // NUEVO: Timeout aumentado para dar más tiempo al backend
       connect(accessToken, { timeout: 60000 });
@@ -243,7 +284,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     window.addEventListener('auth:login-success', handler as unknown as EventListener);
     return () => window.removeEventListener('auth:login-success', handler as unknown as EventListener);
-  }, [connect, isChatRoute, isConnected, connectionError]);
+  }, [connect, disconnect, isChatRoute, isConnected, connectionError]);
 
   // Limpiar el timeout de fallback cuando el socket se conecte o aparezca un error de conexión
   useEffect(() => {
@@ -265,7 +306,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (isConnected && isChatRoute && !initialSyncTriggeredRef.current) {
       initialSyncTriggeredRef.current = true;
       
-      console.log('🔌 WebSocketContext - WebSocket conectado en /chat, disparando sincronización inicial...');
+      console.log('🔌 WebSocket conectado en /chat');
+      performanceMonitor.logWebSocketConnected();
       
       const success = rateLimiter.makeRequest(() => {
         emit('sync-state', { syncId: Date.now(), reason: 'initial' });
@@ -282,11 +324,11 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [isConnected, isChatRoute, rateLimiter, emit]); // NUEVO: Agregadas rateLimiter y emit como dependencias
 
-  // MEJORADO: Actualizar atributo data-socket-status en el DOM
+  // OPTIMIZADO: Actualizar atributo data-socket-status en el DOM
   useEffect(() => {
     const status = isConnected ? 'connected' : 'disconnected';
     document.documentElement.setAttribute('data-socket-status', status);
-    console.log('🔌 WebSocketContext - Estado actualizado en DOM:', status);
+    // Logs eliminados - no críticos para debugging
   }, [isConnected]);
 
   // Escuchar evento de fallback para activar modo offline
@@ -318,10 +360,27 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     // Nuevo mensaje
     onRef.current('new-message', (data: unknown) => {
-      console.log('📨 Nuevo mensaje recibido:', data);
+      console.log('📨 WebSocketContext - Nuevo mensaje recibido:', data);
+      console.log('📨 WebSocketContext - Timestamp del evento:', new Date().toISOString());
+      
+      // NUEVO: Log detallado para debugging
+      const eventData = data as { 
+        conversationId: string; 
+        message: { content: string; timestamp: string; sender: string };
+        isNewConversation?: boolean;
+      };
+      console.log('📨 WebSocketContext - Detalles del evento new-message:', {
+        conversationId: eventData.conversationId,
+        messageContent: eventData.message?.content,
+        isNewConversation: eventData.isNewConversation,
+        timestamp: new Date().toISOString()
+      });
+      
       // Emitir evento personalizado para que useConversations lo maneje
       window.dispatchEvent(new CustomEvent('new-message', { detail: data }));
-      // El hook de chat también manejará esto
+      
+      // NUEVO: Log de confirmación
+      console.log('✅ WebSocketContext - Evento new-message procesado y emitido exitosamente');
     });
 
     // Mensaje enviado (confirmación)
@@ -400,8 +459,26 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     // MANEJO DE ERRORES DEL SERVIDOR - CRÍTICO
     onRef.current('error', (data: unknown) => {
-      const errorData = data as { error: string; message: string; conversationId?: string };
+      const errorData = data as { error: string; message: string; conversationId?: string; code?: string };
       console.error('❌ Error del servidor:', errorData);
+      
+      // NUEVO: Manejo específico para rate limiting
+      if (errorData.code === 'RATE_LIMITED') {
+        const retryAfter = (errorData as { retryAfter?: number }).retryAfter || 5;
+        
+        // Log de performance para rate limiting
+        performanceMonitor.logRateLimited(errorData.message, retryAfter);
+        
+        // Pausar todas las operaciones por el tiempo especificado
+        console.log(`⏸️ Pausando operaciones por ${retryAfter} segundos debido a rate limiting`);
+        
+        // Desconectar temporalmente para evitar más errores
+        setTimeout(() => {
+          if (disconnect) {
+            disconnect();
+          }
+        }, 1000);
+      }
       
       // Emitir evento personalizado para manejo de errores
       window.dispatchEvent(new CustomEvent('websocket:error', { detail: errorData }));
@@ -473,8 +550,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     // Estado sincronizado
     onRef.current('state-synced', (data: unknown) => {
-      console.log('✅ WebSocketContext - Estado sincronizado:', data);
-      console.log('🚀 WebSocketContext - Emitiendo evento websocket:state-synced...');
+      console.log('✅ Estado sincronizado');
       
       // Actualizar estado de sincronización
       setIsSynced(true);
@@ -483,22 +559,24 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       try {
         const customEvent = new CustomEvent('websocket:state-synced', { detail: data });
         window.dispatchEvent(customEvent);
-        console.log('✅ WebSocketContext - Evento websocket:state-synced emitido exitosamente');
+        
+        // Log de performance
+        const eventData = data as { conversations?: unknown[] };
+        const conversationsCount = eventData.conversations?.length || 0;
+        performanceMonitor.logDataSync(conversationsCount);
       } catch (error) {
-        console.error('❌ WebSocketContext - Error emitiendo evento websocket:state-synced:', error);
+        console.error('❌ Error emitiendo evento websocket:state-synced:', error);
       }
     });
 
-    // NUEVO: Eventos específicos para webhooks
+    // Eventos de webhook - CRÍTICOS para sincronización
     onRef.current('webhook:conversation-created', (data: unknown) => {
-      console.log('🔌 WebSocketContext - Nueva conversación desde webhook:', data);
-      // Emitir evento para que useConversations lo maneje
+      console.log('🔌 Nueva conversación desde webhook');
       window.dispatchEvent(new CustomEvent('webhook:conversation-created', { detail: data }));
     });
 
     onRef.current('webhook:new-message', (data: unknown) => {
-      console.log('🔌 WebSocketContext - Nuevo mensaje desde webhook:', data);
-      // Emitir evento para que useConversations lo maneje
+      console.log('🔌 Nuevo mensaje desde webhook');
       window.dispatchEvent(new CustomEvent('webhook:new-message', { detail: data }));
     });
 
@@ -536,7 +614,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       offRef.current('webhook:conversation-created');
       offRef.current('webhook:new-message');
     };
-  }, [socket?.id]);
+  }, [socket?.id, disconnect]);
 
   // Eliminado: timeout manual de 120s. Dejamos que el heartbeat del servidor gobierne la conexión.
 
