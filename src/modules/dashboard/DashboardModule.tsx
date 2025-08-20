@@ -16,6 +16,7 @@ import { SectionLoading } from '../../components/dashboard/LoadingSpinner';
 import { useDebouncedCallback } from '../../hooks/useDebounce';
 
 import { useDashboardStore } from '../../stores/useDashboardStore';
+import type { DashboardData } from '../../types/dashboard';
 
 const DashboardModule = memo(() => {
   const { dashboardData, loading: dashboardLoading, error: dashboardError, setDashboardData, setLoading: setDashboardLoading, setError: setDashboardError } = useDashboardStore();
@@ -34,7 +35,7 @@ const DashboardModule = memo(() => {
       setDashboardLoading(true);
       setDashboardError(null);
       // Dashboard service eliminado - usar datos del store
-      setDashboardData({} as any);
+      setDashboardData({} as DashboardData);
     } catch (error) {
       setDashboardError('Error al cargar los datos del dashboard');
       console.error('Error loading dashboard data:', error);
