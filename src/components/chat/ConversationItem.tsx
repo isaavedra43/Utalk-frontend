@@ -53,6 +53,20 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
   const unreadCount = Math.max(storeUnreadCount, serverUnreadCount);
   const [prevUnreadCount, setPrevUnreadCount] = useState(unreadCount);
 
+  // DEBUG: Log para verificar valores
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log('🔍 ConversationItem Debug:', {
+        conversationId: conversation.id,
+        storeUnreadCount,
+        serverUnreadCount,
+        finalUnreadCount: unreadCount,
+        prevUnreadCount,
+        hasNewMessage: unreadCount > prevUnreadCount
+      });
+    }
+  }, [conversation.id, storeUnreadCount, serverUnreadCount, unreadCount, prevUnreadCount]);
+
   // Marcar conversación como leída cuando se selecciona
   useEffect(() => {
     if (isSelected && unreadCount > 0) {
@@ -76,7 +90,15 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
 
   // FASE 1: Optimización - Detectar cuando llega un nuevo mensaje con memoización
   useEffect(() => {
-    if (unreadCount > prevUnreadCount) {
+    // Solo activar animación si hay un incremento real en el contador
+    if (unreadCount > prevUnreadCount && prevUnreadCount >= 0) {
+      console.log('🎉 Nuevo mensaje detectado:', {
+        conversationId: conversation.id,
+        prevCount: prevUnreadCount,
+        newCount: unreadCount,
+        increment: unreadCount - prevUnreadCount
+      });
+      
       setIsNewMessage(true);
       setIsHighlighted(true);
       
@@ -89,8 +111,12 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
       // Cleanup para evitar memory leaks
       return () => clearTimeout(timeoutId);
     }
-    setPrevUnreadCount(unreadCount);
-  }, [unreadCount, prevUnreadCount]);
+    
+    // Actualizar prevUnreadCount solo si hay un cambio real
+    if (unreadCount !== prevUnreadCount) {
+      setPrevUnreadCount(unreadCount);
+    }
+  }, [unreadCount, prevUnreadCount, conversation.id]);
 
   // Animación al seleccionar/deseleccionar
   useEffect(() => {
@@ -233,7 +259,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
           <div className="flex items-start justify-between mb-1">
             <h3 className={`
               text-xs font-semibold truncate transition-colors duration-300 flex-1 mr-2
-              ${(conversation.unreadCount || 0) > 0 ? 'text-gray-900' : 'text-gray-700'}
+              ${unreadCount > 0 ? 'text-gray-900' : 'text-gray-700'}
               ${isSelected ? 'text-blue-900' : ''}
             `}>
               {displayName}
@@ -257,14 +283,14 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
           <div className="flex items-center justify-between">
             <p className={`
               text-xs truncate flex-1 transition-colors duration-300
-              ${(conversation.unreadCount || 0) > 0 ? 'text-gray-900 font-medium' : 'text-gray-600'}
+              ${unreadCount > 0 ? 'text-gray-900 font-medium' : 'text-gray-600'}
               ${isSelected ? 'text-blue-900' : ''}
             `}>
               {conversation.lastMessage?.content || 'Sin mensajes'}
             </p>
             
             {/* Badge de mensajes no leídos */}
-            {(conversation.unreadCount || 0) > 0 && (
+            {unreadCount > 0 && (
               <div className="flex items-center space-x-1 ml-1">
                 <span className={`
                   inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium
