@@ -335,6 +335,20 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           
           {/* Íconos integrados en el lado derecho */}
           <div className="flex items-center space-x-1 pr-2 pb-2">
+            {/* Ícono de enviar - PRIMERO Y MÁS PROMINENTE */}
+            <button
+              onClick={handleSend}
+              disabled={!currentValue.trim() || disabled || isSending}
+              className={`p-2 rounded-full transition-all duration-200 ${
+                currentValue.trim() && !disabled && !isSending
+                  ? 'text-white bg-blue-600 hover:bg-blue-700 shadow-md'
+                  : 'text-gray-400 bg-gray-100 cursor-not-allowed'
+              }`}
+              title="Enviar mensaje"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+            
             {/* Ícono de micrófono */}
             <button
               onClick={() => {
@@ -488,16 +502,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               title="Emojis y stickers"
             >
               <Smile className="w-4 h-4" />
-            </button>
-            
-            {/* Ícono de enviar */}
-            <button
-              onClick={handleSend}
-              disabled={!currentValue.trim() || disabled || isSending}
-              className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Enviar mensaje"
-            >
-              <Send className="w-4 h-4" />
             </button>
             
             {/* Ícono de ubicación */}
