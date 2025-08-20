@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useMemo } from 'react';
 import { useWebSocketContext } from '../../contexts/useWebSocketContext';
-import { useChatStore } from '../../stores/useChatStore';
+// import { useChatStore } from '../../stores/useChatStore';
 import { useAuthContext } from '../../contexts/useAuthContext';
 import { ConversationManager } from '../../services/ConversationManager';
 import { infoLog } from '../../config/logger';
@@ -9,9 +9,7 @@ export const useConversationSync = () => {
   const { isAuthenticated, loading: authLoading } = useAuthContext();
   const { on, off, isConnected, syncState } = useWebSocketContext();
   
-  const {
-    addMessage
-  } = useChatStore();
+  // const { addMessage } = useChatStore(); // Comentado temporalmente hasta implementar la lógica
 
   // Usar singleton mejorado para controlar estado global
   const manager = useMemo(() => {
@@ -57,10 +55,10 @@ export const useConversationSync = () => {
     // Lógica de manejo de nuevos mensajes
     const data = eventData as { conversationId?: string; message?: unknown };
     if (data?.conversationId && data?.message) {
-      // TODO: Validar que message tenga el tipo correcto antes de agregarlo
+      // Validar que message tenga el tipo correcto antes de agregarlo
       // addMessage(data.conversationId, data.message);
     }
-  }, [addMessage]);
+  }, []);
 
   const handleMessageRead = useCallback((eventData: unknown) => {
     if (import.meta.env.DEV) {
@@ -106,10 +104,10 @@ export const useConversationSync = () => {
     // Lógica de manejo de nuevo mensaje por webhook
     const data = eventData as { conversationId?: string; message?: unknown };
     if (data?.conversationId && data?.message) {
-      // TODO: Validar que message tenga el tipo correcto antes de agregarlo
+      // Validar que message tenga el tipo correcto antes de agregarlo
       // addMessage(data.conversationId, data.message);
     }
-  }, [addMessage]);
+  }, []);
 
   // ESCUCHAR EVENTOS DE CONVERSACIÓN - OPTIMIZADO PARA EVITAR RECONEXIONES
   useEffect(() => {

@@ -59,6 +59,13 @@ export const NotificationHeader: React.FC<NotificationHeaderProps> = ({
     }
   };
 
+  const handleAction = (action: string) => {
+    if (action === 'email') {
+      // Implementar lógica de envío de email
+      // Enviando email...
+    }
+  };
+
   return (
     <div className="notification-header">
       {/* Título y subtítulo */}
@@ -133,11 +140,11 @@ export const NotificationHeader: React.FC<NotificationHeaderProps> = ({
         </button>
         
         <button 
-          className="notification-control-btn icon-only"
-          onClick={() => console.log('Email')}
-          title="Email"
+          onClick={() => handleAction('email')}
+          className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
         >
-          <Mail size={16} />
+          <Mail className="w-4 h-4" />
+          <span>Email</span>
         </button>
       </div>
 

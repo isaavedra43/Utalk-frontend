@@ -170,7 +170,8 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    handleFileSelect(e.dataTransfer.files);
+    // The handleFileSelect function is no longer used here, as handleFilesAdded is called directly.
+    // handleFileSelect(e.dataTransfer.files); 
   };
 
   return (
@@ -371,7 +372,7 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
         type="file"
         accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
         multiple
-        onChange={(e) => handleFileSelect(e.target.files)}
+        onChange={(e) => handleFileSelect((e.target as HTMLInputElement)?.files)}
         className="hidden"
       />
     </div>

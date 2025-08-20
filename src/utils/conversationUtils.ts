@@ -252,14 +252,7 @@ export const encodeConversationIdForWebSocket = (conversationId: string): string
   const phones = extractPhonesFromConversationId(sanitized);
   if (!phones) {
     // Si no pudimos extraer, como fallback, reemplazar %2B por '+' en todo el ID
-    const plusId = sanitized.replaceAll('%2B', '+');
-    console.log('🔗 ID de conversación normalizado para WebSocket (fallback):', {
-      originalId: conversationId,
-      sanitizedId: sanitized,
-      plusId,
-      method: 'encodeConversationIdForWebSocket'
-    });
-    return plusId;
+    return conversationId.replace(/%2B/g, '+');
   }
 
   const plusId = `conv_${phones.phone1}_${phones.phone2}`; // ambos con '+'

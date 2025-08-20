@@ -28,19 +28,15 @@ export const ForgotPasswordForm: React.FC = () => {
   const email = watch('email');
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
-    setIsLoading(true);
-    setError(null);
-
     try {
-      // Simular envío de email de recuperación
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Aquí se conectaría con el backend para enviar el email
+      setIsLoading(true);
+      // Aquí se enviaría la petición al backend
       console.log('Enviando email de recuperación a:', data.email);
-      
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Simular delay
       setIsSuccess(true);
-    } catch {
-      setError('Error al enviar el email de recuperación. Intenta nuevamente.');
+    } catch (error) {
+      console.error('Error al enviar email:', error);
+      setError('Error al enviar el email de recuperación');
     } finally {
       setIsLoading(false);
     }

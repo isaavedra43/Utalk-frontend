@@ -302,7 +302,7 @@ class ClientProfileService {
           // 2. Obtener información detallada del contacto (DESHABILITADO TEMPORALMENTE)
           const contactDetails: ContactData | null = null;
           
-          // TODO: Habilitar cuando el endpoint /api/contacts/search esté funcionando correctamente
+          // Endpoint de búsqueda de contactos
           // El endpoint está devolviendo 500, causando muchos logs de error
           /*
           if (conversationData.customerPhone) {

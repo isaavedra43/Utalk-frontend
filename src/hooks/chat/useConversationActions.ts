@@ -13,7 +13,8 @@ export const useConversationActions = () => {
     activeConversation,
     setActiveConversation,
     updateConversation,
-    setConversations
+    setConversations,
+    conversations
   } = useChatStore();
 
   // Función para seleccionar una conversación
@@ -37,12 +38,14 @@ export const useConversationActions = () => {
     const newUrl = `${location.pathname}?${newSearchParams.toString()}`;
     navigate(newUrl, { replace: true });
 
-    // Actualizar estado local - buscar la conversación en el store
-    // TODO: Implementar búsqueda de conversación por ID
-    // setActiveConversation(sanitizedId);
+    // Actualizar estado local con la conversación existente si está en el store
+    const existing = conversations.find(c => c.id === sanitizedId) || null;
+    if (existing) {
+      setActiveConversation(existing);
+    }
     
     infoLog('✅ useConversationActions - Conversación seleccionada:', sanitizedId);
-  }, [navigate, location.pathname, location.search, setActiveConversation]);
+  }, [navigate, location.pathname, location.search, setActiveConversation, conversations]);
 
   // Función para deseleccionar conversación
   const deselectConversation = useCallback(() => {

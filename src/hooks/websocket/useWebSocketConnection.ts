@@ -1,14 +1,21 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useWebSocket } from '../../hooks/useWebSocket';
-import { useRateLimiter } from '../../hooks/useRateLimiter';
-import { performanceMonitor } from '../../utils/performanceMonitor';
+import { useBaseSocket } from './useBaseSocket';
+import { infoLog } from '../../config/logger';
 
 // Helper para logs de debug condicionales
 const debugLog = (message: string, data?: unknown) => {
   if (import.meta.env.VITE_DEBUG === 'true' && import.meta.env.DEV) {
     console.debug(message, data);
   }
+};
+
+// Configuración de reconexión con backoff exponencial
+const RECONNECTION_CONFIG = {
+  maxAttempts: 5,
+  baseDelay: 1000, // 1 segundo
+  maxDelay: 30000, // 30 segundos
+  backoffMultiplier: 2
 };
 
 export const useWebSocketConnection = () => {
@@ -21,45 +28,166 @@ export const useWebSocketConnection = () => {
     on,
     off,
     emit
-  } = useWebSocket();
+  } = useBaseSocket();
 
   // Ruta actual (para limitar WS a /chat)
   const location = useLocation();
   const isChatRoute = location.pathname === '/chat';
 
-  // Rate limiter más conservador para evitar rate limiting del servidor
-  const rateLimiter = useRateLimiter({
-    maxRequests: 10,
-    timeWindow: 5000,
-    retryDelay: 1000
-  });
-
+  // Estados de conexión mejorados
   const [isSynced, setIsSynced] = useState(false);
   const [isFallbackMode, setIsFallbackMode] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [lastConnectionTime, setLastConnectionTime] = useState<Date | null>(null);
 
-  // Refs para estabilizar funciones del socket y evitar re-registro de listeners
-  const onRef = useRef(on);
-  const offRef = useRef(off);
-  const emitRef = useRef(emit);
+  // Refs para control de sincronización y timeouts
   const lastSyncRef = useRef(0);
   const initialSyncTriggeredRef = useRef(false);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Función de reconexión con backoff exponencial
+  const attemptReconnect = useCallback((token: string) => {
+    if (reconnectAttempts >= RECONNECTION_CONFIG.maxAttempts) {
+      infoLog('❌ Máximo número de intentos de reconexión alcanzado');
+      setIsFallbackMode(true);
+      return;
+    }
+
+    const delay = Math.min(
+      RECONNECTION_CONFIG.baseDelay * Math.pow(RECONNECTION_CONFIG.backoffMultiplier, reconnectAttempts),
+      RECONNECTION_CONFIG.maxDelay
+    );
+
+    infoLog(`🔄 Intento de reconexión ${reconnectAttempts + 1}/${RECONNECTION_CONFIG.maxAttempts} en ${delay}ms`);
+
+    reconnectTimeoutRef.current = setTimeout(() => {
+      setIsConnecting(true);
+      baseConnect(token, { timeout: 30000 });
+      setReconnectAttempts(prev => prev + 1);
+    }, delay);
+  }, [reconnectAttempts, baseConnect]);
+
+  // Función de conexión mejorada
+  const connect = useCallback((token: string, options?: { timeout?: number }) => {
+    if (isConnecting || isConnected) {
+      debugLog('[DEBUG][WS] Ya conectando o conectado, saltando');
+      return;
+    }
+
+    setIsConnecting(true);
+    setReconnectAttempts(0);
+    setIsFallbackMode(false);
+
+    // Limpiar timeouts anteriores
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+    }
+
+    const timeout = options?.timeout || 60000;
+    
+    // Timeout de conexión
+    connectionTimeoutRef.current = setTimeout(() => {
+      if (!isConnected) {
+        setIsConnecting(false);
+        infoLog('❌ Timeout de conexión WebSocket');
+      }
+    }, timeout);
+
+    baseConnect(token, options);
+  }, [isConnecting, isConnected, baseConnect]);
+
+  // Función de desconexión mejorada
+  const disconnect = useCallback(() => {
+    setIsConnecting(false);
+    setIsSynced(false);
+    setIsFallbackMode(false);
+    setReconnectAttempts(0);
+    setLastConnectionTime(null);
+
+    // Limpiar timeouts
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+    if (connectionTimeoutRef.current) {
+      clearTimeout(connectionTimeoutRef.current);
+    }
+
+    baseDisconnect();
+    infoLog('🔌 WebSocket desconectado');
+  }, [baseDisconnect]);
+
+  // Función de sincronización de estado
+  const syncState = useCallback(() => {
+    if (!isConnected || !socket) {
+      debugLog('[DEBUG][WS] No conectado, no se puede sincronizar');
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastSyncRef.current < 5000) {
+      debugLog('[DEBUG][WS] Sincronización muy reciente, saltando');
+      return;
+    }
+
+    lastSyncRef.current = now;
+    emit('sync-state', { timestamp: now });
+    setIsSynced(true);
+    infoLog('🔄 Estado sincronizado con servidor');
+  }, [isConnected, socket, emit]);
+
+  // Función de sincronización forzada
+  const doSyncState = useCallback((reason?: string) => {
+    if (!isConnected || !socket) {
+      debugLog('[DEBUG][WS] No conectado, no se puede sincronizar');
+      return;
+    }
+
+    const now = Date.now();
+    lastSyncRef.current = now;
+    emit('sync-state', { timestamp: now, reason });
+    setIsSynced(true);
+    infoLog(`🔄 Sincronización forzada: ${reason || 'manual'}`);
+  }, [isConnected, socket, emit]);
+
+  // Unirse a una conversación (rooms)
+  const joinConversation = useCallback((conversationId: string) => {
+    if (!socket || !socket.connected) {
+      infoLog('⚠️ WebSocket no conectado, no se puede unir a la conversación');
+      return;
+    }
+    emit('join-conversation', { conversationId });
+    infoLog(`🔗 Uniendo a conversación: ${conversationId}`);
+  }, [socket, emit]);
+
+  // Salir de una conversación (rooms)
+  const leaveConversation = useCallback((conversationId: string) => {
+    if (!socket || !socket.connected) {
+      infoLog('⚠️ WebSocket no conectado, no se puede salir de la conversación');
+      return;
+    }
+    emit('leave-conversation', { conversationId });
+    infoLog(`🔌 Saliendo de conversación: ${conversationId}`);
+  }, [socket, emit]);
 
   // Conectar/desconectar WS según la ruta - OPTIMIZADO
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     
     // Solo conectar si hay token, estamos en /chat, no conectado y sin error
-    if (isChatRoute && token && !isConnected && !connectionError) {
+    if (isChatRoute && token && !isConnected && !connectionError && !isConnecting) {
       debugLog('[DEBUG][WS] Conectando WebSocket en /chat');
-      baseConnect(token, { timeout: 60000 });
+      connect(token, { timeout: 60000 });
     }
     
     // Solo desconectar si no hay token Y está conectado
     if (!token && isConnected) {
       debugLog('[DEBUG][WS] Desconectando WebSocket (sin auth)');
-      baseDisconnect();
-      setIsSynced(false);
-      setIsFallbackMode(false);
+      disconnect();
     }
     
     // Evitar reconexiones automáticas si hay error de rate limiting
@@ -67,7 +195,36 @@ export const useWebSocketConnection = () => {
       debugLog('[DEBUG][WS] Rate limited detectado, no reconectar');
       return;
     }
-  }, [isChatRoute, isConnected, connectionError, baseConnect, baseDisconnect]);
+  }, [isChatRoute, isConnected, connectionError, isConnecting, connect, disconnect]);
+
+  // Manejar cambios de estado de conexión
+  useEffect(() => {
+    if (isConnected) {
+      setIsConnecting(false);
+      setLastConnectionTime(new Date());
+      setReconnectAttempts(0);
+      setIsFallbackMode(false);
+      
+      // Limpiar timeout de conexión
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
+      }
+
+      infoLog('✅ WebSocket conectado exitosamente');
+      
+      // Trigger sincronización inicial
+      if (!initialSyncTriggeredRef.current) {
+        initialSyncTriggeredRef.current = true;
+        setTimeout(() => syncState(), 1000);
+      }
+    } else if (isConnecting) {
+      // Si se desconecta mientras está conectando, intentar reconectar
+      const token = localStorage.getItem('access_token');
+      if (token && isChatRoute && !connectionError?.includes('RATE_LIMITED')) {
+        attemptReconnect(token);
+      }
+    }
+  }, [isConnected, isConnecting, isChatRoute, connectionError, syncState, attemptReconnect]);
 
   // Reautenticar socket cuando se refresca el access token (solo si estamos en /chat)
   useEffect(() => {
@@ -77,13 +234,13 @@ export const useWebSocketConnection = () => {
       if (!accessToken) return;
       if (!isChatRoute) return;
       debugLog('[DEBUG][WS] Token refrescado, reconectando (/chat)');
-      baseDisconnect();
-      baseConnect(accessToken);
+      disconnect();
+      connect(accessToken);
     };
 
     window.addEventListener('auth:token-refreshed', handler as unknown as EventListener);
     return () => window.removeEventListener('auth:token-refreshed', handler as unknown as EventListener);
-  }, [baseConnect, baseDisconnect, isChatRoute]);
+  }, [connect, disconnect, isChatRoute]);
 
   // Conectar WebSocket cuando el usuario esté autenticado y esté en /chat
   useEffect(() => {
@@ -91,168 +248,45 @@ export const useWebSocketConnection = () => {
     const user = localStorage.getItem('user');
     
     // Conectar si tenemos token, usuario, estamos en /chat y no estamos conectados
-    if (token && user && isChatRoute && !isConnected && !connectionError) {
+    if (token && user && isChatRoute && !isConnected && !connectionError && !isConnecting) {
       debugLog('[DEBUG][WS] Usuario autenticado, conectando WS...');
-      baseConnect(token, { timeout: 60000 });
+      connect(token, { timeout: 60000 });
     }
-  }, [isChatRoute, isConnected, connectionError, baseConnect, baseDisconnect]);
+  }, [isChatRoute, isConnected, connectionError, isConnecting, connect]);
 
-  // Conectar WebSocket inmediatamente después del login exitoso con fallback
-  const loginConnectInFlightRef = useRef(false);
-  const loginFallbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
+  // Cleanup al desmontar
   useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { user: unknown; accessToken: string } | undefined;
-      const accessToken = detail?.accessToken;
-      if (!accessToken) return;
-      if (!isChatRoute) {
-        return;
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
       }
-      if (loginConnectInFlightRef.current) {
-        debugLog('[DEBUG][WS] Conexión de login ya en progreso, saltando');
-        return;
+      if (connectionTimeoutRef.current) {
+        clearTimeout(connectionTimeoutRef.current);
       }
-      if (isConnected) {
-        debugLog('[DEBUG][WS] Ya conectado, saltando conexión de login');
-        return;
-      }
-      
-      loginConnectInFlightRef.current = true;
-      debugLog('[DEBUG][WS] Login exitoso, conectando WS...');
-      
-      baseConnect(accessToken, { timeout: 60000 });
-      
-      // FALLBACK: Si WebSocket no se conecta en 30s, continuar con login HTTP exitoso
-      if (loginFallbackTimeoutRef.current) {
-        clearTimeout(loginFallbackTimeoutRef.current);
-      }
-      loginFallbackTimeoutRef.current = setTimeout(() => {
-        if (!isConnected && !connectionError) {
-          console.log('🔌 WebSocketContext - Fallback: WebSocket no se conectó en 30s');
-          
-          // Emitir evento de fallback para que otros componentes lo manejen
-          window.dispatchEvent(new CustomEvent('websocket:fallback', {
-            detail: { 
-              reason: 'timeout',
-              timestamp: new Date().toISOString(),
-              accessToken 
-            }
-          }));
-        }
-        loginConnectInFlightRef.current = false;
-        loginFallbackTimeoutRef.current = null;
-      }, 30000);
-      
-      return () => {
-        if (loginFallbackTimeoutRef.current) {
-          clearTimeout(loginFallbackTimeoutRef.current);
-        }
-      };
     };
-
-    window.addEventListener('auth:login-success', handler as unknown as EventListener);
-    return () => window.removeEventListener('auth:login-success', handler as unknown as EventListener);
-  }, [baseConnect, baseDisconnect, isChatRoute, isConnected, connectionError]);
-
-  // Limpiar el timeout de fallback cuando el socket se conecte o aparezca un error de conexión
-  useEffect(() => {
-    if (isConnected || connectionError) {
-      if (loginFallbackTimeoutRef.current) {
-        clearTimeout(loginFallbackTimeoutRef.current);
-        loginFallbackTimeoutRef.current = null;
-      }
-      loginConnectInFlightRef.current = false;
-    }
-  }, [isConnected, connectionError]);
-
-  // Mantener refs actualizadas sin re-registrar listeners
-  useEffect(() => { 
-    onRef.current = on; 
-    offRef.current = off; 
-    emitRef.current = emit; 
-  }, [on, off, emit]);
-
-  // Disparar sincronización inicial una sola vez al conectar en /chat
-  useEffect(() => {
-    if (isConnected && isChatRoute && !initialSyncTriggeredRef.current) {
-      initialSyncTriggeredRef.current = true;
-      
-      console.log('🔌 WebSocket conectado en /chat');
-      performanceMonitor.logWebSocketConnected();
-      
-      const success = rateLimiter.makeRequest(() => {
-        emit('sync-state', { syncId: Date.now(), reason: 'initial' });
-      });
-      
-      if (!success) {
-        console.log('⚠️ WebSocketContext - Sync inicial rate limited, reintentando más tarde');
-      }
-    }
-    if (!isConnected) {
-      initialSyncTriggeredRef.current = false;
-    }
-  }, [isConnected, isChatRoute, emit, rateLimiter]);
-
-  // Función centralizada para solicitar sincronización de estado con control de rate limit
-  const doSyncState = useCallback((reason?: string) => {
-    debugLog('[DEBUG][WS] Sincronizando estado', { reason });
-    
-    // Evitar sincronizaciones duplicadas en un corto período
-    const now = Date.now();
-    
-    if (now - lastSyncRef.current < 5000) {
-      debugLog('[DEBUG][WS] Sincronización reciente, saltando...');
-      return;
-    }
-    
-    // Verificar si el socket está realmente conectado antes de enviar
-    if (!isConnected || !socket) {
-      debugLog('[DEBUG][WS] Socket no conectado, saltando sincronización');
-      return;
-    }
-    
-    const success = rateLimiter.makeRequest(() => {
-      emit('sync-state', { syncId: Date.now(), reason });
-      lastSyncRef.current = now;
-    });
-    
-    if (!success) {
-      debugLog('[DEBUG][WS] Sync-state rate limited, reintentando más tarde');
-    }
-  }, [emit, rateLimiter, isConnected, socket]);
-
-  // Función para sincronizar con el servidor
-  const syncState = useCallback(() => {
-    if (!isConnected || !socket) {
-      console.log('🔌 WebSocketContext - No se puede sincronizar (socket no conectado)');
-      return;
-    }
-    
-    console.log('🔄 WebSocketContext - Sincronizando estado', { reason: 'manual' });
-    
-    const success = rateLimiter.makeRequest(() => {
-      emit('sync-state', { syncId: Date.now(), reason: 'manual' });
-    });
-    
-    if (!success) {
-      console.log('⚠️ WebSocketContext - Sync-state rate limited, reintentando más tarde');
-    }
-  }, [isConnected, socket, emit, rateLimiter]);
+  }, []);
 
   return {
+    // Estados
     socket,
     isConnected,
-    connectionError,
+    isConnecting,
     isSynced,
+    connectionError,
     isFallbackMode,
     isChatRoute,
-    connect: baseConnect,
-    disconnect: baseDisconnect,
+    reconnectAttempts,
+    lastConnectionTime,
+    
+    // Acciones
+    connect,
+    disconnect,
+    syncState,
+    doSyncState,
     emit,
     on,
     off,
-    syncState,
-    doSyncState
+    joinConversation,
+    leaveConversation
   };
 }; 

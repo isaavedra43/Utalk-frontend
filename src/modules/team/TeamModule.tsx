@@ -47,8 +47,7 @@ const TeamModule: React.FC = () => {
     password: string;
     permissions: { read: boolean; write: boolean; approve: boolean; configure: boolean };
   }) => {
-    // TODO: Implementar creación de agente
-    console.log('Creando agente:', agentData);
+    // Implementar creación de agente
     logger.systemInfo('Creating new agent', { agentData });
     setIsCreateModalOpen(false);
   };

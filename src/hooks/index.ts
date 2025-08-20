@@ -1,12 +1,23 @@
 // Exportar todos los hooks
-export { useWebSocket } from './useWebSocket';
-export { useWebSocketContext } from '../contexts/useWebSocketContext';
-export { useConversations } from './chat/useConversations';
-export { useTyping } from './useTyping';
-export { useOptimisticUpdates } from './useOptimisticUpdates';
-export { useAI } from './useAI';
-export { useContacts } from './useContacts';
-export { useSidebar } from './useSidebar';
+
+export { useAuth } from './useAuth';
 export { useChat } from './useChat';
+export { useContacts } from './useContacts';
+export { useConversationStats } from './useConversationStats';
+export { useOptimisticUpdates } from './useOptimisticUpdates';
+export { useRateLimiter } from './useRateLimiter';
+export { useSidebar } from './useSidebar';
+export { useTyping } from './useTyping';
+export { useWarningLogger } from './useWarningLogger';
 export { useAuthenticatedImage } from './useAuthenticatedImage';
-export { useAuthenticatedMedia } from './useAuthenticatedMedia'; 
+export { useAuthenticatedMedia } from './useAuthenticatedMedia';
+export { useAI } from './useAI';
+
+// Hooks de chat
+export * from './chat';
+
+// Hooks de WebSocket
+export * from './websocket';
+
+// Hooks compartidos
+export * from './shared'; 

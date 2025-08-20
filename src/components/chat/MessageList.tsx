@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
 import type { Message, MessageGroup } from '../../types';
@@ -20,7 +20,7 @@ interface MessageListProps {
   onDeleteMessage?: (messageId: string) => void;
 }
 
-export const MessageList: React.FC<MessageListProps> = ({
+const MessageListInner: React.FC<MessageListProps> = ({
   messages,
   messageGroups,
   typingUsers = [],
@@ -69,13 +69,15 @@ export const MessageList: React.FC<MessageListProps> = ({
     return null;
   };
 
+  const memoizedMessages = useMemo(() => messages, [messages]);
+
   const renderMessages = () => {
     if (messageGroups && messageGroups.length > 0) {
       return messageGroups.map(renderMessageGroup);
     }
 
     // Fallback: renderizar mensajes sin agrupar
-    return messages.map((message) => (
+    return memoizedMessages.map((message) => (
       <MessageBubble
         key={message.id}
         message={message}
@@ -119,4 +121,6 @@ export const MessageList: React.FC<MessageListProps> = ({
       <TypingIndicator users={typingUsers} />
     </div>
   );
-}; 
+};
+
+export const MessageList = React.memo(MessageListInner); 

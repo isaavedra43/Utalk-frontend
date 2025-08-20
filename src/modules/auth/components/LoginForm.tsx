@@ -42,11 +42,20 @@ export const LoginForm: React.FC = () => {
   const email = watch('email');
   const password = watch('password');
 
+  const prefetchChat = async () => {
+    try {
+      await import('../../../components/chat/ChatModule');
+    } catch {
+      // no-op prefetch fallback
+    }
+  };
+
   const onSubmit = async (data: LoginFormData) => {
     try {
       setIsLoading(true);
       await login(data.email, data.password);
-      
+      // Prefetch del módulo de chat antes de navegar
+      prefetchChat();
       console.log('✅ Login exitoso, navegando al chat...');
       navigate('/chat');
       

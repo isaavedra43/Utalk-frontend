@@ -43,19 +43,7 @@ export const aiService = {
     return response.data;
   },
 
-  // Probar sugerencia
-  async testSuggestion(suggestionData: {
-    workspaceId: string;
-    conversationId: string;
-    messageId?: string;
-  }): Promise<{
-    suggestion: AISuggestion;
-    confidence: number;
-    reasoning: string;
-  }> {
-    const response = await api.post(`${AI_API}/test-suggestion`, suggestionData);
-    return response.data;
-  },
+
 
   // Obtener sugerencias
   async getSuggestions(conversationId: string, params: {

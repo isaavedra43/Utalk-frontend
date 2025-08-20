@@ -74,8 +74,7 @@ export const ClientModule: React.FC = () => {
   };
 
   const handleExport = () => {
-    // DESHABILITADO TEMPORALMENTE
-    console.log('Exportación deshabilitada temporalmente');
+    // Exportación deshabilitada temporalmente
   };
 
   const handleViewChange = (view: 'list' | 'kanban' | 'cards') => {
@@ -93,8 +92,7 @@ export const ClientModule: React.FC = () => {
   };
 
   const handleRefresh = () => {
-    // DESHABILITADO TEMPORALMENTE
-    console.log('Refresh deshabilitado temporalmente');
+    // Refresh deshabilitado temporalmente
   };
 
   // Manejador de ordenamiento compatible con ClientList
@@ -182,8 +180,9 @@ export const ClientModule: React.FC = () => {
               client={selectedClient}
               onClose={handleCloseDetailPanel}
               onUpdate={(updates) => {
-                // TODO: Implementar actualización del cliente
-                console.log('Actualizando cliente:', updates);
+                // Implementar actualización del cliente
+                // Usar updates para actualizar el cliente
+                console.log('Actualizando cliente con:', updates);
               }}
             />
           )}

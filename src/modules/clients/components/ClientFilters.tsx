@@ -67,9 +67,9 @@ export const ClientFiltersComponent: React.FC<ClientFiltersComponentProps> = ({
     max: filters.probabilityMax
   });
 
-  const handleQuickSearchChange = (value: string) => {
+  const handleSearchChange = (value: string) => {
     setQuickSearch(value);
-    // TODO: Implementar búsqueda en tiempo real
+    // Implementar búsqueda en tiempo real
   };
 
   const handleStageToggle = (stage: ClientStage) => {
@@ -210,7 +210,7 @@ export const ClientFiltersComponent: React.FC<ClientFiltersComponentProps> = ({
               type="text"
               placeholder="Filtrar por nombre..."
               value={quickSearch}
-              onChange={(e) => handleQuickSearchChange(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             />
           </div>

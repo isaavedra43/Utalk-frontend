@@ -1,6 +1,6 @@
 import React, { createContext } from 'react';
 import { Socket } from 'socket.io-client';
-import { useWebSocketConnection, useWebSocketMessages, useWebSocketTyping } from '../hooks/websocket';
+import { useWebSocket, useWebSocketTyping } from '../hooks/websocket';
 
 // Interface simplificada que combina todos los hooks
 interface WebSocketContextType {
@@ -54,42 +54,35 @@ interface WebSocketContextType {
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
 
 export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Usar hooks específicos
-  const connection = useWebSocketConnection();
-  const messages = useWebSocketMessages(connection.socket);
-  const typing = useWebSocketTyping(connection.socket);
+  // Usar hook compositor principal
+  const webSocket = useWebSocket();
+  const typing = useWebSocketTyping(webSocket.socket);
 
   // Combinar todas las funcionalidades
   const value: WebSocketContextType = {
     // Connection
-    socket: connection.socket,
-    isConnected: connection.isConnected,
-    isSynced: connection.isSynced,
-    connectionError: connection.connectionError,
-    isFallbackMode: connection.isFallbackMode,
-    isChatRoute: connection.isChatRoute,
-    connect: connection.connect,
-    disconnect: connection.disconnect,
-    emit: connection.emit,
-    on: connection.on,
-    off: connection.off,
-    syncState: connection.syncState,
-    doSyncState: connection.doSyncState,
+    socket: webSocket.socket,
+    isConnected: webSocket.isConnected,
+    isSynced: webSocket.isSynced,
+    connectionError: webSocket.connectionError,
+    isFallbackMode: webSocket.isFallbackMode,
+    isChatRoute: webSocket.isChatRoute,
+    connect: webSocket.connect,
+    disconnect: webSocket.disconnect,
+    emit: webSocket.emit,
+    on: webSocket.on,
+    off: webSocket.off,
+    syncState: webSocket.syncState,
+    doSyncState: webSocket.doSyncState,
     
-    // Conversation Management (TODO: Implementar en hooks específicos)
-    joinConversation: (conversationId: string) => {
-      console.log('🔗 WebSocket: Uniéndose a conversación', conversationId);
-      // TODO: Implementar en useWebSocketConnection
-    },
-    leaveConversation: (conversationId: string) => {
-      console.log('🔌 WebSocket: Saliendo de conversación', conversationId);
-      // TODO: Implementar en useWebSocketConnection
-    },
+    // Conversation Management
+    joinConversation: webSocket.joinConversation,
+    leaveConversation: webSocket.leaveConversation,
     
     // Messages
-    sendMessage: messages.sendMessage,
-    markMessagesAsRead: messages.markMessagesAsRead,
-    processReceivedMessage: messages.processReceivedMessage,
+    sendMessage: webSocket.sendMessage,
+    markMessagesAsRead: webSocket.markMessagesAsRead,
+    processReceivedMessage: webSocket.processReceivedMessage,
     
     // Typing
     typingUsers: typing.typingUsers,

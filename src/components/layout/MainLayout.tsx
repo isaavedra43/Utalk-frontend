@@ -1,11 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useUIStore } from '../../stores/useUIStore';
 import { LeftSidebar } from './LeftSidebar';
-import { ChatModule } from '../chat/ChatModule';
-import { DashboardModule } from '../../modules/dashboard';
-import { TeamModule } from '../../modules/team';
-import { ClientModule } from '../../modules/clients/ClientModule';
+// Lazy load de módulos
+const ChatModule = lazy(() => import('../chat/ChatModule').then(m => ({ default: m.ChatModule })));
+const DashboardModule = lazy(() => import('../../modules/dashboard').then(m => ({ default: m.DashboardModule })));
+const TeamModule = lazy(() => import('../../modules/team/TeamModule').then(m => ({ default: m.default })));
+const ClientModule = lazy(() => import('../../modules/clients/ClientModule').then(m => ({ default: m.ClientModule })));
 
 import { ModulePlaceholder } from './ModulePlaceholder';
 
@@ -31,6 +32,8 @@ export const MainLayout: React.FC = () => {
     setCurrentModule(currentModule);
   }, [currentModule, setCurrentModule]);
 
+  const Fallback = <div className="p-4 text-sm text-gray-500">Cargando módulo...</div>;
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Sidebar izquierdo - Oculto en móviles, visible en desktop */}
@@ -40,10 +43,26 @@ export const MainLayout: React.FC = () => {
       
       {/* Contenido principal */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        {currentModule === 'chat' && <ChatModule />}
-        {currentModule === 'dashboard' && <DashboardModule />}
-        {currentModule === 'team' && <TeamModule />}
-        {currentModule === 'clients' && <ClientModule />}
+        {currentModule === 'chat' && (
+          <Suspense fallback={Fallback}>
+            <ChatModule />
+          </Suspense>
+        )}
+        {currentModule === 'dashboard' && (
+          <Suspense fallback={Fallback}>
+            <DashboardModule />
+          </Suspense>
+        )}
+        {currentModule === 'team' && (
+          <Suspense fallback={Fallback}>
+            <TeamModule />
+          </Suspense>
+        )}
+        {currentModule === 'clients' && (
+          <Suspense fallback={Fallback}>
+            <ClientModule />
+          </Suspense>
+        )}
 
         {currentModule !== 'chat' && currentModule !== 'dashboard' && currentModule !== 'team' && currentModule !== 'clients' && currentModule !== 'notifications' && (
           <ModulePlaceholder moduleName={currentModule} />

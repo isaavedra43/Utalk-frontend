@@ -7,9 +7,14 @@ import type { ClientProfile } from '../../services/clientProfile';
 import { User, Bot, MessageSquare } from 'lucide-react';
 import '../../styles/details-copilot-optimized.css';
 
-export const RightSidebar: React.FC = () => {
+type ConvMeta = { status?: string; priority?: string; unreadMessages?: number; assignedTo?: string };
+type ContactMeta = { createdAt?: string; updatedAt?: string; totalMessages?: number };
+
+const getSafe = <T extends object>(val: unknown, fallback: T): T => (typeof val === 'object' && val !== null ? (val as T) : fallback);
+
+const RightSidebarInner: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'details' | 'copilot'>('copilot');
-  const { activeConversation } = useChatStore();
+  const activeConversation = useChatStore((s) => s.activeConversation);
   const selectedConversationId = activeConversation?.id || null;
 
   // Usar el store global para perfiles de cliente
@@ -79,7 +84,7 @@ export const RightSidebar: React.FC = () => {
       }
       setIsLoadingClientProfile(false);
     }
-  }, [getProfile, isLoadingClientProfile]); // NUEVO: Agregada isLoadingClientProfile como dependencia
+  }, [getProfile, isLoadingClientProfile]);
 
   // Cargar información del cliente cuando cambie la conversación
   useEffect(() => {
@@ -142,6 +147,7 @@ export const RightSidebar: React.FC = () => {
             </button>
           </div>
         </div>
+
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-gray-500 p-4">
             <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -155,9 +161,11 @@ export const RightSidebar: React.FC = () => {
     );
   }
 
+  const convDetails = getSafe<ConvMeta>((clientProfile as unknown as { conversation?: ConvMeta })?.conversation, {});
+  const contactDetails = getSafe<ContactMeta>((clientProfile as unknown as { contactDetails?: ContactMeta })?.contactDetails, {});
+
   return (
     <div className="flex flex-col h-full">
-      {/* Header con título */}
       <div className="p-3 border-b border-gray-200">
         <h2 className="text-base font-semibold text-gray-900 mb-2">INFO/IA</h2>
         <div className="flex space-x-1">
@@ -186,34 +194,33 @@ export const RightSidebar: React.FC = () => {
         </div>
       </div>
 
-      {/* Content */}
-              <div className="flex-1 overflow-y-auto no-scrollbar">
+      <div className="flex-1 overflow-y-auto no-scrollbar">
         {activeTab === 'details' ? (
           clientProfile ? (
             <DetailsPanel
               clientProfile={{
-                id: selectedConversationId,
+                id: selectedConversationId!,
                 name: clientProfile.name,
                 phone: clientProfile.phone,
                 channel: clientProfile.channel as 'whatsapp' | 'telegram' | 'email' | 'phone',
+                status: clientProfile.status as 'active' | 'inactive' | 'blocked',
                 lastContact: clientProfile.lastContact,
                 clientSince: clientProfile.clientSince,
                 whatsappId: clientProfile.whatsappId,
-                tags: clientProfile.tags,
-                status: clientProfile.status as 'active' | 'inactive' | 'blocked'
+                tags: clientProfile.tags || []
               }}
               conversationDetails={{
-                id: selectedConversationId,
-                status: clientProfile.conversation.status as 'open' | 'closed' | 'pending' | 'resolved',
-                priority: clientProfile.conversation.priority as 'low' | 'medium' | 'high' | 'urgent',
-                unreadCount: clientProfile.conversation.unreadMessages,
-                assignedToName: clientProfile.conversation.assignedTo,
-                createdAt: clientProfile.contactDetails?.createdAt || '',
-                updatedAt: clientProfile.contactDetails?.updatedAt || '',
-                lastMessageAt: clientProfile.lastContact,
-                messageCount: clientProfile.contactDetails?.totalMessages || 0,
+                id: selectedConversationId!,
+                status: (convDetails.status as 'open' | 'closed' | 'pending' | 'resolved') || 'open',
+                priority: (convDetails.priority as 'low' | 'medium' | 'high' | 'urgent') || 'low',
+                unreadCount: convDetails.unreadMessages ?? 0,
+                assignedToName: convDetails.assignedTo,
+                createdAt: contactDetails.createdAt || '',
+                updatedAt: contactDetails.updatedAt || '',
+                lastMessageAt: clientProfile.lastContact || '',
+                messageCount: contactDetails.totalMessages || 0,
                 participants: [],
-                tags: clientProfile.tags
+                tags: clientProfile.tags || []
               }}
               notificationSettings={notificationSettings}
               onUpdateNotificationSettings={updateNotificationSettings}
@@ -230,4 +237,6 @@ export const RightSidebar: React.FC = () => {
       </div>
     </div>
   );
-}; 
+};
+
+export const RightSidebar = React.memo(RightSidebarInner); 

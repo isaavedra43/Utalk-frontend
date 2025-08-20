@@ -1,9 +1,89 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Socket } from 'socket.io-client';
 import { useRateLimiter } from '../../hooks/useRateLimiter';
+import { useChatStore } from '../../stores/useChatStore';
+import { infoLog } from '../../config/logger';
+import type { Message } from '../../types';
+
+// Tipos para validación de mensajes
+interface MessageData {
+  conversationId: string;
+  message: {
+    id: string;
+    content: string;
+    sender: string;
+    timestamp: string;
+    type?: string;
+    metadata?: Record<string, unknown>;
+  };
+}
+
+interface SendMessageData {
+  conversationId: string;
+  content: string;
+  type?: string;
+  metadata?: Record<string, unknown>;
+}
+
+// Validación de mensajes
+const validateMessage = (data: MessageData): boolean => {
+  if (!data.conversationId || typeof data.conversationId !== 'string') {
+    infoLog('❌ Mensaje inválido: conversationId faltante o inválido');
+    return false;
+  }
+
+  if (!data.message || typeof data.message !== 'object') {
+    infoLog('❌ Mensaje inválido: objeto message faltante');
+    return false;
+  }
+
+  const { message } = data;
+  
+  if (!message.id || typeof message.id !== 'string') {
+    infoLog('❌ Mensaje inválido: message.id faltante o inválido');
+    return false;
+  }
+
+  if (!message.content || typeof message.content !== 'string') {
+    infoLog('❌ Mensaje inválido: message.content faltante o inválido');
+    return false;
+  }
+
+  if (!message.sender || typeof message.sender !== 'string') {
+    infoLog('❌ Mensaje inválido: message.sender faltante o inválido');
+    return false;
+  }
+
+  if (!message.timestamp || typeof message.timestamp !== 'string') {
+    infoLog('❌ Mensaje inválido: message.timestamp faltante o inválido');
+    return false;
+  }
+
+  return true;
+};
+
+// Validación de datos de envío
+const validateSendData = (data: SendMessageData): boolean => {
+  if (!data.conversationId || typeof data.conversationId !== 'string') {
+    infoLog('❌ Datos de envío inválidos: conversationId faltante o inválido');
+    return false;
+  }
+
+  if (!data.content || typeof data.content !== 'string') {
+    infoLog('❌ Datos de envío inválidos: content faltante o inválido');
+    return false;
+  }
+
+  if (data.content.trim().length === 0) {
+    infoLog('❌ Datos de envío inválidos: content vacío');
+    return false;
+  }
+
+  return true;
+};
 
 export const useWebSocketMessages = (socket: Socket | null) => {
-  // const { addMessage, updateConversation } = useChatStore(); // TODO: Usar cuando se implemente procesamiento completo
+  const { addMessage, updateConversation } = useChatStore();
   
   // Rate limiter para mensajes
   const rateLimiter = useRateLimiter({
@@ -12,40 +92,54 @@ export const useWebSocketMessages = (socket: Socket | null) => {
     retryDelay: 1000
   });
 
-  // Enviar mensaje
+  // Enviar mensaje con validación
   const sendMessage = useCallback((
     conversationId: string, 
     content: string, 
     type: string = 'text', 
     metadata?: Record<string, unknown>
-  ) => {
+  ): boolean => {
     if (!socket || !socket.connected) {
-      console.warn('⚠️ WebSocket no conectado, no se puede enviar mensaje');
+      infoLog('⚠️ WebSocket no conectado, no se puede enviar mensaje');
+      return false;
+    }
+
+    const sendData: SendMessageData = {
+      conversationId,
+      content: content.trim(),
+      type,
+      metadata
+    };
+
+    if (!validateSendData(sendData)) {
       return false;
     }
 
     const success = rateLimiter.makeRequest(() => {
       socket.emit('new-message', {
-        conversationId,
-        content,
-        type,
-        metadata,
+        ...sendData,
         timestamp: new Date().toISOString()
       });
     });
 
     if (!success) {
-      console.warn('⚠️ Rate limit alcanzado para envío de mensajes');
+      infoLog('⚠️ Rate limit alcanzado para envío de mensajes');
       return false;
     }
 
+    infoLog(`📤 Mensaje enviado: ${conversationId} - ${content.substring(0, 50)}...`);
     return true;
   }, [socket, rateLimiter]);
 
   // Marcar mensajes como leídos
   const markMessagesAsRead = useCallback((conversationId: string, messageIds: string[]) => {
     if (!socket || !socket.connected) {
-      console.warn('⚠️ WebSocket no conectado, no se pueden marcar mensajes como leídos');
+      infoLog('⚠️ WebSocket no conectado, no se pueden marcar mensajes como leídos');
+      return;
+    }
+
+    if (!conversationId || !messageIds || messageIds.length === 0) {
+      infoLog('❌ Datos inválidos para marcar como leído');
       return;
     }
 
@@ -58,28 +152,98 @@ export const useWebSocketMessages = (socket: Socket | null) => {
     });
 
     if (!success) {
-      console.warn('⚠️ Rate limit alcanzado para marcar mensajes como leídos');
+      infoLog('⚠️ Rate limit alcanzado para marcar mensajes como leídos');
+      return;
     }
+
+    infoLog(`✅ Mensajes marcados como leídos: ${conversationId} - ${messageIds.length} mensajes`);
   }, [socket, rateLimiter]);
 
-  // Procesar mensaje recibido (simplificado para evitar errores de tipos)
-  const processReceivedMessage = useCallback((data: {
-    conversationId: string;
-    message: {
-      id: string;
-      content: string;
-      sender: string;
-      timestamp: string;
-      type?: string;
-      metadata?: Record<string, unknown>;
-    };
-  }) => {
+  // Procesar mensaje recibido con validación y integración con store
+  const processReceivedMessage = useCallback((data: MessageData) => {
+    if (!validateMessage(data)) {
+      return;
+    }
+
     const { conversationId, message } = data;
     
-    // TODO: Implementar procesamiento completo de mensajes
-    // Por ahora solo log para evitar errores de tipos
-    console.log('📨 Mensaje recibido:', { conversationId, message });
-  }, []);
+    // Convertir a formato del store
+    const messageForStore: Message = {
+      id: message.id,
+      conversationId,
+      content: message.content,
+      direction: 'inbound',
+      createdAt: message.timestamp,
+      updatedAt: message.timestamp,
+      type: (message.type as 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker') || 'text',
+      metadata: {
+        agentId: message.sender,
+        ip: 'unknown',
+        requestId: 'unknown',
+        sentBy: message.sender,
+        source: 'web',
+        timestamp: message.timestamp,
+        ...message.metadata
+      },
+      status: 'received',
+      recipientIdentifier: undefined,
+      senderIdentifier: message.sender,
+      userAgent: undefined
+    };
+
+    // Agregar al store
+    addMessage(conversationId, messageForStore);
+    
+    // Actualizar conversación con último mensaje
+    const lastMessage = {
+      messageId: message.id,
+      sender: message.sender,
+      content: message.content,
+      type: (message.type as 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker') || 'text',
+      timestamp: message.timestamp,
+      direction: 'inbound' as const,
+      status: 'received' as const
+    };
+    
+    updateConversation(conversationId, {
+      lastMessage,
+      lastMessageAt: message.timestamp,
+      unreadCount: 0 // Resetear contador ya que el usuario está viendo el mensaje
+    });
+
+    infoLog(`📨 Mensaje procesado: ${conversationId} - ${message.content.substring(0, 50)}...`);
+  }, [addMessage, updateConversation]);
+
+  // Escuchar eventos de mensajes del socket
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewMessage = (data: MessageData) => {
+      infoLog('📨 Nuevo mensaje recibido via WebSocket');
+      processReceivedMessage(data);
+    };
+
+    const handleMessageRead = (data: { conversationId: string; messageIds: string[] }) => {
+      infoLog(`✅ Mensajes marcados como leídos via WebSocket: ${data.conversationId}`);
+      // Aquí podrías actualizar el estado de los mensajes si es necesario
+    };
+
+    const handleMessageError = (error: { conversationId: string; error: string }) => {
+      infoLog(`❌ Error en mensaje: ${error.conversationId} - ${error.error}`);
+    };
+
+    // Registrar listeners
+    socket.on('new-message', handleNewMessage);
+    socket.on('message-read', handleMessageRead);
+    socket.on('message-error', handleMessageError);
+
+    // Cleanup
+    return () => {
+      socket.off('new-message', handleNewMessage);
+      socket.off('message-read', handleMessageRead);
+      socket.off('message-error', handleMessageError);
+    };
+  }, [socket, processReceivedMessage]);
 
   return {
     sendMessage,

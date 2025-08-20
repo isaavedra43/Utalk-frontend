@@ -113,14 +113,7 @@ export const useConversationList = (filters: ConversationFilters = {}) => {
     }
   }, [conversationsData?.pages, setConversations, isAuthenticated, authLoading, storeConversations.length]);
 
-  // Limpiar URL cuando no hay conversación seleccionada
-  useEffect(() => {
-    if (!activeConversation && urlConversationId) {
-      const newSearchParams = new URLSearchParams(location.search);
-      newSearchParams.delete('conversation');
-      navigate(`${location.pathname}?${newSearchParams.toString()}`, { replace: true });
-    }
-  }, [activeConversation, urlConversationId, navigate, location.pathname, location.search]);
+  // NOTA: Se elimina el cleanup automático de la URL para no borrar '?conversation' mientras se resuelve la selección.
 
   return {
     // Datos de conversaciones

@@ -10,7 +10,7 @@ interface TypingIndicatorProps {
   }>;
 }
 
-export const TypingIndicator: React.FC<TypingIndicatorProps> = ({ users }) => {
+const TypingIndicatorInner: React.FC<TypingIndicatorProps> = ({ users }) => {
   if (users.length === 0) return null;
 
   const typingUsers = users.filter(user => user.isTyping);
@@ -42,4 +42,11 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({ users }) => {
       </div>
     </div>
   );
-}; 
+};
+
+export const TypingIndicator = React.memo(TypingIndicatorInner, (prev, next) => {
+  if (prev.users.length !== next.users.length) return false;
+  const prevIds = prev.users.map(u => `${u.userId}:${u.isTyping}`).join('|');
+  const nextIds = next.users.map(u => `${u.userId}:${u.isTyping}`).join('|');
+  return prevIds === nextIds;
+}); 
