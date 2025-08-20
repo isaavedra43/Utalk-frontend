@@ -1,7 +1,7 @@
 // Exportar todos los hooks
 export { useWebSocket } from './useWebSocket';
 export { useWebSocketContext } from '../contexts/useWebSocketContext';
-export { useConversations } from './useConversations';
+export { useConversations } from './chat/useConversations';
 export { useTyping } from './useTyping';
 export { useOptimisticUpdates } from './useOptimisticUpdates';
 export { useAI } from './useAI';
