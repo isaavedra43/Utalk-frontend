@@ -23,25 +23,51 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
 
   const startRecording = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('🎤 Iniciando grabación de audio...');
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
+      
       streamRef.current = stream;
       
-      const mediaRecorder = new MediaRecorder(stream);
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
       };
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        const url = URL.createObjectURL(audioBlob);
-        setAudioUrl(url);
-        onRecordingComplete(audioBlob);
+        if (audioChunksRef.current.length > 0) {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const url = URL.createObjectURL(audioBlob);
+          setAudioUrl(url);
+          console.log('✅ Audio grabado exitosamente, duración:', duration, 'segundos');
+          onRecordingComplete(audioBlob);
+        } else {
+          console.error('❌ No se pudo grabar audio: no hay datos');
+          alert('No se pudo grabar el audio. Intenta de nuevo.');
+        }
       };
 
-      mediaRecorder.start();
+      mediaRecorder.onerror = (event) => {
+        console.error('❌ Error en la grabación:', event);
+        alert('Error durante la grabación. Intenta de nuevo.');
+        setIsRecording(false);
+      };
+
+      mediaRecorder.start(1000); // Capturar datos cada segundo
       setIsRecording(true);
       setDuration(0);
 
@@ -50,11 +76,24 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
         setDuration(prev => prev + 1);
       }, 1000);
 
+      console.log('🎤 Grabación iniciada');
+
     } catch (error) {
-      console.error('Error accediendo al micrófono:', error);
-      alert('No se pudo acceder al micrófono. Verifica los permisos.');
+      console.error('❌ Error accediendo al micrófono:', error);
+      
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          alert('Permiso denegado para acceder al micrófono. Verifica los permisos del navegador.');
+        } else if (error.name === 'NotFoundError') {
+          alert('No se encontró ningún micrófono. Verifica que tengas un micrófono conectado.');
+        } else {
+          alert(`Error accediendo al micrófono: ${error.message}`);
+        }
+      } else {
+        alert('Error desconocido accediendo al micrófono.');
+      }
     }
-  }, [onRecordingComplete]);
+  }, [onRecordingComplete, duration]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {

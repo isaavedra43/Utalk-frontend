@@ -105,11 +105,85 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     onStopTyping?.();
   }, [externalOnBlur, onStopTyping]);
 
-  const handleAudioComplete = useCallback((audioBlob: Blob) => {
-    // Aquí podrías subir el audio y enviar el mensaje
-    console.log('Audio grabado:', audioBlob);
-    setShowAudioRecorder(false);
-  }, []);
+  const handleAudioComplete = useCallback(async (audioBlob: Blob) => {
+    if (!conversationId) {
+      console.error('❌ No se puede enviar audio: conversationId no disponible');
+      alert('Error: No se puede enviar audio en este momento');
+      return;
+    }
+
+    // Declarar fileId fuera del try para que esté disponible en el catch
+    const fileId = `audio-${Date.now()}`;
+
+    try {
+      console.log('🎤 Audio grabado, enviando...', audioBlob);
+      
+      // Crear un archivo de audio desde el blob
+      const audioFile = new File([audioBlob], `audio-${Date.now()}.wav`, { 
+        type: 'audio/wav' 
+      });
+      
+      // Agregar a la lista de uploads
+      setUploadingFiles(prev => [...prev, {
+        id: fileId,
+        name: audioFile.name,
+        size: audioFile.size,
+        type: audioFile.type,
+        status: 'uploading',
+        progress: 0
+      }]);
+
+      // Actualizar progreso
+      setUploadingFiles(prev => 
+        prev.map(f => f.id === fileId ? { ...f, progress: 25 } : f)
+      );
+
+      // Importar el servicio dinámicamente
+      const { fileUploadService } = await import('../../services/fileUpload');
+      
+      setUploadingFiles(prev => 
+        prev.map(f => f.id === fileId ? { ...f, progress: 50 } : f)
+      );
+
+      // Subir audio al servidor
+      const response = await fileUploadService.uploadFile(audioFile, conversationId);
+      console.log('✅ Audio subido exitosamente:', response);
+      
+      setUploadingFiles(prev => 
+        prev.map(f => f.id === fileId ? { ...f, progress: 100, status: 'success' } : f)
+      );
+
+      // Enviar mensaje con el audio
+      onSendMessage(response.url, 'audio', {
+        fileName: audioFile.name,
+        fileSize: audioFile.size,
+        fileType: audioFile.type,
+        fileId: response.id,
+        duration: response.duration
+      });
+
+      // Remover de la lista después de 2 segundos
+      setTimeout(() => {
+        setUploadingFiles(prev => prev.filter(f => f.id !== fileId));
+      }, 2000);
+
+      setShowAudioRecorder(false);
+      
+    } catch (error) {
+      console.error('❌ Error enviando audio:', error);
+      
+      // Marcar como error
+      setUploadingFiles(prev => 
+        prev.map(f => f.id === fileId ? { 
+          ...f, 
+          status: 'error', 
+          error: 'Error al enviar audio' 
+        } : f)
+      );
+      
+      alert('Error al enviar el audio. Intenta de nuevo.');
+    }
+  }, [conversationId, onSendMessage]);
 
   const handleStickerSelect = useCallback((stickerUrl: string) => {
     onSendMessage(stickerUrl, 'sticker');
@@ -263,8 +337,15 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           <div className="flex items-center space-x-1 pr-2 pb-2">
             {/* Ícono de micrófono */}
             <button
-              onClick={() => setShowAudioRecorder(!showAudioRecorder)}
-              className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
+              onClick={() => {
+                console.log('🎤 Botón de micrófono clickeado, estado actual:', showAudioRecorder);
+                setShowAudioRecorder(!showAudioRecorder);
+              }}
+              className={`p-1.5 rounded-full transition-all duration-200 ${
+                showAudioRecorder 
+                  ? 'text-blue-600 bg-blue-50' 
+                  : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
+              }`}
               disabled={disabled}
               title="Grabar audio"
             >
