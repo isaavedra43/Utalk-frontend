@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Copy, MoreVertical, Phone, Mail, Calendar, MapPin, Bell, FileText, RefreshCw, Mail as MailIcon, Smartphone } from 'lucide-react';
+import { Copy, MoreVertical, Phone, Mail, Calendar, MapPin, Bell, FileText, RefreshCw, Mail as MailIcon, Smartphone, FolderOpen } from 'lucide-react';
 import type { ClientProfile, ConversationDetails } from '../../types/sidebar';
 import type { NotificationSettings } from '../../types/sidebar';
 import { ToggleSwitch } from '../ui/ToggleSwitch';
+import { ConversationFilesModal } from './ConversationFilesModal';
 
 interface DetailsPanelProps {
   clientProfile: ClientProfile;
@@ -20,6 +21,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
   isLoading = false
 }) => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [showFilesModal, setShowFilesModal] = useState(false);
 
   // NUEVO: Función wrapper para logging de cambios de notificaciones
   const handleNotificationChange = (setting: keyof NotificationSettings, value: boolean) => {
@@ -246,7 +248,17 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
 
       {/* Información de Conversación */}
       <div>
-        <h4 className="font-medium text-gray-900 text-sm mb-2">Información de Conversación</h4>
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="font-medium text-gray-900 text-sm">Información de Conversación</h4>
+          <button
+            onClick={() => setShowFilesModal(true)}
+            className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+            title="Ver archivos de la conversación"
+          >
+            <FolderOpen className="w-3 h-3" />
+            Archivos
+          </button>
+        </div>
         <div className="space-y-1.5">
           <div className="flex justify-between">
             <span className="text-xs text-gray-600">Estado</span>
@@ -274,6 +286,14 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
           Datos mapeados desde Twilio: displayName, wa_id, subscribed, last_interaction
         </p>
       </div>
+
+      {/* Modal de Archivos de Conversación */}
+      <ConversationFilesModal
+        isOpen={showFilesModal}
+        onClose={() => setShowFilesModal(false)}
+        conversationId={conversationDetails.id}
+        clientName={clientProfile.name}
+      />
     </div>
   );
 }; 
