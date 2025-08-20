@@ -234,7 +234,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
       {/* Sticker Picker */}
       {showStickerPicker && (
-        <div className="mb-3 sm:mb-4">
+        <div className="mb-3 sm:mb-4 relative">
           <StickerPicker
             onSelectSticker={handleStickerSelect}
             onClose={() => setShowStickerPicker(false)}
@@ -394,8 +394,15 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             
             {/* Ícono de emoji */}
             <button
-              onClick={() => setShowStickerPicker(!showStickerPicker)}
-              className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
+              onClick={() => {
+                console.log('🎯 Botón de emoji clickeado, estado actual:', showStickerPicker);
+                setShowStickerPicker(!showStickerPicker);
+              }}
+              className={`p-1.5 rounded-full transition-all duration-200 ${
+                showStickerPicker 
+                  ? 'text-blue-600 bg-blue-50' 
+                  : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
+              }`}
               disabled={disabled}
               title="Emojis y stickers"
             >
