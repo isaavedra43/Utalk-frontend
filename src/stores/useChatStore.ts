@@ -175,23 +175,10 @@ export const useChatStore = create<ChatStore>()(
           const currentMessages = state.messages[conversationId] || [];
           const updatedMessages = [...currentMessages, message];
           
-          // Calcular nuevo unreadCount si el mensaje es entrante
-          let updatedConversations = state.conversations;
-          if (message.direction === 'inbound' && message.status !== 'read') {
-            const currentUnreadCount = state.conversations.find(c => c.id === conversationId)?.unreadCount || 0;
-            updatedConversations = state.conversations.map((conversation) => {
-              if (conversation.id === conversationId) {
-                return {
-                  ...conversation,
-                  unreadCount: currentUnreadCount + 1
-                };
-              }
-              return conversation;
-            });
-          }
+          // NO actualizar conversation.unreadCount aquí para evitar duplicación
+          // El calculateUnreadCount se encargará de contar los mensajes correctamente
           
           return {
-            conversations: updatedConversations,
             messages: {
               ...state.messages,
               [conversationId]: updatedMessages,
@@ -232,8 +219,13 @@ export const useChatStore = create<ChatStore>()(
         const conversation = state.conversations.find(c => c.id === conversationId);
         const conversationUnreadCount = conversation?.unreadCount || 0;
         
-        // Retornar el mayor para evitar inconsistencias
-        return Math.max(storeUnreadCount, conversationUnreadCount);
+        // Si hay mensajes en el store, usar ese valor (más preciso)
+        // Si no hay mensajes pero hay un unreadCount en la conversación, usar ese
+        if (storeUnreadCount > 0) {
+          return storeUnreadCount;
+        }
+        
+        return conversationUnreadCount;
       },
 
       markConversationAsRead: (conversationId: string) => {
