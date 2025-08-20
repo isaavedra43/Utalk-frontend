@@ -36,6 +36,7 @@ interface ChatStore extends ChatState {
   calculateUnreadCount: (conversationId: string) => number;
   markConversationAsRead: (conversationId: string) => void;
   markMessageAsRead: (conversationId: string, messageId: string) => void;
+  updateConversationUnreadCount: (conversationId: string, unreadCount: number) => void;
   syncConversationsWithQuery: (conversations: Conversation[]) => void;
 }
 
@@ -170,12 +171,33 @@ export const useChatStore = create<ChatStore>()(
         })),
 
       addMessage: (conversationId, message) =>
-        set((state) => ({
-          messages: {
-            ...state.messages,
-            [conversationId]: [...(state.messages[conversationId] || []), message],
-          },
-        })),
+        set((state) => {
+          const currentMessages = state.messages[conversationId] || [];
+          const updatedMessages = [...currentMessages, message];
+          
+          // Calcular nuevo unreadCount si el mensaje es entrante
+          let updatedConversations = state.conversations;
+          if (message.direction === 'inbound' && message.status !== 'read') {
+            const currentUnreadCount = state.conversations.find(c => c.id === conversationId)?.unreadCount || 0;
+            updatedConversations = state.conversations.map((conversation) => {
+              if (conversation.id === conversationId) {
+                return {
+                  ...conversation,
+                  unreadCount: currentUnreadCount + 1
+                };
+              }
+              return conversation;
+            });
+          }
+          
+          return {
+            conversations: updatedConversations,
+            messages: {
+              ...state.messages,
+              [conversationId]: updatedMessages,
+            },
+          };
+        }),
 
       updateMessage: (conversationId, messageId, updates) =>
         set((state) => ({
@@ -200,12 +222,18 @@ export const useChatStore = create<ChatStore>()(
         const state = get();
         const messages = state.messages[conversationId] || [];
         
-        const unreadCount = messages.filter((message: Message) => 
+        // Calcular mensajes no leídos del store
+        const storeUnreadCount = messages.filter((message: Message) => 
           message.direction === 'inbound' && 
           message.status !== 'read'
         ).length;
         
-        return unreadCount;
+        // También verificar si hay un unreadCount en la conversación del store
+        const conversation = state.conversations.find(c => c.id === conversationId);
+        const conversationUnreadCount = conversation?.unreadCount || 0;
+        
+        // Retornar el mayor para evitar inconsistencias
+        return Math.max(storeUnreadCount, conversationUnreadCount);
       },
 
       markConversationAsRead: (conversationId: string) => {
@@ -216,7 +244,19 @@ export const useChatStore = create<ChatStore>()(
             status: message.direction === 'inbound' ? 'read' as const : message.status
           }));
           
+          // También actualizar el unreadCount de la conversación
+          const updatedConversations = state.conversations.map((conversation) => {
+            if (conversation.id === conversationId) {
+              return {
+                ...conversation,
+                unreadCount: 0
+              };
+            }
+            return conversation;
+          });
+          
           return {
+            conversations: updatedConversations,
             messages: {
               ...state.messages,
               [conversationId]: updatedMessages
@@ -239,6 +279,24 @@ export const useChatStore = create<ChatStore>()(
               ...state.messages,
               [conversationId]: updatedMessages
             }
+          };
+        });
+      },
+
+      updateConversationUnreadCount: (conversationId: string, unreadCount: number) => {
+        set((state) => {
+          const updatedConversations = state.conversations.map((conversation) => {
+            if (conversation.id === conversationId) {
+              return {
+                ...conversation,
+                unreadCount
+              };
+            }
+            return conversation;
+          });
+          
+          return {
+            conversations: updatedConversations
           };
         });
       },

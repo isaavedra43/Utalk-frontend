@@ -45,8 +45,12 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
   const [isNewConversationAnimating, setIsNewConversationAnimating] = useState(isNewConversation); // NUEVO: Estado para animación de nueva conversación
   const { calculateUnreadCount, markConversationAsRead } = useChatStore();
   
-  // Calcular unreadCount dinámicamente
-  const unreadCount = calculateUnreadCount(conversation.id);
+  // Calcular unreadCount dinámicamente - PRIORIZAR el del store sobre el del servidor
+  const storeUnreadCount = calculateUnreadCount(conversation.id);
+  const serverUnreadCount = conversation.unreadCount || 0;
+  
+  // Usar el mayor entre el store y el servidor para evitar inconsistencias
+  const unreadCount = Math.max(storeUnreadCount, serverUnreadCount);
   const [prevUnreadCount, setPrevUnreadCount] = useState(unreadCount);
 
   // Marcar conversación como leída cuando se selecciona
