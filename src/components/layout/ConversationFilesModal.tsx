@@ -278,14 +278,14 @@ export const ConversationFilesModal: React.FC<ConversationFilesModalProps> = ({
               <p className="text-sm">No se encontraron archivos en esta conversación</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
               {filteredFiles.map((file) => (
                 <div
                   key={file.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white flex flex-col h-full min-h-[280px]"
+                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white flex flex-col h-full min-h-[320px] w-full"
                 >
                   {/* Thumbnail o icono */}
-                  <div className="flex items-center justify-center h-24 mb-3 bg-gray-50 rounded-lg flex-shrink-0">
+                  <div className="flex items-center justify-center h-28 mb-4 bg-gray-50 rounded-lg flex-shrink-0">
                     {file.thumbnail ? (
                       <img
                         src={file.thumbnail}
@@ -293,22 +293,22 @@ export const ConversationFilesModal: React.FC<ConversationFilesModalProps> = ({
                         className="max-w-full max-h-full object-cover rounded"
                       />
                     ) : (
-                      <div className="text-gray-400">
+                      <div className="text-gray-400 text-2xl">
                         {getFileIcon(file.type)}
                       </div>
                     )}
                   </div>
 
                   {/* Información del archivo */}
-                  <div className="flex-1 flex flex-col space-y-2 min-h-0">
+                  <div className="flex-1 flex flex-col space-y-3 min-h-0">
                     <h3 className="font-medium text-sm text-gray-900 truncate" title={file.name}>
                       {file.name}
                     </h3>
                     
                     <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
-                      <span className="whitespace-nowrap">{formatFileSize(file.size)}</span>
+                      <span className="whitespace-nowrap font-medium">{formatFileSize(file.size)}</span>
                       <span className="whitespace-nowrap">•</span>
-                      <span className="whitespace-nowrap capitalize">{file.type}</span>
+                      <span className="whitespace-nowrap capitalize bg-gray-100 px-2 py-1 rounded-full text-xs">{file.type}</span>
                     </div>
 
                     <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -322,20 +322,20 @@ export const ConversationFilesModal: React.FC<ConversationFilesModalProps> = ({
                     </div>
 
                     {/* Acciones */}
-                    <div className="flex items-center gap-2 pt-2 mt-auto">
+                    <div className="flex items-center gap-2 pt-3 mt-auto">
                       <button
                         onClick={() => handlePreview(file)}
-                        className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors whitespace-nowrap"
+                        className="flex items-center justify-center gap-1 px-3 py-2 text-xs bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors whitespace-nowrap flex-1 min-w-0"
                       >
-                        <Eye className="w-3 h-3" />
-                        Ver
+                        <Eye className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">Ver</span>
                       </button>
                       <button
                         onClick={() => handleDownload(file)}
-                        className="flex items-center gap-1 px-2 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors whitespace-nowrap"
+                        className="flex items-center justify-center gap-1 px-3 py-2 text-xs bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors whitespace-nowrap flex-1 min-w-0"
                       >
-                        <Download className="w-3 h-3" />
-                        Descargar
+                        <Download className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">Descargar</span>
                       </button>
                     </div>
                   </div>
