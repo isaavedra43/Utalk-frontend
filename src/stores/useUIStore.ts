@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { infoLog } from '../config/logger';
 import { devtools } from 'zustand/middleware';
 
 interface UIState {
@@ -86,17 +87,17 @@ export const useUIStore = create<UIStore>()(
       // Sincronización multi-tab (futuro)
       syncWithOtherTabs: () => {
         // FUTURO: Implementar sincronización con otras pestañas
-        console.log('🔄 useUIStore - Sincronización multi-tab no implementada aún');
+        infoLog('🔄 useUIStore - Sincronización multi-tab no implementada aún');
       },
       
       persistCriticalState: () => {
         // FUTURO: Persistir estado crítico en localStorage
-        console.log('💾 useUIStore - Persistencia de estado no implementada aún');
+        infoLog('💾 useUIStore - Persistencia de estado no implementada aún');
       },
       
       restoreCriticalState: () => {
         // FUTURO: Restaurar estado crítico desde localStorage
-        console.log('🔄 useUIStore - Restauración de estado no implementada aún');
+        infoLog('🔄 useUIStore - Restauración de estado no implementada aún');
         return null;
       },
     }),

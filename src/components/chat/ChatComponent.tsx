@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { infoLog } from '../../config/logger';
 import { useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -65,7 +66,7 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
       (prevState.isConnected !== currentState.isConnected && !currentState.isConnected) ||
       (prevState.isJoined !== currentState.isJoined && !currentState.isJoined)
     ) {
-      console.log('📊 ChatComponent - Estado actualizado (CRÍTICO):', {
+      infoLog('📊 ChatComponent - Estado actualizado (CRÍTICO):', {
         conversationId: effectiveConversationId,
         isConnected: currentState.isConnected,
         isJoined: currentState.isJoined,

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { infoLog } from '../config/logger';
 import { useAuthContext } from '../contexts/useAuthContext';
 import api from '../services/api';
 
@@ -27,7 +28,7 @@ const convertOggToWav = async (oggBlob: Blob): Promise<Blob | null> => {
     const wavBlob = audioBufferToWav(renderedBuffer);
     return wavBlob;
   } catch (error) {
-    console.warn('Error convirtiendo OGG a WAV:', error);
+          infoLog('Error convirtiendo OGG a WAV:', error);
     return null;
   }
 };
@@ -169,7 +170,7 @@ export const useAuthenticatedMedia = (originalUrl: string, mediaType: 'image' | 
                 return;
               }
             } catch (error) {
-              console.warn('🔊 Error en conversión OGG a WAV:', error);
+              infoLog('🔊 Error en conversión OGG a WAV:', error);
             }
           }
           
@@ -179,7 +180,7 @@ export const useAuthenticatedMedia = (originalUrl: string, mediaType: 'image' | 
           setMediaUrl(objectUrl);
           
         } catch (err) {
-          console.error(`🎵 Error cargando ${mediaType} público:`, err);
+          infoLog(`🎵 Error cargando ${mediaType} público:`, err);
           setError(err instanceof Error ? err.message : 'Error desconocido');
         } finally {
           setIsLoading(false);
@@ -260,7 +261,7 @@ export const useAuthenticatedMedia = (originalUrl: string, mediaType: 'image' | 
               finalCt = 'audio/ogg; codecs=opus';
             }
             
-            console.log('🔊 [AUDIO DEBUG] Detectado formato por bytes (protegido):', {
+            infoLog('🔊 [AUDIO DEBUG] Detectado formato por bytes (protegido):', {
               header,
               contentType: finalCt
             });
@@ -273,7 +274,7 @@ export const useAuthenticatedMedia = (originalUrl: string, mediaType: 'image' | 
         const needsRetype = finalCt && (!response.data.type || response.data.type === 'application/octet-stream');
         const finalBlob = needsRetype ? new Blob([response.data], { type: finalCt as string }) : response.data;
         
-        console.log('🔊 [AUDIO DEBUG] Blob final (protegido):', {
+        infoLog('🔊 [AUDIO DEBUG] Blob final (protegido):', {
           contentType: finalCt,
           blobSize: finalBlob.size,
           blobType: finalBlob.type,
@@ -286,7 +287,7 @@ export const useAuthenticatedMedia = (originalUrl: string, mediaType: 'image' | 
           try {
             const convertedBlob = await convertOggToWav(finalBlob);
             if (convertedBlob) {
-              console.log('🔊 [AUDIO DEBUG] Conversión OGG a WAV exitosa (protegido)');
+              infoLog('🔊 [AUDIO DEBUG] Conversión OGG a WAV exitosa (protegido)');
               const objectUrl = URL.createObjectURL(convertedBlob);
               if (lastObjectUrlRef.current && lastObjectUrlRef.current.startsWith('blob:')) URL.revokeObjectURL(lastObjectUrlRef.current);
               lastObjectUrlRef.current = objectUrl;
@@ -295,7 +296,7 @@ export const useAuthenticatedMedia = (originalUrl: string, mediaType: 'image' | 
               return;
             }
           } catch (error) {
-            console.warn('🔊 [AUDIO DEBUG] Error en conversión OGG a WAV (protegido):', error);
+            infoLog('🔊 [AUDIO DEBUG] Error en conversión OGG a WAV (protegido):', error);
           }
         }
         
@@ -305,7 +306,7 @@ export const useAuthenticatedMedia = (originalUrl: string, mediaType: 'image' | 
         setMediaUrl(objectUrl);
 
       } catch (err) {
-        console.error(`🎵 Error cargando ${mediaType} autenticado:`, err);
+        infoLog(`🎵 Error cargando ${mediaType} autenticado:`, err);
         setError(err instanceof Error ? err.message : 'Error desconocido');
       } finally {
         setIsLoading(false);

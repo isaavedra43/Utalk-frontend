@@ -4,7 +4,7 @@ export { useAuth } from './useAuth';
 export { useChat } from './useChat';
 export { useContacts } from './useContacts';
 export { useConversationStats } from './useConversationStats';
-export { useOptimisticUpdates } from './useOptimisticUpdates';
+
 export { useRateLimiter } from './useRateLimiter';
 export { useSidebar } from './useSidebar';
 export { useTyping } from './useTyping';

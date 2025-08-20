@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { infoLog } from '../../config/logger';
 import { DetailsPanel } from './DetailsPanel';
 import { CopilotPanel } from './CopilotPanel';
 import { useChatStore } from '../../stores/useChatStore';
@@ -34,7 +35,7 @@ const RightSidebarInner: React.FC = () => {
   const loadClientProfile = useCallback(async (conversationId: string) => {
     if (isLoadingClientProfile) {
       if (import.meta.env.DEV) {
-        console.log('🔄 [DEBUG] Ya cargando perfil, saltando...');
+        infoLog('🔄 [DEBUG] Ya cargando perfil, saltando...');
       }
       return;
     }
@@ -43,12 +44,12 @@ const RightSidebarInner: React.FC = () => {
     
     try {
       if (import.meta.env.DEV) {
-        console.log('📞 [DEBUG] Llamando a getProfile...');
+        infoLog('📞 [DEBUG] Llamando a getProfile...');
       }
       const profile = await getProfile(conversationId);
       
       if (import.meta.env.DEV) {
-        console.log('📊 [DEBUG] Resultado de getProfile:', {
+        infoLog('📊 [DEBUG] Resultado de getProfile:', {
           conversationId,
           hasProfile: !!profile,
           profileName: profile?.name,
@@ -59,18 +60,18 @@ const RightSidebarInner: React.FC = () => {
       
       if (profile) {
         if (import.meta.env.DEV) {
-          console.log('✅ [DEBUG] Perfil obtenido, actualizando estado...');
+          infoLog('✅ [DEBUG] Perfil obtenido, actualizando estado...');
         }
         setClientProfile(profile);
       } else {
         if (import.meta.env.DEV) {
-          console.log('❌ [DEBUG] No se pudo obtener el perfil del cliente');
+          infoLog('❌ [DEBUG] No se pudo obtener el perfil del cliente');
         }
         setClientProfile(null);
       }
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('❌ [DEBUG] Error cargando perfil del cliente:', {
+        infoLog('❌ [DEBUG] Error cargando perfil del cliente:', {
           conversationId,
           errorType: typeof error,
           errorMessage: error instanceof Error ? error.message : String(error),
@@ -80,7 +81,7 @@ const RightSidebarInner: React.FC = () => {
       setClientProfile(null);
     } finally {
       if (import.meta.env.DEV) {
-        console.log('🏁 [DEBUG] Finalizando carga...');
+        infoLog('🏁 [DEBUG] Finalizando carga...');
       }
       setIsLoadingClientProfile(false);
     }
@@ -89,17 +90,17 @@ const RightSidebarInner: React.FC = () => {
   // Cargar información del cliente cuando cambie la conversación
   useEffect(() => {
     if (import.meta.env.DEV) {
-      console.log('🔄 [DEBUG] useEffect RightSidebar - selectedConversationId cambió:', { selectedConversationId });
+      infoLog('🔄 [DEBUG] useEffect RightSidebar - selectedConversationId cambió:', { selectedConversationId });
     }
     
     if (selectedConversationId) {
       if (import.meta.env.DEV) {
-        console.log('📞 [DEBUG] Llamando a loadClientProfile...');
+        infoLog('📞 [DEBUG] Llamando a loadClientProfile...');
       }
       loadClientProfile(selectedConversationId);
     } else {
       if (import.meta.env.DEV) {
-        console.log('🧹 [DEBUG] No hay conversación seleccionada, limpiando perfil...');
+        infoLog('🧹 [DEBUG] No hay conversación seleccionada, limpiando perfil...');
       }
       setClientProfile(null);
     }
@@ -108,7 +109,7 @@ const RightSidebarInner: React.FC = () => {
   // Configuración de notificaciones (mock por ahora)
   const updateNotificationSettings = (updates: Partial<typeof notificationSettings>) => {
     if (import.meta.env.DEV) {
-      console.log('🔄 [DEBUG] Actualizando configuración de notificaciones:', updates);
+      infoLog('🔄 [DEBUG] Actualizando configuración de notificaciones:', updates);
     }
     setNotificationSettings(prev => ({
       ...prev,

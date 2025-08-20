@@ -176,12 +176,19 @@ export const conversationsService = {
 
   // Crear conversación
   async createConversation(conversationData: {
-    customerPhone: string;
-    customerName: string;
-    subject?: string;
-    priority?: string;
-    tags?: string[];
-    metadata?: Record<string, unknown>;
+    contact: {
+      phoneNumber: string;
+      name: string;
+      email?: string;
+      source?: string;
+    };
+    initialMessage: {
+      text: string;
+      type: 'text' | 'file';
+      fileName?: string;
+      fileType?: string;
+      fileSize?: number;
+    };
   }): Promise<Conversation> {
     const response = await api.post(CONVERSATIONS_API, conversationData);
     return response.data;

@@ -1,3 +1,5 @@
+import { infoLog } from '../config/logger';
+
 // FASE 5: Sincronización multi-tab usando BroadcastChannel API
 interface TabSyncMessage {
   type: 'conversation-update' | 'conversation-select' | 'user-status' | 'typing' | 'focus' | 'blur';
@@ -43,9 +45,9 @@ class TabSyncManager {
     try {
       this.channel = new BroadcastChannel('utalk-tab-sync');
       this.channel.onmessage = this.handleMessage.bind(this);
-      console.log('🔄 TabSync - Canal de sincronización inicializado');
+      infoLog('🔄 TabSync - Canal de sincronización inicializado');
     } catch (error) {
-      console.warn('⚠️ TabSync - BroadcastChannel no soportado:', error);
+      infoLog('⚠️ TabSync - BroadcastChannel no soportado:', error);
       this.channel = null;
     }
   }
@@ -74,7 +76,7 @@ class TabSyncManager {
       return;
     }
 
-    console.log('🔄 TabSync - Mensaje recibido:', message);
+    infoLog('🔄 TabSync - Mensaje recibido:', message);
 
     // Actualizar estado local
     this.updateLocalState(message);
@@ -118,7 +120,7 @@ class TabSyncManager {
         try {
           listener(data);
         } catch (error) {
-          console.error('❌ TabSync - Error en listener:', error);
+          infoLog('❌ TabSync - Error en listener:', error);
         }
       });
     }
@@ -131,9 +133,9 @@ class TabSyncManager {
 
     try {
       this.channel.postMessage(message);
-      console.log('🔄 TabSync - Mensaje enviado:', message.type);
+      infoLog('🔄 TabSync - Mensaje enviado:', message.type);
     } catch (error) {
-      console.error('❌ TabSync - Error enviando mensaje:', error);
+              infoLog('❌ TabSync - Error enviando mensaje:', error);
     }
   }
 
@@ -200,7 +202,7 @@ class TabSyncManager {
       this.channel = null;
     }
     this.listeners.clear();
-    console.log('🔄 TabSync - Manager destruido');
+    infoLog('🔄 TabSync - Manager destruido');
   }
 }
 

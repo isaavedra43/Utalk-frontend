@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { infoLog } from '../../config/logger';
 import type { Conversation } from '../../types';
 import { useChatStore } from '../../stores/useChatStore';
 import { convertFirebaseTimestamp } from '../../utils/timestampUtils';
@@ -56,7 +57,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
   // DEBUG: Log para verificar valores
   useEffect(() => {
     if (import.meta.env.DEV) {
-      console.log('🔍 ConversationItem Debug:', {
+      infoLog('🔍 ConversationItem Debug:', {
         conversationId: conversation.id,
         storeUnreadCount,
         serverUnreadCount,
@@ -92,7 +93,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
   useEffect(() => {
     // Solo activar animación si hay un incremento real en el contador
     if (unreadCount > prevUnreadCount && prevUnreadCount >= 0) {
-      console.log('🎉 Nuevo mensaje detectado:', {
+      infoLog('🎉 Nuevo mensaje detectado:', {
         conversationId: conversation.id,
         prevCount: prevUnreadCount,
         newCount: unreadCount,

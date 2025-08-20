@@ -1,3 +1,5 @@
+import { infoLog } from '../config/logger';
+
 // Monitor de performance para logs críticos del sistema
 export class PerformanceMonitor {
   private static instance: PerformanceMonitor;
@@ -13,7 +15,7 @@ export class PerformanceMonitor {
   // Log de inicio de sesión exitoso
   logLoginSuccess(): void {
     const loginTime = Date.now() - this.startTime;
-    console.log('✅ Login exitoso', {
+    infoLog('✅ Login exitoso', {
       tiempoTotal: `${loginTime}ms`,
       timestamp: new Date().toISOString()
     });
@@ -21,7 +23,7 @@ export class PerformanceMonitor {
 
   // Log de conexión WebSocket establecida
   logWebSocketConnected(): void {
-    console.log('🔌 WebSocket conectado', {
+    infoLog('🔌 WebSocket conectado', {
       timestamp: new Date().toISOString(),
       uptime: `${Date.now() - this.startTime}ms`
     });
@@ -29,7 +31,7 @@ export class PerformanceMonitor {
 
   // Log de sincronización de datos
   logDataSync(conversationsCount: number): void {
-    console.log('📊 Datos sincronizados', {
+    infoLog('📊 Datos sincronizados', {
       conversaciones: conversationsCount,
       timestamp: new Date().toISOString()
     });
@@ -37,7 +39,7 @@ export class PerformanceMonitor {
 
   // Log de error crítico del sistema
   logSystemError(error: string, context: string): void {
-    console.error('🚨 Error crítico del sistema', {
+          infoLog('🚨 Error crítico del sistema', {
       error,
       contexto: context,
       timestamp: new Date().toISOString(),
@@ -47,7 +49,7 @@ export class PerformanceMonitor {
 
   // Log de rate limiting
   logRateLimited(event: string, retryAfter: number): void {
-    console.warn('⏸️ Rate limiting detectado', {
+          infoLog('⏸️ Rate limiting detectado', {
       evento: event,
       reintentarEn: `${retryAfter}s`,
       timestamp: new Date().toISOString()
@@ -57,7 +59,7 @@ export class PerformanceMonitor {
   // Log de salud del sistema
   logSystemHealth(): void {
     const uptime = Date.now() - this.startTime;
-    console.log('💚 Salud del sistema', {
+    infoLog('💚 Salud del sistema', {
       uptime: `${uptime}ms`,
       memoria: this.getMemoryUsage(),
       timestamp: new Date().toISOString()

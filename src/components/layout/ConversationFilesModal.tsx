@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { infoLog } from '../../config/logger';
 import { X, Download, Eye, Calendar, User, FileText, Image, Video, Music, File, Search } from 'lucide-react';
 
 interface ConversationFile {
@@ -193,7 +194,7 @@ export const ConversationFilesModal: React.FC<ConversationFilesModalProps> = ({
   const handleDownload = async (file: ConversationFile) => {
     try {
       // TODO: Implementar descarga real
-      console.log('Descargando archivo:', file.name);
+      infoLog('Descargando archivo:', file.name);
       // const response = await api.get(`/files/${file.id}/download`);
       // const blob = new Blob([response.data]);
       // const url = window.URL.createObjectURL(blob);
@@ -212,7 +213,7 @@ export const ConversationFilesModal: React.FC<ConversationFilesModalProps> = ({
 
   const handlePreview = (file: ConversationFile) => {
     // TODO: Implementar preview real
-    console.log('Previsualizando archivo:', file.name);
+    infoLog('Previsualizando archivo:', file.name);
     alert(`Previsualizando: ${file.name}`);
   };
 

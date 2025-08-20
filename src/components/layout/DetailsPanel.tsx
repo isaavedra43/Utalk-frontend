@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Copy, MoreVertical, Phone, Mail, Calendar, MapPin, Bell, FileText, RefreshCw, Mail as MailIcon, Smartphone, FolderOpen } from 'lucide-react';
+import { infoLog } from '../../config/logger';
+import { Copy, MoreVertical, Phone, Mail, Calendar, MapPin, Bell, FileText, RefreshCw, Mail as MailIcon, Smartphone, FolderOpen, Plus, X, Users } from 'lucide-react';
 import type { ClientProfile, ConversationDetails } from '../../types/sidebar';
 import type { NotificationSettings } from '../../types/sidebar';
 import { ToggleSwitch } from '../ui/ToggleSwitch';
@@ -26,7 +27,7 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
   // NUEVO: Función wrapper para logging de cambios de notificaciones
   const handleNotificationChange = (setting: keyof NotificationSettings, value: boolean) => {
     if (import.meta.env.DEV) {
-      console.log('🔄 [DEBUG] Cambiando notificación:', { setting, value, currentSettings: notificationSettings });
+      infoLog('🔄 [DEBUG] Cambiando notificación:', { setting, value, currentSettings: notificationSettings });
     }
     onUpdateNotificationSettings({ [setting]: value });
   };
@@ -279,12 +280,84 @@ export const DetailsPanel: React.FC<DetailsPanelProps> = ({
         </div>
       </div>
 
-      {/* Punto de Integración */}
+      {/* Agentes Asignados */}
       <div className="pt-3 border-t border-gray-200">
-        <h4 className="font-medium text-gray-900 text-sm mb-1">INTEGRATION POINT</h4>
-        <p className="text-xs text-gray-500">
-          Datos mapeados desde Twilio: displayName, wa_id, subscribed, last_interaction
-        </p>
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="font-medium text-gray-900 text-sm">Agentes Asignados</h4>
+          <button
+            onClick={() => {
+              // TODO: Implementar lógica para agregar agente
+              infoLog('Agregar agente a conversación:', conversationDetails.id);
+            }}
+            className="flex items-center gap-1 px-2 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
+            title="Agregar agente a la conversación"
+          >
+            <Plus className="w-3 h-3" />
+            Agregar
+          </button>
+        </div>
+        
+        {conversationDetails.assignedToName ? (
+          <div className="space-y-2">
+            {/* Agente principal asignado */}
+            <div className="flex items-center justify-between p-2 bg-blue-50 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-xs font-medium text-blue-600">
+                    {conversationDetails.assignedToName.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-gray-900">{conversationDetails.assignedToName}</div>
+                  <div className="text-xs text-gray-500">Agente principal</div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-1">
+                <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                <span className="text-xs text-gray-500">En línea</span>
+              </div>
+            </div>
+            
+            {/* Lista de agentes adicionales (simulado) */}
+            <div className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
+                  <span className="text-xs font-medium text-gray-600">M</span>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-gray-900">María González</div>
+                  <div className="text-xs text-gray-500">Soporte técnico</div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  // TODO: Implementar lógica para remover agente
+                  infoLog('Remover agente María González');
+                }}
+                className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                title="Remover agente"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+              <Users className="w-4 h-4 text-gray-400" />
+            </div>
+            <p className="text-xs text-gray-500 mb-2">No hay agentes asignados</p>
+            <button
+              onClick={() => {
+                // TODO: Implementar lógica para asignar primer agente
+                infoLog('Asignar primer agente a conversación:', conversationDetails.id);
+              }}
+              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            >
+              Asignar Agente
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Modal de Archivos de Conversación */}

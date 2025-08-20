@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { infoLog } from '../../../config/logger';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -31,11 +32,11 @@ export const ForgotPasswordForm: React.FC = () => {
     try {
       setIsLoading(true);
       // Aquí se enviaría la petición al backend
-      console.log('Enviando email de recuperación a:', data.email);
+      infoLog('Enviando email de recuperación a:', data.email);
       await new Promise(resolve => setTimeout(resolve, 2000)); // Simular delay
       setIsSuccess(true);
     } catch (error) {
-      console.error('Error al enviar email:', error);
+      infoLog('Error al enviar email:', error);
       setError('Error al enviar el email de recuperación');
     } finally {
       setIsLoading(false);

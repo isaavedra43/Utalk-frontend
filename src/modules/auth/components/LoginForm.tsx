@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { infoLog } from '../../../config/logger';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -56,11 +57,11 @@ export const LoginForm: React.FC = () => {
       await login(data.email, data.password);
       // Prefetch del módulo de chat antes de navegar
       prefetchChat();
-      console.log('✅ Login exitoso, navegando al chat...');
+      infoLog('✅ Login exitoso, navegando al chat...');
       navigate('/chat');
       
     } catch (error) {
-      console.error('Error en login:', error);
+      infoLog('Error en login:', error);
     } finally {
       setIsLoading(false);
     }
@@ -70,9 +71,9 @@ export const LoginForm: React.FC = () => {
     try {
       setSocialLoading(provider);
       // Implementar login social aquí
-      console.log(`Login con ${provider}`);
+      infoLog(`Login con ${provider}`);
     } catch (error) {
-      console.error(`Error en login con ${provider}:`, error);
+      infoLog(`Error en login con ${provider}:`, error);
     } finally {
       setSocialLoading(null);
     }
@@ -122,7 +123,7 @@ export const LoginForm: React.FC = () => {
       }, 100);
 
     } catch (error) {
-      console.error('Error en bypass de desarrollo:', error);
+      infoLog('Error en bypass de desarrollo:', error);
     } finally {
       setIsLoading(false);
     }

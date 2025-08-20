@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTeamStore } from '../../../stores/useTeamStore';
 import type { TeamMember, TeamState, TeamFilters } from '../../../types/team';
 import { teamService } from '../services/teamService';
-import { performanceService } from '../services/performanceService';
+import { performanceService } from '../services/teamPerformanceService';
 import { logger } from '../../../utils/logger';
 
 // Importar hooks especializados

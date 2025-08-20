@@ -102,6 +102,9 @@ export const useWebSocketTyping = (socket: Socket | null) => {
 
   // Limpieza automática de indicadores expirados
   useEffect(() => {
+    // Capturar el valor del ref al inicio del efecto
+    const expirationRef = typingExpirationRef.current;
+    
     // Crear intervalo de limpieza si no existe
     if (cleanupIntervalRef.current == null) {
       cleanupIntervalRef.current = window.setInterval(() => {
@@ -140,9 +143,12 @@ export const useWebSocketTyping = (socket: Socket | null) => {
         clearInterval(cleanupIntervalRef.current);
         cleanupIntervalRef.current = null;
       }
-      typingExpirationRef.current.clear();
+      const timer = expirationRef;
+      if (timer) {
+        timer.clear();
+      }
     };
-  }, []);
+  }, [setTypingUsers]);
 
   // Escuchar eventos de typing del socket
   useEffect(() => {

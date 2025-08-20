@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ConversationList } from './ConversationList';
 import { ChatComponent } from './ChatComponent';
 import { RightSidebar } from '../layout/RightSidebar';
 import { SuggestionsPanel } from '../layout/SuggestionsPanel';
 import { useConversations } from '../../hooks/chat/useConversations';
+import { useCreateConversation } from '../../hooks/chat/useCreateConversation';
 import { 
   ChevronLeft, 
   Settings, 
@@ -27,6 +28,25 @@ const AuthenticatedChatContent: React.FC = () => {
   
   // UNA sola instancia del hook useConversations
   const conversationsData = useConversations({});
+
+  // Hook para crear conversaciones
+  const { createConversation } = useCreateConversation();
+
+  // Función para manejar creación de conversación
+  const handleCreateConversation = useCallback(async (data: {
+    customerName: string;
+    customerPhone: string;
+    customerEmail?: string;
+    message: string;
+    attachment?: File;
+  }) => {
+    try {
+      await createConversation(data);
+      // El hook ya maneja la lógica completa
+    } catch (error) {
+      console.error('Error en ChatModule al crear conversación:', error);
+    }
+  }, [createConversation]);
 
   // Navegación automática a chat tras seleccionar conversación en móvil
   const prevActiveIdRef = React.useRef<string | null>(null);
@@ -74,6 +94,7 @@ const AuthenticatedChatContent: React.FC = () => {
                   conversationsData.selectConversation(id);
                   // setMobileView('chat');  // ya no forzamos aquí, lo maneja el useEffect en móvil
                 }}
+                onCreateConversation={handleCreateConversation}
               />
             </div>
           </div>
@@ -270,7 +291,10 @@ const AuthenticatedChatContent: React.FC = () => {
               </div>
             </div>
           ) : (
-            <ConversationList {...conversationsData} />
+            <ConversationList 
+              {...conversationsData} 
+              onCreateConversation={handleCreateConversation}
+            />
           )}
         </div>
         

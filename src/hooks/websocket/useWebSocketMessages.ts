@@ -205,10 +205,12 @@ export const useWebSocketMessages = (socket: Socket | null) => {
       status: 'received' as const
     };
     
+    // SOLUCIONADO: No resetear el unreadCount aquí, solo actualizar el último mensaje
+    // El unreadCount se manejará correctamente cuando el usuario entre a la conversación
     updateConversation(conversationId, {
       lastMessage,
-      lastMessageAt: message.timestamp,
-      unreadCount: 0 // Resetear contador ya que el usuario está viendo el mensaje
+      lastMessageAt: message.timestamp
+      // Removido: unreadCount: 0 - esto causaba problemas de sincronización
     });
 
     infoLog(`📨 Mensaje procesado: ${conversationId} - ${message.content.substring(0, 50)}...`);

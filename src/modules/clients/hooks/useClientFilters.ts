@@ -1,319 +1,282 @@
 import { useState, useCallback, useMemo } from 'react';
-import type { ClientFilters, ClientStage, ClientStatus, ClientSource, ClientSegment, ClientTag } from '../../../types/client';
+import { infoLog } from '../../../config/logger';
+import type { Client, ClientFilters, ClientStage, ClientStatus, ClientTag, ClientSource, ClientSegment } from '../../../types/client';
 
 interface UseClientFiltersOptions {
-  initialFilters?: Partial<ClientFilters>;
   onFiltersChange?: (filters: ClientFilters) => void;
 }
 
 export const useClientFilters = (options: UseClientFiltersOptions = {}) => {
-  const { initialFilters = {}, onFiltersChange } = options;
-
   const [filters, setFilters] = useState<ClientFilters>({
-    page: 1,
-    limit: 20,
+    search: '',
+    stages: [],
+    agents: [],
+    aiScoreMin: undefined,
+    aiScoreMax: undefined,
+    valueMin: undefined,
+    valueMax: undefined,
+    probabilityMin: undefined,
+    probabilityMax: undefined,
+    statuses: [],
+    tags: [],
+    sources: [],
+    segments: [],
+    createdAfter: undefined,
+    createdBefore: undefined,
     sortBy: 'createdAt',
     sortOrder: 'desc',
-    ...initialFilters
+    page: 1,
+    limit: 20
   });
 
   // Opciones de filtros disponibles
   const filterOptions = useMemo(() => ({
     stages: [
-      { value: 'lead', label: 'Lead' },
-      { value: 'prospect', label: 'Prospect' },
-      { value: 'demo', label: 'Demo' },
-      { value: 'propuesta', label: 'Propuesta' },
-      { value: 'negociacion', label: 'Negociación' },
-      { value: 'ganado', label: 'Ganado' },
-      { value: 'perdido', label: 'Perdido' }
-    ] as const,
-
-    statuses: [
-      { value: 'won', label: 'Ganado' },
-      { value: 'lost', label: 'Perdido' },
-      { value: 'pending', label: 'Pendiente' },
-      { value: 'active', label: 'Activo' },
-      { value: 'inactive', label: 'Inactivo' },
-      { value: 'prospect', label: 'Prospecto' }
-    ] as const,
-
-    sources: [
-      { value: 'facebook', label: 'Facebook' },
-      { value: 'linkedin', label: 'LinkedIn' },
-      { value: 'website', label: 'Sitio Web' },
-      { value: 'referral', label: 'Referido' },
-      { value: 'cold_call', label: 'Llamada Fría' },
-      { value: 'event', label: 'Evento' },
-      { value: 'advertising', label: 'Publicidad' }
-    ] as const,
-
-    segments: [
-      { value: 'startup', label: 'Startup' },
-      { value: 'sme', label: 'PYME' },
-      { value: 'enterprise', label: 'Enterprise' },
-      { value: 'freelancer', label: 'Freelancer' },
-      { value: 'agency', label: 'Agencia' }
-    ] as const,
-
-    tags: [
-      { value: 'VIP', label: 'VIP' },
-      { value: 'Empresa', label: 'Empresa' },
-      { value: 'Startup', label: 'Startup' },
-      { value: 'Premium', label: 'Premium' },
-      { value: 'Hot Lead', label: 'Hot Lead' },
-      { value: 'Cold Lead', label: 'Cold Lead' }
-    ] as const,
-
+      { value: 'lead' as ClientStage, label: 'Lead' },
+      { value: 'prospect' as ClientStage, label: 'Prospecto' },
+      { value: 'demo' as ClientStage, label: 'Demo' },
+      { value: 'propuesta' as ClientStage, label: 'Propuesta' },
+      { value: 'negociacion' as ClientStage, label: 'Negociación' },
+      { value: 'ganado' as ClientStage, label: 'Ganado' },
+      { value: 'perdido' as ClientStage, label: 'Perdido' }
+    ],
     agents: [
       { value: 'admin@company.com', label: 'PS Pedro Sánchez' },
       { value: 'maria@company.com', label: 'MG María González' },
       { value: 'carlos@company.com', label: 'CR Carlos Ruiz' },
       { value: 'ana@company.com', label: 'AM Ana Martín' },
       { value: 'elena@company.com', label: 'ET Elena Torres' }
-    ] as const,
-
+    ],
+    statuses: [
+      { value: 'active' as ClientStatus, label: 'Activo' },
+      { value: 'inactive' as ClientStatus, label: 'Inactivo' },
+      { value: 'pending' as ClientStatus, label: 'Pendiente' }
+    ],
+    tags: [
+      { value: 'VIP' as ClientTag, label: 'VIP' },
+      { value: 'Empresa' as ClientTag, label: 'Empresa' },
+      { value: 'Startup' as ClientTag, label: 'Startup' },
+      { value: 'Premium' as ClientTag, label: 'Premium' },
+      { value: 'Hot Lead' as ClientTag, label: 'Hot Lead' },
+      { value: 'Cold Lead' as ClientTag, label: 'Cold Lead' }
+    ],
+    sources: [
+      { value: 'website' as ClientSource, label: 'Website' },
+      { value: 'referral' as ClientSource, label: 'Referido' },
+      { value: 'social' as ClientSource, label: 'Social Media' },
+      { value: 'email' as ClientSource, label: 'Email' },
+      { value: 'phone' as ClientSource, label: 'Teléfono' },
+      { value: 'other' as ClientSource, label: 'Otro' }
+    ],
+    segments: [
+      { value: 'enterprise' as ClientSegment, label: 'Enterprise' },
+      { value: 'mid-market' as ClientSegment, label: 'Mid-Market' },
+      { value: 'small-business' as ClientSegment, label: 'Small Business' },
+      { value: 'startup' as ClientSegment, label: 'Startup' }
+    ],
     sortOptions: [
       { value: 'name', label: 'Nombre' },
       { value: 'company', label: 'Empresa' },
       { value: 'value', label: 'Valor' },
       { value: 'probability', label: 'Probabilidad' },
-      { value: 'score', label: 'Score' },
-      { value: 'createdAt', label: 'Fecha de Creación' },
-      { value: 'lastContact', label: 'Último Contacto' }
-    ] as const
+      { value: 'score', label: 'Score IA' },
+      { value: 'createdAt', label: 'Fecha de creación' },
+      { value: 'lastContact', label: 'Último contacto' }
+    ]
   }), []);
-
-  // Actualizar filtros
-  const updateFilters = useCallback((newFilters: Partial<ClientFilters>) => {
-    setFilters(prev => {
-      const updated = {
-        ...prev,
-        ...newFilters,
-        page: 1 // Resetear a la primera página cuando cambian los filtros
-      };
-      
-      // Notificar cambio de filtros
-      if (onFiltersChange) {
-        onFiltersChange(updated);
-      }
-      
-      return updated;
-    });
-  }, [onFiltersChange]);
 
   // Actualizar búsqueda
   const updateSearch = useCallback((search: string) => {
-    updateFilters({ search: search.trim() || undefined });
-  }, [updateFilters]);
-
-  // Actualizar filtros por etapa
-  const updateStageFilters = useCallback((stages: ClientStage[]) => {
-    updateFilters({ stages: stages.length > 0 ? stages : undefined });
-  }, [updateFilters]);
-
-  // Actualizar filtros por agente
-  const updateAgentFilters = useCallback((agents: string[]) => {
-    updateFilters({ agents: agents.length > 0 ? agents : undefined });
-  }, [updateFilters]);
-
-  // Actualizar filtros por score de IA
-  const updateAIScoreFilters = useCallback((min?: number, max?: number) => {
-    updateFilters({ 
-      aiScoreMin: min,
-      aiScoreMax: max
-    });
-  }, [updateFilters]);
-
-  // Actualizar filtros por valor
-  const updateValueFilters = useCallback((min?: number, max?: number) => {
-    updateFilters({ 
-      valueMin: min,
-      valueMax: max
-    });
-  }, [updateFilters]);
-
-  // Actualizar filtros por probabilidad
-  const updateProbabilityFilters = useCallback((min?: number, max?: number) => {
-    updateFilters({ 
-      probabilityMin: min,
-      probabilityMax: max
-    });
-  }, [updateFilters]);
-
-  // Actualizar filtros por estado
-  const updateStatusFilters = useCallback((statuses: ClientStatus[]) => {
-    updateFilters({ statuses: statuses.length > 0 ? statuses : undefined });
-  }, [updateFilters]);
-
-  // Actualizar filtros por etiquetas
-  const updateTagFilters = useCallback((tags: ClientTag[]) => {
-    updateFilters({ tags: tags.length > 0 ? tags : undefined });
-  }, [updateFilters]);
-
-  // Actualizar filtros por fuente
-  const updateSourceFilters = useCallback((sources: ClientSource[]) => {
-    updateFilters({ sources: sources.length > 0 ? sources : undefined });
-  }, [updateFilters]);
-
-  // Actualizar filtros por segmento
-  const updateSegmentFilters = useCallback((segments: ClientSegment[]) => {
-    updateFilters({ segments: segments.length > 0 ? segments : undefined });
-  }, [updateFilters]);
-
-  // Actualizar filtros por fecha
-  const updateDateFilters = useCallback((createdAfter?: Date, createdBefore?: Date) => {
-    updateFilters({ 
-      createdAfter,
-      createdBefore
-    });
-  }, [updateFilters]);
-
-  // Actualizar ordenamiento
-  const updateSorting = useCallback((sortBy: ClientFilters['sortBy'], sortOrder: 'asc' | 'desc' = 'desc') => {
-    updateFilters({ sortBy, sortOrder });
-  }, [updateFilters]);
-
-  // Cambiar página
-  const changePage = useCallback((page: number) => {
     setFilters(prev => {
-      const updated = { ...prev, page };
-      
-      if (onFiltersChange) {
-        onFiltersChange(updated);
-      }
-      
-      return updated;
+      const newFilters = { ...prev, search, page: 1 };
+      options.onFiltersChange?.(newFilters);
+      return newFilters;
     });
-  }, [onFiltersChange]);
+  }, [options]);
 
-  // Cambiar tamaño de página
-  const changePageSize = useCallback((limit: number) => {
-    updateFilters({ limit, page: 1 });
-  }, [updateFilters]);
+  // Actualizar filtros de etapa
+  const updateStageFilters = useCallback((stages: ClientStage[]) => {
+    setFilters(prev => {
+      const newFilters = { ...prev, stages, page: 1 };
+      options.onFiltersChange?.(newFilters);
+      return newFilters;
+    });
+  }, [options]);
+
+  // Actualizar filtros de agente
+  const updateAgentFilters = useCallback((agents: string[]) => {
+    setFilters(prev => {
+      const newFilters = { ...prev, agents, page: 1 };
+      options.onFiltersChange?.(newFilters);
+      return newFilters;
+    });
+  }, [options]);
+
+  // Actualizar filtros de score IA
+  const updateAIScoreFilters = useCallback((min?: number, max?: number) => {
+    setFilters(prev => {
+      const newFilters = { ...prev, aiScoreMin: min, aiScoreMax: max, page: 1 };
+      options.onFiltersChange?.(newFilters);
+      return newFilters;
+    });
+  }, [options]);
+
+  // Actualizar filtros de valor
+  const updateValueFilters = useCallback((min?: number, max?: number) => {
+    setFilters(prev => {
+      const newFilters = { ...prev, valueMin: min, valueMax: max, page: 1 };
+      options.onFiltersChange?.(newFilters);
+      return newFilters;
+    });
+  }, [options]);
+
+  // Actualizar filtros de probabilidad
+  const updateProbabilityFilters = useCallback((min?: number, max?: number) => {
+    setFilters(prev => {
+      const newFilters = { ...prev, probabilityMin: min, probabilityMax: max, page: 1 };
+      options.onFiltersChange?.(newFilters);
+      return newFilters;
+    });
+  }, [options]);
+
+  // Actualizar filtros de estado
+  const updateStatusFilters = useCallback((statuses: ClientStatus[]) => {
+    setFilters(prev => {
+      const newFilters = { ...prev, statuses, page: 1 };
+      options.onFiltersChange?.(newFilters);
+      return newFilters;
+    });
+  }, [options]);
+
+  // Actualizar filtros de tags
+  const updateTagFilters = useCallback((tags: ClientTag[]) => {
+    setFilters(prev => {
+      const newFilters = { ...prev, tags, page: 1 };
+      options.onFiltersChange?.(newFilters);
+      return newFilters;
+    });
+  }, [options]);
+
+  // Actualizar filtros de fuente
+  const updateSourceFilters = useCallback((sources: ClientSource[]) => {
+    setFilters(prev => {
+      const newFilters = { ...prev, sources, page: 1 };
+      options.onFiltersChange?.(newFilters);
+      return newFilters;
+    });
+  }, [options]);
+
+  // Actualizar filtros de segmento
+  const updateSegmentFilters = useCallback((segments: ClientSegment[]) => {
+    setFilters(prev => {
+      const newFilters = { ...prev, segments, page: 1 };
+      options.onFiltersChange?.(newFilters);
+      return newFilters;
+    });
+  }, [options]);
+
+  // Actualizar filtros de fecha
+  const updateDateFilters = useCallback((after?: Date, before?: Date) => {
+    setFilters(prev => {
+      const newFilters = { ...prev, createdAfter: after, createdBefore: before, page: 1 };
+      options.onFiltersChange?.(newFilters);
+      return newFilters;
+    });
+  }, [options]);
 
   // Limpiar todos los filtros
   const clearFilters = useCallback(() => {
-    const clearedFilters: ClientFilters = {
-      page: 1,
-      limit: 20,
+    const defaultFilters: ClientFilters = {
+      search: '',
+      stages: [],
+      agents: [],
+      aiScoreMin: undefined,
+      aiScoreMax: undefined,
+      valueMin: undefined,
+      valueMax: undefined,
+      probabilityMin: undefined,
+      probabilityMax: undefined,
+      statuses: [],
+      tags: [],
+      sources: [],
+      segments: [],
+      createdAfter: undefined,
+      createdBefore: undefined,
       sortBy: 'createdAt',
-      sortOrder: 'desc'
+      sortOrder: 'desc',
+      page: 1,
+      limit: 20
     };
-    
-    setFilters(clearedFilters);
-    
-    if (onFiltersChange) {
-      onFiltersChange(clearedFilters);
-    }
-  }, [onFiltersChange]);
-
-  // Limpiar filtros específicos
-  const clearSearch = useCallback(() => {
-    updateFilters({ search: undefined });
-  }, [updateFilters]);
-
-  const clearStageFilters = useCallback(() => {
-    updateFilters({ stages: undefined });
-  }, [updateFilters]);
-
-  const clearAgentFilters = useCallback(() => {
-    updateFilters({ agents: undefined });
-  }, [updateFilters]);
-
-  const clearAIScoreFilters = useCallback(() => {
-    updateFilters({ aiScoreMin: undefined, aiScoreMax: undefined });
-  }, [updateFilters]);
-
-  const clearValueFilters = useCallback(() => {
-    updateFilters({ valueMin: undefined, valueMax: undefined });
-  }, [updateFilters]);
-
-  const clearProbabilityFilters = useCallback(() => {
-    updateFilters({ probabilityMin: undefined, probabilityMax: undefined });
-  }, [updateFilters]);
-
-  const clearStatusFilters = useCallback(() => {
-    updateFilters({ statuses: undefined });
-  }, [updateFilters]);
-
-  const clearTagFilters = useCallback(() => {
-    updateFilters({ tags: undefined });
-  }, [updateFilters]);
-
-  const clearSourceFilters = useCallback(() => {
-    updateFilters({ sources: undefined });
-  }, [updateFilters]);
-
-  const clearSegmentFilters = useCallback(() => {
-    updateFilters({ segments: undefined });
-  }, [updateFilters]);
-
-  const clearDateFilters = useCallback(() => {
-    updateFilters({ createdAfter: undefined, createdBefore: undefined });
-  }, [updateFilters]);
+    setFilters(defaultFilters);
+    options.onFiltersChange?.(defaultFilters);
+  }, [options]);
 
   // Verificar si hay filtros activos
   const hasActiveFilters = useMemo(() => {
-    return Object.keys(filters).some(key => {
-      const value = filters[key as keyof ClientFilters];
-      return key !== 'page' && 
-             key !== 'limit' && 
-             key !== 'sortBy' && 
-             key !== 'sortOrder' && 
-             value !== undefined && 
-             value !== null &&
-             (Array.isArray(value) ? value.length > 0 : true);
-    });
+    return !!(
+      filters.search ||
+      (filters.stages?.length ?? 0) > 0 ||
+      (filters.agents?.length ?? 0) > 0 ||
+      filters.aiScoreMin !== undefined ||
+      filters.aiScoreMax !== undefined ||
+      filters.valueMin !== undefined ||
+      filters.valueMax !== undefined ||
+      filters.probabilityMin !== undefined ||
+      filters.probabilityMax !== undefined ||
+      (filters.statuses?.length ?? 0) > 0 ||
+      (filters.tags?.length ?? 0) > 0 ||
+      (filters.sources?.length ?? 0) > 0 ||
+      (filters.segments?.length ?? 0) > 0 ||
+      filters.createdAfter ||
+      filters.createdBefore
+    );
   }, [filters]);
 
   // Contar filtros activos
   const activeFiltersCount = useMemo(() => {
     let count = 0;
-    
     if (filters.search) count++;
-    if (filters.stages && filters.stages.length > 0) count++;
-    if (filters.agents && filters.agents.length > 0) count++;
+    if ((filters.stages?.length ?? 0) > 0) count++;
+    if ((filters.agents?.length ?? 0) > 0) count++;
     if (filters.aiScoreMin !== undefined || filters.aiScoreMax !== undefined) count++;
     if (filters.valueMin !== undefined || filters.valueMax !== undefined) count++;
     if (filters.probabilityMin !== undefined || filters.probabilityMax !== undefined) count++;
-    if (filters.statuses && filters.statuses.length > 0) count++;
-    if (filters.tags && filters.tags.length > 0) count++;
-    if (filters.sources && filters.sources.length > 0) count++;
-    if (filters.segments && filters.segments.length > 0) count++;
+    if ((filters.statuses?.length ?? 0) > 0) count++;
+    if ((filters.tags?.length ?? 0) > 0) count++;
+    if ((filters.sources?.length ?? 0) > 0) count++;
+    if ((filters.segments?.length ?? 0) > 0) count++;
     if (filters.createdAfter || filters.createdBefore) count++;
-    
     return count;
   }, [filters]);
 
-  // Obtener resumen de filtros activos
+  // Resumen de filtros activos
   const activeFiltersSummary = useMemo(() => {
     const summary: string[] = [];
-    
     if (filters.search) summary.push(`Búsqueda: "${filters.search}"`);
-    if (filters.stages && filters.stages.length > 0) summary.push(`Etapas: ${filters.stages.length}`);
-    if (filters.agents && filters.agents.length > 0) summary.push(`Agentes: ${filters.agents.length}`);
-    if (filters.aiScoreMin !== undefined || filters.aiScoreMax !== undefined) summary.push('Score IA');
-    if (filters.valueMin !== undefined || filters.valueMax !== undefined) summary.push('Valor');
-    if (filters.probabilityMin !== undefined || filters.probabilityMax !== undefined) summary.push('Probabilidad');
-    if (filters.statuses && filters.statuses.length > 0) summary.push(`Estados: ${filters.statuses.length}`);
-    if (filters.tags && filters.tags.length > 0) summary.push(`Etiquetas: ${filters.tags.length}`);
-    if (filters.sources && filters.sources.length > 0) summary.push(`Fuentes: ${filters.sources.length}`);
-    if (filters.segments && filters.segments.length > 0) summary.push(`Segmentos: ${filters.segments.length}`);
-    if (filters.createdAfter || filters.createdBefore) summary.push('Fechas');
-    
+    if ((filters.stages?.length ?? 0) > 0) summary.push(`Etapas: ${filters.stages?.join(', ') ?? ''}`);
+    if ((filters.agents?.length ?? 0) > 0) summary.push(`Agentes: ${filters.agents?.length ?? 0}`);
+    if (filters.aiScoreMin !== undefined || filters.aiScoreMax !== undefined) {
+      summary.push(`Score IA: ${filters.aiScoreMin || 0}-${filters.aiScoreMax || 100}`);
+    }
+    if (filters.valueMin !== undefined || filters.valueMax !== undefined) {
+      summary.push(`Valor: $${filters.valueMin || 0}-$${filters.valueMax || '∞'}`);
+    }
+    if (filters.probabilityMin !== undefined || filters.probabilityMax !== undefined) {
+      summary.push(`Probabilidad: ${filters.probabilityMin || 0}%-${filters.probabilityMax || 100}%`);
+    }
+    if ((filters.statuses?.length ?? 0) > 0) summary.push(`Estados: ${filters.statuses?.join(', ') ?? ''}`);
+    if ((filters.tags?.length ?? 0) > 0) summary.push(`Tags: ${filters.tags?.join(', ') ?? ''}`);
+    if ((filters.sources?.length ?? 0) > 0) summary.push(`Fuentes: ${filters.sources?.join(', ') ?? ''}`);
+    if ((filters.segments?.length ?? 0) > 0) summary.push(`Segmentos: ${filters.segments?.join(', ') ?? ''}`);
+    if (filters.createdAfter || filters.createdBefore) {
+      summary.push('Fechas personalizadas');
+    }
     return summary;
   }, [filters]);
 
   return {
-    // Estado
     filters,
-    
-    // Opciones disponibles
     filterOptions,
-    
-    // Acciones de actualización
-    updateFilters,
     updateSearch,
     updateStageFilters,
     updateAgentFilters,
@@ -325,27 +288,127 @@ export const useClientFilters = (options: UseClientFiltersOptions = {}) => {
     updateSourceFilters,
     updateSegmentFilters,
     updateDateFilters,
-    updateSorting,
-    changePage,
-    changePageSize,
-    
-    // Acciones de limpieza
     clearFilters,
-    clearSearch,
-    clearStageFilters,
-    clearAgentFilters,
-    clearAIScoreFilters,
-    clearValueFilters,
-    clearProbabilityFilters,
-    clearStatusFilters,
-    clearTagFilters,
-    clearSourceFilters,
-    clearSegmentFilters,
-    clearDateFilters,
-    
-    // Utilidades
     hasActiveFilters,
     activeFiltersCount,
     activeFiltersSummary
   };
-}; 
+};
+
+// Hook para memoizar ordenamiento
+export function useClientSortMemo(clients: Client[], sortBy: string, sortOrder: 'asc' | 'desc') {
+  return useMemo(() => {
+    const sortedClients = [...clients];
+    
+    sortedClients.sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      switch (sortBy) {
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case 'company':
+          aValue = a.company.toLowerCase();
+          bValue = b.company.toLowerCase();
+          break;
+        case 'createdAt':
+          aValue = a.createdAt.getTime();
+          bValue = b.createdAt.getTime();
+          break;
+        case 'value':
+          aValue = a.expectedValue;
+          bValue = b.expectedValue;
+          break;
+        case 'probability':
+          aValue = a.probability;
+          bValue = b.probability;
+          break;
+        case 'score':
+          aValue = a.score;
+          bValue = b.score;
+          break;
+        case 'lastContact':
+          aValue = a.lastContact?.getTime() || 0;
+          bValue = b.lastContact?.getTime() || 0;
+          break;
+        default:
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+      }
+
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return sortedClients;
+  }, [clients, sortBy, sortOrder]);
+}
+
+// Hook para memoizar paginación
+export function useClientPaginationMemo(
+  clients: Client[], 
+  page: number, 
+  pageSize: number
+) {
+  return useMemo(() => {
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return clients.slice(startIndex, endIndex);
+  }, [clients, page, pageSize]);
+}
+
+// Hook para memoizar estadísticas
+export function useClientStatsMemo(clients: Client[]) {
+  return useMemo(() => {
+    const totalClients = clients.length;
+    const totalValue = clients.reduce((sum, client) => sum + client.expectedValue, 0);
+    const avgScore = totalClients > 0 ? clients.reduce((sum, client) => sum + client.score, 0) / totalClients : 0;
+    const avgProbability = totalClients > 0 ? clients.reduce((sum, client) => sum + client.probability, 0) / totalClients : 0;
+
+    const stageBreakdown = clients.reduce((acc, client) => {
+      acc[client.stage] = (acc[client.stage] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const statusBreakdown = clients.reduce((acc, client) => {
+      acc[client.status] = (acc[client.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      totalClients,
+      totalValue,
+      avgScore: Math.round(avgScore),
+      avgProbability: Math.round(avgProbability),
+      stageBreakdown,
+      statusBreakdown
+    };
+  }, [clients]);
+}
+
+// Hook para memoizar callbacks
+export function useClientCallbacks() {
+  const handleClientSelect = useCallback((client: Client) => {
+    // Lógica de selección
+    infoLog('Cliente seleccionado:', client.name);
+  }, []);
+
+  const handleClientAction = useCallback((action: string, client: Client) => {
+    // Lógica de acciones
+    infoLog('Acción:', action, 'Cliente:', client.name);
+  }, []);
+
+  const handleClientUpdate = useCallback((clientId: string, updates: Partial<Client>) => {
+    // Lógica de actualización
+    infoLog('Actualizando cliente:', clientId, updates);
+  }, []);
+
+  return {
+    handleClientSelect,
+    handleClientAction,
+    handleClientUpdate
+  };
+} 

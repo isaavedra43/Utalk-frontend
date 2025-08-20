@@ -1,0 +1,167 @@
+{
+  "timestamp": "2025-08-20T17:04:05.998Z",
+  "summary": {
+    "totalSize": 1501318,
+    "totalGzipSize": 450397,
+    "jsFiles": 25,
+    "cssFiles": 2,
+    "otherFiles": 1
+  },
+  "chunks": {
+    "large": [],
+    "medium": [
+      {
+        "name": "js/vendor-BpciVful.js",
+        "size": 239671,
+        "gzipSize": 71901
+      },
+      {
+        "name": "js/charts-DbptoXsc.js",
+        "size": 180850,
+        "gzipSize": 54255
+      },
+      {
+        "name": "js/ChatModule-Cuf9Ezf5.js",
+        "size": 178540,
+        "gzipSize": 53562
+      },
+      {
+        "name": "js/react-dom-DEqAtOsg.js",
+        "size": 173902,
+        "gzipSize": 52171
+      },
+      {
+        "name": "js/ClientModule-GKHN73lG.js",
+        "size": 109409,
+        "gzipSize": 32823
+      }
+    ],
+    "all": [
+      {
+        "name": "js/vendor-BpciVful.js",
+        "size": 239671,
+        "gzipSize": 71901
+      },
+      {
+        "name": "js/charts-DbptoXsc.js",
+        "size": 180850,
+        "gzipSize": 54255
+      },
+      {
+        "name": "js/ChatModule-Cuf9Ezf5.js",
+        "size": 178540,
+        "gzipSize": 53562
+      },
+      {
+        "name": "js/react-dom-DEqAtOsg.js",
+        "size": 173902,
+        "gzipSize": 52171
+      },
+      {
+        "name": "js/ClientModule-GKHN73lG.js",
+        "size": 109409,
+        "gzipSize": 32823
+      },
+      {
+        "name": "js/animations-DfMCjjTx.js",
+        "size": 80410,
+        "gzipSize": 24123
+      },
+      {
+        "name": "js/forms-VveDEa9Y.js",
+        "size": 71614,
+        "gzipSize": 21484
+      },
+      {
+        "name": "js/index-DxX3jAjF.js",
+        "size": 59940,
+        "gzipSize": 17982
+      },
+      {
+        "name": "js/react-core-nWslte8u.js",
+        "size": 43660,
+        "gzipSize": 13098
+      },
+      {
+        "name": "js/websocket-CNdbCZIQ.js",
+        "size": 42906,
+        "gzipSize": 12872
+      },
+      {
+        "name": "js/index-ByhSvoEA.js",
+        "size": 40511,
+        "gzipSize": 12153
+      },
+      {
+        "name": "js/http-client-T70AYnHr.js",
+        "size": 37759,
+        "gzipSize": 11328
+      },
+      {
+        "name": "js/router-uE_x9fdS.js",
+        "size": 33905,
+        "gzipSize": 10172
+      },
+      {
+        "name": "js/date-utils-BDB729Ma.js",
+        "size": 27465,
+        "gzipSize": 8240
+      },
+      {
+        "name": "js/TeamModule-BMPp967Z.js",
+        "size": 24123,
+        "gzipSize": 7237
+      },
+      {
+        "name": "js/TeamMemberDetails-BL0dnGHf.js",
+        "size": 18832,
+        "gzipSize": 5650
+      },
+      {
+        "name": "js/CreateAgentModal-DeoFGGE_.js",
+        "size": 9010,
+        "gzipSize": 2703
+      },
+      {
+        "name": "js/TeamList-cZXSswhe.js",
+        "size": 8885,
+        "gzipSize": 2666
+      },
+      {
+        "name": "js/state-7VMMO21U.js",
+        "size": 5554,
+        "gzipSize": 1666
+      },
+      {
+        "name": "js/SuggestedPlan-CMEjKd1z.js",
+        "size": 4664,
+        "gzipSize": 1399
+      },
+      {
+        "name": "js/TeamHeader-Dt4hXane.js",
+        "size": 4499,
+        "gzipSize": 1350
+      },
+      {
+        "name": "js/CoachingPanel-BiP3I_DF.js",
+        "size": 4480,
+        "gzipSize": 1344
+      },
+      {
+        "name": "js/CalendarHeatmap-Dy1M1Xt4.js",
+        "size": 2707,
+        "gzipSize": 812
+      },
+      {
+        "name": "js/query-client-CPKwp6-t.js",
+        "size": 2376,
+        "gzipSize": 713
+      },
+      {
+        "name": "js/PermissionsPanel-CI7uUXkA.js",
+        "size": 1868,
+        "gzipSize": 560
+      }
+    ]
+  }
+}

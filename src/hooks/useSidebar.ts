@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { infoLog } from '../config/logger';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import type { NotificationSettings } from '../types';
 import { sidebarService } from '../services/sidebar';
@@ -77,7 +78,7 @@ export const useSidebar = (conversationId: string | null) => {
     try {
       await updateNotificationSettingsMutation.mutateAsync({ conversationId, settings });
     } catch (error) {
-      console.error('Error actualizando configuraciones:', error);
+      infoLog('Error actualizando configuraciones:', error);
     }
   }, [conversationId, updateNotificationSettingsMutation]);
 
@@ -87,7 +88,7 @@ export const useSidebar = (conversationId: string | null) => {
     const suggestion = aiSuggestions?.find(s => s.id === suggestionId);
     if (suggestion) {
       navigator.clipboard.writeText(suggestion.content);
-      console.log('Sugerencia copiada al portapapeles');
+      infoLog('Sugerencia copiada al portapapeles');
     }
   }, [aiSuggestions]);
 
@@ -104,7 +105,7 @@ export const useSidebar = (conversationId: string | null) => {
         });
       }
     } catch (error) {
-      console.error('Error mejorando sugerencia:', error);
+      infoLog('Error mejorando sugerencia:', error);
     }
   }, [conversationId, aiSuggestions, generateAISuggestionMutation]);
 
@@ -115,7 +116,7 @@ export const useSidebar = (conversationId: string | null) => {
     try {
       await generateAISuggestionMutation.mutateAsync({ conversationId, context });
     } catch (error) {
-      console.error('Error generando sugerencia:', error);
+      infoLog('Error generando sugerencia:', error);
     }
   }, [conversationId, generateAISuggestionMutation]);
 

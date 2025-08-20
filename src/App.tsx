@@ -6,6 +6,7 @@ import { WebSocketProvider } from './contexts/WebSocketContext'
 import { AuthModule } from './modules/auth'
 import { ForgotPasswordForm } from './modules/auth/components/ForgotPasswordForm'
 import { MainLayout } from './components/layout/MainLayout'
+import { ErrorBoundary } from './components/dashboard/ErrorBoundary'
 
 
 
@@ -48,22 +49,38 @@ ProtectedRoute.displayName = 'ProtectedRoute';
 
 // Componente para el módulo de chat
 const ChatPage: React.FC = () => {
-  return <MainLayout />;
+  return (
+    <ErrorBoundary>
+      <MainLayout />
+    </ErrorBoundary>
+  );
 };
 
 // Componente para el módulo de dashboard
 const DashboardPage: React.FC = () => {
-  return <MainLayout />;
+  return (
+    <ErrorBoundary>
+      <MainLayout />
+    </ErrorBoundary>
+  );
 };
 
 // Componente para el módulo de equipo
 const TeamPage: React.FC = () => {
-  return <MainLayout />;
+  return (
+    <ErrorBoundary>
+      <MainLayout />
+    </ErrorBoundary>
+  );
 };
 
 // Componente para el módulo de clientes
 const ClientsPage: React.FC = () => {
-  return <MainLayout />;
+  return (
+    <ErrorBoundary>
+      <MainLayout />
+    </ErrorBoundary>
+  );
 };
 
 
@@ -73,13 +90,14 @@ function App() {
 
   return (
     <Router>
-      <AuthProvider>
-        <WebSocketProvider>
-          <div className="app">
-            {/* Componente de debug para workspaceId - DESHABILITADO */}
-    
-            
-            <Routes>
+      <ErrorBoundary>
+        <AuthProvider>
+          <WebSocketProvider>
+            <div className="app">
+              {/* Componente de debug para workspaceId - DESHABILITADO */}
+      
+              
+              <Routes>
               <Route path="/login" element={<AuthModule />} />
               <Route path="/forgot-password" element={<ForgotPasswordForm />} />
               <Route 
@@ -122,6 +140,7 @@ function App() {
           </div>
         </WebSocketProvider>
       </AuthProvider>
+        </ErrorBoundary>
     </Router>
   )
 }

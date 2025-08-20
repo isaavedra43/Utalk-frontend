@@ -1,6 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { Search, MessageSquare } from 'lucide-react';
+import { infoLog } from '../../config/logger';
+import { Search, MessageSquare, Plus } from 'lucide-react';
 import { ConversationItem } from './ConversationItem';
+import { CreateConversationModal } from './CreateConversationModal';
 import type { Conversation } from '../../types';
 
 // NUEVO: Props para recibir datos de conversaciones
@@ -18,6 +20,13 @@ interface ConversationListProps {
   setSearchTerm?: (term: string) => void;
   activeFilter?: string;
   setActiveFilter?: (filter: string) => void;
+  onCreateConversation?: (data: {
+    customerName: string;
+    customerPhone: string;
+    customerEmail?: string;
+    message: string;
+    attachment?: File;
+  }) => void;
 }
 
 export const ConversationList: React.FC<ConversationListProps> = ({
@@ -33,7 +42,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   searchTerm: externalSearchTerm,
   setSearchTerm: externalSetSearchTerm,
   activeFilter: externalActiveFilter,
-  setActiveFilter: externalSetActiveFilter
+  setActiveFilter: externalSetActiveFilter,
+  onCreateConversation
 }) => {
   // NUEVO: Usar props externas o estado local
   const [localSearchTerm, setLocalSearchTerm] = useState('');
@@ -50,6 +60,10 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [newConversationIds, setNewConversationIds] = useState<Set<string>>(new Set()); // NUEVO: Trackear conversaciones nuevas
+  
+  // Estado para el modal de crear conversación
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
 
   // NUEVO: Listener para mostrar indicador de sincronización
   useEffect(() => {
@@ -65,7 +79,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
     // NUEVO: Listener para actualizaciones en tiempo real
     const handleWebhookNewMessage = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      console.log('📨 ConversationList - Recibido evento webhook:new-message:', detail);
+      infoLog('📨 ConversationList - Recibido evento webhook:new-message:', detail);
       setLastUpdate(new Date());
       
       // NUEVO: Agregar conversación nueva al set de tracking
@@ -90,7 +104,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
     // NUEVO: Listener para nuevas conversaciones agregadas
     const handleNewConversationAdded = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      console.log('🆕 ConversationList - Nueva conversación agregada:', detail);
+      infoLog('🆕 ConversationList - Nueva conversación agregada:', detail);
       
       if (detail?.conversationId) {
         setNewConversationIds(prev => new Set([...prev, detail.conversationId]));
@@ -173,6 +187,27 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   const handleConversationClick = useCallback((conversationId: string) => {
     selectConversation(conversationId);
   }, [selectConversation]);
+
+  // Función para manejar creación de conversación
+  const handleCreateConversation = useCallback(async (data: {
+    customerName: string;
+    customerPhone: string;
+    customerEmail?: string;
+    message: string;
+    attachment?: File;
+  }) => {
+    if (!onCreateConversation) return;
+    
+    setIsCreatingConversation(true);
+    try {
+      await onCreateConversation(data);
+      setIsCreateModalOpen(false);
+    } catch (error) {
+      console.error('Error creando conversación:', error);
+    } finally {
+      setIsCreatingConversation(false);
+    }
+  }, [onCreateConversation]);
 
   // Memoizar el skeleton de carga
   const loadingSkeleton = useMemo(() => (
@@ -261,7 +296,16 @@ export const ConversationList: React.FC<ConversationListProps> = ({
       {/* Header */}
       <div className="p-3 border-b border-gray-200">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold text-gray-900">Conversaciones</h2>
+          <div className="flex items-center space-x-3">
+            <h2 className="text-base font-semibold text-gray-900">Conversaciones</h2>
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              title="Crear nueva conversación"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
           <div className="flex items-center space-x-1">
             {isSyncing && (
               <div className="flex items-center space-x-1 text-xs text-blue-600">
@@ -345,6 +389,14 @@ export const ConversationList: React.FC<ConversationListProps> = ({
           </div>
         )}
       </div>
+
+      {/* Modal para crear conversación */}
+      <CreateConversationModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreateConversation}
+        isLoading={isCreatingConversation}
+      />
     </div>
   );
 }; 

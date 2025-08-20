@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { infoLog } from '../../config/logger';
 
 interface ToggleSwitchProps {
   checked: boolean;
@@ -26,7 +27,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
     
     // NUEVO: Logging para debug
     if (import.meta.env.DEV) {
-      console.log('🔄 [DEBUG] ToggleSwitch clicked:', { current: checked, new: !checked });
+      infoLog('🔄 [DEBUG] ToggleSwitch clicked:', { current: checked, new: !checked });
     }
     
     setIsAnimating(true);
@@ -38,7 +39,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
 
   // NUEVO: Logging para debug del estado
   if (import.meta.env.DEV) {
-    console.log('🔄 [DEBUG] ToggleSwitch render:', { checked, isAnimating });
+    infoLog('🔄 [DEBUG] ToggleSwitch render:', { checked, isAnimating });
   }
 
   // Configuraciones de tamaño

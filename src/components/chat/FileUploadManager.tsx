@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { infoLog } from '../../config/logger';
 import { 
   Paperclip, 
   Upload, 
@@ -37,27 +38,6 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
-  const handleFileSelect = useCallback((files: FileList | null) => {
-    if (!files) return;
-    
-    const newFiles: FilePreview[] = Array.from(files).map(file => ({
-      id: `${file.name}-${Date.now()}`,
-      file,
-      type: getFileType(file),
-      status: 'pending',
-      progress: 0
-    }));
-
-    setFilePreviews(prev => [...prev, ...newFiles]);
-    
-    // AUTO-SUBIR ARCHIVOS INMEDIATAMENTE
-    setTimeout(() => {
-      newFiles.forEach(filePreview => {
-        uploadFile(filePreview);
-      });
-    }, 100);
-  }, []);
-
   const getFileType = (file: File): string => {
     if (file.type.startsWith('image/')) return 'image';
     if (file.type.startsWith('audio/')) return 'audio';
@@ -82,9 +62,9 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const uploadFile = async (filePreview: FilePreview) => {
+  const uploadFile = useCallback(async (filePreview: FilePreview) => {
     try {
-      console.log('🚀 Iniciando subida de archivo:', filePreview.file.name, 'ConversationId:', conversationId);
+      infoLog('🚀 Iniciando subida de archivo:', filePreview.file.name, 'ConversationId:', conversationId);
       
       setFilePreviews(prev => 
         prev.map(fp => 
@@ -99,9 +79,12 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
         throw new Error('ConversationId es requerido para subir archivos');
       }
       
-      console.log('📤 Enviando request a fileUploadService...');
-      const response = await fileUploadService.uploadFile(filePreview.file, conversationId);
-      console.log('✅ Archivo subido exitosamente:', response);
+      infoLog('📤 Enviando request a fileUploadService...');
+      const response = await fileUploadService.uploadFile(filePreview.file, {
+        conversationId,
+        type: filePreview.file.type
+      });
+      infoLog('✅ Archivo subido exitosamente:', response);
       
       // Actualizar con éxito
       setFilePreviews(prev => 
@@ -123,8 +106,8 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
       });
 
     } catch (error) {
-      console.error('❌ Error uploading file:', error);
-      console.error('📋 Detalles del error:', {
+      infoLog('❌ Error uploading file:', error);
+      infoLog('📋 Detalles del error:', {
         fileName: filePreview.file.name,
         fileSize: filePreview.file.size,
         fileType: filePreview.file.type,
@@ -140,7 +123,28 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
         )
       );
     }
-  };
+  }, [conversationId, onFileUpload]);
+
+  const handleFileSelect = useCallback((files: FileList | null) => {
+    if (!files) return;
+    
+    const newFiles: FilePreview[] = Array.from(files).map(file => ({
+      id: `${file.name}-${Date.now()}`,
+      file,
+      type: getFileType(file),
+      status: 'pending',
+      progress: 0
+    }));
+
+    setFilePreviews(prev => [...prev, ...newFiles]);
+    
+    // AUTO-SUBIR ARCHIVOS INMEDIATAMENTE
+    setTimeout(() => {
+      newFiles.forEach(filePreview => {
+        uploadFile(filePreview);
+      });
+    }, 100);
+  }, [uploadFile]);
 
   const uploadAllFiles = async () => {
     setIsUploading(true);

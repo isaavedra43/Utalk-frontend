@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import { infoLog } from '../../../config/logger';
 import { useClientStore } from '../../../stores/useClientStore';
-import { metricsService } from '../services/metricsService';
+import { clientMetricsService } from '../services/clientMetricsService';
 import { logger, LogCategory } from '../../../utils/logger';
 
 interface UseClientMetricsOptions {
@@ -23,7 +24,7 @@ export const useClientMetrics = (options: UseClientMetricsOptions = {}) => {
   // Cargar métricas - DESHABILITADO TEMPORALMENTE
   const loadMetrics = useCallback(async () => {
     // DESHABILITADO - No hacer llamadas a API
-    console.log('Carga de métricas deshabilitada temporalmente');
+    infoLog('Carga de métricas deshabilitada temporalmente');
     setLoading(false);
     setError(null);
   }, []);
@@ -41,7 +42,7 @@ export const useClientMetrics = (options: UseClientMetricsOptions = {}) => {
 
       logger.info(LogCategory.API, 'Cargando métricas de win rate');
 
-      const winRateMetrics = await metricsService.getWinRateMetrics();
+      const winRateMetrics = await clientMetricsService.getWinRateMetrics();
       
       // Actualizar solo las métricas de win rate en el store
       if (clientData?.metrics) {
@@ -94,7 +95,7 @@ export const useClientMetrics = (options: UseClientMetricsOptions = {}) => {
 
       logger.info(LogCategory.API, 'Cargando métricas de contactos');
 
-      const contactMetrics = await metricsService.getContactMetrics();
+      const contactMetrics = await clientMetricsService.getContactMetrics();
       
       // Actualizar solo las métricas de contacto en el store
       if (clientData?.metrics) {
@@ -141,7 +142,7 @@ export const useClientMetrics = (options: UseClientMetricsOptions = {}) => {
   useEffect(() => {
     if (autoLoad) {
       // DESHABILITADO - No cargar automáticamente
-      console.log('Auto-load de métricas deshabilitado temporalmente');
+      infoLog('Auto-load de métricas deshabilitado temporalmente');
     }
   }, [autoLoad]);
 
@@ -149,7 +150,7 @@ export const useClientMetrics = (options: UseClientMetricsOptions = {}) => {
   useEffect(() => {
     if (autoLoad && refreshInterval > 0) {
       // DESHABILITADO - No configurar intervalos
-      console.log('Intervalo de actualización deshabilitado temporalmente');
+      infoLog('Intervalo de actualización deshabilitado temporalmente');
     }
   }, [autoLoad, refreshInterval]);
 

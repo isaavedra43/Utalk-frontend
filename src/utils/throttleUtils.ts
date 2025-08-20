@@ -1,3 +1,5 @@
+import { infoLog } from '../config/logger';
+
 // Sistema de throttling para controlar frecuencia de operaciones
 
 interface ThrottleConfig {
@@ -134,7 +136,7 @@ export const throttledExecute = async <T>(
       // Si es un error de throttling, esperar y reintentar
       if (lastError.message.includes('throttled')) {
         const waitTime = throttler.getTimeUntilNext();
-        console.log(`⏳ Operación throttled, esperando ${waitTime}ms antes de reintentar...`);
+        infoLog(`⏳ Operación throttled, esperando ${waitTime}ms antes de reintentar...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
         continue;
       }

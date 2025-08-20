@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { infoLog } from '../../../config/logger';
 import { useClientStore } from '../../../stores/useClientStore';
 import type { 
   Client, 
@@ -186,7 +187,7 @@ export const useClients = (options: UseClientsOptions = {}) => {
   // Cargar clientes - DESHABILITADO TEMPORALMENTE
   const loadClients = useCallback(async () => {
     // DESHABILITADO - No hacer llamadas a API
-    console.log('Carga de clientes deshabilitada temporalmente');
+    infoLog('Carga de clientes deshabilitada temporalmente');
     setLoading(false);
     setError(null);
   }, []);
@@ -361,7 +362,7 @@ export const useClients = (options: UseClientsOptions = {}) => {
   useEffect(() => {
     if (autoLoad) {
       // DESHABILITADO - No cargar automáticamente
-      console.log('Auto-load de clientes deshabilitado temporalmente');
+      infoLog('Auto-load de clientes deshabilitado temporalmente');
     }
   }, [autoLoad]);
 

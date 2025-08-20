@@ -1,3 +1,5 @@
+import { infoLog } from './logger';
+
 // Configuración de la aplicación
 export const APP_CONFIG = {
   name: 'UTALK',
@@ -158,6 +160,6 @@ export const logConfigErrors = (): void => {
     errors.forEach(error => console.error(`  - ${error}`));
     console.error('🔧 Por favor, verifica tu archivo .env.development');
   } else {
-    console.log('✅ Configuración válida');
+    infoLog('✅ Configuración válida');
   }
 }; 

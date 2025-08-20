@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { infoLog } from '../config/logger';
 import { useAuthStore } from '../stores/useAuthStore';
 import { WebSocketContext } from '../contexts/WebSocketContext';
 import { useContext } from 'react';
@@ -44,7 +45,7 @@ export const useAuth = (): AuthState => {
         const userData = localStorage.getItem('user');
         
         if (accessToken && refreshToken && userData) {
-          console.log('🔐 useAuth - Tokens encontrados en localStorage, validando con backend...');
+          infoLog('🔐 useAuth - Tokens encontrados en localStorage, validando con backend...');
           
           // Validar token con el backend
           const validatedUser = await authStore.validateToken(accessToken);
@@ -57,17 +58,17 @@ export const useAuth = (): AuthState => {
               email: validatedUser.email, 
               displayName: validatedUser.displayName 
             });
-            console.log('🔐 useAuth - Autenticación inicial exitosa');
+            infoLog('🔐 useAuth - Autenticación inicial exitosa');
           } else {
             // Token inválido, limpiar autenticación
-            console.log('🔐 useAuth - Token inválido, limpiando autenticación');
+            infoLog('🔐 useAuth - Token inválido, limpiando autenticación');
             authStore.clearAuth();
           }
         } else {
-          console.log('🔐 useAuth - No hay tokens en localStorage');
+          infoLog('🔐 useAuth - No hay tokens en localStorage');
         }
       } catch (error) {
-        console.error('Error verificando autenticación inicial:', error);
+        infoLog('Error verificando autenticación inicial:', error);
         // En caso de error, limpiar autenticación para estar seguros
         authStore.clearAuth();
       } finally {
@@ -84,7 +85,7 @@ export const useAuth = (): AuthState => {
   useEffect(() => {
     // SOLO desconectar WebSocket si realmente no está autenticado y no está en proceso de autenticación
     if (disconnectSocket && isConnected && !isAuthenticated && !authStore.loading && !authStore.isAuthenticating) {
-      console.log('🔐 useAuth - Desconectando WebSocket (usuario no autenticado)');
+      infoLog('🔐 useAuth - Desconectando WebSocket (usuario no autenticado)');
       disconnectSocket();
     }
   }, [isAuthenticated, authStore.loading, authStore.isAuthenticating, disconnectSocket, isConnected]);
@@ -92,7 +93,7 @@ export const useAuth = (): AuthState => {
   // Escuchar eventos de autenticación fallida
   useEffect(() => {
     const handleAuthFailed = () => {
-      console.log('🔐 useAuth - Autenticación fallida, desconectando WebSocket');
+      infoLog('🔐 useAuth - Autenticación fallida, desconectando WebSocket');
       if (disconnectSocket) {
         disconnectSocket();
       }
@@ -112,7 +113,7 @@ export const useAuth = (): AuthState => {
       const accessToken = detail?.accessToken;
       
       if (accessToken && connectSocket && !isConnected) {
-        console.log('🔐 useAuth - Login exitoso detectado, conectando WebSocket...');
+        infoLog('🔐 useAuth - Login exitoso detectado, conectando WebSocket...');
         connectSocket(accessToken);
       }
     };
@@ -131,7 +132,7 @@ export const useAuth = (): AuthState => {
       const accessToken = detail?.accessToken;
       
       if (accessToken && connectSocket && !isConnected) {
-        console.log('🔐 useAuth - Token refrescado, reconectando WebSocket...');
+        infoLog('🔐 useAuth - Token refrescado, reconectando WebSocket...');
         connectSocket(accessToken);
       }
     };

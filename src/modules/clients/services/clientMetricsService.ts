@@ -98,7 +98,7 @@ const mockMetrics: ClientMetrics = {
 // Función para simular delay de API
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-export const metricsService = {
+export const clientMetricsService = {
   // Obtener métricas del pipeline
   async getPipelineMetrics(): Promise<ClientMetrics> {
     try {

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { infoLog } from '../../config/logger';
 import { Play, Pause, Square, Mic, Trash2 } from 'lucide-react';
 
 interface AudioRecorderProps {
@@ -23,7 +24,7 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
 
   const startRecording = useCallback(async () => {
     try {
-      console.log('🎤 Iniciando grabación de audio...');
+      infoLog('🎤 Iniciando grabación de audio...');
       
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
@@ -53,16 +54,16 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
           const url = URL.createObjectURL(audioBlob);
           setAudioUrl(url);
-          console.log('✅ Audio grabado exitosamente, duración:', duration, 'segundos');
+          infoLog('✅ Audio grabado exitosamente, duración:', duration, 'segundos');
           onRecordingComplete(audioBlob);
         } else {
-          console.error('❌ No se pudo grabar audio: no hay datos');
+          infoLog('❌ No se pudo grabar audio: no hay datos');
           alert('No se pudo grabar el audio. Intenta de nuevo.');
         }
       };
 
       mediaRecorder.onerror = (event) => {
-        console.error('❌ Error en la grabación:', event);
+        infoLog('❌ Error en la grabación:', event);
         alert('Error durante la grabación. Intenta de nuevo.');
         setIsRecording(false);
       };
@@ -76,10 +77,10 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
         setDuration(prev => prev + 1);
       }, 1000);
 
-      console.log('🎤 Grabación iniciada');
+      infoLog('🎤 Grabación iniciada');
 
     } catch (error) {
-      console.error('❌ Error accediendo al micrófono:', error);
+      infoLog('❌ Error accediendo al micrófono:', error);
       
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {

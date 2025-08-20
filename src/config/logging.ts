@@ -1,3 +1,5 @@
+import { infoLog } from './logger';
+
 // Sistema de logging configurable para reducir logs excesivos
 interface LogConfig {
   enabled: boolean;
@@ -48,9 +50,9 @@ class Logger {
     const prefix = `[${timestamp}] [${level.toUpperCase()}] [${module.toUpperCase()}]`;
     
     if (data) {
-      console.log(`${prefix} ${message}`, data);
+      infoLog(`${prefix} ${message}`, data);
     } else {
-      console.log(`${prefix} ${message}`);
+      infoLog(`${prefix} ${message}`);
     }
   }
 

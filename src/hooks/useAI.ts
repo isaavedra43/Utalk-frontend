@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { aiService, mockAISuggestions } from '../services/ai';
+import { infoLog } from '../config/logger';
 
 export const useAI = (workspaceId: string = 'default_workspace') => {
   // Query para obtener configuración IA
@@ -97,7 +98,7 @@ export const useAI = (workspaceId: string = 'default_workspace') => {
         context
       });
     } catch (error) {
-      console.error('Error generando sugerencia:', error);
+      infoLog('Error generando sugerencia:', error);
       throw error;
     }
   }, [workspaceId, generateSuggestionMutation]);
@@ -114,7 +115,7 @@ export const useAI = (workspaceId: string = 'default_workspace') => {
     try {
       await updateAIConfigMutation.mutateAsync(config);
     } catch (error) {
-      console.error('Error actualizando configuración IA:', error);
+      infoLog('Error actualizando configuración IA:', error);
       throw error;
     }
   }, [updateAIConfigMutation]);
@@ -124,7 +125,7 @@ export const useAI = (workspaceId: string = 'default_workspace') => {
     try {
       await updateSuggestionStatusMutation.mutateAsync({ conversationId, suggestionId, status });
     } catch (error) {
-      console.error('Error actualizando estado de sugerencia:', error);
+      infoLog('Error actualizando estado de sugerencia:', error);
       throw error;
     }
   }, [updateSuggestionStatusMutation]);
@@ -134,7 +135,7 @@ export const useAI = (workspaceId: string = 'default_workspace') => {
     try {
       return await aiService.analyzeSentiment(messageContent);
     } catch (error) {
-      console.error('Error analizando sentimiento:', error);
+      infoLog('Error analizando sentimiento:', error);
       throw error;
     }
   }, []);
@@ -144,7 +145,7 @@ export const useAI = (workspaceId: string = 'default_workspace') => {
     try {
       return await aiService.classifyIntent(messageContent);
     } catch (error) {
-      console.error('Error clasificando intención:', error);
+      infoLog('Error clasificando intención:', error);
       throw error;
     }
   }, []);
@@ -160,7 +161,7 @@ export const useAI = (workspaceId: string = 'default_workspace') => {
     try {
       return await aiService.generateAutoResponse(context);
     } catch (error) {
-      console.error('Error generando respuesta automática:', error);
+      infoLog('Error generando respuesta automática:', error);
       throw error;
     }
   }, []);
@@ -170,7 +171,7 @@ export const useAI = (workspaceId: string = 'default_workspace') => {
     try {
       return await aiService.getAIStats(workspaceId, { days });
     } catch (error) {
-      console.error('Error obteniendo estadísticas IA:', error);
+      infoLog('Error obteniendo estadísticas IA:', error);
       throw error;
     }
   }, [workspaceId]);

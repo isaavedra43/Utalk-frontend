@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { infoLog } from '../config/logger';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useWebSocketContext } from '../contexts/useWebSocketContext';
 import { useAuthContext } from '../contexts/useAuthContext';
@@ -14,6 +15,7 @@ import { retryWithBackoff, generateOperationKey, rateLimitBackoff } from '../uti
 import api from '../services/api';
 import { messagesService } from '../services/messages';
 import { conversationsService } from '../services/conversations';
+import { useChatStore } from '../stores/useChatStore';
 import type { Conversation } from '../types';
 
 interface Message {
@@ -72,7 +74,7 @@ export const useChat = (conversationId: string) => {
   const activeRequestTokenRef = useRef<number>(0);
   useEffect(() => {
     if (currentConversationIdRef.current !== conversationId) {
-      console.log('🔄 useChat - Cambio de conversación detectado:', {
+      infoLog('🔄 useChat - Cambio de conversación detectado:', {
         anterior: currentConversationIdRef.current,
         nueva: conversationId
       });
@@ -96,7 +98,7 @@ export const useChat = (conversationId: string) => {
   // CORREGIDO: Solo cargar mensajes si hay conversationId válido
   const loadMessages = useCallback(async () => {
     if (!conversationId || !conversationId.trim()) {
-      console.log('ℹ️ useChat - No hay conversationId, saltando carga de mensajes');
+      infoLog('ℹ️ useChat - No hay conversationId, saltando carga de mensajes');
       setLoading(false);
       return;
     }
@@ -118,7 +120,7 @@ export const useChat = (conversationId: string) => {
     
     if (cachedMessages) {
       // REDUCIDO: Log menos frecuente para evitar spam
-      // console.log('📋 useChat - Mensajes cargados desde cache:', cachedMessages.length);
+      // infoLog('📋 useChat - Mensajes cargados desde cache:', cachedMessages.length);
       const filteredMessages = cachedMessages.filter((msg: Message) => !optimisticMessagesRef.current.has(msg.id));
       setMessages(filteredMessages);
       setLoading(false);
@@ -145,7 +147,7 @@ export const useChat = (conversationId: string) => {
       messagesCache.set(cacheKey, loadedMessages, 60000);
       
       // REDUCIDO: Log menos frecuente para evitar spam
-      // console.log('📋 useChat - Mensajes cargados desde API:', {
+      // infoLog('📋 useChat - Mensajes cargados desde API:', {
       //   totalMessages: loadedMessages.length,
       //   conversationId: sanitizedId,
       //   cacheKey
@@ -155,7 +157,7 @@ export const useChat = (conversationId: string) => {
       const filteredMessages = loadedMessages.filter((msg: Message) => !optimisticMessagesRef.current.has(msg.id));
       
       // REDUCIDO: Log menos frecuente para evitar spam
-      // console.log('📋 useChat - Mensajes después del filtrado:', {
+      // infoLog('📋 useChat - Mensajes después del filtrado:', {
       //   originalCount: loadedMessages.length,
       //   filteredCount: filteredMessages.length,
       //   optimisticCount: optimisticMessagesRef.current.size
@@ -178,7 +180,7 @@ export const useChat = (conversationId: string) => {
   // Cargar conversación con cache y retry
   const loadConversation = useCallback(async () => {
     if (!conversationId || !conversationId.trim()) {
-      console.log('ℹ️ useChat - No hay conversationId, saltando carga de conversación');
+      infoLog('ℹ️ useChat - No hay conversationId, saltando carga de conversación');
       return;
     }
 
@@ -195,7 +197,7 @@ export const useChat = (conversationId: string) => {
     
     if (cachedConversation) {
       // REDUCIDO: Log menos frecuente para evitar spam
-      // console.log('📋 useChat - Conversación cargada desde cache');
+      // infoLog('📋 useChat - Conversación cargada desde cache');
       setConversation(cachedConversation);
       return;
     }
@@ -215,15 +217,20 @@ export const useChat = (conversationId: string) => {
       messagesCache.set(cacheKey, conversationData, 300000); // 5 minutos de cache
       
       // Log para verificar que se está cargando la información correcta
-      console.log('✅ useChat - Conversación cargada:', {
+      infoLog('✅ useChat - Conversación cargada:', {
         id: conversationData.id,
         customerName: conversationData.customerName,
         customerPhone: conversationData.customerPhone
       });
       
       setConversation(conversationData);
+      
+      // SOLUCIONADO: Marcar conversación como leída cuando se entra
+      // Esto resetea el contador de mensajes no leídos
+      useChatStore.getState().markConversationAsRead(sanitizedId);
+      
     } catch (err: unknown) {
-      console.error('Error cargando conversación:', err);
+      infoLog('Error cargando conversación:', err);
       setError(err instanceof Error ? err.message : 'Error cargando conversación');
     }
   }, [conversationId]);
@@ -238,29 +245,29 @@ export const useChat = (conversationId: string) => {
         const sanitizedId = sanitizeConversationId(conversationId);
         if (!sanitizedId) {
           // NUEVO: Manejo mejorado de IDs inválidos sin spam de errores
-          console.warn('⚠️ useChat - ID de conversación inválido, intentando normalizar:', conversationId);
+          infoLog('⚠️ useChat - ID de conversación inválido, intentando normalizar:', conversationId);
           
           // Intentar normalizar el ID
           const normalizedId = normalizeConversationId(conversationId);
           if (normalizedId) {
-            console.log('✅ useChat - ID normalizado exitosamente:', normalizedId);
+            infoLog('✅ useChat - ID normalizado exitosamente:', normalizedId);
             // Continuar con el ID normalizado
             joinAttemptedRef.current = true;
             
             const joinOperation = async () => {
               try {
-                console.log('🔗 useChat - Uniéndose a conversación normalizada:', normalizedId);
+                infoLog('🔗 useChat - Uniéndose a conversación normalizada:', normalizedId);
                 logConversationId(normalizedId, 'joinConversation');
                 
                 joinConversation(normalizedId);
                 await loadMessages();
                 await loadConversation();
                 
-                console.log('✅ useChat - Mensajes cargados, estableciendo isJoined como true');
+                infoLog('✅ useChat - Mensajes cargados, estableciendo isJoined como true');
                 setIsJoined(true);
                 
               } catch (error) {
-                console.error('❌ useChat - Error uniéndose a conversación normalizada:', error);
+                infoLog('❌ useChat - Error uniéndose a conversación normalizada:', error);
                 setError('Error uniéndose a conversación');
                 joinAttemptedRef.current = false;
               }
@@ -269,7 +276,7 @@ export const useChat = (conversationId: string) => {
             joinOperation();
             return;
           } else {
-            console.error('❌ useChat - ID de conversación inválido y no se puede normalizar:', conversationId);
+            infoLog('❌ useChat - ID de conversación inválido y no se puede normalizar:', conversationId);
             setError(`ID de conversación inválido: ${conversationId}`);
             return;
           }
@@ -279,7 +286,7 @@ export const useChat = (conversationId: string) => {
 
         const joinOperation = async () => {
           try {
-            console.log('🔗 useChat - Uniéndose a conversación:', sanitizedId);
+            infoLog('🔗 useChat - Uniéndose a conversación:', sanitizedId);
             logConversationId(sanitizedId, 'joinConversation');
             
             // Unirse sin throttling para evitar el ciclo
@@ -293,11 +300,11 @@ export const useChat = (conversationId: string) => {
             
             // SOLUCIONADO: Establecer isJoined después de cargar los mensajes exitosamente
             // Esto asegura que el componente se renderice correctamente
-            console.log('✅ useChat - Mensajes cargados, estableciendo isJoined como true');
+            infoLog('✅ useChat - Mensajes cargados, estableciendo isJoined como true');
             setIsJoined(true);
             
           } catch (error) {
-            console.error('❌ useChat - Error uniéndose a conversación:', error);
+            infoLog('❌ useChat - Error uniéndose a conversación:', error);
             setError('Error uniéndose a conversación');
             joinAttemptedRef.current = false; // Resetear flag en caso de error
           }
@@ -318,14 +325,14 @@ export const useChat = (conversationId: string) => {
     // Si los mensajes se cargaron correctamente pero isJoined sigue siendo false,
     // establecer isJoined como true para permitir el renderizado
     if (messages.length > 0 && !isJoined && !loading) {
-      console.log('✅ useChat - Mensajes cargados exitosamente, estableciendo isJoined como true');
+      infoLog('✅ useChat - Mensajes cargados exitosamente, estableciendo isJoined como true');
       setIsJoined(true);
     }
   }, [messages.length, isJoined, loading]);
 
   // NUEVO: Log para monitorear cambios en el estado de mensajes (REDUCIDO para evitar spam)
   // useEffect(() => {
-  //   console.log('📊 useChat - Estado de mensajes actualizado:', {
+  //   infoLog('📊 useChat - Estado de mensajes actualizado:', {
   //     messagesCount: messages.length,
   //     isJoined,
   //     loading,
@@ -362,12 +369,12 @@ export const useChat = (conversationId: string) => {
         if (sanitizedId) {
           const leaveOperation = async () => {
             try {
-              console.log('🔌 useChat - Saliendo de conversación:', sanitizedId);
+              infoLog('🔌 useChat - Saliendo de conversación:', sanitizedId);
               logConversationId(sanitizedId, 'leaveConversation');
               setIsJoined(false);
               leaveConversationStableRef.current(sanitizedId);
             } catch (error) {
-              console.error('❌ useChat - Error saliendo de conversación:', error);
+              infoLog('❌ useChat - Error saliendo de conversación:', error);
             }
           };
 
@@ -382,7 +389,7 @@ export const useChat = (conversationId: string) => {
     const handleConversationJoined = (e: CustomEvent) => {
       const eventData = e.detail as { conversationId: string; roomId: string; onlineUsers: string[]; timestamp: string };
       if (eventData.conversationId === conversationId) {
-        console.log('✅ useChat - Confirmado unido a conversación:', conversationId);
+        infoLog('✅ useChat - Confirmado unido a conversación:', conversationId);
         setIsJoined(true);
       }
     };
@@ -390,7 +397,7 @@ export const useChat = (conversationId: string) => {
     const handleConversationLeft = (e: CustomEvent) => {
       const eventData = e.detail as { conversationId: string; timestamp: string };
       if (eventData.conversationId === conversationId) {
-        console.log('✅ useChat - Confirmado salido de conversación:', conversationId);
+        infoLog('✅ useChat - Confirmado salido de conversación:', conversationId);
         setIsJoined(false);
       }
     };
@@ -420,15 +427,15 @@ export const useChat = (conversationId: string) => {
   useEffect(() => {
     if (!socket || !conversationId || !isConnected) return;
 
-    console.log('🎧 useChat - Configurando listeners para conversación:', conversationId);
+    infoLog('🎧 useChat - Configurando listeners para conversación:', conversationId);
 
     const handleNewMessage = (data: unknown) => {
       const messageData = data as { conversationId: string; message: Message };
-      console.log('📨 useChat - Nuevo mensaje recibido:', messageData);
+      infoLog('📨 useChat - Nuevo mensaje recibido:', messageData);
       
       // DEBUG: Log específico para mensajes de imagen
       if (messageData.message.type === 'image') {
-        console.log('🖼️ useChat - Mensaje de imagen detectado:', {
+        infoLog('🖼️ useChat - Mensaje de imagen detectado:', {
           messageId: messageData.message.id,
           content: messageData.message.content,
           type: messageData.message.type,
@@ -441,11 +448,11 @@ export const useChat = (conversationId: string) => {
           // Evitar duplicados
           const exists = prev.some(msg => msg.id === messageData.message.id);
           if (exists) {
-            console.log('📨 useChat - Mensaje duplicado, ignorando:', messageData.message.id);
+            infoLog('📨 useChat - Mensaje duplicado, ignorando:', messageData.message.id);
             return prev;
           }
           
-          console.log('📨 useChat - Agregando nuevo mensaje:', messageData.message);
+          infoLog('📨 useChat - Agregando nuevo mensaje:', messageData.message);
           return [...prev, messageData.message];
         });
         // Scroll al final después de nuevo mensaje
@@ -457,7 +464,7 @@ export const useChat = (conversationId: string) => {
 
     const handleMessageSent = (data: unknown) => {
       const sentData = data as { conversationId: string; message: { id: string; status: string } };
-      console.log('✅ useChat - Mensaje enviado confirmado:', sentData);
+      infoLog('✅ useChat - Mensaje enviado confirmado:', sentData);
       
       if (sentData.conversationId === conversationId) {
         setMessages(prev => 
@@ -475,7 +482,7 @@ export const useChat = (conversationId: string) => {
 
     const handleMessageDelivered = (data: unknown) => {
       const deliveredData = data as { conversationId: string; messageId: string };
-      console.log('📬 useChat - Mensaje entregado:', deliveredData);
+      infoLog('📬 useChat - Mensaje entregado:', deliveredData);
       
       if (deliveredData.conversationId === conversationId) {
         setMessages(prev => 
@@ -490,7 +497,7 @@ export const useChat = (conversationId: string) => {
 
     const handleMessageRead = (data: unknown) => {
       const readData = data as { conversationId: string; messageIds: string[] };
-      console.log('👁️ useChat - Mensajes leídos:', readData);
+      infoLog('👁️ useChat - Mensajes leídos:', readData);
       
       if (readData.conversationId === conversationId) {
         setMessages(prev => 
@@ -505,7 +512,7 @@ export const useChat = (conversationId: string) => {
 
     const handleTyping = (data: unknown) => {
       const typingData = data as { conversationId: string; userEmail: string };
-      console.log('✍️ useChat - Usuario escribiendo:', typingData);
+      infoLog('✍️ useChat - Usuario escribiendo:', typingData);
       
       if (typingData.conversationId === conversationId) {
         // El context ya maneja typingUsers globalmente
@@ -514,7 +521,7 @@ export const useChat = (conversationId: string) => {
 
     const handleTypingStop = (data: unknown) => {
       const typingStopData = data as { conversationId: string; userEmail: string };
-      console.log('⏹️ useChat - Usuario dejó de escribir:', typingStopData);
+      infoLog('⏹️ useChat - Usuario dejó de escribir:', typingStopData);
       
       if (typingStopData.conversationId === conversationId) {
         // El context ya maneja typingUsers globalmente
@@ -523,7 +530,7 @@ export const useChat = (conversationId: string) => {
 
     const handleConversationUpdate = (data: unknown) => {
       const updateData = data as { conversationId: string; updates: Partial<Conversation> };
-      console.log('🔄 useChat - Conversación actualizada:', updateData);
+      infoLog('🔄 useChat - Conversación actualizada:', updateData);
       
       if (updateData.conversationId === conversationId) {
         setConversation(prev => prev ? { ...prev, ...updateData.updates } : null);
@@ -567,7 +574,7 @@ export const useChat = (conversationId: string) => {
     
     // SOLUCIONADO: Protección más robusta contra doble envío
     if (sending || sendMessageInProgressRef.current) {
-      console.log('⚠️ useChat - Mensaje ya se está enviando, ignorando envío duplicado');
+      infoLog('⚠️ useChat - Mensaje ya se está enviando, ignorando envío duplicado');
       return;
     }
     
@@ -582,7 +589,7 @@ export const useChat = (conversationId: string) => {
     );
     
     if (recentMessage) {
-      console.log('⚠️ useChat - Mensaje idéntico enviado recientemente, ignorando:', content);
+      infoLog('⚠️ useChat - Mensaje idéntico enviado recientemente, ignorando:', content);
       return;
     }
 
@@ -635,10 +642,13 @@ export const useChat = (conversationId: string) => {
         }
       });
 
+      // SOLUCIONADO: No incrementar unreadCount para mensajes outbound (enviados por el usuario)
+      // Los mensajes outbound no deben contar como no leídos
+
       // Remover de mensajes optimistas si existe
       optimisticMessagesRef.current.delete(realMessage.id);
 
-      console.log('✅ Mensaje enviado exitosamente');
+      infoLog('✅ Mensaje enviado exitosamente');
     } catch (error: unknown) {
       console.error('❌ Error enviando mensaje:', error);
       setError(error instanceof Error ? error.message : 'Error enviando mensaje');
@@ -655,7 +665,7 @@ export const useChat = (conversationId: string) => {
 
     if (!isTyping) {
       setIsTyping(true);
-      console.log('✍️ Iniciando indicador de escritura');
+      infoLog('✍️ Iniciando indicador de escritura');
       startTyping(conversationId);
     }
 
@@ -667,7 +677,7 @@ export const useChat = (conversationId: string) => {
     // Auto-stop typing después de 3 segundos
     typingTimeoutRef.current = setTimeout(() => {
       setIsTyping(false);
-      console.log('⏹️ Deteniendo indicador de escritura (timeout)');
+      infoLog('⏹️ Deteniendo indicador de escritura (timeout)');
       stopTyping(conversationId);
     }, 3000);
   }, [conversationId, isConnected, isTyping, startTyping, stopTyping, isJoined]);
@@ -677,7 +687,7 @@ export const useChat = (conversationId: string) => {
     if (!conversationId || !isConnected) return;
 
     setIsTyping(false);
-    console.log('⏹️ Deteniendo indicador de escritura');
+    infoLog('⏹️ Deteniendo indicador de escritura');
     stopTyping(conversationId);
 
     if (typingTimeoutRef.current) {
@@ -690,9 +700,9 @@ export const useChat = (conversationId: string) => {
   const markAsRead = useCallback((messageIds: string[]) => {
     if (!conversationId || !messageIds.length || !isConnected || !isJoined) return;
 
-    console.log('👁️ Marcando mensajes como leídos:', messageIds);
+    infoLog('👁️ Marcando mensajes como leídos:', messageIds);
     
-    // Actualizar estado local inmediatamente
+    // SOLUCIONADO: Actualizar estado local inmediatamente
     setMessages(prev => 
       prev.map(msg => 
         messageIds.includes(msg.id)
@@ -701,12 +711,23 @@ export const useChat = (conversationId: string) => {
       )
     );
 
-    // Enviar al servidor con ID normalizado
+    // SOLUCIONADO: Actualizar el unreadCount de la conversación en el store
     const sanitizedId = sanitizeConversationId(conversationId);
     if (sanitizedId) {
+      // Calcular el nuevo unreadCount basado en los mensajes restantes no leídos
+      const remainingUnread = messages.filter(msg => 
+        msg.direction === 'inbound' && 
+        msg.status !== 'read' && 
+        !messageIds.includes(msg.id)
+      ).length;
+      
+      // Actualizar el store de conversaciones
+      useChatStore.getState().updateConversationUnreadCount(sanitizedId, remainingUnread);
+      
+      // Enviar al servidor
       markMessagesAsRead(sanitizedId, messageIds);
     }
-  }, [conversationId, isConnected, isJoined, markMessagesAsRead]);
+  }, [conversationId, isConnected, isJoined, markMessagesAsRead, messages]);
 
   // Scroll al final
   const scrollToBottom = useCallback(() => {
@@ -719,7 +740,7 @@ export const useChat = (conversationId: string) => {
   const retryMessage = useCallback((messageId: string) => {
     const failedMessage = messages.find(msg => msg.id === messageId);
     if (failedMessage && failedMessage.status === 'failed') {
-      console.log('🔄 Reintentando mensaje:', messageId);
+      infoLog('🔄 Reintentando mensaje:', messageId);
       
       // Remover mensaje fallido
       setMessages(prev => prev.filter(msg => msg.id !== messageId));
@@ -735,7 +756,7 @@ export const useChat = (conversationId: string) => {
 
   // Función para eliminar mensaje optimista
   const deleteOptimisticMessage = useCallback((messageId: string) => {
-    console.log('🗑️ Eliminando mensaje optimista:', messageId);
+    infoLog('🗑️ Eliminando mensaje optimista:', messageId);
     
     setMessages(prev => prev.filter(msg => msg.id !== messageId));
     optimisticMessagesRef.current.delete(messageId);

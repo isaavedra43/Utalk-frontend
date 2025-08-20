@@ -2,6 +2,7 @@
  * Sistema de Rate Limiting para el Frontend
  * Previene peticiones excesivas al backend
  */
+import { infoLog } from '../config/logger';
 
 interface RateLimitConfig {
   maxRequests: number;
@@ -41,7 +42,7 @@ class RateLimiter {
     
     // Si ya se excedió el límite, rechazar
     if (tracker.count >= config.maxRequests) {
-      console.warn(`🚫 Rate limit excedido para ${url}: ${tracker.count}/${config.maxRequests} peticiones en ${config.windowMs}ms`);
+      infoLog(`🚫 Rate limit excedido para ${url}: ${tracker.count}/${config.maxRequests} peticiones en ${config.windowMs}ms`);
       return false;
     }
     

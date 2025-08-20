@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { infoLog } from '../config/logger';
 import { ENV_CONFIG } from './environment';
 import { getUserInfo } from '../utils/jwtUtils';
 
@@ -32,9 +33,9 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
   // CORREGIDO: Usar configuración centralizada
   const SOCKET_URL = ENV_CONFIG.WS_URL;
   
-  console.log('🔌 Configurando socket con URL:', SOCKET_URL);
-  console.log('🔌 Token disponible:', token ? 'Sí' : 'No');
-  console.log('🔌 Configuración de entorno:', {
+  infoLog('🔌 Configurando socket con URL:', SOCKET_URL);
+  infoLog('🔌 Token disponible:', token ? 'Sí' : 'No');
+  infoLog('🔌 Configuración de entorno:', {
     WS_URL: ENV_CONFIG.WS_URL,
     BACKEND_URL: ENV_CONFIG.BACKEND_URL,
     DEV_MODE: ENV_CONFIG.DEV_MODE
@@ -42,7 +43,7 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
   
   // NUEVO: Obtener información del usuario para incluir en la autenticación
   const userInfo = getUserInfo();
-  console.log('🔌 Información del usuario para socket:', {
+  infoLog('🔌 Información del usuario para socket:', {
     workspaceId: userInfo.workspaceId,
     tenantId: userInfo.tenantId,
     userId: userInfo.userId,
@@ -71,7 +72,7 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
 
   // CORREGIDO: Logging más detallado para debugging
   socket.on('connect', () => {
-    console.log('✅ WebSocket: Conectado exitosamente', {
+    infoLog('✅ WebSocket: Conectado exitosamente', {
       socketId: socket.id,
       url: SOCKET_URL,
       timestamp: new Date().toISOString(),
@@ -82,14 +83,14 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
   });
 
   socket.on('connecting', () => {
-    console.log('🔄 WebSocket: Conectando...', {
+    infoLog('🔄 WebSocket: Conectando...', {
       url: SOCKET_URL,
       timestamp: new Date().toISOString()
     });
   });
 
   socket.on('connect_error', (error) => {
-    console.error('❌ WebSocket: Error de conexión', {
+          infoLog('❌ WebSocket: Error de conexión', {
       message: error.message,
       name: error.name,
       url: SOCKET_URL,
@@ -101,16 +102,16 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
     
     // Manejar errores específicos de autenticación
     if (error.message.includes('AUTHENTICATION_REQUIRED') || error.message.includes('JWT token required')) {
-      console.error('🔐 WebSocket: Error de autenticación - Token JWT requerido o inválido');
-      console.error('🔐 Token disponible:', token ? 'Sí' : 'No');
+      infoLog('🔐 WebSocket: Error de autenticación - Token JWT requerido o inválido');
+      infoLog('🔐 Token disponible:', token ? 'Sí' : 'No');
       if (token) {
-        console.error('🔐 Token preview:', token.substring(0, 20) + '...');
+        infoLog('🔐 Token preview:', token.substring(0, 20) + '...');
       }
     }
     
     // NUEVO: Manejar errores específicos de workspaceId
     if (error.message.includes('workspace') || error.message.includes('tenant')) {
-      console.error('🔐 WebSocket: Error de workspace/tenant - Verificar configuración:', {
+      infoLog('🔐 WebSocket: Error de workspace/tenant - Verificar configuración:', {
         workspaceId: userInfo.workspaceId,
         tenantId: userInfo.tenantId
       });
@@ -118,7 +119,7 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
   });
 
   socket.on('disconnect', (reason) => {
-    console.log('🔌 WebSocket: Desconectado', {
+    infoLog('🔌 WebSocket: Desconectado', {
       reason,
       socketId: socket.id,
       timestamp: new Date().toISOString()
@@ -126,7 +127,7 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
   });
 
   socket.on('disconnecting', (reason) => {
-    console.log('🔌 WebSocket: Desconectando...', {
+    infoLog('🔌 WebSocket: Desconectando...', {
       reason,
       socketId: socket.id,
       timestamp: new Date().toISOString()
@@ -134,7 +135,7 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
   });
 
   // NUEVO: Conectar explícitamente el socket
-  console.log('🔌 Conectando socket explícitamente...');
+  infoLog('🔌 Conectando socket explícitamente...');
   socket.connect();
 
   return socket;

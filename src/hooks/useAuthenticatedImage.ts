@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { infoLog } from '../config/logger';
 import { useAuthContext } from '../contexts/useAuthContext';
 import api from '../services/api';
 
@@ -33,7 +34,7 @@ export const useAuthenticatedImage = (originalUrl: string): UseAuthenticatedImag
     let canceled = false;
 
     const loadPublic = async () => {
-      console.log('🖼️ useAuthenticatedImage/public - URL:', originalUrl);
+      infoLog('🖼️ useAuthenticatedImage/public - URL:', originalUrl);
 
       // Cache
       const cached = imageBlobCache.get(originalUrl);
@@ -97,7 +98,7 @@ export const useAuthenticatedImage = (originalUrl: string): UseAuthenticatedImag
     let canceled = false;
 
     const loadProtected = async () => {
-      console.log('🖼️ useAuthenticatedImage/protected - URL:', originalUrl, 'auth:', isAuthenticated);
+      infoLog('🖼️ useAuthenticatedImage/protected - URL:', originalUrl, 'auth:', isAuthenticated);
 
       if (!isAuthenticated) {
         setError('Usuario no autenticado');

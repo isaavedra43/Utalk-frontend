@@ -2,6 +2,7 @@
  * Utilidades para manejo de timestamps de Firebase
  * Convierte timestamps de Firebase (_seconds, _nanoseconds) a fechas JavaScript
  */
+import { infoLog } from '../config/logger';
 
 interface FirebaseTimestamp {
   _seconds: number;
@@ -46,7 +47,7 @@ export const convertFirebaseTimestamp = (timestamp: string | FirebaseTimestamp |
     
     // Verificar que _seconds sea un número válido
     if (typeof firebaseTimestamp._seconds !== 'number' || isNaN(firebaseTimestamp._seconds)) {
-      console.warn('⚠️ Timestamp de Firebase inválido:', timestamp);
+      infoLog('⚠️ Timestamp de Firebase inválido:', timestamp);
       return null;
     }
 
@@ -56,7 +57,7 @@ export const convertFirebaseTimestamp = (timestamp: string | FirebaseTimestamp |
     
     // Verificar que la fecha sea válida
     if (isNaN(date.getTime())) {
-      console.warn('⚠️ Error al convertir timestamp de Firebase a fecha:', timestamp);
+      infoLog('⚠️ Error al convertir timestamp de Firebase a fecha:', timestamp);
       return null;
     }
 

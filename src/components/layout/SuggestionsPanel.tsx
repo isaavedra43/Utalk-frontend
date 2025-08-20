@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { infoLog } from '../../config/logger';
 import { Copy, ThumbsUp, ThumbsDown, ShoppingCart, TrendingUp, MessageSquare, Package, Send, FileText, Download, MessageCircle } from 'lucide-react';
 import '../../styles/suggestions.css';
 
@@ -72,7 +73,7 @@ export const SuggestionsPanel: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Mock data para respuestas sugeridas
-  const mockSuggestedResponses: SuggestedResponse[] = [
+  const mockSuggestedResponses = useMemo<SuggestedResponse[]>(() => [
     {
       id: 'resp-1',
       content: '¡Hola! Gracias por contactarnos. Entiendo tu consulta sobre el producto. Te puedo ayudar con toda la información que necesites.',
@@ -97,10 +98,10 @@ export const SuggestionsPanel: React.FC = () => {
       tags: ['detallado', 'completo'],
       isUsed: false
     }
-  ];
+  ], []);
 
   // Mock data para productos más vendidos de la semana
-  const mockTopSellingProducts: SuggestedProduct[] = [
+  const mockTopSellingProducts = useMemo<SuggestedProduct[]>(() => [
     {
       id: 'top-1',
       name: 'Plan Premium',
@@ -131,13 +132,13 @@ export const SuggestionsPanel: React.FC = () => {
       relevance: 78,
       isRecommended: false
     }
-  ];
+  ], []);
 
   // Mock data para productos sugeridos (mantener para compatibilidad)
-  const mockSuggestedProducts: SuggestedProduct[] = mockTopSellingProducts;
+  const mockSuggestedProducts = useMemo<SuggestedProduct[]>(() => mockTopSellingProducts, [mockTopSellingProducts]);
 
   // Mock data para cotizaciones sugeridas
-  const mockSuggestedQuotes: SuggestedQuote[] = [
+  const mockSuggestedQuotes = useMemo<SuggestedQuote[]>(() => [
     {
       id: 'quote-1',
       title: 'Cotización Premium Completa',
@@ -245,10 +246,10 @@ export const SuggestionsPanel: React.FC = () => {
         }
       ]
     }
-  ];
+  ], []);
 
   // Mock data para documentos enviados al cliente
-  const mockClientDocuments: ClientDocument[] = [
+  const mockClientDocuments = useMemo<ClientDocument[]>(() => [
     {
       id: 'doc-1',
       type: 'quote',
@@ -315,7 +316,7 @@ export const SuggestionsPanel: React.FC = () => {
       description: 'Cotización para plan básico mensual',
       priority: 'medium'
     }
-  ];
+  ], []);
 
   useEffect(() => {
     setIsLoading(true);
@@ -327,7 +328,7 @@ export const SuggestionsPanel: React.FC = () => {
       setClientDocuments(mockClientDocuments);
       setIsLoading(false);
     }, 500);
-  }, []);
+  }, [mockClientDocuments, mockSuggestedProducts, mockSuggestedQuotes, mockSuggestedResponses]);
 
   const handleUseResponse = (responseId: string) => {
     setSuggestedResponses(prev => 
@@ -344,7 +345,7 @@ export const SuggestionsPanel: React.FC = () => {
 
   const handleRateResponse = (responseId: string, rating: 'up' | 'down') => {
     // Aquí implementarías la lógica para calificar la respuesta
-    console.log(`Respuesta ${responseId} calificada como: ${rating}`);
+    infoLog(`Respuesta ${responseId} calificada como: ${rating}`);
   };
 
   const handleRecommendProduct = (productId: string) => {
@@ -359,7 +360,7 @@ export const SuggestionsPanel: React.FC = () => {
   const handleSendToCopilot = (responseContent: string) => {
     // Aquí implementarías la lógica para enviar al Copiloto
     // Por ejemplo, usando un contexto global o un evento personalizado
-    console.log('Enviando al Copiloto:', responseContent);
+    infoLog('Enviando al Copiloto:', responseContent);
     
     // Disparar evento personalizado para comunicar con el Copiloto
     const event = new CustomEvent('sendToCopilot', {
@@ -374,7 +375,7 @@ export const SuggestionsPanel: React.FC = () => {
 
   // Función para enviar producto al Copiloto
   const handleSendProductToCopilot = (product: SuggestedProduct) => {
-    console.log('Enviando producto al Copiloto:', product);
+    infoLog('Enviando producto al Copiloto:', product);
     
     const event = new CustomEvent('sendToCopilot', {
       detail: {
@@ -395,12 +396,12 @@ export const SuggestionsPanel: React.FC = () => {
       )
     );
     // Aquí se implementaría la lógica para generar la cotización
-    console.log('Generando cotización:', quoteId);
+    infoLog('Generando cotización:', quoteId);
   };
 
   const handleSendQuoteToChat = (quote: SuggestedQuote) => {
     // Aquí se implementaría la lógica para enviar al chat
-    console.log('Enviando cotización al chat:', quote);
+    infoLog('Enviando cotización al chat:', quote);
     
     const quoteText = `📋 **Cotización: ${quote.title}**
     
@@ -424,7 +425,7 @@ ${quote.items.map(item => `• ${item.name} - ${quote.currency} ${item.total}`).
 
   const handleDownloadQuote = (quote: SuggestedQuote) => {
     // Aquí se implementaría la lógica para descargar la cotización
-    console.log('Descargando cotización:', quote);
+    infoLog('Descargando cotización:', quote);
     
     // Simular descarga
     const quoteContent = `

@@ -1,3 +1,5 @@
+import { infoLog } from './logger';
+
 /**
  * Configuración de workspace y tenant
  */
@@ -16,7 +18,7 @@ export const getWorkspaceConfig = () => {
   const envTenantId = import.meta.env.VITE_TENANT_ID;
   
   if (envWorkspaceId && envWorkspaceId !== DEFAULT_WORKSPACE_ID) {
-    console.log('🔧 Workspace config - Usando valores de entorno:', {
+    infoLog('🔧 Workspace config - Usando valores de entorno:', {
       workspaceId: envWorkspaceId,
       tenantId: envTenantId || DEFAULT_TENANT_ID
     });
@@ -30,7 +32,7 @@ export const getWorkspaceConfig = () => {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (user.workspaceId && user.workspaceId !== DEFAULT_WORKSPACE_ID) {
-      console.log('🔧 Workspace config - Usando valores del usuario:', {
+      infoLog('🔧 Workspace config - Usando valores del usuario:', {
         workspaceId: user.workspaceId,
         tenantId: user.tenantId || DEFAULT_TENANT_ID
       });
@@ -40,11 +42,11 @@ export const getWorkspaceConfig = () => {
       };
     }
   } catch (error) {
-    console.warn('⚠️ Error leyendo workspace del localStorage:', error);
+          infoLog('⚠️ Error leyendo workspace del localStorage:', error);
   }
   
   // 3. Usar valores por defecto
-  console.warn('⚠️ Workspace config - Usando valores por defecto:', {
+        infoLog('⚠️ Workspace config - Usando valores por defecto:', {
     workspaceId: DEFAULT_WORKSPACE_ID,
     tenantId: DEFAULT_TENANT_ID
   });

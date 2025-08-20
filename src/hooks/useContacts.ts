@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import type { Contact } from '../types';
 import { contactsService, mockContacts } from '../services/contacts';
+import { infoLog } from '../config/logger';
 
 export const useContacts = (filters: {
   search?: string;
@@ -117,7 +118,7 @@ export const useContacts = (filters: {
     try {
       await createContactMutation.mutateAsync(contactData);
     } catch (error) {
-      console.error('Error creando contacto:', error);
+      infoLog('Error creando contacto:', error);
       throw error;
     }
   }, [createContactMutation]);
@@ -133,7 +134,7 @@ export const useContacts = (filters: {
     try {
       await updateContactMutation.mutateAsync({ contactId, updateData });
     } catch (error) {
-      console.error('Error actualizando contacto:', error);
+      infoLog('Error actualizando contacto:', error);
       throw error;
     }
   }, [updateContactMutation]);
@@ -143,7 +144,7 @@ export const useContacts = (filters: {
     try {
       await deleteContactMutation.mutateAsync(contactId);
     } catch (error) {
-      console.error('Error eliminando contacto:', error);
+      infoLog('Error eliminando contacto:', error);
       throw error;
     }
   }, [deleteContactMutation]);
@@ -153,7 +154,7 @@ export const useContacts = (filters: {
     try {
       await addContactTagsMutation.mutateAsync({ contactId, tags });
     } catch (error) {
-      console.error('Error agregando tags:', error);
+      infoLog('Error agregando tags:', error);
       throw error;
     }
   }, [addContactTagsMutation]);
@@ -163,7 +164,7 @@ export const useContacts = (filters: {
     try {
       await removeContactTagsMutation.mutateAsync({ contactId, tags });
     } catch (error) {
-      console.error('Error removiendo tags:', error);
+      infoLog('Error removiendo tags:', error);
       throw error;
     }
   }, [removeContactTagsMutation]);
@@ -173,7 +174,7 @@ export const useContacts = (filters: {
     try {
       return await contactsService.searchContactByPhone(phone);
     } catch (error) {
-      console.error('Error buscando contacto:', error);
+      infoLog('Error buscando contacto:', error);
       return null;
     }
   }, []);

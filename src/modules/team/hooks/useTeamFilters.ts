@@ -1,7 +1,7 @@
 import { useMemo, useCallback } from 'react';
 import type { TeamMember, TeamFilters } from '../../../types/team';
 
-export const useTeamMemoization = (members: TeamMember[], filters: TeamFilters) => {
+export const useTeamFilters = (members: TeamMember[], filters: TeamFilters) => {
   // Memoizar miembros filtrados
   const filteredMembers = useMemo(() => {
     return members.filter(member => {

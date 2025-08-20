@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { infoLog } from '../../config/logger';
 import { ClientHeader } from './components/ClientHeader';
 import { ClientKPIs } from './components/ClientKPIs';
 import { ClientList } from './components/ClientList';
@@ -182,7 +183,7 @@ export const ClientModule: React.FC = () => {
               onUpdate={(updates) => {
                 // Implementar actualización del cliente
                 // Usar updates para actualizar el cliente
-                console.log('Actualizando cliente con:', updates);
+                infoLog('Actualizando cliente con:', updates);
               }}
             />
           )}

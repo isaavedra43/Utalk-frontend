@@ -1,4 +1,5 @@
 import React from 'react';
+import { infoLog } from '../../../config/logger';
 import { 
   RefreshCw,
   XCircle
@@ -36,29 +37,29 @@ export const ClientList: React.FC<ClientListProps> = ({
   const handleClientAction = (action: string, client: Client) => {
     switch (action) {
       case 'chat':
-        console.log('Abrir chat con:', client.name);
+        infoLog('Abrir chat con:', client.name);
         break;
       case 'more':
-        console.log('Mostrar opciones para:', client.name);
+        infoLog('Mostrar opciones para:', client.name);
         break;
       default:
-        console.log('Acción no implementada:', action);
+        infoLog('Acción no implementada:', action);
     }
   };
 
   const handleClientUpdate = (clientId: string, updates: Partial<Client>) => {
     // Implementar actualización de cliente
-    console.log('Actualizar cliente:', clientId, updates);
+    infoLog('Actualizar cliente:', clientId, updates);
   };
 
   const handlePreviousPage = () => {
     // Implementar paginación
-    console.log('Página anterior');
+    infoLog('Página anterior');
   };
 
   const handleNextPage = () => {
     // Implementar paginación
-    console.log('Página siguiente');
+    infoLog('Página siguiente');
   };
 
   if (loading) {
@@ -211,7 +212,7 @@ export const ClientList: React.FC<ClientListProps> = ({
             </span>
             <select
               className="border border-gray-300 rounded-md px-2 py-1 text-sm"
-              onChange={(e) => console.log('Page size changed to:', Number(e.target.value))}
+              onChange={(e) => infoLog('Page size changed to:', Number(e.target.value))}
               defaultValue="20"
             >
               <option value="10">10</option>

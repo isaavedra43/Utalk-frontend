@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
+import { infoLog } from '../../config/logger';
 
 interface Props {
   children: ReactNode;
@@ -23,7 +24,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Error Boundary caught an error:', error, errorInfo);
+    infoLog('Error Boundary caught an error:', error, errorInfo);
     
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
@@ -74,7 +75,7 @@ export class ErrorBoundary extends Component<Props, State> {
 // Hook para usar error boundary en componentes funcionales
 export const useErrorHandler = () => {
   const handleError = (error: Error, errorInfo?: ErrorInfo) => {
-    console.error('Error handled by useErrorHandler:', error, errorInfo);
+    infoLog('Error handled by useErrorHandler:', error, errorInfo);
     
     // Aquí se podría enviar el error a un servicio de monitoreo
     // como Sentry, LogRocket, etc.

@@ -3,6 +3,7 @@ import { devtools } from 'zustand/middleware';
 import api from '../services/api';
 import { logger } from '../utils/logger';
 import { performanceMonitor } from '../utils/performanceMonitor';
+import { infoLog } from '../config/logger';
 
 interface BackendUser {
   id: string;
@@ -167,7 +168,7 @@ export const useAuthStore = create<AuthStore>()(
           set({ loading: true });
           await api.post('/api/auth/logout');
         } catch (error) {
-          console.error('Error en logout:', error);
+          infoLog('Error en logout:', error);
         } finally {
           get().clearAuth();
         }

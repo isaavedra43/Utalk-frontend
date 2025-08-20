@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { TeamMember } from '../../../types/team';
+import { infoLog } from '../../../config/logger';
 
 interface EditAgentModalProps {
   isOpen: boolean;
@@ -165,7 +166,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
       await onSubmit(formData);
       onClose();
     } catch (error) {
-      console.error('Error al actualizar agente:', error);
+      infoLog('Error al actualizar agente:', error);
     } finally {
       setIsLoading(false);
     }

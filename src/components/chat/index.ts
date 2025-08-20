@@ -13,4 +13,5 @@ export { VirtualizedMessageList } from './VirtualizedMessageList';
 export { MessageContent } from './MessageContent';
 export { AudioRecorder } from './AudioRecorder';
 export { StickerPicker } from './StickerPicker';
-export { FileUploadManager } from './FileUploadManager'; 
+export { FileUploadManager } from './FileUploadManager';
+export { CreateConversationModal } from './CreateConversationModal'; 

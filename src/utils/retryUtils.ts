@@ -1,3 +1,5 @@
+import { infoLog } from '../config/logger';
+
 // Sistema de backoff exponencial para reintentos inteligentes
 
 interface RetryConfig {
@@ -171,7 +173,7 @@ export const retryWithBackoff = async <T>(
       }
 
       const delay = backoff.getNextDelay(operationKey);
-      console.log(`🔄 Reintentando ${operationKey} en ${delay}ms (intento ${backoff.getRetryState(operationKey)?.attempt})`);
+      infoLog(`🔄 Reintentando ${operationKey} en ${delay}ms (intento ${backoff.getRetryState(operationKey)?.attempt})`);
       
       await wait(delay);
     }
@@ -197,7 +199,7 @@ export const deduplicateRequest = async <T>(
 ): Promise<T> => {
   // Si ya hay una petición pendiente con la misma clave, retornar esa
   if (pendingRequests.has(requestKey)) {
-    console.log('🔄 Deduplicando petición:', requestKey);
+    infoLog('🔄 Deduplicando petición:', requestKey);
     const existingRequest = pendingRequests.get(requestKey);
     if (existingRequest) {
       return existingRequest as Promise<T>;

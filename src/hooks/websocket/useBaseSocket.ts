@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { infoLog } from '../../config/logger';
 import { Socket } from 'socket.io-client';
 import { createSocket } from '../../config/socket';
 import { generateRoomId as generateRoomIdUtil } from '../../utils/jwtUtils';
@@ -17,18 +18,18 @@ export const useBaseSocket = () => {
 	// Conectar socket
 	const connect = useCallback((token: string, options?: { timeout?: number }) => {
 		if (socketRef.current?.connected) {
-			console.log('🔌 Socket ya conectado, saltando...');
+			infoLog('🔌 Socket ya conectado, saltando...');
 			return;
 		}
 
 		if (isConnectingRef.current) {
-			console.log('🔌 Ya hay una conexión en progreso, saltando...');
+			infoLog('🔌 Ya hay una conexión en progreso, saltando...');
 			return;
 		}
 
 		try {
 			isConnectingRef.current = true;
-			console.log('🔌 Iniciando conexión de socket...');
+			infoLog('🔌 Iniciando conexión de socket...');
 			
 			// NUEVO: Timeout más largo para dar tiempo al backend
 			const timeout = options?.timeout || 60000;
@@ -38,7 +39,7 @@ export const useBaseSocket = () => {
 
 			// NUEVO: Configurar listeners de conexión mejorados
 			newSocket.on('connect', () => {
-				console.log('✅ Socket conectado exitosamente:', {
+				infoLog('✅ Socket conectado exitosamente:', {
 					socketId: newSocket.id,
 					timestamp: new Date().toISOString(),
 					reconnectAttempts
@@ -56,7 +57,7 @@ export const useBaseSocket = () => {
 			});
 
 			newSocket.on('disconnect', (reason: string) => {
-				console.log('❌ Socket desconectado:', {
+				infoLog('❌ Socket desconectado:', {
 					reason,
 					socketId: newSocket.id,
 					timestamp: new Date().toISOString(),
@@ -69,7 +70,7 @@ export const useBaseSocket = () => {
 				if (reason === 'io server disconnect' || reason === 'transport close') {
 					// NUEVO: Solo reconectar si no hemos excedido el máximo de intentos
 					if (reconnectAttempts < 5) {
-						console.log('🔄 Intentando reconexión automática...');
+						infoLog('🔄 Intentando reconexión automática...');
 						
 						// Limpiar timeout anterior si existe
 						if (reconnectTimeoutRef.current) {
@@ -78,7 +79,7 @@ export const useBaseSocket = () => {
 						
 						// NUEVO: Backoff exponencial más agresivo
 						const backoffDelay = Math.min(2000 * Math.pow(2, reconnectAttempts), 30000);
-						console.log(`🔄 Reconexión en ${backoffDelay}ms (intento ${reconnectAttempts + 1}/5)`);
+						infoLog(`🔄 Reconexión en ${backoffDelay}ms (intento ${reconnectAttempts + 1}/5)`);
 						
 						reconnectTimeoutRef.current = setTimeout(() => {
 							if (token && !isConnectingRef.current) {
@@ -91,7 +92,7 @@ export const useBaseSocket = () => {
 						setConnectionError('No se pudo establecer conexión después de 5 intentos');
 					}
 				} else if (reason === 'io client disconnect') {
-					console.log('🔌 Desconexión iniciada por el cliente');
+					infoLog('🔌 Desconexión iniciada por el cliente');
 					setConnectionError('Desconexión iniciada por el cliente');
 				}
 			});
@@ -116,7 +117,7 @@ export const useBaseSocket = () => {
 					setConnectionError('Error de autenticación: Token inválido o expirado');
 					isConnectingRef.current = false;
 				} else if (isTimeout || isTransport || isRefused) {
-					console.log('🔄 Error transitorio, intentando reconexión...');
+					infoLog('🔄 Error transitorio, intentando reconexión...');
 					// NUEVO: No establecer error para errores transitorios
 					isConnectingRef.current = false;
 				} else {
@@ -137,7 +138,7 @@ export const useBaseSocket = () => {
 
 			// NUEVO: Listener para reconexión
 			newSocket.on('reconnect', (attemptNumber: number) => {
-				console.log('✅ Socket reconectado exitosamente:', {
+				infoLog('✅ Socket reconectado exitosamente:', {
 					attemptNumber,
 					socketId: newSocket.id,
 					timestamp: new Date().toISOString()
@@ -149,7 +150,7 @@ export const useBaseSocket = () => {
 
 			// NUEVO: Listener para intento de reconexión
 			newSocket.on('reconnect_attempt', (attemptNumber: number) => {
-				console.log('🔄 Intentando reconexión:', {
+				infoLog('🔄 Intentando reconexión:', {
 					attemptNumber,
 					timestamp: new Date().toISOString()
 				});
@@ -162,7 +163,7 @@ export const useBaseSocket = () => {
 			});
 
 			// NUEVO: El socket ya se conecta automáticamente en createSocket
-			console.log('🔌 Socket creado, conexión iniciada automáticamente');
+			infoLog('🔌 Socket creado, conexión iniciada automáticamente');
 
 		} catch (error) {
 			console.error('❌ Error al crear socket:', error);
@@ -174,7 +175,7 @@ export const useBaseSocket = () => {
 	// Desconectar socket
 	const disconnect = useCallback(() => {
 		if (socketRef.current) {
-			console.log('🔌 Desconectando socket manualmente...');
+			infoLog('🔌 Desconectando socket manualmente...');
 			socketRef.current.disconnect();
 			socketRef.current = null;
 			setSocket(null);
@@ -223,7 +224,7 @@ export const useBaseSocket = () => {
 		
 		// CORREGIDO: Verificar si se pudo generar el roomId
 		if (!roomId) {
-			console.log('🔗 useBaseSocket - No se puede generar roomId (sin autenticación)');
+			infoLog('🔗 useBaseSocket - No se puede generar roomId (sin autenticación)');
 			return null;
 		}
 		
@@ -245,11 +246,11 @@ export const useBaseSocket = () => {
 				
 				// CORREGIDO: Verificar si se pudo generar el roomId
 				if (!roomId) {
-					console.log(`🔗 ${event} - No se puede emitir (roomId null)`);
+					infoLog(`🔗 ${event} - No se puede emitir (roomId null)`);
 					return false;
 				}
 				
-				console.log(`🔗 ${event} - Room ID generado:`, roomId);
+				infoLog(`🔗 ${event} - Room ID generado:`, roomId);
 				eventData.roomId = roomId;
 			}
 		}
@@ -262,7 +263,7 @@ export const useBaseSocket = () => {
 	useEffect(() => {
 		return () => {
 			if (socketRef.current) {
-				console.log('🔌 Limpiando socket al desmontar componente...');
+				infoLog('🔌 Limpiando socket al desmontar componente...');
 				socketRef.current.disconnect();
 			}
 			

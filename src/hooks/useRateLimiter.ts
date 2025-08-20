@@ -1,4 +1,5 @@
 import { useRef, useCallback } from 'react';
+import { infoLog } from '../config/logger';
 
 interface RateLimiterOptions {
   maxRequests: number;
@@ -27,7 +28,7 @@ export const useRateLimiter = (options: RateLimiterOptions = {
     // Verificar si podemos hacer la solicitud
     if (requestCountRef.current >= options.maxRequests) {
       const timeUntilReset = options.timeWindow - (now - lastResetTimeRef.current);
-      console.warn(`⚠️ Rate limit excedido, reintentando en ${Math.round(timeUntilReset)}ms`);
+      infoLog(`⚠️ Rate limit excedido, reintentando en ${Math.round(timeUntilReset)}ms`);
       return false;
     }
     
@@ -35,7 +36,7 @@ export const useRateLimiter = (options: RateLimiterOptions = {
     const minInterval = 500; // 500ms mínimo entre sync-state
     if (now - lastRequestTimeRef.current < minInterval) {
       const remainingTime = minInterval - (now - lastRequestTimeRef.current);
-      console.warn(`⚠️ Rate limit excedido para sync-state, reintentando en ${Math.round(remainingTime)}ms`);
+      infoLog(`⚠️ Rate limit excedido para sync-state, reintentando en ${Math.round(remainingTime)}ms`);
       return false;
     }
     

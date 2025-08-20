@@ -13,11 +13,14 @@ export interface FileUploadResponse {
 
 export const fileUploadService = {
   // Subir archivo
-  async uploadFile(file: File, conversationId: string): Promise<FileUploadResponse> {
+  async uploadFile(file: File, options: {
+    conversationId: string;
+    type: string;
+  }): Promise<FileUploadResponse> {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('conversationId', conversationId);
-    formData.append('type', file.type);
+    formData.append('conversationId', options.conversationId);
+    formData.append('type', options.type);
 
     const response = await api.post('/api/media/upload', formData, {
       headers: {

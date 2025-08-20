@@ -4,4 +4,7 @@ export { useConversationSync } from './useConversationSync';
 export { useConversationActions } from './useConversationActions';
 
 // Hook compositor principal
-export { useConversations } from './useConversations'; 
+export { useConversations } from './useConversations';
+
+// Hook para crear conversaciones
+export { useCreateConversation } from './useCreateConversation'; 

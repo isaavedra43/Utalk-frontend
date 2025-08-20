@@ -1,3 +1,5 @@
+import { infoLog } from '../config/logger';
+
 /**
  * Utilidades para manejo de IDs de conversación
  * Soluciona el problema de "INVALID_ID_FORMAT" en el backend
@@ -195,13 +197,13 @@ export const sanitizeConversationId = (conversationId: string): string | null =>
   const normalized = normalizeConversationId(decodedConversationId);
   
   if (!normalized) {
-    console.warn('⚠️ ID de conversación inválido:', conversationId, 'decoded:', decodedConversationId);
+          infoLog('⚠️ ID de conversación inválido:', conversationId, 'decoded:', decodedConversationId);
     return null;
   }
 
   // Verificar que cumple con el patrón esperado por el backend
   if (!isValidConversationId(normalized)) {
-    console.error('❌ ID de conversación no cumple con el formato esperado:', normalized);
+          infoLog('❌ ID de conversación no cumple con el formato esperado:', normalized);
     return null;
   }
 
@@ -224,7 +226,7 @@ export const encodeConversationIdForUrl = (conversationId: string): string => {
   // encodeURIComponent convierte + en %2B automáticamente
   const encoded = encodeURIComponent(sanitized);
   
-  console.log('�� ID de conversación codificado correctamente en URL | Data:', {
+  infoLog('�� ID de conversación codificado correctamente en URL | Data:', {
     originalId: conversationId,
     decodedId: sanitized,
     sanitizedId: sanitized,
@@ -257,7 +259,7 @@ export const encodeConversationIdForWebSocket = (conversationId: string): string
 
   const plusId = `conv_${phones.phone1}_${phones.phone2}`; // ambos con '+'
 
-  console.log('🔗 ID de conversación normalizado para WebSocket:', {
+  infoLog('🔗 ID de conversación normalizado para WebSocket:', {
     originalId: conversationId,
     sanitizedId: sanitized,
     plusId,
@@ -282,7 +284,7 @@ export const decodeConversationIdFromUrl = (encodedConversationId: string): stri
     
     return withPlus;
   } catch (error) {
-    console.error('❌ Error decodificando ID de conversación:', encodedConversationId, error);
+          infoLog('❌ Error decodificando ID de conversación:', encodedConversationId, error);
     return encodedConversationId; // Retornar original si falla la decodificación
   }
 };
@@ -296,7 +298,7 @@ export const logConversationId = (conversationId: string, context: string = ''):
   const isValid = isValidConversationId(conversationId);
   const phones = extractPhonesFromConversationId(conversationId);
   
-  console.log(`🔍 ID de Conversación ${context}:`, {
+  infoLog(`🔍 ID de Conversación ${context}:`, {
     id: conversationId,
     isValid,
     phones,

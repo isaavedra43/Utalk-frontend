@@ -5,4 +5,4 @@ export { usePerformance } from './usePerformance';
 export { usePermissions } from './usePermissions';
 export { useCoaching } from './useCoaching';
 // export { useTeamNotifications } from './useTeamNotifications'; // DESHABILITADO TEMPORALMENTE
-export { useTeamMemoization } from './useTeamMemoization'; 
+export { useTeamFilters } from './useTeamFilters'; 

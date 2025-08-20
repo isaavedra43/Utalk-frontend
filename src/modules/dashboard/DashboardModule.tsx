@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, memo } from 'react';
+import { infoLog } from '../../config/logger';
 import { 
   DashboardHeader, 
   KPICards, 
@@ -26,7 +27,7 @@ const DashboardModule = memo(() => {
   // Debounce para la búsqueda
   const debouncedSearch = useDebouncedCallback((...args: unknown[]) => {
     const query = args[0] as string;
-    console.log('Búsqueda en dashboard:', query);
+    infoLog('Búsqueda en dashboard:', query);
     // Implementar búsqueda en dashboard
   }, 300);
 
@@ -38,7 +39,7 @@ const DashboardModule = memo(() => {
       setDashboardData({} as DashboardData);
     } catch (error) {
       setDashboardError('Error al cargar los datos del dashboard');
-      console.error('Error loading dashboard data:', error);
+      infoLog('Error loading dashboard data:', error);
     }
   }, [setDashboardData, setDashboardLoading, setDashboardError]);
 
@@ -47,7 +48,7 @@ const DashboardModule = memo(() => {
   }, [debouncedSearch]);
 
   const handleRefresh = useCallback(() => {
-    console.log('Refrescar dashboard');
+    infoLog('Refrescar dashboard');
     loadDashboardData();
   }, [loadDashboardData]);
 

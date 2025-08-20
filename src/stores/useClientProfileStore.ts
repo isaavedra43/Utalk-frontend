@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { infoLog } from '../config/logger';
 import { clientProfileService, type ClientProfile } from '../services/clientProfile';
 
 interface ClientProfileState {
@@ -29,14 +30,14 @@ export const useClientProfileStore = create<ClientProfileState>((set, get) => ({
     
     // REDUCIDO: Solo loggear en desarrollo
     if (import.meta.env.DEV) {
-      console.log('🔍 [DEBUG] useClientProfileStore.getProfile iniciado:', { conversationId });
+      infoLog('🔍 [DEBUG] useClientProfileStore.getProfile iniciado:', { conversationId });
     }
     
     // Verificar si ya hay una petición en curso para este ID
     const pendingRequest = pendingRequests.get(conversationId);
     if (pendingRequest) {
       if (import.meta.env.DEV) {
-        console.log('🔄 Petición ya en curso, esperando resultado...');
+        infoLog('🔄 Petición ya en curso, esperando resultado...');
       }
       return pendingRequest;
     }
@@ -45,13 +46,13 @@ export const useClientProfileStore = create<ClientProfileState>((set, get) => ({
     const cached = profiles.get(conversationId);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       if (import.meta.env.DEV) {
-        console.log('✅ Usando perfil desde cache');
+        infoLog('✅ Usando perfil desde cache');
       }
       return cached.data;
     }
     
     if (import.meta.env.DEV) {
-      console.log('🔄 [DEBUG] Cache miss en store, creando nueva petición...');
+      infoLog('🔄 [DEBUG] Cache miss en store, creando nueva petición...');
     }
     
     // Crear nueva petición
@@ -65,14 +66,14 @@ export const useClientProfileStore = create<ClientProfileState>((set, get) => ({
       
       try {
         if (import.meta.env.DEV) {
-          console.log('🔄 Cargando perfil del cliente:', conversationId);
+          infoLog('🔄 Cargando perfil del cliente:', conversationId);
         }
         
         // NUEVO: El servicio ya tiene retry incorporado, solo llamarlo
         const profile = await clientProfileService.getCompleteClientProfile(conversationId);
         
         if (import.meta.env.DEV) {
-          console.log('📊 [DEBUG] Resultado de clientProfileService:', {
+          infoLog('📊 [DEBUG] Resultado de clientProfileService:', {
             conversationId,
             hasProfile: !!profile,
             profileName: profile?.name,
@@ -92,18 +93,18 @@ export const useClientProfileStore = create<ClientProfileState>((set, get) => ({
           });
           
           if (import.meta.env.DEV) {
-            console.log('✅ Perfil cargado exitosamente');
+            infoLog('✅ Perfil cargado exitosamente');
           }
           return profile;
         }
         
         if (import.meta.env.DEV) {
-          console.log('⚠️ [DEBUG] clientProfileService devolvió null');
+          infoLog('⚠️ [DEBUG] clientProfileService devolvió null');
         }
         return null;
       } catch (error) {
         if (import.meta.env.DEV) {
-          console.error('❌ [DEBUG] Error en useClientProfileStore:', {
+          infoLog('❌ [DEBUG] Error en useClientProfileStore:', {
             conversationId,
             errorType: typeof error,
             errorMessage: error instanceof Error ? error.message : String(error),
@@ -114,18 +115,18 @@ export const useClientProfileStore = create<ClientProfileState>((set, get) => ({
         // NUEVO: En caso de error, intentar obtener perfil mock del servicio
         try {
           if (import.meta.env.DEV) {
-            console.log('🔄 [DEBUG] Intentando obtener perfil mock como fallback...');
+            infoLog('🔄 [DEBUG] Intentando obtener perfil mock como fallback...');
           }
           const mockProfile = await clientProfileService.getCompleteClientProfile(conversationId);
           if (mockProfile) {
             if (import.meta.env.DEV) {
-              console.log('✅ [DEBUG] Perfil mock obtenido exitosamente');
+              infoLog('✅ [DEBUG] Perfil mock obtenido exitosamente');
             }
             return mockProfile;
           }
         } catch (mockError) {
           if (import.meta.env.DEV) {
-            console.error('❌ [DEBUG] Error obteniendo perfil mock:', mockError);
+            infoLog('❌ [DEBUG] Error obteniendo perfil mock:', mockError);
           }
         }
         
@@ -141,7 +142,7 @@ export const useClientProfileStore = create<ClientProfileState>((set, get) => ({
         });
         
         if (import.meta.env.DEV) {
-          console.log('🧹 [DEBUG] Limpieza completada para:', conversationId);
+          infoLog('🧹 [DEBUG] Limpieza completada para:', conversationId);
         }
       }
     })();
@@ -159,7 +160,7 @@ export const useClientProfileStore = create<ClientProfileState>((set, get) => ({
   clearCache: () => {
     set({ profiles: new Map(), loadingStates: new Map(), pendingRequests: new Map() });
     if (import.meta.env.DEV) {
-      console.log('🧹 Cache de perfiles limpiado');
+      infoLog('🧹 Cache de perfiles limpiado');
     }
   },
 

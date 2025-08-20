@@ -1,5 +1,6 @@
 // Utilidad para limpiar logs y reiniciar el sistema de logging
 import { loggingConfig } from '../config/logging';
+import { infoLog } from '../config/logger';
 
 export class LogCleaner {
   /**
@@ -7,7 +8,7 @@ export class LogCleaner {
    */
   static clearAllCaches(): void {
     loggingConfig.rateLimit.clearErrorCache();
-    console.log('🧹 Caches de logs limpiados');
+    infoLog('🧹 Caches de logs limpiados');
   }
 
   /**
@@ -15,7 +16,7 @@ export class LogCleaner {
    */
   static clearClientErrorCache(): void {
     loggingConfig.rateLimit.clientErrorCache.clear();
-    console.log('🧹 Cache de errores de clientes limpiado');
+    infoLog('🧹 Cache de errores de clientes limpiado');
   }
 
   /**
@@ -27,8 +28,8 @@ export class LogCleaner {
     // Limpiar logs de la consola
     console.clear();
     
-    console.log('🔄 Sistema de logging reiniciado');
-    console.log('📊 Configuración actual:', {
+    infoLog('🔄 Sistema de logging reiniciado');
+    infoLog('📊 Configuración actual:', {
       maxErrorLogsPerMinute: loggingConfig.rateLimit.maxErrorLogsPerMinute,
       ignoreRepetitiveClientErrors: loggingConfig.errors.ignoreRepetitiveClientErrors,
       clientLogLevel: loggingConfig.clients.logLevel,
@@ -62,7 +63,7 @@ export class LogCleaner {
     loggingConfig.clients.logSuccess = false;
     loggingConfig.clients.logLoading = false;
     
-    console.log('🔇 Modo silencioso activado - logs mínimos');
+    infoLog('🔇 Modo silencioso activado - logs mínimos');
   }
 
   /**
@@ -75,7 +76,7 @@ export class LogCleaner {
     loggingConfig.clients.logSuccess = true;
     loggingConfig.clients.logLoading = true;
     
-    console.log('🔊 Modo verbose activado - logs detallados');
+    infoLog('🔊 Modo verbose activado - logs detallados');
   }
 }
 

@@ -1,15 +1,90 @@
 import { useEffect, useCallback, useMemo } from 'react';
 import { useWebSocketContext } from '../../contexts/useWebSocketContext';
-// import { useChatStore } from '../../stores/useChatStore';
+import { useChatStore } from '../../stores/useChatStore';
 import { useAuthContext } from '../../contexts/useAuthContext';
 import { ConversationManager } from '../../services/ConversationManager';
 import { infoLog } from '../../config/logger';
+import type { Message } from '../../types';
+
+// Tipos para validación de mensajes de webhook
+interface WebhookMessageData {
+  conversationId?: string;
+  message?: {
+    id?: string;
+    content?: string;
+    sender?: string;
+    timestamp?: string;
+    type?: string;
+    metadata?: Record<string, unknown>;
+  };
+}
+
+// Validación y transformación de mensajes de webhook
+const validateAndTransformMessage = (data: WebhookMessageData): Message | null => {
+  if (!data?.conversationId || typeof data.conversationId !== 'string') {
+    infoLog('❌ Mensaje de webhook inválido: conversationId faltante o inválido');
+    return null;
+  }
+
+  if (!data?.message || typeof data.message !== 'object') {
+    infoLog('❌ Mensaje de webhook inválido: objeto message faltante');
+    return null;
+  }
+
+  const { message } = data;
+  
+  if (!message.id || typeof message.id !== 'string') {
+    infoLog('❌ Mensaje de webhook inválido: message.id faltante o inválido');
+    return null;
+  }
+
+  if (!message.content || typeof message.content !== 'string') {
+    infoLog('❌ Mensaje de webhook inválido: message.content faltante o inválido');
+    return null;
+  }
+
+  if (!message.sender || typeof message.sender !== 'string') {
+    infoLog('❌ Mensaje de webhook inválido: message.sender faltante o inválido');
+    return null;
+  }
+
+  if (!message.timestamp || typeof message.timestamp !== 'string') {
+    infoLog('❌ Mensaje de webhook inválido: message.timestamp faltante o inválido');
+    return null;
+  }
+
+  // Transformar a formato del store
+  const transformedMessage: Message = {
+    id: message.id,
+    conversationId: data.conversationId,
+    content: message.content,
+    direction: 'inbound',
+    createdAt: message.timestamp,
+    updatedAt: message.timestamp,
+    type: (message.type as 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker') || 'text',
+    metadata: {
+      agentId: message.sender,
+      ip: 'unknown',
+      requestId: 'unknown',
+      sentBy: message.sender,
+      source: 'web',
+      timestamp: message.timestamp,
+      ...message.metadata
+    },
+    status: 'received',
+    recipientIdentifier: undefined,
+    senderIdentifier: message.sender,
+    userAgent: undefined
+  };
+
+  return transformedMessage;
+};
 
 export const useConversationSync = () => {
   const { isAuthenticated, loading: authLoading } = useAuthContext();
   const { on, off, isConnected, syncState } = useWebSocketContext();
   
-  // const { addMessage } = useChatStore(); // Comentado temporalmente hasta implementar la lógica
+  const { addMessage, updateConversation } = useChatStore();
 
   // Usar singleton mejorado para controlar estado global
   const manager = useMemo(() => {
@@ -30,84 +105,122 @@ export const useConversationSync = () => {
     // Solo limpiar listeners si realmente se desconecta
     if (!isAuthenticated || !isConnected) {
       if (import.meta.env.DEV) {
-        console.log('🔌 useConversationSync - Cleanup por desconexión...');
+        infoLog('🔌 useConversationSync - Cleanup por desconexión...');
       }
       manager.setListenersRegistered(false);
     }
   }, [isAuthenticated, isConnected, manager]);
 
-
-
   // Handlers para eventos de WebSocket
   const handleConversationEvent = useCallback((eventData: unknown) => {
     if (import.meta.env.DEV) {
-      console.log('🔌 useConversationSync - Evento de conversación recibido:', eventData);
+      infoLog('🔌 useConversationSync - Evento de conversación recibido:', eventData);
     }
     // Lógica de manejo de eventos de conversación
   }, []);
 
   const handleNewMessage = useCallback((eventData: unknown) => {
     if (import.meta.env.DEV) {
-      console.log('🔌 useConversationSync - Nuevo mensaje recibido:', eventData);
-      console.log('🔌 useConversationSync - Timestamp del handler:', new Date().toISOString());
+      infoLog('🔌 useConversationSync - Nuevo mensaje recibido:', eventData);
+      infoLog('🔌 useConversationSync - Timestamp del handler:', new Date().toISOString());
     }
     
     // Lógica de manejo de nuevos mensajes
-    const data = eventData as { conversationId?: string; message?: unknown };
+    const data = eventData as WebhookMessageData;
     if (data?.conversationId && data?.message) {
-      // Validar que message tenga el tipo correcto antes de agregarlo
-      // addMessage(data.conversationId, data.message);
+      const validatedMessage = validateAndTransformMessage(data);
+      if (validatedMessage) {
+        addMessage(data.conversationId, validatedMessage);
+        
+        // Actualizar conversación con último mensaje
+        const lastMessage = {
+          messageId: validatedMessage.id,
+          sender: validatedMessage.senderIdentifier || 'unknown',
+          content: validatedMessage.content,
+          type: validatedMessage.type,
+          timestamp: validatedMessage.createdAt,
+          direction: 'inbound' as const,
+          status: 'received' as const
+        };
+        
+        updateConversation(data.conversationId, {
+          lastMessage,
+          lastMessageAt: validatedMessage.createdAt
+        });
+        
+        infoLog(`📨 Mensaje de WebSocket procesado: ${data.conversationId} - ${validatedMessage.content.substring(0, 50)}...`);
+      }
     }
-  }, []);
+  }, [addMessage, updateConversation]);
 
   const handleMessageRead = useCallback((eventData: unknown) => {
     if (import.meta.env.DEV) {
-      console.log('🔌 useConversationSync - Mensajes marcados como leídos:', eventData);
+      infoLog('🔌 useConversationSync - Mensajes marcados como leídos:', eventData);
     }
     // Lógica de manejo de mensajes leídos
   }, []);
 
   const handleConversationJoined = useCallback((eventData: unknown) => {
     if (import.meta.env.DEV) {
-      console.log('🔌 useConversationSync - Usuario se unió a conversación:', eventData);
+      infoLog('🔌 useConversationSync - Usuario se unió a conversación:', eventData);
     }
     // Lógica de manejo de unión a conversación
   }, []);
 
   const handleConversationLeft = useCallback((eventData: unknown) => {
     if (import.meta.env.DEV) {
-      console.log('🔌 useConversationSync - Usuario salió de conversación:', eventData);
+      infoLog('🔌 useConversationSync - Usuario salió de conversación:', eventData);
     }
     // Lógica de manejo de salida de conversación
   }, []);
 
   const handleStateSynced = useCallback((syncData: unknown) => {
     if (import.meta.env.DEV) {
-      console.log('🔌 useConversationSync - Estado sincronizado:', syncData);
+      infoLog('🔌 useConversationSync - Estado sincronizado:', syncData);
     }
     // Lógica de sincronización de estado
   }, []);
 
   const handleWebhookConversationCreated = useCallback((eventData: unknown) => {
     if (import.meta.env.DEV) {
-      console.log('🔌 useConversationSync - Nueva conversación desde webhook:', eventData);
+      infoLog('🔌 useConversationSync - Nueva conversación desde webhook:', eventData);
     }
     // Lógica de manejo de conversación creada por webhook
   }, []);
 
   const handleWebhookNewMessage = useCallback((eventData: unknown) => {
     if (import.meta.env.DEV) {
-      console.log('🎯 useConversationSync - Handler webhook:new-message llamado con datos:', eventData);
-      console.log('🎯 useConversationSync - Timestamp del handler:', new Date().toISOString());
+      infoLog('🎯 useConversationSync - Handler webhook:new-message llamado con datos:', eventData);
+      infoLog('🎯 useConversationSync - Timestamp del handler:', new Date().toISOString());
     }
     
     // Lógica de manejo de nuevo mensaje por webhook
-    const data = eventData as { conversationId?: string; message?: unknown };
+    const data = eventData as WebhookMessageData;
     if (data?.conversationId && data?.message) {
-      // Validar que message tenga el tipo correcto antes de agregarlo
-      // addMessage(data.conversationId, data.message);
+      const validatedMessage = validateAndTransformMessage(data);
+      if (validatedMessage) {
+        addMessage(data.conversationId, validatedMessage);
+        
+        // Actualizar conversación con último mensaje
+        const lastMessage = {
+          messageId: validatedMessage.id,
+          sender: validatedMessage.senderIdentifier || 'unknown',
+          content: validatedMessage.content,
+          type: validatedMessage.type,
+          timestamp: validatedMessage.createdAt,
+          direction: 'inbound' as const,
+          status: 'received' as const
+        };
+        
+        updateConversation(data.conversationId, {
+          lastMessage,
+          lastMessageAt: validatedMessage.createdAt
+        });
+        
+        infoLog(`🎯 Mensaje de webhook procesado: ${data.conversationId} - ${validatedMessage.content.substring(0, 50)}...`);
+      }
     }
-  }, []);
+  }, [addMessage, updateConversation]);
 
   // ESCUCHAR EVENTOS DE CONVERSACIÓN - OPTIMIZADO PARA EVITAR RECONEXIONES
   useEffect(() => {

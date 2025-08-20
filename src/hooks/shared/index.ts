@@ -1,6 +1,4 @@
-// Hooks compartidos centralizados
-export { useDebounce, useDebouncedCallback, useThrottle, useSearchDebounce, useFilterDebounce } from './useDebounce';
-
-// Hooks compartidos para funcionalidades comunes
-// export { useMemoizedArray } from './useMemoizedArray';
-// export { useStableCallback } from './useStableCallback'; 
+// Hooks compartidos para toda la aplicación
+export * from './useFiltering';
+export * from './useStats';
+export * from './useErrorHandler'; 

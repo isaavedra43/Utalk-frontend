@@ -1,5 +1,6 @@
 import api from './api';
 import { requestCache } from '../utils/requestCache';
+import { infoLog } from '../config/logger';
 
 export interface ClientProfile {
   // Información básica
@@ -111,25 +112,22 @@ class ClientProfileService {
     const timeSinceLastAttempt = now - retryInfo.lastAttempt;
     
     if (retryInfo.attempts >= this.MAX_RETRY_ATTEMPTS) {
-      console.log(`🔄 [RETRY] Máximo de intentos alcanzado para ${operationName}:`, conversationId);
+      infoLog(`🔄 [RETRY] Máximo de intentos alcanzado para ${operationName}: ${conversationId}`);
       throw new Error(`Máximo de intentos alcanzado para ${operationName}`);
     }
     
     if (timeSinceLastAttempt < retryInfo.backoff) {
-      console.log(`🔄 [RETRY] Esperando backoff para ${operationName}:`, { 
-        conversationId, 
-        remaining: retryInfo.backoff - timeSinceLastAttempt 
-      });
+      infoLog(`🔄 [RETRY] Esperando backoff para ${operationName}: ${conversationId} (${retryInfo.backoff - timeSinceLastAttempt}ms restantes)`);
       await new Promise(resolve => setTimeout(resolve, retryInfo.backoff - timeSinceLastAttempt));
     }
     
     try {
-      console.log(`🔄 [RETRY] Intento ${retryInfo.attempts + 1} para ${operationName}:`, conversationId);
+      infoLog(`🔄 [RETRY] Intento ${retryInfo.attempts + 1} para ${operationName}: ${conversationId}`);
       const result = await operation();
       
       // Éxito - limpiar cache de retry
       this.retryCache.delete(retryKey);
-      console.log(`✅ [RETRY] Éxito en intento ${retryInfo.attempts + 1} para ${operationName}:`, conversationId);
+      infoLog(`✅ [RETRY] Éxito en intento ${retryInfo.attempts + 1} para ${operationName}: ${conversationId}`);
       
       return result;
     } catch (error) {
@@ -140,11 +138,7 @@ class ClientProfileService {
       
       this.retryCache.set(retryKey, retryInfo);
       
-      console.log(`❌ [RETRY] Error en intento ${retryInfo.attempts} para ${operationName}:`, {
-        conversationId,
-        error: error instanceof Error ? error.message : String(error),
-        nextRetryIn: retryInfo.backoff
-      });
+      infoLog(`❌ [RETRY] Error en intento ${retryInfo.attempts} para ${operationName}: ${conversationId} - ${error instanceof Error ? error.message : String(error)} (próximo retry en ${retryInfo.backoff}ms)`);
       
       throw error;
     }
@@ -158,7 +152,7 @@ class ClientProfileService {
     const cachedError = this.errorCache.get(errorKey);
     
     if (cachedError && Date.now() - cachedError.timestamp < cachedError.ttl) {
-      console.log(`🚫 [ERROR_CACHE] Error ${errorType} en cache para:`, conversationId);
+      infoLog(`🚫 [ERROR_CACHE] Error ${errorType} en cache para: ${conversationId}`);
       return true;
     }
     
@@ -176,7 +170,7 @@ class ClientProfileService {
       ttl: ttl || this.ERROR_CACHE_TTL
     });
     
-    console.log(`💾 [ERROR_CACHE] Error ${errorType} cacheado para:`, conversationId);
+    infoLog(`💾 [ERROR_CACHE] Error ${errorType} cacheado para: ${conversationId}`);
   }
 
   /**
@@ -199,7 +193,7 @@ class ClientProfileService {
     
     // REDUCIDO: Solo loggear en desarrollo y cuando hay errores
     if (import.meta.env.DEV) {
-      console.log('🔍 [DEBUG] Iniciando getCompleteClientProfile:', { conversationId });
+      infoLog(`🔍 [DEBUG] Iniciando getCompleteClientProfile: ${conversationId}`);
     }
     
     // NUEVO: Limpiar cache de errores expirados
@@ -208,7 +202,7 @@ class ClientProfileService {
     // Verificar si hay una petición en curso
     if (requestCache.isRequestInProgress(cacheKey)) {
       if (import.meta.env.DEV) {
-        console.log('🔄 Petición en curso, esperando...');
+        infoLog('🔄 Petición en curso, esperando...');
       }
       return null;
     }
@@ -217,13 +211,13 @@ class ClientProfileService {
     const cached = this.profileCache.get(conversationId);
     if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
       if (import.meta.env.DEV) {
-        console.log('✅ Usando perfil del cliente desde cache');
+        infoLog('✅ Usando perfil del cliente desde cache');
       }
       return cached.data;
     }
     
     if (import.meta.env.DEV) {
-      console.log('🔄 [DEBUG] Cache miss, haciendo petición a API...');
+      infoLog('🔄 [DEBUG] Cache miss, haciendo petición a API...');
     }
     
     try {
@@ -232,33 +226,29 @@ class ClientProfileService {
         async () => {
           // 1. Obtener información de la conversación (incluye datos básicos del cliente)
           if (import.meta.env.DEV) {
-            console.log('📡 [DEBUG] Haciendo petición a:', `/api/conversations/${conversationId}`);
+            infoLog(`📡 [DEBUG] Haciendo petición a: /api/conversations/${conversationId}`);
           }
           
           const conversationResponse = await api.get(`/api/conversations/${conversationId}`);
           
           if (import.meta.env.DEV) {
-            console.log('📡 [DEBUG] Respuesta recibida:', {
-              status: conversationResponse.status,
-              success: conversationResponse.data.success,
-              hasData: !!conversationResponse.data.data
-            });
+            infoLog(`📡 [DEBUG] Respuesta recibida: status=${conversationResponse.status}, success=${conversationResponse.data.success}, hasData=${!!conversationResponse.data.data}`);
           }
           
           if (!conversationResponse.data.success) {
-            console.error('❌ [DEBUG] API devolvió success: false');
+            infoLog('❌ [DEBUG] API devolvió success: false');
             throw new Error(`API devolvió success: false - ${JSON.stringify(conversationResponse.data)}`);
           }
           
           const conversationData: ConversationData = conversationResponse.data.data;
           
           if (!conversationData) {
-            console.error('❌ [DEBUG] No hay datos en la respuesta');
+            infoLog('❌ [DEBUG] No hay datos en la respuesta');
             throw new Error('No se pudo obtener la información de la conversación - datos vacíos');
           }
           
           if (import.meta.env.DEV) {
-            console.log('✅ [DEBUG] Datos de conversación obtenidos:', {
+            infoLog('✅ [DEBUG] Datos de conversación obtenidos:', {
               contactName: conversationData.contact?.name,
               customerPhone: conversationData.customerPhone,
               channel: conversationData.contact?.channel,
@@ -284,7 +274,7 @@ class ClientProfileService {
           
           if (!hasContactData) {
             if (import.meta.env.DEV) {
-              console.warn('⚠️ [DEBUG] Backend devolvió conversación sin datos de contacto');
+              infoLog('⚠️ [DEBUG] Backend devolvió conversación sin datos de contacto');
             }
             // No crear estructura por defecto, manejar en el frontend
             conversationData.contact = null;
@@ -292,7 +282,7 @@ class ClientProfileService {
           
           if (!conversationData.customerPhone) {
             if (import.meta.env.DEV) {
-              console.warn('⚠️ [DEBUG] Backend devolvió conversación sin teléfono del cliente');
+              infoLog('⚠️ [DEBUG] Backend devolvió conversación sin teléfono del cliente');
             }
             // Intentar extraer del conversationId
             const phoneMatch = conversationId.match(/\+(\d+)/);
@@ -314,7 +304,7 @@ class ClientProfileService {
                 contactDetails = contactResponse.data.data;
               }
             } catch (error) {
-              console.log('Búsqueda por teléfono falló, intentando por ID del contacto...');
+              infoLog('Búsqueda por teléfono falló, intentando por ID del contacto...');
               
               // Estrategia 2: Intentar obtener por ID del contacto
               try {
@@ -326,7 +316,7 @@ class ClientProfileService {
                   }
                 }
               } catch (idError) {
-                console.log('No se pudo obtener información adicional del contacto por ID:', idError);
+                infoLog('No se pudo obtener información adicional del contacto por ID:', idError);
               }
             }
           }
@@ -334,7 +324,7 @@ class ClientProfileService {
           
           // 3. Formatear la información del cliente según la estructura del backend
           if (import.meta.env.DEV) {
-            console.log('🔧 [DEBUG] Formateando perfil del cliente...');
+            infoLog('🔧 [DEBUG] Formateando perfil del cliente...');
           }
           
           const clientProfile: ClientProfile = {
@@ -371,7 +361,7 @@ class ClientProfileService {
           };
           
           if (import.meta.env.DEV) {
-            console.log('✅ [DEBUG] Perfil formateado exitosamente:', {
+            infoLog('✅ [DEBUG] Perfil formateado exitosamente:', {
               name: clientProfile.name,
               phone: clientProfile.phone,
               channel: clientProfile.channel,
@@ -392,13 +382,13 @@ class ClientProfileService {
       });
       
       if (import.meta.env.DEV) {
-        console.log('💾 [DEBUG] Perfil guardado en cache');
+        infoLog('💾 [DEBUG] Perfil guardado en cache');
       }
       
       return clientProfile;
       
     } catch (error) {
-      console.error('❌ [DEBUG] Error detallado en getCompleteClientProfile:', {
+      infoLog('❌ [DEBUG] Error detallado en getCompleteClientProfile:', {
         conversationId,
         errorType: typeof error,
         errorMessage: error instanceof Error ? error.message : String(error),
@@ -417,7 +407,7 @@ class ClientProfileService {
           config?: { url?: string }
         };
         
-        console.log('📡 [DEBUG] Error de Axios detectado:', {
+        infoLog('📡 [DEBUG] Error de Axios detectado:', {
           status: axiosError.response?.status,
           statusText: axiosError.response?.statusText,
           data: axiosError.response?.data,
@@ -427,7 +417,7 @@ class ClientProfileService {
         // NUEVO: Cachear errores específicos para evitar peticiones repetidas
         if (axiosError.response?.status === 404) {
           this.cacheError(conversationId, '404', 'Conversación no encontrada', 5 * 60 * 1000); // 5 minutos
-          console.log('📝 Conversación no encontrada, usando datos mock para desarrollo');
+          infoLog('📝 Conversación no encontrada, usando datos mock para desarrollo');
           const mockProfile = this.getMockClientProfile(conversationId);
           this.profileCache.set(conversationId, {
             data: mockProfile,
@@ -438,7 +428,7 @@ class ClientProfileService {
         
         if (axiosError.response?.status === 429) {
           this.cacheError(conversationId, '429', 'Rate limit exceeded', 30 * 1000); // 30 segundos
-          console.log('🚫 Rate limit excedido, usando datos mock');
+          infoLog('🚫 Rate limit excedido, usando datos mock');
           const mockProfile = this.getMockClientProfile(conversationId);
           this.profileCache.set(conversationId, {
             data: mockProfile,
@@ -449,7 +439,7 @@ class ClientProfileService {
         
         if (axiosError.response?.status === 500) {
           this.cacheError(conversationId, '500', 'Server error', 2 * 60 * 1000); // 2 minutos
-          console.log('🔧 Error del servidor, usando datos mock');
+          infoLog('🔧 Error del servidor, usando datos mock');
           const mockProfile = this.getMockClientProfile(conversationId);
           this.profileCache.set(conversationId, {
             data: mockProfile,
@@ -464,7 +454,7 @@ class ClientProfileService {
         
         // Solo loggear errores críticos que no sean 500 (que sabemos que fallan)
         if (axiosError.response?.status !== 500) {
-          console.error('❌ Error obteniendo perfil completo del cliente:', {
+          infoLog('❌ Error obteniendo perfil completo del cliente:', {
             status: axiosError.response?.status,
             data: axiosError.response?.data,
             url: axiosError.config?.url
@@ -475,7 +465,7 @@ class ClientProfileService {
         const errorMessage = String(error);
         if (!errorMessage.includes('Rate limit') && !errorMessage.includes('rate limit')) {
           this.cacheError(conversationId, 'network', errorMessage, 30 * 1000); // 30 segundos
-          console.error('❌ Error obteniendo perfil completo del cliente:', {
+          infoLog('❌ Error obteniendo perfil completo del cliente:', {
             errorType: typeof error,
             errorMessage: errorMessage,
             errorObject: error
@@ -487,7 +477,7 @@ class ClientProfileService {
       const errorTypes = ['404', '429', '500', 'network'];
       for (const errorType of errorTypes) {
         if (this.isErrorCached(conversationId, errorType)) {
-          console.log(`🔄 [ERROR_CACHE] Usando fallback por error cacheado: ${errorType}`);
+          infoLog(`🔄 [ERROR_CACHE] Usando fallback por error cacheado: ${errorType}`);
           const mockProfile = this.getMockClientProfile(conversationId);
           this.profileCache.set(conversationId, {
             data: mockProfile,
@@ -498,7 +488,7 @@ class ClientProfileService {
       }
       
       // En caso de error, devolver perfil mock para evitar errores en la UI
-      console.log('🔄 [DEBUG] Usando perfil mock como fallback');
+      infoLog('🔄 [DEBUG] Usando perfil mock como fallback');
       const mockProfile = this.getMockClientProfile(conversationId);
       this.profileCache.set(conversationId, {
         data: mockProfile,
@@ -521,7 +511,7 @@ class ClientProfileService {
       
       return response.data.data;
     } catch (error) {
-      console.error('Error obteniendo información de conversación:', error);
+      infoLog('Error obteniendo información de conversación:', error);
       return null;
     }
   }
@@ -539,7 +529,7 @@ class ClientProfileService {
       
       return null;
     } catch (error) {
-      console.error('Error obteniendo contacto por ID:', error);
+      infoLog('Error obteniendo contacto por ID:', error);
       return null;
     }
   }
@@ -582,7 +572,7 @@ class ClientProfileService {
       
       return null;
     } catch (error) {
-      console.error('Error obteniendo lista de contactos:', error);
+      infoLog('Error obteniendo lista de contactos:', error);
       return null;
     }
   }
@@ -605,7 +595,7 @@ class ClientProfileService {
       
       return null;
     } catch (error) {
-      console.error('Error obteniendo estadísticas de contactos:', error);
+      infoLog('Error obteniendo estadísticas de contactos:', error);
       return null;
     }
   }
@@ -624,7 +614,7 @@ class ClientProfileService {
       // Si no se encuentra el contacto, devolver null
       return null;
     } catch (error) {
-      console.error('Error buscando contacto:', error);
+      infoLog('Error buscando contacto:', error);
       return null;
     }
   }
@@ -634,7 +624,7 @@ class ClientProfileService {
    */
   clearCache(): void {
     this.profileCache.clear();
-    console.log('Cache de perfiles de cliente limpiado');
+    infoLog('Cache de perfiles de cliente limpiado');
   }
 
   /**
@@ -644,7 +634,7 @@ class ClientProfileService {
     this.profileCache.clear();
     this.errorCache.clear();
     this.retryCache.clear();
-    console.log('🧹 [CACHE] Todos los caches limpiados');
+    infoLog('🧹 [CACHE] Todos los caches limpiados');
   }
 
   /**
@@ -694,7 +684,7 @@ class ClientProfileService {
       }
     }
     
-    console.log('🧹 [CACHE] Caches expirados limpiados automáticamente');
+    infoLog('🧹 [CACHE] Caches expirados limpiados automáticamente');
   }
 
   /**

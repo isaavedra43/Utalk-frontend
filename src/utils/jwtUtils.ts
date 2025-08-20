@@ -3,6 +3,7 @@
  */
 
 import { WORKSPACE_CONFIG } from '../config/workspace';
+import { infoLog } from '../config/logger';
 
 export interface JWTUserInfo {
   workspaceId: string;
@@ -40,7 +41,7 @@ export const extractUserInfoFromToken = (token: string): JWTUserInfo => {
           userId = userData.id || userData.userId || null;
         }
       } catch (error) {
-        console.warn('⚠️ Error obteniendo userId de localStorage:', error);
+        infoLog('⚠️ Error obteniendo userId de localStorage:', error);
       }
     }
     
@@ -66,7 +67,7 @@ export const extractUserInfoFromToken = (token: string): JWTUserInfo => {
       iat: payload.iat || null
     };
   } catch (error) {
-    console.warn('⚠️ Error decodificando JWT:', error);
+          infoLog('⚠️ Error decodificando JWT:', error);
     // Retornar valores por defecto según especificación del backend
     return {
       workspaceId: 'default',
@@ -132,14 +133,14 @@ export const getUserInfo = (): JWTUserInfo => {
         }
         return tokenInfo;
       } else {
-        console.warn('⚠️ JWT - Token con userId null, usando información parcial:', {
+        infoLog('⚠️ JWT - Token con userId null, usando información parcial:', {
           workspaceId: tokenInfo.workspaceId,
           tenantId: tokenInfo.tenantId,
           userId: tokenInfo.userId
         });
       }
     } catch (error) {
-      console.warn('⚠️ JWT - Error extrayendo información del token:', error);
+      infoLog('⚠️ JWT - Error extrayendo información del token:', error);
     }
   }
   
@@ -163,7 +164,7 @@ export const getUserInfo = (): JWTUserInfo => {
       };
     }
   } catch (error) {
-    console.warn('⚠️ Error leyendo usuario de localStorage:', error);
+          infoLog('⚠️ Error leyendo usuario de localStorage:', error);
   }
   
   // 3. Intentar extraer del token JWT incluso si no tiene workspaceId/tenantId válidos
@@ -183,7 +184,7 @@ export const getUserInfo = (): JWTUserInfo => {
   }
   
   // 4. CORREGIDO: Usar configuración de workspace como último recurso
-  console.warn('⚠️ Usando configuración de workspace como fallback');
+        infoLog('⚠️ Usando configuración de workspace como fallback');
   
   const fallbackInfo = {
     workspaceId: WORKSPACE_CONFIG.workspaceId,
@@ -213,21 +214,21 @@ export const generateRoomId = (conversationId: string): string | null => {
   // CORREGIDO: Verificar autenticación antes de generar roomId
   const token = localStorage.getItem('access_token');
   if (!token || !isTokenValid(token)) {
-    console.log('🔗 Room ID - No se puede generar (sin autenticación válida)');
+    infoLog('🔗 Room ID - No se puede generar (sin autenticación válida)');
     return null;
   }
 
   // Verificar que el usuario esté autenticado
   const userInfo = getUserInfo();
   if (!userInfo.userId) {
-    console.log('🔗 Room ID - No se puede generar (userId null)');
+    infoLog('🔗 Room ID - No se puede generar (userId null)');
     return null;
   }
 
   // CORREGIDO: Usar formato simple para coincidir con el backend
   const roomId = `conversation:${conversationId}`;
   
-  console.log('🔗 Room ID generado (formato simplificado):', {
+  infoLog('🔗 Room ID generado (formato simplificado):', {
     conversationId,
     roomId,
     userId: userInfo.userId
@@ -245,7 +246,7 @@ export const validateRoomConfiguration = (): boolean => {
   // CORREGIDO: Verificar autenticación antes de validar
   const token = localStorage.getItem('access_token');
   if (!token || !isTokenValid(token)) {
-    console.log('🔗 Room Config - No se puede validar (sin autenticación válida)');
+    infoLog('🔗 Room Config - No se puede validar (sin autenticación válida)');
     return false;
   }
 
@@ -253,13 +254,13 @@ export const validateRoomConfiguration = (): boolean => {
   const isValid = isValidUserInfo(userInfo);
   
   if (!isValid) {
-    console.warn('⚠️ Configuración de rooms con userId null:', {
+          infoLog('⚠️ Configuración de rooms con userId null:', {
       workspaceId: userInfo.workspaceId,
       tenantId: userInfo.tenantId,
       userId: userInfo.userId
     });
   } else {
-    console.log('✅ Configuración de rooms válida:', {
+    infoLog('✅ Configuración de rooms válida:', {
       workspaceId: userInfo.workspaceId,
       tenantId: userInfo.tenantId,
       userId: userInfo.userId

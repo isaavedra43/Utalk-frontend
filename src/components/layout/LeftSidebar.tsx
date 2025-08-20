@@ -11,6 +11,7 @@ import {
   Download
 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/useAuthContext';
+import { infoLog } from '../../config/logger';
 // import { useTeamNotifications } from '../../modules/team/hooks/useTeamNotifications'; // DESHABILITADO TEMPORALMENTE
 
 export const LeftSidebar: React.FC = () => {
@@ -32,7 +33,7 @@ export const LeftSidebar: React.FC = () => {
       await logout();
       // El logout automáticamente redirigirá al login
     } catch (error) {
-      console.error('Error en logout:', error);
+      infoLog('Error en logout:', error);
     }
   };
 

@@ -17,7 +17,7 @@ const normalizeConversation = (conversation: Conversation): Conversation => {
   if (!hasContactData) {
     // REDUCIR LOGS: Solo mostrar una vez por conversación
     if (import.meta.env.DEV && !conversation.needsContactData) {
-      console.warn('⚠️ [DEBUG] Conversación sin datos de contacto:', conversation.id);
+              infoLog('⚠️ [DEBUG] Conversación sin datos de contacto:', conversation.id);
     }
     return {
       ...conversation,

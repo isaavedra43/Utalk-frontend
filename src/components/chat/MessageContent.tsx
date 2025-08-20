@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { infoLog } from '../../config/logger';
 import { Download, Volume2, Play, Pause } from 'lucide-react';
 import type { Message } from '../../types';
 import { fileUploadService } from '../../services/fileUpload';
@@ -158,7 +159,7 @@ export const MessageContent: React.FC<MessageContentProps> = ({ message }) => {
     const audio = audioRef.current;
     if (!audio || !src) return;
     
-    console.log('🔊 [AUDIO PLAYER] Configurando audio:', {
+    infoLog('🔊 [AUDIO PLAYER] Configurando audio:', {
       src,
       type,
       fileName
@@ -176,7 +177,7 @@ export const MessageContent: React.FC<MessageContentProps> = ({ message }) => {
     audio.load();
 
     const onLoaded = () => {
-      console.log('🔊 [AUDIO PLAYER] Metadata cargada:', {
+      infoLog('🔊 [AUDIO PLAYER] Metadata cargada:', {
         duration: audio.duration,
         readyState: audio.readyState,
         networkState: audio.networkState,
@@ -188,7 +189,7 @@ export const MessageContent: React.FC<MessageContentProps> = ({ message }) => {
         const onTime = () => setCurrentTime(audio.currentTime);
     const onEnded = () => setIsPlaying(false);
     const onCanPlay = () => {
-      console.log('🔊 [AUDIO PLAYER] Audio listo para reproducir:', {
+      infoLog('🔊 [AUDIO PLAYER] Audio listo para reproducir:', {
         duration: audio.duration,
         readyState: audio.readyState,
         networkState: audio.networkState,
@@ -232,7 +233,7 @@ export const MessageContent: React.FC<MessageContentProps> = ({ message }) => {
     const audio = audioRef.current;
     if (!audio) return;
     
-    console.log('🔊 [AUDIO PLAYER] Intentando reproducir:', {
+    infoLog('🔊 [AUDIO PLAYER] Intentando reproducir:', {
       src: audio.src,
       readyState: audio.readyState,
       networkState: audio.networkState,
@@ -245,7 +246,7 @@ export const MessageContent: React.FC<MessageContentProps> = ({ message }) => {
       setIsPlaying(false);
     } else {
       audio.play().then(() => {
-        console.log('🔊 [AUDIO PLAYER] Reproducción iniciada exitosamente');
+        infoLog('🔊 [AUDIO PLAYER] Reproducción iniciada exitosamente');
         setIsPlaying(true);
       }).catch((e) => {
         console.error('🔊 [AUDIO PLAYER] Error al reproducir:', {

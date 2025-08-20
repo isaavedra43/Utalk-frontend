@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { infoLog } from '../../config/logger';
 import { Send, Mic, MapPin, Smile, Paperclip } from 'lucide-react';
 import { AudioRecorder } from './AudioRecorder';
 import { StickerPicker } from './StickerPicker';
@@ -107,7 +108,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
   const handleAudioComplete = useCallback(async (audioBlob: Blob) => {
     if (!conversationId) {
-      console.error('❌ No se puede enviar audio: conversationId no disponible');
+      infoLog('❌ No se puede enviar audio: conversationId no disponible');
       alert('Error: No se puede enviar audio en este momento');
       return;
     }
@@ -116,7 +117,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     const fileId = `audio-${Date.now()}`;
 
     try {
-      console.log('🎤 Audio grabado, enviando...', audioBlob);
+      infoLog('🎤 Audio grabado, enviando...', audioBlob);
       
       // Crear un archivo de audio desde el blob
       const audioFile = new File([audioBlob], `audio-${Date.now()}.wav`, { 
@@ -146,8 +147,11 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       );
 
       // Subir audio al servidor
-      const response = await fileUploadService.uploadFile(audioFile, conversationId);
-      console.log('✅ Audio subido exitosamente:', response);
+      const response = await fileUploadService.uploadFile(audioFile, {
+        conversationId,
+        type: audioFile.type
+      });
+      infoLog('✅ Audio subido exitosamente:', response);
       
       setUploadingFiles(prev => 
         prev.map(f => f.id === fileId ? { ...f, progress: 100, status: 'success' } : f)
@@ -170,7 +174,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       setShowAudioRecorder(false);
       
     } catch (error) {
-      console.error('❌ Error enviando audio:', error);
+      infoLog('❌ Error enviando audio:', error);
       
       // Marcar como error
       setUploadingFiles(prev => 
@@ -199,7 +203,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           onSendMessage(locationUrl, 'location', { latitude, longitude });
         },
         (error) => {
-          console.error('Error obteniendo ubicación:', error);
+          infoLog('Error obteniendo ubicación:', error);
           alert('No se pudo obtener tu ubicación');
         }
       );
@@ -211,7 +215,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   // Función para enviar múltiples archivos juntos
   const sendMultipleFiles = useCallback(async (files: File[]) => {
     if (!conversationId) {
-      console.error('❌ No se puede enviar archivos: conversationId no disponible');
+      infoLog('❌ No se puede enviar archivos: conversationId no disponible');
       alert('Error: No se puede enviar archivos en este momento');
       return;
     }
@@ -220,7 +224,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     const fileIds = files.map(file => `${file.name}-${Date.now()}-${Math.random()}`);
 
     try {
-      console.log('🚀 Enviando múltiples archivos:', files.length);
+      infoLog('🚀 Enviando múltiples archivos:', files.length);
       
       // Agregar todos los archivos a la lista de uploads
       setUploadingFiles(prev => [
@@ -245,7 +249,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
         setUploadingFiles(prev => prev.map(f => f.id === currentId ? { ...f, progress: 25 } : f));
         
-        const response = await fileUploadService.uploadFile(file, conversationId);
+        const response = await fileUploadService.uploadFile(file, {
+          conversationId,
+          type: file.type
+        });
         
         setUploadingFiles(prev => prev.map(f => f.id === currentId ? { ...f, progress: 100, status: 'success' } : f));
         
@@ -266,7 +273,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       }, 2000);
 
     } catch (error) {
-      console.error('❌ Error enviando múltiples archivos:', error);
+      infoLog('❌ Error enviando múltiples archivos:', error);
       
       // Marcar todos como error
       setUploadingFiles(prev => 
@@ -352,7 +359,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             {/* Ícono de micrófono */}
             <button
               onClick={() => {
-                console.log('🎤 Botón de micrófono clickeado, estado actual:', showAudioRecorder);
+                infoLog('🎤 Botón de micrófono clickeado, estado actual:', showAudioRecorder);
                 setShowAudioRecorder(!showAudioRecorder);
               }}
               className={`p-1.5 rounded-full transition-all duration-200 ${
@@ -390,7 +397,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                     } else {
                       // Si es un solo archivo, enviarlo individualmente
                       fileArray.forEach(file => {
-                        console.log('📁 Archivo seleccionado:', file.name, 'Tamaño:', file.size, 'Tipo:', file.type);
+                        infoLog('📁 Archivo seleccionado:', file.name, 'Tamaño:', file.size, 'Tipo:', file.type);
                         
                         // Crear preview temporal mientras se sube
                         const fileUrl = URL.createObjectURL(file);
@@ -412,7 +419,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                         // Subir archivo al servidor y luego enviar mensaje con la URL
                         const uploadAndSend = async () => {
                           try {
-                            console.log('🚀 Subiendo archivo:', file.name);
+                            infoLog('🚀 Subiendo archivo:', file.name);
                             
                             // Actualizar progreso
                             setUploadingFiles(prev => 
@@ -427,8 +434,11 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                             );
                             
                             // Subir archivo y obtener URL del backend
-                            const response = await fileUploadService.uploadFile(file, conversationId);
-                            console.log('✅ Archivo subido exitosamente:', response);
+                            const response = await fileUploadService.uploadFile(file, {
+                              conversationId,
+                              type: file.type
+                            });
+                            infoLog('✅ Archivo subido exitosamente:', response);
                             
                             setUploadingFiles(prev => 
                               prev.map(f => f.id === fileId ? { ...f, progress: 100, status: 'success' } : f)
@@ -490,7 +500,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             {/* Ícono de emoji */}
             <button
               onClick={() => {
-                console.log('🎯 Botón de emoji clickeado, estado actual:', showStickerPicker);
+                infoLog('🎯 Botón de emoji clickeado, estado actual:', showStickerPicker);
                 setShowStickerPicker(!showStickerPicker);
               }}
               className={`p-1.5 rounded-full transition-all duration-200 ${
