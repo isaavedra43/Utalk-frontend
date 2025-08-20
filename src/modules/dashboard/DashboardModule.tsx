@@ -13,7 +13,7 @@ import {
 
 import { ErrorBoundary } from '../../components/dashboard/ErrorBoundary';
 import { SectionLoading } from '../../components/dashboard/LoadingSpinner';
-import { useDebouncedCallback } from '../../hooks/useDebounce';
+import { useDebouncedCallback } from '../../hooks/shared/useDebounce';
 
 import { useDashboardStore } from '../../stores/useDashboardStore';
 import type { DashboardData } from '../../types/dashboard';

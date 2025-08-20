@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 
+/**
+ * Hook básico para debounce de valores
+ */
 export function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
@@ -16,6 +19,9 @@ export function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
+/**
+ * Hook para debounce de callbacks
+ */
 export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number
@@ -48,6 +54,9 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
   return debouncedCallback;
 }
 
+/**
+ * Hook para throttling de callbacks
+ */
 export function useThrottle<T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number
@@ -67,4 +76,18 @@ export function useThrottle<T extends (...args: unknown[]) => unknown>(
   ) as T;
 
   return throttledCallback;
+}
+
+/**
+ * Hook específico para búsquedas con debounce
+ */
+export function useSearchDebounce(searchTerm: string, delay: number = 300): string {
+  return useDebounce(searchTerm, delay);
+}
+
+/**
+ * Hook para filtros con debounce
+ */
+export function useFilterDebounce<T>(filters: T, delay: number = 500): T {
+  return useDebounce(filters, delay);
 } 
