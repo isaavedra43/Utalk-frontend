@@ -23,7 +23,7 @@ interface ConversationFilesModalProps {
 const mockFiles: ConversationFile[] = [
   {
     id: '1',
-    name: 'documento.pdf',
+    name: 'contrato_servicios.pdf',
     type: 'document',
     url: '#',
     size: 1024000,
@@ -32,7 +32,7 @@ const mockFiles: ConversationFile[] = [
   },
   {
     id: '2',
-    name: 'imagen.jpg',
+    name: 'foto_producto.jpg',
     type: 'image',
     url: '#',
     size: 512000,
@@ -42,7 +42,7 @@ const mockFiles: ConversationFile[] = [
   },
   {
     id: '3',
-    name: 'audio.mp3',
+    name: 'mensaje_voz.mp3',
     type: 'audio',
     url: '#',
     size: 2048000,
@@ -51,7 +51,7 @@ const mockFiles: ConversationFile[] = [
   },
   {
     id: '4',
-    name: 'video.mp4',
+    name: 'demo_producto.mp4',
     type: 'video',
     url: '#',
     size: 5242880,
@@ -61,7 +61,7 @@ const mockFiles: ConversationFile[] = [
   },
   {
     id: '5',
-    name: 'presentacion.pptx',
+    name: 'presentacion_empresa.pptx',
     type: 'document',
     url: '#',
     size: 3072000,
@@ -70,12 +70,31 @@ const mockFiles: ConversationFile[] = [
   },
   {
     id: '6',
-    name: 'foto_perfil.png',
+    name: 'logo_cliente.png',
     type: 'image',
     url: '#',
     size: 256000,
     sentBy: 'Agente',
     sentAt: '2025-01-18T10:15:00Z',
+    thumbnail: 'https://via.placeholder.com/100x100'
+  },
+  {
+    id: '7',
+    name: 'factura_enero.pdf',
+    type: 'document',
+    url: '#',
+    size: 890000,
+    sentBy: 'Cliente',
+    sentAt: '2025-01-17T13:45:00Z',
+  },
+  {
+    id: '8',
+    name: 'screenshot_error.jpg',
+    type: 'image',
+    url: '#',
+    size: 320000,
+    sentBy: 'Agente',
+    sentAt: '2025-01-17T12:30:00Z',
     thumbnail: 'https://via.placeholder.com/100x100'
   }
 ];
@@ -259,14 +278,14 @@ export const ConversationFilesModal: React.FC<ConversationFilesModalProps> = ({
               <p className="text-sm">No se encontraron archivos en esta conversación</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr">
               {filteredFiles.map((file) => (
                 <div
                   key={file.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white flex flex-col h-full min-h-[280px]"
                 >
                   {/* Thumbnail o icono */}
-                  <div className="flex items-center justify-center h-24 mb-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-center h-24 mb-3 bg-gray-50 rounded-lg flex-shrink-0">
                     {file.thumbnail ? (
                       <img
                         src={file.thumbnail}
@@ -281,39 +300,39 @@ export const ConversationFilesModal: React.FC<ConversationFilesModalProps> = ({
                   </div>
 
                   {/* Información del archivo */}
-                  <div className="space-y-2">
+                  <div className="flex-1 flex flex-col space-y-2 min-h-0">
                     <h3 className="font-medium text-sm text-gray-900 truncate" title={file.name}>
                       {file.name}
                     </h3>
                     
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <span>{formatFileSize(file.size)}</span>
-                      <span>•</span>
-                      <span>{file.type}</span>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
+                      <span className="whitespace-nowrap">{formatFileSize(file.size)}</span>
+                      <span className="whitespace-nowrap">•</span>
+                      <span className="whitespace-nowrap capitalize">{file.type}</span>
                     </div>
 
                     <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <User className="w-3 h-3" />
-                      <span>{file.sentBy}</span>
+                      <User className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">{file.sentBy}</span>
                     </div>
 
                     <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <Calendar className="w-3 h-3" />
-                      <span>{formatDate(file.sentAt)}</span>
+                      <Calendar className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">{formatDate(file.sentAt)}</span>
                     </div>
 
                     {/* Acciones */}
-                    <div className="flex items-center gap-2 pt-2">
+                    <div className="flex items-center gap-2 pt-2 mt-auto">
                       <button
                         onClick={() => handlePreview(file)}
-                        className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+                        className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors whitespace-nowrap"
                       >
                         <Eye className="w-3 h-3" />
                         Ver
                       </button>
                       <button
                         onClick={() => handleDownload(file)}
-                        className="flex items-center gap-1 px-2 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
+                        className="flex items-center gap-1 px-2 py-1 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors whitespace-nowrap"
                       >
                         <Download className="w-3 h-3" />
                         Descargar
