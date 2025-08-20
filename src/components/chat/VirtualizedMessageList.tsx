@@ -2,7 +2,7 @@ import React from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { MessageBubble } from './MessageBubble';
 import type { Message } from '../../types';
-import { useConversations } from '../../hooks/useConversations';
+import { useConversations } from '../../hooks/chat/useConversations';
 
 interface VirtualizedMessageListProps {
   messages: Message[];

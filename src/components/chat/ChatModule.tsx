@@ -3,7 +3,7 @@ import { ConversationList } from './ConversationList';
 import { ChatComponent } from './ChatComponent';
 import { RightSidebar } from '../layout/RightSidebar';
 import { SuggestionsPanel } from '../layout/SuggestionsPanel';
-import { useConversations } from '../../hooks/useConversations';
+import { useConversations } from '../../hooks/chat/useConversations';
 import { 
   ChevronLeft, 
   Settings, 
