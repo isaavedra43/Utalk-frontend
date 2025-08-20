@@ -15,4 +15,4 @@ export { DashboardModule } from './dashboard';
 export { TeamModule } from './team';
 
 // Exportar módulo de notificaciones
-export { NotificationModule } from './notifications'; 
+ 

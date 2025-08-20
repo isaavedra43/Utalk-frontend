@@ -1,5 +1,5 @@
 import React, { useEffect, lazy, Suspense, useState } from 'react';
-import { useAppStore } from '../../stores/useAppStore';
+import { useUIStore } from '../../stores/useUIStore';
 import { useTeam } from './hooks/useTeam';
 import { logger } from '../../utils/logger';
 
@@ -13,7 +13,7 @@ const SuggestedPlan = lazy(() => import('./components/SuggestedPlan'));
 const CreateAgentModal = lazy(() => import('./components/CreateAgentModal'));
 
 const TeamModule: React.FC = () => {
-  const { setCurrentModule } = useAppStore();
+  const { setCurrentModule } = useUIStore();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   

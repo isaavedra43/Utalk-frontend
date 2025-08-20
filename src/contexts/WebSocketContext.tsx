@@ -7,6 +7,13 @@ import { generateRoomId as generateRoomIdUtil, validateRoomConfiguration } from 
 import { encodeConversationIdForWebSocket } from '../utils/conversationUtils';
 import { performanceMonitor } from '../utils/performanceMonitor';
 
+// Helper para logs de debug condicionales
+const debugLog = (message: string, data?: unknown) => {
+  if (import.meta.env.VITE_DEBUG === 'true' && import.meta.env.DEV) {
+    console.debug(message, data);
+  }
+};
+
 // FASE 5: Constantes para manejo de reconexión y health checks (futuro)
 // const RECONNECTION_ATTEMPTS = 5;
 // const RECONNECTION_DELAYS = [1000, 2000, 5000, 10000, 30000]; // Delays progresivos
@@ -97,9 +104,6 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     
     // CORREGIDO: Verificar si se pudo generar el roomId
           if (!roomId) {
-        if (import.meta.env.VITE_DEBUG === 'true') {
-          console.debug('[DEBUG][WS] No se puede generar roomId (sin autenticación)');
-        }
         return null;
       }
     
@@ -108,25 +112,19 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // CORREGIDO: función centralizada para solicitar sincronización de estado con control de rate limit
   const doSyncState = useCallback((reason?: string) => {
-    if (import.meta.env.VITE_DEBUG === 'true') {
-      console.debug('[DEBUG][WS] Sincronizando estado', { reason });
-    }
+    debugLog('[DEBUG][WS] Sincronizando estado', { reason });
     
     // Evitar sincronizaciones duplicadas en un corto período
     const now = Date.now();
     
     if (now - lastSyncRef.current < 5000) { // Aumentado a 5 segundos mínimo entre sincronizaciones
-      if (import.meta.env.VITE_DEBUG === 'true') {
-        console.debug('[DEBUG][WS] Sincronización reciente, saltando...');
-      }
+      debugLog('[DEBUG][WS] Sincronización reciente, saltando...');
       return;
     }
     
     // Verificar si el socket está realmente conectado antes de enviar
     if (!isConnected || !socket) {
-      if (import.meta.env.VITE_DEBUG === 'true') {
-        console.debug('[DEBUG][WS] Socket no conectado, saltando sincronización');
-      }
+      debugLog('[DEBUG][WS] Socket no conectado, saltando sincronización');
       return;
     }
     
@@ -136,9 +134,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
     
     if (!success) {
-      if (import.meta.env.VITE_DEBUG === 'true') {
-        console.debug('[DEBUG][WS] Sync-state rate limited, reintentando más tarde');
-      }
+      debugLog('[DEBUG][WS] Sync-state rate limited, reintentando más tarde');
     }
   }, [emit, rateLimiter, isConnected, socket]);
   const doSyncStateRef = React.useRef(doSyncState);
@@ -150,9 +146,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const accessToken = detail?.accessToken;
       if (!accessToken) return;
       if (!isChatRoute) return;
-      if (import.meta.env.VITE_DEBUG === 'true') {
-        console.debug('[DEBUG][WS] Token refrescado, reconectando (/chat)');
-      }
+      debugLog('[DEBUG][WS] Token refrescado, reconectando (/chat)');
       disconnect();
       connect(accessToken);
     };
@@ -167,17 +161,13 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     
     // CORREGIDO: Solo conectar si hay token, estamos en /chat, no conectado y sin error
     if (isChatRoute && token && !isConnected && !connectionError) {
-      if (import.meta.env.VITE_DEBUG === 'true') {
-        console.debug('[DEBUG][WS] Conectando WebSocket en /chat');
-      }
+      debugLog('[DEBUG][WS] Conectando WebSocket en /chat');
       connect(token, { timeout: 60000 });
     }
     
     // CORREGIDO: Solo desconectar si no hay token Y está conectado
     if (!token && isConnected) {
-      if (import.meta.env.VITE_DEBUG === 'true') {
-        console.debug('[DEBUG][WS] Desconectando WebSocket (sin auth)');
-      }
+      debugLog('[DEBUG][WS] Desconectando WebSocket (sin auth)');
       disconnect();
       setIsSynced(false);
       setIsFallbackMode(false);
@@ -187,9 +177,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     
     // NUEVO: Evitar reconexiones automáticas si hay error de rate limiting
     if (connectionError && connectionError.includes('RATE_LIMITED')) {
-      if (import.meta.env.VITE_DEBUG === 'true') {
-        console.debug('[DEBUG][WS] Rate limited detectado, no reconectar');
-      }
+      debugLog('[DEBUG][WS] Rate limited detectado, no reconectar');
       return;
     }
   }, [isChatRoute, isConnected, connectionError, connect, disconnect]);
@@ -214,9 +202,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     
     // Conectar si tenemos token, usuario, estamos en /chat y no estamos conectados
     if (token && user && isChatRoute && !isConnected && !connectionError) {
-      if (import.meta.env.VITE_DEBUG === 'true') {
-        console.debug('[DEBUG][WS] Usuario autenticado, conectando WS...');
-      }
+      debugLog('[DEBUG][WS] Usuario autenticado, conectando WS...');
       connect(token, { timeout: 60000 });
     }
   }, [isChatRoute, isConnected, connectionError, connect, disconnect]);
@@ -234,22 +220,16 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return;
       }
       if (loginConnectInFlightRef.current) {
-        if (import.meta.env.VITE_DEBUG === 'true') {
-          console.debug('[DEBUG][WS] Conexión de login ya en progreso, saltando');
-        }
+        debugLog('[DEBUG][WS] Conexión de login ya en progreso, saltando');
         return;
       }
       if (isConnected) {
-        if (import.meta.env.VITE_DEBUG === 'true') {
-          console.debug('[DEBUG][WS] Ya conectado, saltando conexión de login');
-        }
+        debugLog('[DEBUG][WS] Ya conectado, saltando conexión de login');
         return;
       }
       
       loginConnectInFlightRef.current = true;
-      if (import.meta.env.VITE_DEBUG === 'true') {
-        console.debug('[DEBUG][WS] Login exitoso, conectando WS...');
-      }
+      debugLog('[DEBUG][WS] Login exitoso, conectando WS...');
       
       // NUEVO: Timeout aumentado para dar más tiempo al backend
       connect(accessToken, { timeout: 60000 });

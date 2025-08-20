@@ -4,25 +4,22 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App.tsx'
 import './index.css'
 import './utils/logCleaner' // Importar para disponibilizar funciones globales de logging
+import './utils/consoleExporter' // Importar para disponibilizar exportación de logs
 import './styles/dashboard.css'
 import { logger } from './utils/logger.ts'
-import './utils/consoleExporter.ts'
-import consoleExporter from './utils/consoleExporter';
-import './utils/debugUtils'; // Importar utilidades de debug
 
-// HABILITADO: Captura automática de logs
-consoleExporter.startCapture();
 
-// HABILITADO: Captura de peticiones de red
-consoleExporter.startNetworkCapture();
 
-// Validar configuración al iniciar
-logger.systemInfo('Iniciando aplicación UTALK', {
-  version: '1.0.0',
-  environment: import.meta.env.MODE,
-  debug: import.meta.env.DEV,
-  timestamp: new Date().toISOString()
-});
+
+// Validar configuración al iniciar (solo en desarrollo)
+if (import.meta.env.DEV) {
+  logger.systemInfo('Iniciando aplicación UTALK', {
+    version: '1.0.0',
+    environment: import.meta.env.MODE,
+    debug: import.meta.env.DEV,
+    timestamp: new Date().toISOString()
+  });
+}
 
 // Configurar QueryClient con retry y cache optimizados
 const queryClient = new QueryClient({

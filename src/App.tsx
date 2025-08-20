@@ -4,9 +4,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext'
 import { WebSocketProvider } from './contexts/WebSocketContext'
 import { AuthModule } from './modules/auth'
+import { ForgotPasswordForm } from './modules/auth/components/ForgotPasswordForm'
 import { MainLayout } from './components/layout/MainLayout'
-// import { WorkspaceDebug } from './components/WorkspaceDebug'
-// import { DebugPanel } from './components/DebugPanel' // DEBUGPANEL DESHABILITADO TEMPORALMENTE
+
 
 
 // import { logger } from './utils/logger' // DESHABILITADO - No se usa
@@ -20,8 +20,6 @@ import { useAuthContext } from './contexts/useAuthContext'
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = memo(({ children }) => {
   const { isAuthenticated, loading } = useAuthContext();
 
-  // Debug: Log del estado de autenticación - REDUCIDO
-  // console.log('🔐 ProtectedRoute - Estado:', { isAuthenticated, loading });
 
   // Si está cargando, mostrar loading
   if (loading) {
@@ -68,21 +66,10 @@ const ClientsPage: React.FC = () => {
   return <MainLayout />;
 };
 
-// Componente para el módulo de notificaciones
-const NotificationsPage: React.FC = () => {
-  return <MainLayout />;
-};
+
 
 function App() {
-  // const [showDebugPanel, setShowDebugPanel] = useState(import.meta.env.DEV); // DEBUGPANEL DESHABILITADO TEMPORALMENTE
 
-  // const toggleDebugPanel = () => {
-  //   setShowDebugPanel(!showDebugPanel);
-  //   logger.systemInfo('Debug panel toggled', { 
-  //     isVisible: !showDebugPanel,
-  //     timestamp: new Date().toISOString()
-  //   });
-  // }; // DEBUGPANEL DESHABILITADO TEMPORALMENTE
 
   return (
     <Router>
@@ -90,10 +77,11 @@ function App() {
         <WebSocketProvider>
           <div className="app">
             {/* Componente de debug para workspaceId - DESHABILITADO */}
-            {/* <WorkspaceDebug show={import.meta.env.DEV} /> */}
+    
             
             <Routes>
               <Route path="/login" element={<AuthModule />} />
+              <Route path="/forgot-password" element={<ForgotPasswordForm />} />
               <Route 
                 path="/chat" 
                 element={
@@ -126,29 +114,11 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              <Route 
-                path="/notifications" 
-                element={
-                  <ProtectedRoute>
-                    <NotificationsPage />
-                  </ProtectedRoute>
-                } 
-              />
+
               <Route path="/" element={<Navigate to="/login" replace />} />
             </Routes>
             
-            {/* Debug Panel Toggle Button (solo en desarrollo) - DESHABILITADO TEMPORALMENTE */}
-            {/* {import.meta.env.DEV && (
-              <button
-                onClick={toggleDebugPanel}
-                className="fixed top-4 right-4 z-50 px-3 py-2 bg-gray-800 text-white rounded-lg shadow-lg hover:bg-gray-700 text-sm"
-              >
-                {showDebugPanel ? 'Hide Debug' : 'Show Debug'}
-              </button>
-            )} */}
-            
-            {/* Debug Panel - DESHABILITADO TEMPORALMENTE */}
-            {/* <DebugPanel isVisible={showDebugPanel} onClose={() => setShowDebugPanel(false)} /> */}
+
           </div>
         </WebSocketProvider>
       </AuthProvider>

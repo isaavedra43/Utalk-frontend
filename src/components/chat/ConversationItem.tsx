@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Conversation } from '../../types';
-import { useAppStore } from '../../stores/useAppStore';
+import { useChatStore } from '../../stores/useChatStore';
 import { convertFirebaseTimestamp } from '../../utils/timestampUtils';
 import { useClientProfileStore } from '../../stores/useClientProfileStore';
 
@@ -43,7 +43,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
   const [isHighlighted, setIsHighlighted] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isNewConversationAnimating, setIsNewConversationAnimating] = useState(isNewConversation); // NUEVO: Estado para animación de nueva conversación
-  const { calculateUnreadCount, markConversationAsRead } = useAppStore();
+  const { calculateUnreadCount, markConversationAsRead } = useChatStore();
   
   // Calcular unreadCount dinámicamente
   const unreadCount = calculateUnreadCount(conversation.id);

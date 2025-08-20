@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { ConversationList } from './ConversationList';
 import { ChatComponent } from './ChatComponent';
 import { RightSidebar } from '../layout/RightSidebar';
-import { DetailsPanel } from '../layout/DetailsPanel';
 import { SuggestionsPanel } from '../layout/SuggestionsPanel';
 import { useConversations } from '../../hooks/useConversations';
 import { 
@@ -10,90 +9,43 @@ import {
   Settings, 
   Menu, 
   X, 
-  MessageSquare, 
   Users, 
   Bell, 
   LayoutDashboard, 
-  Building2
+  Building2,
+  Sparkles
 } from 'lucide-react';
 import '../../styles/four-column-layout.css';
 
 // Tipos para las vistas móviles
-type MobileView = 'conversations' | 'chat' | 'details';
+type MobileView = 'conversations' | 'chat' | 'details' | 'suggestions';
 
 // Componente interno para el contenido autenticado
 const AuthenticatedChatContent: React.FC = () => {
   const [mobileView, setMobileView] = useState<MobileView>('conversations');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   
-  // NUEVO: Una sola instancia del hook useConversations
+  // UNA sola instancia del hook useConversations
   const conversationsData = useConversations({});
 
-  // Logs de debugging desactivados por defecto
-  if (import.meta.env.VITE_DEBUG === 'true') {
-    console.debug('[DEBUG][ChatModule] Datos de conversaciones', {
-      conversations: conversationsData.conversations,
-      activeConversation: conversationsData.activeConversation,
-      isLoading: conversationsData.isLoading,
-      error: conversationsData.error,
-      conversationsCount: conversationsData.conversations?.length || 0
-    });
-  }
-
-  // NUEVO: Verificar si hay datos pero no se renderizan
+  // Navegación automática a chat tras seleccionar conversación en móvil
+  const prevActiveIdRef = React.useRef<string | null>(null);
   useEffect(() => {
-    if (import.meta.env.VITE_DEBUG === 'true') {
-      if (conversationsData.conversations && conversationsData.conversations.length > 0) {
-        console.debug('[DEBUG][ChatModule] Conversaciones disponibles', conversationsData.conversations.length);
-      } else if (!conversationsData.isLoading) {
-        console.debug('[DEBUG][ChatModule] No hay conversaciones y no está cargando');
-      }
+    const isMobile = window.innerWidth < 1024; // lg breakpoint
+    const currentId = conversationsData.activeConversation?.id || null;
+
+    // Solo autoabrir chat cuando estamos mirando la lista y cambia la conversación seleccionada
+    if (
+      isMobile &&
+      mobileView === 'conversations' &&
+      currentId &&
+      prevActiveIdRef.current !== currentId
+    ) {
+      setMobileView('chat');
     }
-  }, [conversationsData.conversations, conversationsData.isLoading]);
 
-  // Datos mock para el panel de detalles
-  const mockClientProfile = {
-    id: '1',
-    name: 'Cliente Ejemplo',
-    email: 'cliente@ejemplo.com',
-    phone: '+1234567890',
-    company: 'Empresa Ejemplo',
-    status: 'active' as const,
-    channel: 'whatsapp' as const,
-    tags: ['VIP', 'Premium']
-  };
-
-  const mockConversationDetails = {
-    id: 'conv_1',
-    status: 'open' as const,
-    priority: 'high' as const,
-    unreadCount: 5,
-    assignedToName: 'Tú',
-    createdAt: '2024-01-01',
-    updatedAt: '2024-01-01',
-    lastMessageAt: '2024-01-01',
-    messageCount: 10,
-    participants: ['+1234567890'],
-    tags: ['VIP']
-  };
-
-  const mockNotificationSettings = {
-    conversationNotifications: true,
-    reports: true,
-    autoFollowUp: false,
-    emailNotifications: true,
-    pushNotifications: true
-  };
-
-  // Navegación móvil
-  const mobileNavigationItems = [
-    { id: 'conversations', icon: MessageSquare, label: 'Chat', badge: null },
-    { id: 'details', icon: Settings, label: 'Detalles', badge: null }
-  ];
-
-  const handleMobileNavigation = (view: MobileView) => {
-    setMobileView(view);
-  };
+    prevActiveIdRef.current = currentId;
+  }, [conversationsData.activeConversation?.id, mobileView]);
 
   // Renderizar vista móvil
   const renderMobileView = () => {
@@ -116,14 +68,20 @@ const AuthenticatedChatContent: React.FC = () => {
             
             {/* Contenido de conversaciones */}
             <div className="flex-1 overflow-hidden">
-              <ConversationList {...conversationsData} />
+              <ConversationList 
+                {...conversationsData} 
+                selectConversation={(id: string) => {
+                  conversationsData.selectConversation(id);
+                  // setMobileView('chat');  // ya no forzamos aquí, lo maneja el useEffect en móvil
+                }}
+              />
             </div>
           </div>
         );
 
       case 'chat':
         return (
-          <div className="h-full bg-white">
+          <div className="h-full bg-white flex flex-col">
             {/* Header del chat */}
             <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
               <div className="flex items-center space-x-3">
@@ -151,12 +109,24 @@ const AuthenticatedChatContent: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => setMobileView('details')}
-                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
-              >
-                <Settings className="h-5 w-5" />
-              </button>
+
+              {/* Acciones: Sugerencias e Info/IA (estilo WhatsApp con acciones arriba) */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setMobileView('suggestions')}
+                  className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                  title="Sugerencias IA"
+                >
+                  <Sparkles className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => setMobileView('details')}
+                  className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                  title="Info / Copiloto"
+                >
+                  <Settings className="h-5 w-5" />
+                </button>
+              </div>
             </div>
             
             {/* Contenido del chat */}
@@ -168,7 +138,7 @@ const AuthenticatedChatContent: React.FC = () => {
 
       case 'details':
         return (
-          <div className="h-full bg-white">
+          <div className="h-full bg-white flex flex-col">
             {/* Header de detalles */}
             <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-600 to-gray-700 text-white">
               <div className="flex items-center space-x-3">
@@ -178,19 +148,36 @@ const AuthenticatedChatContent: React.FC = () => {
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
-                <h1 className="text-lg font-semibold">Detalles</h1>
+                <h1 className="text-lg font-semibold">Info / Copiloto</h1>
               </div>
             </div>
             
-            {/* Contenido de detalles */}
+            {/* Contenido de detalles: usar RightSidebar real */}
             <div className="flex-1 overflow-y-auto no-scrollbar">
-              <DetailsPanel
-                clientProfile={mockClientProfile}
-                conversationDetails={mockConversationDetails}
-                notificationSettings={mockNotificationSettings}
-                onUpdateNotificationSettings={() => {}}
-                isLoading={false}
-              />
+              <RightSidebar />
+            </div>
+          </div>
+        );
+
+      case 'suggestions':
+        return (
+          <div className="h-full bg-white flex flex-col">
+            {/* Header de sugerencias */}
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => setMobileView('chat')}
+                  className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <h1 className="text-lg font-semibold">Sugerencias IA</h1>
+              </div>
+            </div>
+            
+            {/* Contenido de sugerencias */}
+            <div className="flex-1 overflow-y-auto no-scrollbar">
+              <SuggestionsPanel />
             </div>
           </div>
         );
@@ -200,7 +187,7 @@ const AuthenticatedChatContent: React.FC = () => {
     }
   };
 
-  // Menú lateral móvil moderno
+  // Menú lateral móvil (para cambiar de módulo si se requiere)
   const renderMobileMenu = () => {
     if (!showMobileMenu) return null;
 
@@ -258,54 +245,10 @@ const AuthenticatedChatContent: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Debugger para verificar layout - DESHABILITADO */}
-      {/* <LayoutDebugger isVisible={showDebugger} /> */}
-      
-      {/* Botón para mostrar/ocultar debugger - DESHABILITADO */}
-      {/* <button
-        onClick={() => setShowDebugger(!showDebugger)}
-        className="fixed top-4 right-4 z-50 p-2 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
-        title="Mostrar/Ocultar Debug Layout"
-      >
-        <Monitor className="w-4 h-4" />
-      </button> */}
-
-      {/* Vista móvil moderna */}
+      {/* Vista móvil estilo WhatsApp */}
       <div className="lg:hidden h-full">
         {renderMobileView()}
         {renderMobileMenu()}
-        
-        {/* Navegación inferior moderna */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg lg:hidden">
-          <div className="flex items-center justify-around p-2">
-            {mobileNavigationItems.map((item) => {
-              const IconComponent = item.icon;
-              const isActive = mobileView === item.id;
-              
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleMobileNavigation(item.id as MobileView)}
-                  className={`flex flex-col items-center p-3 rounded-xl transition-all ${
-                    isActive 
-                      ? 'bg-blue-50 text-blue-600' 
-                      : 'text-gray-500 hover:text-blue-600'
-                  }`}
-                >
-                  <div className="relative">
-                    <IconComponent className="h-6 w-6" />
-                    {item.badge && (
-                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-medium h-5 w-5 rounded-full flex items-center justify-center">
-                        {item.badge}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-xs font-medium mt-1">{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
       </div>
 
       {/* Vista desktop - Layout de 4 columnas */}
@@ -356,49 +299,11 @@ const AuthenticatedChatContent: React.FC = () => {
         </div>
       </div>
 
-      {/* NUEVO: Fallback para pantallas pequeñas cuando el layout de 4 columnas no se muestra */}
-      <div className="lg:hidden h-full">
-        {conversationsData.isLoading ? (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600">Cargando aplicación...</p>
-            </div>
-          </div>
-        ) : conversationsData.error ? (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center text-red-600">
-              <p>Error al cargar la aplicación</p>
-              <p className="text-sm">{conversationsData.error.message}</p>
-            </div>
-          </div>
-        ) : (
-          <div className="h-full bg-white flex flex-col">
-            {/* Header de conversaciones */}
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-              <div className="flex items-center space-x-3">
-                <h1 className="text-lg font-semibold">Conversaciones</h1>
-              </div>
-              <button
-                onClick={() => setShowMobileMenu(true)}
-                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
-              >
-                <Menu className="h-5 w-5" />
-              </button>
-            </div>
-            
-            {/* Contenido de conversaciones */}
-            <div className="flex-1 overflow-hidden">
-              <ConversationList {...conversationsData} />
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Eliminado: barra inferior de navegación para replicar flujo WhatsApp */}
     </div>
   );
 };
 
 export const ChatModule: React.FC = () => {
-  // El componente ya no maneja la autenticación, eso se hace en ProtectedRoute
   return <AuthenticatedChatContent />;
 }; 

@@ -1,241 +1,151 @@
-# 🚀 UTALK Frontend - Chat en Tiempo Real
+# 🚀 UTALK Frontend
 
-Frontend completo para UTALK con funcionalidad de chat en tiempo real, WebSocket, y gestión de conversaciones.
+> Aplicación de chat en tiempo real para gestión de conversaciones comerciales con WhatsApp
 
-## ✨ Características
+## 📋 Estado del Proyecto
 
-- ✅ **Chat en Tiempo Real** con WebSocket
-- ✅ **Mensajes Multimedia** (texto, imágenes, documentos, audio, video, ubicación, stickers)
-- ✅ **Indicadores de Escritura** en tiempo real
-- ✅ **Estados de Mensajes** (enviando, enviado, entregado, leído, fallido)
-- ✅ **Optimistic Updates** para mejor UX
-- ✅ **Reconexión Automática** de WebSocket
-- ✅ **Gestión de Conversaciones** con filtros y búsqueda
-- ✅ **Subida de Archivos** con validación
-- ✅ **Autenticación** con JWT
-- ✅ **Responsive Design** con Tailwind CSS
+### ✅ Funcionalidades Implementadas
+- **Autenticación**: Login con JWT y manejo de sesiones
+- **Chat en Tiempo Real**: WebSocket con mensajes instantáneos
+- **Gestión de Conversaciones**: Lista, filtros y búsqueda
+- **Mensajes Multimedia**: Texto, imágenes, documentos, audio, video
+- **Estados de Mensajes**: Enviando, enviado, entregado, leído, fallido
+- **Indicadores de Escritura**: En tiempo real
+- **Optimistic Updates**: UX mejorada
+- **Reconexión Automática**: WebSocket resiliente
+- **Subida de Archivos**: Drag & drop con validación
 
-## 🚀 Instalación
+### 🔄 En Desarrollo
+- Dashboard de métricas
+- Gestión de equipo
+- Módulo de notificaciones
+- Panel de clientes
 
-### 1. Clonar el repositorio
+## 🛠️ Tecnologías
+
+- **React 18** + TypeScript
+- **Vite** (build tool)
+- **Tailwind CSS** (estilos)
+- **Socket.IO** (WebSocket)
+- **React Query** + **Zustand** (estado)
+- **Firebase** (autenticación)
+
+## 🚀 Inicio Rápido
+
+### 1. Instalación
 ```bash
 git clone <repository-url>
-cd Utalk-frontend-1
-```
-
-### 2. Instalar dependencias
-```bash
+cd Utalk-frontend
 npm install
 ```
 
-### 3. Configurar variables de entorno
+### 2. Configuración
+Crear `.env.local`:
+```env
+# Backend
+VITE_BACKEND_URL=https://utalk-backend-production.up.railway.app
+VITE_API_URL=https://utalk-backend-production.up.railway.app
+VITE_WS_URL=wss://utalk-backend-production.up.railway.app
 
-Crear archivo `.env.local` en la raíz del proyecto:
+# Firebase (reemplazar con credenciales reales)
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_domain.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_bucket.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
 
-```bash
-# Configuración del Backend Real
-VITE_BACKEND_URL=https://tu-backend.railway.app
-VITE_API_URL=https://tu-backend.railway.app
-VITE_WS_URL=https://tu-backend.railway.app
-
-# Configuración de Desarrollo
-VITE_DEV_MODE=true
+# Desarrollo
+VITE_DEBUG=false
+VITE_DEV_MODE=false
 VITE_MOCK_MODE=false
-VITE_DEBUG=true
-
-# Firebase Configuration (configurar con valores reales)
-VITE_FIREBASE_API_KEY=tu_firebase_api_key_real
-VITE_FIREBASE_AUTH_DOMAIN=tu_proyecto.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=tu_proyecto_id
-VITE_FIREBASE_STORAGE_BUCKET=tu_proyecto.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
-VITE_FIREBASE_APP_ID=1:123456789:web:abcdef123456
-
-# Environment Configuration
-VITE_NODE_ENV=development
-VITE_APP_NAME=UTALK
-VITE_APP_VERSION=1.0.0
 ```
 
-### 4. Ejecutar en desarrollo
+### 3. Desarrollo
 ```bash
 npm run dev
 ```
 
-## 🔧 Configuración del Backend
-
-### Variables de Entorno Requeridas
-
-| Variable | Descripción | Ejemplo |
-|----------|-------------|---------|
-| `VITE_BACKEND_URL` | URL del backend para APIs REST | `https://tu-backend.railway.app` |
-| `VITE_API_URL` | URL del backend para APIs REST | `https://tu-backend.railway.app` |
-| `VITE_WS_URL` | URL del backend para WebSocket | `https://tu-backend.railway.app` |
-| `VITE_MOCK_MODE` | Habilitar modo mock (false para backend real) | `false` |
-
-### Backend Requerido
-
-El frontend requiere un backend con las siguientes APIs:
-
-#### APIs REST
-- `POST /api/auth/login` - Autenticación
-- `POST /api/auth/refresh` - Refresh token
-- `GET /api/conversations` - Listar conversaciones
-- `GET /api/conversations/:id` - Obtener conversación
-- `POST /api/conversations/:id/messages` - Enviar mensaje
-- `GET /api/messages` - Obtener mensajes
-- `PUT /api/conversations/:id/messages/:messageId/read` - Marcar como leído
-
-#### WebSocket Events
-- `new-message` - Nuevo mensaje recibido
-- `message-sent` - Confirmación de envío
-- `message-delivered` - Confirmación de entrega
-- `message-read` - Confirmación de lectura
-- `typing` - Usuario escribiendo
-- `typing-stop` - Usuario dejó de escribir
-- `conversation-update` - Actualización de conversación
-
-## 🎯 Funcionalidades Implementadas
-
-### Chat en Tiempo Real
-- ✅ WebSocket con reconexión automática
-- ✅ Optimistic updates para mensajes
-- ✅ Indicadores de escritura
-- ✅ Estados de mensajes (enviando, enviado, entregado, leído, fallido)
-- ✅ Reintentar mensajes fallidos
-- ✅ Cancelar mensajes en envío
-
-### Mensajes Multimedia
-- ✅ Texto
-- ✅ Imágenes con preview
-- ✅ Documentos con iconos y descarga
-- ✅ Audio con reproductor
-- ✅ Video con reproductor nativo
-- ✅ Ubicación con Google Maps
-- ✅ Stickers
-
-### Gestión de Conversaciones
-- ✅ Lista de conversaciones con paginación
-- ✅ Filtros por estado, prioridad, asignación
-- ✅ Búsqueda de conversaciones
-- ✅ Estadísticas en tiempo real
-- ✅ Marcado automático de leídos
-
-### Subida de Archivos
-- ✅ Drag & drop
-- ✅ Múltiples archivos
-- ✅ Validación de tipos y tamaños
-- ✅ Progreso de subida
-- ✅ Previsualización antes de enviar
+### 4. Producción
+```bash
+npm run build
+npm run preview
+```
 
 ## 🏗️ Arquitectura
 
-### Estructura de Carpetas
 ```
 src/
-├── components/
+├── components/          # Componentes reutilizables
 │   ├── chat/           # Componentes de chat
-│   ├── layout/         # Layout principal
-│   └── ui/             # Componentes UI reutilizables
-├── contexts/           # Context providers
+│   ├── layout/         # Layout y navegación
+│   └── ui/             # UI básicos
+├── contexts/           # Providers de contexto
 ├── hooks/              # Custom hooks
+├── modules/            # Módulos de la aplicación
+│   ├── auth/
+│   ├── clients/
+│   ├── dashboard/
+│   ├── notifications/
+│   └── team/
 ├── services/           # Servicios de API
-├── stores/             # Estado global
+├── stores/             # Estado global (Zustand)
 ├── types/              # Tipos TypeScript
 └── utils/              # Utilidades
 ```
 
-### Tecnologías Utilizadas
-- **React 18** con TypeScript
-- **Vite** para build y desarrollo
-- **Tailwind CSS** para estilos
-- **Socket.IO Client** para WebSocket
-- **Axios** para APIs REST
-- **React Query** para cache y estado
-- **Zustand** para estado global
+## 🔌 APIs Requeridas
 
-## 🔄 WebSocket Integration
+### REST Endpoints
+- `POST /api/auth/login` - Autenticación
+- `GET /api/conversations` - Listar conversaciones
+- `GET /api/conversations/:id` - Obtener conversación
+- `POST /api/conversations/:id/messages` - Enviar mensaje
+- `GET /api/messages` - Obtener mensajes
 
-### Conexión Automática
-El WebSocket se conecta automáticamente cuando:
-1. El usuario está autenticado
-2. Hay un token válido en localStorage
-3. La aplicación está activa
+### WebSocket Events
+- `new-message` - Nuevo mensaje
+- `message-sent` - Confirmación de envío
+- `typing` / `typing-stop` - Indicadores de escritura
+- `conversation-update` - Actualización de conversación
 
-### Reconexión
-- Reconexión automática en caso de desconexión
-- Backoff exponencial para reintentos
-- Máximo 10 intentos de reconexión
-
-### Eventos Soportados
-```typescript
-// Enviar mensaje
-socket.emit('new-message', { conversationId, content, type, metadata });
-
-// Indicar escritura
-socket.emit('typing', { conversationId });
-
-// Marcar como leído
-socket.emit('message-read', { conversationId, messageIds });
-```
-
-## 🚀 Deployment
-
-### Build para Producción
-```bash
-npm run build
-```
-
-### Variables de Entorno para Producción
-```bash
-VITE_BACKEND_URL=https://tu-backend-produccion.railway.app
-VITE_API_URL=https://tu-backend-produccion.railway.app
-VITE_WS_URL=https://tu-backend-produccion.railway.app
-VITE_MOCK_MODE=false
-```
-
-## 🐛 Troubleshooting
-
-### Problemas Comunes
-
-1. **WebSocket no conecta**
-   - Verificar `VITE_WS_URL` en variables de entorno
-   - Verificar que el backend esté ejecutándose
-   - Verificar token de autenticación
-
-2. **APIs no funcionan**
-   - Verificar `VITE_BACKEND_URL` en variables de entorno
-   - Verificar que el backend esté ejecutándose
-   - Verificar token de autenticación
-
-3. **Mensajes no se envían**
-   - Verificar conexión WebSocket
-   - Verificar permisos de usuario
-   - Verificar formato de mensaje
-
-## 📝 Scripts Disponibles
+## 📝 Scripts
 
 ```bash
 npm run dev          # Desarrollo
 npm run build        # Build para producción
 npm run preview      # Preview del build
-npm run lint         # Linting
-npm run type-check   # Verificación de tipos
+npm run lint         # Linting con ESLint
+npm run lint:fix     # Fix automático de lint
+npm run type-check   # Verificación TypeScript
+npm run format       # Formateo con Prettier
 ```
+
+## 🚧 Troubleshooting
+
+### WebSocket no conecta
+- Verificar `VITE_WS_URL` en variables de entorno
+- Verificar que el backend esté ejecutándose
+- Verificar token de autenticación en localStorage
+
+### APIs no funcionan
+- Verificar `VITE_BACKEND_URL` en variables de entorno
+- Verificar conectividad con el backend
+- Revisar console de browser para errores de CORS
+
+### Mensajes no se envían
+- Verificar conexión WebSocket en DevTools
+- Verificar permisos de usuario
+- Revisar formato de mensaje en Network tab
 
 ## 🤝 Contribución
 
 1. Fork el proyecto
-2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abrir un Pull Request
+2. Crear rama feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit cambios (`git commit -m 'Agregar nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Crear Pull Request
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
-
-## 🆘 Soporte
-
-Para soporte técnico, contactar al equipo de desarrollo o crear un issue en el repositorio.
-# Forzar actualización de Vercel
+MIT License - ver archivo LICENSE para detalles.

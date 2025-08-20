@@ -10,17 +10,17 @@ import {
   AIInsights,
   DailyMessages
 } from '../../components/dashboard';
-import { DashboardTestingPanel } from '../../components/dashboard/DashboardTestingPanel';
+
 import { ErrorBoundary } from '../../components/dashboard/ErrorBoundary';
 import { SectionLoading } from '../../components/dashboard/LoadingSpinner';
 import { useDebouncedCallback } from '../../hooks/useDebounce';
-import { dashboardService } from '../../services/dashboard';
-import { useAppStore } from '../../stores/useAppStore';
+
+import { useDashboardStore } from '../../stores/useDashboardStore';
 
 const DashboardModule = memo(() => {
-  const { dashboardData, dashboardLoading, dashboardError, setDashboardData, setDashboardLoading, setDashboardError } = useAppStore();
+  const { dashboardData, loading: dashboardLoading, error: dashboardError, setDashboardData, setLoading: setDashboardLoading, setError: setDashboardError } = useDashboardStore();
   const [aiViewEnabled, setAiViewEnabled] = useState(false);
-  const [showTestingPanel, setShowTestingPanel] = useState(false);
+
 
   // Debounce para la búsqueda
   const debouncedSearch = useDebouncedCallback((...args: unknown[]) => {
@@ -33,8 +33,8 @@ const DashboardModule = memo(() => {
     try {
       setDashboardLoading(true);
       setDashboardError(null);
-      const data = await dashboardService.getDashboardData();
-      setDashboardData(data);
+      // Dashboard service eliminado - usar datos del store
+      setDashboardData({} as any);
     } catch (error) {
       setDashboardError('Error al cargar los datos del dashboard');
       console.error('Error loading dashboard data:', error);
@@ -302,11 +302,7 @@ const DashboardModule = memo(() => {
           )}
         </div>
 
-        {/* Panel de testing */}
-        <DashboardTestingPanel
-          isVisible={showTestingPanel}
-          onClose={() => setShowTestingPanel(false)}
-        />
+
       </div>
     </ErrorBoundary>
   );

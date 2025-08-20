@@ -16,8 +16,7 @@ export { ErrorBoundary } from './ErrorBoundary';
 export { LoadingSpinner, SectionLoading, ChartLoading, MetricLoading, ListLoading } from './LoadingSpinner';
 export { Tooltip, MetricTooltip, AgentTooltip } from './Tooltip';
 
-// Componentes de testing (solo en desarrollo)
-export { DashboardTestingPanel } from './DashboardTestingPanel';
+
 
 // Nuevos componentes del dashboard
 export { SentimentAnalysis } from './SentimentAnalysis';

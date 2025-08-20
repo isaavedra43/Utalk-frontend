@@ -32,7 +32,7 @@ class Logger {
   private logs: LogEntry[] = [];
   private maxLogs = 1000;
   private isDevelopment = import.meta.env.DEV;
-  private isDebug = import.meta.env.VITE_DEBUG === 'true';
+  private isDebug = import.meta.env.VITE_DEBUG === 'true' && import.meta.env.DEV;
   private currentCategory: LogCategory = LogCategory.SYSTEM;
 
   private formatMessage(level: LogLevel, category: LogCategory, message: string, data?: Record<string, unknown>, error?: Error, context?: Record<string, unknown>): string {

@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { SocialButton } from './SocialButton';
 import { PasswordField } from './PasswordField';
 import { useAuthContext } from '../../../contexts/useAuthContext';
+import { Link } from 'react-router-dom';
 
 
 const loginSchema = z.object({
@@ -277,12 +278,12 @@ export const LoginForm: React.FC = () => {
         transition={{ duration: 0.6, delay: 1.0 }}
         className="text-center space-y-2"
       >
-        <a 
-          href="/forgot-password" 
+        <Link 
+          to="/forgot-password" 
           className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
         >
           ¿Olvidaste tu contraseña?
-        </a>
+        </Link>
         <div className="text-xs sm:text-sm text-gray-600">
           ¿No tienes una cuenta?{' '}
           <a 

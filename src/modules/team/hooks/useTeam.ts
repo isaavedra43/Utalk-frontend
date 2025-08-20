@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAppStore } from '../../../stores/useAppStore';
+import { useTeamStore } from '../../../stores/useTeamStore';
 import type { TeamMember, TeamState, TeamFilters } from '../../../types/team';
 import { teamService } from '../services/teamService';
 import { performanceService } from '../services/performanceService';
@@ -12,7 +12,7 @@ import { usePermissions } from './usePermissions';
 import { useCoaching } from './useCoaching';
 
 export const useTeam = () => {
-  const { teamData, teamLoading, teamError, setTeamData, setTeamLoading, setTeamError } = useAppStore();
+  const { teamData, loading: teamLoading, error: teamError, setTeamData, setLoading: setTeamLoading, setError: setTeamError } = useTeamStore();
   
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);

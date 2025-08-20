@@ -9,4 +9,7 @@ export const useAuthContext = () => {
   }
   
   return context;
-}; 
+};
+
+// ✅ MIGRACIÓN: Exportar también el hook directo para uso futuro
+export { useAuth } from '../hooks/useAuth'; 

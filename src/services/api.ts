@@ -113,9 +113,11 @@ api.interceptors.request.use(
       }
     }
 
-    // DEDUPLICACIÓN DESPUÉS DE TOKEN/URL NORMALIZADOS
+    // DEDUPLICACIÓN SOLO PARA GET - NO APLICAR A FORMDATA
+    const isFormData = config.data instanceof FormData;
     const requestKey = generateRequestKey(method, url, config.params);
-    if (method === 'GET') {
+    
+    if (method === 'GET' && !isFormData) {
       return deduplicateRequest(requestKey, () => {
         // Continuar con la petición original
         return Promise.resolve(config);
@@ -123,8 +125,12 @@ api.interceptors.request.use(
     }
     
     // Log de requests solo en desarrollo y solo para métodos no-GET
-    if (import.meta.env.DEV && config.method !== 'GET') {
+    // NO loggear config.data para FormData para evitar problemas
+    if (import.meta.env.DEV && config.method !== 'GET' && !isFormData) {
       logger.debug(LogCategory.API, `Request: ${config.method?.toUpperCase()} ${config.url}`, config.data);
+    } else if (import.meta.env.DEV && config.method !== 'GET' && isFormData) {
+      // Para FormData, solo loggear información básica sin el contenido
+      logger.debug(LogCategory.API, `Request: ${config.method?.toUpperCase()} ${config.url} [FormData]`);
     }
     
     return config;

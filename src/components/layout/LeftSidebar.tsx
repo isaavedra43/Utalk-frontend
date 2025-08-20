@@ -1,5 +1,6 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useUIStore } from '../../stores/useUIStore';
 import { 
   MessageSquare, 
   LayoutDashboard, 
@@ -13,26 +14,14 @@ import { useAuthContext } from '../../contexts/useAuthContext';
 // import { useTeamNotifications } from '../../modules/team/hooks/useTeamNotifications'; // DESHABILITADO TEMPORALMENTE
 
 export const LeftSidebar: React.FC = () => {
-  const location = useLocation();
   const navigate = useNavigate();
   const { logout, backendUser } = useAuthContext();
-  
-  // Determinar el módulo actual basado en la URL
-  const getCurrentModule = () => {
-    const path = location.pathname;
-    if (path === '/chat') return 'chat';
-    if (path === '/dashboard') return 'dashboard';
-    if (path === '/team') return 'team';
-    if (path === '/clients') return 'clients';
-    if (path === '/notifications') return 'notifications';
-    return 'dashboard'; // default
-  };
-  
-  const currentModule = getCurrentModule();
+  const { currentModule, navigateToModule: setCurrentModule } = useUIStore();
   
   // Función para navegar a un módulo
   const navigateToModule = (moduleId: string) => {
     navigate(`/${moduleId}`);
+    setCurrentModule(moduleId);
   };
   
   // Obtener notificaciones del equipo - DESHABILITADO TEMPORALMENTE
@@ -48,12 +37,12 @@ export const LeftSidebar: React.FC = () => {
   };
 
   const handleExportLogs = () => {
-    // Verificar si las funciones están disponibles
-    if (typeof (window as typeof window & { exportLogs?: (format: 'json' | 'txt') => void }).exportLogs === 'function') {
-      (window as typeof window & { exportLogs?: (format: 'json' | 'txt') => void }).exportLogs!('json');
+    // Usar la función de exportación de logs
+    if (typeof window.exportLogs === 'function') {
+      window.exportLogs('json');
     } else {
-      // Si no están disponibles, mostrar mensaje
-      alert('Console Exporter no está disponible. Abre el panel de debug (Ctrl+Shift+D) y ve a la pestaña Console.');
+      // Fallback si por alguna razón no está disponible
+      alert('Función de exportación de logs no disponible');
     }
   };
 

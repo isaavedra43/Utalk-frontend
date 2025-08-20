@@ -1,11 +1,11 @@
 import { useState, useCallback } from 'react';
-import { useAppStore } from '../../../stores/useAppStore';
+import { useTeamStore } from '../../../stores/useTeamStore';
 import type { TeamMember, TeamFilters, TeamListResponse } from '../../../types/team';
 import { teamService } from '../services/teamService';
 import { logger } from '../../../utils/logger';
 
 export const useTeamMembers = () => {
-  const { teamData, setTeamData, setTeamLoading, setTeamError } = useAppStore();
+  const { teamData, setTeamData, setLoading: setTeamLoading, setError: setTeamError } = useTeamStore();
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [filters, setFilters] = useState<TeamFilters>({
     search: '',

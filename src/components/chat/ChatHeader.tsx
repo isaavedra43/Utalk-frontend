@@ -3,7 +3,7 @@ import { MoreVertical, Phone, User } from 'lucide-react';
 import type { Conversation } from '../../types';
 import { useClientProfileStore } from '../../stores/useClientProfileStore';
 import type { ClientProfile } from '../../services/clientProfile';
-import { useAppStore } from '../../stores/useAppStore';
+import { useChatStore } from '../../stores/useChatStore';
 import { chatHeaderLogger } from '../../config/logging';
 
 interface ChatHeaderProps {
@@ -16,7 +16,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ conversation }) => {
   const [profile, setProfile] = useState<ClientProfile | null>(null);
 
   // También tomar el id de la conversación activa del store (más estable)
-  const activeConversation = useAppStore((s) => s.activeConversation);
+  const activeConversation = useChatStore((s) => s.activeConversation);
   const profileConversationId = conversation?.id || activeConversation?.id || null;
 
   useEffect(() => {

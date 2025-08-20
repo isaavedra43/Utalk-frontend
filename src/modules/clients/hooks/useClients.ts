@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAppStore } from '../../../stores/useAppStore';
+import { useClientStore } from '../../../stores/useClientStore';
 import type { 
   Client, 
   ClientFilters, 
@@ -22,7 +22,7 @@ export const useClients = (options: UseClientsOptions = {}) => {
     pageSize = 20
   } = options;
 
-  const { clientData, setClientData } = useAppStore();
+  const { clientData, setClientData } = useClientStore();
   
   // Estado local para filtros y paginación
   const [filters, setFilters] = useState<ClientFilters>({

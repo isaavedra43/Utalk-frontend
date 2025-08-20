@@ -154,18 +154,9 @@ export interface AppState {
   // NUEVO: Estado de navegación entre módulos
   currentModule: 'auth' | 'chat' | 'contacts' | 'agents' | 'analytics' | 'settings' | 'dashboard' | 'team' | 'docs' | 'automation' | 'support' | 'notifications' | 'calendar' | 'clients';
   moduleHistory: string[]; // Para navegación hacia atrás
-  // NUEVO: Estado del dashboard
-  dashboardData: DashboardData | null;
-  dashboardLoading: boolean;
-  dashboardError: string | null;
-  // NUEVO: Estado del equipo
-  teamData: TeamState | null;
-  teamLoading: boolean;
-  teamError: string | null;
-  // NUEVO: Estado de clientes
-  clientData: ClientState | null;
-  clientLoading: boolean;
-  clientError: string | null;
+  // Dashboard state moved to useDashboardStore
+  // Team state moved to useTeamStore
+  // Client state moved to useClientStore
 }
 
 // Tipos de filtros
@@ -237,10 +228,9 @@ export * from './client';
 export * from './notification';
 
 // Importar tipos del dashboard para uso en este archivo
-import type { DashboardData, DashboardUpdate } from './dashboard';
-import type { TeamState, TeamMember, PerformanceMetrics, CoachingPlan, Permission } from './team';
+import type { DashboardUpdate } from './dashboard';
+import type { TeamMember, PerformanceMetrics, CoachingPlan, Permission } from './team';
 import type { 
-  ClientState, 
   Client, 
   ClientActivity, 
   ClientDeal, 

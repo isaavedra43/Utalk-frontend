@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { DetailsPanel } from './DetailsPanel';
 import { CopilotPanel } from './CopilotPanel';
-import { useAppStore } from '../../stores/useAppStore';
+import { useChatStore } from '../../stores/useChatStore';
 import { useClientProfileStore } from '../../stores/useClientProfileStore';
 import type { ClientProfile } from '../../services/clientProfile';
 import { User, Bot, MessageSquare } from 'lucide-react';
@@ -9,7 +9,7 @@ import '../../styles/details-copilot-optimized.css';
 
 export const RightSidebar: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'details' | 'copilot'>('copilot');
-  const { activeConversation } = useAppStore();
+  const { activeConversation } = useChatStore();
   const selectedConversationId = activeConversation?.id || null;
 
   // Usar el store global para perfiles de cliente

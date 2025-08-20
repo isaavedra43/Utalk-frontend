@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import { useAppStore } from '../stores/useAppStore';
+import { useChatStore } from '../stores/useChatStore';
 
 // Hook ligero: calcula estadísticas desde el store sin hacer fetch ni efectos
 export const useConversationStats = () => {
-	const { conversations } = useAppStore();
+	const { conversations } = useChatStore();
 
 	const stats = useMemo(() => {
 		const total = conversations.length;

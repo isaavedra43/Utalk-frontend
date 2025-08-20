@@ -44,8 +44,8 @@ export const extractUserInfoFromToken = (token: string): JWTUserInfo => {
       }
     }
     
-    // Log de información extraída (solo en modo debug explícito)
-    if (import.meta.env.VITE_DEBUG === 'true') {
+    // Log de información extraída (solo en modo debug explícito y desarrollo)
+    if (import.meta.env.VITE_DEBUG === 'true' && import.meta.env.DEV) {
       // Reducido: no imprimir payload completo por defecto
       console.debug('[DEBUG][JWT] Info extraída del token', {
         workspaceId,
@@ -123,7 +123,7 @@ export const getUserInfo = (): JWTUserInfo => {
       
       // Verificar si el token tiene información válida (acepta valores por defecto del backend)
       if (isValidUserInfo(tokenInfo)) {
-        if (import.meta.env.VITE_DEBUG === 'true') {
+        if (import.meta.env.VITE_DEBUG === 'true' && import.meta.env.DEV) {
           console.debug('[DEBUG][JWT] Info token válida', {
             workspaceId: tokenInfo.workspaceId,
             tenantId: tokenInfo.tenantId,
@@ -148,7 +148,7 @@ export const getUserInfo = (): JWTUserInfo => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (user.workspaceId && user.workspaceId !== 'default' && 
         user.tenantId && user.tenantId !== 'na') {
-      if (import.meta.env.VITE_DEBUG === 'true') {
+      if (import.meta.env.VITE_DEBUG === 'true' && import.meta.env.DEV) {
         console.debug('[DEBUG][JWT] Info desde localStorage', {
           workspaceId: user.workspaceId,
           tenantId: user.tenantId
@@ -170,7 +170,7 @@ export const getUserInfo = (): JWTUserInfo => {
   if (token && isTokenValid(token)) {
     const tokenInfo = extractUserInfoFromToken(token);
     if (tokenInfo.userId || tokenInfo.email) {
-      if (import.meta.env.VITE_DEBUG === 'true') {
+      if (import.meta.env.VITE_DEBUG === 'true' && import.meta.env.DEV) {
         console.debug('[DEBUG][JWT] Usando info parcial del token', {
           workspaceId: tokenInfo.workspaceId,
           tenantId: tokenInfo.tenantId,
@@ -193,7 +193,7 @@ export const getUserInfo = (): JWTUserInfo => {
     role: null
   };
   
-  if (import.meta.env.VITE_DEBUG === 'true') {
+  if (import.meta.env.VITE_DEBUG === 'true' && import.meta.env.DEV) {
     console.debug('[DEBUG][JWT] Fallback usando configuración de workspace', {
       workspaceId: fallbackInfo.workspaceId,
       tenantId: fallbackInfo.tenantId

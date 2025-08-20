@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAppStore } from '../../../stores/useAppStore';
+import { useClientStore } from '../../../stores/useClientStore';
 import { metricsService } from '../services/metricsService';
 import { logger, LogCategory } from '../../../utils/logger';
 
@@ -14,7 +14,7 @@ export const useClientMetrics = (options: UseClientMetricsOptions = {}) => {
     refreshInterval = 30000 // 30 segundos por defecto
   } = options;
 
-  const { clientData, setClientData } = useAppStore();
+  const { clientData, setClientData } = useClientStore();
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

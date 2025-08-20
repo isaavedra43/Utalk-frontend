@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAppStore } from '../../stores/useAppStore';
+import { useUIStore } from '../../stores/useUIStore';
 
 interface ModulePlaceholderProps {
   moduleName: string;
@@ -12,7 +12,7 @@ export const ModulePlaceholder: React.FC<ModulePlaceholderProps> = ({
   icon,
   description
 }) => {
-  const { currentModule } = useAppStore();
+  const { currentModule } = useUIStore();
 
   const getModuleInfo = (module: string) => {
     switch (module) {
