@@ -1,10 +1,11 @@
 import { useContext } from 'react';
 import { WebSocketContext } from './WebSocketContext';
 
+// Hook para usar el context
 export const useWebSocketContext = () => {
   const context = useContext(WebSocketContext);
-  if (!context) {
-    throw new Error('useWebSocketContext debe usarse dentro de WebSocketProvider');
+  if (context === undefined) {
+    throw new Error('useWebSocketContext must be used within a WebSocketProvider');
   }
   return context;
 }; 
