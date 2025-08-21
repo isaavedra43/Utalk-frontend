@@ -194,7 +194,7 @@ export const conversationsService = {
     return response.data;
   },
 
-  // Crear conversación con mensaje inicial (estructura anidada en contacts)
+  // Crear conversación con mensaje inicial (endpoint correcto del backend)
   async createConversationBasic(conversationData: {
     customerPhone: string;
     initialMessage?: string;
@@ -207,13 +207,9 @@ export const conversationsService = {
     // Construir el ID correcto: conv_{customerPhone}_{ourNumber}
     // Nuestro número es +5214793176502 según las imágenes
     const ourNumber = '+5214793176502';
-    // CORREGIDO: Primero el número del cliente, luego nuestro número
     const conversationId = `conv_${conversationData.customerPhone}_${ourNumber}`;
     
-    // FORZAR el ID correcto - no permitir que el backend lo invierta
-    console.log('🔧 ID de conversación generado:', conversationId);
-    
-    // Estructura completa de la conversación para estructura anidada
+    // Estructura completa de la conversación según las imágenes correctas
     const fullConversationData = {
       id: conversationId,
       customerPhone: conversationData.customerPhone,
@@ -243,48 +239,44 @@ export const conversationsService = {
       metadata: {
         channel: 'whatsapp',
         createdVia: 'manual'
-      },
-      // NUEVO: Indicar que debe usar estructura anidada
-      structure: 'nested', // Indica al backend que use contacts/{contactId}/conversations/{conversationId}
-      contactId: null // Se llenará automáticamente en el backend
+      }
     };
 
-    // Usar endpoint específico para estructura anidada
-    const response = await api.post('/api/contacts/conversations', fullConversationData);
+    const response = await api.post(CONVERSATIONS_API, fullConversationData);
     
-    // FORZAR el ID correcto - siempre usar el ID del frontend
+    // Verificar y corregir el ID si el backend lo devuelve al revés
     const responseData = response.data;
-    if (responseData.data) {
+    if (responseData.data && responseData.data.id) {
       const backendId = responseData.data.id;
       const expectedId = conversationId;
       
-      // SIEMPRE usar el ID correcto del frontend
+      // Si el backend devolvió el ID al revés, corregirlo
       if (backendId !== expectedId) {
-        console.warn('⚠️ Backend devolvió ID incorrecto, forzando ID correcto:', {
+        console.warn('⚠️ Backend devolvió ID al revés, corrigiendo:', {
           backendId,
           expectedId
         });
         
-        // Forzar el ID correcto en la respuesta
+        // Corregir el ID en la respuesta
         responseData.data.id = expectedId;
-      }
-      
-      // También corregir los participantes si no están completos
-      if (!responseData.data.participants || responseData.data.participants.length < 4) {
-        responseData.data.participants = [
-          conversationData.customerPhone, // Cliente
-          currentUser, // Agente actual
-          `agent:${currentUser}`, // Identificador del agente
-          `whatsapp:${conversationData.customerPhone}` // Identificador de WhatsApp
-        ];
-      }
-      
-      // Asegurar que el agente esté como participante
-      if (!responseData.data.participants.includes(currentUser)) {
-        responseData.data.participants.push(currentUser);
-      }
-      if (!responseData.data.participants.includes(`agent:${currentUser}`)) {
-        responseData.data.participants.push(`agent:${currentUser}`);
+        
+        // También corregir los participantes si no están completos
+        if (!responseData.data.participants || responseData.data.participants.length < 4) {
+          responseData.data.participants = [
+            conversationData.customerPhone, // Cliente
+            currentUser, // Agente actual
+            `agent:${currentUser}`, // Identificador del agente
+            `whatsapp:${conversationData.customerPhone}` // Identificador de WhatsApp
+          ];
+        }
+        
+        // Asegurar que el agente esté como participante
+        if (!responseData.data.participants.includes(currentUser)) {
+          responseData.data.participants.push(currentUser);
+        }
+        if (!responseData.data.participants.includes(`agent:${currentUser}`)) {
+          responseData.data.participants.push(`agent:${currentUser}`);
+        }
       }
     }
     
