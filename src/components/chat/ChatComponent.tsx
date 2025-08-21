@@ -504,7 +504,7 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
         <MessageList 
           messages={sortedMessages}
           messageGroups={groupedMessages}
-          customerName={conversation?.contact?.profileName || 
+          customerName={conversation?.contact?.name || 
                       conversation?.contact?.name || 
                       conversation?.customerName || 'Usuario'}
           onRetryMessage={retryMessage}

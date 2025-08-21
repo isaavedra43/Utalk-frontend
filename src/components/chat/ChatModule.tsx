@@ -115,14 +115,14 @@ const AuthenticatedChatContent: React.FC = () => {
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                     <span className="text-white font-medium text-sm">
-                      {conversationsData.activeConversation?.contact?.profileName?.charAt(0)?.toUpperCase() || 
+                      {conversationsData.activeConversation?.contact?.name?.charAt(0)?.toUpperCase() || 
                        conversationsData.activeConversation?.contact?.name?.charAt(0)?.toUpperCase() || 
                        conversationsData.activeConversation?.customerName?.charAt(0)?.toUpperCase() || 'C'}
                     </span>
                   </div>
                   <div>
                     <h2 className="font-semibold">
-                      {conversationsData.activeConversation?.contact?.profileName || 
+                      {conversationsData.activeConversation?.contact?.name || 
                        conversationsData.activeConversation?.contact?.name || 
                        conversationsData.activeConversation?.customerName || 'Cliente'}
                     </h2>

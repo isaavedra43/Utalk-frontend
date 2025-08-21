@@ -6,6 +6,7 @@ import { conversationsService } from '../../services/conversations';
 import { useChatStore } from '../../stores/useChatStore';
 import { useAuthContext } from '../../contexts/useAuthContext';
 import { encodeConversationIdForUrl } from '../../utils/conversationUtils';
+import { infoLog } from '../../config/logger';
 
 export const useConversationList = (filters: ConversationFilters = {}) => {
   const { isAuthenticated, loading: authLoading, isAuthenticating } = useAuthContext();
@@ -18,6 +19,8 @@ export const useConversationList = (filters: ConversationFilters = {}) => {
     setConversations,
     setActiveConversation
   } = useChatStore();
+  
+  const get = useChatStore.getState;
 
   // Memoizar filters para evitar re-renders innecesarios
   const memoizedFilters = useMemo(() => filters, [filters]);
@@ -112,6 +115,35 @@ export const useConversationList = (filters: ConversationFilters = {}) => {
       }
     }
   }, [conversationsData?.pages, setConversations, isAuthenticated, authLoading, storeConversations.length]);
+
+  // Manejar eventos de nuevas conversaciones
+  useEffect(() => {
+    const handleConversationCreated = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      infoLog('🆕 ConversationList - Conversación creada:', detail);
+      
+      if (detail?.conversation) {
+        // Agregar la nueva conversación al store
+        // Obtener conversaciones actuales y agregar la nueva
+        const currentConversations = get().conversations;
+        const exists = currentConversations.find((conv) => conv.id === detail.conversation.id);
+        if (!exists) {
+          setConversations([detail.conversation, ...currentConversations]);
+        }
+        
+        // Seleccionar la conversación si se solicita
+        if (detail.shouldSelect) {
+          setActiveConversation(detail.conversation);
+        }
+      }
+    };
+
+    window.addEventListener('conversation-created', handleConversationCreated);
+
+    return () => {
+      window.removeEventListener('conversation-created', handleConversationCreated);
+    };
+  }, [setConversations, setActiveConversation]);
 
   // NOTA: Se elimina el cleanup automático de la URL para no borrar '?conversation' mientras se resuelve la selección.
 

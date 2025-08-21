@@ -20,7 +20,7 @@ export const VirtualizedMessageList: React.FC<VirtualizedMessageListProps> = ({
   // Obtener el nombre del cliente del contexto de conversaciones
   const { activeConversation } = useConversations({});
   
-  const customerName = activeConversation?.contact?.profileName || 
+  const customerName = activeConversation?.contact?.name || 
                       activeConversation?.contact?.name || 
                       activeConversation?.customerName || 'Usuario';
 

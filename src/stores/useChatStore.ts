@@ -88,20 +88,16 @@ export const useChatStore = create<ChatStore>()(
                 mergedContact = { ...conv.contact, ...contactUpdates };
               } else {
                 const cu = contactUpdates as Partial<NonNullable<Conversation['contact']>>;
-                if (cu && (cu.name || cu.profileName || cu.phoneNumber)) {
+                if (cu && (cu.name || cu.phoneNumber)) {
                   mergedContact = {
-                    id: cu.id || (cu.phoneNumber as string) || conv.customerPhone,
-                    name: (cu.name as string) || (cu.profileName as string) || conv.customerPhone,
-                    profileName: cu.profileName,
+                    name: (cu.name as string) || conv.customerPhone,
                     phoneNumber: (cu.phoneNumber as string) || conv.customerPhone,
-                    waId: cu.waId,
-                    hasProfilePhoto: cu.hasProfilePhoto,
-                    avatar: cu.avatar ?? null,
-                    channel: cu.channel || 'whatsapp',
-                    lastSeen: cu.lastSeen,
                   };
                 } else {
-                  mergedContact = null;
+                  mergedContact = {
+                    name: conv.customerPhone,
+                    phoneNumber: conv.customerPhone
+                  };
                 }
               }
 
@@ -112,7 +108,7 @@ export const useChatStore = create<ChatStore>()(
                 contact: mergedContact,
               };
 
-              const computedName = merged.contact?.profileName || merged.contact?.name || merged.customerName || merged.customerPhone;
+              const computedName = merged.contact?.name || merged.customerName || merged.customerPhone;
               merged.customerName = computedName;
 
               return merged;
@@ -130,24 +126,20 @@ export const useChatStore = create<ChatStore>()(
                       mergedContact = { ...conv.contact, ...contactUpdates };
                     } else {
                       const cu = contactUpdates as Partial<NonNullable<Conversation['contact']>>;
-                      if (cu && (cu.name || cu.profileName || cu.phoneNumber)) {
+                      if (cu && (cu.name || cu.phoneNumber)) {
                         mergedContact = {
-                          id: cu.id || (cu.phoneNumber as string) || conv.customerPhone,
-                          name: (cu.name as string) || (cu.profileName as string) || conv.customerPhone,
-                          profileName: cu.profileName,
+                          name: (cu.name as string) || conv.customerPhone,
                           phoneNumber: (cu.phoneNumber as string) || conv.customerPhone,
-                          waId: cu.waId,
-                          hasProfilePhoto: cu.hasProfilePhoto,
-                          avatar: cu.avatar ?? null,
-                          channel: cu.channel || 'whatsapp',
-                          lastSeen: cu.lastSeen,
                         };
                       } else {
-                        mergedContact = null;
+                        mergedContact = {
+                          name: conv.customerPhone,
+                          phoneNumber: conv.customerPhone
+                        };
                       }
                     }
                     const merged: Conversation = { ...conv, ...cleanUpdates, id: conv.id, contact: mergedContact };
-                    const computedName = merged.contact?.profileName || merged.contact?.name || merged.customerName || merged.customerPhone;
+                    const computedName = merged.contact?.name || merged.customerName || merged.customerPhone;
                     merged.customerName = computedName;
                     return merged;
                   })()

@@ -183,22 +183,20 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
 
   const customerInitials = useMemo(() => {
     const customerName = profileName ||
-                        conversation.contact?.profileName || 
                         conversation.contact?.name || 
                         conversation.customerName ||
                         profilePhone ||
                         conversation.customerPhone;
     return getInitials(customerName);
-  }, [getInitials, profileName, profilePhone, conversation.contact?.profileName, conversation.contact?.name, conversation.customerName, conversation.customerPhone]);
+  }, [getInitials, profileName, profilePhone, conversation.contact?.name, conversation.customerName, conversation.customerPhone]);
 
   const displayName = useMemo(() => (
     profileName ||
-    conversation.contact?.profileName || 
     conversation.contact?.name || 
     conversation.customerName ||
     profilePhone ||
     conversation.customerPhone || 'Cliente sin nombre'
-  ), [profileName, profilePhone, conversation.contact?.profileName, conversation.contact?.name, conversation.customerName, conversation.customerPhone]);
+  ), [profileName, conversation.contact?.name, conversation.customerName, profilePhone, conversation.customerPhone]);
 
   const displayPhone = useMemo(() => (
     profilePhone ||

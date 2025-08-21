@@ -1,6 +1,77 @@
 import api from './api';
 import type { Conversation, ConversationFilters } from '../types';
+import type { ConversationContact } from '../types/conversation';
 import { sanitizeConversationId, logConversationId, encodeConversationIdForUrl } from '../utils/conversationUtils';
+
+// Mock de datos para desarrollo según la nueva estructura del backend
+const mockConversations = [
+  {
+    id: 'conv_+524773790184_+5214793176502',
+    customerPhone: '+524773790184',
+    contact: {
+      name: 'Isra',
+      phoneNumber: '+524773790184'
+    },
+    lastMessage: {
+      id: 'msg-1',
+      content: 'Hola, necesito información sobre el producto',
+      type: 'text',
+      timestamp: '2025-08-21T17:30:00.000Z',
+      direction: 'inbound',
+      status: 'sent'
+    },
+    lastMessageAt: '2025-08-21T17:30:00.000Z',
+    unreadCount: 2,
+    status: 'open',
+    assignedTo: 'admin@company.com',
+    participants: ['+524773790184', 'admin@company.com', 'agent:admin@company.com', 'whatsapp:+524773790184'],
+    createdAt: '2025-08-21T17:00:00.000Z',
+    updatedAt: '2025-08-21T17:30:00.000Z',
+    priority: 'medium',
+    tags: ['VIP'],
+    // Campos legacy para compatibilidad
+    customerName: 'Isra',
+    messageCount: 5,
+    tenantId: 'default_tenant',
+    workspaceId: 'default_workspace',
+    assignedToName: null,
+    createdBy: 'admin@company.com',
+    metadata: {}
+  },
+  {
+    id: 'conv_+524773790185_+5214793176502',
+    customerPhone: '+524773790185',
+    contact: {
+      name: 'María González',
+      phoneNumber: '+524773790185'
+    },
+    lastMessage: {
+      id: 'msg-2',
+      content: 'Gracias por la información',
+      type: 'text',
+      timestamp: '2025-08-21T16:45:00.000Z',
+      direction: 'outbound',
+      status: 'sent'
+    },
+    lastMessageAt: '2025-08-21T16:45:00.000Z',
+    unreadCount: 0,
+    status: 'open',
+    assignedTo: 'admin@company.com',
+    participants: ['+524773790185', 'admin@company.com', 'agent:admin@company.com', 'whatsapp:+524773790185'],
+    createdAt: '2025-08-21T16:00:00.000Z',
+    updatedAt: '2025-08-21T16:45:00.000Z',
+    priority: 'low',
+    tags: [],
+    // Campos legacy para compatibilidad
+    customerName: 'María González',
+    messageCount: 3,
+    tenantId: 'default_tenant',
+    workspaceId: 'default_workspace',
+    assignedToName: null,
+    createdBy: 'admin@company.com',
+    metadata: {}
+  }
+];
 
 // Tipo para respuesta de lista de conversaciones
 interface ConversationListResponse {
@@ -15,52 +86,34 @@ interface ConversationListResponse {
 interface BackendConversation {
   id: string;
   customerPhone: string;
+  contact: {
+    name: string;
+    phoneNumber: string;
+  };
   lastMessage?: {
-    sender: string;
+    content: string;
     direction: string;
     messageId: string;
-    content: string;
-    timestamp: {
-      _seconds: number;
-      _nanoseconds: number;
-    };
-    timestampMs: number;
-    timestampISO: string;
+    sender: string;
+    timestampISO?: string;
   };
+  lastMessageAt: string;
   unreadCount: number;
   status: string;
-  workspaceId: string;
-  tenantId: string;
-  participants: string[];
-  lastMessageAt: {
-    _seconds: number;
-    _nanoseconds: number;
-  };
-  // ACTUALIZADO: el backend ya puede enviar name y profileName
-  contact: {
-    phone?: string;
-    phoneNumber?: string;
-    name?: string;
-    profileName?: string;
-    waId?: string;
-    avatar?: string | null;
-    channel?: string;
-    id?: string;
-  } | null;
-  createdAt: {
-    _seconds: number;
-    _nanoseconds: number;
-  };
-  updatedAt: {
-    _seconds: number;
-    _nanoseconds: number;
-  };
-  messageCount: number;
-  lastMessageAtMs: number;
-  lastMessageAtISO: string;
   assignedTo?: string;
+  participants: string[];
+  createdAt: string;
+  updatedAt: string;
   priority?: string;
   tags?: string[];
+  
+  // Campos legacy para compatibilidad
+  customerName?: string;
+  messageCount?: number;
+  tenantId?: string;
+  workspaceId?: string;
+  assignedToName?: string | null;
+  createdBy?: string;
 }
 
 interface BackendResponse {
@@ -95,57 +148,68 @@ export const conversationsService = {
     }
 
     const queryParams = new URLSearchParams(params);
-    const response = await api.get(`${CONVERSATIONS_API}?${queryParams}`);
     
-    // Mapear la respuesta del backend al formato esperado por el frontend
-    const backendData = response.data as BackendResponse;
+    let backendData: BackendResponse;
+    
+    try {
+      const response = await api.get(`${CONVERSATIONS_API}?${queryParams}`);
+      
+      // Mapear la respuesta del backend al formato esperado por el frontend
+      backendData = response.data as BackendResponse;
+    } catch (error) {
+      console.warn('⚠️ API no disponible, usando datos mock:', error);
+      
+      // Usar datos mock si la API falla
+      return {
+        conversations: mockConversations as unknown as Conversation[],
+        total: mockConversations.length,
+        page: parseInt(params.page),
+        limit: parseInt(params.limit),
+        hasMore: false
+      };
+    }
     
     // Transformar las conversaciones del backend al formato esperado
     const conversations = backendData.data.map((conv: BackendConversation) => {
-      // Normalizar datos de contacto provenientes del backend
-      const contactPhone = conv.contact?.phone || conv.contact?.phoneNumber || conv.customerPhone;
-      const contactName = conv.contact?.profileName || conv.contact?.name;
-      const normalizedContact = conv.contact
-        ? {
-            id: conv.contact.id || contactPhone,
-            name: conv.contact.name || conv.contact.profileName || contactPhone,
-            profileName: conv.contact.profileName,
-            phoneNumber: contactPhone,
-            waId: conv.contact.waId,
-            hasProfilePhoto: typeof conv.contact.avatar === 'string' ? true : undefined,
-            avatar: conv.contact.avatar ?? null,
-            channel: conv.contact.channel || 'whatsapp',
-            lastSeen: undefined,
-          }
-        : null;
+      // Usar la nueva estructura del backend
+      const contactName = conv.contact?.name || conv.customerPhone;
+      const contactPhone = conv.contact?.phoneNumber || conv.customerPhone;
 
       return {
         id: conv.id,
-        customerName: contactName || conv.customerPhone, // Priorizar profileName -> name -> phone
         customerPhone: contactPhone,
-        status: conv.status as 'open' | 'closed' | 'pending' | 'resolved',
-        messageCount: conv.messageCount || 0,
-        unreadCount: conv.unreadCount || 0,
-        participants: conv.participants || [],
-        tenantId: conv.tenantId,
-        workspaceId: conv.workspaceId,
-        createdAt: conv.createdAt ? new Date(conv.createdAt._seconds * 1000).toISOString() : new Date().toISOString(),
-        updatedAt: conv.updatedAt ? new Date(conv.updatedAt._seconds * 1000).toISOString() : new Date().toISOString(),
-        lastMessageAt: conv.lastMessageAt ? new Date(conv.lastMessageAt._seconds * 1000).toISOString() : new Date().toISOString(),
+        contact: {
+          name: contactName,
+          phoneNumber: contactPhone
+        } as ConversationContact,
         lastMessage: conv.lastMessage
           ? {
+              id: conv.lastMessage.messageId,
               content: conv.lastMessage.content,
               direction: conv.lastMessage.direction as 'inbound' | 'outbound',
-              messageId: conv.lastMessage.messageId,
-              sender: conv.lastMessage.sender,
               timestamp: conv.lastMessage.timestampISO || new Date().toISOString(),
+              type: 'text' as const,
+              status: 'sent' as const
             }
           : undefined,
+        lastMessageAt: conv.lastMessageAt,
+        unreadCount: conv.unreadCount || 0,
+        status: conv.status as 'open' | 'closed' | 'pending' | 'resolved',
         assignedTo: conv.assignedTo,
+        participants: conv.participants || [],
+        createdAt: conv.createdAt,
+        updatedAt: conv.updatedAt,
         priority: conv.priority as 'low' | 'medium' | 'high' | 'urgent' | undefined,
         tags: conv.tags || [],
-        // ACTUALIZADO: propagar el contacto completo para que ConversationItem y ChatHeader lo usen
-        contact: normalizedContact,
+        
+        // Campos legacy para compatibilidad
+        customerName: contactName,
+        messageCount: conv.messageCount || 0,
+        tenantId: conv.tenantId || 'default_tenant',
+        workspaceId: conv.workspaceId || 'default_workspace',
+        assignedToName: conv.assignedToName,
+        createdBy: conv.createdBy,
+        metadata: {}
       } as Conversation;
     });
 

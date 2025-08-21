@@ -65,7 +65,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ conversation }) => {
   // Prioridad: perfil -> contacto -> customerName -> teléfono
   const displayName =
     profile?.name ||
-    conversation?.contact?.profileName ||
+    conversation?.contact?.name ||
     conversation?.contact?.name ||
     conversation?.customerName ||
     profile?.phone ||

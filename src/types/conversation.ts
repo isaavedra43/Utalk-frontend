@@ -1,24 +1,33 @@
 // Tipos basados en la estructura real de Firebase
 
+// Tipo específico para el contacto en conversaciones
+export interface ConversationContact {
+  name: string;
+  phoneNumber: string;
+}
+
 export interface Conversation {
   id: string; // conv_+5214773790184_+5214793176502
-  customerName: string; // "Isra"
   customerPhone: string; // "+5214773790184"
-  status: 'open' | 'closed' | 'pending' | 'resolved';
-  messageCount: number; // 22
+  contact: ConversationContact;
+  lastMessage?: LastMessage;
+  lastMessageAt: string; // "11 de agosto de 2025, 4:21:25 p.m. UTC-6"
   unreadCount: number; // 5
+  status: 'open' | 'closed' | 'pending' | 'resolved';
+  assignedTo?: string; // "admin@company.com"
   participants: string[]; // ["+5214773790184", "system@utalk.local", "admin@company.com", ...]
-  tenantId: string; // "default_tenant"
-  workspaceId: string; // "default_workspace"
   createdAt: string; // "8 de agosto de 2025, 6:33:49 p.m. UTC-6"
   updatedAt: string; // "11 de agosto de 2025, 4:21:25 p.m. UTC-6"
-  lastMessageAt: string; // "11 de agosto de 2025, 4:21:25 p.m. UTC-6"
-  lastMessage?: LastMessage;
-  assignedTo?: string; // "admin@company.com"
-  assignedToName?: string | null; // "PS Pedro Sánchez"
-  createdBy?: string; // "admin@company.com"
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   tags?: string[]; // ["VIP", "Premium", "Order"]
+  
+  // Campos legacy para compatibilidad
+  customerName?: string; // Deprecated: usar contact.name
+  messageCount?: number; // 22
+  tenantId?: string; // "default_tenant"
+  workspaceId?: string; // "default_workspace"
+  assignedToName?: string | null; // "PS Pedro Sánchez"
+  createdBy?: string; // "admin@company.com"
   messages?: Message[]; // Subcolección de mensajes
   metadata?: Record<string, unknown>; // Metadatos adicionales
 }

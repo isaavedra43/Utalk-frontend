@@ -109,7 +109,18 @@ export const useCreateConversation = (): UseCreateConversationReturn => {
       if (newConversation.id) {
         selectConversation(newConversation.id);
       }
+      
+      // Refrescar la lista de conversaciones
       await refreshConversations();
+      
+      // Agregar la nueva conversación al inicio de la lista si no está ya incluida
+      // Esto asegura que aparezca inmediatamente en la UI
+      window.dispatchEvent(new CustomEvent('conversation-created', {
+        detail: {
+          conversation: newConversation,
+          shouldSelect: true
+        }
+      }));
 
       infoLog('🎉 useCreateConversation - Proceso completado exitosamente');
 

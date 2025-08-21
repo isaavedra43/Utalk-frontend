@@ -2,45 +2,32 @@ import { Socket } from 'socket.io-client';
 import type { Conversation } from '../types';
 import { infoLog } from '../config/logger';
 
-// Función para normalizar conversaciones según la estructura del backend
+// Función para normalizar conversaciones según la nueva estructura del backend
 const normalizeConversation = (conversation: Conversation): Conversation => {
-  // CORREGIDO: Verificar si realmente no hay datos de contacto
-  // El backend puede enviar contact con campos undefined, pero eso no significa que no haya datos
+  // Verificar si hay datos de contacto según la nueva estructura
   const hasContactData = conversation.contact && (
     conversation.contact.name || 
-    conversation.contact.profileName || 
-    conversation.contact.phoneNumber || 
-    conversation.contact.id ||
-    conversation.contact.waId
+    conversation.contact.phoneNumber
   );
 
   if (!hasContactData) {
     // REDUCIR LOGS: Solo mostrar una vez por conversación
     if (import.meta.env.DEV && !conversation.needsContactData) {
-              infoLog('⚠️ [DEBUG] Conversación sin datos de contacto:', conversation.id);
+      infoLog('⚠️ [DEBUG] Conversación sin datos de contacto:', conversation.id);
     }
     return {
       ...conversation,
-      contact: null,
+      contact: {
+        name: conversation.customerPhone,
+        phoneNumber: conversation.customerPhone
+      },
       needsContactData: true
     };
   }
   
-  // CORREGIDO: Normalizar la estructura del contacto según el backend
-  // Manejar casos donde algunos campos pueden ser undefined
+  // La estructura ya está normalizada según el nuevo formato
   return {
     ...conversation,
-    contact: {
-      id: conversation.contact?.id || conversation.customerPhone,
-      name: conversation.contact?.name || conversation.contact?.profileName || conversation.customerPhone,
-      profileName: conversation.contact?.profileName || conversation.contact?.name,
-      phoneNumber: conversation.contact?.phoneNumber || conversation.customerPhone,
-      waId: conversation.contact?.waId,
-      hasProfilePhoto: conversation.contact?.avatar ? true : false,
-      avatar: conversation.contact?.avatar || null,
-      channel: conversation.contact?.channel || 'whatsapp',
-      lastSeen: conversation.contact?.lastSeen
-    },
     needsContactData: false
   };
 };
