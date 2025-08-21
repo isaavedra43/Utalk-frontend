@@ -36,14 +36,26 @@ export const fileUploadService = {
   },
 
   // Enviar mensaje con archivos adjuntos a WhatsApp
-  async sendMessageWithAttachments(conversationId: string, content: string, attachments: Array<{ id: string; type: string }>): Promise<any> {
+  async sendMessageWithAttachments(conversationId: string, content: string, attachments: Array<{ id: string; type: string }>): Promise<Record<string, unknown>> {
+    // Payload exacto que espera el backend según el análisis
     const payload = {
-      conversationId,
-      content,
-      attachments
+      conversationId: conversationId,
+      content: content || "", // Asegurar que content nunca sea undefined
+      attachments: attachments.map(attachment => ({
+        id: attachment.id,
+        type: attachment.type // "image", "document", "video", "audio"
+      }))
     };
 
-    const response = await api.post('/api/messages/send-with-attachments', payload);
+    console.log('📤 Enviando payload a /api/messages/send-with-attachments:', payload);
+
+    const response = await api.post('/api/messages/send-with-attachments', payload, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log('✅ Respuesta del backend:', response.data);
     return response.data;
   },
 
