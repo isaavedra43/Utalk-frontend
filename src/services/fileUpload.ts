@@ -2,17 +2,16 @@ import api from './api';
 import { FILE_CONFIG, ERROR_MESSAGES } from '../config/constants';
 
 export interface FileUploadResponse {
-  url: string;
-  filename: string;
+  id: string; // ID del archivo subido (para usar en send-with-attachments)
+  mime: string;
+  name: string;
   size: number;
   type: string;
-  id: string;
-  duration?: number; // Para audios/videos
-  thumbnail?: string; // Para videos
+  whatsappCompatible: boolean;
 }
 
 export const fileUploadService = {
-  // Subir archivo
+  // Subir archivo al servidor (NO lo envía a WhatsApp)
   async uploadFile(file: File, options: {
     conversationId: string;
     type: string;
@@ -20,7 +19,6 @@ export const fileUploadService = {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('conversationId', options.conversationId);
-    formData.append('type', options.type);
 
     const response = await api.post('/api/media/upload', formData, {
       headers: {
@@ -28,6 +26,24 @@ export const fileUploadService = {
       },
     });
 
+    // El backend responde con { success: true, data: { attachments: [...] } }
+    const attachments = response.data.data?.attachments || [];
+    if (attachments.length === 0) {
+      throw new Error('No se recibió información del archivo subido');
+    }
+
+    return attachments[0]; // Retorna el primer archivo subido
+  },
+
+  // Enviar mensaje con archivos adjuntos a WhatsApp
+  async sendMessageWithAttachments(conversationId: string, content: string, attachments: Array<{ id: string; type: string }>): Promise<any> {
+    const payload = {
+      conversationId,
+      content,
+      attachments
+    };
+
+    const response = await api.post('/api/messages/send-with-attachments', payload);
     return response.data;
   },
 
@@ -41,17 +57,7 @@ export const fileUploadService = {
       throw new Error(ERROR_MESSAGES.FILE_TOO_LARGE);
     }
 
-    const formData = new FormData();
-    formData.append('image', file);
-    formData.append('conversationId', conversationId);
-
-    const response = await api.post('/api/upload/image', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    return response.data;
+    return this.uploadFile(file, { conversationId, type: 'image' });
   },
 
   // Subir documento
@@ -64,17 +70,7 @@ export const fileUploadService = {
       throw new Error(ERROR_MESSAGES.FILE_TOO_LARGE);
     }
 
-    const formData = new FormData();
-    formData.append('document', file);
-    formData.append('conversationId', conversationId);
-
-    const response = await api.post('/api/upload/document', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    return response.data;
+    return this.uploadFile(file, { conversationId, type: 'document' });
   },
 
   // Subir audio
@@ -87,17 +83,7 @@ export const fileUploadService = {
       throw new Error(ERROR_MESSAGES.FILE_TOO_LARGE);
     }
 
-    const formData = new FormData();
-    formData.append('audio', file);
-    formData.append('conversationId', conversationId);
-
-    const response = await api.post('/api/upload/audio', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    return response.data;
+    return this.uploadFile(file, { conversationId, type: 'audio' });
   },
 
   // Subir video
@@ -110,17 +96,7 @@ export const fileUploadService = {
       throw new Error(ERROR_MESSAGES.FILE_TOO_LARGE);
     }
 
-    const formData = new FormData();
-    formData.append('video', file);
-    formData.append('conversationId', conversationId);
-
-    const response = await api.post('/api/upload/video', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    return response.data;
+    return this.uploadFile(file, { conversationId, type: 'video' });
   },
 
   // Obtener URL de descarga

@@ -91,7 +91,23 @@ export const useAuthStore = create<AuthStore>()(
             password
           });
           
-          const { accessToken, refreshToken, user: userData } = response.data;
+          logger.authInfo('Respuesta del backend recibida', { 
+            status: response.status,
+            hasData: !!response.data,
+            dataKeys: Object.keys(response.data || {}),
+            fullResponse: response.data
+          });
+          
+          // El backend envía los datos dentro de response.data.data
+          const { accessToken, refreshToken, user: userData } = response.data.data || response.data;
+          
+          logger.authInfo('Tokens extraídos', { 
+            hasAccessToken: !!accessToken,
+            hasRefreshToken: !!refreshToken,
+            hasUserData: !!userData,
+            accessTokenLength: accessToken?.length,
+            refreshTokenLength: refreshToken?.length
+          });
           
           localStorage.setItem('access_token', accessToken);
           localStorage.setItem('refresh_token', refreshToken);
@@ -105,6 +121,11 @@ export const useAuthStore = create<AuthStore>()(
             isAuthenticated: true
           });
           
+          logger.authInfo('Login exitoso - Usuario autenticado', { 
+            userId: userData.id,
+            userEmail: userData.email
+          });
+          
           // Disparar evento de login exitoso
           setTimeout(() => {
             window.dispatchEvent(new CustomEvent('auth:login-success', {
@@ -116,6 +137,8 @@ export const useAuthStore = create<AuthStore>()(
           
           return userData;
         } catch (error: unknown) {
+          logger.authError('Error en login', error as Error, { email });
+          
           const apiError = error as { response?: { data?: { message?: string } } };
           const errorMessage = apiError?.response?.data?.message || 'Error en el login';
           set({ error: errorMessage, loading: false, isAuthenticating: false });

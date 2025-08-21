@@ -40,11 +40,22 @@ export const useAuth = (): AuthState => {
   useEffect(() => {
     const checkInitialAuth = async () => {
       try {
+        // TEMPORAL: Limpiar tokens corruptos automáticamente
         const accessToken = localStorage.getItem('access_token');
         const refreshToken = localStorage.getItem('refresh_token');
-        const userData = localStorage.getItem('user');
         
-        if (accessToken && refreshToken && userData) {
+        if (accessToken && refreshToken) {
+          // Verificar si los tokens parecen válidos (no undefined, null, o muy cortos)
+          if (accessToken === 'undefined' || accessToken === 'null' || accessToken.length < 10) {
+            infoLog('🔐 useAuth - Tokens corruptos detectados, limpiando localStorage...');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            authStore.clearAuth();
+            authStore.setLoading(false);
+            return;
+          }
+          
           infoLog('🔐 useAuth - Tokens encontrados en localStorage, validando con backend...');
           
           // Validar token con el backend

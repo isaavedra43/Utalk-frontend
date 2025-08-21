@@ -22,16 +22,21 @@ interface FilePreview {
   status: 'pending' | 'uploading' | 'success' | 'error';
   progress: number;
   error?: string;
+  uploadedFileId?: string; // ID del archivo después de subirlo al servidor
 }
 
 interface FileUploadManagerProps {
-  onFileUpload: (content: string, type?: string, metadata?: Record<string, unknown>) => void;
+  onFilesAdded: (files: FilePreview[]) => void; // Nuevo: callback cuando se agregan archivos
+  onFileRemoved: (fileId: string) => void; // Nuevo: callback cuando se remueve un archivo
   conversationId?: string;
 }
 
-export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUpload, conversationId }) => {
+export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ 
+  onFilesAdded, 
+  onFileRemoved, 
+  conversationId 
+}) => {
   const [showMenu, setShowMenu] = useState(false);
-  const [filePreviews, setFilePreviews] = useState<FilePreview[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   
@@ -62,48 +67,35 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  // Subir archivo al servidor (NO lo envía a WhatsApp)
   const uploadFile = useCallback(async (filePreview: FilePreview) => {
     try {
       infoLog('🚀 Iniciando subida de archivo:', filePreview.file.name, 'ConversationId:', conversationId);
       
-      setFilePreviews(prev => 
-        prev.map(fp => 
-          fp.id === filePreview.id 
-            ? { ...fp, status: 'uploading', progress: 0 }
-            : fp
-        )
-      );
-
-      // Subir archivo real usando el servicio
       if (!conversationId) {
         throw new Error('ConversationId es requerido para subir archivos');
       }
       
+      // Actualizar estado a uploading
+      const updatedFile = { ...filePreview, status: 'uploading' as const, progress: 0 };
+      onFilesAdded([updatedFile]);
+      
       infoLog('📤 Enviando request a fileUploadService...');
       const response = await fileUploadService.uploadFile(filePreview.file, {
         conversationId,
-        type: filePreview.file.type
+        type: filePreview.type
       });
+      
       infoLog('✅ Archivo subido exitosamente:', response);
       
-      // Actualizar con éxito
-      setFilePreviews(prev => 
-        prev.map(fp => 
-          fp.id === filePreview.id 
-            ? { ...fp, status: 'success', progress: 100 }
-            : fp
-        )
-      );
-
-      // Enviar archivo con URL real del backend
-      onFileUpload(response.url, filePreview.type, {
-        fileName: filePreview.file.name,
-        fileSize: filePreview.file.size,
-        fileType: filePreview.file.type,
-        fileId: response.id,
-        duration: response.duration,
-        thumbnail: response.thumbnail
-      });
+      // Actualizar con éxito y guardar el ID del archivo
+      const successFile = { 
+        ...filePreview, 
+        status: 'success' as const, 
+        progress: 100,
+        uploadedFileId: response.id
+      };
+      onFilesAdded([successFile]);
 
     } catch (error) {
       infoLog('❌ Error uploading file:', error);
@@ -115,50 +107,40 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
         error: error instanceof Error ? error.message : String(error)
       });
       
-      setFilePreviews(prev => 
-        prev.map(fp => 
-          fp.id === filePreview.id 
-            ? { ...fp, status: 'error', error: 'Error al subir archivo' }
-            : fp
-        )
-      );
+      // Actualizar con error
+      const errorFile = { 
+        ...filePreview, 
+        status: 'error' as const, 
+        error: 'Error al subir archivo' 
+      };
+      onFilesAdded([errorFile]);
     }
-  }, [conversationId, onFileUpload]);
+  }, [conversationId, onFilesAdded]);
 
   const handleFileSelect = useCallback((files: FileList | null) => {
     if (!files) return;
     
     const newFiles: FilePreview[] = Array.from(files).map(file => ({
-      id: `${file.name}-${Date.now()}`,
+      id: `${file.name}-${Date.now()}-${Math.random()}`,
       file,
       type: getFileType(file),
       status: 'pending',
       progress: 0
     }));
 
-    setFilePreviews(prev => [...prev, ...newFiles]);
+    // Notificar que se agregaron archivos
+    onFilesAdded(newFiles);
     
-    // AUTO-SUBIR ARCHIVOS INMEDIATAMENTE
+    // Subir archivos automáticamente
     setTimeout(() => {
       newFiles.forEach(filePreview => {
         uploadFile(filePreview);
       });
     }, 100);
-  }, [uploadFile]);
-
-  const uploadAllFiles = async () => {
-    setIsUploading(true);
-    const pendingFiles = filePreviews.filter(fp => fp.status === 'pending');
-    
-    for (const filePreview of pendingFiles) {
-      await uploadFile(filePreview);
-    }
-    
-    setIsUploading(false);
-  };
+  }, [uploadFile, onFilesAdded]);
 
   const removeFile = (id: string) => {
-    setFilePreviews(prev => prev.filter(fp => fp.id !== id));
+    onFileRemoved(id);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -174,8 +156,7 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    // The handleFileSelect function is no longer used here, as handleFilesAdded is called directly.
-    // handleFileSelect(e.dataTransfer.files); 
+    handleFileSelect(e.dataTransfer.files);
   };
 
   return (
@@ -201,171 +182,76 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
               <X className="w-4 h-4" />
             </button>
           </div>
-          
+
+          {/* Opciones de archivo */}
           <div className="space-y-1">
-            {/* Imágenes */}
             <button
               onClick={() => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'image/*';
-                input.multiple = true;
-                input.onchange = (e) => handleFileSelect((e.target as HTMLInputElement)?.files);
-                input.click();
+                fileInputRef.current?.click();
+                setShowMenu(false);
               }}
-              className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-            >
-              <Image className="w-4 h-4" />
-              <span>Imágenes</span>
-            </button>
-
-            {/* Audios */}
-            <button
-              onClick={() => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'audio/*';
-                input.multiple = true;
-                input.onchange = (e) => handleFileSelect((e.target as HTMLInputElement)?.files);
-                input.click();
-              }}
-              className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-            >
-              <Music className="w-4 h-4" />
-              <span>Audios</span>
-            </button>
-
-            {/* Videos */}
-            <button
-              onClick={() => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'video/*';
-                input.multiple = true;
-                input.onchange = (e) => handleFileSelect((e.target as HTMLInputElement)?.files);
-                input.click();
-              }}
-              className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-            >
-              <Video className="w-4 h-4" />
-              <span>Videos</span>
-            </button>
-
-            {/* Documentos */}
-            <button
-              onClick={() => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = '.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx';
-                input.multiple = true;
-                input.onchange = (e) => handleFileSelect((e.target as HTMLInputElement)?.files);
-                input.click();
-              }}
-              className="w-full flex items-center space-x-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+              className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
             >
               <FileText className="w-4 h-4" />
-              <span>Documentos</span>
+              <span>Documento</span>
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Zona de Drag & Drop */}
-      {isDragOver && (
-        <div
-          ref={dropZoneRef}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          className="fixed inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center z-50"
-        >
-          <div className="bg-white rounded-lg p-8 text-center">
-            <Upload className="w-12 h-12 text-blue-500 mx-auto mb-4" />
-            <p className="text-lg font-medium text-gray-700">Suelta los archivos aquí</p>
-            <p className="text-sm text-gray-500">Los archivos se subirán automáticamente</p>
-          </div>
-        </div>
-      )}
-
-      {/* Previsualizaciones de archivos */}
-      {filePreviews.length > 0 && (
-        <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3 min-w-[300px] max-w-[400px] z-40">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-medium text-gray-700">
-              Archivos seleccionados ({filePreviews.length})
-            </h4>
+            
             <button
-              onClick={uploadAllFiles}
-              disabled={isUploading || filePreviews.every(fp => fp.status !== 'pending')}
-              className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              onClick={() => {
+                fileInputRef.current?.click();
+                setShowMenu(false);
+              }}
+              className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
             >
-              Subir todos
+              <Image className="w-4 h-4" />
+              <span>Imagen</span>
+            </button>
+            
+            <button
+              onClick={() => {
+                fileInputRef.current?.click();
+                setShowMenu(false);
+              }}
+              className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              <Video className="w-4 h-4" />
+              <span>Video</span>
+            </button>
+            
+            <button
+              onClick={() => {
+                fileInputRef.current?.click();
+                setShowMenu(false);
+              }}
+              className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              <Music className="w-4 h-4" />
+              <span>Audio</span>
             </button>
           </div>
-          
-          <div className="space-y-2 max-h-48 overflow-y-auto no-scrollbar">
-            {filePreviews.map((filePreview) => (
-              <div key={filePreview.id} className="flex items-center space-x-2 p-2 bg-gray-50 rounded-md">
-                {/* Preview/Icono */}
-                <div className="flex-shrink-0">
-                  {filePreview.preview ? (
-                    <img 
-                      src={filePreview.preview} 
-                      alt={filePreview.file.name}
-                      className="w-8 h-8 object-cover rounded"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
-                      {getFileIcon(filePreview.type)}
-                    </div>
-                  )}
-                </div>
-                
-                {/* Información del archivo */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-gray-700 truncate">
-                    {filePreview.file.name}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {formatFileSize(filePreview.file.size)}
-                  </p>
-                </div>
-                
-                {/* Estado y progreso */}
-                <div className="flex-shrink-0 flex items-center space-x-1">
-                  {filePreview.status === 'pending' && (
-                    <button
-                      onClick={() => uploadFile(filePreview)}
-                      className="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700"
-                    >
-                      Subir
-                    </button>
-                  )}
-                  
-                  {filePreview.status === 'uploading' && (
-                    <div className="flex items-center space-x-1">
-                      <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-                      <span className="text-xs text-gray-500">{filePreview.progress}%</span>
-                    </div>
-                  )}
-                  
-                  {filePreview.status === 'success' && (
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                  )}
-                  
-                  {filePreview.status === 'error' && (
-                    <AlertCircle className="w-4 h-4 text-red-500" />
-                  )}
-                  
-                  <button
-                    onClick={() => removeFile(filePreview.id)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-            ))}
+
+          {/* Zona de drag & drop */}
+          <div
+            ref={dropZoneRef}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`mt-2 p-3 border-2 border-dashed rounded-lg text-center transition-colors ${
+              isDragOver 
+                ? 'border-blue-400 bg-blue-50' 
+                : 'border-gray-300 hover:border-gray-400'
+            }`}
+          >
+            <Upload className="w-6 h-6 mx-auto text-gray-400 mb-1" />
+            <p className="text-xs text-gray-600">
+              Arrastra archivos aquí o
+            </p>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="text-xs text-blue-500 hover:text-blue-700 underline"
+            >
+              selecciona archivos
+            </button>
           </div>
         </div>
       )}
@@ -374,11 +260,19 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ onFileUplo
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
         multiple
-        onChange={(e) => handleFileSelect((e.target as HTMLInputElement)?.files)}
+        accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
+        onChange={(e) => handleFileSelect(e.target.files)}
         className="hidden"
       />
+
+      {/* Overlay para cerrar menú */}
+      {showMenu && (
+        <div
+          className="fixed inset-0 z-30"
+          onClick={() => setShowMenu(false)}
+        />
+      )}
     </div>
   );
 }; 

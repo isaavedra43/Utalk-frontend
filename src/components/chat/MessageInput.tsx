@@ -1,10 +1,19 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { infoLog } from '../../config/logger';
-import { Send, Mic, MapPin, Smile, Paperclip } from 'lucide-react';
+import { Send, Mic, MapPin, Smile } from 'lucide-react';
 import { AudioRecorder } from './AudioRecorder';
 import { StickerPicker } from './StickerPicker';
-import { FileUploadPreview } from './FileUploadPreview';
+import { FileUploadManager } from './FileUploadManager';
+import { PendingFileUpload } from './PendingFileUpload';
 
+interface PendingFile {
+  id: string;
+  file: File;
+  type: string;
+  status: 'pending' | 'uploading' | 'success' | 'error';
+  progress: number;
+  error?: string;
+  uploadedFileId?: string;
+}
 
 interface MessageInputProps {
   onSendMessage: (content: string, type?: string, metadata?: Record<string, unknown>) => void;
@@ -17,7 +26,7 @@ interface MessageInputProps {
   onBlur?: () => void;
   onKeyPress?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   isSending?: boolean;
-  conversationId?: string; // NUEVO: ID de conversación para subir archivos
+  conversationId?: string;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -37,15 +46,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [showAudioRecorder, setShowAudioRecorder] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
-  const [uploadingFiles, setUploadingFiles] = useState<Array<{
-    id: string;
-    name: string;
-    size: number;
-    type: string;
-    status: 'uploading' | 'success' | 'error';
-    progress: number;
-    error?: string;
-  }>>([]);
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -54,15 +55,19 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const currentValue = externalValue !== undefined ? externalValue : message;
 
   const handleSend = useCallback(() => {
-    if (currentValue.trim() && !disabled) {
-      onSendMessage(currentValue.trim());
-      if (externalValue === undefined) {
-        setMessage('');
+    if ((currentValue.trim() || pendingFiles.length > 0) && !disabled) {
+      // Si hay archivos pendientes, se manejan en PendingFileUpload
+      if (pendingFiles.length === 0) {
+        // Solo enviar mensaje de texto
+        onSendMessage(currentValue.trim());
+        if (externalValue === undefined) {
+          setMessage('');
+        }
       }
       setIsTyping(false);
       onStopTyping?.();
     }
-  }, [currentValue, disabled, onSendMessage, onStopTyping, externalValue]);
+  }, [currentValue, pendingFiles.length, disabled, onSendMessage, onStopTyping, externalValue]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (externalOnKeyPress) {
@@ -98,7 +103,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     }, 3000);
   }, [isTyping, onTyping, onStopTyping, externalOnChange]);
 
-  const handleInputBlur = useCallback(() => {
+  const handleBlur = useCallback(() => {
     if (externalOnBlur) {
       externalOnBlur();
     }
@@ -106,185 +111,49 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     onStopTyping?.();
   }, [externalOnBlur, onStopTyping]);
 
-  const handleAudioComplete = useCallback(async (audioBlob: Blob) => {
-    if (!conversationId) {
-      infoLog('❌ No se puede enviar audio: conversationId no disponible');
-      alert('Error: No se puede enviar audio en este momento');
-      return;
-    }
-
-    // Declarar fileId fuera del try para que esté disponible en el catch
-    const fileId = `audio-${Date.now()}`;
-
-    try {
-      infoLog('🎤 Audio grabado, enviando...', audioBlob);
+  // Manejar archivos agregados
+  const handleFilesAdded = useCallback((files: PendingFile[]) => {
+    setPendingFiles(prev => {
+      const newFiles = [...prev];
       
-      // Crear un archivo de audio desde el blob
-      const audioFile = new File([audioBlob], `audio-${Date.now()}.wav`, { 
-        type: 'audio/wav' 
-      });
-      
-      // Agregar a la lista de uploads
-      setUploadingFiles(prev => [...prev, {
-        id: fileId,
-        name: audioFile.name,
-        size: audioFile.size,
-        type: audioFile.type,
-        status: 'uploading',
-        progress: 0
-      }]);
-
-      // Actualizar progreso
-      setUploadingFiles(prev => 
-        prev.map(f => f.id === fileId ? { ...f, progress: 25 } : f)
-      );
-
-      // Importar el servicio dinámicamente
-      const { fileUploadService } = await import('../../services/fileUpload');
-      
-      setUploadingFiles(prev => 
-        prev.map(f => f.id === fileId ? { ...f, progress: 50 } : f)
-      );
-
-      // Subir audio al servidor
-      const response = await fileUploadService.uploadFile(audioFile, {
-        conversationId,
-        type: audioFile.type
-      });
-      infoLog('✅ Audio subido exitosamente:', response);
-      
-      setUploadingFiles(prev => 
-        prev.map(f => f.id === fileId ? { ...f, progress: 100, status: 'success' } : f)
-      );
-
-      // Enviar mensaje con el audio
-      onSendMessage(response.url, 'audio', {
-        fileName: audioFile.name,
-        fileSize: audioFile.size,
-        fileType: audioFile.type,
-        fileId: response.id,
-        duration: response.duration
-      });
-
-      // Remover de la lista después de 2 segundos
-      setTimeout(() => {
-        setUploadingFiles(prev => prev.filter(f => f.id !== fileId));
-      }, 2000);
-
-      setShowAudioRecorder(false);
-      
-    } catch (error) {
-      infoLog('❌ Error enviando audio:', error);
-      
-      // Marcar como error
-      setUploadingFiles(prev => 
-        prev.map(f => f.id === fileId ? { 
-          ...f, 
-          status: 'error', 
-          error: 'Error al enviar audio' 
-        } : f)
-      );
-      
-      alert('Error al enviar el audio. Intenta de nuevo.');
-    }
-  }, [conversationId, onSendMessage]);
-
-  const handleStickerSelect = useCallback((stickerUrl: string) => {
-    onSendMessage(stickerUrl, 'sticker');
-    setShowStickerPicker(false);
-  }, [onSendMessage]);
-
-  const handleLocationClick = useCallback(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          const locationUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
-          onSendMessage(locationUrl, 'location', { latitude, longitude });
-        },
-        (error) => {
-          infoLog('Error obteniendo ubicación:', error);
-          alert('No se pudo obtener tu ubicación');
+      files.forEach(newFile => {
+        const existingIndex = newFiles.findIndex(f => f.id === newFile.id);
+        if (existingIndex >= 0) {
+          // Actualizar archivo existente
+          newFiles[existingIndex] = newFile;
+        } else {
+          // Agregar nuevo archivo
+          newFiles.push(newFile);
         }
-      );
-    } else {
-      alert('Geolocalización no soportada en este navegador');
+      });
+      
+      return newFiles;
+    });
+  }, []);
+
+  // Manejar archivo removido
+  const handleFileRemoved = useCallback((fileId: string) => {
+    setPendingFiles(prev => prev.filter(f => f.id !== fileId));
+  }, []);
+
+  // Manejar envío de archivos
+  const handleFilesSent = useCallback((files: PendingFile[], message: string) => {
+    // Limpiar archivos después del envío exitoso
+    setPendingFiles([]);
+    
+    // Si hay mensaje de texto, enviarlo también
+    if (message.trim()) {
+      onSendMessage(message.trim());
     }
   }, [onSendMessage]);
 
-  // Función para enviar múltiples archivos juntos
-  const sendMultipleFiles = useCallback(async (files: File[]) => {
-    if (!conversationId) {
-      infoLog('❌ No se puede enviar archivos: conversationId no disponible');
-      alert('Error: No se puede enviar archivos en este momento');
-      return;
+  // Auto-resize del textarea
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
     }
-
-    // Declarar fileIds fuera del try para que esté disponible en el catch
-    const fileIds = files.map(file => `${file.name}-${Date.now()}-${Math.random()}`);
-
-    try {
-      infoLog('🚀 Enviando múltiples archivos:', files.length);
-      
-      // Agregar todos los archivos a la lista de uploads
-      setUploadingFiles(prev => [
-        ...prev,
-        ...files.map((file, index) => ({
-          id: fileIds[index],
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          status: 'uploading' as const,
-          progress: 0
-        }))
-      ]);
-
-      // Importar el servicio dinámicamente
-      const { fileUploadService } = await import('../../services/fileUpload');
-      
-      // Subir y enviar cada archivo secuencialmente
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const currentId = fileIds[i];
-
-        setUploadingFiles(prev => prev.map(f => f.id === currentId ? { ...f, progress: 25 } : f));
-        
-        const response = await fileUploadService.uploadFile(file, {
-          conversationId,
-          type: file.type
-        });
-        
-        setUploadingFiles(prev => prev.map(f => f.id === currentId ? { ...f, progress: 100, status: 'success' } : f));
-        
-        const fileType = file.type.startsWith('image/') ? 'image' : file.type.startsWith('audio/') ? 'audio' : file.type.startsWith('video/') ? 'video' : 'document';
-        onSendMessage(response.url, fileType, {
-          fileName: file.name,
-          fileSize: file.size,
-          fileType: file.type,
-          fileId: response.id,
-          duration: response.duration,
-          thumbnail: response.thumbnail
-        });
-      }
-
-      // Remover archivos de la lista después de 2 segundos
-      setTimeout(() => {
-        setUploadingFiles(prev => prev.filter(f => !fileIds.includes(f.id)));
-      }, 2000);
-
-    } catch (error) {
-      infoLog('❌ Error enviando múltiples archivos:', error);
-      
-      // Marcar todos como error
-      setUploadingFiles(prev => 
-        prev.map(f => fileIds.includes(f.id) ? { 
-          ...f, 
-          status: 'error', 
-          error: 'Error al enviar archivos' 
-        } : f)
-      );
-    }
-  }, [conversationId, onSendMessage]);
+  }, [currentValue]);
 
   // Limpiar timeout al desmontar
   useEffect(() => {
@@ -296,236 +165,120 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   }, []);
 
   return (
-    <div className="border-t border-gray-200 p-3 sm:p-4 bg-white">
-      {/* File Upload Preview */}
-      <FileUploadPreview 
-        files={uploadingFiles}
-        onRemove={(id) => setUploadingFiles(prev => prev.filter(f => f.id !== id))}
+    <div className="border-t border-gray-200 bg-white p-4">
+      {/* Archivos pendientes */}
+      <PendingFileUpload
+        files={pendingFiles}
+        onRemoveFile={handleFileRemoved}
+        onSendFiles={handleFilesSent}
+        conversationId={conversationId}
       />
-      
-      {/* Audio Recorder */}
+
+      {/* Input de mensaje */}
+      <div className="flex items-end space-x-2">
+        {/* Botón de adjuntar archivo */}
+        <FileUploadManager
+          onFilesAdded={handleFilesAdded}
+          onFileRemoved={handleFileRemoved}
+          conversationId={conversationId}
+        />
+
+        {/* Botón de grabación de audio */}
+        <button
+          onClick={() => setShowAudioRecorder(!showAudioRecorder)}
+          className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-full transition-all duration-200"
+          title="Grabar audio"
+        >
+          <Mic className="w-3.5 h-3.5" />
+        </button>
+
+        {/* Botón de ubicación */}
+        <button
+          className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-full transition-all duration-200"
+          title="Enviar ubicación"
+        >
+          <MapPin className="w-3.5 h-3.5" />
+        </button>
+
+        {/* Input de texto */}
+        <div className="flex-1 relative">
+          <textarea
+            ref={inputRef}
+            value={currentValue}
+            onChange={handleInputChange}
+            onBlur={handleBlur}
+            onKeyPress={handleKeyPress}
+            placeholder={placeholder}
+            disabled={disabled || isSending}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            rows={1}
+            maxLength={1000}
+          />
+          
+          {/* Contador de caracteres */}
+          <div className="absolute bottom-1 right-2 text-xs text-gray-400">
+            {currentValue.length}/1000
+          </div>
+        </div>
+
+        {/* Botón de emojis */}
+        <button
+          onClick={() => setShowStickerPicker(!showStickerPicker)}
+          className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-full transition-all duration-200"
+          title="Emojis"
+        >
+          <Smile className="w-3.5 h-3.5" />
+        </button>
+
+        {/* Botón de enviar */}
+        <button
+          onClick={handleSend}
+          disabled={disabled || isSending || (!currentValue.trim() && pendingFiles.length === 0)}
+          className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:transform-none"
+          title="Enviar mensaje"
+        >
+          <Send className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Grabador de audio */}
       {showAudioRecorder && (
-        <div className="mb-3 sm:mb-4">
+        <div className="mt-4">
           <AudioRecorder
-            onRecordingComplete={handleAudioComplete}
+            onRecordingComplete={(audioBlob) => {
+              // Convertir blob a File y agregarlo como archivo pendiente
+              const audioFile = new File([audioBlob], `audio_${Date.now()}.wav`, { type: 'audio/wav' });
+              const pendingFile: PendingFile = {
+                id: `audio-${Date.now()}-${Math.random()}`,
+                file: audioFile,
+                type: 'audio',
+                status: 'pending',
+                progress: 0
+              };
+              handleFilesAdded([pendingFile]);
+              setShowAudioRecorder(false);
+            }}
             onCancel={() => setShowAudioRecorder(false)}
           />
         </div>
       )}
 
-      {/* Sticker Picker */}
+      {/* Selector de stickers */}
       {showStickerPicker && (
-        <div className="mb-3 sm:mb-4 relative">
-          <StickerPicker
-            onSelectSticker={handleStickerSelect}
-            onClose={() => setShowStickerPicker(false)}
-          />
-        </div>
+                 <div className="mt-4">
+           <StickerPicker
+             onSelectSticker={(sticker: string) => {
+               // Agregar emoji al mensaje
+               const newValue = currentValue + sticker;
+               if (externalValue === undefined) {
+                 setMessage(newValue);
+               }
+               setShowStickerPicker(false);
+             }}
+             onClose={() => setShowStickerPicker(false)}
+           />
+         </div>
       )}
-
-      {/* Contenedor principal del input con íconos integrados */}
-      <div className="relative bg-white border border-gray-300 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
-        {/* Input de texto */}
-        <div className="flex items-end">
-          <textarea
-            ref={inputRef}
-            value={currentValue}
-            onChange={handleInputChange}
-            onBlur={handleInputBlur}
-            onKeyPress={handleKeyPress}
-            placeholder={placeholder}
-            disabled={disabled || isSending}
-            className="flex-1 px-4 py-3 pr-20 resize-none focus:outline-none disabled:bg-gray-50 disabled:cursor-not-allowed text-sm bg-transparent border-0"
-            rows={1}
-            style={{ minHeight: '48px', maxHeight: '120px' }}
-          />
-          
-          {/* Íconos integrados en el lado derecho */}
-          <div className="flex items-center space-x-1 pr-2 pb-2">
-            {/* Ícono de enviar - PRIMERO Y MÁS PROMINENTE */}
-            <button
-              onClick={handleSend}
-              disabled={!currentValue.trim() || disabled || isSending}
-              className={`p-2 rounded-full transition-all duration-200 ${
-                currentValue.trim() && !disabled && !isSending
-                  ? 'text-white bg-blue-600 hover:bg-blue-700 shadow-md'
-                  : 'text-gray-400 bg-gray-100 cursor-not-allowed'
-              }`}
-              title="Enviar mensaje"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-            
-            {/* Ícono de micrófono */}
-            <button
-              onClick={() => {
-                infoLog('🎤 Botón de micrófono clickeado, estado actual:', showAudioRecorder);
-                setShowAudioRecorder(!showAudioRecorder);
-              }}
-              className={`p-1.5 rounded-full transition-all duration-200 ${
-                showAudioRecorder 
-                  ? 'text-blue-600 bg-blue-50' 
-                  : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
-              }`}
-              disabled={disabled}
-              title="Grabar audio"
-            >
-              <Mic className="w-4 h-4" />
-            </button>
-            
-            {/* Ícono de archivo/imagen */}
-            <button
-              onClick={() => {
-                if (!conversationId) {
-                  console.error('❌ No se puede subir archivo: conversationId no disponible');
-                  alert('Error: No se puede subir archivos en este momento');
-                  return;
-                }
-                
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'image/*,audio/*,video/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx';
-                input.multiple = true;
-                input.onchange = (e) => {
-                  const files = (e.target as HTMLInputElement)?.files;
-                  if (files) {
-                    const fileArray = Array.from(files);
-                    
-                    // Si hay múltiples archivos, enviarlos todos juntos
-                    if (fileArray.length > 1) {
-                      sendMultipleFiles(fileArray);
-                    } else {
-                      // Si es un solo archivo, enviarlo individualmente
-                      fileArray.forEach(file => {
-                        infoLog('📁 Archivo seleccionado:', file.name, 'Tamaño:', file.size, 'Tipo:', file.type);
-                        
-                        // Crear preview temporal mientras se sube
-                        const fileUrl = URL.createObjectURL(file);
-                        const fileType = file.type.startsWith('image/') ? 'image' : 
-                                       file.type.startsWith('audio/') ? 'audio' : 
-                                       file.type.startsWith('video/') ? 'video' : 'document';
-                        
-                        // Agregar archivo a la lista de uploads
-                        const fileId = `${file.name}-${Date.now()}`;
-                        setUploadingFiles(prev => [...prev, {
-                          id: fileId,
-                          name: file.name,
-                          size: file.size,
-                          type: file.type,
-                          status: 'uploading',
-                          progress: 0
-                        }]);
-                        
-                        // Subir archivo al servidor y luego enviar mensaje con la URL
-                        const uploadAndSend = async () => {
-                          try {
-                            infoLog('🚀 Subiendo archivo:', file.name);
-                            
-                            // Actualizar progreso
-                            setUploadingFiles(prev => 
-                              prev.map(f => f.id === fileId ? { ...f, progress: 25 } : f)
-                            );
-                            
-                            // Importar el servicio dinámicamente para evitar dependencias circulares
-                            const { fileUploadService } = await import('../../services/fileUpload');
-                            
-                            setUploadingFiles(prev => 
-                              prev.map(f => f.id === fileId ? { ...f, progress: 50 } : f)
-                            );
-                            
-                            // Subir archivo y obtener URL del backend
-                            const response = await fileUploadService.uploadFile(file, {
-                              conversationId,
-                              type: file.type
-                            });
-                            infoLog('✅ Archivo subido exitosamente:', response);
-                            
-                            setUploadingFiles(prev => 
-                              prev.map(f => f.id === fileId ? { ...f, progress: 100, status: 'success' } : f)
-                            );
-                            
-                            // Enviar mensaje con URL del servidor
-                            onSendMessage(response.url, fileType, {
-                              fileName: file.name,
-                              fileSize: file.size,
-                              fileType: file.type,
-                              fileId: response.id,
-                              duration: response.duration,
-                              thumbnail: response.thumbnail
-                            });
-                            
-                            // Limpiar URL temporal
-                            URL.revokeObjectURL(fileUrl);
-                            
-                            // Remover archivo de la lista después de 2 segundos
-                            setTimeout(() => {
-                              setUploadingFiles(prev => prev.filter(f => f.id !== fileId));
-                            }, 2000);
-                            
-                          } catch (error) {
-                            console.error('❌ Error subiendo archivo:', error);
-                            
-                            setUploadingFiles(prev => 
-                              prev.map(f => f.id === fileId ? { 
-                                ...f, 
-                                status: 'error', 
-                                error: 'Error al subir archivo' 
-                              } : f)
-                            );
-                            
-                            // En caso de error, enviar con URL temporal como fallback
-                            onSendMessage(fileUrl, fileType, {
-                              fileName: file.name,
-                              fileSize: file.size,
-                              fileType: file.type,
-                              error: 'Error al subir archivo'
-                            });
-                          }
-                        };
-                        
-                        uploadAndSend();
-                      });
-                    }
-                  }
-                };
-                input.click();
-              }}
-              className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
-              disabled={disabled || !conversationId}
-              title={conversationId ? "Adjuntar archivo" : "No se puede adjuntar archivos"}
-            >
-              <Paperclip className="w-4 h-4" />
-            </button>
-            
-            {/* Ícono de emoji */}
-            <button
-              onClick={() => {
-                infoLog('🎯 Botón de emoji clickeado, estado actual:', showStickerPicker);
-                setShowStickerPicker(!showStickerPicker);
-              }}
-              className={`p-1.5 rounded-full transition-all duration-200 ${
-                showStickerPicker 
-                  ? 'text-blue-600 bg-blue-50' 
-                  : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
-              }`}
-              disabled={disabled}
-              title="Emojis y stickers"
-            >
-              <Smile className="w-4 h-4" />
-            </button>
-            
-            {/* Ícono de ubicación */}
-            <button
-              onClick={handleLocationClick}
-              className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all duration-200"
-              disabled={disabled}
-              title="Compartir ubicación"
-            >
-              <MapPin className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }; 
