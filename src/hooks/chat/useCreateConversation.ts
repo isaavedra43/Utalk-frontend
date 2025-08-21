@@ -2,6 +2,11 @@ import { useState, useCallback } from 'react';
 import { infoLog } from '../../config/logger';
 import { conversationsService } from '../../services/conversations';
 import { fileUploadService } from '../../services/fileUpload';
+import { contactsService } from '../../services/contacts';
+import { messagesService } from '../../services/messages';
+import type { MessageInputData } from '../../types';
+import { useWebSocketContext } from '../../contexts/useWebSocketContext';
+import { useConversationActions } from './useConversationActions';
 
 interface CreateConversationData {
   customerName: string;
@@ -21,6 +26,8 @@ interface UseCreateConversationReturn {
 export const useCreateConversation = (): UseCreateConversationReturn => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { joinConversation } = useWebSocketContext();
+  const { selectConversation, refreshConversations } = useConversationActions();
 
   const createConversation = useCallback(async (data: CreateConversationData) => {
     setIsLoading(true);
@@ -48,8 +55,8 @@ export const useCreateConversation = (): UseCreateConversationReturn => {
         throw new Error('El teléfono debe incluir el código de país (ej: +52 1 477 123 4567)');
       }
       
-      if (!data.message.trim()) {
-        throw new Error('El mensaje inicial es requerido');
+      if (!data.message.trim() && !data.attachment) {
+        throw new Error('Debes escribir un mensaje o adjuntar un archivo');
       }
 
       // Validar archivo si existe
@@ -72,62 +79,57 @@ export const useCreateConversation = (): UseCreateConversationReturn => {
         }
       }
 
-      // Paso 1: Crear la conversación con el formato del backend
-      const conversationPayload: {
-        contact: {
-          phoneNumber: string;
-          name: string;
-          email: string;
-          source: string;
-        };
-        initialMessage: {
-          text: string;
-          type: 'text' | 'file';
-          fileName?: string;
-          fileType?: string;
-          fileSize?: number;
-        };
-      } = {
-        contact: {
-          phoneNumber: data.customerPhone,
-          name: data.customerName,
-          email: data.customerEmail || '',
-          source: 'web_form'
-        },
-        initialMessage: {
-          text: data.message,
-          type: data.attachment ? 'file' : 'text'
+      // Paso 0: Asegurar contacto (crear si no existe)
+      try {
+        const existing = await contactsService.searchContactByPhone(data.customerPhone);
+        if (!existing) {
+          await contactsService.createContact({
+            phone: data.customerPhone,
+            name: data.customerName,
+            email: data.customerEmail || undefined
+          });
         }
-      };
-
-      // Agregar información del archivo si existe
-      if (data.attachment) {
-        conversationPayload.initialMessage.fileName = data.attachment.name;
-        conversationPayload.initialMessage.fileType = data.attachment.type;
-        conversationPayload.initialMessage.fileSize = data.attachment.size;
+      } catch (cErr) {
+        infoLog('⚠️ useCreateConversation - No se pudo verificar/crear contacto (continuando):', cErr);
       }
 
-      infoLog('📤 useCreateConversation - Enviando payload al backend:', conversationPayload);
-
-      // Crear conversación usando el servicio
-      const newConversation = await conversationsService.createConversation(conversationPayload);
+      // Paso 1: Crear la conversación con payload básico del backend
+      const newConversation = await conversationsService.createConversationBasic({
+        customerPhone: data.customerPhone,
+        customerName: data.customerName,
+        metadata: { source: 'web_form' }
+      });
 
       infoLog('✅ useCreateConversation - Conversación creada:', newConversation);
 
-      // Paso 2: Subir archivo adjunto si existe
-      if (data.attachment && newConversation.id) {
-        try {
+      // Paso 2: Unirse por WebSocket a la room de la conversación
+      if (newConversation.id) {
+        joinConversation(newConversation.id);
+      }
+
+      // Paso 3: Enviar primer mensaje
+      if (newConversation.id) {
+        if (data.attachment) {
+          // 3a: Subir archivo y enviar con IDs
           infoLog('📎 useCreateConversation - Subiendo archivo adjunto:', data.attachment.name);
-          
-          const uploadResult = await fileUploadService.uploadFile(data.attachment, {
+          const uploaded = await fileUploadService.uploadFile(data.attachment, {
             conversationId: newConversation.id,
-            type: 'attachment'
+            type: fileUploadService.getMessageType(data.attachment)
           });
-          
-          infoLog('✅ useCreateConversation - Archivo subido:', uploadResult);
-        } catch (uploadError) {
-          infoLog('⚠️ useCreateConversation - Error subiendo archivo:', uploadError);
-          // Continuar sin el archivo adjunto, la conversación ya se creó
+          infoLog('✅ useCreateConversation - Archivo subido:', uploaded);
+
+          await fileUploadService.sendMessageWithAttachments(
+            newConversation.id,
+            data.message.trim(), // si está vacío, el servicio lo omitirá
+            [{ id: uploaded.id, type: uploaded.type }]
+          );
+        } else if (data.message.trim()) {
+          // 3b: Solo texto
+          const textPayload: MessageInputData = {
+            content: data.message.trim(),
+            type: 'text'
+          } as MessageInputData;
+          await messagesService.sendMessage(newConversation.id, textPayload);
         }
       }
 
@@ -138,6 +140,12 @@ export const useCreateConversation = (): UseCreateConversationReturn => {
           conversation: newConversation
         }
       }));
+
+      // Seleccionar la conversación y refrescar lista
+      if (newConversation.id) {
+        selectConversation(newConversation.id);
+      }
+      await refreshConversations();
 
       infoLog('🎉 useCreateConversation - Conversación creada exitosamente');
 

@@ -194,6 +194,19 @@ export const conversationsService = {
     return response.data;
   },
 
+  // NUEVO: Crear conversación con payload básico del backend
+  async createConversationBasic(conversationData: {
+    customerPhone: string;
+    customerName: string;
+    subject?: string;
+    priority?: string;
+    tags?: string[];
+    metadata?: Record<string, unknown>;
+  }): Promise<Conversation> {
+    const response = await api.post(CONVERSATIONS_API, conversationData);
+    return response.data;
+  },
+
   // Actualizar conversación
   async updateConversation(conversationId: string, updateData: {
     customerName?: string;
