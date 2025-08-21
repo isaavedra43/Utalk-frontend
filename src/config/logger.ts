@@ -15,13 +15,13 @@ export const LOG_CONFIG = {
 // Función helper para logging condicional
 export const debugLog = (message: string, ...args: unknown[]) => {
   if (LOG_CONFIG.DEBUG && LOG_CONFIG.LEVELS.DEBUG) {
-    infoLog(message, ...args);
+    console.debug(message, ...args);
   }
 };
 
 export const infoLog = (message: string, ...args: unknown[]) => {
   if (LOG_CONFIG.LEVELS.INFO) {
-    infoLog(message, ...args);
+    console.info(message, ...args);
   }
 };
 
