@@ -16,17 +16,7 @@ import api from '../services/api';
 import { messagesService } from '../services/messages';
 import { conversationsService } from '../services/conversations';
 import { useChatStore } from '../stores/useChatStore';
-import type { Conversation } from '../types';
-
-interface Message {
-  id: string;
-  content: string;
-  direction: 'inbound' | 'outbound';
-  timestamp?: string;
-  status: string;
-  type: string;
-  metadata?: Record<string, unknown>;
-}
+import type { Conversation, Message } from '../types';
 
 
 
@@ -445,6 +435,26 @@ export const useChat = (conversationId: string) => {
       
       if (messageData.conversationId === conversationId) {
         setMessages(prev => {
+          // SOLUCIONADO: Buscar si hay un mensaje optimístico para reemplazar
+          const optimisticIndex = prev.findIndex(msg => 
+            msg.id.startsWith('optimistic_') && 
+            msg.type === 'message_with_files' &&
+            messageData.message.type === 'message_with_files' &&
+            msg.direction === 'outbound' &&
+            messageData.message.direction === 'outbound'
+          );
+
+          if (optimisticIndex !== -1) {
+            infoLog('📨 useChat - Reemplazando mensaje optimístico:', {
+              optimisticId: prev[optimisticIndex].id,
+              realId: messageData.message.id
+            });
+            
+            const newMessages = [...prev];
+            newMessages[optimisticIndex] = messageData.message;
+            return newMessages;
+          }
+
           // Evitar duplicados
           const exists = prev.some(msg => msg.id === messageData.message.id);
           if (exists) {
@@ -564,6 +574,99 @@ export const useChat = (conversationId: string) => {
     };
   }, [socket, conversationId, on, off, isConnected]); // Removido isJoined de las dependencias
 
+  // Enviar mensaje con archivos usando optimistic updates
+  const sendMessageWithAttachments = useCallback(async (
+    content: string,
+    attachments: Array<{ id: string; type: string }>
+  ) => {
+    if (!conversationId || !isJoined) return;
+    
+    // SOLUCIONADO: Protección más robusta contra doble envío
+    if (sending || sendMessageInProgressRef.current) {
+      infoLog('⚠️ useChat - Mensaje con archivos ya se está enviando, ignorando envío duplicado');
+      return;
+    }
+    
+    // SOLUCIONADO: Marcar como en progreso
+    sendMessageInProgressRef.current = true;
+
+    // Validar y sanitizar el ID de conversación
+    const sanitizedId = sanitizeConversationId(conversationId);
+    if (!sanitizedId) {
+      setError(`ID de conversación inválido: ${conversationId}`);
+      sendMessageInProgressRef.current = false;
+      return;
+    }
+
+    try {
+      setSending(true);
+      setError(null);
+      
+      logConversationId(sanitizedId, 'sendMessageWithAttachments');
+
+      // Crear mensaje optimístico
+      const optimisticMessage: Message = {
+        id: `optimistic_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+        conversationId: sanitizedId,
+        content: content.trim() || '',
+        type: 'message_with_files',
+        direction: 'outbound',
+        status: 'queued',
+        senderIdentifier: `agent:${backendUser?.email || 'unknown'}`,
+        recipientIdentifier: `whatsapp:${extractPhonesFromConversationId(sanitizedId)?.phone1 || ''}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        metadata: {
+          agentId: backendUser?.email || 'unknown',
+          ip: 'unknown',
+          requestId: 'optimistic',
+          sentBy: backendUser?.email || 'unknown',
+          source: 'web' as const,
+          timestamp: new Date().toISOString(),
+          attachments: attachments.map(att => ({
+            id: att.id,
+            type: att.type,
+            // Placeholder URL que se actualizará cuando llegue el mensaje real
+            url: '',
+            name: `${att.type}-${att.id}`,
+            size: 0,
+            mime: `${att.type}/*`,
+            category: att.type
+          }))
+        }
+      };
+
+      // Agregar mensaje optimístico al estado local
+      setMessages(prev => [...prev, optimisticMessage]);
+      
+      infoLog('📤 Mensaje optimístico agregado:', {
+        id: optimisticMessage.id,
+        content: content || '(vacío)',
+        attachmentsCount: attachments.length
+      });
+
+      // Enviar al backend usando fileUploadService
+      const { fileUploadService } = await import('../services/fileUpload');
+      await fileUploadService.sendMessageWithAttachments(
+        sanitizedId,
+        content.trim(),
+        attachments
+      );
+
+      infoLog('✅ Mensaje con archivos enviado exitosamente');
+      
+    } catch (error: unknown) {
+      console.error('❌ Error enviando mensaje con archivos:', error);
+      setError(error instanceof Error ? error.message : 'Error enviando mensaje con archivos');
+      
+      // Remover mensaje optimístico en caso de error
+      setMessages(prev => prev.filter(msg => !msg.id.startsWith('optimistic_')));
+    } finally {
+      setSending(false);
+      sendMessageInProgressRef.current = false;
+    }
+  }, [conversationId, isJoined, sending, backendUser?.email]);
+
   // Enviar mensaje con optimistic updates y retry
   const sendMessage = useCallback(async (
     content: string,
@@ -584,12 +687,14 @@ export const useChat = (conversationId: string) => {
     // SOLUCIONADO: Verificar si ya existe un mensaje idéntico reciente
     const recentMessage = messages.find(msg => 
       msg.content === content && 
+      msg.type === type &&
       msg.direction === 'outbound' &&
-      msg.timestamp && new Date().getTime() - new Date(msg.timestamp).getTime() < 5000 // Últimos 5 segundos
+      msg.createdAt && new Date().getTime() - new Date(msg.createdAt).getTime() < 5000 // Últimos 5 segundos
     );
     
     if (recentMessage) {
-      infoLog('⚠️ useChat - Mensaje idéntico enviado recientemente, ignorando:', content);
+      infoLog('⚠️ useChat - Mensaje idéntico enviado recientemente, ignorando:', { content, type });
+      sendMessageInProgressRef.current = false;
       return;
     }
 
@@ -749,7 +854,7 @@ export const useChat = (conversationId: string) => {
       sendMessage(
         failedMessage.content,
         failedMessage.type as 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker',
-        failedMessage.metadata as Record<string, unknown>
+        (failedMessage.metadata as unknown) as Record<string, unknown>
       );
     }
   }, [messages, sendMessage]);
@@ -805,6 +910,7 @@ export const useChat = (conversationId: string) => {
     
     // Acciones
     sendMessage,
+    sendMessageWithAttachments,
     handleTyping,
     handleStopTyping,
     markAsRead,

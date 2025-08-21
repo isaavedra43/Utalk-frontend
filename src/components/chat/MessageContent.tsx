@@ -26,8 +26,22 @@ export const MessageContent: React.FC<MessageContentProps> = ({ message }) => {
     return url;
   };
 
-  // Imagen
-  const imageUrl = message.type === 'image' ? getProxiedUrl(message.content) : '';
+  // SOLUCIONADO: Extraer URL de imagen para mensajes con archivos
+  const getImageUrlFromMessageWithFiles = (): string => {
+    if (message.type === 'message_with_files' && message.metadata?.attachments) {
+      const attachments = message.metadata.attachments as Array<{ url?: string; type?: string }>;
+      const imageAttachment = attachments.find(att => att.type === 'image');
+      if (imageAttachment) {
+        // Si no hay URL (mensaje optimístico), retornar string especial para identificarlo
+        return imageAttachment.url || 'optimistic-placeholder';
+      }
+    }
+    return '';
+  };
+
+  // Imagen - SOLUCIONADO: Incluir message_with_files
+  const imageUrl = message.type === 'image' ? getProxiedUrl(message.content) : 
+                   message.type === 'message_with_files' ? getImageUrlFromMessageWithFiles() : '';
   const { imageUrl: authenticatedUrl, isLoading: imageLoading, error: imageError } = useAuthenticatedImage(imageUrl);
 
   // Media
@@ -75,6 +89,18 @@ export const MessageContent: React.FC<MessageContentProps> = ({ message }) => {
   );
 
   const renderImageContent = () => {
+    // Mensaje optimístico sin URL todavía
+    if (imageUrl === 'optimistic-placeholder') {
+      return (
+        <div className="flex items-center justify-center p-8 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+            <span className="text-sm text-blue-600">Enviando imagen...</span>
+          </div>
+        </div>
+      );
+    }
+
     if (imageLoading) {
       return (
         <div className="flex items-center justify-center p-8 bg-gray-50 rounded-lg">
@@ -420,6 +446,7 @@ export const MessageContent: React.FC<MessageContentProps> = ({ message }) => {
 
   switch (message.type) {
     case 'image':
+    case 'message_with_files': // SOLUCIONADO: Agregar soporte para message_with_files
       return renderImageContent();
     case 'document':
       return renderDocumentContent();

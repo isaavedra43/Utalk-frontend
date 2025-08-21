@@ -1,6 +1,5 @@
 import React from 'react';
 import { X, Send, FileText, Image, Music, Video } from 'lucide-react';
-import { fileUploadService } from '../../services/fileUpload';
 
 interface PendingFile {
   id: string;
@@ -17,13 +16,15 @@ interface PendingFileUploadProps {
   onRemoveFile: (id: string) => void;
   onSendFiles: (files: PendingFile[], message: string) => void;
   conversationId?: string;
+  sendMessageWithAttachments?: (content: string, attachments: Array<{ id: string; type: string }>) => Promise<void>;
 }
 
 export const PendingFileUpload: React.FC<PendingFileUploadProps> = ({
   files,
   onRemoveFile,
   onSendFiles,
-  conversationId
+  conversationId,
+  sendMessageWithAttachments
 }) => {
   const [message, setMessage] = React.useState('');
   const [isUploading, setIsUploading] = React.useState(false);
@@ -45,11 +46,53 @@ export const PendingFileUpload: React.FC<PendingFileUploadProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const validatePayload = (payload: any) => {
+    if (!payload.conversationId) {
+      throw new Error('conversationId es requerido');
+    }
+    if (!payload.attachments) {
+      throw new Error('attachments es requerido');
+    }
+    if (!Array.isArray(payload.attachments)) {
+      throw new Error('attachments debe ser un array');
+    }
+    if (payload.attachments.length === 0) {
+      throw new Error('attachments no puede estar vacío');
+    }
+    payload.attachments.forEach((attachment: any, index: number) => {
+      if (!attachment.id) {
+        throw new Error(`Attachment ${index} debe tener ID`);
+      }
+      if (!attachment.type) {
+        throw new Error(`Attachment ${index} debe tener tipo`);
+      }
+      const validTypes = ['image', 'document', 'video', 'audio'];
+      if (!validTypes.includes(attachment.type)) {
+        throw new Error(`Attachment ${index} tiene tipo inválido: ${attachment.type}`);
+      }
+    });
+    return true;
+  };
+
   const handleSend = async () => {
-    if (files.length === 0) return;
-    
+    // SOLUCIONADO: Protección contra doble envío
+    if (isUploading) {
+      console.log('⚠️ PendingFileUpload - Ya se está enviando, ignorando envío duplicado');
+      return;
+    }
+
+    console.log('🚀 PendingFileUpload - Iniciando envío de archivos:', {
+      filesCount: files.length,
+      message: message,
+      conversationId
+    });
+
     setIsUploading(true);
     try {
+      if (!conversationId) {
+        throw new Error('conversationId es requerido para enviar archivos');
+      }
+
       // Filtrar solo archivos que ya fueron subidos exitosamente
       const readyFiles = files.filter(f => f.status === 'success' && f.uploadedFileId);
       
@@ -57,24 +100,56 @@ export const PendingFileUpload: React.FC<PendingFileUploadProps> = ({
         throw new Error('No hay archivos listos para enviar');
       }
 
-      // Preparar attachments para el endpoint send-with-attachments
+      // Preparar attachments para el endpoint send-with-file-ids
       const attachments = readyFiles.map(file => ({
         id: file.uploadedFileId!,
         type: file.type
       }));
 
-      // Enviar mensaje con archivos
-      await fileUploadService.sendMessageWithAttachments(
-        conversationId!,
-        message.trim() || '',
-        attachments
-      );
+      // Logs obligatorios
+      console.log('📤 Enviando mensaje:', {
+        conversationId,
+        content: message.trim() || '(vacío)',
+        attachments: attachments
+      });
 
-      // Limpiar después del envío exitoso
-      setMessage('');
-      onSendFiles(readyFiles, message.trim());
+      // SOLUCIONADO: Usar la función de useChat para mensajes optimísticos y manejo de estado
+      if (sendMessageWithAttachments) {
+        await sendMessageWithAttachments(message.trim(), attachments);
+        console.log('✅ PendingFileUpload - Mensaje enviado via useChat exitosamente');
+        
+        // Notificar a MessageInput que se enviaron los archivos
+        onSendFiles(readyFiles, message.trim());
+        
+        // Limpiar el estado local
+        setMessage('');
+      } else {
+        // Fallback: usar fileUploadService directamente si no se pasó la función
+        const { fileUploadService } = await import('../../services/fileUpload');
+        
+        // Construir payload obligatorio y validarlo
+        const payload = {
+          conversationId,
+          content: message.trim() || '',
+          attachments
+        };
+
+        // Validación crítica
+        validatePayload(payload);
+
+        await fileUploadService.sendMessageWithAttachments(
+          payload.conversationId,
+          payload.content,
+          payload.attachments
+        );
+
+        console.log('✅ PendingFileUpload - Mensaje enviado via servicio directo exitosamente');
+        
+        // Solo limpiar el estado local
+        setMessage('');
+      }
     } catch (error) {
-      console.error('Error enviando archivos:', error);
+      console.error('❌ Error en envío de archivo:', error);
     } finally {
       setIsUploading(false);
     }

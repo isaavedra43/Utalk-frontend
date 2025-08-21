@@ -7,9 +7,6 @@ import {
   Image, 
   Music, 
   Video, 
-  CheckCircle, 
-  AlertCircle, 
-  Trash2,
   X
 } from 'lucide-react';
 import { fileUploadService } from '../../services/fileUpload';
@@ -27,44 +24,31 @@ interface FilePreview {
 
 interface FileUploadManagerProps {
   onFilesAdded: (files: FilePreview[]) => void; // Nuevo: callback cuando se agregan archivos
-  onFileRemoved: (fileId: string) => void; // Nuevo: callback cuando se remueve un archivo
   conversationId?: string;
 }
 
 export const FileUploadManager: React.FC<FileUploadManagerProps> = ({ 
   onFilesAdded, 
-  onFileRemoved, 
   conversationId 
 }) => {
   const [showMenu, setShowMenu] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
 
   const getFileType = (file: File): string => {
+    // Mapeo más específico para asegurar compatibilidad con el backend
     if (file.type.startsWith('image/')) return 'image';
     if (file.type.startsWith('audio/')) return 'audio';
     if (file.type.startsWith('video/')) return 'video';
-    return 'document';
-  };
-
-  const getFileIcon = (type: string) => {
-    switch (type) {
-      case 'image': return <Image className="w-4 h-4 text-blue-500" />;
-      case 'audio': return <Music className="w-4 h-4 text-green-500" />;
-      case 'video': return <Video className="w-4 h-4 text-purple-500" />;
-      default: return <FileText className="w-4 h-4 text-gray-500" />;
-    }
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    
+    // Para documentos, verificar extensiones específicas
+    const fileName = file.name.toLowerCase();
+    const documentExtensions = ['.pdf', '.doc', '.docx', '.txt', '.xls', '.xlsx', '.ppt', '.pptx'];
+    const isDocument = documentExtensions.some(ext => fileName.endsWith(ext));
+    
+    return isDocument ? 'document' : 'document'; // Default a document
   };
 
   // Subir archivo al servidor (NO lo envía a WhatsApp)
@@ -75,22 +59,37 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({
       if (!conversationId) {
         throw new Error('ConversationId es requerido para subir archivos');
       }
+
+      // Validar tipo mediante helper
+      const detectedType = getFileType(filePreview.file);
+      if (!['image', 'document', 'video', 'audio'].includes(detectedType)) {
+        throw new Error(`Tipo de archivo no soportado: ${detectedType}`);
+      }
       
       // Actualizar estado a uploading
-      const updatedFile = { ...filePreview, status: 'uploading' as const, progress: 0 };
+      const updatedFile = { ...filePreview, type: detectedType, status: 'uploading' as const, progress: 0 };
       onFilesAdded([updatedFile]);
       
       infoLog('📤 Enviando request a fileUploadService...');
       const response = await fileUploadService.uploadFile(filePreview.file, {
         conversationId,
-        type: filePreview.type
+        type: detectedType
       });
       
       infoLog('✅ Archivo subido exitosamente:', response);
       
+      // Validaciones críticas del ID
+      if (!response.id) {
+        throw new Error('No se recibió ID del archivo subido');
+      }
+      if (!response.type) {
+        throw new Error('No se recibió tipo del archivo subido');
+      }
+      
       // Actualizar con éxito y guardar el ID del archivo
       const successFile = { 
         ...filePreview, 
+        type: detectedType,
         status: 'success' as const, 
         progress: 100,
         uploadedFileId: response.id
@@ -120,13 +119,23 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({
   const handleFileSelect = useCallback((files: FileList | null) => {
     if (!files) return;
     
-    const newFiles: FilePreview[] = Array.from(files).map(file => ({
-      id: `${file.name}-${Date.now()}-${Math.random()}`,
-      file,
-      type: getFileType(file),
-      status: 'pending',
-      progress: 0
-    }));
+    const newFiles: FilePreview[] = Array.from(files).map(file => {
+      const fileType = getFileType(file);
+      infoLog('📁 Archivo seleccionado:', {
+        name: file.name,
+        size: file.size,
+        mimeType: file.type,
+        assignedType: fileType
+      });
+      
+      return {
+        id: `${file.name}-${Date.now()}-${Math.random()}`,
+        file,
+        type: fileType,
+        status: 'pending',
+        progress: 0
+      };
+    });
 
     // Notificar que se agregaron archivos
     onFilesAdded(newFiles);
@@ -138,10 +147,6 @@ export const FileUploadManager: React.FC<FileUploadManagerProps> = ({
       });
     }, 100);
   }, [uploadFile, onFilesAdded]);
-
-  const removeFile = (id: string) => {
-    onFileRemoved(id);
-  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();

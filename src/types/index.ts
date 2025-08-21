@@ -66,7 +66,7 @@ export interface Message {
   createdAt: string; // "11 de agosto de 2025, 12:58:20 p.m. UTC-6"
   metadata: MessageMetadata;
   status: 'sent' | 'delivered' | 'read' | 'failed' | 'queued' | 'received'; // CORREGIDO: Agregado "queued" y "received"
-  type: 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker';
+  type: 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker' | 'message_with_files';
   recipientIdentifier?: string; // "whatsapp:+5214773790"
   senderIdentifier?: string; // "agent:admin@company.com"
   userAgent?: string;
@@ -87,6 +87,17 @@ export interface MessageMetadata {
   fileUrl?: string;
   duration?: number; // Para audios/videos
   thumbnail?: string; // Para videos
+  // SOLUCIONADO: Agregar attachments para message_with_files
+  attachments?: Array<{
+    id: string;
+    url: string;
+    mime: string;
+    name: string;
+    size: number;
+    type: string;
+    category: string;
+    metadata?: Record<string, unknown>;
+  }>;
 }
 
 export interface MessageGroup {

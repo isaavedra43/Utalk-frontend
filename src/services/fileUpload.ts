@@ -2,7 +2,7 @@ import api from './api';
 import { FILE_CONFIG, ERROR_MESSAGES } from '../config/constants';
 
 export interface FileUploadResponse {
-  id: string; // ID del archivo subido (para usar en send-with-attachments)
+  id: string; // ID del archivo subido (para usar en send-with-file-ids)
   mime: string;
   name: string;
   size: number;
@@ -16,6 +16,14 @@ export const fileUploadService = {
     conversationId: string;
     type: string;
   }): Promise<FileUploadResponse> {
+    // Logs obligatorios
+    console.log('📁 Iniciando subida:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      conversationId: options.conversationId
+    });
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('conversationId', options.conversationId);
@@ -28,34 +36,82 @@ export const fileUploadService = {
 
     // El backend responde con { success: true, data: { attachments: [...] } }
     const attachments = response.data.data?.attachments || [];
-    if (attachments.length === 0) {
-      throw new Error('No se recibió información del archivo subido');
+    const uploaded = attachments[0];
+
+    // Validación crítica: debe existir id
+    if (!uploaded?.id) {
+      throw new Error('No se recibió ID del archivo subido');
     }
 
-    return attachments[0]; // Retorna el primer archivo subido
+    console.log('✅ Archivo subido:', {
+      id: uploaded.id,
+      type: uploaded.type,
+      name: uploaded.name
+    });
+
+    return uploaded; // Retorna el primer archivo subido
   },
 
-  // Enviar mensaje con archivos adjuntos a WhatsApp
+  // Enviar mensaje con archivos adjuntos a WhatsApp (paso 2)
   async sendMessageWithAttachments(conversationId: string, content: string, attachments: Array<{ id: string; type: string }>): Promise<Record<string, unknown>> {
-    // Payload exacto que espera el backend según el análisis
+    // VALIDACIONES CRÍTICAS
+    if (!conversationId) {
+      throw new Error('conversationId es requerido');
+    }
+    if (!attachments) {
+      throw new Error('attachments es requerido');
+    }
+    if (!Array.isArray(attachments)) {
+      throw new Error('attachments debe ser un array');
+    }
+    if (attachments.length === 0) {
+      throw new Error('attachments no puede estar vacío');
+    }
+
+    const validTypes = ['image', 'document', 'video', 'audio'];
+
+    attachments.forEach((attachment, index) => {
+      if (!attachment.id) {
+        throw new Error(`Attachment ${index} debe tener ID`);
+      }
+      if (!attachment.type) {
+        throw new Error(`Attachment ${index} debe tener tipo`);
+      }
+      if (!validTypes.includes(attachment.type)) {
+        throw new Error(`Attachment ${index} tiene tipo inválido: ${attachment.type}`);
+      }
+    });
+
+    // Payload exacto
     const payload = {
-      conversationId: conversationId,
-      content: content || "", // Asegurar que content nunca sea undefined
-      attachments: attachments.map(attachment => ({
-        id: attachment.id,
-        type: attachment.type // "image", "document", "video", "audio"
-      }))
+      conversationId,
+      // SOLUCIONADO: No enviar content vacío cuando solo hay archivos
+      // Solo incluir content si realmente hay texto
+      ...(content && content.trim() && { content: content.trim() }),
+      attachments: attachments.map(a => ({ id: a.id, type: a.type }))
     };
 
-    console.log('📤 Enviando payload a /api/messages/send-with-attachments:', payload);
+    // Logs obligatorios
+    console.log('📤 Enviando mensaje:', {
+      conversationId,
+      content: content || '(vacío)',
+      attachments: payload.attachments
+    });
 
-    const response = await api.post('/api/messages/send-with-attachments', payload, {
+    // Verificación final
+    if (!payload.attachments || payload.attachments.length === 0 || !payload.attachments[0].id || !payload.attachments[0].type) {
+      throw new Error('Payload incompleto: attachments/id/type requeridos');
+    }
+
+    console.log('📤 Payload REAL a enviar:', JSON.stringify(payload, null, 2));
+
+    const response = await api.post('/api/messages/send-with-file-ids', payload, {
       headers: {
         'Content-Type': 'application/json'
       }
     });
-    
-    console.log('✅ Respuesta del backend:', response.data);
+
+    console.log('✅ Mensaje enviado:', response.data);
     return response.data;
   },
 

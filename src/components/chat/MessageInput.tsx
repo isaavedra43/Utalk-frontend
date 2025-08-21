@@ -17,6 +17,7 @@ interface PendingFile {
 
 interface MessageInputProps {
   onSendMessage: (content: string, type?: string, metadata?: Record<string, unknown>) => void;
+  sendMessageWithAttachments?: (content: string, attachments: Array<{ id: string; type: string }>) => Promise<void>;
   onTyping?: () => void;
   onStopTyping?: () => void;
   disabled?: boolean;
@@ -31,6 +32,7 @@ interface MessageInputProps {
 
 export const MessageInput: React.FC<MessageInputProps> = ({
   onSendMessage,
+  sendMessageWithAttachments,
   onTyping,
   onStopTyping,
   disabled = false,
@@ -137,15 +139,17 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   }, []);
 
   // Manejar envío de archivos
-  const handleFilesSent = useCallback((files: PendingFile[], message: string) => {
+  const handleFilesSent = useCallback((_files: PendingFile[], message: string) => {
     // Limpiar archivos después del envío exitoso
     setPendingFiles([]);
     
-    // Si hay mensaje de texto, enviarlo también
-    if (message.trim()) {
-      onSendMessage(message.trim());
+    // SOLUCIONADO: No enviar mensaje de texto aquí porque ya se envió con los archivos
+    // El mensaje de texto se envía automáticamente junto con los archivos en PendingFileUpload
+    // Solo limpiar el input si hay mensaje
+    if (message.trim() && externalValue === undefined) {
+      setMessage('');
     }
-  }, [onSendMessage]);
+  }, [externalValue]);
 
   // Auto-resize del textarea
   useEffect(() => {
@@ -172,6 +176,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         onRemoveFile={handleFileRemoved}
         onSendFiles={handleFilesSent}
         conversationId={conversationId}
+        sendMessageWithAttachments={sendMessageWithAttachments}
       />
 
       {/* Input de mensaje */}
@@ -179,7 +184,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         {/* Botón de adjuntar archivo */}
         <FileUploadManager
           onFilesAdded={handleFilesAdded}
-          onFileRemoved={handleFileRemoved}
           conversationId={conversationId}
         />
 

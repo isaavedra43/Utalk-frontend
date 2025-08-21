@@ -42,6 +42,7 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
     isJoined, // NUEVO: Estado de confirmación
     typingUsers,
     sendMessage,
+    sendMessageWithAttachments,
     handleTyping,
     handleStopTyping,
     markAsRead,
@@ -117,13 +118,15 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
         const finalTimestamp = convertedTimestamp || new Date().toISOString();
 
         // Para mensajes de media, verificar que tenga mediaUrl o contenido en metadata
-        if (['image', 'document', 'audio', 'voice', 'video', 'sticker', 'media'].includes(msg.type)) {
+        if (['image', 'document', 'audio', 'voice', 'video', 'sticker', 'media', 'message_with_files'].includes(msg.type)) {
           const hasMediaUrl = msg.mediaUrl && msg.mediaUrl !== null;
           const mediaMetadata = msg.metadata?.media as { urls?: string[]; processed?: unknown[] } | undefined;
           const hasMediaInMetadata = (mediaMetadata?.urls?.length ?? 0) > 0 || (mediaMetadata?.processed?.length ?? 0) > 0;
+          const attachments = msg.metadata?.attachments as Array<{ url?: string; id?: string }> | undefined;
+          const hasAttachments = (attachments?.length ?? 0) > 0;
           
           // SOLUCIÓN: Mostrar placeholder en lugar de eliminar mensajes de media
-          if (!hasMediaUrl && !hasMediaInMetadata && !msg.content) {
+          if (!hasMediaUrl && !hasMediaInMetadata && !hasAttachments && !msg.content) {
             // Solo loggear una vez por conversación, no por cada mensaje
             logWarningOnce(
               'media-missing-content',
@@ -179,10 +182,11 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
           case 'voice':
           case 'video':
           case 'sticker':
-            mappedType = msg.type; break;
+          case 'message_with_files': // NUEVO: Agregar soporte para message_with_files
+            mappedType = msg.type === 'message_with_files' ? 'image' : msg.type; break;
           default:
             // REDUCIR LOGS: Solo log si es un tipo realmente desconocido
-            if (!['text', 'image', 'document', 'location', 'audio', 'voice', 'video', 'sticker'].includes(msg.type)) {
+            if (!['text', 'image', 'document', 'location', 'audio', 'voice', 'video', 'sticker', 'message_with_files'].includes(msg.type)) {
               console.warn('⚠️ convertMessages - Tipo desconocido:', msg.type, 'usando "text"');
             }
             mappedType = 'text';
@@ -190,7 +194,7 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
 
         // Para mensajes de media, usar mediaUrl como contenido si está disponible
         let messageContent = msg.content;
-        if (['image', 'document', 'audio', 'voice', 'video', 'sticker', 'media'].includes(msg.type)) {
+        if (['image', 'document', 'audio', 'voice', 'video', 'sticker', 'media', 'message_with_files'].includes(msg.type)) {
           // Priorizar mediaUrl si está disponible
           if (msg.mediaUrl) {
             messageContent = msg.mediaUrl;
@@ -203,6 +207,12 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
               const processed = mediaMetadata.processed[0] as { url?: string };
               if (processed && processed.url) {
                 messageContent = processed.url;
+              }
+            } else {
+              // NUEVO: Para message_with_files, buscar en attachments
+              const attachments = msg.metadata?.attachments as Array<{ url?: string; id?: string }> | undefined;
+              if (attachments && attachments.length > 0 && attachments[0].url) {
+                messageContent = attachments[0].url;
               }
             }
           }
@@ -251,7 +261,10 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
     return convertedMessages;
   }, [effectiveConversationId, logWarningOnce]);
 
-  const convertedMessages = useMemo(() => convertMessages(messages), [messages, convertMessages]);
+  const convertedMessages = useMemo(() => convertMessages(messages.map(msg => ({
+    ...msg,
+    metadata: msg.metadata as unknown as Record<string, unknown>
+  }))), [messages, convertMessages]);
 
   // Ordenar mensajes por fecha ascendente y agrupar por día
   const { sortedMessages, groupedMessages } = useMemo(() => {
@@ -512,6 +525,7 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
           onBlur={handleInputBlur}
           onKeyPress={handleKeyPress}
           onSendMessage={handleSend}
+          sendMessageWithAttachments={sendMessageWithAttachments}
           isSending={sending}
           disabled={!isConnected || !isJoined}
           conversationId={effectiveConversationId} // NUEVO: Pasar conversationId para subir archivos
