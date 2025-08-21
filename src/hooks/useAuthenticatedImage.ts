@@ -26,6 +26,7 @@ export const useAuthenticatedImage = (originalUrl: string): UseAuthenticatedImag
   const isTwilioUrl = (url: string) => url.includes('api.twilio.com');
   const isProtectedProxy = (url: string) => url.includes('/api/media/proxy');
   const isPublicProxy = (url: string) => url.includes('/media/proxy-public');
+  const isFirebaseStorageUrl = (url: string) => url.includes('firebasestorage.googleapis.com');
 
   // Efecto 1: URLs públicas del proxy (no depende de auth)
   useEffect(() => {
@@ -174,6 +175,68 @@ export const useAuthenticatedImage = (originalUrl: string): UseAuthenticatedImag
       if (current && current !== cached && current.startsWith('blob:')) URL.revokeObjectURL(current);
     };
   }, [originalUrl, isAuthenticated]);
+
+  // Efecto 3: URLs directas de Firebase Storage (públicas)
+  useEffect(() => {
+    if (!originalUrl || !isFirebaseStorageUrl(originalUrl)) return;
+
+    let canceled = false;
+
+    const loadFirebaseStorage = async () => {
+      infoLog('🖼️ useAuthenticatedImage/firebase - URL:', originalUrl);
+
+      // Cache
+      const cached = imageBlobCache.get(originalUrl);
+      if (cached) {
+        setImageUrl(cached);
+        setIsLoading(false);
+        return;
+      }
+
+      // Deduplicación
+      let promise = inflightByUrl.get(originalUrl);
+      if (!promise) {
+        promise = (async () => {
+          const res = await fetch(originalUrl);
+          if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
+          const ct = res.headers.get('content-type');
+          if (!ct || !ct.startsWith('image/')) throw new Error('La respuesta no es imagen');
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          return url;
+        })()
+          .then((url) => {
+            imageBlobCache.set(originalUrl, url);
+            return url;
+          })
+          .finally(() => inflightByUrl.delete(originalUrl));
+        inflightByUrl.set(originalUrl, promise);
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const url = await promise;
+        if (canceled) return;
+        currentBlobUrlRef.current = url;
+        setImageUrl(url);
+      } catch (e) {
+        if (!canceled) setError(e instanceof Error ? e.message : 'Error desconocido');
+      } finally {
+        if (!canceled) setIsLoading(false);
+      }
+    };
+
+    loadFirebaseStorage();
+
+    return () => {
+      canceled = true;
+      const current = currentBlobUrlRef.current;
+      const cached = imageBlobCache.get(originalUrl);
+      if (current && current !== cached && current.startsWith('blob:')) URL.revokeObjectURL(current);
+    };
+  }, [originalUrl]);
 
   return { imageUrl, isLoading, error };
 }; 

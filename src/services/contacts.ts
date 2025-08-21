@@ -94,7 +94,7 @@ export const contactsService = {
 
   // Buscar contacto por teléfono
   async searchContactByPhone(phone: string): Promise<Contact | null> {
-    const response = await api.get(`${CONTACTS_API}/search?q=${phone}`);
+    const response = await api.get(`${CONTACTS_API}/search?phone=${phone}`);
     return response.data;
   },
 

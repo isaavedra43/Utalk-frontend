@@ -15,8 +15,12 @@ export interface Conversation {
   lastMessageAt: string; // "11 de agosto de 2025, 4:21:25 p.m. UTC-6"
   lastMessage?: LastMessage;
   assignedTo?: string; // "admin@company.com"
+  assignedToName?: string | null; // "PS Pedro Sánchez"
+  createdBy?: string; // "admin@company.com"
   priority?: 'low' | 'medium' | 'high' | 'urgent';
   tags?: string[]; // ["VIP", "Premium", "Order"]
+  messages?: Message[]; // Subcolección de mensajes
+  metadata?: Record<string, unknown>; // Metadatos adicionales
 }
 
 export interface LastMessage {

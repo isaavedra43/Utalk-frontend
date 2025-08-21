@@ -194,17 +194,101 @@ export const conversationsService = {
     return response.data;
   },
 
-  // NUEVO: Crear conversación con payload básico del backend
+  // Crear conversación con mensaje inicial (estructura anidada en contacts)
   async createConversationBasic(conversationData: {
     customerPhone: string;
-    customerName: string;
-    subject?: string;
-    priority?: string;
-    tags?: string[];
-    metadata?: Record<string, unknown>;
+    initialMessage?: string;
+    assignedTo?: string;
+    currentUser?: string; // Agregar usuario actual como parámetro
   }): Promise<Conversation> {
-    const response = await api.post(CONVERSATIONS_API, conversationData);
-    return response.data;
+    // Construir la estructura correcta de la conversación según las imágenes
+    const currentUser = conversationData.currentUser || 'admin@company.com';
+    
+    // Construir el ID correcto: conv_{customerPhone}_{ourNumber}
+    // Nuestro número es +5214793176502 según las imágenes
+    const ourNumber = '+5214793176502';
+    // CORREGIDO: Primero el número del cliente, luego nuestro número
+    const conversationId = `conv_${conversationData.customerPhone}_${ourNumber}`;
+    
+    // FORZAR el ID correcto - no permitir que el backend lo invierta
+    console.log('🔧 ID de conversación generado:', conversationId);
+    
+    // Estructura completa de la conversación para estructura anidada
+    const fullConversationData = {
+      id: conversationId,
+      customerPhone: conversationData.customerPhone,
+      status: 'open',
+      priority: 'medium',
+      tags: [],
+      participants: [
+        conversationData.customerPhone, // Cliente
+        currentUser, // Agente actual
+        `agent:${currentUser}`, // Identificador del agente
+        `whatsapp:${conversationData.customerPhone}` // Identificador de WhatsApp
+      ],
+      createdBy: currentUser,
+      assignedTo: conversationData.assignedTo || currentUser,
+      assignedToName: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastMessageAt: new Date().toISOString(),
+      unreadCount: 0,
+      messageCount: 0,
+      tenantId: 'default_tenant',
+      workspaceId: 'default_workspace',
+      messages: [], // Subcolección de mensajes
+      // Campos adicionales según las imágenes
+      customerName: '', // Se llenará con el nombre del contacto
+      lastMessage: null,
+      metadata: {
+        channel: 'whatsapp',
+        createdVia: 'manual'
+      },
+      // NUEVO: Indicar que debe usar estructura anidada
+      structure: 'nested', // Indica al backend que use contacts/{contactId}/conversations/{conversationId}
+      contactId: null // Se llenará automáticamente en el backend
+    };
+
+    // Usar endpoint específico para estructura anidada
+    const response = await api.post('/api/contacts/conversations', fullConversationData);
+    
+    // FORZAR el ID correcto - siempre usar el ID del frontend
+    const responseData = response.data;
+    if (responseData.data) {
+      const backendId = responseData.data.id;
+      const expectedId = conversationId;
+      
+      // SIEMPRE usar el ID correcto del frontend
+      if (backendId !== expectedId) {
+        console.warn('⚠️ Backend devolvió ID incorrecto, forzando ID correcto:', {
+          backendId,
+          expectedId
+        });
+        
+        // Forzar el ID correcto en la respuesta
+        responseData.data.id = expectedId;
+      }
+      
+      // También corregir los participantes si no están completos
+      if (!responseData.data.participants || responseData.data.participants.length < 4) {
+        responseData.data.participants = [
+          conversationData.customerPhone, // Cliente
+          currentUser, // Agente actual
+          `agent:${currentUser}`, // Identificador del agente
+          `whatsapp:${conversationData.customerPhone}` // Identificador de WhatsApp
+        ];
+      }
+      
+      // Asegurar que el agente esté como participante
+      if (!responseData.data.participants.includes(currentUser)) {
+        responseData.data.participants.push(currentUser);
+      }
+      if (!responseData.data.participants.includes(`agent:${currentUser}`)) {
+        responseData.data.participants.push(`agent:${currentUser}`);
+      }
+    }
+    
+    return responseData;
   },
 
   // Actualizar conversación

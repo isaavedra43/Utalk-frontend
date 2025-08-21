@@ -28,18 +28,18 @@ export const MessageContent: React.FC<MessageContentProps> = ({ message }) => {
 
   // SOLUCIONADO: Extraer URL de imagen para mensajes con archivos
   const getImageUrlFromMessageWithFiles = (): string => {
-    if (message.type === 'message_with_files' && message.metadata?.attachments) {
-      const attachments = message.metadata.attachments as Array<{ url?: string; type?: string }>;
-      const imageAttachment = attachments.find(att => att.type === 'image');
-      if (imageAttachment) {
+    if (message.type === 'message_with_files') {
+      // El backend envía la URL de la imagen directamente en message.content
         // Si no hay URL (mensaje optimístico), retornar string especial para identificarlo
-        return imageAttachment.url || 'optimistic-placeholder';
-      }
+      const url = message.content || 'optimistic-placeholder';
+      console.log('🖼️ [MessageContent] URL extraída de message_with_files:', url);
+      return url;
     }
     return '';
   };
 
   // Imagen - SOLUCIONADO: Incluir message_with_files
+  // Para Firebase Storage, usar la URL directamente sin procesamiento
   const imageUrl = message.type === 'image' ? getProxiedUrl(message.content) : 
                    message.type === 'message_with_files' ? getImageUrlFromMessageWithFiles() : '';
   const { imageUrl: authenticatedUrl, isLoading: imageLoading, error: imageError } = useAuthenticatedImage(imageUrl);
@@ -89,6 +89,8 @@ export const MessageContent: React.FC<MessageContentProps> = ({ message }) => {
   );
 
   const renderImageContent = () => {
+    console.log('🖼️ [MessageContent] renderImageContent - imageUrl:', imageUrl, 'type:', message.type);
+    
     // Mensaje optimístico sin URL todavía
     if (imageUrl === 'optimistic-placeholder') {
       return (
@@ -101,6 +103,37 @@ export const MessageContent: React.FC<MessageContentProps> = ({ message }) => {
       );
     }
 
+    // Para URLs de Firebase Storage, usar directamente sin procesamiento
+    const isFirebaseUrl = imageUrl && imageUrl.includes('firebasestorage.googleapis.com');
+    
+    if (isFirebaseUrl) {
+      return (
+        <div className="relative group">
+          <img 
+            src={imageUrl} 
+            alt="Imagen" 
+            className="max-w-full max-h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => window.open(imageUrl, '_blank')}
+            onError={(e) => {
+              console.error('🖼️ Error cargando imagen de Firebase:', imageUrl);
+              e.currentTarget.style.display = 'none';
+              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+            }}
+          />
+          <div className="hidden p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">Error al cargar la imagen de Firebase Storage</p>
+            <p className="text-xs text-gray-500 mt-1">URL: {imageUrl}</p>
+          </div>
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={handleDownload} className="p-1 bg-black bg-opacity-50 text-white rounded hover:bg-opacity-70" title="Descargar imagen">
+              <Download className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Para otras URLs, usar el procesamiento normal
     if (imageLoading) {
       return (
         <div className="flex items-center justify-center p-8 bg-gray-50 rounded-lg">

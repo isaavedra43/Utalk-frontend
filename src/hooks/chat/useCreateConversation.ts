@@ -1,12 +1,9 @@
 import { useState, useCallback } from 'react';
 import { infoLog } from '../../config/logger';
 import { conversationsService } from '../../services/conversations';
-import { fileUploadService } from '../../services/fileUpload';
-import { contactsService } from '../../services/contacts';
-import { messagesService } from '../../services/messages';
-import type { MessageInputData } from '../../types';
 import { useWebSocketContext } from '../../contexts/useWebSocketContext';
 import { useConversationActions } from './useConversationActions';
+import { useAuthContext } from '../../contexts/useAuthContext';
 
 interface CreateConversationData {
   customerName: string;
@@ -28,13 +25,14 @@ export const useCreateConversation = (): UseCreateConversationReturn => {
   const [error, setError] = useState<string | null>(null);
   const { joinConversation } = useWebSocketContext();
   const { selectConversation, refreshConversations } = useConversationActions();
+  const { user } = useAuthContext();
 
   const createConversation = useCallback(async (data: CreateConversationData) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      infoLog('🆕 useCreateConversation - Iniciando creación de conversación:', {
+      infoLog('🆕 useCreateConversation - Enviando mensaje de WhatsApp:', {
         customerName: data.customerName,
         customerPhone: data.customerPhone,
         hasEmail: !!data.customerEmail,
@@ -79,61 +77,27 @@ export const useCreateConversation = (): UseCreateConversationReturn => {
         }
       }
 
-      // Paso 0: Asegurar contacto (crear si no existe)
-      try {
-        const existing = await contactsService.searchContactByPhone(data.customerPhone);
-        if (!existing) {
-          await contactsService.createContact({
-            phone: data.customerPhone,
-            name: data.customerName,
-            email: data.customerEmail || undefined
-          });
-        }
-      } catch (cErr) {
-        infoLog('⚠️ useCreateConversation - No se pudo verificar/crear contacto (continuando):', cErr);
-      }
-
-      // Paso 1: Crear la conversación con payload básico del backend
+      // PASO ÚNICO: Crear conversación con mensaje inicial
+      // El backend maneja automáticamente:
+      // - Crear contacto (si no existe)
+      // - Crear conversación con ID correcto conv_{customerPhone}_{ourNumber}
+      // - Enviar mensaje por WhatsApp
+      // - Retornar conversación completa
       const newConversation = await conversationsService.createConversationBasic({
         customerPhone: data.customerPhone,
-        customerName: data.customerName,
-        metadata: { source: 'web_form' }
+        initialMessage: data.message.trim(),
+        assignedTo: user?.email || 'admin@company.com',
+        currentUser: user?.email || 'admin@company.com'
       });
 
-      infoLog('✅ useCreateConversation - Conversación creada:', newConversation);
+      infoLog('✅ useCreateConversation - Conversación creada exitosamente:', newConversation);
 
-      // Paso 2: Unirse por WebSocket a la room de la conversación
+      // Unirse por WebSocket a la conversación creada
       if (newConversation.id) {
         joinConversation(newConversation.id);
       }
 
-      // Paso 3: Enviar primer mensaje
-      if (newConversation.id) {
-        if (data.attachment) {
-          // 3a: Subir archivo y enviar con IDs
-          infoLog('📎 useCreateConversation - Subiendo archivo adjunto:', data.attachment.name);
-          const uploaded = await fileUploadService.uploadFile(data.attachment, {
-            conversationId: newConversation.id,
-            type: fileUploadService.getMessageType(data.attachment)
-          });
-          infoLog('✅ useCreateConversation - Archivo subido:', uploaded);
-
-          await fileUploadService.sendMessageWithAttachments(
-            newConversation.id,
-            data.message.trim(), // si está vacío, el servicio lo omitirá
-            [{ id: uploaded.id, type: uploaded.type }]
-          );
-        } else if (data.message.trim()) {
-          // 3b: Solo texto
-          const textPayload: MessageInputData = {
-            content: data.message.trim(),
-            type: 'text'
-          } as MessageInputData;
-          await messagesService.sendMessage(newConversation.id, textPayload);
-        }
-      }
-
-      // Paso 3: Emitir evento para actualizar la UI
+      // Emitir evento para actualizar la UI
       window.dispatchEvent(new CustomEvent('new-conversation-added', {
         detail: {
           conversationId: newConversation.id,
@@ -147,10 +111,10 @@ export const useCreateConversation = (): UseCreateConversationReturn => {
       }
       await refreshConversations();
 
-      infoLog('🎉 useCreateConversation - Conversación creada exitosamente');
+      infoLog('🎉 useCreateConversation - Proceso completado exitosamente');
 
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido al crear conversación';
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido al enviar mensaje';
       infoLog('❌ useCreateConversation - Error:', errorMessage);
       setError(errorMessage);
       throw err;
