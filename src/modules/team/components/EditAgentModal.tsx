@@ -422,7 +422,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                     
                     <div className="space-y-4">
                       {Object.entries(availableModules).map(([moduleId, module]) => {
-                        const modulePermissions = modulePermissions?.permissions.modules[moduleId];
+                        const currentModulePermissions = modulePermissions?.permissions?.modules?.[moduleId];
                         
                         return (
                           <div key={moduleId} className="border border-gray-200 rounded-lg p-4">
@@ -450,7 +450,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                                   <input
                                     type="checkbox"
                                     id={`module-${moduleId}-${action}`}
-                                    checked={modulePermissions?.[action as keyof typeof modulePermissions] || false}
+                                    checked={currentModulePermissions?.[action as keyof typeof currentModulePermissions] || false}
                                     onChange={(e) => handleModulePermissionChange(moduleId, action as 'read' | 'write' | 'configure', e.target.checked)}
                                     className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                   />
