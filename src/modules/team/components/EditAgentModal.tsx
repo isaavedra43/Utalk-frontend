@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { TeamMember } from '../../../types/team';
 import { infoLog } from '../../../config/logger';
+import { modulePermissionsService, UserModulePermissions } from '../../../services/modulePermissions';
 
 interface EditAgentModalProps {
   isOpen: boolean;
@@ -79,8 +80,13 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
     }
   });
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'permissions' | 'notifications' | 'settings'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'permissions' | 'notifications' | 'settings' | 'modulePermissions'>('profile');
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Estado para permisos de módulos
+  const [modulePermissions, setModulePermissions] = useState<UserModulePermissions | null>(null);
+  const [availableModules, setAvailableModules] = useState<{ [moduleId: string]: any }>({});
+  const [loadingModules, setLoadingModules] = useState(false);
 
   // Cargar datos del miembro cuando se abre el modal
   useEffect(() => {
@@ -118,6 +124,69 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
       });
     }
   }, [member, isOpen]);
+
+  // Cargar permisos de módulos cuando se abre la pestaña
+  useEffect(() => {
+    if (isOpen && activeTab === 'modulePermissions' && member?.email) {
+      loadModulePermissions();
+    }
+  }, [isOpen, activeTab, member?.email]);
+
+  const loadModulePermissions = async () => {
+    if (!member?.email) return;
+    
+    setLoadingModules(true);
+    try {
+      // Cargar módulos disponibles y permisos del usuario
+      const [modules, userPermissions] = await Promise.all([
+        modulePermissionsService.getAvailableModules(),
+        modulePermissionsService.getUserPermissions(member.email)
+      ]);
+      
+      setAvailableModules(modules);
+      setModulePermissions(userPermissions);
+    } catch (error) {
+      infoLog('Error cargando permisos de módulos:', error);
+    } finally {
+      setLoadingModules(false);
+    }
+  };
+
+  const handleModulePermissionChange = (moduleId: string, action: 'read' | 'write' | 'configure', value: boolean) => {
+    if (!modulePermissions) return;
+    
+    setModulePermissions(prev => {
+      if (!prev) return prev;
+      
+      return {
+        ...prev,
+        permissions: {
+          ...prev.permissions,
+          modules: {
+            ...prev.permissions.modules,
+            [moduleId]: {
+              ...prev.permissions.modules[moduleId],
+              [action]: value
+            }
+          }
+        }
+      };
+    });
+  };
+
+  const handleSaveModulePermissions = async () => {
+    if (!modulePermissions || !member?.email) return;
+    
+    setIsLoading(true);
+    try {
+      await modulePermissionsService.updateUserPermissions(member.email, modulePermissions.permissions);
+      infoLog('Permisos de módulos actualizados exitosamente');
+    } catch (error) {
+      infoLog('Error actualizando permisos de módulos:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -175,6 +244,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
   const tabs = [
     { id: 'profile', label: 'Perfil', icon: '👤' },
     { id: 'permissions', label: 'Permisos', icon: '🔐' },
+    { id: 'modulePermissions', label: 'Permisos de Módulos', icon: '📋' },
     { id: 'notifications', label: 'Notificaciones', icon: '🔔' },
     { id: 'settings', label: 'Configuración', icon: '⚙️' }
   ] as const;
@@ -325,6 +395,83 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Tab: Permisos de Módulos */}
+            {activeTab === 'modulePermissions' && (
+              <div className="space-y-6">
+                {loadingModules ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span className="ml-2 text-gray-600">Cargando permisos de módulos...</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-medium text-gray-900">Permisos de Módulos</h3>
+                      <button
+                        type="button"
+                        onClick={handleSaveModulePermissions}
+                        disabled={isLoading}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isLoading ? 'Guardando...' : 'Guardar Cambios'}
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {Object.entries(availableModules).map(([moduleId, module]) => {
+                        const modulePermissions = modulePermissions?.permissions.modules[moduleId];
+                        
+                        return (
+                          <div key={moduleId} className="border border-gray-200 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <div>
+                                <h4 className="text-sm font-medium text-gray-900">{module.name}</h4>
+                                <p className="text-xs text-gray-600">{module.description}</p>
+                              </div>
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                module.level === 'advanced' ? 'bg-red-100 text-red-800' :
+                                module.level === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-green-100 text-green-800'
+                              }`}>
+                                {module.level}
+                              </span>
+                            </div>
+                            
+                            <div className="grid grid-cols-3 gap-4">
+                              {Object.entries({
+                                read: { label: 'Leer', description: 'Acceso de lectura' },
+                                write: { label: 'Escribir', description: 'Acceso de escritura' },
+                                configure: { label: 'Configurar', description: 'Acceso de configuración' }
+                              }).map(([action, actionInfo]) => (
+                                <div key={action} className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id={`module-${moduleId}-${action}`}
+                                    checked={modulePermissions?.[action as keyof typeof modulePermissions] || false}
+                                    onChange={(e) => handleModulePermissionChange(moduleId, action as 'read' | 'write' | 'configure', e.target.checked)}
+                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                  />
+                                  <label htmlFor={`module-${moduleId}-${action}`} className="text-sm text-gray-700">
+                                    {actionInfo.label}
+                                  </label>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    
+                    {Object.keys(availableModules).length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        No hay módulos disponibles para configurar.
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
 

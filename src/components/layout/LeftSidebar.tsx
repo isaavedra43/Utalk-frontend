@@ -12,12 +12,14 @@ import {
 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/useAuthContext';
 import { infoLog } from '../../config/logger';
+import { useModulePermissions } from '../../hooks/useModulePermissions';
 // import { useTeamNotifications } from '../../modules/team/hooks/useTeamNotifications'; // DESHABILITADO TEMPORALMENTE
 
 export const LeftSidebar: React.FC = () => {
   const navigate = useNavigate();
   const { logout, backendUser } = useAuthContext();
   const { currentModule, navigateToModule: setCurrentModule } = useUIStore();
+  const { canAccessModule, loading: permissionsLoading } = useModulePermissions();
   
   // Función para navegar a un módulo
   const navigateToModule = (moduleId: string) => {
@@ -47,7 +49,8 @@ export const LeftSidebar: React.FC = () => {
     }
   };
 
-  const navigationItems = [
+  // Definir todos los módulos disponibles
+  const allNavigationItems = [
     {
       id: 'dashboard',
       icon: LayoutDashboard,
@@ -74,6 +77,17 @@ export const LeftSidebar: React.FC = () => {
       title: 'Mensajes'
     }
   ];
+
+  // Filtrar módulos según permisos del usuario
+  const navigationItems = React.useMemo(() => {
+    // Si está cargando permisos, mostrar todos los módulos (fallback seguro)
+    if (permissionsLoading) {
+      return allNavigationItems;
+    }
+
+    // Filtrar solo los módulos a los que tiene acceso
+    return allNavigationItems.filter(item => canAccessModule(item.id));
+  }, [allNavigationItems, canAccessModule, permissionsLoading]);
 
   return (
     <div className="flex flex-col h-screen w-16 bg-white border-r border-gray-200 shadow-sm">

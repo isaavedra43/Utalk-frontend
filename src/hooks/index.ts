@@ -12,6 +12,7 @@ export { useWarningLogger } from './useWarningLogger';
 export { useAuthenticatedImage } from './useAuthenticatedImage';
 export { useAuthenticatedMedia } from './useAuthenticatedMedia';
 export { useAI } from './useAI';
+export { useModulePermissions } from './useModulePermissions';
 
 // Hooks de chat
 export * from './chat';

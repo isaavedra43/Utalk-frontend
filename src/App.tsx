@@ -7,6 +7,7 @@ import { AuthModule } from './modules/auth'
 import { ForgotPasswordForm } from './modules/auth/components/ForgotPasswordForm'
 import { MainLayout } from './components/layout/MainLayout'
 import { ErrorBoundary } from './components/dashboard/ErrorBoundary'
+import { ProtectedRoute } from './components/ProtectedRoute'
 
 
 
@@ -18,9 +19,8 @@ import { useAuthContext } from './contexts/useAuthContext'
 // Autenticación manual obligatoria implementada
 
 // Componente de protección de rutas - OPTIMIZADO
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = memo(({ children }) => {
+const AuthProtectedRoute: React.FC<{ children: React.ReactNode }> = memo(({ children }) => {
   const { isAuthenticated, loading } = useAuthContext();
-
 
   // Si está cargando, mostrar loading
   if (loading) {
@@ -45,7 +45,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = memo(({ children
   return <>{children}</>;
 });
 
-ProtectedRoute.displayName = 'ProtectedRoute';
+AuthProtectedRoute.displayName = 'AuthProtectedRoute';
 
 // Componente para el módulo de chat
 const ChatPage: React.FC = () => {
@@ -103,33 +103,41 @@ function App() {
               <Route 
                 path="/chat" 
                 element={
-                  <ProtectedRoute>
-                    <ChatPage />
-                  </ProtectedRoute>
+                  <AuthProtectedRoute>
+                    <ProtectedRoute moduleId="chat">
+                      <ChatPage />
+                    </ProtectedRoute>
+                  </AuthProtectedRoute>
                 } 
               />
               <Route 
                 path="/dashboard" 
                 element={
-                  <ProtectedRoute>
-                    <DashboardPage />
-                  </ProtectedRoute>
+                  <AuthProtectedRoute>
+                    <ProtectedRoute moduleId="dashboard">
+                      <DashboardPage />
+                    </ProtectedRoute>
+                  </AuthProtectedRoute>
                 } 
               />
               <Route 
                 path="/team" 
                 element={
-                  <ProtectedRoute>
-                    <TeamPage />
-                  </ProtectedRoute>
+                  <AuthProtectedRoute>
+                    <ProtectedRoute moduleId="team">
+                      <TeamPage />
+                    </ProtectedRoute>
+                  </AuthProtectedRoute>
                 } 
               />
               <Route 
                 path="/clients" 
                 element={
-                  <ProtectedRoute>
-                    <ClientsPage />
-                  </ProtectedRoute>
+                  <AuthProtectedRoute>
+                    <ProtectedRoute moduleId="clients">
+                      <ClientsPage />
+                    </ProtectedRoute>
+                  </AuthProtectedRoute>
                 } 
               />
 
