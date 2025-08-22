@@ -17,7 +17,7 @@ export const ClientModule: React.FC = () => {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [currentView, setCurrentView] = useState<'list' | 'kanban' | 'cards'>('list');
 
-  // Hooks personalizados - DESHABILITADOS TEMPORALMENTE
+  // Hooks personalizados - HABILITADOS
   const {
     clients,
     loading: clientsLoading,
@@ -26,19 +26,24 @@ export const ClientModule: React.FC = () => {
     sort,
     clearFilters,
     totalClients,
-    hasFilters
+    hasFilters,
+    loadClients,
+    createClient,
+    updateClient,
+    deleteClient
   } = useClients({
-    autoLoad: false, // DESHABILITADO
+    autoLoad: true, // ✅ HABILITADO
     pageSize: 20
   });
 
   const {
     kpis,
     loading: metricsLoading,
-    error: metricsError
+    error: metricsError,
+    refreshMetrics
   } = useClientMetrics({
-    autoLoad: false, // DESHABILITADO
-    refreshInterval: 0 // DESHABILITADO
+    autoLoad: true, // ✅ HABILITADO
+    refreshInterval: 30000 // ✅ HABILITADO - 30 segundos
   });
 
   const {
@@ -60,9 +65,7 @@ export const ClientModule: React.FC = () => {
     activeFiltersCount,
     activeFiltersSummary
   } = useClientFilters({
-    onFiltersChange: () => {
-      // DESHABILITADO - No hacer nada
-    }
+    onFiltersChange: loadClients // ✅ HABILITADO - Recargar clientes cuando cambien filtros
   });
 
   // Manejadores de eventos
@@ -92,8 +95,15 @@ export const ClientModule: React.FC = () => {
     setSelectedClient(null);
   };
 
-  const handleRefresh = () => {
-    // Refresh deshabilitado temporalmente
+  const handleRefresh = async () => {
+    try {
+      await Promise.all([
+        loadClients(),
+        refreshMetrics()
+      ]);
+    } catch (error) {
+      infoLog('Error al refrescar datos:', error);
+    }
   };
 
   // Manejador de ordenamiento compatible con ClientList
@@ -180,10 +190,26 @@ export const ClientModule: React.FC = () => {
             <ClientDetailPanel
               client={selectedClient}
               onClose={handleCloseDetailPanel}
-              onUpdate={(updates) => {
-                // Implementar actualización del cliente
-                // Usar updates para actualizar el cliente
-                infoLog('Actualizando cliente con:', updates);
+              onUpdate={async (updates) => {
+                try {
+                  if (selectedClient) {
+                    const updatedClient = await updateClient(selectedClient.id, updates);
+                    setSelectedClient(updatedClient);
+                    infoLog('Cliente actualizado exitosamente:', updatedClient);
+                  }
+                } catch (error) {
+                  infoLog('Error actualizando cliente:', error);
+                }
+              }}
+              onDelete={async (clientId) => {
+                try {
+                  await deleteClient(clientId);
+                  setShowDetailPanel(false);
+                  setSelectedClient(null);
+                  infoLog('Cliente eliminado exitosamente');
+                } catch (error) {
+                  infoLog('Error eliminando cliente:', error);
+                }
               }}
             />
           )}

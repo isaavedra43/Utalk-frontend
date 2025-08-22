@@ -184,121 +184,161 @@ export const useClients = (options: UseClientsOptions = {}) => {
     return filteredClients.slice(startIndex, endIndex);
   }, [filteredClients, filters.page, filters.limit, pageSize]);
 
-  // Cargar clientes - DESHABILITADO TEMPORALMENTE
+  // ✅ CARGAR CLIENTES - HABILITADO
   const loadClients = useCallback(async () => {
-    // DESHABILITADO - No hacer llamadas a API
-    infoLog('Carga de clientes deshabilitada temporalmente');
-    setLoading(false);
-    setError(null);
-  }, []);
+    try {
+      setLoading(true);
+      setError(null);
 
-  // Cargar cliente específico
+      infoLog('Cargando clientes desde API', { filters });
+
+      const response = await clientService.getClients(filters);
+      
+      // Actualizar clientes en el store
+      setClientData({
+        ...clientData,
+        clients: response.data,
+        pagination: response.pagination,
+        metrics: clientData?.metrics,
+        selectedClient: clientData?.selectedClient || null,
+        filters: filters,
+        activities: clientData?.activities || {},
+        deals: clientData?.deals || {},
+        recommendations: clientData?.recommendations || {},
+        loading: false,
+        loadingActivities: clientData?.loadingActivities || false,
+        loadingDeals: clientData?.loadingDeals || false,
+        error: null,
+        showFilters: clientData?.showFilters || false,
+        showDetailPanel: clientData?.showDetailPanel || false,
+        currentView: clientData?.currentView || 'list',
+        currentTab: clientData?.currentTab || 'perfil'
+      });
+
+      infoLog('Clientes cargados exitosamente', { 
+        count: response.data.length,
+        total: response.pagination.total 
+      });
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al cargar clientes';
+      setError(errorMessage);
+      infoLog('Error al cargar clientes', { error: err, filters });
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, clientData, setClientData]);
+
+  // ✅ CARGAR CLIENTE ESPECÍFICO - API REAL
   const loadClient = useCallback(async (clientId: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      logger.info(LogCategory.API, 'Cargando cliente específico', { clientId });
+      infoLog('Cargando cliente específico desde API', { clientId });
 
-      const response: ClientApiResponse<Client> = await clientService.getClientById(clientId);
+      const client = await clientService.getClientById(clientId);
       
       // Actualizar el cliente en la lista si existe
       if (clientData?.clients) {
-        const updatedClients = clientData.clients.map(client => 
-          client.id === clientId ? response.data : client
+        const updatedClients = clientData.clients.map(c => 
+          c.id === clientId ? client : c
         );
         
         setClientData({
           ...clientData,
           clients: updatedClients,
-          selectedClient: response.data
+          selectedClient: client
         });
       }
 
-      logger.info(LogCategory.API, 'Cliente cargado exitosamente', { clientId });
+      infoLog('Cliente cargado exitosamente', { clientId });
+      return client;
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al cargar cliente';
       setError(errorMessage);
-      clientProfileLogger.error('Error al cargar cliente', { error: err, clientId });
-    } finally {
-      setLoading(false);
-    }
-  }, [clientData, setClientData]);
-
-  // Actualizar cliente
-  const updateClient = useCallback(async (clientId: string, updates: Partial<Client>) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      logger.info(LogCategory.API, 'Actualizando cliente', { clientId, updates });
-
-      const response: ClientApiResponse<Client> = await clientService.updateClient(clientId, updates);
-      
-      // Actualizar el cliente en la lista
-      if (clientData?.clients) {
-        const updatedClients = clientData.clients.map(client => 
-          client.id === clientId ? response.data : client
-        );
-        
-        setClientData({
-          ...clientData,
-          clients: updatedClients,
-          selectedClient: clientData.selectedClient?.id === clientId ? response.data : clientData.selectedClient
-        });
-      }
-
-      logger.info(LogCategory.API, 'Cliente actualizado exitosamente', { clientId });
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar cliente';
-      setError(errorMessage);
-      clientProfileLogger.error('Error al actualizar cliente', { error: err, clientId, updates });
-    } finally {
-      setLoading(false);
-    }
-  }, [clientData, setClientData]);
-
-  // Crear cliente
-  const createClient = useCallback(async (newClientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      logger.info(LogCategory.API, 'Creando nuevo cliente', { clientData: newClientData });
-
-      const response: ClientApiResponse<Client> = await clientService.createClient(newClientData);
-      
-      // Agregar el nuevo cliente a la lista
-      if (clientData?.clients) {
-        setClientData({
-          ...clientData,
-          clients: [response.data, ...clientData.clients]
-        });
-      }
-
-      logger.info(LogCategory.API, 'Cliente creado exitosamente', { clientId: response.data.id });
-
-      return response.data;
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al crear cliente';
-      setError(errorMessage);
-      clientProfileLogger.error('Error al crear cliente', { error: err, clientData: newClientData });
+      infoLog('Error al cargar cliente', { error: err, clientId });
       throw err;
     } finally {
       setLoading(false);
     }
   }, [clientData, setClientData]);
 
-  // Eliminar cliente
+  // ✅ ACTUALIZAR CLIENTE - API REAL
+  const updateClient = useCallback(async (clientId: string, updates: Partial<Client>) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      infoLog('Actualizando cliente en API', { clientId, updates });
+
+      const updatedClient = await clientService.updateClient(clientId, updates);
+      
+      // Actualizar el cliente en la lista
+      if (clientData?.clients) {
+        const updatedClients = clientData.clients.map(client => 
+          client.id === clientId ? updatedClient : client
+        );
+        
+        setClientData({
+          ...clientData,
+          clients: updatedClients,
+          selectedClient: clientData.selectedClient?.id === clientId ? updatedClient : clientData.selectedClient
+        });
+      }
+
+      infoLog('Cliente actualizado exitosamente', { clientId });
+      return updatedClient;
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar cliente';
+      setError(errorMessage);
+      infoLog('Error al actualizar cliente', { error: err, clientId, updates });
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [clientData, setClientData]);
+
+  // ✅ CREAR CLIENTE - API REAL
+  const createClient = useCallback(async (newClientData: Partial<Client>) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      infoLog('Creando nuevo cliente en API', { clientData: newClientData });
+
+      const newClient = await clientService.createClient(newClientData);
+      
+      // Agregar el nuevo cliente a la lista
+      if (clientData?.clients) {
+        setClientData({
+          ...clientData,
+          clients: [newClient, ...clientData.clients]
+        });
+      }
+
+      infoLog('Cliente creado exitosamente', { clientId: newClient.id });
+      return newClient;
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al crear cliente';
+      setError(errorMessage);
+      infoLog('Error al crear cliente', { error: err, clientData: newClientData });
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [clientData, setClientData]);
+
+  // ✅ ELIMINAR CLIENTE - API REAL
   const deleteClient = useCallback(async (clientId: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      logger.info(LogCategory.API, 'Eliminando cliente', { clientId });
+      infoLog('Eliminando cliente en API', { clientId });
 
       await clientService.deleteClient(clientId);
       
@@ -313,12 +353,13 @@ export const useClients = (options: UseClientsOptions = {}) => {
         });
       }
 
-      logger.info(LogCategory.API, 'Cliente eliminado exitosamente', { clientId });
+      infoLog('Cliente eliminado exitosamente', { clientId });
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al eliminar cliente';
       setError(errorMessage);
-      clientProfileLogger.error('Error al eliminar cliente', { error: err, clientId });
+      infoLog('Error al eliminar cliente', { error: err, clientId });
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -358,13 +399,19 @@ export const useClients = (options: UseClientsOptions = {}) => {
     });
   }, [pageSize]);
 
-  // Cargar clientes automáticamente al montar el hook - DESHABILITADO TEMPORALMENTE
+  // ✅ CARGAR CLIENTES AUTOMÁTICAMENTE - HABILITADO
   useEffect(() => {
     if (autoLoad) {
-      // DESHABILITADO - No cargar automáticamente
-      infoLog('Auto-load de clientes deshabilitado temporalmente');
+      loadClients();
     }
-  }, [autoLoad]);
+  }, [autoLoad, loadClients]);
+
+  // ✅ RECARGAR CUANDO CAMBIEN LOS FILTROS
+  useEffect(() => {
+    if (autoLoad) {
+      loadClients();
+    }
+  }, [filters, autoLoad, loadClients]);
 
   // Verificar si hay filtros activos
   const hasFilters = useMemo(() => {
@@ -389,18 +436,18 @@ export const useClients = (options: UseClientsOptions = {}) => {
 
   return {
     // Estado
-    clients: paginatedClients,
+    clients: clientData?.clients || [],
     loading: loading || clientData?.loading || false,
     error: error || clientData?.error,
-    totalClients: filteredClients.length,
+    totalClients: clientData?.pagination?.total || 0,
     
     // Filtros y paginación
     filters,
-    pagination: {
-      page: filters.page || 1,
-      limit: filters.limit || pageSize,
-      total: filteredClients.length,
-      totalPages: Math.ceil(filteredClients.length / (filters.limit || pageSize))
+    pagination: clientData?.pagination || {
+      page: 1,
+      limit: pageSize,
+      total: 0,
+      totalPages: 0
     },
     
     // Acciones
@@ -417,6 +464,6 @@ export const useClients = (options: UseClientsOptions = {}) => {
     
     // Utilidades
     hasFilters,
-    filteredClients
+    filteredClients: clientData?.clients || []
   };
 }; 

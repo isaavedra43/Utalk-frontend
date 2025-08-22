@@ -21,13 +21,48 @@ export const useClientMetrics = (options: UseClientMetricsOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // Cargar métricas - DESHABILITADO TEMPORALMENTE
+  // ✅ CARGAR MÉTRICAS - HABILITADO
   const loadMetrics = useCallback(async () => {
-    // DESHABILITADO - No hacer llamadas a API
-    infoLog('Carga de métricas deshabilitada temporalmente');
-    setLoading(false);
-    setError(null);
-  }, []);
+    try {
+      setLoading(true);
+      setError(null);
+
+      infoLog('Cargando métricas de clientes');
+
+      const metrics = await clientMetricsService.getClientMetrics();
+      
+      // Actualizar métricas en el store
+      setClientData({
+        ...clientData,
+        metrics,
+        clients: clientData?.clients || [],
+        selectedClient: clientData?.selectedClient || null,
+        filters: clientData?.filters || { page: 1, limit: 20, sortBy: 'createdAt', sortOrder: 'desc' },
+        activities: clientData?.activities || {},
+        deals: clientData?.deals || {},
+        recommendations: clientData?.recommendations || {},
+        loading: clientData?.loading || false,
+        loadingActivities: clientData?.loadingActivities || false,
+        loadingDeals: clientData?.loadingDeals || false,
+        error: clientData?.error || null,
+        showFilters: clientData?.showFilters || false,
+        showDetailPanel: clientData?.showDetailPanel || false,
+        currentView: clientData?.currentView || 'list',
+        currentTab: clientData?.currentTab || 'perfil',
+        pagination: clientData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 }
+      });
+
+      setLastUpdated(new Date());
+      infoLog('Métricas de clientes cargadas exitosamente');
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al cargar métricas';
+      setError(errorMessage);
+      infoLog('Error al cargar métricas de clientes', { error: err });
+    } finally {
+      setLoading(false);
+    }
+  }, [clientData, setClientData]);
 
   // Refrescar métricas
   const refreshMetrics = useCallback(async () => {
@@ -138,21 +173,23 @@ export const useClientMetrics = (options: UseClientMetricsOptions = {}) => {
     }
   }, [clientData, setClientData]);
 
-  // Cargar métricas automáticamente al montar el hook - DESHABILITADO TEMPORALMENTE
+  // ✅ CARGAR MÉTRICAS AUTOMÁTICAMENTE - HABILITADO
   useEffect(() => {
     if (autoLoad) {
-      // DESHABILITADO - No cargar automáticamente
-      infoLog('Auto-load de métricas deshabilitado temporalmente');
+      loadMetrics();
     }
-  }, [autoLoad]);
+  }, [autoLoad, loadMetrics]);
 
-  // Configurar intervalo de actualización automática - DESHABILITADO TEMPORALMENTE
+  // ✅ CONFIGURAR INTERVALO DE ACTUALIZACIÓN - HABILITADO
   useEffect(() => {
     if (autoLoad && refreshInterval > 0) {
-      // DESHABILITADO - No configurar intervalos
-      infoLog('Intervalo de actualización deshabilitado temporalmente');
+      const interval = setInterval(() => {
+        loadMetrics();
+      }, refreshInterval);
+
+      return () => clearInterval(interval);
     }
-  }, [autoLoad, refreshInterval]);
+  }, [autoLoad, refreshInterval, loadMetrics]);
 
   // Calcular KPIs derivados
   const calculatedKPIs = {
