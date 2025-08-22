@@ -45,6 +45,16 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
       infoLog('Cargando permisos de módulos para usuario', { email: user.email });
       
       const userPermissions = await modulePermissionsService.getMyPermissions();
+      
+      // Log detallado de la respuesta del backend
+      infoLog('Respuesta completa del backend', { 
+        userPermissions,
+        hasPermissions: !!userPermissions.permissions,
+        hasModules: !!userPermissions.permissions?.modules,
+        accessibleModulesCount: userPermissions.accessibleModules?.length || 0,
+        role: userPermissions.role 
+      });
+      
       setPermissions(userPermissions);
       setAccessibleModules(userPermissions.accessibleModules || []);
       
@@ -73,11 +83,21 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
   // Verificar si puede acceder a un módulo
   const canAccessModule = useCallback((moduleId: string): boolean => {
     // Si no hay permisos cargados o hay error, permitir acceso (fallback)
-    if (!permissions || accessibleModules.length === 0) {
+    if (!permissions) {
+      infoLog('No hay permisos cargados, permitiendo acceso a módulo', { moduleId });
       return true;
     }
     
-    return accessibleModules.some(module => module.id === moduleId);
+    // Si no hay módulos accesibles definidos, permitir acceso (fallback)
+    if (!accessibleModules || accessibleModules.length === 0) {
+      infoLog('No hay módulos accesibles definidos, permitiendo acceso a módulo', { moduleId });
+      return true;
+    }
+    
+    const hasAccess = accessibleModules.some(module => module.id === moduleId);
+    infoLog('Verificación de acceso a módulo', { moduleId, hasAccess, accessibleModules });
+    
+    return hasAccess;
   }, [permissions, accessibleModules]);
 
   // Verificar permiso específico
@@ -85,6 +105,12 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
     // Si no hay permisos cargados o hay error, permitir acceso (fallback)
     if (!permissions) {
       return true;
+    }
+    
+    // Validación robusta de la estructura de permisos
+    if (!permissions.permissions || !permissions.permissions.modules) {
+      infoLog('Estructura de permisos inválida, usando fallback', { permissions });
+      return true; // Fallback: permitir acceso
     }
     
     const modulePermissions = permissions.permissions.modules[moduleId];
