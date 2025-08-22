@@ -21,65 +21,13 @@ export const useClientMetrics = (options: UseClientMetricsOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // ❌ CARGAR MÉTRICAS - TEMPORALMENTE DESHABILITADO
+  // ❌ CARGAR MÉTRICAS - COMPLETAMENTE DESHABILITADO PARA EVITAR BUCLES
   const loadMetrics = useCallback(async () => {
-    // TEMPORALMENTE DESHABILITADO - Las métricas aún no están implementadas en el backend
+    // COMPLETAMENTE DESHABILITADO - Solo log, SIN setState
     infoLog('Carga de métricas temporalmente deshabilitada - backend en desarrollo');
-    setLoading(false);
-    setError(null);
-    
-    // Establecer métricas mock para evitar errores de UI
-    const mockMetrics = {
-      totalClients: 0,
-      totalValue: 0,
-      totalOpportunities: 0,
-      contactsToContactToday: 0,
-      averageDaysToClose: 0,
-      winRate: 0,
-      projectedRevenue: 0,
-      stageMetrics: {
-        lead: { count: 0, value: 0, averageProbability: 0 },
-        prospect: { count: 0, value: 0, averageProbability: 0 },
-        demo: { count: 0, value: 0, averageProbability: 0 },
-        propuesta: { count: 0, value: 0, averageProbability: 0 },
-        negociacion: { count: 0, value: 0, averageProbability: 0 },
-        ganado: { count: 0, value: 0, averageProbability: 0 },
-        perdido: { count: 0, value: 0, averageProbability: 0 }
-      },
-      agentMetrics: {},
-      sourceMetrics: {},
-      segmentMetrics: {},
-      trends: {
-        newClientsThisMonth: 0,
-        newClientsLastMonth: 0,
-        valueGrowth: 0,
-        winRateChange: 0
-      }
-    };
-    
-    // Actualizar con métricas mock
-    setClientData({
-      ...clientData,
-      metrics: mockMetrics,
-      clients: clientData?.clients || [],
-      selectedClient: clientData?.selectedClient || null,
-      filters: clientData?.filters || { page: 1, limit: 20, sortBy: 'createdAt', sortOrder: 'desc' },
-      activities: clientData?.activities || {},
-      deals: clientData?.deals || {},
-      recommendations: clientData?.recommendations || {},
-      loading: clientData?.loading || false,
-      loadingActivities: clientData?.loadingActivities || false,
-      loadingDeals: clientData?.loadingDeals || false,
-      error: clientData?.error || null,
-      showFilters: clientData?.showFilters || false,
-      showDetailPanel: clientData?.showDetailPanel || false,
-      currentView: clientData?.currentView || 'list',
-      currentTab: clientData?.currentTab || 'perfil',
-      pagination: clientData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 }
-    });
-    
-    setLastUpdated(new Date());
-  }, [clientData, setClientData]);
+    // NO hacer setState para evitar bucles infinitos
+    return Promise.resolve();
+  }, []); // ✅ Sin dependencias que causen bucles
 
   // Refrescar métricas
   const refreshMetrics = useCallback(async () => {

@@ -80,10 +80,11 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
     }
   }, [user?.email]);
 
-  // Cargar permisos al montar el hook
+  // Cargar permisos al montar el hook (OPTIMIZADO)
   useEffect(() => {
     loadPermissions();
-  }, [loadPermissions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.email]); // ✅ Solo cuando user.email cambie, no cuando loadPermissions se recree
 
   // Verificar si puede acceder a un módulo
   const canAccessModule = useCallback((moduleId: string): boolean => {

@@ -32,7 +32,7 @@ export const ClientModule: React.FC = () => {
     updateClient,
     deleteClient
   } = useClients({
-    autoLoad: true, // ✅ HABILITADO
+    autoLoad: false, // ❌ TEMPORALMENTE DESHABILITADO PARA EVITAR BUCLES
     pageSize: 20
   });
 
@@ -42,8 +42,8 @@ export const ClientModule: React.FC = () => {
     error: metricsError,
     refreshMetrics
   } = useClientMetrics({
-    autoLoad: true, // ✅ HABILITADO
-    refreshInterval: 30000 // ✅ HABILITADO - 30 segundos
+    autoLoad: false, // ❌ TEMPORALMENTE DESHABILITADO PARA EVITAR BUCLES
+    refreshInterval: 0 // ❌ TEMPORALMENTE DESHABILITADO PARA EVITAR BUCLES
   });
 
   const {
