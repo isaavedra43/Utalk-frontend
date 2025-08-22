@@ -21,31 +21,18 @@ const TeamList: React.FC<TeamListProps> = ({
   inactiveMembers,
   searchTerm = ''
 }) => {
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
-  // Filtrar miembros por término de búsqueda
+  // Filtrar miembros por término de búsqueda - ACTUALIZADO
   const filteredMembers = useMemo(() => {
     if (!searchTerm.trim()) return members;
     
     const searchLower = searchTerm.toLowerCase();
     return members.filter(member => 
       member.name.toLowerCase().includes(searchLower) ||
-      member.fullName.toLowerCase().includes(searchLower) ||
       member.email.toLowerCase().includes(searchLower) ||
-      member.role.toLowerCase().includes(searchLower)
+      member.role.toLowerCase().includes(searchLower) ||
+      (member.phone && member.phone.toLowerCase().includes(searchLower))
     );
   }, [members, searchTerm]);
-
-  // Calcular paginación
-  const totalPages = Math.ceil(filteredMembers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentMembers = filteredMembers.slice(startIndex, endIndex);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
   if (filteredMembers.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gray-50">
@@ -70,11 +57,11 @@ const TeamList: React.FC<TeamListProps> = ({
   }
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col h-full">
       {/* Header de la lista */}
-      <div className="p-4 border-b border-gray-200 bg-gray-50">
+      <div className="p-4 border-b border-gray-200 bg-gray-50 flex-shrink-0">
         <h2 className="text-lg font-semibold text-gray-900 mb-2">
-          Lista de Vendedores
+          Lista de Agentes
         </h2>
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-600">
@@ -92,10 +79,10 @@ const TeamList: React.FC<TeamListProps> = ({
       </div>
       
       {/* Lista de miembros */}
-      <div className="flex-1 flex flex-col">
-        <div className="flex-1 overflow-y-auto no-scrollbar">
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 overflow-y-auto scrollbar-medium min-h-0">
           <div className="p-4 space-y-3">
-            {currentMembers.map((member) => (
+            {filteredMembers.map((member) => (
               <TeamMemberCard
                 key={member.id}
                 member={member}
@@ -105,61 +92,6 @@ const TeamList: React.FC<TeamListProps> = ({
             ))}
           </div>
         </div>
-
-        {/* Paginación */}
-        {totalPages > 1 && (
-          <div className="border-t border-gray-200 bg-gray-50 px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-700">
-                Mostrando {startIndex + 1} a {Math.min(endIndex, filteredMembers.length)} de {filteredMembers.length} agentes
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Anterior
-                </button>
-                <div className="flex items-center space-x-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum: number;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-                    
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => handlePageChange(pageNum)}
-                        className={`px-3 py-1 text-sm rounded-md ${
-                          currentPage === pageNum
-                            ? 'bg-blue-500 text-white'
-                            : 'border border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                </div>
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Siguiente
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

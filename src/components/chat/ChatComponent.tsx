@@ -188,6 +188,11 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
             // TEMPORAL: Detectar tipo basado en contenido para mensajes system
             if (msg.mediaUrl || (msg.metadata?.media)) {
               mappedType = 'image'; // Si tiene mediaUrl, probablemente es imagen
+              console.log('🖼️ [ChatComponent] Mensaje system detectado como imagen:', {
+                mediaUrl: msg.mediaUrl,
+                metadata: msg.metadata,
+                content: msg.content
+              });
             } else {
               mappedType = 'text'; // Si no, es texto
             }

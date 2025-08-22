@@ -60,23 +60,26 @@ const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
       }}
       role="button"
       tabIndex={0}
-      aria-label={`Miembro del equipo: ${member.fullName}, ${member.role}`}
+      aria-label={`Miembro del equipo: ${member.name}, ${member.role}`}
       aria-selected={isSelected}
     >
       {/* Header con avatar, nombre y menú */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-            {member.initials}
+            {member.avatar}
           </div>
           <div>
             <h3 className="font-medium text-gray-900 text-sm">{member.name}</h3>
-            <p className="text-xs text-gray-500">{member.role}</p>
+            <p className="text-xs text-gray-500 capitalize">{member.role}</p>
+            {member.email && (
+              <p className="text-xs text-gray-400">{member.email}</p>
+            )}
           </div>
         </div>
         <button 
           className="text-gray-400 hover:text-gray-600 p-1"
-          aria-label={`Opciones para ${member.fullName}`}
+          aria-label={`Opciones para ${member.name}`}
           aria-haspopup="true"
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
@@ -89,19 +92,19 @@ const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
       <div className="mb-4">
         <h4 className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">PERMISOS</h4>
         <div className="grid grid-cols-2 gap-1">
-          {member.permissions.map((permission) => (
+          {Object.entries(member.permissions).map(([permissionName, isActive]) => (
             <button
-              key={permission.id}
+              key={permissionName}
               className={`flex items-center justify-center space-x-1 px-2 py-1.5 rounded text-xs font-medium transition-colors ${
-                permission.isActive
+                isActive
                   ? 'bg-blue-100 text-blue-700 border border-blue-200'
                   : 'bg-gray-100 text-gray-500 border border-gray-200'
               }`}
-              aria-label={`Permiso ${permission.displayName} ${permission.isActive ? 'activo' : 'inactivo'}`}
-              aria-pressed={permission.isActive}
+              aria-label={`Permiso ${permissionName} ${isActive ? 'activo' : 'inactivo'}`}
+              aria-pressed={isActive}
             >
-              {getPermissionIcon(permission.name)}
-              <span>{permission.displayName}</span>
+              {getPermissionIcon(permissionName)}
+              <span className="capitalize">{permissionName === 'read' ? 'Leer' : permissionName === 'write' ? 'Escribir' : permissionName === 'approve' ? 'Aprobar' : 'Configurar'}</span>
             </button>
           ))}
         </div>
@@ -111,7 +114,7 @@ const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="bg-gray-50 rounded-lg p-2">
           <div className="text-lg font-bold text-gray-900">
-            {member.performanceMetrics.chatsAttended}
+            {member.performance.totalChats}
           </div>
           <div className="text-xs text-gray-500 flex items-center justify-center mt-1">
             <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -122,7 +125,7 @@ const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
         </div>
         <div className="bg-gray-50 rounded-lg p-2">
           <div className="text-lg font-bold text-gray-900">
-            {member.performanceMetrics.csatScore}
+            {member.performance.csat}
           </div>
           <div className="text-xs text-gray-500 flex items-center justify-center mt-1">
             <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -133,7 +136,7 @@ const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
         </div>
         <div className="bg-gray-50 rounded-lg p-2">
           <div className="text-lg font-bold text-gray-900">
-            {member.performanceMetrics.conversionRate}%
+            {member.performance.conversionRate}%
           </div>
           <div className="text-xs text-gray-500 mt-1">Conv.</div>
         </div>

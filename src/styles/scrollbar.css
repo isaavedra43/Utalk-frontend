@@ -1,0 +1,68 @@
+/* Estilos personalizados para scrollbars */
+
+/* Scrollbar para Webkit (Chrome, Safari, Edge) */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.scrollbar-thin:hover::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Scrollbar para Firefox */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.scrollbar-thin:hover {
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+
+/* Scrollbar más grueso para mejor visibilidad */
+.scrollbar-medium::-webkit-scrollbar {
+  width: 10px;
+}
+
+.scrollbar-medium::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 5px;
+}
+
+.scrollbar-medium::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 5px;
+  transition: background-color 0.2s ease;
+}
+
+.scrollbar-medium:hover::-webkit-scrollbar-thumb {
+  background: #64748b;
+}
+
+.scrollbar-medium::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+.scrollbar-medium {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9;
+}
+
+.scrollbar-medium:hover {
+  scrollbar-color: #64748b #f1f5f9;
+}

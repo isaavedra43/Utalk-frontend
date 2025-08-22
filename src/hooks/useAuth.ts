@@ -3,6 +3,7 @@ import { infoLog } from '../config/logger';
 import { useAuthStore } from '../stores/useAuthStore';
 import { WebSocketContext } from '../contexts/WebSocketContext';
 import { useContext } from 'react';
+import api from '../services/api';
 
 interface BackendUser {
   id: string;
@@ -58,7 +59,7 @@ export const useAuth = (): AuthState => {
           
           infoLog('🔐 useAuth - Tokens encontrados en localStorage, validando con backend...');
           
-          // Validar token con el backend
+          // NUEVO: Intentar validar token con el backend
           const validatedUser = await authStore.validateToken(accessToken);
           
           if (validatedUser) {
@@ -71,8 +72,44 @@ export const useAuth = (): AuthState => {
             });
             infoLog('🔐 useAuth - Autenticación inicial exitosa');
           } else {
-            // Token inválido, limpiar autenticación
-            infoLog('🔐 useAuth - Token inválido, limpiando autenticación');
+            // NUEVO: Intentar refresh del token antes de limpiar
+            infoLog('🔐 useAuth - Token inválido, intentando refresh...');
+            try {
+              const refreshResponse = await api.post('/api/auth/refresh', { 
+                refreshToken: refreshToken 
+              });
+              
+              if (refreshResponse.data.accessToken) {
+                // Refresh exitoso, actualizar tokens
+                localStorage.setItem('access_token', refreshResponse.data.accessToken);
+                if (refreshResponse.data.refreshToken) {
+                  localStorage.setItem('refresh_token', refreshResponse.data.refreshToken);
+                }
+                
+                // Validar el nuevo token
+                const newValidatedUser = await authStore.validateToken(refreshResponse.data.accessToken);
+                if (newValidatedUser) {
+                  authStore.setBackendUser(newValidatedUser);
+                  authStore.setUser({ 
+                    uid: newValidatedUser.id, 
+                    email: newValidatedUser.email, 
+                    displayName: newValidatedUser.displayName 
+                  });
+                  infoLog('🔐 useAuth - Refresh exitoso, autenticación restaurada');
+                  
+                  // Disparar evento de token refrescado
+                  window.dispatchEvent(new CustomEvent('auth:token-refreshed', {
+                    detail: { accessToken: refreshResponse.data.accessToken }
+                  }));
+                  return;
+                }
+              }
+            } catch (refreshError) {
+              infoLog('🔐 useAuth - Refresh falló:', refreshError);
+            }
+            
+            // Si llegamos aquí, tanto validación como refresh fallaron
+            infoLog('🔐 useAuth - Token inválido y refresh falló, limpiando autenticación');
             authStore.clearAuth();
           }
         } else {

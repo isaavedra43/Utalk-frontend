@@ -2,6 +2,14 @@ import React, { useEffect, lazy, Suspense, useState } from 'react';
 import { useUIStore } from '../../stores/useUIStore';
 import { useTeam } from './hooks/useTeam';
 import { logger } from '../../utils/logger';
+import type { CreateAgentRequest } from '../../types/team';
+
+// Componente de loading simple
+const LoadingSpinner: React.FC = () => (
+  <div className="flex items-center justify-center p-4">
+    <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+);
 
 // Lazy loading de componentes
 const TeamHeader = lazy(() => import('./components/TeamHeader'));
@@ -28,7 +36,8 @@ const TeamModule: React.FC = () => {
     inactiveMembers,
     selectMember,
     refreshTeam,
-    applyFilters
+    applyFilters,
+    createAgent
   } = useTeam();
 
   useEffect(() => {
@@ -41,27 +50,22 @@ const TeamModule: React.FC = () => {
     });
   }, [setCurrentModule, totalMembers, activeMembers, inactiveMembers]);
 
-  const handleCreateAgent = (agentData: {
-    name: string;
-    email: string;
-    password: string;
-    permissions: { read: boolean; write: boolean; approve: boolean; configure: boolean };
-  }) => {
-    // Implementar creación de agente
-    logger.systemInfo('Creating new agent', { agentData });
-    setIsCreateModalOpen(false);
+  const handleCreateAgent = async (agentData: CreateAgentRequest) => {
+    try {
+      await createAgent(agentData);
+      logger.systemInfo('Agente creado exitosamente', { name: agentData.name, email: agentData.email });
+      setIsCreateModalOpen(false);
+    } catch (error) {
+      logger.systemInfo('Error creando agente', { error, agentData });
+      // El error se maneja en el hook, aquí solo log
+    }
   };
 
   const handleSearchChange = (term: string) => {
     setSearchTerm(term);
   };
 
-  // Componente de loading para lazy components
-  const LoadingSpinner = () => (
-    <div className="flex items-center justify-center p-4">
-      <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-    </div>
-  );
+
 
   if (loading) {
     return (
@@ -123,17 +127,19 @@ const TeamModule: React.FC = () => {
             </Suspense>
           </div>
           
-          <Suspense fallback={<LoadingSpinner />}>
-            <TeamList 
-              members={members}
-              selectedMember={selectedMember}
-              onSelectMember={selectMember}
-              totalMembers={totalMembers}
-              activeMembers={activeMembers}
-              inactiveMembers={inactiveMembers}
-              searchTerm={searchTerm}
-            />
-          </Suspense>
+          <div className="flex-1 min-h-0">
+            <Suspense fallback={<LoadingSpinner />}>
+              <TeamList 
+                members={members}
+                selectedMember={selectedMember}
+                onSelectMember={selectMember}
+                totalMembers={totalMembers}
+                activeMembers={activeMembers}
+                inactiveMembers={inactiveMembers}
+                searchTerm={searchTerm}
+              />
+            </Suspense>
+          </div>
         </div>
 
         {/* Panel central - Detalles del miembro seleccionado */}
@@ -168,7 +174,7 @@ const TeamModule: React.FC = () => {
         {/* Panel derecho - Permisos y Coaching */}
         <div className="w-96 xl:w-[420px] bg-white border-l border-gray-200 flex flex-col flex-shrink-0">
           {selectedMember ? (
-            <div className="flex-1 overflow-y-auto no-scrollbar">
+            <div className="flex-1 overflow-y-auto scrollbar-medium">
               <Suspense fallback={<LoadingSpinner />}>
                 <PermissionsPanel member={selectedMember} />
               </Suspense>
@@ -202,6 +208,7 @@ const TeamModule: React.FC = () => {
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
           onSubmit={handleCreateAgent}
+          loading={loading}
         />
       </Suspense>
     </div>

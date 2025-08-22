@@ -69,22 +69,37 @@ export interface CoachingPlan {
   updatedAt: Date;
 }
 
-// Tipos de miembro del equipo
+// Tipos de miembro del equipo (actualizado para coincidir con backend)
 export interface TeamMember {
   id: string;
-  initials: string;
   name: string;
-  fullName: string;
   email: string;
-  role: string;
-  status: 'active' | 'inactive';
-  avatar?: string;
-  permissions: Permission[];
-  performanceMetrics: PerformanceMetrics;
+  role: 'admin' | 'supervisor' | 'agent' | 'viewer';
+  phone?: string;
+  avatar: string;
+  isActive: boolean;
+  permissions: {
+    read: boolean;
+    write: boolean;
+    approve: boolean;
+    configure: boolean;
+  };
+  performance: {
+    totalChats: number;
+    csat: number;
+    conversionRate: number;
+    responseTime: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+  
+  // DEPRECATED: Campos del sistema anterior (mantener para compatibilidad)
+  initials?: string;
+  fullName?: string;
+  status?: 'active' | 'inactive';
+  performanceMetrics?: PerformanceMetrics;
   coachingPlan?: CoachingPlan;
   lastSeen?: Date;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 // Tipos de filtros
@@ -125,23 +140,41 @@ export interface TeamActions {
   completeCoachingTask: (memberId: string, taskId: string) => Promise<void>;
 }
 
-// Tipos de respuesta de API
+// Tipos de respuesta de API (actualizado para coincidir con backend)
 export interface TeamApiResponse<T> {
   data: T;
   message?: string;
   success: boolean;
-  timestamp: string;
+  timestamp?: string;
 }
 
 export interface TeamListResponse {
-  members: TeamMember[];
+  agents: TeamMember[];
   pagination: {
     page: number;
     limit: number;
     total: number;
     totalPages: number;
   };
-  filters: TeamFilters;
+  summary: {
+    total: number;
+    active: number;
+    inactive: number;
+  };
+}
+
+// Tipos para creación de agente
+export interface CreateAgentRequest {
+  name: string;
+  email: string;
+  role: 'admin' | 'supervisor' | 'agent' | 'viewer';
+  phone?: string;
+  permissions?: {
+    read: boolean;
+    write: boolean;
+    approve: boolean;
+    configure: boolean;
+  };
 }
 
 // Tipos de eventos de WebSocket para el equipo

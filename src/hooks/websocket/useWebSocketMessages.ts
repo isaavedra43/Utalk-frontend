@@ -49,8 +49,9 @@ const validateMessage = (data: MessageData): boolean => {
     return false;
   }
 
-  if (!message.sender || typeof message.sender !== 'string') {
-    infoLog('❌ Mensaje inválido: message.sender faltante o inválido');
+  // VALIDACIÓN CORREGIDA: Usar senderIdentifier en lugar de sender
+  if (!message.senderIdentifier || typeof message.senderIdentifier !== 'string') {
+    infoLog('❌ Mensaje inválido: message.senderIdentifier faltante o inválido');
     return false;
   }
 
@@ -83,7 +84,7 @@ const validateSendData = (data: SendMessageData): boolean => {
 };
 
 export const useWebSocketMessages = (socket: Socket | null) => {
-  const { addMessage, updateConversation } = useChatStore();
+  const { addMessage, updateConversation, addConversation } = useChatStore();
   
   // Rate limiter para mensajes
   const rateLimiter = useRateLimiter({
@@ -177,17 +178,17 @@ export const useWebSocketMessages = (socket: Socket | null) => {
       updatedAt: message.timestamp,
       type: (message.type as 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker') || 'text',
       metadata: {
-        agentId: message.sender,
+        agentId: message.senderIdentifier, // CORREGIDO: Usar senderIdentifier
         ip: 'unknown',
         requestId: 'unknown',
-        sentBy: message.sender,
+        sentBy: message.senderIdentifier, // CORREGIDO: Usar senderIdentifier
         source: 'web',
         timestamp: message.timestamp,
         ...message.metadata
       },
       status: 'received',
-      recipientIdentifier: undefined,
-      senderIdentifier: message.sender,
+      recipientIdentifier: message.recipientIdentifier, // CORREGIDO: Usar recipientIdentifier del mensaje
+      senderIdentifier: message.senderIdentifier, // CORREGIDO: Usar senderIdentifier
       userAgent: undefined
     };
 
@@ -197,7 +198,7 @@ export const useWebSocketMessages = (socket: Socket | null) => {
     // Actualizar conversación con último mensaje
     const lastMessage = {
       messageId: message.id,
-      sender: message.sender,
+      sender: message.senderIdentifier, // CORREGIDO: Usar senderIdentifier
       content: message.content,
       type: (message.type as 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker') || 'text',
       timestamp: message.timestamp,
@@ -205,16 +206,34 @@ export const useWebSocketMessages = (socket: Socket | null) => {
       status: 'received' as const
     };
     
-    // SOLUCIONADO: No resetear el unreadCount aquí, solo actualizar el último mensaje
-    // El unreadCount se manejará correctamente cuando el usuario entre a la conversación
-    updateConversation(conversationId, {
+    // NUEVO: Extraer información del contacto del mensaje si está disponible
+    const contactInfo = message.metadata?.contact;
+    const conversationUpdates: any = {
       lastMessage,
       lastMessageAt: message.timestamp
       // Removido: unreadCount: 0 - esto causaba problemas de sincronización
-    });
+    };
+
+    // Actualizar información del contacto si está disponible en el mensaje
+    if (contactInfo) {
+      if (contactInfo.profileName) {
+        conversationUpdates.customerName = contactInfo.profileName;
+        conversationUpdates.contact = {
+          name: contactInfo.profileName,
+          phoneNumber: contactInfo.phoneNumber || message.senderIdentifier
+        };
+      }
+      if (contactInfo.phoneNumber) {
+        conversationUpdates.customerPhone = contactInfo.phoneNumber;
+      }
+    }
+
+    // SOLUCIONADO: No resetear el unreadCount aquí, solo actualizar el último mensaje
+    // El unreadCount se manejará correctamente cuando el usuario entre a la conversación
+    updateConversation(conversationId, conversationUpdates);
 
     infoLog(`📨 Mensaje procesado: ${conversationId} - ${message.content.substring(0, 50)}...`);
-  }, [addMessage, updateConversation]);
+  }, [addMessage, updateConversation, addConversation]);
 
   // Escuchar eventos de mensajes del socket
   useEffect(() => {
@@ -222,6 +241,17 @@ export const useWebSocketMessages = (socket: Socket | null) => {
 
     const handleNewMessage = (data: MessageData) => {
       infoLog('📨 Nuevo mensaje recibido via WebSocket');
+      
+      // NUEVO: Log específico para detectar mensajes de imagen
+      if (data.message.type === 'image' || data.message.type === 'system') {
+        console.log('🖼️ [useWebSocketMessages] Mensaje de imagen recibido:', {
+          type: data.message.type,
+          content: data.message.content,
+          mediaUrl: data.message.mediaUrl,
+          metadata: data.message.metadata
+        });
+      }
+      
       processReceivedMessage(data);
     };
 

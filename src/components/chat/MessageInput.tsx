@@ -198,10 +198,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 rows={1}
                 maxLength={1000}
               />
-              {/* Contador */}
-              <div className="absolute -bottom-5 right-0 text-[10px] text-gray-400">
-                {currentValue.length}/1000
-              </div>
             </div>
 
             {/* Iconos alineados a la derecha */}

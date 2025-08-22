@@ -4,7 +4,7 @@ import { useChatStore } from '../../stores/useChatStore';
 import { useAuthContext } from '../../contexts/useAuthContext';
 import { ConversationManager } from '../../services/ConversationManager';
 import { infoLog } from '../../config/logger';
-import type { Message } from '../../types';
+import type { Message, Conversation } from '../../types';
 
 // Tipos para validación de mensajes de webhook
 interface WebhookMessageData {
@@ -43,8 +43,9 @@ const validateAndTransformMessage = (data: WebhookMessageData): Message | null =
     return null;
   }
 
-  if (!message.sender || typeof message.sender !== 'string') {
-    infoLog('❌ Mensaje de webhook inválido: message.sender faltante o inválido');
+  // VALIDACIÓN CORREGIDA: Usar senderIdentifier en lugar de sender
+  if (!message.senderIdentifier || typeof message.senderIdentifier !== 'string') {
+    infoLog('❌ Mensaje de webhook inválido: message.senderIdentifier faltante o inválido');
     return null;
   }
 
@@ -63,17 +64,17 @@ const validateAndTransformMessage = (data: WebhookMessageData): Message | null =
     updatedAt: message.timestamp,
     type: (message.type as 'text' | 'image' | 'document' | 'location' | 'audio' | 'voice' | 'video' | 'sticker') || 'text',
     metadata: {
-      agentId: message.sender,
+      agentId: message.senderIdentifier, // CORREGIDO: Usar senderIdentifier
       ip: 'unknown',
       requestId: 'unknown',
-      sentBy: message.sender,
+      sentBy: message.senderIdentifier, // CORREGIDO: Usar senderIdentifier
       source: 'web',
       timestamp: message.timestamp,
       ...message.metadata
     },
     status: 'received',
-    recipientIdentifier: undefined,
-    senderIdentifier: message.sender,
+    recipientIdentifier: message.recipientIdentifier, // CORREGIDO: Usar recipientIdentifier del mensaje
+    senderIdentifier: message.senderIdentifier, // CORREGIDO: Usar senderIdentifier
     userAgent: undefined
   };
 
@@ -84,7 +85,7 @@ export const useConversationSync = () => {
   const { isAuthenticated, loading: authLoading } = useAuthContext();
   const { on, off, isConnected, syncState } = useWebSocketContext();
   
-  const { addMessage, updateConversation } = useChatStore();
+  const { addMessage, updateConversation, addConversation } = useChatStore();
 
   // Usar singleton mejorado para controlar estado global
   const manager = useMemo(() => {
@@ -143,15 +144,62 @@ export const useConversationSync = () => {
           status: 'received' as const
         };
         
-        updateConversation(data.conversationId, {
+        // NUEVO: Extraer información del contacto del mensaje si está disponible
+        const contactInfo = data.message.metadata?.contact;
+        const conversationUpdates: any = {
           lastMessage,
           lastMessageAt: validatedMessage.createdAt
-        });
+        };
+
+        // Actualizar información del contacto si está disponible en el mensaje
+        if (contactInfo) {
+          if (contactInfo.profileName) {
+            conversationUpdates.customerName = contactInfo.profileName;
+            conversationUpdates.contact = {
+              name: contactInfo.profileName,
+              phoneNumber: contactInfo.phoneNumber || data.message.senderIdentifier
+            };
+          }
+          if (contactInfo.phoneNumber) {
+            conversationUpdates.customerPhone = contactInfo.phoneNumber;
+          }
+        }
+
+        // NUEVO: Si es una conversación nueva, crearla en lugar de actualizarla
+        if (data.isNewConversation) {
+          // Crear nueva conversación con los datos del mensaje
+          const newConversation: Conversation = {
+            id: data.conversationId,
+            customerName: contactInfo?.profileName || 'Cliente sin nombre',
+            customerPhone: contactInfo?.phoneNumber || data.message.senderIdentifier,
+            contact: {
+              name: contactInfo?.profileName || 'Cliente sin nombre',
+              phoneNumber: contactInfo?.phoneNumber || data.message.senderIdentifier
+            },
+            status: 'open',
+            messageCount: 1,
+            unreadCount: 1,
+            participants: [data.message.senderIdentifier, 'admin@company.com'],
+            tenantId: 'default_tenant',
+            workspaceId: 'default_workspace',
+            createdAt: validatedMessage.createdAt,
+            updatedAt: validatedMessage.createdAt,
+            lastMessageAt: validatedMessage.createdAt,
+            lastMessage,
+            priority: 'normal',
+            tags: []
+          };
+          
+          addConversation(newConversation);
+          infoLog(`🆕 Nueva conversación creada: ${data.conversationId}`);
+        } else {
+          updateConversation(data.conversationId, conversationUpdates);
+        }
         
         infoLog(`📨 Mensaje de WebSocket procesado: ${data.conversationId} - ${validatedMessage.content.substring(0, 50)}...`);
       }
     }
-  }, [addMessage, updateConversation]);
+  }, [addMessage, updateConversation, addConversation]);
 
   const handleMessageRead = useCallback((eventData: unknown) => {
     if (import.meta.env.DEV) {
@@ -197,6 +245,16 @@ export const useConversationSync = () => {
     // Lógica de manejo de nuevo mensaje por webhook
     const data = eventData as WebhookMessageData;
     if (data?.conversationId && data?.message) {
+      // NUEVO: Log específico para detectar mensajes de imagen
+      if (data.message.type === 'image' || data.message.type === 'system') {
+        console.log('🖼️ [useConversationSync] Mensaje de imagen recibido:', {
+          type: data.message.type,
+          content: data.message.content,
+          mediaUrl: data.message.mediaUrl,
+          metadata: data.message.metadata
+        });
+      }
+      
       const validatedMessage = validateAndTransformMessage(data);
       if (validatedMessage) {
         addMessage(data.conversationId, validatedMessage);
@@ -212,15 +270,62 @@ export const useConversationSync = () => {
           status: 'received' as const
         };
         
-        updateConversation(data.conversationId, {
+        // NUEVO: Extraer información del contacto del mensaje si está disponible
+        const contactInfo = data.message.metadata?.contact;
+        const conversationUpdates: any = {
           lastMessage,
           lastMessageAt: validatedMessage.createdAt
-        });
+        };
+
+        // Actualizar información del contacto si está disponible en el mensaje
+        if (contactInfo) {
+          if (contactInfo.profileName) {
+            conversationUpdates.customerName = contactInfo.profileName;
+            conversationUpdates.contact = {
+              name: contactInfo.profileName,
+              phoneNumber: contactInfo.phoneNumber || data.message.senderIdentifier
+            };
+          }
+          if (contactInfo.phoneNumber) {
+            conversationUpdates.customerPhone = contactInfo.phoneNumber;
+          }
+        }
+
+        // NUEVO: Si es una conversación nueva, crearla en lugar de actualizarla
+        if (data.isNewConversation) {
+          // Crear nueva conversación con los datos del mensaje
+          const newConversation: Conversation = {
+            id: data.conversationId,
+            customerName: contactInfo?.profileName || 'Cliente sin nombre',
+            customerPhone: contactInfo?.phoneNumber || data.message.senderIdentifier,
+            contact: {
+              name: contactInfo?.profileName || 'Cliente sin nombre',
+              phoneNumber: contactInfo?.phoneNumber || data.message.senderIdentifier
+            },
+            status: 'open',
+            messageCount: 1,
+            unreadCount: 1,
+            participants: [data.message.senderIdentifier, 'admin@company.com'],
+            tenantId: 'default_tenant',
+            workspaceId: 'default_workspace',
+            createdAt: validatedMessage.createdAt,
+            updatedAt: validatedMessage.createdAt,
+            lastMessageAt: validatedMessage.createdAt,
+            lastMessage,
+            priority: 'normal',
+            tags: []
+          };
+          
+          addConversation(newConversation);
+          infoLog(`🆕 Nueva conversación creada: ${data.conversationId}`);
+        } else {
+          updateConversation(data.conversationId, conversationUpdates);
+        }
         
         infoLog(`🎯 Mensaje de webhook procesado: ${data.conversationId} - ${validatedMessage.content.substring(0, 50)}...`);
       }
     }
-  }, [addMessage, updateConversation]);
+  }, [addMessage, updateConversation, addConversation]);
 
   // ESCUCHAR EVENTOS DE CONVERSACIÓN - OPTIMIZADO PARA EVITAR RECONEXIONES
   useEffect(() => {

@@ -86,15 +86,15 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
   useEffect(() => {
     if (member && isOpen) {
       setFormData({
-        name: member.fullName || '',
+        name: member.name || '',
         email: member.email || '',
         password: '',
         role: member.role || '',
         permissions: {
-          read: member.permissions?.some(p => p.name === 'read') || false,
-          write: member.permissions?.some(p => p.name === 'write') || false,
-          approve: member.permissions?.some(p => p.name === 'approve') || false,
-          configure: member.permissions?.some(p => p.name === 'configure') || false
+          read: member.permissions?.read || false,
+          write: member.permissions?.write || false,
+          approve: member.permissions?.approve || false,
+          configure: member.permissions?.configure || false
         },
         notifications: {
           email: true,
@@ -188,7 +188,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-gray-900">
-              Editar Agente: {member?.fullName}
+              Editar Agente: {member?.name}
             </h2>
             <button
               onClick={onClose}
@@ -222,7 +222,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 no-scrollbar">
+        <div className="flex-1 overflow-y-auto p-6 scrollbar-medium">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Tab: Perfil */}
             {activeTab === 'profile' && (

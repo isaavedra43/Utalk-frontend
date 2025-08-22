@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { TeamMember } from '../../../types/team';
 import { EditAgentModal } from './EditAgentModal';
 import { logger, LogCategory } from '../../../utils/logger';
+import { teamService } from '../services/teamService';
 
 interface TeamMemberDetailsProps {
   member: TeamMember;
@@ -49,12 +50,46 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
 
   const handleUpdateAgent = async (agentData: EditAgentData) => {
     try {
-      // Implementar actualización del agente
-      logger.systemInfo('Updating agent', { agentData });
+      logger.systemInfo('Iniciando actualización de agente', { 
+        agentId: member.id,
+        agentName: agentData.name 
+      });
+
+      // Preparar datos para la API - Simplificados para debug
+      const updateData: any = {
+        name: agentData.name,
+        email: agentData.email,
+        role: agentData.role
+      };
+
+      // Solo enviar permisos si están definidos
+      if (agentData.permissions) {
+        updateData.permissions = agentData.permissions;
+      }
+
+      // Si hay contraseña, agregarla
+      if (agentData.password.trim()) {
+        updateData.password = agentData.password;
+      }
+
       // Llamar API para actualizar agente
+      // Intentar con el email como ID ya que parece ser el identificador principal
+      await teamService.updateAgent(member.email, updateData);
+      
+      logger.systemInfo('Agente actualizado exitosamente', { 
+        agentId: member.id,
+        agentName: agentData.name 
+      });
+
+      // Refrescar la lista de agentes
       onRefresh();
+      
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al actualizar agente';
       logger.error(LogCategory.SYSTEM, 'Error updating agent', error as Error);
+      
+      // Mostrar error al usuario
+      alert(`Error al actualizar agente: ${errorMessage}`);
     }
   };
 
@@ -71,11 +106,11 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-xl">
-              {member.fullName?.charAt(0) || 'U'}
+              {member.avatar || member.name?.charAt(0) || 'U'}
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">{member.fullName}</h2>
-              <p className="text-gray-600">{member.role}</p>
+              <h2 className="text-2xl font-bold text-gray-900">{member.name}</h2>
+              <p className="text-gray-600 capitalize">{member.role}</p>
               <p className="text-sm text-gray-500">{member.email}</p>
             </div>
           </div>
@@ -112,7 +147,7 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-6 overflow-y-auto">
+      <div className="flex-1 p-6 overflow-y-auto scrollbar-medium">
         {activeTab === 'overview' && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -122,22 +157,22 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
                   <div>
                     <span className="text-sm font-medium text-gray-500">Estado:</span>
                     <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
-                      member.status === 'active' 
+                      member.isActive 
                         ? 'bg-green-100 text-green-800' 
                         : 'bg-red-100 text-red-800'
                     }`}>
-                      {member.status === 'active' ? 'Activo' : 'Inactivo'}
+                      {member.isActive ? 'Activo' : 'Inactivo'}
                     </span>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-gray-500">Última actividad:</span>
+                    <span className="text-sm font-medium text-gray-500">Creado:</span>
                     <span className="ml-2 text-sm text-gray-900">
-                      {member.lastSeen ? new Date(member.lastSeen).toLocaleDateString() : 'N/A'}
+                      {member.createdAt ? new Date(member.createdAt).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-500">Chats atendidos:</span>
-                    <span className="ml-2 text-sm text-gray-900">{member.performanceMetrics.chatsAttended || 0}</span>
+                    <span className="ml-2 text-sm text-gray-900">{member.performance?.totalChats || 0}</span>
                   </div>
                 </div>
               </div>
@@ -145,15 +180,17 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
               <div className="bg-white p-6 rounded-lg border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Permisos</h3>
                 <div className="space-y-2">
-                  {member.permissions?.map((permission, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <span className="text-sm text-gray-700">{permission.displayName}</span>
+                  {member.permissions && Object.entries(member.permissions).map(([key, isActive]) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <span className="text-sm text-gray-700 capitalize">
+                        {key === 'read' ? 'Leer' : key === 'write' ? 'Escribir' : key === 'approve' ? 'Aprobar' : 'Configurar'}
+                      </span>
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        permission.isActive 
+                        isActive 
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-red-100 text-red-800'
                       }`}>
-                        {permission.isActive ? 'Activo' : 'Inactivo'}
+                        {isActive ? 'Activo' : 'Inactivo'}
                       </span>
                     </div>
                   ))}
@@ -165,15 +202,15 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
                 <div className="space-y-3">
                   <div>
                     <span className="text-sm font-medium text-gray-500">Tiempo de respuesta:</span>
-                    <span className="ml-2 text-sm text-gray-900">{member.performanceMetrics.averageResponseTime || 'N/A'}</span>
+                    <span className="ml-2 text-sm text-gray-900">{member.performance?.responseTime || 'N/A'}</span>
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-500">Satisfacción:</span>
-                    <span className="ml-2 text-sm text-gray-900">{member.performanceMetrics.csatScore || 0}%</span>
+                    <span className="ml-2 text-sm text-gray-900">{member.performance?.csat || 0}</span>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-gray-500">Mensajes:</span>
-                    <span className="ml-2 text-sm text-gray-900">{member.performanceMetrics.messagesReplied || 0}</span>
+                    <span className="text-sm font-medium text-gray-500">Conversión:</span>
+                    <span className="ml-2 text-sm text-gray-900">{member.performance?.conversionRate || 0}%</span>
                   </div>
                 </div>
               </div>
@@ -185,17 +222,17 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="bg-white p-6 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Mensajes</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Chats</h3>
                 <div className="text-3xl font-bold text-blue-600 mb-2">
-                  {member.performanceMetrics.messagesReplied || 0}
+                  {member.performance?.totalChats || 0}
                 </div>
-                <p className="text-sm text-gray-600">Total respondidos</p>
+                <p className="text-sm text-gray-600">Total atendidos</p>
               </div>
 
               <div className="bg-white p-6 rounded-lg border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Tiempo de Respuesta</h3>
                 <div className="text-3xl font-bold text-green-600 mb-2">
-                  {member.performanceMetrics.averageResponseTime || 'N/A'}
+                  {member.performance?.responseTime || 'N/A'}
                 </div>
                 <p className="text-sm text-gray-600">Promedio</p>
               </div>
@@ -203,17 +240,17 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
               <div className="bg-white p-6 rounded-lg border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Satisfacción</h3>
                 <div className="text-3xl font-bold text-yellow-600 mb-2">
-                  {member.performanceMetrics.csatScore || 0}%
+                  {member.performance?.csat || 0}
                 </div>
-                <p className="text-sm text-gray-600">Cliente</p>
+                <p className="text-sm text-gray-600">CSAT Score</p>
               </div>
 
               <div className="bg-white p-6 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Conversaciones</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Conversión</h3>
                 <div className="text-3xl font-bold text-purple-600 mb-2">
-                  {member.performanceMetrics.chatsAttended || 0}
+                  {member.performance?.conversionRate || 0}%
                 </div>
-                <p className="text-sm text-gray-600">Atendidas</p>
+                <p className="text-sm text-gray-600">Tasa de conversión</p>
               </div>
             </div>
           </div>

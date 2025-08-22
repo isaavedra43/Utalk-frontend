@@ -1,45 +1,37 @@
 import React, { useState } from 'react';
-
-interface Permissions {
-  read: boolean;
-  write: boolean;
-  approve: boolean;
-  configure: boolean;
-}
+import type { CreateAgentRequest } from '../../../types/team';
 
 interface CreateAgentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (agentData: {
-    name: string;
-    email: string;
-    password: string;
-    permissions: Permissions;
-  }) => void;
+  onSubmit: (agentData: CreateAgentRequest) => Promise<void>;
+  loading?: boolean;
 }
 
 const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
   isOpen,
   onClose,
-  onSubmit
+  onSubmit,
+  loading = false
 }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: '',
-    confirmPassword: ''
+    role: 'agent' as const,
+    phone: ''
   });
 
-  const [permissions, setPermissions] = useState<Permissions>({
-    read: false,
-    write: false,
+  const [permissions, setPermissions] = useState({
+    read: true,
+    write: true,
     approve: false,
     configure: false
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -54,7 +46,7 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
     }
   };
 
-  const handlePermissionChange = (permission: keyof Permissions) => {
+  const handlePermissionChange = (permission: keyof typeof permissions) => {
     setPermissions(prev => ({
       ...prev,
       [permission]: !prev[permission]
@@ -66,72 +58,82 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
 
     if (!formData.name.trim()) {
       newErrors.name = 'El nombre es requerido';
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = 'El nombre debe tener al menos 2 caracteres';
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'El correo es requerido';
+      newErrors.email = 'El correo electrónico es requerido';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'El correo no es válido';
+      newErrors.email = 'El correo electrónico no es válido';
     }
 
-    if (!formData.password) {
-      newErrors.password = 'La contraseña es requerida';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Las contraseñas no coinciden';
+    if (formData.phone && !/^\+?[\d\s\-\(\)]+$/.test(formData.phone)) {
+      newErrors.phone = 'El formato del teléfono no es válido';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (validateForm()) {
-      onSubmit({
-        name: formData.name.trim(),
-        email: formData.email.trim(),
-        password: formData.password,
-        permissions
-      });
+    if (validateForm() && !isSubmitting) {
+      setIsSubmitting(true);
       
-      // Resetear formulario
+      try {
+        const agentData: CreateAgentRequest = {
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          role: formData.role,
+          phone: formData.phone.trim() || undefined,
+          permissions
+        };
+        
+        await onSubmit(agentData);
+        
+        // Resetear formulario
+        setFormData({
+          name: '',
+          email: '',
+          role: 'agent',
+          phone: ''
+        });
+        setPermissions({
+          read: true,
+          write: true,
+          approve: false,
+          configure: false
+        });
+        setErrors({});
+        onClose();
+      } catch (error) {
+        // El error se maneja en el componente padre
+        console.error('Error creating agent:', error);
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  const handleClose = () => {
+    if (!isSubmitting) {
       setFormData({
         name: '',
         email: '',
-        password: '',
-        confirmPassword: ''
+        role: 'agent',
+        phone: ''
       });
       setPermissions({
-        read: false,
-        write: false,
+        read: true,
+        write: true,
         approve: false,
         configure: false
       });
       setErrors({});
       onClose();
     }
-  };
-
-  const handleClose = () => {
-    setFormData({
-      name: '',
-      email: '',
-      password: '',
-      confirmPassword: ''
-    });
-    setPermissions({
-      read: false,
-      write: false,
-      approve: false,
-      configure: false
-    });
-    setErrors({});
-    onClose();
   };
 
   if (!isOpen) return null;
@@ -176,6 +178,7 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
                   errors.name ? 'border-red-300' : 'border-gray-300'
                 }`}
                 placeholder="Ej: María García López"
+                disabled={isSubmitting}
               />
               {errors.name && (
                 <p className="mt-1 text-sm text-red-600">{errors.name}</p>
@@ -197,52 +200,54 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
                   errors.email ? 'border-red-300' : 'border-gray-300'
                 }`}
                 placeholder="maria.garcia@empresa.com"
+                disabled={isSubmitting}
               />
               {errors.email && (
                 <p className="mt-1 text-sm text-red-600">{errors.email}</p>
               )}
             </div>
 
-            {/* Contraseña */}
+            {/* Rol */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Contraseña *
+              <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+                Rol *
               </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
+              <select
+                id="role"
+                name="role"
+                value={formData.role}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                  errors.password ? 'border-red-300' : 'border-gray-300'
-                }`}
-                placeholder="Mínimo 6 caracteres"
-              />
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-              )}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                disabled={isSubmitting}
+              >
+                <option value="agent">Agente</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="admin">Administrador</option>
+                <option value="viewer">Visualizador</option>
+              </select>
             </div>
 
-            {/* Confirmar contraseña */}
+            {/* Teléfono */}
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                Confirmar contraseña *
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                Teléfono
               </label>
               <input
-                type="password"
-                id="confirmPassword"
-                name="confirmPassword"
-                value={formData.confirmPassword}
+                type="tel"
+                id="phone"
+                name="phone"
+                value={formData.phone}
                 onChange={handleInputChange}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                  errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
+                  errors.phone ? 'border-red-300' : 'border-gray-300'
                 }`}
-                placeholder="Repite la contraseña"
+                placeholder="+52 1 477 123 4567"
+                disabled={isSubmitting}
               />
-              {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+              {errors.phone && (
+                <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
               )}
+              <p className="mt-1 text-xs text-gray-500">Opcional. Formato internacional recomendado.</p>
             </div>
           </div>
 
@@ -334,15 +339,27 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isSubmitting}
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              disabled={isSubmitting}
             >
-              Crear Agente
+              {isSubmitting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creando...
+                </>
+              ) : (
+                '+ Nuevo Agente'
+              )}
             </button>
           </div>
         </form>
