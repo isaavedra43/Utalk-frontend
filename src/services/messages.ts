@@ -17,13 +17,15 @@ export const messagesService = {
     // SOLUCIÓN CRÍTICA: Codificar el conversationId para preservar los +
     const encodedConversationId = encodeConversationIdForUrl(conversationId);
     
-    const queryParams = new URLSearchParams({
-      conversationId: encodedConversationId, // Usar el ID codificado
-      limit: params.limit?.toString() || '50',
-      ...(params.cursor && { cursor: params.cursor }),
-      ...(params.before && { before: params.before }),
-      ...(params.after && { after: params.after })
-    });
+    // SOLUCIÓN CRÍTICA: Usar URLSearchParams correctamente
+    // encodeConversationIdForUrl ya hace la codificación con encodeURIComponent
+    const queryParams = new URLSearchParams();
+    queryParams.set('conversationId', encodedConversationId);
+    queryParams.set('limit', params.limit?.toString() || '50');
+    
+    if (params.cursor) queryParams.set('cursor', params.cursor);
+    if (params.before) queryParams.set('before', params.before);
+    if (params.after) queryParams.set('after', params.after);
 
     // SOLUCIÓN CRÍTICA: Usar el endpoint correcto según el backend
     // Backend espera: GET /api/messages?conversationId={conversationId}&limit=50

@@ -212,9 +212,9 @@ export const sanitizeConversationId = (conversationId: string): string | null =>
 
 /**
  * Codifica un ID de conversación para uso en URLs
- * CORREGIDO: NO codificar el + para que el backend lo reconozca correctamente
+ * CORREGIDO: Usar encodeURIComponent para preservar los símbolos + correctamente
  * @param conversationId - El ID de conversación a codificar
- * @returns El ID sin codificar para URL
+ * @returns El ID codificado para URL
  */
 export const encodeConversationIdForUrl = (conversationId: string): string => {
   const sanitized = sanitizeConversationId(conversationId);
@@ -222,13 +222,12 @@ export const encodeConversationIdForUrl = (conversationId: string): string => {
     throw new Error(`ID de conversación inválido para codificación: ${conversationId}`);
   }
   
-  // SOLUCIÓN CRÍTICA: NO codificar el + para que el backend lo reconozca
-  // El backend espera conv_+5214773790184_+5214793176502, NO conv_%2B5214773790184_%2B5214793176502
-  const encoded = sanitized; // Retornar sin codificar
+  // SOLUCIÓN CRÍTICA: Usar encodeURIComponent para preservar los símbolos +
+  // Esto convierte + en %2B, que es lo que necesitamos para URLs
+  const encoded = encodeURIComponent(sanitized);
   
-  infoLog('�� ID de conversación codificado correctamente en URL | Data:', {
+  infoLog('🔗 ID de conversación codificado correctamente en URL | Data:', {
     originalId: conversationId,
-
     sanitizedId: sanitized,
     encodedId: encoded,
     method: 'encodeConversationIdForUrl'

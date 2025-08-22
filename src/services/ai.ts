@@ -45,16 +45,17 @@ export const aiService = {
 
 
 
-  // Obtener sugerencias
+  // Obtener sugerencias de IA para una conversación
   async getSuggestions(conversationId: string, params: {
     limit?: number;
     status?: string;
   } = {}): Promise<AISuggestion[]> {
     const encodedConversationId = encodeConversationIdForUrl(conversationId);
-    const queryParams = new URLSearchParams({
-      limit: params.limit?.toString() || '10',
-      status: params.status || ''
-    });
+    
+    // SOLUCIÓN CRÍTICA: Usar URLSearchParams correctamente
+    const queryParams = new URLSearchParams();
+    queryParams.set('limit', params.limit?.toString() || '10');
+    queryParams.set('status', params.status || '');
 
     const response = await api.get(`${AI_API}/suggestions/${encodedConversationId}?${queryParams}`);
     return response.data;
