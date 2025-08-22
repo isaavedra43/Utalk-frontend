@@ -1,8 +1,10 @@
 export { ChatArea } from './ChatArea';
 export { ChatComponent } from './ChatComponent';
 export { ChatHeader } from './ChatHeader';
+export { ChatSearchModal } from './ChatSearchModal';
 export { ConversationItem } from './ConversationItem';
 export { ConversationList } from './ConversationList';
+export { ConversationFilesModal } from './ConversationFilesModal';
 export { EmojiPicker } from './EmojiPicker';
 export { MessageBubble } from './MessageBubble';
 export { MessageContainer } from './MessageContainer';

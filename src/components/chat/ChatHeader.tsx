@@ -1,19 +1,28 @@
 import React, { useEffect, useState } from 'react';
-import { MoreVertical, Phone, User } from 'lucide-react';
-import type { Conversation } from '../../types';
+import { MoreVertical, Phone, User, FolderOpen, Search } from 'lucide-react';
+import type { Conversation, Message } from '../../types';
 import { useClientProfileStore } from '../../stores/useClientProfileStore';
 import type { ClientProfile } from '../../services/clientProfile';
 import { useChatStore } from '../../stores/useChatStore';
 import { chatHeaderLogger } from '../../config/logging';
+import { ConversationFilesModal } from './ConversationFilesModal';
+import { ChatSearchModal } from './ChatSearchModal';
 
 interface ChatHeaderProps {
   conversation: Conversation | null;
+  messages?: Message[]; // Corregir tipo para usar Message
 }
 
-export const ChatHeader: React.FC<ChatHeaderProps> = ({ conversation }) => {
+export const ChatHeader: React.FC<ChatHeaderProps> = ({ conversation, messages = [] }) => {
   // Cargar perfil completo del cliente (nombre/teléfono) como en Detalle de Cliente
   const getProfile = useClientProfileStore((s) => s.getProfile);
   const [profile, setProfile] = useState<ClientProfile | null>(null);
+  
+  // Estado para el modal de archivos
+  const [isFilesModalOpen, setIsFilesModalOpen] = useState(false);
+  
+  // Estado para el modal de búsqueda
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
   // También tomar el id de la conversación activa del store (más estable)
   const activeConversation = useChatStore((s) => s.activeConversation);
@@ -128,6 +137,25 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ conversation }) => {
           <button className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
             <Phone className="w-4 h-4" />
           </button>
+          
+          {/* Icono de archivos */}
+          <button 
+            onClick={() => setIsFilesModalOpen(true)}
+            className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Ver archivos de la conversación"
+          >
+            <FolderOpen className="w-4 h-4" />
+          </button>
+          
+          {/* Icono de búsqueda */}
+          <button 
+            onClick={() => setIsSearchModalOpen(true)}
+            className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Buscar en la conversación"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+          
           <button className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
             <MoreVertical className="w-4 h-4" />
           </button>
@@ -147,6 +175,21 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ conversation }) => {
           ))}
         </div>
       )}
+
+      {/* Modal de archivos */}
+      <ConversationFilesModal
+        isOpen={isFilesModalOpen}
+        onClose={() => setIsFilesModalOpen(false)}
+        conversationId={profileConversationId}
+        messages={messages}
+      />
+
+      {/* Modal de búsqueda */}
+      <ChatSearchModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        messages={messages}
+      />
     </div>
   );
 }; 

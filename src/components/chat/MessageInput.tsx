@@ -180,68 +180,75 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       />
 
       {/* Input de mensaje */}
-      <div className="flex items-end space-x-2">
-        {/* Botón de adjuntar archivo */}
-        <FileUploadManager
-          onFilesAdded={handleFilesAdded}
-          conversationId={conversationId}
-        />
+      <div className="flex items-end gap-2">
+        {/* Contenedor visual del input */}
+        <div className="flex-1">
+          <div className="group flex w-full items-end gap-2 rounded-2xl border border-gray-300 bg-white px-3 py-2 shadow-sm focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-200 transition-all">
+            {/* Área de texto */}
+            <div className="relative flex-1">
+              <textarea
+                ref={inputRef}
+                value={currentValue}
+                onChange={handleInputChange}
+                onBlur={handleBlur}
+                onKeyPress={handleKeyPress}
+                placeholder={placeholder}
+                disabled={disabled || isSending}
+                className="w-full bg-transparent px-1 py-1 text-gray-900 placeholder-gray-400 outline-none resize-none disabled:text-gray-400 disabled:cursor-not-allowed"
+                rows={1}
+                maxLength={1000}
+              />
+              {/* Contador */}
+              <div className="absolute -bottom-5 right-0 text-[10px] text-gray-400">
+                {currentValue.length}/1000
+              </div>
+            </div>
 
-        {/* Botón de grabación de audio */}
-        <button
-          onClick={() => setShowAudioRecorder(!showAudioRecorder)}
-          className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-full transition-all duration-200"
-          title="Grabar audio"
-        >
-          <Mic className="w-3.5 h-3.5" />
-        </button>
+            {/* Iconos alineados a la derecha */}
+            <div className="flex items-center gap-1">
+              {/* Botón de adjuntar archivo */}
+              <FileUploadManager
+                onFilesAdded={handleFilesAdded}
+                conversationId={conversationId}
+              />
 
-        {/* Botón de ubicación */}
-        <button
-          className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-full transition-all duration-200"
-          title="Enviar ubicación"
-        >
-          <MapPin className="w-3.5 h-3.5" />
-        </button>
+              {/* Botón de audio */}
+              <button
+                onClick={() => setShowAudioRecorder(!showAudioRecorder)}
+                className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                title="Grabar audio"
+              >
+                <Mic className="w-4 h-4" />
+              </button>
 
-        {/* Input de texto */}
-        <div className="flex-1 relative">
-          <textarea
-            ref={inputRef}
-            value={currentValue}
-            onChange={handleInputChange}
-            onBlur={handleBlur}
-            onKeyPress={handleKeyPress}
-            placeholder={placeholder}
-            disabled={disabled || isSending}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-            rows={1}
-            maxLength={1000}
-          />
-          
-          {/* Contador de caracteres */}
-          <div className="absolute bottom-1 right-2 text-xs text-gray-400">
-            {currentValue.length}/1000
+              {/* Botón de ubicación */}
+              <button
+                className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                title="Enviar ubicación"
+              >
+                <MapPin className="w-4 h-4" />
+              </button>
+
+              {/* Botón de emojis */}
+              <button
+                onClick={() => setShowStickerPicker(!showStickerPicker)}
+                className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                title="Emojis"
+              >
+                <Smile className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
-
-        {/* Botón de emojis */}
-        <button
-          onClick={() => setShowStickerPicker(!showStickerPicker)}
-          className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded-full transition-all duration-200"
-          title="Emojis"
-        >
-          <Smile className="w-3.5 h-3.5" />
-        </button>
 
         {/* Botón de enviar */}
         <button
           onClick={handleSend}
           disabled={disabled || isSending || (!currentValue.trim() && pendingFiles.length === 0)}
-          className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:transform-none"
+          className="h-11 w-11 flex items-center justify-center rounded-full bg-blue-600 text-white shadow-sm hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
           title="Enviar mensaje"
         >
-          <Send className="w-4 h-4" />
+          <Send className="w-5 h-5" />
         </button>
       </div>
 

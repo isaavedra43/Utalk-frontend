@@ -498,7 +498,10 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
 
   return (
     <div className="chat-container">
-      <ChatHeader conversation={convertConversation(conversation)} />
+      <ChatHeader 
+        conversation={convertConversation(conversation)} 
+        messages={sortedMessages}
+      />
       
       <div className="chat-messages">
         <MessageList 
