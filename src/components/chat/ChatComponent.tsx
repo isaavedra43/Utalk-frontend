@@ -184,9 +184,17 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
           case 'sticker':
           case 'message_with_files': // NUEVO: Agregar soporte para message_with_files
             mappedType = msg.type === 'message_with_files' ? 'image' : msg.type; break;
+          case 'system':
+            // TEMPORAL: Detectar tipo basado en contenido para mensajes system
+            if (msg.mediaUrl || (msg.metadata?.media)) {
+              mappedType = 'image'; // Si tiene mediaUrl, probablemente es imagen
+            } else {
+              mappedType = 'text'; // Si no, es texto
+            }
+            break;
           default:
             // REDUCIR LOGS: Solo log si es un tipo realmente desconocido
-            if (!['text', 'image', 'document', 'location', 'audio', 'voice', 'video', 'sticker', 'message_with_files'].includes(msg.type)) {
+            if (!['text', 'image', 'document', 'location', 'audio', 'voice', 'video', 'sticker', 'message_with_files', 'system'].includes(msg.type)) {
               console.warn('⚠️ convertMessages - Tipo desconocido:', msg.type, 'usando "text"');
             }
             mappedType = 'text';
@@ -194,7 +202,7 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
 
         // Para mensajes de media, usar mediaUrl como contenido si está disponible
         let messageContent = msg.content;
-        if (['image', 'document', 'audio', 'voice', 'video', 'sticker', 'media', 'message_with_files'].includes(msg.type)) {
+        if (['image', 'document', 'audio', 'voice', 'video', 'sticker', 'media', 'message_with_files', 'system'].includes(msg.type)) {
           // Priorizar mediaUrl si está disponible
           if (msg.mediaUrl) {
             messageContent = msg.mediaUrl;
