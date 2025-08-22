@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { modulePermissionsService, UserModulePermissions, ModulePermission } from '../services/modulePermissions';
 import { useAuthStore } from '../stores/useAuthStore';
 import { infoLog } from '../config/logger';
@@ -29,6 +29,11 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
   const [error, setError] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<UserModulePermissions | null>(null);
   const [accessibleModules, setAccessibleModules] = useState<ModulePermission[]>([]);
+  
+  // Refs para controlar logs únicos
+  const permissionsFallbackLogged = useRef(false);
+  const noModulesAccessibleLogged = useRef(false);
+  const invalidPermissionStructureLogged = useRef(false);
 
   // Cargar permisos del usuario actual
   const loadPermissions = useCallback(async () => {
@@ -84,18 +89,29 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
   const canAccessModule = useCallback((moduleId: string): boolean => {
     // Si no hay permisos cargados o hay error, permitir acceso (fallback)
     if (!permissions) {
-      infoLog('No hay permisos cargados, permitiendo acceso a módulo', { moduleId });
+      // Log solo una vez por hook para evitar spam
+      if (!permissionsFallbackLogged.current) {
+        infoLog('No hay permisos cargados, usando fallback para todos los módulos');
+        permissionsFallbackLogged.current = true;
+      }
       return true;
     }
     
     // Si no hay módulos accesibles definidos, permitir acceso (fallback)
     if (!accessibleModules || accessibleModules.length === 0) {
-      infoLog('No hay módulos accesibles definidos, permitiendo acceso a módulo', { moduleId });
+      // Log solo una vez por hook para evitar spam
+      if (!noModulesAccessibleLogged.current) {
+        infoLog('No hay módulos accesibles definidos, permitiendo acceso a todos los módulos');
+        noModulesAccessibleLogged.current = true;
+      }
       return true;
     }
     
     const hasAccess = accessibleModules.some(module => module.id === moduleId);
-    infoLog('Verificación de acceso a módulo', { moduleId, hasAccess, accessibleModules });
+    // Log solo para módulos específicos y con menos frecuencia
+    if (!hasAccess) {
+      infoLog('Acceso denegado a módulo', { moduleId, accessibleModules: accessibleModules.map(m => m.id) });
+    }
     
     return hasAccess;
   }, [permissions, accessibleModules]);
@@ -109,7 +125,14 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
     
     // Validación robusta de la estructura de permisos
     if (!permissions.permissions || !permissions.permissions.modules) {
-      infoLog('Estructura de permisos inválida, usando fallback', { permissions });
+      // Log solo una vez por hook para evitar spam
+      if (!invalidPermissionStructureLogged.current) {
+        infoLog('Estructura de permisos inválida, usando fallback', { 
+          hasPermissions: !!permissions.permissions,
+          hasModules: !!permissions.permissions?.modules 
+        });
+        invalidPermissionStructureLogged.current = true;
+      }
       return true; // Fallback: permitir acceso
     }
     
