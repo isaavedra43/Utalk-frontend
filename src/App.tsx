@@ -83,6 +83,15 @@ const ClientsPage: React.FC = () => {
   );
 };
 
+// Componente para el módulo de notificaciones
+const NotificationsPage: React.FC = () => {
+  return (
+    <ErrorBoundary>
+      <MainLayout />
+    </ErrorBoundary>
+  );
+};
+
 
 
 function App() {
@@ -136,6 +145,16 @@ function App() {
                   <AuthProtectedRoute>
                     <ProtectedRoute moduleId="clients">
                       <ClientsPage />
+                    </ProtectedRoute>
+                  </AuthProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/notifications" 
+                element={
+                  <AuthProtectedRoute>
+                    <ProtectedRoute moduleId="notifications">
+                      <NotificationsPage />
                     </ProtectedRoute>
                   </AuthProtectedRoute>
                 } 
