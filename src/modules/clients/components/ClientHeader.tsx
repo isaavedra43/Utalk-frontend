@@ -5,9 +5,11 @@ import {
   Grid3X3, 
   List, 
   MapPin, 
-  RefreshCw
+  RefreshCw,
+  Search,
+  X
 } from 'lucide-react';
-import { ClientSearch } from './ClientSearch';
+// import { ClientSearch } from './ClientSearch'; // ❌ TEMPORALMENTE DESHABILITADO
 import type { Client } from '../../../types/client';
 
 interface ClientHeaderProps {
@@ -48,15 +50,32 @@ export const ClientHeader: React.FC<ClientHeaderProps> = ({
             Customer Hub
           </h1>
 
-          {/* Barra de búsqueda */}
-          <ClientSearch
-            value={searchValue}
-            onSearch={onSearch}
-            onClear={() => onSearch('')}
-            placeholder="Buscar clientes, empresas..."
-            clients={clients}
-            loading={loading}
-          />
+          {/* Barra de búsqueda - TEMPORALMENTE SIMPLIFICADA */}
+          <div className="relative flex-1 max-w-md">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <input
+                type="text"
+                placeholder="Buscar clientes, empresas..."
+                value={searchValue}
+                onChange={(e) => onSearch(e.target.value)}
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-colors bg-white"
+              />
+              {searchValue && (
+                <button
+                  onClick={() => onSearch('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+              {loading && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Lado derecho - Botones de acción */}

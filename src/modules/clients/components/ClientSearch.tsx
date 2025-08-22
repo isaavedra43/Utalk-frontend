@@ -34,61 +34,70 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Generar sugerencias basadas en el valor de búsqueda (optimizado)
-  const generateSuggestions = useCallback((searchValue: string) => {
-    if (!searchValue.trim() || searchValue.length < 2) {
+  // Generar sugerencias basadas en el valor de búsqueda (ULTRA OPTIMIZADO)
+  useEffect(() => {
+    // Evitar re-renders durante la generación de sugerencias
+    if (!value.trim() || value.length < 2) {
       setSuggestions([]);
+      setSelectedIndex(-1);
       return;
     }
 
-    const searchTerm = searchValue.toLowerCase();
+    const searchTerm = value.toLowerCase();
     const newSuggestions: SearchSuggestion[] = [];
 
-    // Buscar en nombres de clientes
-    clients.forEach(client => {
-      if (client.name.toLowerCase().includes(searchTerm)) {
-        newSuggestions.push({
-          type: 'client',
-          value: client.name,
-          display: `${client.name} - ${client.company}`,
-          client
-        });
-      }
+    // Buscar en nombres de clientes solo si hay clientes
+    if (clients && clients.length > 0) {
+      clients.forEach(client => {
+        // Verificar que el cliente tenga las propiedades necesarias
+        if (!client || typeof client.name !== 'string') return;
 
-      // Buscar en nombres de empresas
-      if (client.company.toLowerCase().includes(searchTerm)) {
-        newSuggestions.push({
-          type: 'company',
-          value: client.company,
-          display: `${client.company} (${client.name})`,
-          client
-        });
-      }
+        if (client.name.toLowerCase().includes(searchTerm)) {
+          newSuggestions.push({
+            type: 'client',
+            value: client.name,
+            display: `${client.name} - ${client.company || ''}`,
+            client
+          });
+        }
 
-      // Buscar en emails
-      if (client.email.toLowerCase().includes(searchTerm)) {
-        newSuggestions.push({
-          type: 'email',
-          value: client.email,
-          display: `${client.email} - ${client.name}`,
-          client
-        });
-      }
-    });
+        // Buscar en nombres de empresas
+        if (client.company && client.company.toLowerCase().includes(searchTerm)) {
+          newSuggestions.push({
+            type: 'company',
+            value: client.company,
+            display: `${client.company} (${client.name})`,
+            client
+          });
+        }
+
+        // Buscar en emails
+        if (client.email && client.email.toLowerCase().includes(searchTerm)) {
+          newSuggestions.push({
+            type: 'email',
+            value: client.email,
+            display: `${client.email} - ${client.name}`,
+            client
+          });
+        }
+      });
+    }
 
     // Eliminar duplicados y limitar a 8 sugerencias
     const uniqueSuggestions = newSuggestions.filter((suggestion, index, self) => 
       index === self.findIndex(s => s.value === suggestion.value)
     ).slice(0, 8);
 
-    setSuggestions(uniqueSuggestions);
+    // Solo actualizar si las sugerencias han cambiado realmente
+    setSuggestions(prev => {
+      if (prev.length !== uniqueSuggestions.length) return uniqueSuggestions;
+      const hasChanged = prev.some((prevSugg, index) => 
+        prevSugg.value !== uniqueSuggestions[index]?.value
+      );
+      return hasChanged ? uniqueSuggestions : prev;
+    });
     setSelectedIndex(-1);
-  }, [clients]);
-
-  // Solo re-generar cuando el valor cambie (no cuando clients cambie)
-  useEffect(() => {
-    generateSuggestions(value);
-  }, [value, generateSuggestions]);
+  }, [value]); // ✅ SOLO DEPENDE DE 'value', NO de 'clients'
 
   const handleSuggestionSelect = useCallback((suggestion: SearchSuggestion) => {
     onSearch(suggestion.value);
