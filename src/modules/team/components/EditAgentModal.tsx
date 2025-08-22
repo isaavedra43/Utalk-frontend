@@ -400,7 +400,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
 
             {/* Tab: Permisos de Módulos */}
             {activeTab === 'modulePermissions' && (
-              <div className="space-y-6">
+              <div className="space-y-6 max-h-96 overflow-y-auto scrollbar-medium">
                 {loadingModules ? (
                   <div className="flex items-center justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
