@@ -1,6 +1,6 @@
 import React from 'react';
 import { useModulePermissions } from '../hooks/useModulePermissions';
-import { logger } from '../config/logger';
+import { infoLog } from '../config/logger';
 
 interface ProtectedRouteProps {
   moduleId: string;
@@ -35,7 +35,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   
   // Si no tiene acceso al módulo o al permiso específico
   if (!hasModuleAccess || !hasSpecificPermission) {
-    logger.systemInfo('Acceso denegado a módulo', { 
+    infoLog('Acceso denegado a módulo', { 
       moduleId, 
       requiredAction, 
       hasModuleAccess, 

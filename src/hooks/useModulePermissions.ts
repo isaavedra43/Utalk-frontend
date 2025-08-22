@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { modulePermissionsService, UserModulePermissions, ModulePermission } from '../services/modulePermissions';
 import { useAuthStore } from '../stores/useAuthStore';
-import { logger } from '../config/logger';
+import { infoLog } from '../config/logger';
 
 interface UseModulePermissionsReturn {
   // Estado
@@ -33,7 +33,7 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
   // Cargar permisos del usuario actual
   const loadPermissions = useCallback(async () => {
     if (!user?.email) {
-      logger.systemInfo('No hay usuario autenticado, usando permisos por defecto');
+      infoLog('No hay usuario autenticado, usando permisos por defecto');
       setLoading(false);
       return;
     }
@@ -42,19 +42,19 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
       setLoading(true);
       setError(null);
       
-      logger.systemInfo('Cargando permisos de módulos para usuario', { email: user.email });
+      infoLog('Cargando permisos de módulos para usuario', { email: user.email });
       
       const userPermissions = await modulePermissionsService.getMyPermissions();
       setPermissions(userPermissions);
       setAccessibleModules(userPermissions.accessibleModules || []);
       
-      logger.systemInfo('Permisos cargados exitosamente', { 
+      infoLog('Permisos cargados exitosamente', { 
         accessibleModules: userPermissions.accessibleModules?.length || 0,
         role: userPermissions.role 
       });
       
     } catch (error) {
-      logger.systemInfo('Error cargando permisos, usando fallback', { error });
+      infoLog('Error cargando permisos, usando fallback', { error });
       setError('Error al cargar permisos, usando configuración por defecto');
       
       // FALLBACK SEGURO: Si hay error, mostrar todos los módulos
@@ -109,9 +109,9 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
   const updateUserPermissions = useCallback(async (email: string, permissions: UserModulePermissions['permissions']) => {
     try {
       await modulePermissionsService.updateUserPermissions(email, permissions);
-      logger.systemInfo('Permisos de usuario actualizados', { email });
+      infoLog('Permisos de usuario actualizados', { email });
     } catch (error) {
-      logger.systemInfo('Error actualizando permisos de usuario', { error, email });
+      infoLog('Error actualizando permisos de usuario', { error, email });
       throw error;
     }
   }, []);
@@ -120,9 +120,9 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
   const resetUserPermissions = useCallback(async (email: string) => {
     try {
       await modulePermissionsService.resetUserPermissions(email);
-      logger.systemInfo('Permisos de usuario reseteados', { email });
+      infoLog('Permisos de usuario reseteados', { email });
     } catch (error) {
-      logger.systemInfo('Error reseteando permisos de usuario', { error, email });
+      infoLog('Error reseteando permisos de usuario', { error, email });
       throw error;
     }
   }, []);
