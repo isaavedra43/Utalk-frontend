@@ -32,7 +32,7 @@ export const ClientModule: React.FC = () => {
     updateClient,
     deleteClient
   } = useClients({
-    autoLoad: false, // ❌ TEMPORALMENTE DESHABILITADO PARA EVITAR BUCLES
+    autoLoad: true, // ✅ REACTIVADO - Los bucles ya están solucionados
     pageSize: 20
   });
 
