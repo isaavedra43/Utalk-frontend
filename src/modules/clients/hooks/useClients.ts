@@ -399,19 +399,38 @@ export const useClients = (options: UseClientsOptions = {}) => {
     });
   }, [pageSize]);
 
-  // ✅ CARGAR CLIENTES AUTOMÁTICAMENTE - HABILITADO
+  // ✅ CARGAR CLIENTES AUTOMÁTICAMENTE - HABILITADO (OPTIMIZADO)
   useEffect(() => {
     if (autoLoad) {
       loadClients();
     }
-  }, [autoLoad, loadClients]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoLoad]);
 
-  // ✅ RECARGAR CUANDO CAMBIEN LOS FILTROS
+  // ✅ RECARGAR CUANDO CAMBIEN LOS FILTROS (OPTIMIZADO)
   useEffect(() => {
     if (autoLoad) {
       loadClients();
     }
-  }, [filters, autoLoad, loadClients]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    filters.search, 
+    filters.stages, 
+    filters.agents, 
+    filters.sources, 
+    filters.segments,
+    filters.aiScoreMin,
+    filters.aiScoreMax,
+    filters.valueMin,
+    filters.valueMax,
+    filters.probabilityMin,
+    filters.probabilityMax,
+    filters.page,
+    filters.limit,
+    filters.sortBy,
+    filters.sortOrder,
+    autoLoad
+  ]);
 
   // Verificar si hay filtros activos
   const hasFilters = useMemo(() => {

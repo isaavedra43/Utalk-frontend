@@ -34,14 +34,14 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Generar sugerencias basadas en el valor de búsqueda
-  useEffect(() => {
-    if (!value.trim() || value.length < 2) {
+  // Generar sugerencias basadas en el valor de búsqueda (optimizado)
+  const generateSuggestions = useCallback((searchValue: string) => {
+    if (!searchValue.trim() || searchValue.length < 2) {
       setSuggestions([]);
       return;
     }
 
-    const searchTerm = value.toLowerCase();
+    const searchTerm = searchValue.toLowerCase();
     const newSuggestions: SearchSuggestion[] = [];
 
     // Buscar en nombres de clientes
@@ -83,7 +83,12 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({
 
     setSuggestions(uniqueSuggestions);
     setSelectedIndex(-1);
-  }, [value, clients]);
+  }, [clients]);
+
+  // Solo re-generar cuando el valor cambie (no cuando clients cambie)
+  useEffect(() => {
+    generateSuggestions(value);
+  }, [value, generateSuggestions]);
 
   const handleSuggestionSelect = useCallback((suggestion: SearchSuggestion) => {
     onSearch(suggestion.value);
