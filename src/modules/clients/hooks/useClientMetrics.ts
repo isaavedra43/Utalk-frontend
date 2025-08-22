@@ -21,47 +21,64 @@ export const useClientMetrics = (options: UseClientMetricsOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // ✅ CARGAR MÉTRICAS - HABILITADO
+  // ❌ CARGAR MÉTRICAS - TEMPORALMENTE DESHABILITADO
   const loadMetrics = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      infoLog('Cargando métricas de clientes');
-
-      const metrics = await clientMetricsService.getClientMetrics();
-      
-      // Actualizar métricas en el store
-      setClientData({
-        ...clientData,
-        metrics,
-        clients: clientData?.clients || [],
-        selectedClient: clientData?.selectedClient || null,
-        filters: clientData?.filters || { page: 1, limit: 20, sortBy: 'createdAt', sortOrder: 'desc' },
-        activities: clientData?.activities || {},
-        deals: clientData?.deals || {},
-        recommendations: clientData?.recommendations || {},
-        loading: clientData?.loading || false,
-        loadingActivities: clientData?.loadingActivities || false,
-        loadingDeals: clientData?.loadingDeals || false,
-        error: clientData?.error || null,
-        showFilters: clientData?.showFilters || false,
-        showDetailPanel: clientData?.showDetailPanel || false,
-        currentView: clientData?.currentView || 'list',
-        currentTab: clientData?.currentTab || 'perfil',
-        pagination: clientData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 }
-      });
-
-      setLastUpdated(new Date());
-      infoLog('Métricas de clientes cargadas exitosamente');
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al cargar métricas';
-      setError(errorMessage);
-      infoLog('Error al cargar métricas de clientes', { error: err });
-    } finally {
-      setLoading(false);
-    }
+    // TEMPORALMENTE DESHABILITADO - Las métricas aún no están implementadas en el backend
+    infoLog('Carga de métricas temporalmente deshabilitada - backend en desarrollo');
+    setLoading(false);
+    setError(null);
+    
+    // Establecer métricas mock para evitar errores de UI
+    const mockMetrics = {
+      totalClients: 0,
+      totalValue: 0,
+      totalOpportunities: 0,
+      contactsToContactToday: 0,
+      averageDaysToClose: 0,
+      winRate: 0,
+      projectedRevenue: 0,
+      stageMetrics: {
+        lead: { count: 0, value: 0, averageProbability: 0 },
+        prospect: { count: 0, value: 0, averageProbability: 0 },
+        demo: { count: 0, value: 0, averageProbability: 0 },
+        propuesta: { count: 0, value: 0, averageProbability: 0 },
+        negociacion: { count: 0, value: 0, averageProbability: 0 },
+        ganado: { count: 0, value: 0, averageProbability: 0 },
+        perdido: { count: 0, value: 0, averageProbability: 0 }
+      },
+      agentMetrics: {},
+      sourceMetrics: {},
+      segmentMetrics: {},
+      trends: {
+        newClientsThisMonth: 0,
+        newClientsLastMonth: 0,
+        valueGrowth: 0,
+        winRateChange: 0
+      }
+    };
+    
+    // Actualizar con métricas mock
+    setClientData({
+      ...clientData,
+      metrics: mockMetrics,
+      clients: clientData?.clients || [],
+      selectedClient: clientData?.selectedClient || null,
+      filters: clientData?.filters || { page: 1, limit: 20, sortBy: 'createdAt', sortOrder: 'desc' },
+      activities: clientData?.activities || {},
+      deals: clientData?.deals || {},
+      recommendations: clientData?.recommendations || {},
+      loading: clientData?.loading || false,
+      loadingActivities: clientData?.loadingActivities || false,
+      loadingDeals: clientData?.loadingDeals || false,
+      error: clientData?.error || null,
+      showFilters: clientData?.showFilters || false,
+      showDetailPanel: clientData?.showDetailPanel || false,
+      currentView: clientData?.currentView || 'list',
+      currentTab: clientData?.currentTab || 'perfil',
+      pagination: clientData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 }
+    });
+    
+    setLastUpdated(new Date());
   }, [clientData, setClientData]);
 
   // Refrescar métricas
@@ -173,23 +190,24 @@ export const useClientMetrics = (options: UseClientMetricsOptions = {}) => {
     }
   }, [clientData, setClientData]);
 
-  // ✅ CARGAR MÉTRICAS AUTOMÁTICAMENTE - HABILITADO
+  // ✅ CARGAR MÉTRICAS AUTOMÁTICAMENTE - HABILITADO (CON MOCK DATA)
   useEffect(() => {
     if (autoLoad) {
       loadMetrics();
     }
   }, [autoLoad, loadMetrics]);
 
-  // ✅ CONFIGURAR INTERVALO DE ACTUALIZACIÓN - HABILITADO
+  // ❌ CONFIGURAR INTERVALO DE ACTUALIZACIÓN - TEMPORALMENTE DESHABILITADO
   useEffect(() => {
+    // TEMPORALMENTE DESHABILITADO - No hacer peticiones automáticas al backend
     if (autoLoad && refreshInterval > 0) {
-      const interval = setInterval(() => {
-        loadMetrics();
-      }, refreshInterval);
-
-      return () => clearInterval(interval);
+      infoLog('Intervalo de métricas temporalmente deshabilitado - backend en desarrollo');
+      // const interval = setInterval(() => {
+      //   loadMetrics();
+      // }, refreshInterval);
+      // return () => clearInterval(interval);
     }
-  }, [autoLoad, refreshInterval, loadMetrics]);
+  }, [autoLoad, refreshInterval]);
 
   // Calcular KPIs derivados
   const calculatedKPIs = {

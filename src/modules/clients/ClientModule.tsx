@@ -97,10 +97,10 @@ export const ClientModule: React.FC = () => {
 
   const handleRefresh = async () => {
     try {
-      await Promise.all([
-        loadClients(),
-        refreshMetrics()
-      ]);
+      // Solo refrescar clientes por ahora - métricas temporalmente deshabilitadas
+      await loadClients();
+      // refreshMetrics() - TEMPORALMENTE DESHABILITADO
+      infoLog('Datos de clientes refrescados (métricas temporalmente deshabilitadas)');
     } catch (error) {
       infoLog('Error al refrescar datos:', error);
     }
