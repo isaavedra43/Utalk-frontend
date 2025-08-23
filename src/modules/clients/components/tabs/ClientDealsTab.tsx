@@ -68,12 +68,26 @@ export const ClientDealsTab: React.FC<ClientDealsTabProps> = ({
     }).format(amount);
   };
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('es-MX', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    }).format(new Date(date));
+  const formatDate = (date: Date | string | null | undefined) => {
+    if (!date) {
+      return 'Sin fecha';
+    }
+    
+    try {
+      const dateObj = new Date(date);
+      // Verificar si la fecha es válida
+      if (isNaN(dateObj.getTime())) {
+        return 'Fecha inválida';
+      }
+      
+      return new Intl.DateTimeFormat('es-MX', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }).format(dateObj);
+    } catch (error) {
+      return 'Error en fecha';
+    }
   };
 
   const getStageColor = (stage: Deal['stage']) => {

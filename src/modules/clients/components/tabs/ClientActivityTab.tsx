@@ -81,14 +81,28 @@ export const ClientActivityTab: React.FC<ClientActivityTabProps> = ({
 
   const allActivities = activities.length > 0 ? activities : mockActivities;
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('es-MX', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(new Date(date));
+  const formatDate = (date: Date | string | null | undefined) => {
+    if (!date) {
+      return 'Sin fecha';
+    }
+    
+    try {
+      const dateObj = new Date(date);
+      // Verificar si la fecha es válida
+      if (isNaN(dateObj.getTime())) {
+        return 'Fecha inválida';
+      }
+      
+      return new Intl.DateTimeFormat('es-MX', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(dateObj);
+    } catch (error) {
+      return 'Error en fecha';
+    }
   };
 
   const formatTimeAgo = (date: Date) => {
