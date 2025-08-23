@@ -186,7 +186,7 @@ export const useConversationSync = () => {
             updatedAt: validatedMessage.createdAt,
             lastMessageAt: validatedMessage.createdAt,
             lastMessage,
-            priority: 'normal',
+            priority: 'medium',
             tags: []
           };
           
@@ -312,7 +312,7 @@ export const useConversationSync = () => {
             updatedAt: validatedMessage.createdAt,
             lastMessageAt: validatedMessage.createdAt,
             lastMessage,
-            priority: 'normal',
+            priority: 'medium',
             tags: []
           };
           

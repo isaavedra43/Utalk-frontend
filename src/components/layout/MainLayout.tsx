@@ -7,6 +7,7 @@ const ChatModule = lazy(() => import('../chat/ChatModule').then(m => ({ default:
 const DashboardModule = lazy(() => import('../../modules/dashboard').then(m => ({ default: m.DashboardModule })));
 const TeamModule = lazy(() => import('../../modules/team/TeamModule').then(m => ({ default: m.default })));
 const ClientModule = lazy(() => import('../../modules/clients/ClientModule').then(m => ({ default: m.ClientModule })));
+const NotificationsModule = lazy(() => import('../../modules/notifications/NotificationsModule').then(m => ({ default: m.default })));
 
 import { ModulePlaceholder } from './ModulePlaceholder';
 
@@ -61,6 +62,11 @@ export const MainLayout: React.FC = () => {
         {currentModule === 'clients' && (
           <Suspense fallback={Fallback}>
             <ClientModule />
+          </Suspense>
+        )}
+        {currentModule === 'notifications' && (
+          <Suspense fallback={Fallback}>
+            <NotificationsModule />
           </Suspense>
         )}
 

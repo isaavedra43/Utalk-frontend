@@ -28,7 +28,6 @@ export const ClientModule: React.FC = () => {
     totalClients,
     hasFilters,
     loadClients,
-    createClient,
     updateClient,
     deleteClient
   } = useClients({
@@ -167,8 +166,8 @@ export const ClientModule: React.FC = () => {
         </div>
 
         {/* Lista de clientes */}
-        <div className="flex-1 flex min-h-0">
-          <div className={`flex-1 ${showDetailPanel ? 'mr-80' : ''}`}>
+        <div className="flex-1 flex min-h-0 overflow-hidden">
+          <div className={`flex-1 min-w-0 ${showDetailPanel ? 'mr-0' : ''}`}>
             <ClientList
               clients={clients}
               loading={clientsLoading}
@@ -177,7 +176,6 @@ export const ClientModule: React.FC = () => {
               currentView={currentView}
               onClientSelect={handleClientSelect}
               onPageChange={changePage}
-
               onSort={handleSort}
               selectedClient={selectedClient}
               hasFilters={hasFilters}
@@ -187,31 +185,33 @@ export const ClientModule: React.FC = () => {
 
           {/* Panel de detalles del cliente */}
           {showDetailPanel && selectedClient && (
-            <ClientDetailPanel
-              client={selectedClient}
-              onClose={handleCloseDetailPanel}
-              onUpdate={async (updates) => {
-                try {
-                  if (selectedClient) {
-                    const updatedClient = await updateClient(selectedClient.id, updates);
-                    setSelectedClient(updatedClient);
-                    infoLog('Cliente actualizado exitosamente:', updatedClient);
+            <div className="flex-shrink-0">
+              <ClientDetailPanel
+                client={selectedClient}
+                onClose={handleCloseDetailPanel}
+                onUpdate={async (updates) => {
+                  try {
+                    if (selectedClient) {
+                      const updatedClient = await updateClient(selectedClient.id, updates);
+                      setSelectedClient(updatedClient);
+                      infoLog('Cliente actualizado exitosamente:', updatedClient);
+                    }
+                  } catch (error) {
+                    infoLog('Error actualizando cliente:', error);
                   }
-                } catch (error) {
-                  infoLog('Error actualizando cliente:', error);
-                }
-              }}
-              onDelete={async (clientId) => {
-                try {
-                  await deleteClient(clientId);
-                  setShowDetailPanel(false);
-                  setSelectedClient(null);
-                  infoLog('Cliente eliminado exitosamente');
-                } catch (error) {
-                  infoLog('Error eliminando cliente:', error);
-                }
-              }}
-            />
+                }}
+                onDelete={async (clientId) => {
+                  try {
+                    await deleteClient(clientId);
+                    setShowDetailPanel(false);
+                    setSelectedClient(null);
+                    infoLog('Cliente eliminado exitosamente');
+                  } catch (error) {
+                    infoLog('Error eliminando cliente:', error);
+                  }
+                }}
+              />
+            </div>
           )}
         </div>
       </div>

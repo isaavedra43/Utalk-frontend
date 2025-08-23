@@ -110,7 +110,7 @@ export const ChatSearchModal: React.FC<ChatSearchModalProps> = ({
 
   // Obtener nombre del remitente
   const getSenderName = (message: Message) => {
-    return message.sender || message.senderName || 'Usuario';
+    return message.senderIdentifier || 'Usuario';
   };
 
   // Manejar teclas de navegación
@@ -230,7 +230,7 @@ export const ChatSearchModal: React.FC<ChatSearchModalProps> = ({
                         {getSenderName(result.message)}
                       </span>
                       <span className="text-xs text-gray-500">
-                        {formatMessageDate(result.message.timestamp || result.message.createdAt)}
+                        {formatMessageDate(result.message.createdAt)}
                       </span>
                     </div>
                     {index === currentResultIndex && (

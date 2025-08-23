@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import type { TeamMember } from '../../../types/team';
 import TeamMemberCard from './TeamMemberCard';
 

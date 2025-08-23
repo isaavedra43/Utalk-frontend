@@ -19,6 +19,7 @@ interface ClientDetailPanelProps {
   client: Client;
   onClose: () => void;
   onUpdate: (updates: Partial<Client>) => void;
+  onDelete?: (clientId: string) => void;
 }
 
 type TabType = 'perfil' | 'actividad' | 'deals' | 'ia';
@@ -26,7 +27,8 @@ type TabType = 'perfil' | 'actividad' | 'deals' | 'ia';
 export const ClientDetailPanel: React.FC<ClientDetailPanelProps> = ({
   client,
   onClose,
-  onUpdate
+  onUpdate,
+  onDelete
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('perfil');
 
@@ -66,7 +68,7 @@ export const ClientDetailPanel: React.FC<ClientDetailPanelProps> = ({
   };
 
   return (
-    <div className="w-80 bg-white border-l border-gray-200 shadow-lg flex flex-col h-screen">
+    <div className="w-[560px] bg-white border-l border-gray-200 shadow-lg flex flex-col h-full">
       {/* Header */}
       <div className="p-6 border-b border-gray-200 flex-shrink-0">
         <div className="flex items-center justify-between mb-4">

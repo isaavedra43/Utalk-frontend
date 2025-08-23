@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
 import type { CreateAgentRequest } from '../../../types/team';
+import { TeamMember } from '../../../types/team';
 
 interface CreateAgentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (agentData: CreateAgentRequest) => Promise<void>;
-  loading?: boolean;
+  onAgentCreated: (agent: TeamMember) => void;
 }
 
 const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
   isOpen,
   onClose,
-  onSubmit,
-  loading = false
+  onAgentCreated
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -91,7 +90,9 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
           permissions
         };
         
-        await onSubmit(agentData);
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        onAgentCreated(agentData as TeamMember); // Assuming onAgentCreated handles the actual creation
         
         // Resetear formulario
         setFormData({

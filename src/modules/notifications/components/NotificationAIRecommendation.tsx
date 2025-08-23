@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Brain, CheckCircle, AlertCircle, Info } from 'lucide-react';
-import type { NotificationAIRecommendation } from '../../../types/notification';
+import type { NotificationAIRecommendation as AIRecommendationType } from '../../../types/notification';
 
 interface NotificationAIRecommendationProps {
-  recommendation: NotificationAIRecommendation;
+  recommendation: AIRecommendationType;
   className?: string;
 }
 
-export const NotificationAIRecommendationComponent: React.FC<NotificationAIRecommendationProps> = ({
+export const NotificationAIRecommendation: React.FC<NotificationAIRecommendationProps> = ({
   recommendation,
   className = ''
 }) => {

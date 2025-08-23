@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, ChevronDown, User, Check } from 'lucide-react';
+import { Plus, X, ChevronDown, User } from 'lucide-react';
 import { assignmentService, type Agent } from '../../services/assignments';
 import type { ConversationDetails } from '../../types/sidebar';
 import { useAssignmentEvents } from '../../hooks/useAssignmentEvents';
@@ -33,10 +33,11 @@ export const AgentAssignment: React.FC<AgentAssignmentProps> = ({
     onConversationUnassigned: (data) => {
       // Solo actualizar si es la conversación actual
       if (data.payload.conversationId === conversationDetails.id) {
-        onAssignmentChange({
-          assignedTo: null,
-          assignedToName: null
-        });
+        const updates: Partial<ConversationDetails> = {
+          assignedTo: undefined,
+          assignedToName: undefined
+        };
+        onAssignmentChange(updates);
         setError(null);
       }
     }
@@ -97,10 +98,11 @@ export const AgentAssignment: React.FC<AgentAssignmentProps> = ({
       
       if (result.success) {
         // Actualizar el estado local
-        onAssignmentChange({
-          assignedTo: null,
-          assignedToName: null
-        });
+        const updates: Partial<ConversationDetails> = {
+          assignedTo: undefined,
+          assignedToName: undefined
+        };
+        onAssignmentChange(updates);
       }
     } catch (err: any) {
       console.error('Error desasignando agente:', err);

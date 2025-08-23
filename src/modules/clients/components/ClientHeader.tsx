@@ -14,7 +14,7 @@ import type { Client } from '../../../types/client';
 
 interface ClientHeaderProps {
   searchValue: string;
-  onSearch: (value: string) => void;
+  onSearch: (searchTerm: string) => void;
   onToggleFilters: () => void;
   onExport: () => void;
   onViewChange: (view: 'list' | 'kanban' | 'cards') => void;
@@ -23,7 +23,6 @@ interface ClientHeaderProps {
   filtersCount: number;
   onRefresh: () => void;
   loading: boolean;
-  clients?: Client[];
 }
 
 export const ClientHeader: React.FC<ClientHeaderProps> = ({
@@ -37,7 +36,6 @@ export const ClientHeader: React.FC<ClientHeaderProps> = ({
   filtersCount,
   onRefresh,
   loading,
-  clients = []
 }) => {
 
   return (
