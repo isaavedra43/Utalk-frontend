@@ -103,10 +103,10 @@ export const ClientItem: React.FC<ClientItemProps> = ({
               {client.name}
             </div>
             <div className="text-sm text-gray-500">
-              {client.company}
+              {client.company || 'Sin empresa'}
             </div>
             <div className="text-sm text-gray-400">
-              {client.email.substring(0, 20)}...
+              {client.email ? `${client.email.substring(0, 20)}...` : 'Sin email'}
             </div>
           </div>
         </div>
@@ -232,7 +232,7 @@ export const ClientCard: React.FC<ClientItemProps> = ({
           </div>
           <div>
             <h3 className="font-medium text-gray-900">{client.name}</h3>
-            <p className="text-sm text-gray-500">{client.company}</p>
+            <p className="text-sm text-gray-500">{client.company || 'Sin empresa'}</p>
           </div>
         </div>
         <button
