@@ -66,9 +66,9 @@ export const ClientDetailPanel: React.FC<ClientDetailPanelProps> = ({
   };
 
   return (
-    <div className="w-80 bg-white border-l border-gray-200 shadow-lg flex flex-col">
+    <div className="w-80 bg-white border-l border-gray-200 shadow-lg flex flex-col h-screen">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 border-b border-gray-200 flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">
             Detalle del Cliente
@@ -131,7 +131,7 @@ export const ClientDetailPanel: React.FC<ClientDetailPanelProps> = ({
       </div>
 
       {/* Contenido del tab */}
-              <div className="flex-1 overflow-y-auto p-6 no-scrollbar">
+      <div className="flex-1 overflow-y-auto p-6">
         {renderTabContent()}
       </div>
     </div>
