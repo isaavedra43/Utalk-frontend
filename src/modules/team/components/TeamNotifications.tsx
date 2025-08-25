@@ -84,7 +84,7 @@ const TeamNotifications: React.FC<TeamNotificationsProps> = ({
                 onClick={() => onMemberClick?.(member)}
                 className="block w-full text-left text-xs text-red-700 hover:text-red-800 hover:bg-red-100 rounded px-2 py-1 transition-colors"
               >
-                • {member.fullName} - CSAT: {member.performanceMetrics.csatScore}
+                • {member.fullName} - CSAT: {member.performanceMetrics?.csatScore || 'N/A'}
               </button>
             ))}
             {membersByCategory.performanceAlerts.length > 3 && (

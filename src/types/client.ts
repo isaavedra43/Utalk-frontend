@@ -217,6 +217,36 @@ export interface ClientMetrics {
     };
   };
   
+  // Métricas de win rate
+  winRateMetrics: {
+    overall: number;
+    byStage: {
+      [key in ClientStage]: number;
+    };
+    byAgent: {
+      [agentId: string]: number;
+    };
+    trend: {
+      current: number;
+      previous: number;
+      change: number;
+    };
+  };
+  
+  // Métricas de contacto
+  contactMetrics: {
+    totalContacts: number;
+    contactsToday: number;
+    averageResponseTime: number;
+    contactSuccessRate: number;
+    byType: {
+      email: number;
+      call: number;
+      whatsapp: number;
+      meeting: number;
+    };
+  };
+  
   // Tendencias
   trends: {
     newClientsThisMonth: number;
