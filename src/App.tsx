@@ -15,9 +15,6 @@ import { useAuthContext } from './contexts/useAuthContext'
 const AuthProtectedRoute: React.FC<{ children: React.ReactNode }> = memo(({ children }) => {
   const { isAuthenticated, loading } = useAuthContext();
 
-  // TEMPORAL: Permitir acceso directo para debug
-  console.log('🔍 AuthProtectedRoute - Estado:', { isAuthenticated, loading });
-
   // Si está cargando, mostrar loading
   if (loading) {
     return (
@@ -32,10 +29,9 @@ const AuthProtectedRoute: React.FC<{ children: React.ReactNode }> = memo(({ chil
     );
   }
 
-  // TEMPORAL: Permitir acceso sin autenticación para debug
+  // Si no está autenticado, redirigir a login
   if (!isAuthenticated) {
-    console.log('🔍 AuthProtectedRoute - No autenticado, pero permitiendo acceso temporal');
-    return <>{children}</>;
+    return <Navigate to="/login" replace />;
   }
 
   // Si está autenticado, mostrar el contenido
@@ -98,11 +94,6 @@ function App() {
         <AuthProvider>
           <WebSocketProvider>
             <div className="app">
-              {/* Componente de debug temporal */}
-              <div className="fixed top-0 left-0 z-50 bg-green-500 text-white p-2 text-xs">
-                🎉 App Debug - React funcionando en Railway
-              </div>
-              
               <Routes>
                 <Route path="/login" element={<AuthModule />} />
                 <Route path="/forgot-password" element={<ForgotPasswordForm />} />
@@ -157,7 +148,7 @@ function App() {
                   } 
                 />
 
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/" element={<Navigate to="/login" replace />} />
               </Routes>
             </div>
           </WebSocketProvider>
