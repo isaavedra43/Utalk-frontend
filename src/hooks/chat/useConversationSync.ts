@@ -12,11 +12,19 @@ interface WebhookMessageData {
   message?: {
     id?: string;
     content?: string;
-    sender?: string;
+    senderIdentifier?: string;
+    recipientIdentifier?: string;
     timestamp?: string;
     type?: string;
     metadata?: Record<string, unknown>;
+    mediaUrl?: string;
   };
+  isNewConversation?: boolean;
+}
+
+interface ContactInfo {
+  profileName?: string;
+  phoneNumber?: string;
 }
 
 // Validación y transformación de mensajes de webhook
@@ -145,8 +153,8 @@ export const useConversationSync = () => {
         };
         
         // NUEVO: Extraer información del contacto del mensaje si está disponible
-        const contactInfo = data.message.metadata?.contact;
-        const conversationUpdates: any = {
+        const contactInfo = data.message.metadata?.contact as ContactInfo | undefined;
+        const conversationUpdates: Partial<Conversation> = {
           lastMessage,
           lastMessageAt: validatedMessage.createdAt
         };
@@ -157,7 +165,7 @@ export const useConversationSync = () => {
             conversationUpdates.customerName = contactInfo.profileName;
             conversationUpdates.contact = {
               name: contactInfo.profileName,
-              phoneNumber: contactInfo.phoneNumber || data.message.senderIdentifier
+              phoneNumber: contactInfo.phoneNumber || data.message.senderIdentifier || 'unknown'
             };
           }
           if (contactInfo.phoneNumber) {
@@ -171,15 +179,15 @@ export const useConversationSync = () => {
           const newConversation: Conversation = {
             id: data.conversationId,
             customerName: contactInfo?.profileName || 'Cliente sin nombre',
-            customerPhone: contactInfo?.phoneNumber || data.message.senderIdentifier,
+            customerPhone: contactInfo?.phoneNumber || data.message.senderIdentifier || 'unknown',
             contact: {
               name: contactInfo?.profileName || 'Cliente sin nombre',
-              phoneNumber: contactInfo?.phoneNumber || data.message.senderIdentifier
+              phoneNumber: contactInfo?.phoneNumber || data.message.senderIdentifier || 'unknown'
             },
             status: 'open',
             messageCount: 1,
             unreadCount: 1,
-            participants: [data.message.senderIdentifier, 'admin@company.com'],
+            participants: [data.message.senderIdentifier || 'unknown', 'admin@company.com'],
             tenantId: 'default_tenant',
             workspaceId: 'default_workspace',
             createdAt: validatedMessage.createdAt,
@@ -271,8 +279,8 @@ export const useConversationSync = () => {
         };
         
         // NUEVO: Extraer información del contacto del mensaje si está disponible
-        const contactInfo = data.message.metadata?.contact;
-        const conversationUpdates: any = {
+        const contactInfo = data.message.metadata?.contact as ContactInfo | undefined;
+        const conversationUpdates: Partial<Conversation> = {
           lastMessage,
           lastMessageAt: validatedMessage.createdAt
         };
@@ -283,7 +291,7 @@ export const useConversationSync = () => {
             conversationUpdates.customerName = contactInfo.profileName;
             conversationUpdates.contact = {
               name: contactInfo.profileName,
-              phoneNumber: contactInfo.phoneNumber || data.message.senderIdentifier
+              phoneNumber: contactInfo.phoneNumber || data.message.senderIdentifier || 'unknown'
             };
           }
           if (contactInfo.phoneNumber) {
@@ -297,15 +305,15 @@ export const useConversationSync = () => {
           const newConversation: Conversation = {
             id: data.conversationId,
             customerName: contactInfo?.profileName || 'Cliente sin nombre',
-            customerPhone: contactInfo?.phoneNumber || data.message.senderIdentifier,
+            customerPhone: contactInfo?.phoneNumber || data.message.senderIdentifier || 'unknown',
             contact: {
               name: contactInfo?.profileName || 'Cliente sin nombre',
-              phoneNumber: contactInfo?.phoneNumber || data.message.senderIdentifier
+              phoneNumber: contactInfo?.phoneNumber || data.message.senderIdentifier || 'unknown'
             },
             status: 'open',
             messageCount: 1,
             unreadCount: 1,
-            participants: [data.message.senderIdentifier, 'admin@company.com'],
+            participants: [data.message.senderIdentifier || 'unknown', 'admin@company.com'],
             tenantId: 'default_tenant',
             workspaceId: 'default_workspace',
             createdAt: validatedMessage.createdAt,
