@@ -181,9 +181,8 @@ export const useClients = (options: UseClientsOptions = {}) => {
 
       const response = await clientService.getClients(filters);
       
-      // Actualizar clientes en el store
+      // Actualizar el store con los nuevos datos
       setClientData({
-        ...clientData,
         clients: response.data,
         pagination: response.pagination,
         metrics: clientData?.metrics || null,

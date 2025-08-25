@@ -199,16 +199,6 @@ export const ClientModule: React.FC = () => {
                     infoLog('Error actualizando cliente:', error);
                   }
                 }}
-                onDelete={async (clientId) => {
-                  try {
-                    await deleteClient(clientId);
-                    setShowDetailPanel(false);
-                    setSelectedClient(null);
-                    infoLog('Cliente eliminado exitosamente');
-                  } catch (error) {
-                    infoLog('Error eliminando cliente:', error);
-                  }
-                }}
               />
             </div>
           )}
