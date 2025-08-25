@@ -57,6 +57,16 @@ export const usePerformance = () => {
   // Calcular tendencias de un miembro
   const calculateMemberTrends = useCallback((member: TeamMember) => {
     const metrics = member.performanceMetrics;
+    if (!metrics) {
+      return {
+        direction: 'stable',
+        percentage: 0,
+        status: 'neutral',
+        isImproving: false,
+        isDeclining: false,
+        isStable: true
+      };
+    }
     const trend = metrics.trend;
 
     return {
@@ -73,6 +83,15 @@ export const usePerformance = () => {
   const compareMembers = useCallback((member1: TeamMember, member2: TeamMember) => {
     const metrics1 = member1.performanceMetrics;
     const metrics2 = member2.performanceMetrics;
+
+    if (!metrics1 || !metrics2) {
+      return {
+        csatDifference: 0,
+        conversionDifference: 0,
+        chatsDifference: 0,
+        responseTimeDifference: 0
+      };
+    }
 
     return {
       csatDifference: metrics1.csatScore - metrics2.csatScore,

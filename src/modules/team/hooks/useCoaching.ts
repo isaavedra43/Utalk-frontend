@@ -14,7 +14,9 @@ export const useCoaching = () => {
     const strengths: Strength[] = [];
     const metrics = member.performanceMetrics;
 
-    if (metrics?.csatScore >= 4.5) {
+    if (!metrics) return strengths;
+
+    if (metrics.csatScore >= 4.5) {
       strengths.push({
         id: '1',
         title: 'Excelente satisfacción del cliente',
@@ -23,7 +25,7 @@ export const useCoaching = () => {
       });
     }
 
-    if (metrics?.averageResponseTime <= '2:30') {
+    if (metrics.averageResponseTime <= '2:30') {
       strengths.push({
         id: '2',
         title: 'Excelente tiempo de respuesta',
@@ -32,7 +34,7 @@ export const useCoaching = () => {
       });
     }
 
-    if (metrics?.conversionRate >= 20) {
+    if (metrics.conversionRate >= 20) {
       strengths.push({
         id: '3',
         title: 'Alta tasa de conversión',
@@ -41,7 +43,7 @@ export const useCoaching = () => {
       });
     }
 
-    if (metrics?.chatsClosedWithoutEscalation >= 80) {
+    if (metrics.chatsClosedWithoutEscalation >= 80) {
       strengths.push({
         id: '4',
         title: 'Independencia en resolución',
