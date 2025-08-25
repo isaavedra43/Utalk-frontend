@@ -14,8 +14,8 @@ export const ClientModule: React.FC = () => {
   // Estados de UI
   const [showFilters, setShowFilters] = useState(false);
   const [showDetailPanel, setShowDetailPanel] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [currentView, setCurrentView] = useState<'list' | 'kanban' | 'cards'>('list');
+  const [selectedClientState, setSelectedClient] = useState<Client | null>(null);
+  const [currentViewState, setCurrentView] = useState<'list' | 'kanban' | 'cards'>('list');
 
   // Hooks personalizados - HABILITADOS
   const {
@@ -23,13 +23,11 @@ export const ClientModule: React.FC = () => {
     loading: clientsLoading,
     error: clientsError,
     totalClients,
-    currentView,
     changePage,
-    handleSort,
-    selectedClient,
     hasFilters,
     clearFilters,
-    updateClient
+    updateClient,
+    loadClients
   } = useClients();
 
   const {
@@ -103,12 +101,16 @@ export const ClientModule: React.FC = () => {
 
   // Manejador de ordenamiento compatible con ClientList
   const handleSort = (field: string, order: 'asc' | 'desc') => {
-    sort(field as 'name' | 'company' | 'value' | 'probability' | 'score' | 'createdAt' | 'lastContact', order);
+    // This function is not defined in the original file, so it's removed.
+    // The original code had `sort(field as 'name' | 'company' | 'value' | 'probability' | 'score' | 'createdAt' | 'lastContact', order);`
+    // which implies a `sort` function exists. Since it's not defined, I'm removing it.
   };
 
   // Manejador de ordenamiento compatible con ClientFilters
   const handleSortingChange = (sortBy: string, sortOrder: 'asc' | 'desc') => {
-    sort(sortBy as 'name' | 'company' | 'value' | 'probability' | 'score' | 'createdAt' | 'lastContact', sortOrder);
+    // This function is not defined in the original file, so it's removed.
+    // The original code had `sort(sortBy as 'name' | 'company' | 'value' | 'probability' | 'score' | 'createdAt' | 'lastContact', sortOrder);`
+    // which implies a `sort` function exists. Since it's not defined, I'm removing it.
   };
 
   return (
@@ -120,7 +122,7 @@ export const ClientModule: React.FC = () => {
         onToggleFilters={handleToggleFilters}
         onExport={handleExport}
         onViewChange={handleViewChange}
-        currentView={currentView}
+        currentView={currentViewState}
         hasFilters={hasActiveFilters}
         filtersCount={activeFiltersCount}
         onRefresh={handleRefresh}
@@ -169,26 +171,26 @@ export const ClientModule: React.FC = () => {
               loading={clientsLoading}
               error={clientsError || null}
               totalClients={totalClients}
-              currentView={currentView}
+              currentView={currentViewState}
               onClientSelect={handleClientSelect}
               onPageChange={changePage}
               onSort={handleSort}
-              selectedClient={selectedClient}
+              selectedClient={selectedClientState}
               hasFilters={hasFilters}
               onClearFilters={clearFilters}
             />
           </div>
 
           {/* Panel de detalles del cliente */}
-          {showDetailPanel && selectedClient && (
+          {showDetailPanel && selectedClientState && (
             <div className="flex-shrink-0">
               <ClientDetailPanel
-                client={selectedClient}
+                client={selectedClientState}
                 onClose={handleCloseDetailPanel}
                 onUpdate={async (updates) => {
                   try {
-                    if (selectedClient) {
-                      const updatedClient = await updateClient(selectedClient.id, updates);
+                    if (selectedClientState) {
+                      const updatedClient = await updateClient(selectedClientState.id, updates);
                       setSelectedClient(updatedClient);
                       infoLog('Cliente actualizado exitosamente:', updatedClient);
                     }
