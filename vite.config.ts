@@ -109,20 +109,20 @@ export default defineConfig(({ mode }) => {
           },
           // Optimización de nombres de archivos
           chunkFileNames: () => {
-            return `js/[name]-[hash].js`;
+            return `[name]-[hash].js`;
           },
-          entryFileNames: 'js/[name]-[hash].js',
+          entryFileNames: '[name]-[hash].js',
           assetFileNames: (assetInfo) => {
             const name = assetInfo.name || 'asset';
             const info = name.split('.');
             const ext = info[info.length - 1];
             if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(ext)) {
-              return `images/[name]-[hash][extname]`;
+              return `[name]-[hash][extname]`;
             }
             if (/css/i.test(ext)) {
-              return `css/[name]-[hash][extname]`;
+              return `[name]-[hash][extname]`;
             }
-            return `assets/[name]-[hash][extname]`;
+            return `[name]-[hash][extname]`;
           }
         }
       },
