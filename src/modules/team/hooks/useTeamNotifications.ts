@@ -10,6 +10,48 @@ export const useTeamNotifications = (members: TeamMember[]) => {
     coachingUpdates: 0
   });
 
+  // Generar notificaciones de rendimiento
+  const generatePerformanceNotifications = useCallback((members: TeamMember[]) => {
+    const notifications: TeamNotification[] = [];
+
+    members.forEach(member => {
+      if (!member.performanceMetrics) return;
+
+      // Notificación por CSAT bajo
+      if (member.performanceMetrics.csatScore < 3.5) {
+        notifications.push({
+          id: `csat-${member.id}`,
+          type: 'performance',
+          title: 'CSAT bajo detectado',
+          message: `${member.name} tiene un CSAT de ${member.performanceMetrics.csatScore}`,
+          priority: 'high',
+          memberId: member.id,
+          createdAt: new Date(),
+          isRead: false
+        });
+      }
+
+      // Notificación por tiempo de respuesta alto
+      const [minutes, seconds] = member.performanceMetrics.averageResponseTime.split(':').map(Number);
+      const responseTimeMinutes = minutes + seconds / 60;
+      
+      if (responseTimeMinutes > 5) {
+        notifications.push({
+          id: `response-${member.id}`,
+          type: 'performance',
+          title: 'Tiempo de respuesta alto',
+          message: `${member.name} tiene un tiempo de respuesta promedio de ${member.performanceMetrics.averageResponseTime}`,
+          priority: 'medium',
+          memberId: member.id,
+          createdAt: new Date(),
+          isRead: false
+        });
+      }
+    });
+
+    return notifications;
+  }, []);
+
   // Calcular notificaciones usando useMemo para evitar recálculos innecesarios
   const calculatedNotifications = useMemo(() => {
     let pendingReviews = 0;

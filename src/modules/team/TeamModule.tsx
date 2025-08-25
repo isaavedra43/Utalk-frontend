@@ -207,8 +207,7 @@ const TeamModule: React.FC = () => {
         <CreateAgentModal
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
-          onSubmit={handleCreateAgent}
-          loading={loading}
+          onAgentCreated={handleCreateAgent}
         />
       </Suspense>
     </div>

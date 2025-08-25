@@ -2,19 +2,6 @@ import { useMemo, useCallback } from 'react';
 import type { TeamMember, TeamFilters } from '../../../types/team';
 
 export const useTeamFilters = (members: TeamMember[], filters: TeamFilters) => {
-  // Filtrar miembros por búsqueda
-  const filterBySearch = useCallback((members: TeamMember[], searchTerm: string): TeamMember[] => {
-    if (!searchTerm.trim()) return members;
-    
-    const term = searchTerm.toLowerCase();
-    return members.filter(member => 
-      member.name.toLowerCase().includes(term) ||
-      member.email.toLowerCase().includes(term) ||
-      (member.fullName && member.fullName.toLowerCase().includes(term)) ||
-      member.role.toLowerCase().includes(term)
-    );
-  }, []);
-
   // Memoizar miembros filtrados
   const filteredMembers = useMemo(() => {
     return members.filter(member => {

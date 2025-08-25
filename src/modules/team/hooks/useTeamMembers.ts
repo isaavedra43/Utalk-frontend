@@ -21,7 +21,7 @@ export const useTeamMembers = () => {
       setTeamError(null);
       
       const response: TeamListResponse = await teamService.getMembers(filters || {});
-      const members = response.members;
+      const members = response.agents;
       
       setTeamData({
         ...teamData,
