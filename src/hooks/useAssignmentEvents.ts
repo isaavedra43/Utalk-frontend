@@ -2,19 +2,13 @@ import { useEffect } from 'react';
 import { useWebSocketContext } from '../contexts/useWebSocketContext';
 import { infoLog } from '../config/logger';
 
-interface AssignmentEventData {
-  payload: {
-    conversationId: string;
-    assignedTo?: {
-      email: string;
-      name: string;
-    };
-    previousAssignee?: {
-      email: string;
-      name: string;
-    };
-  };
-}
+type AssignmentPayload = {
+  conversationId: string;
+  assignedTo?: { email: string; name: string };
+  previousAssignee?: { email: string; name: string };
+};
+
+interface AssignmentEventData { payload: AssignmentPayload }
 
 interface UseAssignmentEventsProps {
   onConversationAssigned?: (data: AssignmentEventData) => void;
@@ -31,21 +25,20 @@ export const useAssignmentEvents = ({
     if (!socket) return;
 
     // Escuchar evento de asignación
-    const handleConversationAssigned = (data: AssignmentEventData) => {
-      infoLog('🔔 Conversación asignada:', data.payload);
-      
-      if (onConversationAssigned) {
-        onConversationAssigned(data);
-      }
+    const handleConversationAssigned = (data: unknown) => {
+      // Backend envía el payload directo; el hook antes esperaba { payload }
+      const payload = (data as any)?.payload ?? (data as any);
+      infoLog('🔔 Conversación asignada:', payload);
+      if (!payload || !payload.conversationId) return;
+      if (onConversationAssigned) onConversationAssigned({ payload });
     };
 
     // Escuchar evento de desasignación
-    const handleConversationUnassigned = (data: AssignmentEventData) => {
-      infoLog('🔔 Conversación desasignada:', data.payload);
-      
-      if (onConversationUnassigned) {
-        onConversationUnassigned(data);
-      }
+    const handleConversationUnassigned = (data: unknown) => {
+      const payload = (data as any)?.payload ?? (data as any);
+      infoLog('🔔 Conversación desasignada:', payload);
+      if (!payload || !payload.conversationId) return;
+      if (onConversationUnassigned) onConversationUnassigned({ payload });
     };
 
     // Registrar listeners
