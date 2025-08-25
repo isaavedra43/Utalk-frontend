@@ -9,7 +9,18 @@ export default defineConfig(({ mode }) => {
   const isProduction = mode === 'production';
 
   return {
-    plugins: [react()],
+    plugins: [
+      react({
+        // Configuración específica para React 19
+        jsxRuntime: 'automatic',
+        babel: {
+          plugins: [
+            // Plugin para resolver problemas de React 19
+            ['@babel/plugin-transform-react-jsx', { runtime: 'automatic' }]
+          ]
+        }
+      })
+    ],
     base: '/',
     define: {
       // Configuración para React 19
@@ -18,6 +29,8 @@ export default defineConfig(({ mode }) => {
       // Resolver problema de unstable_now
       'process.env.NODE_ENV': JSON.stringify(mode),
       'process.env.REACT_APP_VERSION': JSON.stringify('1.0.0'),
+      // Polyfills para React 19
+      'global': 'globalThis',
     },
     build: {
       outDir: 'dist',
@@ -180,6 +193,13 @@ export default defineConfig(({ mode }) => {
           autoprefixer,
           tailwindcss
         ]
+      }
+    },
+    // Resolver problemas de React 19
+    resolve: {
+      alias: {
+        'react/jsx-runtime': 'react/jsx-runtime.js',
+        'react/jsx-dev-runtime': 'react/jsx-dev-runtime.js'
       }
     }
   };

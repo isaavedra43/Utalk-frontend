@@ -100,7 +100,7 @@ function App() {
             <div className="app">
               {/* Componente de debug temporal */}
               <div className="fixed top-0 left-0 z-50 bg-green-500 text-white p-2 text-xs">
-                🎉 App Debug - React funcionando con archivos estáticos corregidos
+                🎉 App Debug - React funcionando en Railway
               </div>
               
               <Routes>

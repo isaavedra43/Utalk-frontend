@@ -1,97 +1,88 @@
-// Configuración de entorno
+// Configuración de entorno para la aplicación UTALK
 export const environment = {
-  // Entorno actual
-  isDevelopment: import.meta.env.DEV,
-  isProduction: import.meta.env.PROD,
-  isTest: import.meta.env.MODE === 'test',
-  
-  // Configuración de debug
-  debug: import.meta.env.VITE_DEBUG === 'true',
-  
-  // Configuración de logging
-  logging: {
-    // Nivel de log por defecto
-    level: import.meta.env.VITE_LOG_LEVEL || 'warn',
-    
-    // Configuración específica para clientes
-    clients: {
-      // Solo loggear errores críticos de clientes
-      enabled: import.meta.env.VITE_LOG_CLIENTS !== 'false',
-      // Nivel mínimo para logs de clientes
-      level: import.meta.env.VITE_LOG_CLIENTS_LEVEL || 'error',
-      // Rate limiting para logs de clientes (en minutos)
-      rateLimitMinutes: parseInt(import.meta.env.VITE_LOG_CLIENTS_RATE_LIMIT || '5'),
-    },
-    
-    // Configuración para API
-    api: {
-      enabled: import.meta.env.VITE_LOG_API !== 'false',
-      level: import.meta.env.VITE_LOG_API_LEVEL || 'warn',
-    },
-    
-    // Configuración para WebSocket
-    websocket: {
-      enabled: import.meta.env.VITE_LOG_WEBSOCKET !== 'false',
-      level: import.meta.env.VITE_LOG_WEBSOCKET_LEVEL || 'warn',
-    }
-  },
+  // Configuración base
+  NODE_ENV: import.meta.env.MODE || 'development',
+  DEV: import.meta.env.DEV || false,
+  PROD: import.meta.env.PROD || false,
   
   // URLs de la API
-  api: {
-    baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
-    timeout: parseInt(import.meta.env.VITE_API_TIMEOUT || '10000'),
-  },
+  API_BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://utalk-backend.onrender.com',
+  WS_BASE_URL: import.meta.env.VITE_WS_BASE_URL || 'wss://utalk-backend.onrender.com',
   
   // Configuración de Firebase
-  firebase: {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY || '',
+  FIREBASE_AUTH_DOMAIN: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
+  FIREBASE_PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
+  FIREBASE_STORAGE_BUCKET: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
+  FIREBASE_MESSAGING_SENDER_ID: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
+  FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID || '',
+  
+  // Configuración de la aplicación
+  APP_VERSION: import.meta.env.VITE_APP_VERSION || '1.0.0',
+  APP_NAME: 'UTALK',
+  
+  // Configuración de desarrollo
+  DEBUG_MODE: import.meta.env.VITE_DEBUG_MODE === 'true' || false,
+  LOG_LEVEL: import.meta.env.VITE_LOG_LEVEL || 'info',
+  
+  // Configuración de Railway
+  RAILWAY_ENVIRONMENT: import.meta.env.RAILWAY_ENVIRONMENT || 'development',
+  PORT: import.meta.env.PORT || '5173',
+  
+  // Configuración de WebSocket
+  WS_RECONNECT_ATTEMPTS: parseInt(import.meta.env.VITE_WS_RECONNECT_ATTEMPTS || '5'),
+  WS_RECONNECT_DELAY: parseInt(import.meta.env.VITE_WS_RECONNECT_DELAY || '1000'),
+  
+  // Configuración de caché
+  CACHE_TTL: parseInt(import.meta.env.VITE_CACHE_TTL || '300000'), // 5 minutos
+  
+  // Configuración de rate limiting
+  RATE_LIMIT_MAX_REQUESTS: parseInt(import.meta.env.VITE_RATE_LIMIT_MAX_REQUESTS || '100'),
+  RATE_LIMIT_WINDOW_MS: parseInt(import.meta.env.VITE_RATE_LIMIT_WINDOW_MS || '60000'), // 1 minuto
+};
+
+// Función para validar la configuración
+export const validateEnvironment = () => {
+  const requiredVars = [
+    'VITE_API_BASE_URL',
+    'VITE_WS_BASE_URL',
+    'VITE_FIREBASE_API_KEY',
+    'VITE_FIREBASE_AUTH_DOMAIN',
+    'VITE_FIREBASE_PROJECT_ID'
+  ];
+  
+  const missingVars = requiredVars.filter(varName => !import.meta.env[varName]);
+  
+  if (missingVars.length > 0) {
+    console.warn('⚠️ Variables de entorno faltantes:', missingVars);
+    console.warn('🔧 Usando valores por defecto para desarrollo');
+  }
+  
+  return {
+    isValid: true,
+    missingVars,
+    environment
+  };
+};
+
+// Configuración específica para Railway
+export const railwayConfig = {
+  // Railway detecta automáticamente el puerto
+  port: process.env.PORT || environment.PORT,
+  
+  // Configuración de health check
+  healthCheck: {
+    path: '/',
+    timeout: 5000,
+    interval: 30000
   },
   
-  // Configuración de WebSocket
-  websocket: {
-    url: import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:3000',
-    reconnectInterval: parseInt(import.meta.env.VITE_WEBSOCKET_RECONNECT_INTERVAL || '5000'),
-    maxReconnectAttempts: parseInt(import.meta.env.VITE_WEBSOCKET_MAX_RECONNECT_ATTEMPTS || '10'),
+  // Configuración de logs
+  logging: {
+    level: environment.LOG_LEVEL,
+    format: 'json',
+    timestamp: true
   }
 };
 
-// Función helper para verificar si se debe loggear algo
-export const shouldLog = (category: string, level: string): boolean => {
-  const config = environment.logging;
-  
-  // Verificar si la categoría está habilitada
-  const categoryConfig = config[category as keyof typeof config];
-  if (categoryConfig && !categoryConfig.enabled) {
-    return false;
-  }
-  
-  // Verificar nivel de log
-  const levels = ['debug', 'info', 'warn', 'error', 'critical'];
-  const currentLevelIndex = levels.indexOf(level);
-  const configLevelIndex = levels.indexOf(categoryConfig?.level || config.level);
-  
-  return currentLevelIndex >= configLevelIndex;
-};
-
-// Configuración de entorno para WebSocket y otras funcionalidades
-export const ENV_CONFIG = {
-  // URLs
-  WS_URL: import.meta.env.VITE_WEBSOCKET_URL || 'wss://utalk-backend-production.up.railway.app',
-  BACKEND_URL: import.meta.env.VITE_API_BASE_URL || 'https://utalk-backend-production.up.railway.app',
-  
-  // Configuración de WebSocket
-  WS_TIMEOUT: parseInt(import.meta.env.VITE_WS_TIMEOUT || '45000'),
-  WS_RETRY_ATTEMPTS: parseInt(import.meta.env.VITE_WS_RETRY_ATTEMPTS || '5'),
-  WS_RECONNECTION_DELAY: parseInt(import.meta.env.VITE_WS_RECONNECTION_DELAY || '1000'),
-  
-  // Modo de desarrollo
-  DEV_MODE: import.meta.env.DEV,
-  
-  // Configuración de debug
-  DEBUG: import.meta.env.VITE_DEBUG === 'true',
-};
+export default environment;

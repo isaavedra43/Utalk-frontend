@@ -8,16 +8,33 @@ import './utils/consoleExporter' // Importar para disponibilizar exportación de
 import './styles/dashboard.css'
 import { logger } from './utils/logger.ts'
 
-// Configuración específica para React 19
+// Configuración específica para React 19 - SOLUCIÓN AL ERROR
 if (typeof window !== 'undefined') {
-  // Resolver problema de unstable_now - solución simplificada
+  // Resolver problema de unstable_now - solución completa
   if (!window.performance?.now) {
     console.warn('🔧 Performance API no disponible, usando fallback');
+    // Polyfill para performance.now
+    if (!window.performance) {
+      window.performance = {} as Performance;
+    }
+    if (!window.performance.now) {
+      window.performance.now = () => Date.now();
+    }
   }
   
-  // Configurar React 19
+  // Configurar React 19 con polyfills necesarios
   if (React.version.startsWith('19')) {
     console.log('🔧 React 19 detectado, aplicando configuraciones específicas');
+    
+    // Asegurar que requestAnimationFrame esté disponible
+    if (!window.requestAnimationFrame) {
+      window.requestAnimationFrame = (callback) => setTimeout(callback, 16);
+    }
+    
+    // Asegurar que cancelAnimationFrame esté disponible
+    if (!window.cancelAnimationFrame) {
+      window.cancelAnimationFrame = (id) => clearTimeout(id);
+    }
   }
 }
 
@@ -57,10 +74,41 @@ const queryClient = new QueryClient({
   }
 });
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </React.StrictMode>,
-)
+// Función de renderizado con manejo de errores
+const renderApp = () => {
+  try {
+    const rootElement = document.getElementById('root');
+    if (!rootElement) {
+      throw new Error('Elemento root no encontrado');
+    }
+
+    ReactDOM.createRoot(rootElement).render(
+      <React.StrictMode>
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
+      </React.StrictMode>,
+    );
+  } catch (error) {
+    console.error('Error al renderizar la aplicación:', error);
+    // Fallback: mostrar mensaje de error
+    const rootElement = document.getElementById('root');
+    if (rootElement) {
+      rootElement.innerHTML = `
+        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif;">
+          <div style="text-align: center; padding: 20px;">
+            <h1>Error de Inicialización</h1>
+            <p>La aplicación no pudo iniciarse correctamente.</p>
+            <p>Por favor, recarga la página.</p>
+            <button onclick="window.location.reload()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+              Recargar Página
+            </button>
+          </div>
+        </div>
+      `;
+    }
+  }
+};
+
+// Inicializar la aplicación
+renderApp();
