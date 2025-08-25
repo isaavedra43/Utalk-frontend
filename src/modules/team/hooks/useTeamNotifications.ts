@@ -1,8 +1,20 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { TeamMember } from '../../../types/team';
 import { logger } from '../../../utils/logger';
 
-export const useTeamNotifications = (members: TeamMember[]) => {
+// Tipo para notificaciones del equipo
+interface TeamNotification {
+  id: string;
+  type: 'performance' | 'coaching' | 'permission' | 'system';
+  title: string;
+  message: string;
+  priority: 'low' | 'medium' | 'high';
+  memberId?: string;
+  createdAt: Date;
+  isRead: boolean;
+}
+
+export const useTeamNotifications = () => {
   const [notifications, setNotifications] = useState({
     total: 0,
     pendingReviews: 0,

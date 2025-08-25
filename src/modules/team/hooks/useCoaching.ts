@@ -60,7 +60,9 @@ export const useCoaching = () => {
     const areas: ImprovementArea[] = [];
     const metrics = member.performanceMetrics;
 
-    if (metrics?.csatScore < 4.0) {
+    if (!metrics) return areas;
+
+    if (metrics.csatScore < 4.0) {
       areas.push({
         id: '1',
         title: 'Satisfacción del cliente',
@@ -70,7 +72,7 @@ export const useCoaching = () => {
       });
     }
 
-    if (metrics?.averageResponseTime > '5:00') {
+    if (metrics.averageResponseTime > '5:00') {
       areas.push({
         id: '2',
         title: 'Tiempo de respuesta',
@@ -80,7 +82,7 @@ export const useCoaching = () => {
       });
     }
 
-    if (metrics?.conversionRate < 15) {
+    if (metrics.conversionRate < 15) {
       areas.push({
         id: '3',
         title: 'Técnicas de cierre',
@@ -90,7 +92,7 @@ export const useCoaching = () => {
       });
     }
 
-    if (metrics?.chatsClosedWithoutEscalation < 60) {
+    if (metrics.chatsClosedWithoutEscalation < 60) {
       areas.push({
         id: '4',
         title: 'Manejo de objeciones',
@@ -243,22 +245,24 @@ export const useCoaching = () => {
     const suggestions: string[] = [];
     const metrics = member.performanceMetrics;
 
-    if (metrics?.csatScore < 4.0) {
+    if (!metrics) return suggestions;
+
+    if (metrics.csatScore < 4.0) {
       suggestions.push('Practicar técnicas de comunicación empática');
       suggestions.push('Revisar casos de baja satisfacción para identificar patrones');
     }
 
-    if (metrics?.averageResponseTime > '5:00') {
+    if (metrics.averageResponseTime > '5:00') {
       suggestions.push('Utilizar plantillas de respuesta para casos comunes');
       suggestions.push('Implementar atajos de teclado para respuestas rápidas');
     }
 
-    if (metrics?.conversionRate < 15) {
+    if (metrics.conversionRate < 15) {
       suggestions.push('Participar en sesiones de roleplay de cierre de ventas');
       suggestions.push('Estudiar técnicas de manejo de objeciones');
     }
 
-    if (metrics?.chatsClosedWithoutEscalation < 60) {
+    if (metrics.chatsClosedWithoutEscalation < 60) {
       suggestions.push('Recibir entrenamiento en resolución de problemas complejos');
       suggestions.push('Colaborar con supervisores en casos difíciles');
     }
