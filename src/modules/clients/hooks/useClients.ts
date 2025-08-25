@@ -31,146 +31,6 @@ export const useClients = (options: UseClientsOptions = {}) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ FILTRAR Y PAGINAR CLIENTES
-  const filtered = useMemo(() => {
-    if (!clientData?.clients) return [];
-
-    let filtered = [...clientData.clients];
-
-    // Aplicar filtros de búsqueda
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      filtered = filtered.filter(client => 
-        client.name.toLowerCase().includes(searchTerm) ||
-        client.company.toLowerCase().includes(searchTerm) ||
-        client.email.toLowerCase().includes(searchTerm)
-      );
-    }
-
-    // Aplicar filtros por etapa
-    if (filters.stages && filters.stages.length > 0) {
-      filtered = filtered.filter(client => 
-        filters.stages!.includes(client.stage)
-      );
-    }
-
-    // Aplicar filtros por agente
-    if (filters.agents && filters.agents.length > 0) {
-      filtered = filtered.filter(client => 
-        client.assignedTo && filters.agents!.includes(client.assignedTo)
-      );
-    }
-
-    // Aplicar filtros por score de IA
-    if (filters.aiScoreMin !== undefined) {
-      filtered = filtered.filter(client => client.score >= filters.aiScoreMin!);
-    }
-    if (filters.aiScoreMax !== undefined) {
-      filtered = filtered.filter(client => client.score <= filters.aiScoreMax!);
-    }
-
-    // Aplicar filtros por valor
-    if (filters.valueMin !== undefined) {
-      filtered = filtered.filter(client => client.expectedValue >= filters.valueMin!);
-    }
-    if (filters.valueMax !== undefined) {
-      filtered = filtered.filter(client => client.expectedValue <= filters.valueMax!);
-    }
-
-    // Aplicar filtros por probabilidad
-    if (filters.probabilityMin !== undefined) {
-      filtered = filtered.filter(client => client.probability >= filters.probabilityMin!);
-    }
-    if (filters.probabilityMax !== undefined) {
-      filtered = filtered.filter(client => client.probability <= filters.probabilityMax!);
-    }
-
-    // Aplicar filtros por estado
-    if (filters.statuses && filters.statuses.length > 0) {
-      filtered = filtered.filter(client => 
-        filters.statuses!.includes(client.status)
-      );
-    }
-
-    // Aplicar filtros por etiquetas
-    if (filters.tags && filters.tags.length > 0) {
-      filtered = filtered.filter(client => 
-        client.tags.some(tag => filters.tags!.includes(tag))
-      );
-    }
-
-    // Aplicar filtros por fuente
-    if (filters.sources && filters.sources.length > 0) {
-      filtered = filtered.filter(client => 
-        filters.sources!.includes(client.source)
-      );
-    }
-
-    // Aplicar filtros por segmento
-    if (filters.segments && filters.segments.length > 0) {
-      filtered = filtered.filter(client => 
-        filters.segments!.includes(client.segment)
-      );
-    }
-
-    // Aplicar filtros por fecha
-    if (filters.createdAfter) {
-      filtered = filtered.filter(client => client.createdAt >= filters.createdAfter!);
-    }
-    if (filters.createdBefore) {
-      filtered = filtered.filter(client => client.createdAt <= filters.createdBefore!);
-    }
-
-    // Ordenar
-    if (filters.sortBy) {
-      filtered.sort((a, b) => {
-        let aValue: string | number | Date;
-        let bValue: string | number | Date;
-
-        switch (filters.sortBy) {
-          case 'name':
-            aValue = a.name.toLowerCase();
-            bValue = b.name.toLowerCase();
-            break;
-          case 'company':
-            aValue = a.company.toLowerCase();
-            bValue = b.company.toLowerCase();
-            break;
-          case 'value':
-            aValue = a.expectedValue;
-            bValue = b.expectedValue;
-            break;
-          case 'probability':
-            aValue = a.probability;
-            bValue = b.probability;
-            break;
-          case 'score':
-            aValue = a.score;
-            bValue = b.score;
-            break;
-          case 'createdAt':
-            aValue = a.createdAt;
-            bValue = b.createdAt;
-            break;
-          case 'lastContact':
-            aValue = a.lastContact || new Date(0);
-            bValue = b.lastContact || new Date(0);
-            break;
-          default:
-            return 0;
-        }
-
-        if (filters.sortOrder === 'asc') {
-          return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-        } else {
-          return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-        }
-      });
-    }
-
-    return filtered;
-  }, [clientData?.clients, filters]);
-
   // ✅ CARGAR CLIENTES - HABILITADO
   const loadClients = useCallback(async () => {
     try {
@@ -194,6 +54,8 @@ export const useClients = (options: UseClientsOptions = {}) => {
         loading: false,
         loadingActivities: clientData?.loadingActivities || false,
         loadingDeals: clientData?.loadingDeals || false,
+        loadingMetrics: clientData?.loadingMetrics || false,
+        metricsError: clientData?.metricsError || null,
         error: null,
         showFilters: clientData?.showFilters || false,
         showDetailPanel: clientData?.showDetailPanel || false,

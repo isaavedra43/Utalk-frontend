@@ -22,18 +22,15 @@ export const ClientModule: React.FC = () => {
     clients,
     loading: clientsLoading,
     error: clientsError,
-    changePage,
-    sort,
-    clearFilters,
     totalClients,
+    currentView,
+    changePage,
+    handleSort,
+    selectedClient,
     hasFilters,
-    loadClients,
-    updateClient,
-    deleteClient
-  } = useClients({
-    autoLoad: true, // ✅ REACTIVADO - Los bucles ya están solucionados
-    pageSize: 20
-  });
+    clearFilters,
+    updateClient
+  } = useClients();
 
   const {
     kpis,
