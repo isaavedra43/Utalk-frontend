@@ -12,13 +12,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react({
         // Configuración específica para React 19
-        jsxRuntime: 'automatic',
-        babel: {
-          plugins: [
-            // Plugin para resolver problemas de React 19
-            ['@babel/plugin-transform-react-jsx', { runtime: 'automatic' }]
-          ]
-        }
+        jsxRuntime: 'automatic'
       })
     ],
     base: '/',
