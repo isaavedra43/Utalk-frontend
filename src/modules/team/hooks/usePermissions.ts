@@ -102,7 +102,7 @@ export const usePermissions = () => {
   // Asignar rol con permisos predefinidos
   const assignRoleWithPermissions = useCallback(async (
     memberId: string, 
-    role: string
+    role: 'admin' | 'supervisor' | 'agent' | 'viewer'
   ): Promise<TeamMember | null> => {
     try {
       setLoading(true);
