@@ -1,14 +1,14 @@
 // Configuración de logging para desarrollo/producción
 export const LOG_CONFIG = {
   // Habilitar logs de debug solo en desarrollo
-  DEBUG: process.env.NODE_ENV === 'development',
+  DEBUG: (typeof import.meta !== 'undefined' ? import.meta.env.DEV : false),
   
   // Niveles de logging
   LEVELS: {
     ERROR: true,    // Siempre mostrar errores
     WARN: true,     // Siempre mostrar warnings
-    INFO: process.env.NODE_ENV === 'development',  // Solo en desarrollo
-    DEBUG: process.env.NODE_ENV === 'development', // Solo en desarrollo
+    INFO: (typeof import.meta !== 'undefined' ? import.meta.env.DEV : false),  // Solo en desarrollo
+    DEBUG: (typeof import.meta !== 'undefined' ? import.meta.env.DEV : false), // Solo en desarrollo
   }
 };
 

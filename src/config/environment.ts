@@ -75,7 +75,7 @@ export const validateEnvironment = () => {
 // Configuración específica para Railway
 export const railwayConfig = {
   // Railway detecta automáticamente el puerto
-  port: process.env.PORT || environment.PORT,
+  port: (typeof process !== 'undefined' && process.env && process.env.PORT) ? process.env.PORT : environment.PORT,
   
   // Configuración de health check
   healthCheck: {

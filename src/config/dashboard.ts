@@ -125,7 +125,7 @@ export const DASHBOARD_CONFIG = {
 
   // Configuración de testing
   testing: {
-    enabled: process.env.NODE_ENV === 'development',
+    enabled: (typeof import.meta !== 'undefined' ? import.meta.env.DEV : false),
     mockDataRefresh: 5000, // 5 segundos
     errorSimulation: {
       enabled: false,

@@ -53,7 +53,7 @@ export class ErrorBoundary extends Component<Props, State> {
             >
               Recargar Página
             </button>
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {(typeof import.meta !== 'undefined' ? import.meta.env.DEV : false) && this.state.error && (
               <details className="mt-4 text-left">
                 <summary className="cursor-pointer text-red-700 font-medium">
                   Detalles del error (solo desarrollo)
