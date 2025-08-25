@@ -22,6 +22,9 @@ import { useAuthContext } from './contexts/useAuthContext'
 const AuthProtectedRoute: React.FC<{ children: React.ReactNode }> = memo(({ children }) => {
   const { isAuthenticated, loading } = useAuthContext();
 
+  // TEMPORAL: Permitir acceso directo para debug
+  console.log('🔍 AuthProtectedRoute - Estado:', { isAuthenticated, loading });
+
   // Si está cargando, mostrar loading
   if (loading) {
     return (
@@ -36,9 +39,10 @@ const AuthProtectedRoute: React.FC<{ children: React.ReactNode }> = memo(({ chil
     );
   }
 
-  // Si no está autenticado, redirigir al login
+  // TEMPORAL: Permitir acceso sin autenticación para debug
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    console.log('🔍 AuthProtectedRoute - No autenticado, pero permitiendo acceso temporal');
+    return <>{children}</>;
   }
 
   // Si está autenticado, mostrar el contenido
@@ -160,7 +164,7 @@ function App() {
                 } 
               />
 
-              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
             </Routes>
             
 
