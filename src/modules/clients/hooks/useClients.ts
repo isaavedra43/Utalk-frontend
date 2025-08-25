@@ -1,14 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { infoLog } from '../../../config/logger';
-import { useClientStore } from '../../../stores/useClientStore';
-import type { 
-  Client, 
-  ClientFilters, 
-  ClientApiResponse 
-} from '../../../types/client';
-import { logger, LogCategory } from '../../../utils/logger';
 import { clientService } from '../services/clientService';
-import { clientProfileLogger } from '../../../config/logging';
+import { useClientStore } from '../../../stores/useClientStore';
+import type { Client, ClientFilters } from '../../../types/client';
+import { infoLog } from '../../../config/logger';
 
 interface UseClientsOptions {
   autoLoad?: boolean;
@@ -199,7 +193,7 @@ export const useClients = (options: UseClientsOptions = {}) => {
         ...clientData,
         clients: response.data,
         pagination: response.pagination,
-        metrics: clientData?.metrics,
+        metrics: clientData?.metrics || null,
         selectedClient: clientData?.selectedClient || null,
         filters: filters,
         activities: clientData?.activities || {},

@@ -31,10 +31,12 @@ interface WebSocketContextType {
     message: {
       id: string;
       content: string;
-      sender: string;
+      senderIdentifier: string;
+      recipientIdentifier?: string;
       timestamp: string;
       type?: string;
       metadata?: Record<string, unknown>;
+      mediaUrl?: string;
     };
   }) => void;
   

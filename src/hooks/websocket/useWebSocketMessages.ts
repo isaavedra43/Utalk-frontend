@@ -3,7 +3,7 @@ import { Socket } from 'socket.io-client';
 import { useRateLimiter } from '../../hooks/useRateLimiter';
 import { useChatStore } from '../../stores/useChatStore';
 import { infoLog } from '../../config/logger';
-import type { Message } from '../../types';
+import type { Message, Conversation } from '../../types';
 
 // Tipos para validación de mensajes
 interface MessageData {
@@ -11,11 +11,18 @@ interface MessageData {
   message: {
     id: string;
     content: string;
-    sender: string;
+    senderIdentifier: string;
+    recipientIdentifier?: string;
     timestamp: string;
     type?: string;
     metadata?: Record<string, unknown>;
+    mediaUrl?: string;
   };
+}
+
+interface ContactInfo {
+  profileName?: string;
+  phoneNumber?: string;
 }
 
 interface SendMessageData {
@@ -207,8 +214,8 @@ export const useWebSocketMessages = (socket: Socket | null) => {
     };
     
     // NUEVO: Extraer información del contacto del mensaje si está disponible
-    const contactInfo = message.metadata?.contact;
-    const conversationUpdates: any = {
+    const contactInfo = message.metadata?.contact as ContactInfo | undefined;
+    const conversationUpdates: Partial<Conversation> = {
       lastMessage,
       lastMessageAt: message.timestamp
       // Removido: unreadCount: 0 - esto causaba problemas de sincronización

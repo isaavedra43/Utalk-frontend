@@ -38,8 +38,7 @@ export const ClientModule: React.FC = () => {
   const {
     kpis,
     loading: metricsLoading,
-    error: metricsError,
-    refreshMetrics
+    error: metricsError
   } = useClientMetrics({
     autoLoad: false, // ❌ TEMPORALMENTE DESHABILITADO PARA EVITAR BUCLES
     refreshInterval: 0 // ❌ TEMPORALMENTE DESHABILITADO PARA EVITAR BUCLES

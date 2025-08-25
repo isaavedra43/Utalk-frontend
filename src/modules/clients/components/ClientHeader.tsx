@@ -1,16 +1,6 @@
 import React from 'react';
-import { 
-  Filter, 
-  Download, 
-  Grid3X3, 
-  List, 
-  MapPin, 
-  RefreshCw,
-  Search,
-  X
-} from 'lucide-react';
+import { Search, Filter, Download, RefreshCw, Grid3X3, List, MapPin, X } from 'lucide-react';
 // import { ClientSearch } from './ClientSearch'; // ❌ TEMPORALMENTE DESHABILITADO
-import type { Client } from '../../../types/client';
 
 interface ClientHeaderProps {
   searchValue: string;

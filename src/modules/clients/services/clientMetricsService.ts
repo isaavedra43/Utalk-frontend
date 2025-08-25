@@ -102,5 +102,41 @@ export const clientMetricsService = {
       infoLog('Error al obtener métricas por segmento', { error });
       throw error;
     }
+  },
+
+  // ✅ MÉTRICAS DE WIN RATE - API REAL
+  async getWinRateMetrics(): Promise<ClientMetrics['winRateMetrics']> {
+    try {
+      infoLog('Obteniendo métricas de win rate desde API');
+      
+      const response = await api.get<{ success: boolean; data: ClientMetrics['winRateMetrics'] }>('/api/clients/metrics/win-rate');
+      
+      if (!response.data.success) {
+        throw new Error('Error al obtener métricas de win rate');
+      }
+      
+      return response.data.data;
+    } catch (error) {
+      infoLog('Error al obtener métricas de win rate', { error });
+      throw error;
+    }
+  },
+
+  // ✅ MÉTRICAS DE CONTACTO - API REAL
+  async getContactMetrics(): Promise<ClientMetrics['contactMetrics']> {
+    try {
+      infoLog('Obteniendo métricas de contacto desde API');
+      
+      const response = await api.get<{ success: boolean; data: ClientMetrics['contactMetrics'] }>('/api/clients/metrics/contacts');
+      
+      if (!response.data.success) {
+        throw new Error('Error al obtener métricas de contacto');
+      }
+      
+      return response.data.data;
+    } catch (error) {
+      infoLog('Error al obtener métricas de contacto', { error });
+      throw error;
+    }
   }
 }; 
