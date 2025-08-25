@@ -31,8 +31,8 @@ export const useClients = (options: UseClientsOptions = {}) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Clientes filtrados y ordenados
-  const filteredClients = useMemo(() => {
+  // ✅ FILTRAR Y PAGINAR CLIENTES
+  const filtered = useMemo(() => {
     if (!clientData?.clients) return [];
 
     let filtered = [...clientData.clients];

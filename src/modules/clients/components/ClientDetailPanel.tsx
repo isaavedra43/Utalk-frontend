@@ -18,8 +18,7 @@ import {
 interface ClientDetailPanelProps {
   client: Client;
   onClose: () => void;
-  onUpdate: (updates: Partial<Client>) => void;
-  onDelete?: (clientId: string) => void;
+  onUpdate: (updates: Partial<Client>) => Promise<void>;
 }
 
 type TabType = 'perfil' | 'actividad' | 'deals' | 'ia';
@@ -27,8 +26,7 @@ type TabType = 'perfil' | 'actividad' | 'deals' | 'ia';
 export const ClientDetailPanel: React.FC<ClientDetailPanelProps> = ({
   client,
   onClose,
-  onUpdate,
-  onDelete
+  onUpdate
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('perfil');
 
