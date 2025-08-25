@@ -1,20 +1,8 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import type { TeamMember } from '../../../types/team';
 import { logger } from '../../../utils/logger';
 
-// Tipo para notificaciones del equipo
-interface TeamNotification {
-  id: string;
-  type: 'performance' | 'coaching' | 'permission' | 'system';
-  title: string;
-  message: string;
-  priority: 'low' | 'medium' | 'high';
-  memberId?: string;
-  createdAt: Date;
-  isRead: boolean;
-}
-
-export const useTeamNotifications = () => {
+export const useTeamNotifications = (members: TeamMember[]) => {
   const [notifications, setNotifications] = useState({
     total: 0,
     pendingReviews: 0,
@@ -22,63 +10,21 @@ export const useTeamNotifications = () => {
     coachingUpdates: 0
   });
 
-  // Generar notificaciones de rendimiento
-  const generatePerformanceNotifications = useCallback((members: TeamMember[]) => {
-    const notifications: TeamNotification[] = [];
-
-    members.forEach(member => {
-      if (!member.performanceMetrics) return;
-
-      // Notificación por CSAT bajo
-      if (member.performanceMetrics.csatScore < 3.5) {
-        notifications.push({
-          id: `csat-${member.id}`,
-          type: 'performance',
-          title: 'CSAT bajo detectado',
-          message: `${member.name} tiene un CSAT de ${member.performanceMetrics.csatScore}`,
-          priority: 'high',
-          memberId: member.id,
-          createdAt: new Date(),
-          isRead: false
-        });
-      }
-
-      // Notificación por tiempo de respuesta alto
-      const [minutes, seconds] = member.performanceMetrics.averageResponseTime.split(':').map(Number);
-      const responseTimeMinutes = minutes + seconds / 60;
-      
-      if (responseTimeMinutes > 5) {
-        notifications.push({
-          id: `response-${member.id}`,
-          type: 'performance',
-          title: 'Tiempo de respuesta alto',
-          message: `${member.name} tiene un tiempo de respuesta promedio de ${member.performanceMetrics.averageResponseTime}`,
-          priority: 'medium',
-          memberId: member.id,
-          createdAt: new Date(),
-          isRead: false
-        });
-      }
-    });
-
-    return notifications;
-  }, []);
-
   // Calcular notificaciones usando useMemo para evitar recálculos innecesarios
   const calculatedNotifications = useMemo(() => {
     let pendingReviews = 0;
     let performanceAlerts = 0;
     let coachingUpdates = 0;
 
-    members.forEach(member => {
+    members.forEach((member: TeamMember) => {
       // Miembros que necesitan revisión de rendimiento
-      if (member.performanceMetrics.csatScore < 4.0) {
+      if (member.performanceMetrics && member.performanceMetrics.csatScore < 4.0) {
         performanceAlerts++;
       }
 
       // Miembros con tareas de coaching pendientes
       if (member.coachingPlan) {
-        const pendingTasks = member.coachingPlan.tasks.filter(task => task.status === 'pending');
+        const pendingTasks = member.coachingPlan.tasks.filter((task: any) => task.status === 'pending');
         if (pendingTasks.length > 0) {
           coachingUpdates++;
         }
@@ -127,11 +73,11 @@ export const useTeamNotifications = () => {
   // Obtener notificaciones por categoría
   const getNotificationsByCategory = useCallback(() => {
     return {
-      pendingReviews: members.filter(m => m.status === 'inactive'),
-      performanceAlerts: members.filter(m => m.performanceMetrics.csatScore < 4.0),
-      coachingUpdates: members.filter(m => 
+      pendingReviews: members.filter((m: TeamMember) => m.status === 'inactive'),
+      performanceAlerts: members.filter((m: TeamMember) => m.performanceMetrics && m.performanceMetrics.csatScore < 4.0),
+      coachingUpdates: members.filter((m: TeamMember) => 
         m.coachingPlan && 
-        m.coachingPlan.tasks.some(task => task.status === 'pending')
+        m.coachingPlan.tasks.some((task: any) => task.status === 'pending')
       )
     };
   }, [members]);
