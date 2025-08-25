@@ -230,8 +230,8 @@ export const useCoaching = () => {
   const getCoachingStats = useCallback(() => {
     return {
       totalPlans: coachingPlans.length,
-      activePlans: coachingPlans.filter(plan => plan.status === 'active').length,
-      completedPlans: coachingPlans.filter(plan => plan.status === 'completed').length,
+      activePlans: coachingPlans.filter(plan => plan.progress < 100).length,
+      completedPlans: coachingPlans.filter(plan => plan.progress >= 100).length,
       pendingTasks: coachingTasks.filter(task => task.status === 'pending').length
     };
   }, [coachingPlans, coachingTasks]);
