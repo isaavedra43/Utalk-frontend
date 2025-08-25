@@ -9,8 +9,26 @@ export default defineConfig(({ mode }) => {
   const isProduction = mode === 'production';
 
   return {
-    plugins: [react()],
+    plugins: [
+      react({
+        // Configuración específica para React 19
+        jsxImportSource: '@emotion/react',
+        babel: {
+          plugins: [
+            ['@babel/plugin-transform-react-jsx', { runtime: 'automatic' }]
+          ]
+        }
+      })
+    ],
     base: '/',
+    define: {
+      // Configuración para React 19
+      __DEV__: !isProduction,
+      __PROD__: isProduction,
+      // Resolver problema de unstable_now
+      'process.env.NODE_ENV': JSON.stringify(mode),
+      'process.env.REACT_APP_VERSION': JSON.stringify('1.0.0'),
+    },
     build: {
       outDir: 'dist',
       sourcemap: isAnalyze, // Solo sourcemaps para análisis

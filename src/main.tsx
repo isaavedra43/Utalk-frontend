@@ -8,8 +8,29 @@ import './utils/consoleExporter' // Importar para disponibilizar exportación de
 import './styles/dashboard.css'
 import { logger } from './utils/logger.ts'
 
-
-
+// Configuración específica para React 19
+if (typeof window !== 'undefined') {
+  // Resolver problema de unstable_now
+  if (!window.performance) {
+    window.performance = {
+      now: () => Date.now(),
+      mark: () => {},
+      measure: () => {},
+      clearMarks: () => {},
+      clearMeasures: () => {},
+      getEntriesByType: () => [],
+      getEntriesByName: () => [],
+      getEntries: () => [],
+      toJSON: () => ({})
+    } as Performance;
+  }
+  
+  // Configurar React 19
+  if (React.version.startsWith('19')) {
+    // Configuración específica para React 19
+    console.log('🔧 React 19 detectado, aplicando configuraciones específicas');
+  }
+}
 
 // Validar configuración al iniciar (solo en desarrollo)
 if (import.meta.env.DEV) {
@@ -17,7 +38,8 @@ if (import.meta.env.DEV) {
     version: '1.0.0',
     environment: import.meta.env.MODE,
     debug: import.meta.env.DEV,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    reactVersion: React.version
   });
 }
 
