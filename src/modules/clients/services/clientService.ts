@@ -1,11 +1,4 @@
-import type { 
-  Client, 
-  ClientFilters, 
-  ClientPaginatedResponse,
-  ClientApiResponse,
-  ClientActivity,
-  ClientDeal
-} from '../../../types/client';
+import type { Client, ClientFilters, ClientPaginatedResponse, ClientActivity, ClientDeal } from '../../../types/client';
 import { api } from '../../../config/api';
 import { infoLog } from '../../../config/logger';
 

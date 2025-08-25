@@ -171,13 +171,6 @@ export const useClients = (options: UseClientsOptions = {}) => {
     return filtered;
   }, [clientData?.clients, filters]);
 
-  // Clientes paginados
-  const paginatedClients = useMemo(() => {
-    const startIndex = ((filters.page || 1) - 1) * (filters.limit || pageSize);
-    const endIndex = startIndex + (filters.limit || pageSize);
-    return filteredClients.slice(startIndex, endIndex);
-  }, [filteredClients, filters.page, filters.limit, pageSize]);
-
   // ✅ CARGAR CLIENTES - HABILITADO
   const loadClients = useCallback(async () => {
     try {

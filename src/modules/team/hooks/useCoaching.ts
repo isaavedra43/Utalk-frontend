@@ -3,6 +3,39 @@ import type { TeamMember, CoachingPlan, CoachingTask, Strength, ImprovementArea 
 import { teamService } from '../services/teamService';
 import { logger } from '../../../utils/logger';
 
+// Tipos adicionales para coaching
+interface PerformanceMetrics {
+  csatScore: number;
+  averageResponseTime: string;
+  conversionRate: number;
+  chatsClosedWithoutEscalation: number;
+}
+
+interface CoachingRecommendation {
+  id: string;
+  type: 'positive' | 'improvement';
+  title: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high';
+  suggestedActions: {
+    id: string;
+    title: string;
+    description: string;
+  }[];
+}
+
+interface CoachingArea {
+  id: string;
+  title: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high';
+  suggestedActions: {
+    id: string;
+    title: string;
+    description: string;
+  }[];
+}
+
 export const useCoaching = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -50,10 +50,10 @@ export const useClientMetrics = (options: UseClientMetricsOptions = {}) => {
           ...clientData,
           metrics: {
             ...clientData.metrics,
-            winRate: winRateMetrics.winRate,
+            winRate: winRateMetrics.overall,
             trends: {
               ...clientData.metrics.trends,
-              winRateChange: winRateMetrics.winRateChange
+              winRateChange: winRateMetrics.trend.change
             }
           },
           clients: clientData?.clients || [],
@@ -103,8 +103,8 @@ export const useClientMetrics = (options: UseClientMetricsOptions = {}) => {
           ...clientData,
           metrics: {
             ...clientData.metrics,
-            contactsToContactToday: contactMetrics.contactsToContactToday,
-            averageDaysToClose: contactMetrics.averageDaysToClose
+            contactsToContactToday: contactMetrics.contactsToday,
+            averageDaysToClose: contactMetrics.averageResponseTime
           },
           clients: clientData?.clients || [],
           selectedClient: clientData?.selectedClient || null,

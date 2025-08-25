@@ -32,13 +32,6 @@ export const ClientDetailPanel: React.FC<ClientDetailPanelProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('perfil');
 
-  // Función para manejar eliminación (placeholder por ahora)
-  const handleDelete = () => {
-    if (onDelete) {
-      onDelete(client.id);
-    }
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'won':
