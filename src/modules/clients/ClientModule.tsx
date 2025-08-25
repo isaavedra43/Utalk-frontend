@@ -100,17 +100,13 @@ export const ClientModule: React.FC = () => {
   };
 
   // Manejador de ordenamiento compatible con ClientList
-  const handleSort = (field: string, order: 'asc' | 'desc') => {
-    // This function is not defined in the original file, so it's removed.
-    // The original code had `sort(field as 'name' | 'company' | 'value' | 'probability' | 'score' | 'createdAt' | 'lastContact', order);`
-    // which implies a `sort` function exists. Since it's not defined, I'm removing it.
+  const handleSort = () => {
+    // Función placeholder - implementar cuando sea necesario
   };
 
   // Manejador de ordenamiento compatible con ClientFilters
-  const handleSortingChange = (sortBy: string, sortOrder: 'asc' | 'desc') => {
-    // This function is not defined in the original file, so it's removed.
-    // The original code had `sort(sortBy as 'name' | 'company' | 'value' | 'probability' | 'score' | 'createdAt' | 'lastContact', sortOrder);`
-    // which implies a `sort` function exists. Since it's not defined, I'm removing it.
+  const handleSortingChange = () => {
+    // Función placeholder - implementar cuando sea necesario
   };
 
   return (
