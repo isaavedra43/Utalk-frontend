@@ -1,5 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { unstable_now as schedulerNow } from 'scheduler'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App.tsx'
 import './index.css'
@@ -11,30 +12,32 @@ import { logger } from './utils/logger.ts'
 // Configuración específica para React 19 - SOLUCIÓN AL ERROR
 if (typeof window !== 'undefined') {
   // Resolver problema de unstable_now - solución completa
-  if (!window.performance?.now) {
-    console.warn('🔧 Performance API no disponible, usando fallback');
-    // Polyfill para performance.now
-    if (!window.performance) {
-      window.performance = {} as Performance;
-    }
-    if (!window.performance.now) {
-      window.performance.now = () => Date.now();
-    }
+  if (!window.performance) {
+    window.performance = {} as Performance;
   }
-  
-  // Configurar React 19 con polyfills necesarios
-  if (React.version.startsWith('19')) {
-    console.log('🔧 React 19 detectado, aplicando configuraciones específicas');
-    
-    // Asegurar que requestAnimationFrame esté disponible
-    if (!window.requestAnimationFrame) {
-      window.requestAnimationFrame = (callback) => setTimeout(callback, 16);
+  if (!window.performance.now) {
+    // Fallback robusto
+    const navStart = Date.now();
+    window.performance.now = () => Date.now() - navStart;
+  }
+
+  // Exponer compatibilidad para React 19 (scheduler)
+  try {
+    // @ts-ignore compat shim
+    if (typeof window.performance.unstable_now !== 'function') {
+      // @ts-ignore compat shim
+      window.performance.unstable_now = () => (typeof schedulerNow === 'function' ? schedulerNow() : window.performance.now());
     }
-    
-    // Asegurar que cancelAnimationFrame esté disponible
-    if (!window.cancelAnimationFrame) {
-      window.cancelAnimationFrame = (id) => clearTimeout(id);
-    }
+  } catch {
+    // Ignorar, ya que no todos los navegadores permiten redefinir performance
+  }
+
+  // Polyfills de RAF
+  if (!window.requestAnimationFrame) {
+    window.requestAnimationFrame = (cb) => setTimeout(cb, 16) as unknown as number;
+  }
+  if (!window.cancelAnimationFrame) {
+    window.cancelAnimationFrame = (id: number) => clearTimeout(id as unknown as NodeJS.Timeout);
   }
 }
 
