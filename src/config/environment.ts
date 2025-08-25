@@ -41,6 +41,13 @@ export const environment = {
   RATE_LIMIT_WINDOW_MS: parseInt(import.meta.env.VITE_RATE_LIMIT_WINDOW_MS || '60000'), // 1 minuto
 };
 
+// Compatibilidad: exportación esperada por código existente
+export const ENV_CONFIG = {
+  WS_URL: environment.WS_BASE_URL,
+  BACKEND_URL: environment.API_BASE_URL,
+  DEV_MODE: environment.DEV
+};
+
 // Función para validar la configuración
 export const validateEnvironment = () => {
   const requiredVars = [

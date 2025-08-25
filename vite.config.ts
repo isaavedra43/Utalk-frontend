@@ -188,13 +188,6 @@ export default defineConfig(({ mode }) => {
           tailwindcss
         ]
       }
-    },
-    // Resolver problemas de React 19
-    resolve: {
-      alias: {
-        'react/jsx-runtime': 'react/jsx-runtime.js',
-        'react/jsx-dev-runtime': 'react/jsx-dev-runtime.js'
-      }
     }
   };
 });
