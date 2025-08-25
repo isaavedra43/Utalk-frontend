@@ -76,7 +76,7 @@ export const usePermissions = () => {
 
       // Obtener el miembro actual
       const currentMember = await teamService.getMember(memberId);
-      const updatedPermissions = { ...currentMember.permissions, [permissionName]: { ...currentMember.permissions[permissionName as keyof typeof currentMember.permissions], isActive } };
+      const updatedPermissions = { ...currentMember.permissions, [permissionName]: isActive };
 
       const updatedMember = await teamService.updateMember(memberId, { 
         permissions: updatedPermissions 
