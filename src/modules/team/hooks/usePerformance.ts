@@ -104,10 +104,10 @@ export const usePerformance = () => {
   // Obtener top performers
   const getTopPerformers = useCallback((members: TeamMember[], metric: keyof PerformanceMetrics, limit: number = 5) => {
     return members
-      .filter(m => m.status === 'active')
+      .filter(m => m.status === 'active' && m.performanceMetrics)
       .sort((a, b) => {
-        const aValue = a.performanceMetrics[metric];
-        const bValue = b.performanceMetrics[metric];
+        const aValue = a.performanceMetrics![metric];
+        const bValue = b.performanceMetrics![metric];
         
         if (typeof aValue === 'string' && typeof bValue === 'string') {
           return bValue.localeCompare(aValue);
@@ -122,6 +122,7 @@ export const usePerformance = () => {
   const getMembersNeedingImprovement = useCallback((members: TeamMember[], threshold: number = 3.5) => {
     return members.filter(m => 
       m.status === 'active' && 
+      m.performanceMetrics &&
       m.performanceMetrics.csatScore < threshold
     );
   }, []);
