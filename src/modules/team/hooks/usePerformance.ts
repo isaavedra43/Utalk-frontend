@@ -21,17 +21,19 @@ export const usePerformance = () => {
     }
 
     const activeMembers = members.filter(m => m.status === 'active');
-    const totalChats = members.reduce((sum, m) => sum + m.performanceMetrics.chatsAttended, 0);
-    const totalMessages = members.reduce((sum, m) => sum + m.performanceMetrics.messagesReplied, 0);
-    const totalCSAT = members.reduce((sum, m) => sum + m.performanceMetrics.csatScore, 0);
-    const totalConversion = members.reduce((sum, m) => sum + m.performanceMetrics.conversionRate, 0);
+    const totalChats = members.reduce((sum, m) => sum + (m.performanceMetrics?.chatsAttended || 0), 0);
+    const totalMessages = members.reduce((sum, m) => sum + (m.performanceMetrics?.messagesReplied || 0), 0);
+    const totalCSAT = members.reduce((sum, m) => sum + (m.performanceMetrics?.csatScore || 0), 0);
+    const totalConversion = members.reduce((sum, m) => sum + (m.performanceMetrics?.conversionRate || 0), 0);
 
     // Calcular tiempo promedio de respuesta
-    const responseTimes = members.map(m => {
-      const [minutes, seconds] = m.performanceMetrics.averageResponseTime.split(':').map(Number);
-      return minutes * 60 + seconds;
-    });
-    const avgResponseSeconds = responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length;
+    const responseTimes = members
+      .filter(m => m.performanceMetrics?.averageResponseTime)
+      .map(m => {
+        const [minutes, seconds] = m.performanceMetrics!.averageResponseTime.split(':').map(Number);
+        return minutes * 60 + seconds;
+      });
+    const avgResponseSeconds = responseTimes.length > 0 ? responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length : 0;
     const avgMinutes = Math.floor(avgResponseSeconds / 60);
     const avgSeconds = Math.floor(avgResponseSeconds % 60);
     const averageResponseTime = `${avgMinutes}:${avgSeconds.toString().padStart(2, '0')}`;
@@ -48,7 +50,7 @@ export const usePerformance = () => {
   }, []);
 
   // Obtener métricas de un miembro específico
-  const getMemberMetrics = useCallback((member: TeamMember): PerformanceMetrics => {
+  const getMemberMetrics = useCallback((member: TeamMember): PerformanceMetrics | undefined => {
     return member.performanceMetrics;
   }, []);
 

@@ -6,8 +6,8 @@ import { logger } from '../../../utils/logger';
 export const useCoaching = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [coachingPlans, setCoachingPlans] = useState<CoachingPlan[]>([]);
-  const [coachingTasks, setCoachingTasks] = useState<CoachingTask[]>([]);
+  const [coachingPlans] = useState<CoachingPlan[]>([]);
+  const [coachingTasks] = useState<CoachingTask[]>([]);
 
   // Generar fortalezas basadas en métricas
   const generateStrengths = useCallback((member: TeamMember): Strength[] => {
