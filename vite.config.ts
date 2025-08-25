@@ -9,17 +9,7 @@ export default defineConfig(({ mode }) => {
   const isProduction = mode === 'production';
 
   return {
-    plugins: [
-      react({
-        // Configuración específica para React 19
-        jsxImportSource: '@emotion/react',
-        babel: {
-          plugins: [
-            ['@babel/plugin-transform-react-jsx', { runtime: 'automatic' }]
-          ]
-        }
-      })
-    ],
+    plugins: [react()],
     base: '/',
     define: {
       // Configuración para React 19

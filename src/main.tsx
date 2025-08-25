@@ -10,24 +10,13 @@ import { logger } from './utils/logger.ts'
 
 // Configuración específica para React 19
 if (typeof window !== 'undefined') {
-  // Resolver problema de unstable_now
-  if (!window.performance) {
-    window.performance = {
-      now: () => Date.now(),
-      mark: () => {},
-      measure: () => {},
-      clearMarks: () => {},
-      clearMeasures: () => {},
-      getEntriesByType: () => [],
-      getEntriesByName: () => [],
-      getEntries: () => [],
-      toJSON: () => ({})
-    } as Performance;
+  // Resolver problema de unstable_now - solución simplificada
+  if (!window.performance?.now) {
+    console.warn('🔧 Performance API no disponible, usando fallback');
   }
   
   // Configurar React 19
   if (React.version.startsWith('19')) {
-    // Configuración específica para React 19
     console.log('🔧 React 19 detectado, aplicando configuraciones específicas');
   }
 }
