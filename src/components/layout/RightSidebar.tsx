@@ -37,15 +37,8 @@ const DetailsPanelWrapper: React.FC<{
   );
 });
 
-const RightSidebarInner: React.FC = () => {
-  // DIAGNÓSTICO: Contador de renders
-  const renderCount = useRef(0);
-  renderCount.current += 1;
-  
-  console.log(`🔍 RightSidebar render #${renderCount.current}`, {
-    timestamp: new Date().toISOString()
-  });
-
+// Memoizar el componente principal para evitar re-renders innecesarios
+const RightSidebarInner: React.FC = React.memo(() => {
   const [activeTab, setActiveTab] = useState<'details' | 'copilot'>('copilot');
   
   // Usar refs para evitar re-renderizaciones
@@ -55,8 +48,8 @@ const RightSidebarInner: React.FC = () => {
   const activeConversation = useChatStore((s) => s.activeConversation);
   const selectedConversationId = activeConversation?.id || null;
   
-  // Actualizar refs de forma estable
-  useMemo(() => {
+  // Memoizar la actualización de refs para evitar re-renders
+  useEffect(() => {
     activeConversationRef.current = activeConversation;
     selectedConversationIdRef.current = selectedConversationId;
   }, [activeConversation, selectedConversationId]);
@@ -296,6 +289,6 @@ const RightSidebarInner: React.FC = () => {
       </div>
     </div>
   );
-};
+});
 
-export const RightSidebar = React.memo(RightSidebarInner); 
+export const RightSidebar = RightSidebarInner; 

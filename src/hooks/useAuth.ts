@@ -224,8 +224,8 @@ export const useAuth = (): AuthState => {
     };
   }, [handleTokenRefreshed]);
 
-  // Retornar la misma API que AuthContext
-  return {
+  // Memoizar el objeto de retorno para evitar re-renders
+  return useMemo(() => ({
     user: authStore.user,
     backendUser: authStore.backendUser,
     loading: authStore.loading,
@@ -236,5 +236,16 @@ export const useAuth = (): AuthState => {
     logout: authStore.logout,
     clearAuth: authStore.clearAuth,
     updateProfile: authStore.updateProfile
-  };
+  }), [
+    authStore.user,
+    authStore.backendUser,
+    authStore.loading,
+    authStore.error,
+    isAuthenticated,
+    authStore.isAuthenticating,
+    authStore.login,
+    authStore.logout,
+    authStore.clearAuth,
+    authStore.updateProfile
+  ]);
 }; 

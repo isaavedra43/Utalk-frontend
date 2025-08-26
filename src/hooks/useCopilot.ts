@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { copilotService, type CopilotResponse, type CopilotAnalysis, type CopilotImprovements, type ConversationMemory } from '../services/copilot';
 
@@ -31,6 +31,7 @@ export const useCopilot = () => {
     mutationFn: (payload: { agentId: string; conversationMemory: ConversationMemory; analysis?: Record<string, unknown> }) => copilotService.improveExperience(payload)
   });
 
+  // Memoizar todas las funciones para evitar recreaciones
   const chat = useCallback(async (payload: { message: string; conversationId: string; agentId: string }): Promise<CopilotResponse> => {
     return await chatMutation.mutateAsync(payload);
   }, [chatMutation]);
@@ -59,7 +60,8 @@ export const useCopilot = () => {
     return await improveExperienceMutation.mutateAsync(payload);
   }, [improveExperienceMutation]);
 
-  return {
+  // Memoizar el objeto de retorno para evitar re-renders
+  return useMemo(() => ({
     // acciones
     chat,
     generateResponse,
@@ -85,7 +87,28 @@ export const useCopilot = () => {
     strategyError: strategySuggestionsMutation.error,
     quickError: quickResponseMutation.error,
     improveError: improveExperienceMutation.error,
-  };
+  }), [
+    chat,
+    generateResponse,
+    analyzeConversation,
+    optimizeResponse,
+    strategySuggestions,
+    quickResponse,
+    improveExperience,
+    chatMutation.isPending,
+    generateResponseMutation.isPending,
+    analyzeConversationMutation.isPending,
+    optimizeResponseMutation.isPending,
+    strategySuggestionsMutation.isPending,
+    quickResponseMutation.isPending,
+    improveExperienceMutation.isPending,
+    chatMutation.error,
+    generateResponseMutation.error,
+    analyzeConversationMutation.error,
+    optimizeResponseMutation.error,
+    strategySuggestionsMutation.error,
+    quickResponseMutation.error,
+    improveExperienceMutation.error,
+  ]);
 };
-
 

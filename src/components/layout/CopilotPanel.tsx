@@ -16,16 +16,8 @@ interface Message {
   suggestions?: string[];
 }
 
-export const CopilotPanel: React.FC = () => {
-  // DIAGNÓSTICO: Contador de renders para identificar re-renderizaciones
-  const renderCount = useRef(0);
-  renderCount.current += 1;
-  
-  console.log(`🔍 CopilotPanel render #${renderCount.current}`, {
-    timestamp: new Date().toISOString(),
-    stack: new Error().stack?.split('\n').slice(1, 5).join('\n')
-  });
-
+// Memoizar el componente principal para evitar re-renders innecesarios
+export const CopilotPanel: React.FC = React.memo(() => {
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -66,16 +58,12 @@ export const CopilotPanel: React.FC = () => {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   const improveExperienceRef = useRef<Function | null>(null);
   
-  const { user, backendUser } = useAuthContext();
-  
-  // DIAGNÓSTICO: Log de contexto de autenticación
-  console.log(`🔍 CopilotPanel auth context:`, {
-    renderCount: renderCount.current,
-    hasUser: !!user,
-    hasBackendUser: !!backendUser,
-    userKeys: user ? Object.keys(user) : null,
-    backendUserKeys: backendUser ? Object.keys(backendUser) : null
-  });
+  // Memoizar el contexto de autenticación para evitar re-renders
+  const authContext = useAuthContext();
+  const { user, backendUser } = useMemo(() => ({
+    user: authContext.user,
+    backendUser: authContext.backendUser
+  }), [authContext.user, authContext.backendUser]);
   
   const {
     chat,
@@ -98,65 +86,31 @@ export const CopilotPanel: React.FC = () => {
     improveExperienceRef.current = improveExperience;
   }, [chat, generateResponse, analyzeConversation, optimizeResponse, strategySuggestions, quickResponse, improveExperience]);
 
-  // DIAGNÓSTICO: Log de hook useCopilot
-  console.log(`🔍 CopilotPanel useCopilot:`, {
-    renderCount: renderCount.current,
-    hasChat: !!chat,
-    hasGenerateResponse: !!generateResponse,
-    hasAnalyzeConversation: !!analyzeConversation,
-    hasOptimizeResponse: !!optimizeResponse,
-    hasStrategySuggestions: !!strategySuggestions,
-    hasQuickResponse: !!quickResponse,
-    hasImproveExperience: !!improveExperience
-  });
-
   // Suscribirse al ID de conversación activa de forma estable desde el store
   const activeConversationId = useChatStore((s) => s.activeConversation?.id ?? null);
+  
+  // Memoizar la actualización del ref para evitar re-renders
   useEffect(() => {
     const id = activeConversationId || '';
     activeConversationIdRef.current = id;
-    console.log(`🔍 CopilotPanel activeConversationId:`, {
-      renderCount: renderCount.current,
-      id,
-      refValue: activeConversationIdRef.current
-    });
   }, [activeConversationId]);
 
   // Seleccionar mensajes desde el store sin crear nuevos arrays
   const storeMessages = useChatStore((s) => (activeConversationId ? s.messages[activeConversationId] : undefined));
-  const storeMessagesArray = useMemo(() => (Array.isArray(storeMessages) ? storeMessages : []), [storeMessages]);
+  
+  // Memoizar el array de mensajes para evitar recreaciones
+  const storeMessagesArray = useMemo(() => {
+    return Array.isArray(storeMessages) ? storeMessages : [];
+  }, [storeMessages]);
 
-  // DIAGNÓSTICO: Log de storeMessages
-  console.log(`🔍 CopilotPanel storeMessages:`, {
-    renderCount: renderCount.current,
-    activeConversationId,
-    messageCount: storeMessagesArray.length || 0,
-    hasMessages: !!storeMessagesArray
-  });
-
-  // Actualizar el ref del agente actual de forma estable
-  useMemo(() => {
+  // Memoizar la actualización del ref del agente actual
+  useEffect(() => {
     const id = backendUser?.id || user?.uid || null;
     currentAgentIdRef.current = id || '';
-    
-    // DIAGNÓSTICO: Log de currentAgentId
-    console.log(`🔍 CopilotPanel currentAgentId:`, {
-      renderCount: renderCount.current,
-      id,
-      refValue: currentAgentIdRef.current,
-      backendUserId: backendUser?.id,
-      userId: user?.uid
-    });
   }, [backendUser?.id, user?.uid]);
 
   // Obtener socket de forma estable sin usar el contexto
   useEffect(() => {
-    // DIAGNÓSTICO: Log de socket effect
-    console.log(`🔍 CopilotPanel socket effect:`, {
-      renderCount: renderCount.current,
-      hasSocketRef: !!socketRef.current
-    });
-    
     // Obtener socket del contexto de forma segura
     const getSocket = () => {
       try {
@@ -198,7 +152,8 @@ export const CopilotPanel: React.FC = () => {
     const idx = raw.search(marker);
     if (idx === -1) return { text: raw, notes: undefined };
     const before = raw.substring(0, idx).trim();
-    const after = raw.substring(idx).replace(marker, '').trim();
+    const match = raw.match(marker);
+    const after = raw.substring(idx + (match?.[0]?.length || 0)).trim();
     return { text: before, notes: after };
   }, []);
 
@@ -458,7 +413,6 @@ export const CopilotPanel: React.FC = () => {
 
   // useEffect optimizado: registrar listener UNA sola vez
   useEffect(() => {
-    console.log(`🔍 CopilotPanel event listener effect (one-time)`);
     const handler = (e: Event) => handleSendToCopilot(e);
     window.addEventListener('sendToCopilot', handler);
     return () => window.removeEventListener('sendToCopilot', handler);
@@ -768,15 +722,6 @@ export const CopilotPanel: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // DIAGNÓSTICO: Log final del render
-  console.log(`🔍 CopilotPanel render complete #${renderCount.current}`, {
-    timestamp: new Date().toISOString(),
-    showIntro,
-    messageCount: messages.length,
-    isTyping,
-    systemStatus
-  });
-
   return (
     <div className={`flex flex-col h-full overflow-hidden ${getThemeClasses().container}`}>
       {error && (
@@ -991,4 +936,4 @@ export const CopilotPanel: React.FC = () => {
       </div>
     </div>
   );
-}; 
+}); 
