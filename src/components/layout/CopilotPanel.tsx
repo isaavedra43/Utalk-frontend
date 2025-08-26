@@ -299,7 +299,27 @@ export const CopilotPanel: React.FC = React.memo(() => {
     }
 
     const appendAssistant = (content: string, suggestions?: string[]) => {
-      const parsed = extractAgentNotes(content);
+      // ✅ SOLUCIÓN: Limpiar la respuesta del backend
+      let cleanContent = content;
+      
+      // Remover caracteres de escape extra del backend
+      if (typeof cleanContent === 'string') {
+        // Remover comillas dobles al inicio y final si existen
+        cleanContent = cleanContent.replace(/^"|"$/g, '');
+        // Remover caracteres de escape de newline
+        cleanContent = cleanContent.replace(/\\n/g, '\n');
+        // Remover caracteres de escape de comillas
+        cleanContent = cleanContent.replace(/\\"/g, '"');
+        // Limpiar espacios extra
+        cleanContent = cleanContent.trim();
+      }
+      
+      // Validar que el contenido no esté vacío
+      if (!cleanContent || cleanContent.length === 0) {
+        cleanContent = 'Lo siento, no pude procesar la respuesta. Inténtalo de nuevo.';
+      }
+      
+      const parsed = extractAgentNotes(cleanContent);
       const aiResponse: Message = { 
         id: (Date.now() + 1).toString(), 
         role: 'assistant', 
@@ -308,7 +328,25 @@ export const CopilotPanel: React.FC = React.memo(() => {
         suggestions, 
         timestamp: new Date().toISOString() 
       };
-      setMessages(prev => [...prev, aiResponse]);
+      
+      // ✅ SOLUCIÓN: Agregar log para debug
+      console.log('🔍 DEBUG appendAssistant:', {
+        originalContent: content,
+        cleanContent,
+        parsedText: parsed.text,
+        messageId: aiResponse.id,
+        messageCount: messages.length + 1
+      });
+      
+      setMessages(prev => {
+        const newMessages = [...prev, aiResponse];
+        console.log('🔍 DEBUG setMessages:', {
+          previousCount: prev.length,
+          newCount: newMessages.length,
+          lastMessage: newMessages[newMessages.length - 1]
+        });
+        return newMessages;
+      });
       setIsTyping(false);
       isTypingRef.current = false;
     };
@@ -355,14 +393,50 @@ export const CopilotPanel: React.FC = React.memo(() => {
     const { content, type, action, payload } = (event as CustomEvent).detail || {};
 
     const pushAssistant = (text: string, suggestions?: string[]) => {
+      // ✅ SOLUCIÓN: Limpiar la respuesta del backend
+      let cleanText = text;
+      
+      // Remover caracteres de escape extra del backend
+      if (typeof cleanText === 'string') {
+        // Remover comillas dobles al inicio y final si existen
+        cleanText = cleanText.replace(/^"|"$/g, '');
+        // Remover caracteres de escape de newline
+        cleanText = cleanText.replace(/\\n/g, '\n');
+        // Remover caracteres de escape de comillas
+        cleanText = cleanText.replace(/\\"/g, '"');
+        // Limpiar espacios extra
+        cleanText = cleanText.trim();
+      }
+      
+      // Validar que el contenido no esté vacío
+      if (!cleanText || cleanText.length === 0) {
+        cleanText = 'Lo siento, no pude procesar la respuesta. Inténtalo de nuevo.';
+      }
+      
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: text,
+        content: cleanText,
         timestamp: new Date().toISOString(),
         suggestions
       };
-      setMessages(prev => [...prev, aiResponse]);
+      
+      // ✅ SOLUCIÓN: Agregar log para debug
+      console.log('🔍 DEBUG pushAssistant:', {
+        originalText: text,
+        cleanText,
+        messageId: aiResponse.id
+      });
+      
+      setMessages(prev => {
+        const newMessages = [...prev, aiResponse];
+        console.log('🔍 DEBUG pushAssistant setMessages:', {
+          previousCount: prev.length,
+          newCount: newMessages.length,
+          lastMessage: newMessages[newMessages.length - 1]
+        });
+        return newMessages;
+      });
       setIsTyping(false);
       isTypingRef.current = false;
     };
@@ -676,6 +750,20 @@ export const CopilotPanel: React.FC = React.memo(() => {
   ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showIntro = messages.length === 0;
+
+  // ✅ SOLUCIÓN: Log para verificar el estado de los mensajes en el render
+  console.log('🔍 DEBUG CopilotPanel render:', {
+    messagesCount: messages.length,
+    showIntro,
+    messages: messages.map(m => ({ 
+      id: m.id, 
+      role: m.role, 
+      content: m.content?.substring(0, 50) + '...',
+      contentLength: m.content?.length,
+      hasContent: !!m.content,
+      timestamp: m.timestamp
+    }))
+  });
 
   const suggestedPrompts = useMemo(() => [
     {
