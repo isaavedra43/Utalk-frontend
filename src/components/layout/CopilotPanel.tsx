@@ -3,7 +3,6 @@ import { Filter, Send, Lightbulb, Users, TrendingUp, Shield, Zap, Star } from 'l
 import '../../styles/copilot.css';
 import { useCopilot } from '../../hooks/useCopilot';
 import { useAuthContext } from '../../contexts/useAuthContext';
-import { useWebSocketContext } from '../../contexts/useWebSocketContext';
 import { useChatStore } from '../../stores/useChatStore';
 import type { ConversationMemory, CopilotAnalysis, CopilotImprovements } from '../../services/copilot';
 import { copilotService } from '../../services/copilot';
@@ -36,13 +35,13 @@ export const CopilotPanel: React.FC = () => {
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(false);
   
-  // Usar refs para evitar dependencias inestables
+  // Refs para evitar dependencias inestables
   const isTypingRef = useRef(false);
   const activeConversationIdRef = useRef('');
   const currentAgentIdRef = useRef('');
+  const socketRef = useRef<unknown>(null);
   
   const { user, backendUser } = useAuthContext();
-  const { socket } = useWebSocketContext();
   const {
     chat,
     generateResponse,
@@ -53,20 +52,40 @@ export const CopilotPanel: React.FC = () => {
     improveExperience,
   } = useCopilot();
 
-  // Memoizar valores estables
+  // Obtener el ID de conversación activa de forma estable
   const activeConversationId = useMemo(() => {
     const id = (window as unknown as { __activeConversationId?: string }).__activeConversationId || '';
     activeConversationIdRef.current = id;
     return id;
-  }, []); // Sin dependencias para evitar re-ejecuciones
+  }, []);
 
   const storeMessages = useChatStore((s) => (activeConversationId ? (s.messages[activeConversationId] || []) : []));
 
-  // Actualizar el ref del agente actual
+  // Actualizar el ref del agente actual de forma estable
   useMemo(() => {
     const id = backendUser?.id || user?.uid || null;
     currentAgentIdRef.current = id || '';
   }, [backendUser?.id, user?.uid]);
+
+  // Obtener socket de forma estable sin usar el contexto
+  useEffect(() => {
+    // Obtener socket del contexto de forma segura
+    const getSocket = () => {
+      try {
+        // Intentar obtener el socket del contexto global si existe
+        const wsContext = (window as unknown as { __websocketContext?: { socket?: unknown } }).__websocketContext;
+        if (wsContext?.socket) {
+          socketRef.current = wsContext.socket;
+          return wsContext.socket;
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    };
+    
+    socketRef.current = getSocket();
+  }, []);
 
   // Memoizar getCurrentConversationMemory para evitar recreaciones
   const getCurrentConversationMemory = useCallback((): ConversationMemory => {
@@ -84,79 +103,7 @@ export const CopilotPanel: React.FC = () => {
         messageCount: recent.length
       }
     };
-  }, [storeMessages]); // Solo depende de storeMessages
-
-  // Memoizar funciones de estado para evitar recreaciones
-  const setLoadingStates = useMemo(() => ({
-    setIsOptimizing,
-    setIsAnalyzing,
-    setIsStrategyLoading,
-    setIsQuickLoading,
-    setIsExperienceLoading
-  }), []);
-
-  const handleChatSend = useCallback(async (override?: string) => {
-    const text = typeof override === 'string' ? override : chatInput.trim();
-    if (!text) return;
-    updateTokenCount(text);
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: text,
-      timestamp: new Date().toISOString()
-    };
-    setMessages(prev => [...prev, userMessage]);
-    setChatInput('');
-    setIsTyping(true);
-    isTypingRef.current = true;
-
-    const agentId = currentAgentIdRef.current;
-    const conversationId = activeConversationIdRef.current;
-
-    const appendAssistant = (content: string, suggestions?: string[]) => {
-      const parsed = extractAgentNotes(content);
-      const aiResponse: Message = { 
-        id: (Date.now() + 1).toString(), 
-        role: 'assistant', 
-        content: parsed.text, 
-        agentNotes: parsed.notes, 
-        suggestions, 
-        timestamp: new Date().toISOString() 
-      };
-      setMessages(prev => [...prev, aiResponse]);
-      setIsTyping(false);
-      isTypingRef.current = false;
-    };
-
-    try {
-      if (socket?.connected) {
-        socket.emit('copilot_chat_message', { message: text, conversationId, agentId });
-        const wsTimeout = window.setTimeout(async () => {
-          if (isTypingRef.current) {
-            try {
-              const res = await chat({ message: text, conversationId, agentId });
-              appendAssistant(res.response, res.suggestions);
-            } catch (error) {
-              console.error('Error en REST fallback:', error);
-              appendAssistant('Lo siento, hubo un problema. Inténtalo de nuevo.');
-            }
-          }
-        }, 3000);
-
-        socket.once('copilot_response', (data: { response: string; suggestions?: string[] }) => {
-          window.clearTimeout(wsTimeout);
-          appendAssistant(data.response, data.suggestions);
-        });
-      } else {
-        const res = await chat({ message: text, conversationId, agentId });
-        appendAssistant(res.response, res.suggestions);
-      }
-    } catch (error) {
-      console.error('Error en handleChatSend:', error);
-      appendAssistant('Lo siento, hubo un problema. Inténtalo de nuevo.');
-    }
-  }, [chatInput, socket, chat]); // Dependencias mínimas
+  }, [storeMessages]);
 
   const extractAgentNotes = useCallback((raw: string): { text: string; notes?: string } => {
     const marker = /---\s*\n?\s*Notas para el agente\s*\(no enviar al cliente\)\s*:\s*/i;
@@ -217,6 +164,71 @@ export const CopilotPanel: React.FC = () => {
     button: isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'
   }), [isDarkMode]);
 
+  const handleChatSend = useCallback(async (override?: string) => {
+    const text = typeof override === 'string' ? override : chatInput.trim();
+    if (!text) return;
+    updateTokenCount(text);
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: text,
+      timestamp: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+    setIsTyping(true);
+    isTypingRef.current = true;
+
+    const agentId = currentAgentIdRef.current;
+    const conversationId = activeConversationIdRef.current;
+
+    const appendAssistant = (content: string, suggestions?: string[]) => {
+      const parsed = extractAgentNotes(content);
+      const aiResponse: Message = { 
+        id: (Date.now() + 1).toString(), 
+        role: 'assistant', 
+        content: parsed.text, 
+        agentNotes: parsed.notes, 
+        suggestions, 
+        timestamp: new Date().toISOString() 
+      };
+      setMessages(prev => [...prev, aiResponse]);
+      setIsTyping(false);
+      isTypingRef.current = false;
+    };
+
+    try {
+      const socket = socketRef.current as { connected: boolean; emit: (event: string, data: unknown) => void; once: (event: string, callback: (data: unknown) => void) => void } | null;
+      if (socket?.connected) {
+        socket.emit('copilot_chat_message', { message: text, conversationId, agentId });
+        const wsTimeout = window.setTimeout(async () => {
+          if (isTypingRef.current) {
+            try {
+              const res = await chat({ message: text, conversationId, agentId });
+              appendAssistant(res.response, res.suggestions);
+            } catch (error) {
+              console.error('Error en REST fallback:', error);
+              appendAssistant('Lo siento, hubo un problema. Inténtalo de nuevo.');
+            }
+          }
+        }, 3000);
+
+        socket.once('copilot_response', (data: unknown) => {
+          window.clearTimeout(wsTimeout);
+          const responseData = data as { response: string; suggestions?: string[] };
+          appendAssistant(responseData.response, responseData.suggestions);
+        });
+      } else {
+        const res = await chat({ message: text, conversationId, agentId });
+        appendAssistant(res.response, res.suggestions);
+      }
+    } catch (error) {
+      console.error('Error en handleChatSend:', error);
+      appendAssistant('Lo siento, hubo un problema. Inténtalo de nuevo.');
+    }
+  }, [chatInput, chat, extractAgentNotes, updateTokenCount]);
+
   // Memoizar el event handler para evitar recreaciones
   const handleSendToCopilot = useCallback(async (event: Event) => {
     const { content, type, action, payload } = (event as CustomEvent).detail || {};
@@ -248,7 +260,7 @@ export const CopilotPanel: React.FC = () => {
 
     try {
       if (type === 'response' && action === 'improve') {
-        await withLoading(setLoadingStates.setIsOptimizing, async () => {
+        await withLoading(setIsOptimizing, async () => {
           const { optimized } = await optimizeResponse({ response: content });
           pushAssistant(optimized);
         });
@@ -257,7 +269,7 @@ export const CopilotPanel: React.FC = () => {
 
       if (type === 'product' && action === 'analyze') {
         if (!validateBeforeCall()) return;
-        await withLoading(setLoadingStates.setIsAnalyzing, async () => {
+        await withLoading(setIsAnalyzing, async () => {
           const analysis = await analyzeConversation({ conversationMemory: getCurrentConversationMemory() });
           setAnalysisResult(analysis);
         });
@@ -266,7 +278,7 @@ export const CopilotPanel: React.FC = () => {
 
       if (type === 'strategy') {
         if (!validateBeforeCall()) return;
-        await withLoading(setLoadingStates.setIsStrategyLoading, async () => {
+        await withLoading(setIsStrategyLoading, async () => {
           const res = await strategySuggestions({ 
             agentId: currentAgentIdRef.current, 
             analysis: payload?.analysis, 
@@ -278,7 +290,7 @@ export const CopilotPanel: React.FC = () => {
       }
 
       if (type === 'quick') {
-        await withLoading(setLoadingStates.setIsQuickLoading, async () => {
+        await withLoading(setIsQuickLoading, async () => {
           const res = await quickResponse({
             urgency: payload?.urgency || 'normal',
             context: {
@@ -295,7 +307,7 @@ export const CopilotPanel: React.FC = () => {
 
       if (type === 'experience') {
         if (!validateBeforeCall()) return;
-        await withLoading(setLoadingStates.setIsExperienceLoading, async () => {
+        await withLoading(setIsExperienceLoading, async () => {
           const res = await improveExperience({ 
             agentId: currentAgentIdRef.current, 
             conversationMemory: getCurrentConversationMemory(), 
@@ -315,7 +327,6 @@ export const CopilotPanel: React.FC = () => {
     }
   }, [
     withLoading, 
-    setLoadingStates, 
     optimizeResponse, 
     validateBeforeCall, 
     analyzeConversation, 
