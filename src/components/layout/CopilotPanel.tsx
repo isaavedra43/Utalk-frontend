@@ -1,13 +1,746 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Filter, Send, Lightbulb, Users, TrendingUp, Shield, Zap, Star } from 'lucide-react';
+import '../../styles/copilot.css';
+import { useCopilot } from '../../hooks/useCopilot';
+import { useAuthContext } from '../../contexts/useAuthContext';
+import { useWebSocketContext } from '../../contexts/useWebSocketContext';
+import { useChatStore } from '../../stores/useChatStore';
+import type { ConversationMemory, CopilotAnalysis, CopilotImprovements } from '../../services/copilot';
+import { copilotService } from '../../services/copilot';
+
+interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  agentNotes?: string;
+  suggestions?: string[];
+}
 
 export const CopilotPanel: React.FC = () => {
-  // TEMPORALMENTE DESHABILITADO PARA EVITAR ERROR REACT #185
+  const [chatInput, setChatInput] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<CopilotAnalysis | null>(null);
+  const [strategyResult, setStrategyResult] = useState<{ strategies: string[]; actionPlan: string[] } | null>(null);
+  const [experienceResult, setExperienceResult] = useState<CopilotImprovements | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [isStrategyLoading, setIsStrategyLoading] = useState(false);
+  const [isQuickLoading, setIsQuickLoading] = useState(false);
+  const [isExperienceLoading, setIsExperienceLoading] = useState(false);
+  const [systemStatus, setSystemStatus] = useState<'connected' | 'connecting' | 'disconnected'>('disconnected');
+  const [tokenCount, setTokenCount] = useState(0);
+  const [commandHistory, setCommandHistory] = useState<string[]>([]);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  
+  const { user, backendUser } = useAuthContext();
+  const { socket } = useWebSocketContext();
+  const {
+    chat,
+    generateResponse,
+    analyzeConversation,
+    optimizeResponse,
+    strategySuggestions,
+    quickResponse,
+    improveExperience,
+  } = useCopilot();
+
+  const activeConversationId = useMemo(() => {
+    return (window as unknown as { __activeConversationId?: string }).__activeConversationId || '';
+  }, []); // Dependencias vacías para evitar re-ejecuciones
+
+  const storeMessages = useChatStore((s) => (activeConversationId ? (s.messages[activeConversationId] || []) : []));
+
+  const currentAgentId = useMemo(() => backendUser?.id || user?.uid || null, [backendUser?.id, user?.uid]); // Dependencias estables
+
+  const getCurrentConversationMemory = useCallback((): ConversationMemory => {
+    const recent = (storeMessages || []).slice(-10).map((m) => ({
+      role: m.direction === 'outbound' ? 'user' as const : 'assistant' as const,
+      content: m.content,
+      timestamp: m.createdAt || new Date().toISOString()
+    }));
+    return {
+      messages: recent,
+      summary: `Conversación ${activeConversationId}`,
+      context: {
+        conversationId: activeConversationId,
+        agentId: currentAgentId || '',
+        messageCount: recent.length
+      }
+    };
+  }, [storeMessages, activeConversationId, currentAgentId]); // Dependencias estables
+
+  const handleChatSend = useCallback(async (override?: string) => {
+    const text = typeof override === 'string' ? override : chatInput.trim();
+    if (!text) return;
+    updateTokenCount(text);
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: text,
+      timestamp: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+    setIsTyping(true);
+
+    const agentId = currentAgentId || '';
+
+    const appendAssistant = (content: string, suggestions?: string[]) => {
+      const parsed = extractAgentNotes(content);
+      const aiResponse: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: parsed.text, agentNotes: parsed.notes, suggestions, timestamp: new Date().toISOString() };
+      setMessages(prev => [...prev, aiResponse]);
+      setIsTyping(false);
+    };
+
+    try {
+      if (socket?.connected) {
+        socket.emit('copilot_chat_message', { message: text, conversationId: activeConversationId, agentId });
+        const wsTimeout = window.setTimeout(async () => {
+          if (isTyping) {
+            try {
+              const res = await chat({ message: text, conversationId: activeConversationId, agentId });
+              appendAssistant(res.response, res.suggestions);
+            } catch (error) {
+              console.error('Error en REST fallback:', error);
+              appendAssistant('Lo siento, hubo un problema. Inténtalo de nuevo.');
+            }
+          }
+        }, 3000);
+
+        socket.once('copilot_response', (data: { response: string; suggestions?: string[] }) => {
+          window.clearTimeout(wsTimeout);
+          appendAssistant(data.response, data.suggestions);
+        });
+      } else {
+        const res = await chat({ message: text, conversationId: activeConversationId, agentId });
+        appendAssistant(res.response, res.suggestions);
+      }
+    } catch (error) {
+      console.error('Error en handleChatSend:', error);
+      appendAssistant('Lo siento, hubo un problema. Inténtalo de nuevo.');
+    }
+  }, [chatInput, socket, chat, activeConversationId, currentAgentId, isTyping]); // Dependencias estables
+
+  const extractAgentNotes = (raw: string): { text: string; notes?: string } => {
+    const marker = /---\s*\n?\s*Notas para el agente\s*\(no enviar al cliente\)\s*:\s*/i;
+    const idx = raw.search(marker);
+    if (idx === -1) return { text: raw, notes: undefined };
+    const before = raw.substring(0, idx).trim();
+    const after = raw.substring(idx).replace(marker, '').trim();
+    return { text: before, notes: after };
+  };
+
+  const showError = useCallback((message: string) => {
+    setError(message);
+    window.setTimeout(() => setError(null), 5000);
+  }, []);
+
+  const validateBeforeCall = useCallback((): boolean => {
+    if (!activeConversationId) {
+      showError('No hay conversación activa');
+      return false;
+    }
+    if (!currentAgentId) {
+      showError('No hay agente identificado');
+      return false;
+    }
+    return true;
+  }, [activeConversationId, currentAgentId, showError]);
+
+  const withLoading = async <T,>(
+    loadingSetter: (loading: boolean) => void,
+    asyncFn: () => Promise<T>
+  ): Promise<T> => {
+    loadingSetter(true);
+    try {
+      return await asyncFn();
+    } finally {
+      loadingSetter(false);
+    }
+  };
+
+  const updateTokenCount = (text: string) => {
+    const estimatedTokens = Math.ceil(text.length / 4);
+    setTokenCount(prev => prev + estimatedTokens);
+  };
+
+  const addToHistory = useCallback((command: string) => {
+    setCommandHistory(prev => [command, ...prev.slice(0, 9)]);
+  }, []);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+    document.documentElement.classList.toggle('dark');
+  };
+
+  const getThemeClasses = () => ({
+    container: isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900',
+    card: isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200',
+    input: isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300',
+    button: isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'
+  });
+
+  useEffect(() => {
+    const handleSendToCopilot = async (event: Event) => {
+      const { content, type, action, payload } = (event as CustomEvent).detail || {};
+
+      const pushAssistant = (text: string, suggestions?: string[]) => {
+        const aiResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: text,
+          timestamp: new Date().toISOString(),
+          suggestions
+        };
+        setMessages(prev => [...prev, aiResponse]);
+        setIsTyping(false);
+      };
+
+      if (content) {
+        const userMessage: Message = {
+          id: Date.now().toString(),
+          role: 'user',
+          content: String(content),
+          timestamp: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, userMessage]);
+        setIsTyping(true);
+      }
+
+      try {
+        if (type === 'response' && action === 'improve') {
+          await withLoading(setIsOptimizing, async () => {
+            const { optimized } = await optimizeResponse({ response: content });
+            pushAssistant(optimized);
+          });
+          return;
+        }
+
+        if (type === 'product' && action === 'analyze') {
+          if (!validateBeforeCall()) return;
+          await withLoading(setIsAnalyzing, async () => {
+            const analysis = await analyzeConversation({ conversationMemory: getCurrentConversationMemory() });
+            setAnalysisResult(analysis);
+          });
+          return;
+        }
+
+        if (type === 'strategy') {
+          if (!validateBeforeCall()) return;
+          await withLoading(setIsStrategyLoading, async () => {
+            const res = await strategySuggestions({ agentId: currentAgentId || '', analysis: payload?.analysis, conversationMemory: getCurrentConversationMemory() });
+            setStrategyResult(res);
+          });
+          return;
+        }
+
+        if (type === 'quick') {
+          await withLoading(setIsQuickLoading, async () => {
+            const res = await quickResponse({
+              urgency: payload?.urgency || 'normal',
+              context: {
+                lastMessage: typeof content === 'string' ? content : undefined,
+                conversationId: activeConversationId,
+                customerInfo: payload?.customerInfo,
+                productInfo: payload?.productInfo
+              }
+            });
+            pushAssistant(res.quick);
+          });
+          return;
+        }
+
+        if (type === 'experience') {
+          if (!validateBeforeCall()) return;
+          await withLoading(setIsExperienceLoading, async () => {
+            const res = await improveExperience({ agentId: currentAgentId || '', conversationMemory: getCurrentConversationMemory(), analysis: payload?.analysis });
+            setExperienceResult(res);
+          });
+          return;
+        }
+
+        if (content) {
+          await handleChatSend(content);
+        }
+      } catch (err) {
+        console.error('Error en sendToCopilot:', err);
+        showError('Hubo un problema con el copiloto. Inténtalo de nuevo.');
+      }
+    };
+
+    window.addEventListener('sendToCopilot', handleSendToCopilot);
+    return () => window.removeEventListener('sendToCopilot', handleSendToCopilot);
+  }, [currentAgentId, activeConversationId, optimizeResponse, analyzeConversation, strategySuggestions, quickResponse, improveExperience, getCurrentConversationMemory, handleChatSend, validateBeforeCall, setIsOptimizing, setIsAnalyzing, setIsStrategyLoading, setIsQuickLoading, setIsExperienceLoading, showError]); // Dependencias estables
+
+  const renderAnalysisResult = () => {
+    if (!analysisResult) return null;
+    return (
+      <div className="px-3 pb-2">
+        <div className="max-w-full bg-white border border-gray-200 rounded-lg p-3">
+          <h4 className="text-sm font-semibold text-gray-900 mb-2">Análisis de Conversación</h4>
+          <div className="grid grid-cols-3 gap-2 text-xs text-gray-700 mb-2">
+            <p><span className="font-medium">Tono:</span> {analysisResult.tone.tone}</p>
+            <p><span className="font-medium">Sentimiento:</span> {analysisResult.tone.sentiment}</p>
+            <p><span className="font-medium">Urgencia:</span> {analysisResult.tone.urgency}</p>
+          </div>
+          {analysisResult.opportunities?.length > 0 && (
+            <div>
+              <h5 className="text-xs font-medium text-gray-900 mb-1">Oportunidades</h5>
+              <ul className="list-disc list-inside text-xs text-gray-700 space-y-0.5">
+                {analysisResult.opportunities.map((opp, i) => (
+                  <li key={i}>{opp}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderStrategyResult = () => {
+    if (!strategyResult) return null;
+    return (
+      <div className="px-3 pb-2">
+        <div className="max-w-full bg-white border border-gray-200 rounded-lg p-3">
+          <h4 className="text-sm font-semibold text-gray-900 mb-2">Estrategia de Atención</h4>
+          {strategyResult.strategies?.length > 0 && (
+            <div className="mb-2">
+              <h5 className="text-xs font-medium text-gray-900 mb-1">Estrategias</h5>
+              <ul className="list-disc list-inside text-xs text-gray-700 space-y-0.5">
+                {strategyResult.strategies.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {strategyResult.actionPlan?.length > 0 && (
+            <div>
+              <h5 className="text-xs font-medium text-gray-900 mb-1">Plan de acción</h5>
+              <ul className="list-decimal list-inside text-xs text-gray-700 space-y-0.5">
+                {strategyResult.actionPlan.map((a, i) => (
+                  <li key={i}>{a}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderExperienceResult = () => {
+    if (!experienceResult) return null;
+    return (
+      <div className="px-3 pb-2">
+        <div className="max-w-full bg-white border border-gray-200 rounded-lg p-3">
+          <h4 className="text-sm font-semibold text-gray-900 mb-2">Mejora de Experiencia</h4>
+          {experienceResult.gaps?.length > 0 && (
+            <div className="mb-2">
+              <h5 className="text-xs font-medium text-gray-900 mb-1">Gaps identificados</h5>
+              <ul className="list-disc list-inside text-xs text-gray-700 space-y-0.5">
+                {experienceResult.gaps.map((g, i) => (
+                  <li key={i}>{g}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {experienceResult.improvements?.length > 0 && (
+            <div className="mb-2">
+              <h5 className="text-xs font-medium text-gray-900 mb-1">Mejoras sugeridas</h5>
+              <ul className="list-disc list-inside text-xs text-gray-700 space-y-0.5">
+                {experienceResult.improvements.map((imp, i) => (
+                  <li key={i}>{imp}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {experienceResult.plan?.length > 0 && (
+            <div>
+              <h5 className="text-xs font-medium text-gray-900 mb-1">Plan de implementación</h5>
+              <ul className="list-decimal list-inside text-xs text-gray-700 space-y-0.5">
+                {experienceResult.plan.map((step, i) => (
+                  <li key={i}>{step}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const handleChatKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleChatSend();
+    }
+  };
+
+  const handleSuggestionClick = useCallback(async (suggestion: { id: number; prompt: string; title: string }) => {
+    if (!validateBeforeCall()) return;
+    addToHistory(suggestion.title);
+
+    const push = (text: string) => {
+      const userMessage: Message = { id: Date.now().toString(), role: 'user', content: suggestion.title, timestamp: new Date().toISOString() };
+      setMessages(prev => [...prev, userMessage]);
+      const parsed = extractAgentNotes(text);
+      const aiMessage: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: parsed.text, agentNotes: parsed.notes, timestamp: new Date().toISOString() };
+      setMessages(prev => [...prev, aiMessage]);
+    };
+
+    try {
+      if (suggestion.id === 1) {
+        await withLoading(setIsGenerating, async () => {
+          const result = await generateResponse({ conversationId: activeConversationId, agentId: currentAgentId || '', message: suggestion.prompt });
+          push(result.response);
+        });
+      } else if (suggestion.id === 2) {
+        await withLoading(setIsAnalyzing, async () => {
+          const analysis = await analyzeConversation({ conversationMemory: getCurrentConversationMemory() });
+          setAnalysisResult(analysis);
+          push(`Tono: ${analysis.tone.tone} | Sentimiento: ${analysis.tone.sentiment} | Urgencia: ${analysis.tone.urgency}\nOportunidades:\n- ${analysis.opportunities.join('\n- ')}`);
+        });
+      } else if (suggestion.id === 3) {
+        await withLoading(setIsOptimizing, async () => {
+          const res = await optimizeResponse({ response: suggestion.prompt });
+          push(res.optimized);
+        });
+      } else if (suggestion.id === 4) {
+        await withLoading(setIsStrategyLoading, async () => {
+          const res = await strategySuggestions({ agentId: currentAgentId || '', conversationMemory: getCurrentConversationMemory() });
+          setStrategyResult(res);
+          push(`Estrategias:\n- ${res.strategies.join('\n- ')}\n\nPlan de Acción:\n- ${res.actionPlan.join('\n- ')}`);
+        });
+      } else if (suggestion.id === 5) {
+        await withLoading(setIsQuickLoading, async () => {
+          const res = await quickResponse({ urgency: 'normal', context: { conversationId: activeConversationId } });
+          setChatInput(res.quick);
+        });
+      } else if (suggestion.id === 6) {
+        await withLoading(setIsExperienceLoading, async () => {
+          const res = await improveExperience({ agentId: currentAgentId || '', conversationMemory: getCurrentConversationMemory() });
+          setExperienceResult(res);
+          push(`Gaps Identificados:\n- ${res.gaps.join('\n- ')}\n\nMejoras:\n- ${res.improvements.join('\n- ')}\n\nPlan:\n- ${res.plan.join('\n- ')}`);
+        });
+      }
+    } catch (error) {
+      console.error('Error en handleSuggestionClick:', error);
+      showError('Error al procesar la sugerencia. Inténtalo de nuevo.');
+    }
+  }, [validateBeforeCall, addToHistory, currentAgentId, activeConversationId, generateResponse, analyzeConversation, getCurrentConversationMemory, setAnalysisResult, optimizeResponse, strategySuggestions, setStrategyResult, quickResponse, setChatInput, improveExperience, setExperienceResult, showError]);
+
+  const showIntro = messages.length === 0;
+
+  const suggestedPrompts = useMemo(() => [
+    {
+      id: 1,
+      icon: <Lightbulb className="w-3 h-3" />,
+      title: isGenerating ? 'Generando respuesta...' : "Generar respuesta profesional",
+      description: "Ayúdame a crear una respuesta cordial y profesional para un cliente",
+      prompt: "Genera una respuesta profesional y cordial para un cliente que pregunta sobre nuestros servicios",
+      disabled: isGenerating
+    },
+    {
+      id: 2,
+      icon: <Users className="w-3 h-3" />,
+      title: isAnalyzing ? 'Analizando conversación...' : "Analizar conversación",
+      description: "Analiza el tono y sentimiento de una conversación reciente",
+      prompt: "Analiza el tono y sentimiento de la conversación con el cliente para identificar oportunidades de mejora",
+      disabled: isAnalyzing
+    },
+    {
+      id: 3,
+      icon: <TrendingUp className="w-3 h-3" />,
+      title: isOptimizing ? 'Optimizando respuesta...' : "Optimizar respuesta",
+      description: "Mejora una respuesta existente para que sea más efectiva",
+      prompt: "Optimiza esta respuesta para que sea más clara y persuasiva",
+      disabled: isOptimizing
+    },
+    {
+      id: 4,
+      icon: <Shield className="w-3 h-3" />,
+      title: isStrategyLoading ? 'Generando estrategias...' : "Estrategia de atención",
+      description: "Sugiere estrategias para mejorar la atención al cliente",
+      prompt: "Sugiere estrategias para mejorar la atención al cliente en situaciones difíciles",
+      disabled: isStrategyLoading
+    },
+    {
+      id: 5,
+      icon: <Zap className="w-3 h-3" />,
+      title: isQuickLoading ? 'Generando respuesta rápida...' : "Respuesta rápida",
+      description: "Crea una respuesta concisa para consultas urgentes",
+      prompt: "Crea una respuesta rápida y efectiva para una consulta urgente del cliente",
+      disabled: isQuickLoading
+    },
+    {
+      id: 6,
+      icon: <Star className="w-3 h-3" />,
+      title: isExperienceLoading ? 'Analizando experiencia...' : "Mejorar experiencia",
+      description: "Identifica oportunidades para mejorar la experiencia del cliente",
+      prompt: "Identifica oportunidades para mejorar la experiencia del cliente en nuestro proceso de atención",
+      disabled: isExperienceLoading
+    }
+  ], [isGenerating, isAnalyzing, isOptimizing, isStrategyLoading, isQuickLoading, isExperienceLoading]);
+
+  // Atajos de teclado
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      // Ctrl/Cmd + Enter para enviar mensaje
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+        event.preventDefault();
+        if (chatInput.trim()) {
+          handleChatSend();
+        }
+      }
+      
+      // Ctrl/Cmd + 1-6 para sugerencias
+      if ((event.ctrlKey || event.metaKey) && /^[1-6]$/.test(event.key)) {
+        event.preventDefault();
+        const suggestionIndex = parseInt(event.key) - 1;
+        if (suggestedPrompts[suggestionIndex]) {
+          handleSuggestionClick(suggestedPrompts[suggestionIndex] as unknown as { id: number; prompt: string; title: string });
+        }
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, [chatInput, suggestedPrompts, handleChatSend, handleSuggestionClick]); // Dependencias estables
+
+  // Verificar estado del sistema
+  useEffect(() => {
+         const checkSystemStatus = async () => {
+       try {
+         await copilotService.health();
+         setSystemStatus('connected');
+       } catch {
+         setSystemStatus('disconnected');
+       }
+     };
+    
+    checkSystemStatus();
+    const interval = setInterval(checkSystemStatus, 30000); // Check cada 30 segundos
+    
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="flex items-center justify-center h-full bg-gray-50">
-      <div className="text-center">
-        <div className="text-gray-500 mb-2">🔄</div>
-        <p className="text-sm text-gray-600">Panel de Copiloto en mantenimiento</p>
-        <p className="text-xs text-gray-400 mt-1">Se solucionará pronto</p>
+    <div className={`flex flex-col h-full overflow-hidden ${getThemeClasses().container}`}>
+      {error && (
+        <div className="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50">
+          <div className="flex items-center">
+            <span className="mr-2">⚠️</span>
+            <span>{error}</span>
+            <button onClick={() => setError(null)} className="ml-4 text-red-500 hover:text-red-700">×</button>
+          </div>
+        </div>
+      )}
+      
+      {/* Header con estado del sistema */}
+      {showIntro && (
+        <div className="p-3 pb-6">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold animated-gradient-text relative">
+              El Copiloto está aquí para ayudar. Solo pregunta.
+            </h1>
+            <div className="flex items-center justify-center space-x-4 mt-2">
+              <div className="flex items-center space-x-2 text-xs">
+                <div className={`w-2 h-2 rounded-full ${
+                  systemStatus === 'connected' ? 'bg-green-500' :
+                  systemStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
+                }`}></div>
+                <span className={
+                  systemStatus === 'connected' ? 'text-green-600' :
+                  systemStatus === 'connecting' ? 'text-yellow-600' : 'text-red-600'
+                }>
+                  {systemStatus === 'connected' ? 'IA Conectada' :
+                   systemStatus === 'connecting' ? 'Conectando...' : 'IA Desconectada'}
+                </span>
+              </div>
+              <button
+                onClick={toggleDarkMode}
+                className="p-1 rounded-lg bg-gray-200 dark:bg-gray-700"
+              >
+                {isDarkMode ? '☀️' : '🌙'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Peticiones Sugeridas - solo se muestra si no hay mensajes */}
+      {showIntro && (
+        <div className="px-3 pb-2 flex-1 overflow-y-auto pt-4 no-scrollbar">
+          <div className="grid grid-cols-2 gap-1.5">
+            {suggestedPrompts.map((suggestion) => (
+              <button
+                key={suggestion.id}
+                onClick={() => handleSuggestionClick(suggestion as unknown as { id: number; prompt: string; title: string })}
+                disabled={suggestion.disabled || isTyping}
+                className={`group relative p-2 border rounded-lg transition-all duration-200 text-left overflow-hidden ${
+                  suggestion.disabled || isTyping
+                    ? 'bg-gray-100 border-gray-300 cursor-not-allowed opacity-50'
+                    : `${getThemeClasses().card} hover:border-blue-300 hover:shadow-sm`
+                }`}
+              >
+                <div className="relative flex items-start space-x-1.5">
+                  <div className="flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center group-hover:scale-105 transition-transform duration-200 shadow-sm overflow-hidden relative">
+                    {/* Fondo animado del icono - siempre visible */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600"></div>
+                    <div className="relative z-10 text-white">
+                      {suggestion.disabled ? (
+                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        suggestion.icon
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-xs font-semibold text-gray-900 group-hover:text-blue-900 mb-0.5 transition-colors duration-200">
+                      {suggestion.title}
+                    </h4>
+                    <p className="text-xs text-gray-600 group-hover:text-gray-700 leading-tight transition-colors duration-200">
+                      {suggestion.description}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Indicador de hover */}
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-left"></div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Chat Messages - ocupa el espacio disponible */}
+      {messages.length > 0 && (
+        <div className="flex-1 overflow-y-auto space-y-2 p-3 min-h-0 max-h-[calc(100vh-200px)] no-scrollbar">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-xs px-2 py-1.5 rounded-lg text-xs ${
+                  message.role === 'user'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-900'
+                }`}
+              >
+                {message.content}
+              </div>
+              {message.role === 'assistant' && message.suggestions && message.suggestions.length > 0 && (
+                <div className="w-full mt-1">
+                  <div className="max-w-xs bg-blue-50 border border-blue-200 rounded-md p-2">
+                    <div className="text-xs font-medium text-blue-800 mb-1">Sugerencias rápidas</div>
+                    <div className="flex flex-wrap gap-1">
+                      {message.suggestions.map((s, i) => (
+                        <button key={i} onClick={() => setChatInput(s)} className="px-1.5 py-0.5 text-xs bg-white border border-blue-200 text-blue-700 rounded hover:bg-blue-100">
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {message.role === 'assistant' && message.agentNotes && (
+                <div className="w-full mt-1">
+                  <details className="max-w-xs text-xs text-gray-600 bg-yellow-50 border border-yellow-200 rounded-md p-2">
+                    <summary className="cursor-pointer text-yellow-800 font-medium">Notas para el agente (no enviar al cliente)</summary>
+                    <div className="mt-1 whitespace-pre-wrap text-yellow-900">{message.agentNotes}</div>
+                  </details>
+                </div>
+              )}
+            </div>
+          ))}
+          
+          {/* Indicador de escritura */}
+          {isTyping && (
+            <div className="flex justify-start">
+              <div className="bg-gray-100 text-gray-900 px-2 py-1.5 rounded-lg text-xs">
+                <div className="flex space-x-1">
+                  <div className="w-1 h-1 bg-gray-500 rounded-full animate-bounce"></div>
+                  <div className="w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Resultados de análisis/estrategia/experiencia */}
+      {renderAnalysisResult()}
+      {renderStrategyResult()}
+      {renderExperienceResult()}
+
+      {/* Historial de comandos */}
+      {commandHistory.length > 0 && (
+        <div className="px-3 pb-2">
+          <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Comandos recientes:</h4>
+            <div className="space-y-1">
+              {commandHistory.map((cmd, index) => (
+                <div key={index} className="text-xs text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-700 px-2 py-1 rounded">
+                  {cmd}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Message Input with Radiant Colors Animation - siempre en la parte inferior */}
+      <div className="p-3 pt-1 border-t border-gray-100 dark:border-gray-700">
+        <div className="relative">
+          {/* Radiant Colors Border Animation */}
+          <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 p-[2px] animate-gradient-xy">
+            <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-75 blur-sm"></div>
+          </div>
+          
+          {/* Input Container */}
+          <div className="relative bg-white rounded-lg p-[2px]">
+            <div className="flex items-center space-x-2 p-2">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 text-xs focus:outline-none"
+                onKeyPress={handleChatKeyPress}
+                placeholder="Haz una pregunta..."
+              />
+              
+              <div className="flex items-center space-x-1">
+                <button className="p-1 text-gray-500 hover:text-gray-700 transition-colors">
+                  <Filter className="w-3 h-3" />
+                </button>
+                
+                <button
+                  onClick={() => handleChatSend()}
+                  disabled={!chatInput.trim() || isTyping}
+                  className="p-1.5 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Send className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contador de tokens y atajos */}
+        <div className="px-3 pb-2">
+          <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
+            <span>Tokens estimados: {tokenCount.toLocaleString()}</span>
+            <span>Atajos: Ctrl+Enter (enviar) | Ctrl+1-6 (sugerencias)</span>
+          </div>
+        </div>
       </div>
     </div>
   );
