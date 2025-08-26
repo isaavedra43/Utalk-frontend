@@ -64,3 +64,62 @@ export const getStoredTokens = (): { accessToken: string | null; refreshToken: s
     refreshToken: isTokenValid(refreshToken) ? refreshToken : null
   };
 };
+
+// NUEVO: Función para limpiar completamente el estado y forzar nueva autenticación
+export const forceCleanAuth = (): void => {
+  try {
+    console.log('🔐 authUtils - Limpiando completamente el estado de autenticación...');
+    
+    // Limpiar localStorage
+    localStorage.clear();
+    
+    // Limpiar sessionStorage
+    sessionStorage.clear();
+    
+    // Limpiar cookies relacionadas con autenticación
+    document.cookie.split(";").forEach((c) => {
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+    
+    // Disparar evento para notificar a otros componentes
+    window.dispatchEvent(new CustomEvent('auth:force-clean', {
+      detail: { timestamp: Date.now() }
+    }));
+    
+    console.log('🔐 authUtils - Estado de autenticación limpiado completamente');
+  } catch (error) {
+    console.error('🔐 authUtils - Error en forceCleanAuth:', error);
+  }
+};
+
+// NUEVO: Función para verificar si el estado está corrupto
+export const isAuthStateCorrupted = (): boolean => {
+  try {
+    const { accessToken, refreshToken } = getStoredTokens();
+    const user = localStorage.getItem('user');
+    
+    // Verificar si hay tokens pero no usuario
+    if ((accessToken || refreshToken) && !user) {
+      return true;
+    }
+    
+    // Verificar si hay usuario pero no tokens
+    if (user && (!accessToken && !refreshToken)) {
+      return true;
+    }
+    
+    // Verificar si el usuario es JSON inválido
+    if (user) {
+      try {
+        JSON.parse(user);
+      } catch {
+        return true;
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('🔐 authUtils - Error verificando estado corrupto:', error);
+    return true;
+  }
+};

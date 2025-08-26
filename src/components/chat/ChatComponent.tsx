@@ -31,6 +31,23 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
     return '';
   })();
 
+  // NUEVO: Protección contra conversationId inválido
+  if (!effectiveConversationId || effectiveConversationId.trim() === '') {
+    return (
+      <div className="flex h-full items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Selecciona una conversación
+          </h3>
+          <p className="text-gray-500">
+            Elige una conversación de la lista para comenzar a chatear
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const {
     messages,
     conversation,
@@ -50,6 +67,45 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
     deleteOptimisticMessage,
     messagesEndRef
   } = useChat(effectiveConversationId);
+
+  // NUEVO: Protección adicional contra datos undefined
+  if (loading && !conversation) {
+    return (
+      <div className="flex h-full items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Cargando conversación...
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
+  // NUEVO: Protección contra error de carga
+  if (error && !conversation) {
+    return (
+      <div className="flex h-full items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">
+            <MessageSquare className="h-12 w-12 mx-auto" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Error al cargar la conversación
+          </h3>
+          <p className="text-gray-500 mb-4">
+            {error}
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const [inputValue, setInputValue] = useState('');
 

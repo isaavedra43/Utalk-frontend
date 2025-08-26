@@ -1,6 +1,7 @@
 import React, { useEffect, lazy, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useUIStore } from '../../stores/useUIStore';
+import { useAuthContext } from '../../contexts/useAuthContext';
 import { LeftSidebar } from './LeftSidebar';
 // Lazy load de módulos
 const ChatModule = lazy(() => import('../chat/ChatModule').then(m => ({ default: m.ChatModule })));
@@ -14,6 +15,47 @@ import { ModulePlaceholder } from './ModulePlaceholder';
 export const MainLayout: React.FC = () => {
   const location = useLocation();
   const { setCurrentModule } = useUIStore();
+  const { isAuthenticated, loading } = useAuthContext();
+  
+  // NUEVO: Protección contra estado de autenticación inválido
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Verificando autenticación...
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">
+            <svg className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No autorizado
+          </h3>
+          <p className="text-gray-500 mb-4">
+            Debes iniciar sesión para acceder a esta página
+          </p>
+          <button 
+            onClick={() => window.location.href = '/login'}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            Ir al login
+          </button>
+        </div>
+      </div>
+    );
+  }
   
   // Determinar el módulo basado en la URL
   const getCurrentModule = () => {

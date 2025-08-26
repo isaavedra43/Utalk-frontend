@@ -148,6 +148,22 @@ export const useConversationList = (filters: ConversationFilters = {}) => {
 
   // NOTA: Se elimina el cleanup automático de la URL para no borrar '?conversation' mientras se resuelve la selección.
 
+  // NUEVO: Protección contra estado de autenticación inválido
+  if (!isAuthenticated || authLoading || isAuthenticating) {
+    return {
+      conversations: [],
+      activeConversation: null,
+      isLoading: true,
+      isFetchingNextPage: false,
+      hasNextPage: false,
+      error: null,
+      setActiveConversation: () => {},
+      fetchNextPage: () => Promise.resolve(),
+      refetch: () => Promise.resolve(),
+      urlConversationId: null
+    };
+  }
+
   return {
     // Datos de conversaciones
     conversations: allConversations,

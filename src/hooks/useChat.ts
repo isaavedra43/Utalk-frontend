@@ -27,6 +27,29 @@ export const useChat = (conversationId: string) => {
   const navigate = useNavigate();
   const { backendUser } = useAuthContext();
   
+  // NUEVO: Protección contra conversationId inválido al inicio
+  if (!conversationId || typeof conversationId !== 'string' || conversationId.trim() === '') {
+    return {
+      messages: [],
+      conversation: null,
+      loading: false,
+      error: null,
+      sending: false,
+      isTyping: false,
+      isConnected: false,
+      isJoined: false,
+      typingUsers: [],
+      sendMessage: () => Promise.resolve(),
+      sendMessageWithAttachments: () => Promise.resolve(),
+      handleTyping: () => {},
+      handleStopTyping: () => {},
+      markAsRead: () => Promise.resolve(),
+      retryMessage: () => Promise.resolve(),
+      deleteOptimisticMessage: () => {},
+      messagesEndRef: { current: null }
+    };
+  }
+  
   const {
     socket,
     isConnected,

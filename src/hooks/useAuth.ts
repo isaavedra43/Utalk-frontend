@@ -4,7 +4,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { WebSocketContext } from '../contexts/WebSocketContext';
 import { useContext } from 'react';
 import api from '../services/api';
-import { cleanCorruptedTokens, getStoredTokens } from '../utils/authUtils';
+import { cleanCorruptedTokens, getStoredTokens, forceCleanAuth, isAuthStateCorrupted } from '../utils/authUtils';
 
 interface BackendUser {
   id: string;
@@ -53,6 +53,15 @@ export const useAuth = (): AuthState => {
   useEffect(() => {
     const checkInitialAuth = async () => {
       try {
+        // NUEVO: Verificar si el estado está corrupto
+        if (isAuthStateCorrupted()) {
+          infoLog('🔐 useAuth - Estado de autenticación corrupto detectado, limpiando completamente...');
+          forceCleanAuth();
+          authStore.clearAuth();
+          authStore.setLoading(false);
+          return;
+        }
+        
         // Limpiar tokens corruptos automáticamente
         cleanCorruptedTokens();
         const { accessToken, refreshToken } = getStoredTokens();
