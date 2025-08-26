@@ -50,7 +50,7 @@ export const LeftSidebar: React.FC = () => {
   };
 
   // Definir todos los módulos disponibles
-  const allNavigationItems = [
+  const allNavigationItems = useMemo(() => [
     {
       id: 'dashboard',
       icon: LayoutDashboard,
@@ -76,7 +76,7 @@ export const LeftSidebar: React.FC = () => {
       icon: MessageSquare,
       title: 'Mensajes'
     }
-  ];
+  ], []);
 
   // Filtrar módulos según permisos del usuario
   const navigationItems = React.useMemo(() => {

@@ -40,7 +40,7 @@ export const usePermissions = () => {
   // Actualizar permisos de un miembro
   const updateMemberPermissions = useCallback(async (
     memberId: string, 
-    permissions: any // Assuming permissions is an array of Permission objects
+    permissions: { read: boolean; write: boolean; approve: boolean; configure: boolean } // Assuming permissions is an object with boolean flags
   ): Promise<TeamMember | null> => {
     try {
       setLoading(true);
@@ -50,7 +50,7 @@ export const usePermissions = () => {
       
       logger.systemInfo('Member permissions updated', { 
         memberId, 
-        permissions: permissions.map((p: any) => ({ name: p.name, isActive: p.isActive }))
+        permissions
       });
       
       return updatedMember;
@@ -109,7 +109,7 @@ export const usePermissions = () => {
       setError(null);
 
       // Definir permisos por rol
-      const rolePermissions: Record<string, any> = { // Assuming permissions is an array of Permission objects
+      const rolePermissions: Record<string, Array<{ id: string; name: string; displayName: string; description: string; level: string; isActive: boolean; icon: string }>> = { // Assuming permissions is an array of Permission objects
         'executive': [
           { id: '1', name: 'read', displayName: 'Leer', description: 'Ver conversaciones y datos de clientes', level: 'advanced', isActive: true, icon: 'book' },
           { id: '2', name: 'write', displayName: 'Escribir', description: 'Enviar mensajes y responder a clientes', level: 'advanced', isActive: true, icon: 'pencil' }
@@ -127,7 +127,15 @@ export const usePermissions = () => {
         ]
       };
 
-      const permissions = rolePermissions[role] || rolePermissions['executive'];
+      const rolePermissionsArray = rolePermissions[role] || rolePermissions['executive'];
+      
+      // Convertir array a objeto de permisos
+      const permissions = {
+        read: rolePermissionsArray.some(p => p.name === 'read' && p.isActive),
+        write: rolePermissionsArray.some(p => p.name === 'write' && p.isActive),
+        approve: rolePermissionsArray.some(p => p.name === 'approve' && p.isActive),
+        configure: rolePermissionsArray.some(p => p.name === 'configure' && p.isActive)
+      };
       
       const updatedMember = await teamService.updateMember(memberId, { 
         role,
@@ -137,7 +145,7 @@ export const usePermissions = () => {
       logger.systemInfo('Role assigned with permissions', { 
         memberId, 
         role, 
-        permissionsCount: permissions.length 
+        permissionsCount: Object.keys(permissions).length
       });
       
       return updatedMember;

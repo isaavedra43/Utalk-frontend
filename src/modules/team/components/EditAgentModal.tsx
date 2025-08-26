@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { TeamMember } from '../../../types/team';
 import { infoLog } from '../../../config/logger';
 import { modulePermissionsService, UserModulePermissions } from '../../../services/modulePermissions';
@@ -85,7 +85,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
   
   // Estado para permisos de módulos
   const [modulePermissions, setModulePermissions] = useState<UserModulePermissions | null>(null);
-  const [availableModules, setAvailableModules] = useState<{ [moduleId: string]: any }>({});
+  const [availableModules, setAvailableModules] = useState<{ [moduleId: string]: unknown }>({});
   const [loadingModules, setLoadingModules] = useState(false);
 
   // Cargar datos del miembro cuando se abre el modal
@@ -125,14 +125,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
     }
   }, [member, isOpen]);
 
-  // Cargar permisos de módulos cuando se abre la pestaña
-  useEffect(() => {
-    if (isOpen && activeTab === 'modulePermissions' && member?.email) {
-      loadModulePermissions();
-    }
-  }, [isOpen, activeTab, member?.email]);
-
-  const loadModulePermissions = async () => {
+  const loadModulePermissions = useCallback(async () => {
     if (!member?.email) return;
     
     setLoadingModules(true);
@@ -150,7 +143,14 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
     } finally {
       setLoadingModules(false);
     }
-  };
+  }, [member?.email]);
+
+  // Cargar permisos de módulos cuando se abre la pestaña
+  useEffect(() => {
+    if (isOpen && activeTab === 'modulePermissions' && member?.email) {
+      loadModulePermissions();
+    }
+  }, [isOpen, activeTab, member?.email, loadModulePermissions]);
 
   const handleModulePermissionChange = (moduleId: string, action: 'read' | 'write' | 'configure', value: boolean) => {
     if (!modulePermissions) return;
@@ -424,19 +424,20 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                       {Object.entries(availableModules).map(([moduleId, module]) => {
                         const currentModulePermissions = modulePermissions?.permissions?.modules?.[moduleId];
                         
+                        const moduleData = module as { name: string; description: string; level: string };
                         return (
                           <div key={moduleId} className="border border-gray-200 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-3">
                               <div>
-                                <h4 className="text-sm font-medium text-gray-900">{module.name}</h4>
-                                <p className="text-xs text-gray-600">{module.description}</p>
+                                <h4 className="text-sm font-medium text-gray-900">{moduleData.name}</h4>
+                                <p className="text-xs text-gray-600">{moduleData.description}</p>
                               </div>
                               <span className={`text-xs px-2 py-1 rounded-full ${
-                                module.level === 'advanced' ? 'bg-red-100 text-red-800' :
-                                module.level === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                                moduleData.level === 'advanced' ? 'bg-red-100 text-red-800' :
+                                moduleData.level === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
                                 'bg-green-100 text-green-800'
                               }`}>
-                                {module.level}
+                                {moduleData.level}
                               </span>
                             </div>
                             

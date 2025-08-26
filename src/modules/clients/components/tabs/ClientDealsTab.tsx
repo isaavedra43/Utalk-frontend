@@ -85,7 +85,7 @@ export const ClientDealsTab: React.FC<ClientDealsTabProps> = ({
         month: '2-digit',
         year: 'numeric'
       }).format(dateObj);
-    } catch (error) {
+    } catch {
       return 'Error en fecha';
     }
   };

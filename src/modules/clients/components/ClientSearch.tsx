@@ -97,7 +97,7 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({
       return hasChanged ? uniqueSuggestions : prev;
     });
     setSelectedIndex(-1);
-  }, [value]); // ✅ SOLO DEPENDE DE 'value', NO de 'clients'
+  }, [value, clients]);
 
   const handleSuggestionSelect = useCallback((suggestion: SearchSuggestion) => {
     onSearch(suggestion.value);

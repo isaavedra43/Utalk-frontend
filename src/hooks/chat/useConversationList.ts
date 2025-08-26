@@ -143,7 +143,7 @@ export const useConversationList = (filters: ConversationFilters = {}) => {
     return () => {
       window.removeEventListener('conversation-created', handleConversationCreated);
     };
-  }, [setConversations, setActiveConversation]);
+  }, [setConversations, setActiveConversation, get]);
 
   // NOTA: Se elimina el cleanup automático de la URL para no borrar '?conversation' mientras se resuelve la selección.
 

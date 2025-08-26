@@ -135,10 +135,10 @@ export const CopilotPanel: React.FC = () => {
     return { text: before, notes: after };
   };
 
-  const showError = (message: string) => {
+  const showError = useCallback((message: string) => {
     setError(message);
     window.setTimeout(() => setError(null), 5000);
-  };
+  }, []);
 
   const validateBeforeCall = useCallback((): boolean => {
     if (!activeConversationId) {
@@ -150,7 +150,7 @@ export const CopilotPanel: React.FC = () => {
       return false;
     }
     return true;
-  }, [activeConversationId, currentAgentId]);
+  }, [activeConversationId, currentAgentId, showError]);
 
   const withLoading = async <T,>(
     loadingSetter: (loading: boolean) => void,
@@ -169,9 +169,9 @@ export const CopilotPanel: React.FC = () => {
     setTokenCount(prev => prev + estimatedTokens);
   };
 
-  const addToHistory = (command: string) => {
+  const addToHistory = useCallback((command: string) => {
     setCommandHistory(prev => [command, ...prev.slice(0, 9)]);
-  };
+  }, []);
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
@@ -275,7 +275,7 @@ export const CopilotPanel: React.FC = () => {
 
     window.addEventListener('sendToCopilot', handleSendToCopilot);
     return () => window.removeEventListener('sendToCopilot', handleSendToCopilot);
-  }, [currentAgentId, activeConversationId, optimizeResponse, analyzeConversation, strategySuggestions, quickResponse, improveExperience, getCurrentConversationMemory, handleChatSend, validateBeforeCall, setIsOptimizing, setIsAnalyzing, setIsStrategyLoading, setIsQuickLoading, setIsExperienceLoading]);
+  }, [currentAgentId, activeConversationId, optimizeResponse, analyzeConversation, strategySuggestions, quickResponse, improveExperience, getCurrentConversationMemory, handleChatSend, validateBeforeCall, setIsOptimizing, setIsAnalyzing, setIsStrategyLoading, setIsQuickLoading, setIsExperienceLoading, showError]);
 
   const renderAnalysisResult = () => {
     if (!analysisResult) return null;

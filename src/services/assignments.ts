@@ -6,7 +6,7 @@ export interface Agent {
   name: string;
   role: string;
   isActive: boolean;
-  kpis?: any;
+  kpis?: unknown;
   avatar?: string;
   isOnline?: boolean;
 }
@@ -24,7 +24,7 @@ export interface AssignedAgent {
 
 export interface AssignmentResponse {
   success: boolean;
-  data: any;
+  data: unknown;
   message: string;
 }
 

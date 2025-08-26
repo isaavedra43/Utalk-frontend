@@ -24,7 +24,7 @@ export const useTeamNotifications = (members: TeamMember[]) => {
 
       // Miembros con tareas de coaching pendientes
       if (member.coachingPlan) {
-        const pendingTasks = member.coachingPlan.tasks.filter((task: any) => task.status === 'pending');
+        const pendingTasks = member.coachingPlan.tasks.filter((task: { status: string }) => task.status === 'pending');
         if (pendingTasks.length > 0) {
           coachingUpdates++;
         }
@@ -77,7 +77,7 @@ export const useTeamNotifications = (members: TeamMember[]) => {
       performanceAlerts: members.filter((m: TeamMember) => m.performanceMetrics && m.performanceMetrics.csatScore < 4.0),
       coachingUpdates: members.filter((m: TeamMember) => 
         m.coachingPlan && 
-        m.coachingPlan.tasks.some((task: any) => task.status === 'pending')
+        m.coachingPlan.tasks.some((task: { status: string }) => task.status === 'pending')
       )
     };
   }, [members]);

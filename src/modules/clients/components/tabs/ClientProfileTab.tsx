@@ -48,7 +48,7 @@ export const ClientProfileTab: React.FC<ClientProfileTabProps> = ({
         month: '2-digit',
         year: 'numeric'
       }).format(dateObj);
-    } catch (error) {
+    } catch {
       return 'Error en fecha';
     }
   };

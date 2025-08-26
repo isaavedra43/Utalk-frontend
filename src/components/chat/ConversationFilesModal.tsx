@@ -6,7 +6,7 @@ interface ConversationFilesModalProps {
   isOpen: boolean;
   onClose: () => void;
   conversationId: string | null;
-  messages?: any[]; // Mantenemos para compatibilidad pero ya no lo usamos
+  messages?: unknown[]; // Mantenemos para compatibilidad pero ya no lo usamos
 }
 
 export const ConversationFilesModal: React.FC<ConversationFilesModalProps> = ({
@@ -37,9 +37,9 @@ export const ConversationFilesModal: React.FC<ConversationFilesModalProps> = ({
         
         setAllFiles(response.files);
         setFiles(response.files);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error cargando archivos:', err);
-        setError(err.message || 'Error al cargar los archivos');
+        setError((err as { message?: string })?.message || 'Error al cargar los archivos');
         setAllFiles([]);
         setFiles([]);
       } finally {
@@ -80,7 +80,7 @@ export const ConversationFilesModal: React.FC<ConversationFilesModalProps> = ({
   const handleDownload = async (file: ConversationFile) => {
     try {
       await conversationFilesService.downloadFile(file.id, file.originalName);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error descargando archivo:', err);
       // Podrías mostrar un toast de error aquí
     }

@@ -56,10 +56,10 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
       });
 
       // Preparar datos para la API - Simplificados para debug
-      const updateData: any = {
+      const updateData: { name: string; email: string; role: 'admin' | 'supervisor' | 'agent' | 'viewer'; permissions?: { read: boolean; write: boolean; approve: boolean; configure: boolean }; password?: string } = {
         name: agentData.name,
         email: agentData.email,
-        role: agentData.role
+        role: agentData.role as 'admin' | 'supervisor' | 'agent' | 'viewer'
       };
 
       // Solo enviar permisos si están definidos

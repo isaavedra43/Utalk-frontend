@@ -91,7 +91,7 @@ const validateSendData = (data: SendMessageData): boolean => {
 };
 
 export const useWebSocketMessages = (socket: Socket | null) => {
-  const { addMessage, updateConversation, addConversation } = useChatStore();
+  const { addMessage, updateConversation } = useChatStore();
   
   // Rate limiter para mensajes
   const rateLimiter = useRateLimiter({
@@ -240,7 +240,7 @@ export const useWebSocketMessages = (socket: Socket | null) => {
     updateConversation(conversationId, conversationUpdates);
 
     infoLog(`📨 Mensaje procesado: ${conversationId} - ${message.content.substring(0, 50)}...`);
-  }, [addMessage, updateConversation, addConversation]);
+  }, [addMessage, updateConversation]);
 
   // Escuchar eventos de mensajes del socket
   useEffect(() => {

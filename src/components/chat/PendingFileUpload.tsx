@@ -46,7 +46,7 @@ export const PendingFileUpload: React.FC<PendingFileUploadProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const validatePayload = (payload: any) => {
+  const validatePayload = (payload: { conversationId: string; attachments: Array<{ id: string; type: string }> }) => {
     if (!payload.conversationId) {
       throw new Error('conversationId es requerido');
     }
@@ -59,7 +59,7 @@ export const PendingFileUpload: React.FC<PendingFileUploadProps> = ({
     if (payload.attachments.length === 0) {
       throw new Error('attachments no puede estar vacío');
     }
-    payload.attachments.forEach((attachment: any, index: number) => {
+    payload.attachments.forEach((attachment: { id: string; type: string }, index: number) => {
       if (!attachment.id) {
         throw new Error(`Attachment ${index} debe tener ID`);
       }

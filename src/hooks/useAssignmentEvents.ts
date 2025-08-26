@@ -36,28 +36,28 @@ export const useAssignmentEvents = ({
 
     const handleConversationAssigned = (data: unknown) => {
       // Backend envía el payload directo; el hook antes esperaba { payload }
-      const payload = (data as any)?.payload ?? (data as any);
+      const payload = (data as { payload?: AssignmentPayload })?.payload ?? (data as AssignmentPayload);
       infoLog('🔔 Conversación asignada:', payload);
       if (!payload || !payload.conversationId) return;
       if (onConversationAssigned) onConversationAssigned({ payload });
     };
 
     const handleConversationUnassigned = (data: unknown) => {
-      const payload = (data as any)?.payload ?? (data as any);
+      const payload = (data as { payload?: AssignmentPayload })?.payload ?? (data as AssignmentPayload);
       infoLog('🔔 Conversación desasignada:', payload);
       if (!payload || !payload.conversationId) return;
       if (onConversationUnassigned) onConversationUnassigned({ payload });
     };
 
     const handleAgentAssigned = (data: unknown) => {
-      const payload = (data as any)?.payload ?? (data as any);
+      const payload = (data as { payload?: AssignmentPayload })?.payload ?? (data as AssignmentPayload);
       infoLog('🔔 Agente asignado:', payload);
       if (!payload || !payload.conversationId || !payload.agentEmail) return;
       if (onAgentAssigned) onAgentAssigned({ payload });
     };
 
     const handleAgentUnassigned = (data: unknown) => {
-      const payload = (data as any)?.payload ?? (data as any);
+      const payload = (data as { payload?: AssignmentPayload })?.payload ?? (data as AssignmentPayload);
       infoLog('🔔 Agente desasignado:', payload);
       if (!payload || !payload.conversationId || !payload.agentEmail) return;
       if (onAgentUnassigned) onAgentUnassigned({ payload });

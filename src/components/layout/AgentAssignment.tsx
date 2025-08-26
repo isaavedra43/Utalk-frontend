@@ -100,9 +100,9 @@ export const AgentAssignment: React.FC<AgentAssignmentProps> = ({
         
         setIsDropdownOpen(false);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error asignando agente:', err);
-      setError(err.response?.data?.message || 'Error al asignar agente');
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error al asignar agente');
     } finally {
       setIsLoading(false);
     }
@@ -121,9 +121,9 @@ export const AgentAssignment: React.FC<AgentAssignmentProps> = ({
         const updatedAgents = await assignmentService.getAssignedAgents(conversationDetails.id);
         setAssignedAgents(updatedAgents);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error desasignando agente:', err);
-      setError(err.response?.data?.message || 'Error al desasignar agente');
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error al desasignar agente');
     } finally {
       setIsLoading(false);
     }

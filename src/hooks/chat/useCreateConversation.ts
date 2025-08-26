@@ -132,7 +132,7 @@ export const useCreateConversation = (): UseCreateConversationReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [joinConversation, refreshConversations, selectConversation, user?.email]);
 
   const resetError = useCallback(() => {
     setError(null);

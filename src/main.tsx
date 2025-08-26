@@ -23,9 +23,9 @@ if (typeof window !== 'undefined') {
 
   // Exponer compatibilidad para React 19 (scheduler)
   try {
-    // @ts-ignore compat shim
+    // @ts-expect-error compat shim
     if (typeof window.performance.unstable_now !== 'function') {
-      // @ts-ignore compat shim
+      // @ts-expect-error compat shim
       window.performance.unstable_now = () => (typeof schedulerNow === 'function' ? schedulerNow() : window.performance.now());
     }
   } catch {

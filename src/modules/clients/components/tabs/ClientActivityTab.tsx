@@ -100,7 +100,7 @@ export const ClientActivityTab: React.FC<ClientActivityTabProps> = ({
         hour: '2-digit',
         minute: '2-digit'
       }).format(dateObj);
-    } catch (error) {
+    } catch {
       return 'Error en fecha';
     }
   };

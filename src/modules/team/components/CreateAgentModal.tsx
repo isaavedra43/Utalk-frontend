@@ -67,7 +67,7 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
       newErrors.email = 'El correo electrónico no es válido';
     }
 
-    if (formData.phone && !/^\+?[\d\s\-\(\)]+$/.test(formData.phone)) {
+    if (formData.phone && !/^\+?[\d\s\-()]+$/.test(formData.phone)) {
       newErrors.phone = 'El formato del teléfono no es válido';
     }
 
