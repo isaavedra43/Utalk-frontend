@@ -50,6 +50,15 @@ export const CopilotPanel: React.FC = () => {
   const currentAgentIdRef = useRef('');
   const socketRef = useRef<unknown>(null);
   
+  // Refs para funciones estables
+  const chatRef = useRef<Function | null>(null);
+  const generateResponseRef = useRef<Function | null>(null);
+  const analyzeConversationRef = useRef<Function | null>(null);
+  const optimizeResponseRef = useRef<Function | null>(null);
+  const strategySuggestionsRef = useRef<Function | null>(null);
+  const quickResponseRef = useRef<Function | null>(null);
+  const improveExperienceRef = useRef<Function | null>(null);
+  
   const { user, backendUser } = useAuthContext();
   
   // DIAGNÓSTICO: Log de contexto de autenticación
@@ -70,6 +79,17 @@ export const CopilotPanel: React.FC = () => {
     quickResponse,
     improveExperience,
   } = useCopilot();
+
+  // Actualizar refs de funciones de forma estable
+  useEffect(() => {
+    chatRef.current = chat;
+    generateResponseRef.current = generateResponse;
+    analyzeConversationRef.current = analyzeConversation;
+    optimizeResponseRef.current = optimizeResponse;
+    strategySuggestionsRef.current = strategySuggestions;
+    quickResponseRef.current = quickResponse;
+    improveExperienceRef.current = improveExperience;
+  }, [chat, generateResponse, analyzeConversation, optimizeResponse, strategySuggestions, quickResponse, improveExperience]);
 
   // DIAGNÓSTICO: Log de hook useCopilot
   console.log(`🔍 CopilotPanel useCopilot:`, {
@@ -267,8 +287,10 @@ export const CopilotPanel: React.FC = () => {
         const wsTimeout = window.setTimeout(async () => {
           if (isTypingRef.current) {
             try {
-              const res = await chat({ message: text, conversationId, agentId });
-              appendAssistant(res.response, res.suggestions);
+              if (chatRef.current) {
+                const res = await chatRef.current({ message: text, conversationId, agentId });
+                appendAssistant(res.response, res.suggestions);
+              }
             } catch (error) {
               console.error('Error en REST fallback:', error);
               appendAssistant('Lo siento, hubo un problema. Inténtalo de nuevo.');
@@ -282,16 +304,18 @@ export const CopilotPanel: React.FC = () => {
           appendAssistant(responseData.response, responseData.suggestions);
         });
       } else {
-        const res = await chat({ message: text, conversationId, agentId });
-        appendAssistant(res.response, res.suggestions);
+        if (chatRef.current) {
+          const res = await chatRef.current({ message: text, conversationId, agentId });
+          appendAssistant(res.response, res.suggestions);
+        }
       }
     } catch (error) {
       console.error('Error en handleChatSend:', error);
       appendAssistant('Lo siento, hubo un problema. Inténtalo de nuevo.');
     }
-  }, [chatInput, chat, extractAgentNotes, updateTokenCount]);
+  }, [chatInput, extractAgentNotes, updateTokenCount]);
 
-  // Memoizar el event handler para evitar recreaciones
+  // SOLUCIÓN PRINCIPAL: handleSendToCopilot sin dependencias inestables
   const handleSendToCopilot = useCallback(async (event: Event) => {
     const { content, type, action, payload } = (event as CustomEvent).detail || {};
 
@@ -323,8 +347,10 @@ export const CopilotPanel: React.FC = () => {
     try {
       if (type === 'response' && action === 'improve') {
         await withLoading(setIsOptimizing, async () => {
-          const { optimized } = await optimizeResponse({ response: content });
-          pushAssistant(optimized);
+          if (optimizeResponseRef.current) {
+            const { optimized } = await optimizeResponseRef.current({ response: content });
+            pushAssistant(optimized);
+          }
         });
         return;
       }
@@ -332,8 +358,10 @@ export const CopilotPanel: React.FC = () => {
       if (type === 'product' && action === 'analyze') {
         if (!validateBeforeCall()) return;
         await withLoading(setIsAnalyzing, async () => {
-          const analysis = await analyzeConversation({ conversationMemory: getCurrentConversationMemory() });
-          setAnalysisResult(analysis);
+          if (analyzeConversationRef.current) {
+            const analysis = await analyzeConversationRef.current({ conversationMemory: getCurrentConversationMemory() });
+            setAnalysisResult(analysis);
+          }
         });
         return;
       }
@@ -341,28 +369,32 @@ export const CopilotPanel: React.FC = () => {
       if (type === 'strategy') {
         if (!validateBeforeCall()) return;
         await withLoading(setIsStrategyLoading, async () => {
-          const res = await strategySuggestions({ 
-            agentId: currentAgentIdRef.current, 
-            analysis: payload?.analysis, 
-            conversationMemory: getCurrentConversationMemory() 
-          });
-          setStrategyResult(res);
+          if (strategySuggestionsRef.current) {
+            const res = await strategySuggestionsRef.current({ 
+              agentId: currentAgentIdRef.current, 
+              analysis: payload?.analysis, 
+              conversationMemory: getCurrentConversationMemory() 
+            });
+            setStrategyResult(res);
+          }
         });
         return;
       }
 
       if (type === 'quick') {
         await withLoading(setIsQuickLoading, async () => {
-          const res = await quickResponse({
-            urgency: payload?.urgency || 'normal',
-            context: {
-              lastMessage: typeof content === 'string' ? content : undefined,
-              conversationId: activeConversationIdRef.current,
-              customerInfo: payload?.customerInfo,
-              productInfo: payload?.productInfo
-            }
-          });
-          pushAssistant(res.quick);
+          if (quickResponseRef.current) {
+            const res = await quickResponseRef.current({
+              urgency: payload?.urgency || 'normal',
+              context: {
+                lastMessage: typeof content === 'string' ? content : undefined,
+                conversationId: activeConversationIdRef.current,
+                customerInfo: payload?.customerInfo,
+                productInfo: payload?.productInfo
+              }
+            });
+            pushAssistant(res.quick);
+          }
         });
         return;
       }
@@ -370,12 +402,14 @@ export const CopilotPanel: React.FC = () => {
       if (type === 'experience') {
         if (!validateBeforeCall()) return;
         await withLoading(setIsExperienceLoading, async () => {
-          const res = await improveExperience({ 
-            agentId: currentAgentIdRef.current, 
-            conversationMemory: getCurrentConversationMemory(), 
-            analysis: payload?.analysis 
-          });
-          setExperienceResult(res);
+          if (improveExperienceRef.current) {
+            const res = await improveExperienceRef.current({ 
+              agentId: currentAgentIdRef.current, 
+              conversationMemory: getCurrentConversationMemory(), 
+              analysis: payload?.analysis 
+            });
+            setExperienceResult(res);
+          }
         });
         return;
       }
@@ -387,18 +421,7 @@ export const CopilotPanel: React.FC = () => {
       console.error('Error en sendToCopilot:', err);
       showError('Hubo un problema con el copiloto. Inténtalo de nuevo.');
     }
-  }, [
-    withLoading, 
-    optimizeResponse, 
-    validateBeforeCall, 
-    analyzeConversation, 
-    getCurrentConversationMemory, 
-    strategySuggestions, 
-    quickResponse, 
-    improveExperience, 
-    handleChatSend, 
-    showError
-  ]);
+  }, []); // SIN DEPENDENCIAS - usa refs internamente
 
   // useEffect optimizado con dependencias estables
   useEffect(() => {
@@ -543,49 +566,61 @@ export const CopilotPanel: React.FC = () => {
     try {
       if (suggestion.id === 1) {
         await withLoading(setIsGenerating, async () => {
-          const result = await generateResponse({ 
-            conversationId: activeConversationIdRef.current, 
-            agentId: currentAgentIdRef.current, 
-            message: suggestion.prompt 
-          });
-          push(result.response);
+          if (generateResponseRef.current) {
+            const result = await generateResponseRef.current({ 
+              conversationId: activeConversationIdRef.current, 
+              agentId: currentAgentIdRef.current, 
+              message: suggestion.prompt 
+            });
+            push(result.response);
+          }
         });
       } else if (suggestion.id === 2) {
         await withLoading(setIsAnalyzing, async () => {
-          const analysis = await analyzeConversation({ conversationMemory: getCurrentConversationMemory() });
-          setAnalysisResult(analysis);
-          push(`Tono: ${analysis.tone.tone} | Sentimiento: ${analysis.tone.sentiment} | Urgencia: ${analysis.tone.urgency}\nOportunidades:\n- ${analysis.opportunities.join('\n- ')}`);
+          if (analyzeConversationRef.current) {
+            const analysis = await analyzeConversationRef.current({ conversationMemory: getCurrentConversationMemory() });
+            setAnalysisResult(analysis);
+            push(`Tono: ${analysis.tone.tone} | Sentimiento: ${analysis.tone.sentiment} | Urgencia: ${analysis.tone.urgency}\nOportunidades:\n- ${analysis.opportunities.join('\n- ')}`);
+          }
         });
       } else if (suggestion.id === 3) {
         await withLoading(setIsOptimizing, async () => {
-          const res = await optimizeResponse({ response: suggestion.prompt });
-          push(res.optimized);
+          if (optimizeResponseRef.current) {
+            const res = await optimizeResponseRef.current({ response: suggestion.prompt });
+            push(res.optimized);
+          }
         });
       } else if (suggestion.id === 4) {
         await withLoading(setIsStrategyLoading, async () => {
-          const res = await strategySuggestions({ 
-            agentId: currentAgentIdRef.current, 
-            conversationMemory: getCurrentConversationMemory() 
-          });
-          setStrategyResult(res);
-          push(`Estrategias:\n- ${res.strategies.join('\n- ')}\n\nPlan de Acción:\n- ${res.actionPlan.join('\n- ')}`);
+          if (strategySuggestionsRef.current) {
+            const res = await strategySuggestionsRef.current({ 
+              agentId: currentAgentIdRef.current, 
+              conversationMemory: getCurrentConversationMemory() 
+            });
+            setStrategyResult(res);
+            push(`Estrategias:\n- ${res.strategies.join('\n- ')}\n\nPlan de Acción:\n- ${res.actionPlan.join('\n- ')}`);
+          }
         });
       } else if (suggestion.id === 5) {
         await withLoading(setIsQuickLoading, async () => {
-          const res = await quickResponse({ 
-            urgency: 'normal', 
-            context: { conversationId: activeConversationIdRef.current } 
-          });
-          setChatInput(res.quick);
+          if (quickResponseRef.current) {
+            const res = await quickResponseRef.current({ 
+              urgency: 'normal', 
+              context: { conversationId: activeConversationIdRef.current } 
+            });
+            setChatInput(res.quick);
+          }
         });
       } else if (suggestion.id === 6) {
         await withLoading(setIsExperienceLoading, async () => {
-          const res = await improveExperience({ 
-            agentId: currentAgentIdRef.current, 
-            conversationMemory: getCurrentConversationMemory() 
-          });
-          setExperienceResult(res);
-          push(`Gaps Identificados:\n- ${res.gaps.join('\n- ')}\n\nMejoras:\n- ${res.improvements.join('\n- ')}\n\nPlan:\n- ${res.plan.join('\n- ')}`);
+          if (improveExperienceRef.current) {
+            const res = await improveExperienceRef.current({ 
+              agentId: currentAgentIdRef.current, 
+              conversationMemory: getCurrentConversationMemory() 
+            });
+            setExperienceResult(res);
+            push(`Gaps Identificados:\n- ${res.gaps.join('\n- ')}\n\nMejoras:\n- ${res.improvements.join('\n- ')}\n\nPlan:\n- ${res.plan.join('\n- ')}`);
+          }
         });
       }
     } catch (error) {
@@ -598,21 +633,13 @@ export const CopilotPanel: React.FC = () => {
     extractAgentNotes, 
     withLoading, 
     setIsGenerating, 
-    generateResponse, 
-    setIsAnalyzing, 
-    analyzeConversation, 
-    getCurrentConversationMemory, 
     setAnalysisResult, 
     setIsOptimizing, 
-    optimizeResponse, 
     setIsStrategyLoading, 
-    strategySuggestions, 
     setStrategyResult, 
     setIsQuickLoading, 
-    quickResponse, 
     setChatInput, 
     setIsExperienceLoading, 
-    improveExperience, 
     setExperienceResult, 
     showError
   ]);
