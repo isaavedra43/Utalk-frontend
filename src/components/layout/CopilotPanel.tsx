@@ -493,6 +493,30 @@ export const CopilotPanel: React.FC = React.memo(() => {
     };
 
     if (content) {
+      // ✅ SOLUCIÓN: Agregar mensaje del usuario al store cuando se envía contenido
+      const userMessage = {
+        id: Date.now().toString(),
+        conversationId: activeConversationIdRef.current,
+        content: String(content),
+        direction: 'outbound' as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: 'sent' as const,
+        type: 'text' as const,
+        metadata: {
+          agentId: getAgentIdString(),
+          ip: '127.0.0.1',
+          requestId: 'copilot-panel',
+          sentBy: getAgentIdString(),
+          source: 'web' as const,
+          timestamp: new Date().toISOString()
+        }
+      };
+      
+      if (activeConversationIdRef.current) {
+        addMessage(activeConversationIdRef.current, userMessage);
+      }
+      
       setIsTyping(true);
       isTypingRef.current = true;
     }
@@ -693,8 +717,52 @@ export const CopilotPanel: React.FC = React.memo(() => {
     addToHistory(suggestion.title);
 
     const push = (text: string) => {
-      // Función placeholder para futuras implementaciones
-      console.log('Push function called with:', text);
+      // ✅ SOLUCIÓN: Agregar mensaje del usuario al store
+      const userMessage = {
+        id: Date.now().toString(),
+        conversationId: activeConversationIdRef.current,
+        content: suggestion.title,
+        direction: 'outbound' as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: 'sent' as const,
+        type: 'text' as const,
+        metadata: {
+          agentId: getAgentIdString(),
+          ip: '127.0.0.1',
+          requestId: 'copilot-panel',
+          sentBy: getAgentIdString(),
+          source: 'web' as const,
+          timestamp: new Date().toISOString()
+        }
+      };
+      
+      // ✅ SOLUCIÓN: Agregar mensaje del asistente al store
+      const parsed = extractAgentNotes(text);
+      const aiMessage = {
+        id: (Date.now() + 1).toString(),
+        conversationId: activeConversationIdRef.current,
+        content: parsed.text,
+        direction: 'inbound' as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: 'received' as const,
+        type: 'text' as const,
+        metadata: {
+          agentId: getAgentIdString(),
+          ip: '127.0.0.1',
+          requestId: 'copilot-panel',
+          sentBy: 'copilot',
+          source: 'web' as const,
+          timestamp: new Date().toISOString()
+        }
+      };
+      
+      // ✅ SOLUCIÓN: Agregar ambos mensajes al store global
+      if (activeConversationIdRef.current) {
+        addMessage(activeConversationIdRef.current, userMessage);
+        addMessage(activeConversationIdRef.current, aiMessage);
+      }
     };
 
     try {
