@@ -17,6 +17,15 @@ interface Message {
 }
 
 export const CopilotPanel: React.FC = () => {
+  // DIAGNÓSTICO: Contador de renders para identificar re-renderizaciones
+  const renderCount = useRef(0);
+  renderCount.current += 1;
+  
+  console.log(`🔍 CopilotPanel render #${renderCount.current}`, {
+    timestamp: new Date().toISOString(),
+    stack: new Error().stack?.split('\n').slice(1, 5).join('\n')
+  });
+
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -42,6 +51,16 @@ export const CopilotPanel: React.FC = () => {
   const socketRef = useRef<unknown>(null);
   
   const { user, backendUser } = useAuthContext();
+  
+  // DIAGNÓSTICO: Log de contexto de autenticación
+  console.log(`🔍 CopilotPanel auth context:`, {
+    renderCount: renderCount.current,
+    hasUser: !!user,
+    hasBackendUser: !!backendUser,
+    userKeys: user ? Object.keys(user) : null,
+    backendUserKeys: backendUser ? Object.keys(backendUser) : null
+  });
+  
   const {
     chat,
     generateResponse,
@@ -52,23 +71,66 @@ export const CopilotPanel: React.FC = () => {
     improveExperience,
   } = useCopilot();
 
+  // DIAGNÓSTICO: Log de hook useCopilot
+  console.log(`🔍 CopilotPanel useCopilot:`, {
+    renderCount: renderCount.current,
+    hasChat: !!chat,
+    hasGenerateResponse: !!generateResponse,
+    hasAnalyzeConversation: !!analyzeConversation,
+    hasOptimizeResponse: !!optimizeResponse,
+    hasStrategySuggestions: !!strategySuggestions,
+    hasQuickResponse: !!quickResponse,
+    hasImproveExperience: !!improveExperience
+  });
+
   // Obtener el ID de conversación activa de forma estable
   const activeConversationId = useMemo(() => {
     const id = (window as unknown as { __activeConversationId?: string }).__activeConversationId || '';
     activeConversationIdRef.current = id;
+    
+    // DIAGNÓSTICO: Log de activeConversationId
+    console.log(`🔍 CopilotPanel activeConversationId:`, {
+      renderCount: renderCount.current,
+      id,
+      refValue: activeConversationIdRef.current
+    });
+    
     return id;
   }, []);
 
   const storeMessages = useChatStore((s) => (activeConversationId ? (s.messages[activeConversationId] || []) : []));
 
+  // DIAGNÓSTICO: Log de storeMessages
+  console.log(`🔍 CopilotPanel storeMessages:`, {
+    renderCount: renderCount.current,
+    activeConversationId,
+    messageCount: storeMessages?.length || 0,
+    hasMessages: !!storeMessages
+  });
+
   // Actualizar el ref del agente actual de forma estable
   useMemo(() => {
     const id = backendUser?.id || user?.uid || null;
     currentAgentIdRef.current = id || '';
+    
+    // DIAGNÓSTICO: Log de currentAgentId
+    console.log(`🔍 CopilotPanel currentAgentId:`, {
+      renderCount: renderCount.current,
+      id,
+      refValue: currentAgentIdRef.current,
+      backendUserId: backendUser?.id,
+      userId: user?.uid
+    });
   }, [backendUser?.id, user?.uid]);
 
   // Obtener socket de forma estable sin usar el contexto
   useEffect(() => {
+    // DIAGNÓSTICO: Log de socket effect
+    console.log(`🔍 CopilotPanel socket effect:`, {
+      renderCount: renderCount.current,
+      hasSocketRef: !!socketRef.current
+    });
+    
     // Obtener socket del contexto de forma segura
     const getSocket = () => {
       try {
@@ -340,6 +402,12 @@ export const CopilotPanel: React.FC = () => {
 
   // useEffect optimizado con dependencias estables
   useEffect(() => {
+    // DIAGNÓSTICO: Log de event listener effect
+    console.log(`🔍 CopilotPanel event listener effect:`, {
+      renderCount: renderCount.current,
+      hasHandleSendToCopilot: !!handleSendToCopilot
+    });
+    
     window.addEventListener('sendToCopilot', handleSendToCopilot);
     return () => window.removeEventListener('sendToCopilot', handleSendToCopilot);
   }, [handleSendToCopilot]);
@@ -643,6 +711,15 @@ export const CopilotPanel: React.FC = () => {
     
     return () => clearInterval(interval);
   }, []);
+
+  // DIAGNÓSTICO: Log final del render
+  console.log(`🔍 CopilotPanel render complete #${renderCount.current}`, {
+    timestamp: new Date().toISOString(),
+    showIntro,
+    messageCount: messages.length,
+    isTyping,
+    systemStatus
+  });
 
   return (
     <div className={`flex flex-col h-full overflow-hidden ${getThemeClasses().container}`}>
