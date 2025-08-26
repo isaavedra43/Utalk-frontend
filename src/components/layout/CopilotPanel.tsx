@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Filter, Send, Lightbulb, Users, TrendingUp, Shield, Zap, Star } from 'lucide-react';
+import { Filter, Send, Lightbulb, Users, TrendingUp, Shield, Zap, Star, Trash2 } from 'lucide-react';
 import '../../styles/copilot.css';
 import { useCopilot } from '../../hooks/useCopilot';
 import { useAuthContext } from '../../contexts/useAuthContext';
@@ -90,14 +90,33 @@ export const CopilotPanel: React.FC = React.memo(() => {
   // Suscribirse al ID de conversación activa de forma estable desde el store
   const activeConversationId = useChatStore((s) => s.activeConversation?.id ?? null);
   
-  // ✅ SOLUCIÓN: Obtener la función addMessage del store
+  // ✅ SOLUCIÓN: Obtener las funciones del store
   const addMessage = useChatStore((s) => s.addMessage);
+  const setMessages = useChatStore((s) => s.setMessages);
   
   // Memoizar la actualización del ref para evitar re-renders
   useEffect(() => {
     const id = activeConversationId || '';
     activeConversationIdRef.current = id;
   }, [activeConversationId]);
+
+  // ✅ SOLUCIÓN: Función para limpiar la conversación del Copilot
+  const clearCopilotConversation = useCallback(() => {
+    if (activeConversationIdRef.current) {
+      // Limpiar mensajes del store para esta conversación
+      setMessages(activeConversationIdRef.current, []);
+      
+      // Limpiar estados locales
+      setAnalysisResult(null);
+      setStrategyResult(null);
+      setExperienceResult(null);
+      setError(null);
+      setTokenCount(0);
+      setCommandHistory([]);
+      
+      console.log('🔧 Conversación del Copilot limpiada');
+    }
+  }, [setMessages]);
 
   // Seleccionar mensajes desde el store sin crear nuevos arrays
   const storeMessages = useChatStore((s) => (activeConversationId ? s.messages[activeConversationId] : undefined));
@@ -989,6 +1008,16 @@ export const CopilotPanel: React.FC = React.memo(() => {
                    systemStatus === 'connecting' ? 'Conectando...' : 'IA Desconectada'}
                 </span>
               </div>
+              
+              {/* ✅ SOLUCIÓN: Botón para limpiar conversación */}
+              <button
+                onClick={clearCopilotConversation}
+                className="p-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-600 hover:text-red-700 transition-colors duration-200"
+                title="Limpiar conversación"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              
               <button
                 onClick={toggleDarkMode}
                 className="p-1 rounded-lg bg-gray-200 dark:bg-gray-700"
@@ -1047,7 +1076,35 @@ export const CopilotPanel: React.FC = React.memo(() => {
 
       {/* Chat Messages - ocupa el espacio disponible */}
       {storeMessagesArray.length > 0 && (
-        <div className="flex-1 overflow-y-auto space-y-2 p-3 min-h-0 max-h-[calc(100vh-200px)] no-scrollbar">
+        <>
+          {/* ✅ SOLUCIÓN: Header con botón de limpiar cuando hay mensajes */}
+          <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 text-xs">
+                <div className={`w-2 h-2 rounded-full ${
+                  systemStatus === 'connected' ? 'bg-green-500' :
+                  systemStatus === 'connecting' ? 'bg-yellow-500' : 'bg-red-500'
+                }`}></div>
+                <span className={
+                  systemStatus === 'connected' ? 'text-green-600' :
+                  systemStatus === 'connecting' ? 'text-yellow-600' : 'text-red-600'
+                }>
+                  {systemStatus === 'connected' ? 'IA Conectada' :
+                   systemStatus === 'connecting' ? 'Conectando...' : 'IA Desconectada'}
+                </span>
+              </div>
+              
+              <button
+                onClick={clearCopilotConversation}
+                className="p-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-600 hover:text-red-700 transition-colors duration-200"
+                title="Limpiar conversación"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto space-y-2 p-3 min-h-0 max-h-[calc(100vh-200px)] no-scrollbar">
           {storeMessagesArray.map((message) => (
             <div
               key={message.id}
@@ -1078,6 +1135,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
             </div>
           )}
         </div>
+        </>
       )}
 
       {/* Resultados de análisis/estrategia/experiencia */}
