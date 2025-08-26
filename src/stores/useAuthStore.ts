@@ -45,8 +45,7 @@ interface AuthStore extends AuthState {
 export const useAuthStore = create<AuthStore>()(
   devtools(
     subscribeWithSelector(
-      persist(
-        (set, get) => ({
+      (set, get) => ({
           // Estado inicial
           user: null,
           backendUser: null,
@@ -255,16 +254,7 @@ export const useAuthStore = create<AuthStore>()(
               get().clearAuth();
             }
           },
-        }),
-        {
-          name: 'auth-store',
-          // ✅ SOLUCIÓN: Configurar persistencia para mantener backendUser después de refrescar
-          partialize: (state) => ({
-            user: state.user,
-            backendUser: state.backendUser,
-            isAuthenticated: state.isAuthenticated
-          })
-        }
+        })
       )
     ),
     { name: 'auth-store' }
