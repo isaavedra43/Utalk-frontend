@@ -2,7 +2,15 @@
  * Utilidades para manejo de autenticación
  */
 
+// Variable para evitar limpieza repetitiva
+let hasCleanedTokens = false;
+
 export const cleanCorruptedTokens = (): void => {
+  // Evitar limpieza repetitiva
+  if (hasCleanedTokens) {
+    return;
+  }
+
   try {
     const accessToken = localStorage.getItem('access_token');
     const refreshToken = localStorage.getItem('refresh_token');
@@ -25,6 +33,7 @@ export const cleanCorruptedTokens = (): void => {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
+      hasCleanedTokens = true;
       return;
     }
     
@@ -37,6 +46,7 @@ export const cleanCorruptedTokens = (): void => {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
+        hasCleanedTokens = true;
       }
     }
   } catch (error) {
@@ -45,6 +55,7 @@ export const cleanCorruptedTokens = (): void => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
+    hasCleanedTokens = true;
   }
 };
 

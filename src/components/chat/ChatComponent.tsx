@@ -31,23 +31,7 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
     return '';
   })();
 
-  // NUEVO: Protección contra conversationId inválido
-  if (!effectiveConversationId || effectiveConversationId.trim() === '') {
-    return (
-      <div className="flex h-full items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Selecciona una conversación
-          </h3>
-          <p className="text-gray-500">
-            Elige una conversación de la lista para comenzar a chatear
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+  // SIEMPRE llamar useChat primero, sin importar el conversationId
   const {
     messages,
     conversation,
@@ -67,6 +51,23 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
     deleteOptimisticMessage,
     messagesEndRef
   } = useChat(effectiveConversationId);
+
+  // NUEVO: Protección contra conversationId inválido DESPUÉS de llamar useChat
+  if (!effectiveConversationId || effectiveConversationId.trim() === '') {
+    return (
+      <div className="flex h-full items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Selecciona una conversación
+          </h3>
+          <p className="text-gray-500">
+            Elige una conversación de la lista para comenzar a chatear
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // NUEVO: Protección adicional contra datos undefined
   if (loading && !conversation) {

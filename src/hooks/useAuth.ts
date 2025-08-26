@@ -62,7 +62,7 @@ export const useAuth = (): AuthState => {
           return;
         }
         
-        // Limpiar tokens corruptos automáticamente
+        // Limpiar tokens corruptos automáticamente (solo una vez)
         cleanCorruptedTokens();
         const { accessToken, refreshToken } = getStoredTokens();
         
