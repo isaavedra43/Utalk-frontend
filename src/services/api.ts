@@ -59,7 +59,7 @@ api.interceptors.request.use(
         method: method?.toUpperCase(),
         url: url,
         hasToken: !!token,
-        tokenPreview: token.substring(0, 20) + '...'
+        tokenPreview: token ? token.substring(0, 20) + '...' : 'null'
       });
     } else if (shouldAddToken && !token) {
       // Loggear requests sin token para métodos no-GET y proxy de medios
@@ -251,7 +251,7 @@ api.interceptors.response.use(
 
         logger.authInfo('Intentando refresh token', {
           hasRefreshToken: !!refreshToken,
-          refreshTokenPreview: refreshToken.substring(0, 20) + '...'
+          refreshTokenPreview: refreshToken ? refreshToken.substring(0, 20) + '...' : 'null'
         });
         
         const response = await api.post('/api/auth/refresh', { refreshToken });
@@ -264,7 +264,7 @@ api.interceptors.response.use(
         logger.authInfo('Token refrescado exitosamente', {
           hasNewAccessToken: !!accessToken,
           hasNewRefreshToken: !!newRefreshToken,
-          accessTokenPreview: accessToken.substring(0, 20) + '...'
+          accessTokenPreview: accessToken ? accessToken.substring(0, 20) + '...' : 'null'
         });
         
         // Notificar a la aplicación que el token fue refrescado para reautenticar WS

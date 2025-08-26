@@ -105,7 +105,7 @@ export const createSocket = (token: string, options?: { timeout?: number }) => {
       infoLog('🔐 WebSocket: Error de autenticación - Token JWT requerido o inválido');
       infoLog('🔐 Token disponible:', token ? 'Sí' : 'No');
       if (token) {
-        infoLog('🔐 Token preview:', token.substring(0, 20) + '...');
+        infoLog('🔐 Token preview:', token ? token.substring(0, 20) + '...' : 'null');
       }
     }
     
