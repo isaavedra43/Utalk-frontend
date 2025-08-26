@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { MoreVertical, Phone, User, FolderOpen, Search } from 'lucide-react';
 import type { Conversation, Message } from '../../types';
 import { useClientProfileStore } from '../../stores/useClientProfileStore';
@@ -71,17 +71,38 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ conversation, messages =
     );
   }
 
-  // Prioridad: perfil -> contacto -> customerName -> teléfono
-  const displayName =
-    profile?.name ||
-    conversation?.contact?.name ||
-    conversation?.contact?.name ||
-    conversation?.customerName ||
-    profile?.phone ||
-    conversation?.customerPhone ||
-    activeConversation?.customerName ||
-    activeConversation?.customerPhone ||
-    'Usuario';
+  // Prioridad: perfil -> contacto -> customerName -> teléfono formateado
+  const displayName = useMemo(() => {
+    const name = profile?.name ||
+                conversation?.contact?.name ||
+                conversation?.contact?.name ||
+                conversation?.customerName ||
+                profile?.phone ||
+                conversation?.customerPhone ||
+                activeConversation?.customerName ||
+                activeConversation?.customerPhone;
+    
+    // Si no hay nombre o es igual al teléfono, crear uno amigable
+    if (!name || name === conversation?.customerPhone || name === activeConversation?.customerPhone) {
+      const phone = conversation?.customerPhone || activeConversation?.customerPhone || '';
+      const phoneNumbers = phone.replace(/\D/g, '');
+      
+      // Si es un número de WhatsApp mexicano, mostrar "Cliente WhatsApp"
+      if (phoneNumbers.startsWith('521')) {
+        return 'Cliente WhatsApp';
+      }
+      
+      // Para otros números, mostrar "Cliente" + últimos 4 dígitos
+      if (phoneNumbers.length >= 4) {
+        const lastFour = phoneNumbers.slice(-4);
+        return `Cliente ${lastFour}`;
+      }
+      
+      return 'Cliente';
+    }
+    
+    return name;
+  }, [profile?.name, profile?.phone, conversation?.contact?.name, conversation?.customerName, conversation?.customerPhone, activeConversation?.customerName, activeConversation?.customerPhone]);
 
   const displayPhone =
     profile?.phone ||

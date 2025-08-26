@@ -190,13 +190,35 @@ export const ConversationItem: React.FC<ConversationItemProps> = React.memo(({
     return getInitials(customerName);
   }, [getInitials, profileName, profilePhone, conversation.contact?.name, conversation.customerName, conversation.customerPhone]);
 
-  const displayName = useMemo(() => (
-    profileName ||
-    conversation.contact?.name || 
-    conversation.customerName ||
-    profilePhone ||
-    conversation.customerPhone || 'Cliente sin nombre'
-  ), [profileName, conversation.contact?.name, conversation.customerName, profilePhone, conversation.customerPhone]);
+  const displayName = useMemo(() => {
+    // Prioridad: perfil -> contacto -> customerName -> teléfono formateado
+    const name = profileName ||
+                conversation.contact?.name || 
+                conversation.customerName ||
+                profilePhone ||
+                conversation.customerPhone;
+    
+    // Si no hay nombre, crear uno amigable basado en el teléfono
+    if (!name || name === conversation.customerPhone) {
+      // Extraer solo los números del teléfono
+      const phoneNumbers = conversation.customerPhone?.replace(/\D/g, '') || '';
+      
+      // Si es un número de WhatsApp mexicano, mostrar "Cliente WhatsApp"
+      if (phoneNumbers.startsWith('521')) {
+        return 'Cliente WhatsApp';
+      }
+      
+      // Para otros números, mostrar "Cliente" + últimos 4 dígitos
+      if (phoneNumbers.length >= 4) {
+        const lastFour = phoneNumbers.slice(-4);
+        return `Cliente ${lastFour}`;
+      }
+      
+      return 'Cliente';
+    }
+    
+    return name;
+  }, [profileName, conversation.contact?.name, conversation.customerName, profilePhone, conversation.customerPhone]);
 
   const displayPhone = useMemo(() => (
     profilePhone ||
