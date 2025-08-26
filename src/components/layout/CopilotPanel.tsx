@@ -107,6 +107,18 @@ export const CopilotPanel: React.FC = React.memo(() => {
   useEffect(() => {
     const id = backendUser?.id || user?.uid || null;
     currentAgentIdRef.current = id || '';
+    
+    // 🔍 DEBUG TEMPORAL: Log para verificar valores del agentId
+    console.log('🔍 DEBUG agentId en CopilotPanel:', {
+      backendUserId: backendUser?.id,
+      userUid: user?.uid,
+      finalId: id,
+      refValue: currentAgentIdRef.current,
+      hasBackendUser: !!backendUser,
+      hasUser: !!user,
+      backendUserKeys: backendUser ? Object.keys(backendUser) : null,
+      userKeys: user ? Object.keys(user) : null
+    });
   }, [backendUser?.id, user?.uid]);
 
   // Obtener socket de forma estable sin usar el contexto
@@ -241,6 +253,18 @@ export const CopilotPanel: React.FC = React.memo(() => {
 
     const agentId = currentAgentIdRef.current;
     const conversationId = activeConversationIdRef.current;
+
+    // 🔍 DEBUG TEMPORAL: Log para verificar valores antes del envío
+    console.log('🔍 DEBUG agentId antes del envío:', {
+      agentId,
+      conversationId,
+      hasAgentId: !!agentId,
+      agentIdLength: agentId?.length,
+      agentIdType: typeof agentId,
+      refValue: currentAgentIdRef.current,
+      backendUserId: backendUser?.id,
+      userUid: user?.uid
+    });
 
     // SOLUCIÓN: Verificación adicional antes de enviar
     if (!agentId || !conversationId) {

@@ -165,6 +165,16 @@ export const useAuthStore = create<AuthStore>()(
               isAuthenticated: true
             });
             
+            // 🔍 DEBUG TEMPORAL: Log para verificar que backendUser se guardó correctamente
+            console.log('🔍 DEBUG backendUser guardado:', {
+              userData,
+              userDataId: userData.id,
+              userDataKeys: Object.keys(userData),
+              hasId: !!userData.id,
+              idType: typeof userData.id,
+              idLength: userData.id?.length
+            });
+            
             logger.authInfo('Login exitoso - Usuario autenticado', { 
               userId: userData.id,
               userEmail: userData.email
