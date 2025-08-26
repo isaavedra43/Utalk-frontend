@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '../../stores/useUIStore';
 import { 
@@ -86,7 +86,7 @@ export const LeftSidebar: React.FC = () => {
     }
 
     // Filtrar solo los módulos a los que tiene acceso
-    return allNavigationItems.filter(item => canAccessModule(item.id));
+    return allNavigationItems.filter((item: { id: string; icon: React.ComponentType<{ className?: string }>; title: string }) => canAccessModule(item.id));
   }, [allNavigationItems, canAccessModule, permissionsLoading]);
 
   return (
@@ -103,7 +103,7 @@ export const LeftSidebar: React.FC = () => {
       {/* Navegación entre módulos */}
       <div className="flex-1 p-2">
         <div className="space-y-2">
-          {navigationItems.map((item) => {
+          {navigationItems.map((item: { id: string; icon: React.ComponentType<{ className?: string }>; title: string }) => {
             const IconComponent = item.icon;
             const isActive = currentModule === item.id;
             
