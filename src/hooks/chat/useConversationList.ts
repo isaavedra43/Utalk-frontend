@@ -65,6 +65,7 @@ export const useConversationList = (filters: ConversationFilters = {}) => {
     },
     staleTime: 30000,
     refetchOnWindowFocus: false,
+    // ARREGLADO: Solo habilitar cuando realmente esté autenticado y no esté cargando
     enabled: isAuthenticated && !authLoading && !isAuthenticating,
     retry: (failureCount, error) => {
       if (error && typeof error === 'object' && 'response' in error) {

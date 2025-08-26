@@ -40,8 +40,24 @@ const AuthProtectedRoute: React.FC<{ children: React.ReactNode }> = memo(({ chil
 
 AuthProtectedRoute.displayName = 'AuthProtectedRoute';
 
-// Componente para el módulo de chat
+// Componente para el módulo de chat - CON PROTECCIÓN ADICIONAL
 const ChatPage: React.FC = () => {
+  const { isAuthenticated, loading } = useAuthContext();
+  
+  // Protección adicional para evitar renderizado con estado inválido
+  if (loading || !isAuthenticated) {
+    return (
+      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Cargando chat...
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <MainLayout />
@@ -49,8 +65,24 @@ const ChatPage: React.FC = () => {
   );
 };
 
-// Componente para el módulo de dashboard
+// Componente para el módulo de dashboard - CON PROTECCIÓN ADICIONAL
 const DashboardPage: React.FC = () => {
+  const { isAuthenticated, loading } = useAuthContext();
+  
+  // Protección adicional para evitar renderizado con estado inválido
+  if (loading || !isAuthenticated) {
+    return (
+      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Cargando dashboard...
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <MainLayout />
@@ -58,8 +90,24 @@ const DashboardPage: React.FC = () => {
   );
 };
 
-// Componente para el módulo de equipo
+// Componente para el módulo de equipo - CON PROTECCIÓN ADICIONAL
 const TeamPage: React.FC = () => {
+  const { isAuthenticated, loading } = useAuthContext();
+  
+  // Protección adicional para evitar renderizado con estado inválido
+  if (loading || !isAuthenticated) {
+    return (
+      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Cargando equipo...
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <MainLayout />
@@ -67,8 +115,24 @@ const TeamPage: React.FC = () => {
   );
 };
 
-// Componente para el módulo de clientes
+// Componente para el módulo de clientes - CON PROTECCIÓN ADICIONAL
 const ClientsPage: React.FC = () => {
+  const { isAuthenticated, loading } = useAuthContext();
+  
+  // Protección adicional para evitar renderizado con estado inválido
+  if (loading || !isAuthenticated) {
+    return (
+      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Cargando clientes...
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <MainLayout />
@@ -76,8 +140,24 @@ const ClientsPage: React.FC = () => {
   );
 };
 
-// Componente para el módulo de notificaciones
+// Componente para el módulo de notificaciones - CON PROTECCIÓN ADICIONAL
 const NotificationsPage: React.FC = () => {
+  const { isAuthenticated, loading } = useAuthContext();
+  
+  // Protección adicional para evitar renderizado con estado inválido
+  if (loading || !isAuthenticated) {
+    return (
+      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Cargando notificaciones...
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <MainLayout />

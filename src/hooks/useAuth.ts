@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { WebSocketContext } from '../contexts/WebSocketContext';
 import { useContext } from 'react';
 import api from '../services/api';
+import { cleanCorruptedTokens, getStoredTokens } from '../utils/authUtils';
 
 interface BackendUser {
   id: string;
@@ -32,30 +33,31 @@ export const useAuth = (): AuthState => {
   const authStore = useAuthStore();
   const { connect: connectSocket, disconnect: disconnectSocket, isConnected } = useContext(WebSocketContext) || {};
 
-  // Calcular isAuthenticated basado en el estado del store
+  // Calcular isAuthenticated basado en el estado del store - ARREGLADO
   const isAuthenticated = useMemo(() => {
-    return !!authStore.user && !!authStore.backendUser && !authStore.isAuthenticating;
-  }, [authStore.user, authStore.backendUser, authStore.isAuthenticating]);
+    // Si está autenticando, no considerar como autenticado aún
+    if (authStore.isAuthenticating) {
+      return false;
+    }
+    
+    // Si está cargando, mantener el estado anterior o false
+    if (authStore.loading) {
+      return false;
+    }
+    
+    // Solo considerar autenticado si tiene tanto user como backendUser
+    return !!(authStore.user && authStore.backendUser);
+  }, [authStore.user, authStore.backendUser, authStore.isAuthenticating, authStore.loading]);
 
   // Verificar estado inicial de autenticación
   useEffect(() => {
     const checkInitialAuth = async () => {
       try {
-        // TEMPORAL: Limpiar tokens corruptos automáticamente
-        const accessToken = localStorage.getItem('access_token');
-        const refreshToken = localStorage.getItem('refresh_token');
+        // Limpiar tokens corruptos automáticamente
+        cleanCorruptedTokens();
+        const { accessToken, refreshToken } = getStoredTokens();
         
         if (accessToken && refreshToken) {
-          // Verificar si los tokens parecen válidos (no undefined, null, o muy cortos)
-          if (accessToken === 'undefined' || accessToken === 'null' || accessToken.length < 10) {
-            infoLog('🔐 useAuth - Tokens corruptos detectados, limpiando localStorage...');
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            localStorage.removeItem('user');
-            authStore.clearAuth();
-            authStore.setLoading(false);
-            return;
-          }
           
           infoLog('🔐 useAuth - Tokens encontrados en localStorage, validando con backend...');
           
@@ -72,9 +74,17 @@ export const useAuth = (): AuthState => {
             });
             infoLog('🔐 useAuth - Autenticación inicial exitosa');
           } else {
-            // NUEVO: Intentar refresh del token antes de limpiar
+            // Intentar refresh del token antes de limpiar
             infoLog('🔐 useAuth - Token inválido, intentando refresh...');
             try {
+              // Verificar que el refreshToken sea válido
+              if (!refreshToken) {
+                infoLog('🔐 useAuth - Refresh token inválido, limpiando autenticación');
+                authStore.clearAuth();
+                authStore.setLoading(false);
+                return;
+              }
+              
               const refreshResponse = await api.post('/api/auth/refresh', { 
                 refreshToken: refreshToken 
               });

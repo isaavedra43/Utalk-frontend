@@ -65,6 +65,12 @@ export const useAuthStore = create<AuthStore>()(
         try {
           logger.authInfo('Validando token con backend...');
           
+          // Verificar que el token no sea undefined, null o muy corto
+          if (!accessToken || accessToken === 'undefined' || accessToken === 'null' || accessToken.length < 10) {
+            logger.authError('Token inválido o muy corto', new Error('Token inválido'));
+            return null;
+          }
+          
           const response = await api.get('/api/auth/profile', {
             headers: {
               Authorization: `Bearer ${accessToken}`
