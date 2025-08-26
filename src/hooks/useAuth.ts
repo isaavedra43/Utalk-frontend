@@ -31,7 +31,8 @@ interface AuthState {
 
 export const useAuth = (): AuthState => {
   const authStore = useAuthStore();
-  const { connect: connectSocket, disconnect: disconnectSocket, isConnected } = useContext(WebSocketContext) || {};
+  const webSocketContext = useContext(WebSocketContext);
+  const { connect: connectSocket, disconnect: disconnectSocket, isConnected } = webSocketContext || {};
 
   // Calcular isAuthenticated basado en el estado del store - ARREGLADO
   const isAuthenticated = useMemo(() => {
@@ -146,7 +147,7 @@ export const useAuth = (): AuthState => {
     if (authStore.loading) {
       checkInitialAuth();
     }
-  }, [authStore]);
+  }, [authStore.loading]);
 
   // Conectar WebSocket cuando se autentica
   useEffect(() => {

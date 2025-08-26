@@ -104,7 +104,7 @@ export const useChat = (conversationId: string) => {
       return;
     }
 
-          // CORREGIDO: Codificar conversationId para URL para preservar los +
+    // CORREGIDO: Codificar conversationId para URL para preservar los +
     const apiId = encodeConversationIdForUrl(sanitizedId);
 
     // Verificar cache primero
