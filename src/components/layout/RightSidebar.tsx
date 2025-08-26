@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { infoLog } from '../../config/logger';
 import { DetailsPanel } from './DetailsPanel';
 import { CopilotPanel } from './CopilotPanel';
@@ -13,10 +13,53 @@ type ContactMeta = { createdAt?: string; updatedAt?: string; totalMessages?: num
 
 const getSafe = <T extends object>(val: unknown, fallback: T): T => (typeof val === 'object' && val !== null ? (val as T) : fallback);
 
+// Componente separado para el CopilotPanel para evitar re-renderizaciones
+const CopilotPanelWrapper: React.FC = React.memo(() => {
+  return <CopilotPanel />;
+});
+
+// Componente separado para el DetailsPanel para evitar re-renderizaciones
+const DetailsPanelWrapper: React.FC<{
+  clientProfile: any;
+  conversationDetails: any;
+  notificationSettings: any;
+  onUpdateNotificationSettings: (updates: any) => void;
+  isLoading: boolean;
+}> = React.memo(({ clientProfile, conversationDetails, notificationSettings, onUpdateNotificationSettings, isLoading }) => {
+  return (
+    <DetailsPanel
+      clientProfile={clientProfile}
+      conversationDetails={conversationDetails}
+      notificationSettings={notificationSettings}
+      onUpdateNotificationSettings={onUpdateNotificationSettings}
+      isLoading={isLoading}
+    />
+  );
+});
+
 const RightSidebarInner: React.FC = () => {
+  // DIAGNÓSTICO: Contador de renders
+  const renderCount = useRef(0);
+  renderCount.current += 1;
+  
+  console.log(`🔍 RightSidebar render #${renderCount.current}`, {
+    timestamp: new Date().toISOString()
+  });
+
   const [activeTab, setActiveTab] = useState<'details' | 'copilot'>('copilot');
+  
+  // Usar refs para evitar re-renderizaciones
+  const activeConversationRef = useRef<any>(null);
+  const selectedConversationIdRef = useRef<string | null>(null);
+  
   const activeConversation = useChatStore((s) => s.activeConversation);
   const selectedConversationId = activeConversation?.id || null;
+  
+  // Actualizar refs de forma estable
+  useMemo(() => {
+    activeConversationRef.current = activeConversation;
+    selectedConversationIdRef.current = selectedConversationId;
+  }, [activeConversation, selectedConversationId]);
 
   // Usar el store global para perfiles de cliente
   const { getProfile } = useClientProfileStore();
@@ -32,6 +75,7 @@ const RightSidebarInner: React.FC = () => {
     pushNotifications: true
   });
 
+  // Memoizar loadClientProfile para evitar recreaciones
   const loadClientProfile = useCallback(async (conversationId: string) => {
     if (isLoadingClientProfile) {
       if (import.meta.env.DEV) {
@@ -87,7 +131,7 @@ const RightSidebarInner: React.FC = () => {
     }
   }, [getProfile, isLoadingClientProfile]);
 
-  // Cargar información del cliente cuando cambie la conversación
+  // Cargar información del cliente cuando cambie la conversación - optimizado
   useEffect(() => {
     if (import.meta.env.DEV) {
       infoLog('🔄 [DEBUG] useEffect RightSidebar - selectedConversationId cambió:', { selectedConversationId });
@@ -106,8 +150,8 @@ const RightSidebarInner: React.FC = () => {
     }
   }, [selectedConversationId, loadClientProfile]);
 
-  // Configuración de notificaciones (mock por ahora)
-  const updateNotificationSettings = (updates: Partial<typeof notificationSettings>) => {
+  // Configuración de notificaciones (mock por ahora) - memoizada
+  const updateNotificationSettings = useCallback((updates: Partial<typeof notificationSettings>) => {
     if (import.meta.env.DEV) {
       infoLog('🔄 [DEBUG] Actualizando configuración de notificaciones:', updates);
     }
@@ -115,7 +159,46 @@ const RightSidebarInner: React.FC = () => {
       ...prev,
       ...updates
     }));
-  };
+  }, []);
+
+  // Memoizar handlers de tabs para evitar recreaciones
+  const handleDetailsTab = useCallback(() => setActiveTab('details'), []);
+  const handleCopilotTab = useCallback(() => setActiveTab('copilot'), []);
+
+  // Memoizar datos del cliente para evitar recreaciones
+  const clientProfileData = useMemo(() => {
+    if (!clientProfile || !selectedConversationId) return null;
+    
+    const convDetails = getSafe<ConvMeta>((clientProfile as unknown as { conversation?: ConvMeta })?.conversation, {});
+    const contactDetails = getSafe<ContactMeta>((clientProfile as unknown as { contactDetails?: ContactMeta })?.contactDetails, {});
+    
+    return {
+      clientProfile: {
+        id: selectedConversationId,
+        name: clientProfile.name,
+        phone: clientProfile.phone,
+        channel: clientProfile.channel as 'whatsapp' | 'telegram' | 'email' | 'phone',
+        status: clientProfile.status as 'active' | 'inactive' | 'blocked',
+        lastContact: clientProfile.lastContact,
+        clientSince: clientProfile.clientSince,
+        whatsappId: clientProfile.whatsappId,
+        tags: clientProfile.tags || []
+      },
+      conversationDetails: {
+        id: selectedConversationId,
+        status: (convDetails.status as 'open' | 'closed' | 'pending' | 'resolved') || 'open',
+        priority: (convDetails.priority as 'low' | 'medium' | 'high' | 'urgent') || 'low',
+        unreadCount: convDetails.unreadMessages ?? 0,
+        assignedToName: convDetails.assignedTo,
+        createdAt: contactDetails.createdAt || '',
+        updatedAt: contactDetails.updatedAt || '',
+        lastMessageAt: clientProfile.lastContact || '',
+        messageCount: contactDetails.totalMessages || 0,
+        participants: [],
+        tags: clientProfile.tags || []
+      }
+    };
+  }, [clientProfile, selectedConversationId]);
 
   // Si no hay conversación seleccionada
   if (!selectedConversationId) {
@@ -125,7 +208,7 @@ const RightSidebarInner: React.FC = () => {
           <h2 className="text-base font-semibold text-gray-900 mb-2">INFO/IA</h2>
           <div className="flex space-x-1">
             <button
-              onClick={() => setActiveTab('details')}
+              onClick={handleDetailsTab}
               className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center justify-center space-x-1 ${
                 activeTab === 'details'
                   ? 'bg-blue-100 text-blue-700'
@@ -136,7 +219,7 @@ const RightSidebarInner: React.FC = () => {
               <span>Details</span>
             </button>
             <button
-              onClick={() => setActiveTab('copilot')}
+              onClick={handleCopilotTab}
               className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center justify-center space-x-1 ${
                 activeTab === 'copilot'
                   ? 'bg-blue-100 text-blue-700'
@@ -162,16 +245,13 @@ const RightSidebarInner: React.FC = () => {
     );
   }
 
-  const convDetails = getSafe<ConvMeta>((clientProfile as unknown as { conversation?: ConvMeta })?.conversation, {});
-  const contactDetails = getSafe<ContactMeta>((clientProfile as unknown as { contactDetails?: ContactMeta })?.contactDetails, {});
-
   return (
     <div className="flex flex-col h-full">
       <div className="p-3 border-b border-gray-200">
         <h2 className="text-base font-semibold text-gray-900 mb-2">INFO/IA</h2>
         <div className="flex space-x-1">
           <button
-            onClick={() => setActiveTab('details')}
+            onClick={handleDetailsTab}
             className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center justify-center space-x-1 ${
               activeTab === 'details'
                 ? 'bg-blue-100 text-blue-700'
@@ -182,7 +262,7 @@ const RightSidebarInner: React.FC = () => {
             <span>Details</span>
           </button>
           <button
-            onClick={() => setActiveTab('copilot')}
+            onClick={handleCopilotTab}
             className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors flex items-center justify-center space-x-1 ${
               activeTab === 'copilot'
                 ? 'bg-blue-100 text-blue-700'
@@ -197,32 +277,10 @@ const RightSidebarInner: React.FC = () => {
 
       <div className="flex-1 overflow-y-auto no-scrollbar">
         {activeTab === 'details' ? (
-          clientProfile ? (
-            <DetailsPanel
-              clientProfile={{
-                id: selectedConversationId!,
-                name: clientProfile.name,
-                phone: clientProfile.phone,
-                channel: clientProfile.channel as 'whatsapp' | 'telegram' | 'email' | 'phone',
-                status: clientProfile.status as 'active' | 'inactive' | 'blocked',
-                lastContact: clientProfile.lastContact,
-                clientSince: clientProfile.clientSince,
-                whatsappId: clientProfile.whatsappId,
-                tags: clientProfile.tags || []
-              }}
-              conversationDetails={{
-                id: selectedConversationId!,
-                status: (convDetails.status as 'open' | 'closed' | 'pending' | 'resolved') || 'open',
-                priority: (convDetails.priority as 'low' | 'medium' | 'high' | 'urgent') || 'low',
-                unreadCount: convDetails.unreadMessages ?? 0,
-                assignedToName: convDetails.assignedTo,
-                createdAt: contactDetails.createdAt || '',
-                updatedAt: contactDetails.updatedAt || '',
-                lastMessageAt: clientProfile.lastContact || '',
-                messageCount: contactDetails.totalMessages || 0,
-                participants: [],
-                tags: clientProfile.tags || []
-              }}
+          clientProfileData ? (
+            <DetailsPanelWrapper
+              clientProfile={clientProfileData.clientProfile}
+              conversationDetails={clientProfileData.conversationDetails}
               notificationSettings={notificationSettings}
               onUpdateNotificationSettings={updateNotificationSettings}
               isLoading={isLoadingClientProfile}
@@ -233,7 +291,7 @@ const RightSidebarInner: React.FC = () => {
             </div>
           )
         ) : (
-          <CopilotPanel />
+          <CopilotPanelWrapper />
         )}
       </div>
     </div>
