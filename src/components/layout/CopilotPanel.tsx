@@ -160,6 +160,11 @@ export const CopilotPanel: React.FC = React.memo(() => {
   }, [storeMessagesArray]);
 
   const extractAgentNotes = useCallback((raw: string): { text: string; notes?: string } => {
+    // ✅ SOLUCIÓN: Validación para evitar error cuando raw es undefined
+    if (!raw || typeof raw !== 'string') {
+      return { text: raw || '', notes: undefined };
+    }
+    
     const marker = /---\s*\n?\s*Notas para el agente\s*\(no enviar al cliente\)\s*:\s*/i;
     const idx = raw.search(marker);
     if (idx === -1) return { text: raw, notes: undefined };
@@ -207,16 +212,30 @@ export const CopilotPanel: React.FC = React.memo(() => {
     button: isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'
   }), [isDarkMode]);
 
+  // ✅ SOLUCIÓN: Función helper para extraer agentId como string
+  const getAgentIdString = useCallback((): string => {
+    const agentId = currentAgentIdRef.current;
+    if (typeof agentId === 'string') {
+      return agentId;
+    } else if (typeof agentId === 'object' && agentId !== null) {
+      const agentObj = agentId as { id?: string; uid?: string };
+      return agentObj?.id || agentObj?.uid || '';
+    }
+    return '';
+  }, []);
+
   // SOLUCIÓN: Validación robusta antes de cualquier operación
   const validateAgentAndConversation = useCallback((): { isValid: boolean; error?: string } => {
-    if (!currentAgentIdRef.current) {
+    const agentIdString = getAgentIdString();
+    
+    if (!agentIdString) {
       return { isValid: false, error: 'No hay agente identificado. Por favor, inicia sesión.' };
     }
     if (!activeConversationIdRef.current) {
       return { isValid: false, error: 'No hay conversación activa.' };
     }
     return { isValid: true };
-  }, []);
+  }, [getAgentIdString]);
 
   const validateBeforeCall = useCallback((): boolean => {
     const validation = validateAgentAndConversation();
@@ -254,21 +273,25 @@ export const CopilotPanel: React.FC = React.memo(() => {
     const agentId = currentAgentIdRef.current;
     const conversationId = activeConversationIdRef.current;
 
+    // ✅ SOLUCIÓN: Usar función helper para extraer agentId como string
+    const agentIdString = getAgentIdString();
+
     // 🔍 DEBUG TEMPORAL: Log para verificar valores antes del envío
     console.log('🔍 DEBUG agentId antes del envío:', {
       agentId,
+      agentIdString,
       conversationId,
-      hasAgentId: !!agentId,
-      agentIdLength: agentId?.length,
-      agentIdType: typeof agentId,
+      hasAgentId: !!agentIdString,
+      agentIdLength: agentIdString?.length,
+      agentIdType: typeof agentIdString,
       refValue: currentAgentIdRef.current,
       backendUserId: backendUser?.id,
       userUid: user?.uid
     });
 
     // SOLUCIÓN: Verificación adicional antes de enviar
-    if (!agentId || !conversationId) {
-      console.error('❌ Datos faltantes para envío:', { agentId, conversationId });
+    if (!agentIdString || !conversationId) {
+      console.error('❌ Datos faltantes para envío:', { agentIdString, conversationId });
       setIsTyping(false);
       isTypingRef.current = false;
       showError('Error: Datos de sesión incompletos');
@@ -293,12 +316,12 @@ export const CopilotPanel: React.FC = React.memo(() => {
     try {
       const socket = socketRef.current as { connected: boolean; emit: (event: string, data: unknown) => void; once: (event: string, callback: (data: unknown) => void) => void } | null;
       if (socket?.connected) {
-        socket.emit('copilot_chat_message', { message: text, conversationId, agentId });
+        socket.emit('copilot_chat_message', { message: text, conversationId, agentId: agentIdString });
         const wsTimeout = window.setTimeout(async () => {
           if (isTypingRef.current) {
             try {
               if (chatRef.current) {
-                const res = await chatRef.current({ message: text, conversationId, agentId });
+                const res = await chatRef.current({ message: text, conversationId, agentId: agentIdString });
                 appendAssistant(res.response, res.suggestions);
               }
             } catch (error) {
@@ -315,7 +338,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
         });
       } else {
         if (chatRef.current) {
-          const res = await chatRef.current({ message: text, conversationId, agentId });
+          const res = await chatRef.current({ message: text, conversationId, agentId: agentIdString });
           appendAssistant(res.response, res.suggestions);
         }
       }
@@ -325,7 +348,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
       isTypingRef.current = false;
       appendAssistant('Lo siento, hubo un problema. Inténtalo de nuevo.');
     }
-  }, [chatInput, extractAgentNotes, updateTokenCount, validateAgentAndConversation, showError]);
+  }, [chatInput, extractAgentNotes, updateTokenCount, validateAgentAndConversation, showError, getAgentIdString]);
 
   // SOLUCIÓN PRINCIPAL: handleSendToCopilot usando refs para evitar dependencias inestables
   const handleSendToCopilot = useCallback(async (event: Event) => {
@@ -383,7 +406,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
         await withLoading(setIsStrategyLoading, async () => {
           if (strategySuggestionsRef.current) {
             const res = await strategySuggestionsRef.current({ 
-              agentId: currentAgentIdRef.current, 
+              agentId: getAgentIdString(), 
               analysis: payload?.analysis, 
               conversationMemory: getCurrentConversationMemory() 
             });
@@ -416,7 +439,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
         await withLoading(setIsExperienceLoading, async () => {
           if (improveExperienceRef.current) {
             const res = await improveExperienceRef.current({ 
-              agentId: currentAgentIdRef.current, 
+              agentId: getAgentIdString(), 
               conversationMemory: getCurrentConversationMemory(), 
               analysis: payload?.analysis 
             });
@@ -576,7 +599,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
           if (generateResponseRef.current) {
             const result = await generateResponseRef.current({ 
               conversationId: activeConversationIdRef.current, 
-              agentId: currentAgentIdRef.current, 
+              agentId: getAgentIdString(), 
               message: suggestion.prompt 
             });
             push(result.response);
@@ -601,7 +624,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
         await withLoading(setIsStrategyLoading, async () => {
           if (strategySuggestionsRef.current) {
             const res = await strategySuggestionsRef.current({ 
-              agentId: currentAgentIdRef.current, 
+              agentId: getAgentIdString(), 
               conversationMemory: getCurrentConversationMemory() 
             });
             setStrategyResult(res);
@@ -622,7 +645,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
         await withLoading(setIsExperienceLoading, async () => {
           if (improveExperienceRef.current) {
             const res = await improveExperienceRef.current({ 
-              agentId: currentAgentIdRef.current, 
+              agentId: getAgentIdString(), 
               conversationMemory: getCurrentConversationMemory() 
             });
             setExperienceResult(res);
@@ -648,7 +671,8 @@ export const CopilotPanel: React.FC = React.memo(() => {
     setChatInput, 
     setIsExperienceLoading, 
     setExperienceResult, 
-    showError
+    showError,
+    getAgentIdString
   ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showIntro = messages.length === 0;
