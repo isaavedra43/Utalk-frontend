@@ -333,7 +333,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
       return;
     }
 
-    const appendAssistant = (content: string, suggestions?: string[]) => {
+    const appendAssistant = (content: string) => {
       // ✅ SOLUCIÓN: Limpiar la respuesta del backend
       let cleanContent = content;
       
@@ -411,7 +411,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
             try {
               if (chatRef.current) {
                 const res = await chatRef.current({ message: text, conversationId, agentId: agentIdString });
-                appendAssistant(res.response, res.suggestions);
+                appendAssistant(res.response);
               }
             } catch (error) {
               console.error('Error en REST fallback:', error);
@@ -423,12 +423,12 @@ export const CopilotPanel: React.FC = React.memo(() => {
         socket.once('copilot_response', (data: unknown) => {
           window.clearTimeout(wsTimeout);
           const responseData = data as { response: string; suggestions?: string[] };
-          appendAssistant(responseData.response, responseData.suggestions);
+          appendAssistant(responseData.response);
         });
       } else {
         if (chatRef.current) {
           const res = await chatRef.current({ message: text, conversationId, agentId: agentIdString });
-          appendAssistant(res.response, res.suggestions);
+          appendAssistant(res.response);
         }
       }
     } catch (error) {
@@ -493,13 +493,6 @@ export const CopilotPanel: React.FC = React.memo(() => {
     };
 
     if (content) {
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        role: 'user',
-        content: String(content),
-        timestamp: new Date().toISOString()
-      };
-      // setMessages(prev => [...prev, userMessage]); // Eliminar esta línea
       setIsTyping(true);
       isTypingRef.current = true;
     }
@@ -700,22 +693,8 @@ export const CopilotPanel: React.FC = React.memo(() => {
     addToHistory(suggestion.title);
 
     const push = (text: string) => {
-      const userMessage: Message = { 
-        id: Date.now().toString(), 
-        role: 'user', 
-        content: suggestion.title, 
-        timestamp: new Date().toISOString() 
-      };
-      // setMessages(prev => [...prev, userMessage]); // Eliminar esta línea
-      const parsed = extractAgentNotes(text);
-      const aiMessage: Message = { 
-        id: (Date.now() + 1).toString(), 
-        role: 'assistant', 
-        content: parsed.text, 
-        agentNotes: parsed.notes, 
-        timestamp: new Date().toISOString() 
-      };
-      // setMessages(prev => [...prev, aiMessage]); // Eliminar esta línea
+      // Función placeholder para futuras implementaciones
+      console.log('Push function called with:', text);
     };
 
     try {
