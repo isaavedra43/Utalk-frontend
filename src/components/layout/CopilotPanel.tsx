@@ -200,18 +200,6 @@ export const CopilotPanel: React.FC = () => {
     window.setTimeout(() => setError(null), 5000);
   }, []);
 
-  const validateBeforeCall = useCallback((): boolean => {
-    if (!activeConversationIdRef.current) {
-      showError('No hay conversación activa');
-      return false;
-    }
-    if (!currentAgentIdRef.current) {
-      showError('No hay agente identificado');
-      return false;
-    }
-    return true;
-  }, [showError]);
-
   const withLoading = useCallback(async <T,>(
     loadingSetter: (loading: boolean) => void,
     asyncFn: () => Promise<T>
@@ -245,9 +233,37 @@ export const CopilotPanel: React.FC = () => {
     button: isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'
   }), [isDarkMode]);
 
+  // SOLUCIÓN: Validación robusta antes de cualquier operación
+  const validateAgentAndConversation = useCallback((): { isValid: boolean; error?: string } => {
+    if (!currentAgentIdRef.current) {
+      return { isValid: false, error: 'No hay agente identificado. Por favor, inicia sesión.' };
+    }
+    if (!activeConversationIdRef.current) {
+      return { isValid: false, error: 'No hay conversación activa.' };
+    }
+    return { isValid: true };
+  }, []);
+
+  const validateBeforeCall = useCallback((): boolean => {
+    const validation = validateAgentAndConversation();
+    if (!validation.isValid) {
+      showError(validation.error || 'Error de validación');
+      return false;
+    }
+    return true;
+  }, [validateAgentAndConversation, showError]);
+
   const handleChatSend = useCallback(async (override?: string) => {
     const text = typeof override === 'string' ? override : chatInput.trim();
     if (!text) return;
+
+    // SOLUCIÓN: Validación robusta antes de enviar
+    const validation = validateAgentAndConversation();
+    if (!validation.isValid) {
+      showError(validation.error || 'No se puede enviar el mensaje');
+      return;
+    }
+
     updateTokenCount(text);
 
     const userMessage: Message = {
@@ -263,6 +279,15 @@ export const CopilotPanel: React.FC = () => {
 
     const agentId = currentAgentIdRef.current;
     const conversationId = activeConversationIdRef.current;
+
+    // SOLUCIÓN: Verificación adicional antes de enviar
+    if (!agentId || !conversationId) {
+      console.error('❌ Datos faltantes para envío:', { agentId, conversationId });
+      setIsTyping(false);
+      isTypingRef.current = false;
+      showError('Error: Datos de sesión incompletos');
+      return;
+    }
 
     const appendAssistant = (content: string, suggestions?: string[]) => {
       const parsed = extractAgentNotes(content);
@@ -310,9 +335,11 @@ export const CopilotPanel: React.FC = () => {
       }
     } catch (error) {
       console.error('Error en handleChatSend:', error);
+      setIsTyping(false);
+      isTypingRef.current = false;
       appendAssistant('Lo siento, hubo un problema. Inténtalo de nuevo.');
     }
-  }, [chatInput, extractAgentNotes, updateTokenCount]);
+  }, [chatInput, extractAgentNotes, updateTokenCount, validateAgentAndConversation, showError]);
 
   // SOLUCIÓN PRINCIPAL: handleSendToCopilot sin dependencias inestables
   const handleSendToCopilot = useCallback(async (event: Event) => {
