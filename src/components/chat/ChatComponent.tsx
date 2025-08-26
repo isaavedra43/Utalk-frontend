@@ -40,7 +40,7 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
     sending,
     isTyping,
     isConnected,
-    isJoined, // NUEVO: Estado de confirmación
+    isJoined,
     typingUsers,
     sendMessage,
     sendMessageWithAttachments,
@@ -52,7 +52,322 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
     messagesEndRef
   } = useChat(effectiveConversationId);
 
-  // NUEVO: Protección contra conversationId inválido DESPUÉS de llamar useChat
+  // ✅ TODOS LOS HOOKS SE LLAMAN ANTES DE CUALQUIER RETURN CONDICIONAL
+  const [inputValue, setInputValue] = useState('');
+
+  // NUEVO: Logs para debugging del renderizado (REDUCIDO para evitar spam)
+  const prevRenderState = useRef({ isConnected, isJoined, loading, error, messagesCount: messages.length });
+  
+  useEffect(() => {
+    const currentState = { isConnected, isJoined, loading, error, messagesCount: messages.length };
+    const prevState = prevRenderState.current;
+    
+    // Solo log si hay cambios significativos Y hay errores
+    if (
+      (prevState.error !== currentState.error && currentState.error) ||
+      (prevState.isConnected !== currentState.isConnected && !currentState.isConnected) ||
+      (prevState.isJoined !== currentState.isJoined && !currentState.isJoined)
+    ) {
+      infoLog('📊 ChatComponent - Estado actualizado (CRÍTICO):', {
+        conversationId: effectiveConversationId,
+        isConnected: currentState.isConnected,
+        isJoined: currentState.isJoined,
+        loading: currentState.loading,
+        error: currentState.error,
+        messagesCount: currentState.messagesCount
+      });
+      prevRenderState.current = currentState;
+    }
+  }, [isConnected, isJoined, loading, error, messages.length, effectiveConversationId]);
+
+  // Marcar mensajes como leídos cuando se ven
+  useEffect(() => {
+    if (messages.length > 0) {
+      const unreadMessages = messages
+        .filter((msg) => msg.direction === 'inbound' && msg.status !== 'read')
+        .map((msg) => msg.id);
+
+      if (unreadMessages.length > 0) {
+        markAsRead(unreadMessages);
+      }
+    }
+  }, [messages, markAsRead]);
+
+  // Conversión de mensajes
+  const convertMessages = useCallback((msgs: { id: string; content: string; direction: 'inbound' | 'outbound'; timestamp?: string | { _seconds: number; _nanoseconds: number }; status: string; type: string; mediaUrl?: string; metadata?: Record<string, unknown> }[]): MessageType[] => {
+    const convertedMessages = msgs.map((msg, index) => {
+      try {
+        if (!msg.id) {
+          console.warn('⚠️ convertMessages - Mensaje sin ID en índice', index, msg);
+          return null;
+        }
+
+        if (msg.type === 'text' && !msg.content) {
+          console.warn('⚠️ convertMessages - Mensaje de texto sin contenido en índice', index, msg);
+          return null;
+        }
+
+        const convertedTimestamp = convertFirebaseTimestamp(msg.timestamp);
+        const finalTimestamp = convertedTimestamp || new Date().toISOString();
+
+        if (['image', 'document', 'audio', 'voice', 'video', 'sticker', 'media', 'message_with_files'].includes(msg.type)) {
+          const hasMediaUrl = msg.mediaUrl && msg.mediaUrl !== null;
+          const mediaMetadata = msg.metadata?.media as { urls?: string[]; processed?: unknown[] } | undefined;
+          const hasMediaInMetadata = (mediaMetadata?.urls?.length ?? 0) > 0 || (mediaMetadata?.processed?.length ?? 0) > 0;
+          const attachments = msg.metadata?.attachments as Array<{ url?: string; id?: string }> | undefined;
+          const hasAttachments = (attachments?.length ?? 0) > 0;
+          
+          if (!hasMediaUrl && !hasMediaInMetadata && !hasAttachments && !msg.content) {
+            logWarningOnce(
+              'media-missing-content',
+              '⚠️ convertMessages - Detectados mensajes de media sin URL ni contenido. Esto es normal para mensajes de WhatsApp que aún no se han procesado.'
+            );
+            
+            return {
+              id: msg.id,
+              conversationId: effectiveConversationId,
+              content: 'Cargando media...',
+              direction: msg.direction,
+              createdAt: finalTimestamp,
+              metadata: {
+                agentId: 'system',
+                ip: '127.0.0.1',
+                requestId: 'unknown',
+                sentBy: 'system',
+                source: 'web',
+                timestamp: finalTimestamp,
+                originalMetadata: msg.metadata
+              },
+              status: 'sent',
+              type: 'text',
+              updatedAt: finalTimestamp
+            };
+          }
+        }
+
+        let mappedStatus: MessageType['status'];
+        switch (msg.status) {
+          case 'queued': mappedStatus = 'queued'; break;
+          case 'received': mappedStatus = 'received'; break;
+          case 'sent': mappedStatus = 'sent'; break;
+          case 'delivered': mappedStatus = 'delivered'; break;
+          case 'read': mappedStatus = 'read'; break;
+          case 'failed': mappedStatus = 'failed'; break;
+          default:
+            mappedStatus = 'sent';
+        }
+
+        let mappedType: MessageType['type'];
+        switch (msg.type) {
+          case 'text':
+          case 'image':
+          case 'document':
+          case 'location':
+          case 'audio':
+          case 'voice':
+          case 'video':
+          case 'sticker':
+          case 'message_with_files':
+            mappedType = msg.type === 'message_with_files' ? 'image' : msg.type; break;
+          case 'system':
+            if (msg.mediaUrl || (msg.metadata?.media)) {
+              mappedType = 'image';
+            } else {
+              mappedType = 'text';
+            }
+            break;
+          default:
+            mappedType = 'text';
+        }
+
+        let messageContent = msg.content;
+        if (['image', 'document', 'audio', 'voice', 'video', 'sticker', 'media', 'message_with_files', 'system'].includes(msg.type)) {
+          if (msg.mediaUrl) {
+            messageContent = msg.mediaUrl;
+          } else {
+            const mediaMetadata = msg.metadata?.media as { urls?: string[]; processed?: unknown[] } | undefined;
+            if (mediaMetadata && mediaMetadata.urls && mediaMetadata.urls.length > 0) {
+              messageContent = mediaMetadata.urls[0];
+            } else if (mediaMetadata && mediaMetadata.processed && mediaMetadata.processed.length > 0) {
+              const processed = mediaMetadata.processed[0] as { url?: string };
+              if (processed && processed.url) {
+                messageContent = processed.url;
+              }
+            } else {
+              const attachments = msg.metadata?.attachments as Array<{ url?: string; id?: string }> | undefined;
+              if (attachments && attachments.length > 0 && attachments[0].url) {
+                messageContent = attachments[0].url;
+              }
+            }
+          }
+        }
+
+        const convertedMessage: MessageType = {
+          id: msg.id,
+          conversationId: effectiveConversationId,
+          content: messageContent,
+          direction: msg.direction,
+          createdAt: finalTimestamp,
+          metadata: {
+            agentId: 'system',
+            ip: '127.0.0.1',
+            requestId: 'unknown',
+            sentBy: 'system',
+            source: 'web',
+            timestamp: finalTimestamp,
+            ...(msg.metadata && { originalMetadata: msg.metadata })
+          },
+          status: mappedStatus,
+          type: mappedType,
+          updatedAt: finalTimestamp
+        };
+
+        return convertedMessage;
+      } catch (error) {
+        console.error('❌ convertMessages - Error convirtiendo mensaje en índice', index, ':', error, msg);
+        return null;
+      }
+    }).filter(Boolean) as MessageType[];
+
+    return convertedMessages;
+  }, [effectiveConversationId, logWarningOnce]);
+
+  const convertedMessages = useMemo(() => convertMessages(messages.map(msg => ({
+    ...msg,
+    metadata: msg.metadata as unknown as Record<string, unknown>
+  }))), [messages, convertMessages]);
+
+  // Ordenar mensajes por fecha ascendente y agrupar por día
+  const { sortedMessages, groupedMessages } = useMemo(() => {
+    const sorted = [...convertedMessages].sort((a, b) => {
+      const ta = new Date(a.createdAt).getTime();
+      const tb = new Date(b.createdAt).getTime();
+      return ta - tb;
+    });
+
+    const groups: { 
+      type: 'date' | 'messages'; 
+      date?: string; 
+      messages?: typeof sorted; 
+      key: string;
+      timestamp?: Date;
+    }[] = [];
+    
+    let currentDate: string | null = null;
+    let currentMessages: typeof sorted = [];
+    
+    for (const msg of sorted) {
+      const msgDate = new Date(msg.createdAt);
+      const msgDateKey = format(msgDate, 'yyyy-MM-dd');
+      const msgDateLabel = format(msgDate, 'EEEE, d MMM', { locale: es });
+      
+      if (msgDateKey !== currentDate) {
+        if (currentDate && currentMessages.length > 0) {
+          groups.push({
+            type: 'messages',
+            messages: currentMessages,
+            key: `messages-${currentDate}`,
+            timestamp: new Date(currentMessages[0].createdAt)
+          });
+        }
+        
+        groups.push({
+          type: 'date',
+          date: msgDateLabel,
+          key: `date-${msgDateKey}`
+        });
+        
+        currentDate = msgDateKey;
+        currentMessages = [msg];
+      } else {
+        const lastMsg = currentMessages[currentMessages.length - 1];
+        const lastMsgTime = new Date(lastMsg.createdAt);
+        const timeDiff = Math.abs(msgDate.getTime() - lastMsgTime.getTime());
+        const fiveMinutes = 5 * 60 * 1000;
+        
+        if (timeDiff > fiveMinutes) {
+          currentMessages.push({
+            ...msg,
+            id: `spacer-${msg.id}`,
+            content: '',
+            type: 'spacer' as 'text'
+          });
+        }
+        
+        currentMessages.push(msg);
+      }
+    }
+    
+    if (currentDate && currentMessages.length > 0) {
+      groups.push({
+        type: 'messages',
+        messages: currentMessages,
+        key: `messages-${currentDate}`,
+        timestamp: new Date(currentMessages[0].createdAt)
+      });
+    }
+
+    return { sortedMessages: sorted, groupedMessages: groups };
+  }, [convertedMessages]);
+
+  // Función para enviar mensaje
+  const handleSend = async () => {
+    if (!inputValue.trim() || !isConnected || !isJoined) return;
+    
+    const messageContent = inputValue.trim();
+    setInputValue('');
+    
+    try {
+      await sendMessage(messageContent);
+    } catch (error) {
+      console.error('Error enviando mensaje:', error);
+      setInputValue(messageContent);
+    }
+  };
+
+  // Manejar cambio de input
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputValue(e.target.value);
+    
+    if (!isTyping && isJoined) {
+      handleTyping();
+    }
+  };
+
+  // Manejar pérdida de foco
+  const handleInputBlur = () => {
+    handleStopTyping();
+  };
+
+  // Manejar tecla Enter
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  // Convertir tipos para compatibilidad
+  const convertConversation = (conv: ConversationType | null): ConversationType | null => {
+    if (!conv) return null;
+    return conv;
+  };
+
+  const convertTypingUsers = (users: Set<string>) => {
+    return Array.from(users).map(userId => ({
+      userId,
+      userName: userId,
+      isTyping: true,
+      timestamp: new Date()
+    }));
+  };
+
+  // typingUsers ya viene como Set<string> desde useChat, no como Map
+  const currentTypingUsers = typingUsers as Set<string>;
+
+  // ✅ RETURNS CONDICIONALES AL FINAL, DESPUÉS DE QUE TODOS LOS HOOKS SE HAYAN LLAMADO
+  
+  // NUEVO: Protección contra conversationId inválido
   if (!effectiveConversationId || effectiveConversationId.trim() === '') {
     return (
       <div className="flex h-full items-center justify-center bg-gray-50">
@@ -107,376 +422,6 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
       </div>
     );
   }
-
-  const [inputValue, setInputValue] = useState('');
-
-  // NUEVO: Logs para debugging del renderizado (REDUCIDO para evitar spam)
-  // Solo mostrar cuando cambien valores importantes
-  const prevRenderState = useRef({ isConnected, isJoined, loading, error, messagesCount: messages.length });
-  
-  useEffect(() => {
-    const currentState = { isConnected, isJoined, loading, error, messagesCount: messages.length };
-    const prevState = prevRenderState.current;
-    
-    // Solo log si hay cambios significativos Y hay errores
-    if (
-      (prevState.error !== currentState.error && currentState.error) ||
-      (prevState.isConnected !== currentState.isConnected && !currentState.isConnected) ||
-      (prevState.isJoined !== currentState.isJoined && !currentState.isJoined)
-    ) {
-      infoLog('📊 ChatComponent - Estado actualizado (CRÍTICO):', {
-        conversationId: effectiveConversationId,
-        isConnected: currentState.isConnected,
-        isJoined: currentState.isJoined,
-        loading: currentState.loading,
-        error: currentState.error,
-        messagesCount: currentState.messagesCount
-      });
-      prevRenderState.current = currentState;
-    }
-  }, [isConnected, isJoined, loading, error, messages.length, effectiveConversationId]);
-
-  // Marcar mensajes como leídos cuando se ven
-  useEffect(() => {
-    if (messages.length > 0) {
-      const unreadMessages = messages
-        .filter((msg) => msg.direction === 'inbound' && msg.status !== 'read')
-        .map((msg) => msg.id);
-
-      if (unreadMessages.length > 0) {
-        markAsRead(unreadMessages);
-      }
-    }
-  }, [messages, markAsRead]);
-
-  // Conversión de mensajes (declarada arriba para no romper el orden de hooks)
-  const convertMessages = useCallback((msgs: { id: string; content: string; direction: 'inbound' | 'outbound'; timestamp?: string | { _seconds: number; _nanoseconds: number }; status: string; type: string; mediaUrl?: string; metadata?: Record<string, unknown> }[]): MessageType[] => {
-    // REDUCIR LOGS: Solo log si hay muchos mensajes o errores
-    if (msgs.length > 50) {
-      console.debug('🔄 convertMessages - Iniciando conversión de', msgs.length, 'mensajes');
-    }
-    
-    const convertedMessages = msgs.map((msg, index) => {
-      try {
-        // Validación mejorada para diferentes tipos de mensaje
-        if (!msg.id) {
-          console.warn('⚠️ convertMessages - Mensaje sin ID en índice', index, msg);
-          return null;
-        }
-
-        // Para mensajes de texto, requerir contenido
-        if (msg.type === 'text' && !msg.content) {
-          console.warn('⚠️ convertMessages - Mensaje de texto sin contenido en índice', index, msg);
-          return null;
-        }
-
-        // Convertir timestamp de Firebase a ISO string (mover aquí para usar en placeholder)
-        const convertedTimestamp = convertFirebaseTimestamp(msg.timestamp);
-        const finalTimestamp = convertedTimestamp || new Date().toISOString();
-
-        // Para mensajes de media, verificar que tenga mediaUrl o contenido en metadata
-        if (['image', 'document', 'audio', 'voice', 'video', 'sticker', 'media', 'message_with_files'].includes(msg.type)) {
-          const hasMediaUrl = msg.mediaUrl && msg.mediaUrl !== null;
-          const mediaMetadata = msg.metadata?.media as { urls?: string[]; processed?: unknown[] } | undefined;
-          const hasMediaInMetadata = (mediaMetadata?.urls?.length ?? 0) > 0 || (mediaMetadata?.processed?.length ?? 0) > 0;
-          const attachments = msg.metadata?.attachments as Array<{ url?: string; id?: string }> | undefined;
-          const hasAttachments = (attachments?.length ?? 0) > 0;
-          
-          // SOLUCIÓN: Mostrar placeholder en lugar de eliminar mensajes de media
-          if (!hasMediaUrl && !hasMediaInMetadata && !hasAttachments && !msg.content) {
-            // Solo loggear una vez por conversación, no por cada mensaje
-            logWarningOnce(
-              'media-missing-content',
-              '⚠️ convertMessages - Detectados mensajes de media sin URL ni contenido. Esto es normal para mensajes de WhatsApp que aún no se han procesado.'
-            );
-            
-            // Retornar mensaje placeholder en lugar de null
-            return {
-              id: msg.id,
-              conversationId: effectiveConversationId,
-              content: 'Cargando media...',
-              direction: msg.direction,
-              createdAt: finalTimestamp,
-              metadata: {
-                agentId: 'system',
-                ip: '127.0.0.1',
-                requestId: 'unknown',
-                sentBy: 'system',
-                source: 'web',
-                timestamp: finalTimestamp,
-                originalMetadata: msg.metadata
-              },
-              status: 'sent',
-              type: 'text', // Cambiar a texto para mostrar placeholder
-              updatedAt: finalTimestamp
-            };
-          }
-        }
-
-        let mappedStatus: MessageType['status'];
-        switch (msg.status) {
-          case 'queued': mappedStatus = 'queued'; break;
-          case 'received': mappedStatus = 'received'; break;
-          case 'sent': mappedStatus = 'sent'; break;
-          case 'delivered': mappedStatus = 'delivered'; break;
-          case 'read': mappedStatus = 'read'; break;
-          case 'failed': mappedStatus = 'failed'; break;
-          default:
-            // REDUCIR LOGS: Solo log si es un status realmente desconocido
-            if (!['queued', 'received', 'sent', 'delivered', 'read', 'failed'].includes(msg.status)) {
-              console.warn('⚠️ convertMessages - Status desconocido:', msg.status, 'usando "sent"');
-            }
-            mappedStatus = 'sent';
-        }
-
-        let mappedType: MessageType['type'];
-        switch (msg.type) {
-          case 'text':
-          case 'image':
-          case 'document':
-          case 'location':
-          case 'audio':
-          case 'voice':
-          case 'video':
-          case 'sticker':
-          case 'message_with_files': // NUEVO: Agregar soporte para message_with_files
-            mappedType = msg.type === 'message_with_files' ? 'image' : msg.type; break;
-          case 'system':
-            // TEMPORAL: Detectar tipo basado en contenido para mensajes system
-            if (msg.mediaUrl || (msg.metadata?.media)) {
-              mappedType = 'image'; // Si tiene mediaUrl, probablemente es imagen
-              console.log('🖼️ [ChatComponent] Mensaje system detectado como imagen:', {
-                mediaUrl: msg.mediaUrl,
-                metadata: msg.metadata,
-                content: msg.content
-              });
-            } else {
-              mappedType = 'text'; // Si no, es texto
-            }
-            break;
-          default:
-            // REDUCIR LOGS: Solo log si es un tipo realmente desconocido
-            if (!['text', 'image', 'document', 'location', 'audio', 'voice', 'video', 'sticker', 'message_with_files', 'system'].includes(msg.type)) {
-              console.warn('⚠️ convertMessages - Tipo desconocido:', msg.type, 'usando "text"');
-            }
-            mappedType = 'text';
-        }
-
-        // Para mensajes de media, usar mediaUrl como contenido si está disponible
-        let messageContent = msg.content;
-        if (['image', 'document', 'audio', 'voice', 'video', 'sticker', 'media', 'message_with_files', 'system'].includes(msg.type)) {
-          // Priorizar mediaUrl si está disponible
-          if (msg.mediaUrl) {
-            messageContent = msg.mediaUrl;
-          } else {
-            // Buscar URLs en metadata si no hay mediaUrl directo
-            const mediaMetadata = msg.metadata?.media as { urls?: string[]; processed?: unknown[] } | undefined;
-            if (mediaMetadata && mediaMetadata.urls && mediaMetadata.urls.length > 0) {
-              messageContent = mediaMetadata.urls[0];
-            } else if (mediaMetadata && mediaMetadata.processed && mediaMetadata.processed.length > 0) {
-              const processed = mediaMetadata.processed[0] as { url?: string };
-              if (processed && processed.url) {
-                messageContent = processed.url;
-              }
-            } else {
-              // NUEVO: Para message_with_files, buscar en attachments
-              const attachments = msg.metadata?.attachments as Array<{ url?: string; id?: string }> | undefined;
-              if (attachments && attachments.length > 0 && attachments[0].url) {
-                messageContent = attachments[0].url;
-              }
-            }
-          }
-        }
-
-        // Usar timestamp ya convertido arriba
-
-        const convertedMessage: MessageType = {
-          id: msg.id,
-          conversationId: effectiveConversationId,
-          content: messageContent,
-          direction: msg.direction,
-          createdAt: finalTimestamp,
-          metadata: {
-            agentId: 'system',
-            ip: '127.0.0.1',
-            requestId: 'unknown',
-            sentBy: 'system',
-            source: 'web',
-            timestamp: finalTimestamp,
-            // Incluir metadata original si existe
-            ...(msg.metadata && { originalMetadata: msg.metadata })
-          },
-          status: mappedStatus,
-          type: mappedType,
-          updatedAt: finalTimestamp
-        };
-
-        return convertedMessage;
-      } catch (error) {
-        console.error('❌ convertMessages - Error convirtiendo mensaje en índice', index, ':', error, msg);
-        return null;
-      }
-    }).filter(Boolean) as MessageType[];
-
-    // REDUCIR LOGS: Solo log si hay problemas
-    const filteredCount = convertedMessages.filter(Boolean).length;
-    if (filteredCount < msgs.length) {
-      console.debug('✅ convertMessages - Conversión completada con filtros:', {
-        mensajesOriginales: msgs.length,
-        mensajesConvertidos: convertedMessages.length,
-        mensajesFiltrados: filteredCount
-      });
-    }
-
-    return convertedMessages;
-  }, [effectiveConversationId, logWarningOnce]);
-
-  const convertedMessages = useMemo(() => convertMessages(messages.map(msg => ({
-    ...msg,
-    metadata: msg.metadata as unknown as Record<string, unknown>
-  }))), [messages, convertMessages]);
-
-  // Ordenar mensajes por fecha ascendente y agrupar por día
-  const { sortedMessages, groupedMessages } = useMemo(() => {
-    // Asegurar timestamps válidos y ordenar ascendente (antiguos arriba, nuevos abajo)
-    const sorted = [...convertedMessages].sort((a, b) => {
-      const ta = new Date(a.createdAt).getTime();
-      const tb = new Date(b.createdAt).getTime();
-      return ta - tb;
-    });
-
-    // Agrupar por día con separadores de fecha como WhatsApp
-    const groups: { 
-      type: 'date' | 'messages'; 
-      date?: string; 
-      messages?: typeof sorted; 
-      key: string;
-      timestamp?: Date;
-    }[] = [];
-    
-    let currentDate: string | null = null;
-    let currentMessages: typeof sorted = [];
-    
-    for (const msg of sorted) {
-      const msgDate = new Date(msg.createdAt);
-      const msgDateKey = format(msgDate, 'yyyy-MM-dd');
-      const msgDateLabel = format(msgDate, 'EEEE, d MMM', { locale: es }); // ej. "lunes, 22 jul"
-      
-      // Si es un nuevo día, crear separador de fecha
-      if (msgDateKey !== currentDate) {
-        // Guardar grupo anterior si existe
-        if (currentDate && currentMessages.length > 0) {
-          groups.push({
-            type: 'messages',
-            messages: currentMessages,
-            key: `messages-${currentDate}`,
-            timestamp: new Date(currentMessages[0].createdAt)
-          });
-        }
-        
-        // Agregar separador de fecha
-        groups.push({
-          type: 'date',
-          date: msgDateLabel,
-          key: `date-${msgDateKey}`
-        });
-        
-        // Iniciar nuevo grupo
-        currentDate = msgDateKey;
-        currentMessages = [msg];
-      } else {
-        // Mismo día, verificar si hay mucha diferencia de tiempo
-        const lastMsg = currentMessages[currentMessages.length - 1];
-        const lastMsgTime = new Date(lastMsg.createdAt);
-        const timeDiff = Math.abs(msgDate.getTime() - lastMsgTime.getTime());
-        const fiveMinutes = 5 * 60 * 1000; // 5 minutos en milisegundos
-        
-        // Si hay más de 5 minutos de diferencia, agregar espaciado visual
-        if (timeDiff > fiveMinutes) {
-          // Agregar un mensaje espaciador invisible
-          currentMessages.push({
-            ...msg,
-            id: `spacer-${msg.id}`,
-            content: '',
-            type: 'spacer' as 'text'
-          });
-        }
-        
-        currentMessages.push(msg);
-      }
-    }
-    
-    // Agregar el último grupo si existe
-    if (currentDate && currentMessages.length > 0) {
-      groups.push({
-        type: 'messages',
-        messages: currentMessages,
-        key: `messages-${currentDate}`,
-        timestamp: new Date(currentMessages[0].createdAt)
-      });
-    }
-
-    return { sortedMessages: sorted, groupedMessages: groups };
-  }, [convertedMessages]);
-
-  // NUEVO: Mostrar estado cuando no hay conversación seleccionada
-  if (!effectiveConversationId || !effectiveConversationId.trim()) {
-    return (
-      <div className="chat-container">
-        <div className="chat-no-conversation">
-          <div className="text-center">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Selecciona una conversación
-            </h3>
-            <p className="text-gray-500 text-sm">
-              Elige una conversación para comenzar a chatear
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Función para enviar mensaje
-  const handleSend = async () => {
-    if (!inputValue.trim() || !isConnected || !isJoined) return;
-    
-    const messageContent = inputValue.trim();
-    setInputValue('');
-    
-    try {
-      await sendMessage(messageContent);
-    } catch (error) {
-      console.error('Error enviando mensaje:', error);
-      // Restaurar el mensaje en caso de error
-      setInputValue(messageContent);
-    }
-  };
-
-  // Manejar cambio de input
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
-    
-    if (!isTyping && isJoined) {
-      handleTyping();
-    }
-  };
-
-  // Manejar pérdida de foco
-  const handleInputBlur = () => {
-    handleStopTyping();
-  };
-
-  // Manejar tecla Enter
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
 
   // Mostrar estado de conexión
   if (!isConnected) {
@@ -551,24 +496,6 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
     );
   }
 
-  // Convertir tipos para compatibilidad
-  const convertConversation = (conv: ConversationType | null): ConversationType | null => {
-    if (!conv) return null;
-    return conv;
-  };
-
-  const convertTypingUsers = (users: Set<string>) => {
-    return Array.from(users).map(userId => ({
-      userId,
-      userName: userId,
-      isTyping: true,
-      timestamp: new Date()
-    }));
-  };
-
-  // typingUsers ya viene como Set<string> desde useChat, no como Map
-  const currentTypingUsers = typingUsers as Set<string>;
-
   return (
     <div className="chat-container">
       <ChatHeader 
@@ -604,7 +531,7 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
           sendMessageWithAttachments={sendMessageWithAttachments}
           isSending={sending}
           disabled={!isConnected || !isJoined}
-          conversationId={effectiveConversationId} // NUEVO: Pasar conversationId para subir archivos
+          conversationId={effectiveConversationId}
           placeholder={
             !isConnected 
               ? "Desconectado..." 
