@@ -19,7 +19,8 @@ interface Message {
 // Memoizar el componente principal para evitar re-renders innecesarios
 export const CopilotPanel: React.FC = React.memo(() => {
   const [chatInput, setChatInput] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
+  // ✅ SOLUCIÓN: Eliminar estado local y usar store global
+  // const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<CopilotAnalysis | null>(null);
   const [strategyResult, setStrategyResult] = useState<{ strategies: string[]; actionPlan: string[] } | null>(null);
@@ -88,6 +89,9 @@ export const CopilotPanel: React.FC = React.memo(() => {
 
   // Suscribirse al ID de conversación activa de forma estable desde el store
   const activeConversationId = useChatStore((s) => s.activeConversation?.id ?? null);
+  
+  // ✅ SOLUCIÓN: Obtener la función addMessage del store
+  const addMessage = useChatStore((s) => s.addMessage);
   
   // Memoizar la actualización del ref para evitar re-renders
   useEffect(() => {
@@ -165,13 +169,27 @@ export const CopilotPanel: React.FC = React.memo(() => {
       return { text: raw || '', notes: undefined };
     }
     
+    // ✅ SOLUCIÓN: Manejar el formato específico del backend
     const marker = /---\s*\n?\s*Notas para el agente\s*\(no enviar al cliente\)\s*:\s*/i;
     const idx = raw.search(marker);
-    if (idx === -1) return { text: raw, notes: undefined };
+    
+    if (idx === -1) {
+      // No hay notas, devolver todo el contenido como texto principal
+      return { text: raw.trim(), notes: undefined };
+    }
+    
+    // Separar el contenido principal de las notas
     const before = raw.substring(0, idx).trim();
     const match = raw.match(marker);
     const after = raw.substring(idx + (match?.[0]?.length || 0)).trim();
-    return { text: before, notes: after };
+    
+    // ✅ SOLUCIÓN: Asegurar que el texto principal no esté vacío
+    const mainText = before || raw.trim();
+    
+    return { 
+      text: mainText, 
+      notes: after || undefined 
+    };
   }, []);
 
   const showError = useCallback((message: string) => {
@@ -259,13 +277,30 @@ export const CopilotPanel: React.FC = React.memo(() => {
 
     updateTokenCount(text);
 
-    const userMessage: Message = {
+    // ✅ SOLUCIÓN: Usar la estructura correcta del store global
+    const userMessage = {
       id: Date.now().toString(),
-      role: 'user',
+      conversationId: activeConversationIdRef.current,
       content: text,
-      timestamp: new Date().toISOString()
+      direction: 'outbound' as const,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: 'sent' as const,
+      type: 'text' as const,
+      metadata: {
+        agentId: getAgentIdString(),
+        ip: '127.0.0.1',
+        requestId: 'copilot-panel',
+        sentBy: getAgentIdString(),
+        source: 'web' as const,
+        timestamp: new Date().toISOString()
+      }
     };
-    setMessages(prev => [...prev, userMessage]);
+    
+    // ✅ SOLUCIÓN: Agregar mensaje al store global
+    if (activeConversationIdRef.current) {
+      addMessage(activeConversationIdRef.current, userMessage);
+    }
     setChatInput('');
     setIsTyping(true);
     isTypingRef.current = true;
@@ -320,14 +355,30 @@ export const CopilotPanel: React.FC = React.memo(() => {
       }
       
       const parsed = extractAgentNotes(cleanContent);
-      const aiResponse: Message = { 
-        id: (Date.now() + 1).toString(), 
-        role: 'assistant', 
+      // ✅ SOLUCIÓN: Usar la estructura correcta del store global para mensaje del asistente
+      const aiResponse = { 
+        id: (Date.now() + 1).toString(),
+        conversationId: activeConversationIdRef.current,
         content: parsed.text, 
-        agentNotes: parsed.notes, 
-        suggestions, 
-        timestamp: new Date().toISOString() 
+        direction: 'inbound' as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: 'received' as const,
+        type: 'text' as const,
+        metadata: {
+          agentId: getAgentIdString(),
+          ip: '127.0.0.1',
+          requestId: 'copilot-panel',
+          sentBy: 'copilot',
+          source: 'web' as const,
+          timestamp: new Date().toISOString()
+        }
       };
+      
+      // ✅ SOLUCIÓN: Agregar mensaje del asistente al store global
+      if (activeConversationIdRef.current) {
+        addMessage(activeConversationIdRef.current, aiResponse);
+      }
       
       // ✅ SOLUCIÓN: Agregar log para debug
       console.log('🔍 DEBUG appendAssistant:', {
@@ -335,18 +386,18 @@ export const CopilotPanel: React.FC = React.memo(() => {
         cleanContent,
         parsedText: parsed.text,
         messageId: aiResponse.id,
-        messageCount: messages.length + 1
+        messageCount: storeMessagesArray.length + 1 // Usar storeMessagesArray para contar mensajes
       });
       
-      setMessages(prev => {
-        const newMessages = [...prev, aiResponse];
-        console.log('🔍 DEBUG setMessages:', {
-          previousCount: prev.length,
-          newCount: newMessages.length,
-          lastMessage: newMessages[newMessages.length - 1]
-        });
-        return newMessages;
-      });
+      // setMessages(prev => { // Eliminar esta línea
+      //   const newMessages = [...prev, aiResponse];
+      //   console.log('🔍 DEBUG setMessages:', {
+      //     previousCount: prev.length,
+      //     newCount: newMessages.length,
+      //     lastMessage: newMessages[newMessages.length - 1]
+      //   });
+      //   return newMessages;
+      // });
       setIsTyping(false);
       isTypingRef.current = false;
     };
@@ -386,7 +437,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
       isTypingRef.current = false;
       appendAssistant('Lo siento, hubo un problema. Inténtalo de nuevo.');
     }
-  }, [chatInput, extractAgentNotes, updateTokenCount, validateAgentAndConversation, showError, getAgentIdString]);
+  }, [chatInput, extractAgentNotes, updateTokenCount, validateAgentAndConversation, showError, getAgentIdString, storeMessagesArray]);
 
   // SOLUCIÓN PRINCIPAL: handleSendToCopilot usando refs para evitar dependencias inestables
   const handleSendToCopilot = useCallback(async (event: Event) => {
@@ -428,15 +479,15 @@ export const CopilotPanel: React.FC = React.memo(() => {
         messageId: aiResponse.id
       });
       
-      setMessages(prev => {
-        const newMessages = [...prev, aiResponse];
-        console.log('🔍 DEBUG pushAssistant setMessages:', {
-          previousCount: prev.length,
-          newCount: newMessages.length,
-          lastMessage: newMessages[newMessages.length - 1]
-        });
-        return newMessages;
-      });
+      // setMessages(prev => { // Eliminar esta línea
+      //   const newMessages = [...prev, aiResponse];
+      //   console.log('🔍 DEBUG pushAssistant setMessages:', {
+      //     previousCount: prev.length,
+      //     newCount: newMessages.length,
+      //     lastMessage: newMessages[newMessages.length - 1]
+      //   });
+      //   return newMessages;
+      // });
       setIsTyping(false);
       isTypingRef.current = false;
     };
@@ -448,7 +499,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
         content: String(content),
         timestamp: new Date().toISOString()
       };
-      setMessages(prev => [...prev, userMessage]);
+      // setMessages(prev => [...prev, userMessage]); // Eliminar esta línea
       setIsTyping(true);
       isTypingRef.current = true;
     }
@@ -655,7 +706,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
         content: suggestion.title, 
         timestamp: new Date().toISOString() 
       };
-      setMessages(prev => [...prev, userMessage]);
+      // setMessages(prev => [...prev, userMessage]); // Eliminar esta línea
       const parsed = extractAgentNotes(text);
       const aiMessage: Message = { 
         id: (Date.now() + 1).toString(), 
@@ -664,7 +715,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
         agentNotes: parsed.notes, 
         timestamp: new Date().toISOString() 
       };
-      setMessages(prev => [...prev, aiMessage]);
+      // setMessages(prev => [...prev, aiMessage]); // Eliminar esta línea
     };
 
     try {
@@ -749,21 +800,21 @@ export const CopilotPanel: React.FC = React.memo(() => {
     getAgentIdString
   ]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const showIntro = messages.length === 0;
+  const showIntro = storeMessagesArray.length === 0; // Usar storeMessagesArray para determinar si es intro
 
-  // ✅ SOLUCIÓN: Log para verificar el estado de los mensajes en el render
-  console.log('🔍 DEBUG CopilotPanel render:', {
-    messagesCount: messages.length,
-    showIntro,
-    messages: messages.map(m => ({ 
-      id: m.id, 
-      role: m.role, 
-      content: m.content?.substring(0, 50) + '...',
-      contentLength: m.content?.length,
-      hasContent: !!m.content,
-      timestamp: m.timestamp
-    }))
-  });
+      // ✅ SOLUCIÓN: Log para verificar el estado de los mensajes en el render
+    console.log('🔍 DEBUG CopilotPanel render:', {
+      messagesCount: storeMessagesArray.length, // Usar storeMessagesArray para contar mensajes
+      showIntro,
+      messages: storeMessagesArray.map(m => ({ 
+        id: m.id, 
+        direction: m.direction, 
+        content: m.content?.substring(0, 50) + '...',
+        contentLength: m.content?.length,
+        hasContent: !!m.content,
+        createdAt: m.createdAt
+      }))
+    });
 
   const suggestedPrompts = useMemo(() => [
     {
@@ -948,44 +999,22 @@ export const CopilotPanel: React.FC = React.memo(() => {
       )}
 
       {/* Chat Messages - ocupa el espacio disponible */}
-      {messages.length > 0 && (
+      {storeMessagesArray.length > 0 && (
         <div className="flex-1 overflow-y-auto space-y-2 p-3 min-h-0 max-h-[calc(100vh-200px)] no-scrollbar">
-          {messages.map((message) => (
+          {storeMessagesArray.map((message) => (
             <div
               key={message.id}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${message.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
             >
               <div
                 className={`max-w-xs px-2 py-1.5 rounded-lg text-xs ${
-                  message.role === 'user'
+                  message.direction === 'outbound'
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-900'
                 }`}
               >
                 {message.content}
               </div>
-              {message.role === 'assistant' && message.suggestions && message.suggestions.length > 0 && (
-                <div className="w-full mt-1">
-                  <div className="max-w-xs bg-blue-50 border border-blue-200 rounded-md p-2">
-                    <div className="text-xs font-medium text-blue-800 mb-1">Sugerencias rápidas</div>
-                    <div className="flex flex-wrap gap-1">
-                      {message.suggestions.map((s, i) => (
-                        <button key={i} onClick={() => setChatInput(s)} className="px-1.5 py-0.5 text-xs bg-white border border-blue-200 text-blue-700 rounded hover:bg-blue-100">
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-              {message.role === 'assistant' && message.agentNotes && (
-                <div className="w-full mt-1">
-                  <details className="max-w-xs text-xs text-gray-600 bg-yellow-50 border border-yellow-200 rounded-md p-2">
-                    <summary className="cursor-pointer text-yellow-800 font-medium">Notas para el agente (no enviar al cliente)</summary>
-                    <div className="mt-1 whitespace-pre-wrap text-yellow-900">{message.agentNotes}</div>
-                  </details>
-                </div>
-              )}
             </div>
           ))}
           
