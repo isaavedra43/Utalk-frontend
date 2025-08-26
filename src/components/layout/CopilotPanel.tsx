@@ -168,11 +168,14 @@ export const CopilotPanel: React.FC = React.memo(() => {
   const extractAgentNotes = useCallback((raw: string): { text: string; notes?: string } => {
     // ✅ SOLUCIÓN: Validación para evitar error cuando raw es undefined
     if (!raw || typeof raw !== 'string') {
+      console.log('🔍 DEBUG extractAgentNotes: raw es undefined o no es string', { raw, type: typeof raw });
       return { text: raw || '', notes: undefined };
     }
     
     // ✅ SOLUCIÓN: Limpiar caracteres de escape del backend
     let cleanRaw = raw;
+    
+    console.log('🔍 DEBUG extractAgentNotes: raw original', { raw });
     
     // Remover comillas dobles al inicio y final si existen
     cleanRaw = cleanRaw.replace(/^"|"$/g, '');
@@ -186,12 +189,15 @@ export const CopilotPanel: React.FC = React.memo(() => {
     // Limpiar espacios extra
     cleanRaw = cleanRaw.trim();
     
+    console.log('🔍 DEBUG extractAgentNotes: después de limpiar', { cleanRaw });
+    
     // ✅ SOLUCIÓN: Manejar el formato específico del backend
     const marker = /---\s*\n?\s*Notas para el agente\s*\(no enviar al cliente\)\s*:\s*/i;
     const idx = cleanRaw.search(marker);
     
     if (idx === -1) {
       // No hay notas, devolver todo el contenido como texto principal
+      console.log('🔍 DEBUG extractAgentNotes: no hay marcador, devolviendo texto completo', { text: cleanRaw });
       return { text: cleanRaw, notes: undefined };
     }
     
@@ -202,6 +208,8 @@ export const CopilotPanel: React.FC = React.memo(() => {
     
     // ✅ SOLUCIÓN: Asegurar que el texto principal no esté vacío
     const mainText = before || cleanRaw;
+    
+    console.log('🔍 DEBUG extractAgentNotes: con marcador', { mainText, after });
     
     return { 
       text: mainText, 
