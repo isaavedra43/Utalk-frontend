@@ -1,224 +1,185 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Filter, Send, Lightbulb, Users, TrendingUp, Shield, Zap, Star } from 'lucide-react';
 import '../../styles/copilot.css';
+import { useCopilot } from '../../hooks/useCopilot';
+import { useAuthContext } from '../../contexts/useAuthContext';
+import { useWebSocketContext } from '../../contexts/useWebSocketContext';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  agentNotes?: string;
 }
 
 export const CopilotPanel: React.FC = () => {
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const { user, backendUser } = useAuthContext();
+  const { socket, emit, on, off, isConnected } = useWebSocketContext();
+  const {
+    chat,
+    generateResponse,
+    analyzeConversation,
+    optimizeResponse,
+    strategySuggestions,
+    quickResponse,
+    improveExperience,
+  } = useCopilot();
 
-  // Escuchar eventos de sugerencias enviadas al Copiloto
+  const activeConversationId = useMemo(() => {
+    // intentar obtener conversación activa desde URL o estado global si existe
+    // mantener simple: usar último mensaje con id asociado si lo hubiera, o vacío
+    return (window as unknown as { __activeConversationId?: string }).__activeConversationId || '';
+  }, []);
+
+  // Escuchar eventos internos del front y mapear a endpoints /api/copilot/*
   useEffect(() => {
-    const handleSendToCopilot = (event: CustomEvent) => {
-      const { content, type, action } = event.detail;
-      
-      if (type === 'response' && action === 'improve') {
-        // Cambiar a modo chat si no está activo
-        if (messages.length === 0) {
-          setMessages([]);
-        }
-        
-        // Agregar la respuesta sugerida como mensaje del usuario
+    const handleSendToCopilot = async (event: CustomEvent) => {
+      const { content, type, action, payload } = event.detail || {};
+      const agentId = backendUser?.id || user?.uid || '';
+
+      const pushAssistant = (text: string) => {
+        const aiResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: text,
+          timestamp: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, aiResponse]);
+        setIsTyping(false);
+      };
+
+      // Siempre agregamos el mensaje del usuario cuando viene desde tarjetas/eventos
+      if (content) {
         const userMessage: Message = {
           id: Date.now().toString(),
           role: 'user',
-          content: `Mejora esta respuesta: "${content}"`,
+          content: String(content),
           timestamp: new Date().toISOString()
         };
-        
         setMessages(prev => [...prev, userMessage]);
         setIsTyping(true);
-
-        // Simular respuesta del Copiloto mejorando la respuesta
-        setTimeout(() => {
-          const aiResponse: Message = {
-            id: (Date.now() + 1).toString(),
-            role: 'assistant',
-            content: generateImprovedResponse(content),
-            timestamp: new Date().toISOString()
-          };
-          
-          setMessages(prev => [...prev, aiResponse]);
-          setIsTyping(false);
-        }, 1500);
       }
-      
-      if (type === 'product' && action === 'analyze') {
-        // Cambiar a modo chat si no está activo
-        if (messages.length === 0) {
-          setMessages([]);
-        }
-        
-        // Agregar el producto como mensaje del usuario
-        const userMessage: Message = {
-          id: Date.now().toString(),
-          role: 'user',
-          content: `Analiza este producto y sugiere mejoras: ${content}`,
-          timestamp: new Date().toISOString()
-        };
-        
-        setMessages(prev => [...prev, userMessage]);
-        setIsTyping(true);
 
-        // Simular respuesta del Copiloto analizando el producto
-        setTimeout(() => {
-          const aiResponse: Message = {
-            id: (Date.now() + 1).toString(),
-            role: 'assistant',
-            content: generateProductAnalysis(content),
-            timestamp: new Date().toISOString()
-          };
-          
-          setMessages(prev => [...prev, aiResponse]);
-          setIsTyping(false);
-        }, 1500);
+      try {
+        if (type === 'response' && action === 'improve') {
+          const { optimized } = await optimizeResponse({ response: content });
+          pushAssistant(optimized);
+          return;
+        }
+
+        if (type === 'product' && action === 'analyze') {
+          const analysis = await analyzeConversation({ conversationMemory: payload?.conversationMemory || { note: content } });
+          const text = `Tono: ${analysis.tone.tone} | Sentimiento: ${analysis.tone.sentiment} | Urgencia: ${analysis.tone.urgency}\nOportunidades:\n- ${analysis.opportunities.join('\n- ')}`;
+          pushAssistant(text);
+          return;
+        }
+
+        if (type === 'strategy') {
+          const res = await strategySuggestions({ analysis: payload?.analysis, conversationMemory: payload?.conversationMemory });
+          const text = `Estrategias:\n- ${res.strategies.join('\n- ')}\n\nPlan de acción:\n- ${res.actionPlan.join('\n- ')}`;
+          pushAssistant(text);
+          return;
+        }
+
+        if (type === 'quick') {
+          const res = await quickResponse({ urgency: payload?.urgency || 'normal', context: payload?.context });
+          pushAssistant(res.quick);
+          return;
+        }
+
+        if (type === 'experience') {
+          const res = await improveExperience({ conversationMemory: payload?.conversationMemory || {}, analysis: payload?.analysis });
+          const text = `Brechas:\n- ${res.gaps.join('\n- ')}\n\nMejoras:\n- ${res.improvements.join('\n- ')}\n\nPlan:\n- ${res.plan.join('\n- ')}`;
+          pushAssistant(text);
+          return;
+        }
+
+        // Por defecto: chat libre
+        if (content) {
+          await handleChatSend(content);
+        }
+      } catch (e) {
+        pushAssistant('Ocurrió un error procesando la solicitud del Copiloto.');
       }
     };
 
     window.addEventListener('sendToCopilot', handleSendToCopilot as EventListener);
-    
-    return () => {
-      window.removeEventListener('sendToCopilot', handleSendToCopilot as EventListener);
+    return () => window.removeEventListener('sendToCopilot', handleSendToCopilot as EventListener);
+  }, [backendUser?.id, user?.uid, optimizeResponse, analyzeConversation, strategySuggestions, quickResponse, improveExperience]);
+
+  const extractAgentNotes = (raw: string): { text: string; notes?: string } => {
+    const marker = /---\s*\n?\s*Notas para el agente\s*\(no enviar al cliente\)\s*:\s*/i;
+    const idx = raw.search(marker);
+    if (idx === -1) return { text: raw };
+    const before = raw.substring(0, idx).trim();
+    const after = raw.substring(idx).replace(marker, '').trim();
+    return { text: before, notes: after };
+  };
+
+  const handleChatSend = async (override?: string) => {
+    const text = typeof override === 'string' ? override : chatInput.trim();
+    if (!text) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: text,
+      timestamp: new Date().toISOString()
     };
-  }, [messages.length]);
+    setMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+    setIsTyping(true);
 
-  const handleChatSend = () => {
-    if (chatInput.trim()) {
-      // Agregar mensaje del usuario
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        role: 'user',
-        content: chatInput.trim(),
-        timestamp: new Date().toISOString()
+    const agentId = backendUser?.id || user?.uid || '';
+
+    // Preferir WS si está conectado; fallback a REST
+    let usedWS = false;
+    if (socket && isConnected) {
+      usedWS = emit('copilot_chat_message', { message: text, conversationId: activeConversationId, agentId });
+    }
+
+    const appendAssistant = (content: string) => {
+      const parsed = extractAgentNotes(content);
+      const aiResponse: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: parsed.text, agentNotes: parsed.notes, timestamp: new Date().toISOString() };
+      setMessages(prev => [...prev, aiResponse]);
+      setIsTyping(false);
+    };
+
+    if (usedWS) {
+      const listener = (data: { response: string }) => {
+        appendAssistant(data.response);
+        off('copilot_response');
       };
-      
-      setMessages(prev => [...prev, userMessage]);
-      setChatInput('');
-      setIsTyping(true);
-
-      // Simular respuesta de la IA después de 1 segundo
-      setTimeout(() => {
-        const aiResponse: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: generateAIResponse(chatInput.trim()),
-          timestamp: new Date().toISOString()
-        };
-        
-        setMessages(prev => [...prev, aiResponse]);
-        setIsTyping(false);
-      }, 1000);
+      on('copilot_response', listener);
+      // Fallback de seguridad en 3s para REST si no llega nada
+      setTimeout(async () => {
+        if (isTyping) {
+          const res = await chat({ message: text, conversationId: activeConversationId, agentId });
+          appendAssistant(res.response);
+          off('copilot_response');
+        }
+      }, 3000);
+    } else {
+      try {
+        const res = await chat({ message: text, conversationId: activeConversationId, agentId });
+        appendAssistant(res.response);
+      } catch {
+        appendAssistant('Hubo un problema al contactar al Copiloto.');
+      }
     }
   };
 
-  const generateAIResponse = (userMessage: string): string => {
-    const responses = [
-      "Entiendo tu consulta. Te ayudo a resolverlo de inmediato.",
-      "Excelente pregunta. Basándome en la información disponible, te recomiendo lo siguiente:",
-      "Gracias por contactarnos. Aquí tienes una respuesta detallada:",
-      "Perfecto, he analizado tu situación y aquí está mi recomendación:",
-      "Basándome en los datos del cliente, te sugiero esta estrategia:",
-      "Entiendo perfectamente. Aquí tienes una solución profesional:",
-      "Excelente punto. Permíteme darte una respuesta completa:",
-      "Gracias por la consulta. Te proporciono la siguiente información:"
-    ];
-    
-    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-    return `${randomResponse}\n\n${generateDetailedResponse(userMessage)}`;
-  };
+  // funciones locales anteriores eliminadas; ahora todo se resuelve vía API/WS
 
-  const generateDetailedResponse = (userMessage: string): string => {
-    if (userMessage.toLowerCase().includes('hola') || userMessage.toLowerCase().includes('hello')) {
-      return "¡Hola! Soy tu asistente de IA. ¿En qué puedo ayudarte hoy con la atención al cliente?";
-    }
-    
-    if (userMessage.toLowerCase().includes('ayuda') || userMessage.toLowerCase().includes('help')) {
-      return "Estoy aquí para ayudarte con:\n• Sugerencias de respuestas\n• Análisis de conversaciones\n• Estrategias de atención al cliente\n• Optimización de respuestas";
-    }
-    
-    if (userMessage.toLowerCase().includes('cliente') || userMessage.toLowerCase().includes('customer')) {
-      return "Basándome en el perfil del cliente actual, te recomiendo un enfoque personalizado y profesional. El cliente tiene etiquetas VIP y Premium, por lo que requiere atención especial.";
-    }
-    
-    return "He procesado tu consulta y te proporciono una respuesta optimizada para mantener la calidad del servicio al cliente. ¿Te gustaría que profundice en algún aspecto específico?";
-  };
+  
 
-  // Función para generar respuestas mejoradas
-  const generateImprovedResponse = (originalResponse: string): string => {
-    const improvements = [
-      "Aquí tienes una versión mejorada de tu respuesta:\n\n",
-      "He optimizado tu respuesta para que sea más efectiva:\n\n",
-      "Aquí está la respuesta mejorada con más contexto:\n\n",
-      "He refinado tu respuesta para que sea más profesional:\n\n"
-    ];
-    
-    const randomImprovement = improvements[Math.floor(Math.random() * improvements.length)];
-    
-    // Simular mejoras en la respuesta original
-    let improvedResponse = originalResponse;
-    
-    // Agregar más contexto si es necesario
-    if (originalResponse.includes('gracias')) {
-      improvedResponse += "\n\nEspero que esta información te sea útil. Si tienes alguna otra pregunta, no dudes en contactarnos.";
-    }
-    
-    if (originalResponse.includes('ayudar')) {
-      improvedResponse += "\n\nNuestro equipo está comprometido en brindarte la mejor atención posible.";
-    }
-    
-    if (originalResponse.includes('información')) {
-      improvedResponse += "\n\nTe proporcionamos esta información de manera clara y detallada para que puedas tomar la mejor decisión.";
-    }
-    
-    return randomImprovement + improvedResponse;
-  };
+  // Se reemplaza la mejora por llamada a API (hecha en efecto de eventos)
 
-  // Función para generar análisis de productos
-  const generateProductAnalysis = (productContent: string): string => {
-    const analyses = [
-      "Aquí tienes mi análisis del producto:\n\n",
-      "He analizado el producto y aquí están mis recomendaciones:\n\n",
-      "Basándome en la información del producto, te sugiero:\n\n"
-    ];
-    
-    const randomAnalysis = analyses[Math.floor(Math.random() * analyses.length)];
-    
-    let analysis = randomAnalysis;
-    
-    // Análisis específico basado en el contenido
-    if (productContent.includes('Premium')) {
-      analysis += "• **Posicionamiento Premium**: El producto está bien posicionado para clientes de alto valor.\n";
-      analysis += "• **Estrategia de Precio**: Considera ofrecer descuentos por volumen o suscripciones anuales.\n";
-      analysis += "• **Diferenciación**: Destaca las características exclusivas que justifican el precio premium.\n\n";
-    }
-    
-    if (productContent.includes('Consultoría')) {
-      analysis += "• **Servicio Personalizado**: Excelente para clientes que requieren atención especializada.\n";
-      analysis += "• **Valor Agregado**: Considera incluir un reporte escrito o seguimiento post-consulta.\n";
-      analysis += "• **Upselling**: Ofrece paquetes de múltiples sesiones con descuento.\n\n";
-    }
-    
-    if (productContent.includes('Kit')) {
-      analysis += "• **Producto Físico**: Asegúrate de tener un buen sistema de inventario.\n";
-      analysis += "• **Logística**: Considera opciones de envío rápido y seguimiento.\n";
-      analysis += "• **Garantía**: Ofrece garantía extendida para aumentar la confianza del cliente.\n\n";
-    }
-    
-    analysis += "**Recomendaciones generales**:\n";
-    analysis += "• Incluye testimonios de clientes satisfechos\n";
-    analysis += "• Crea contenido educativo sobre el uso del producto\n";
-    analysis += "• Implementa un programa de referidos\n";
-    analysis += "• Considera ofrecer una versión de prueba gratuita";
-    
-    return analysis;
-  };
+  // Análisis ahora via API (hecho en efecto de eventos)
 
   const handleChatKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -227,8 +188,43 @@ export const CopilotPanel: React.FC = () => {
     }
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setChatInput(suggestion);
+  const handleSuggestionClick = async (suggestion: { id: number; prompt: string; title: string }) => {
+    setChatInput(suggestion.prompt);
+    const agentId = backendUser?.id || user?.uid || '';
+    setIsTyping(true);
+    const push = (text: string) => {
+      const userMessage: Message = { id: Date.now().toString(), role: 'user', content: suggestion.title, timestamp: new Date().toISOString() };
+      setMessages(prev => [...prev, userMessage]);
+      const parsed = extractAgentNotes(text);
+      const aiMessage: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: parsed.text, agentNotes: parsed.notes, timestamp: new Date().toISOString() };
+      setMessages(prev => [...prev, aiMessage]);
+      setIsTyping(false);
+    };
+    try {
+      if (suggestion.id === 1) {
+        const res = await generateResponse({ conversationId: activeConversationId, agentId, message: suggestion.prompt });
+        push(res.response);
+      } else if (suggestion.id === 2) {
+        const analysis = await analyzeConversation({ conversationMemory: { lastN: 5 } });
+        push(`Tono: ${analysis.tone.tone} | Sentimiento: ${analysis.tone.sentiment} | Urgencia: ${analysis.tone.urgency}\nOportunidades:\n- ${analysis.opportunities.join('\n- ')}`);
+      } else if (suggestion.id === 3) {
+        const res = await optimizeResponse({ response: suggestion.prompt });
+        push(res.optimized);
+      } else if (suggestion.id === 4) {
+        const res = await strategySuggestions({});
+        push(`Estrategias:\n- ${res.strategies.join('\n- ')}\n\nPlan de acción:\n- ${res.actionPlan.join('\n- ')}`);
+      } else if (suggestion.id === 5) {
+        const res = await quickResponse({ urgency: 'normal' });
+        push(res.quick);
+      } else if (suggestion.id === 6) {
+        const res = await improveExperience({ conversationMemory: { lastN: 5 } });
+        push(`Brechas:\n- ${res.gaps.join('\n- ')}\n\nMejoras:\n- ${res.improvements.join('\n- ')}\n\nPlan:\n- ${res.plan.join('\n- ')}`);
+      } else {
+        setIsTyping(false);
+      }
+    } catch {
+      setIsTyping(false);
+    }
   };
 
   const showIntro = messages.length === 0;
@@ -298,7 +294,7 @@ export const CopilotPanel: React.FC = () => {
             {suggestedPrompts.map((suggestion) => (
               <button
                 key={suggestion.id}
-                onClick={() => handleSuggestionClick(suggestion.prompt)}
+                onClick={() => handleSuggestionClick(suggestion as unknown as { id: number; prompt: string; title: string })}
                 className="group relative p-2 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all duration-200 text-left overflow-hidden"
               >
                 <div className="relative flex items-start space-x-1.5">
@@ -344,6 +340,14 @@ export const CopilotPanel: React.FC = () => {
               >
                 {message.content}
               </div>
+              {message.role === 'assistant' && message.agentNotes && (
+                <div className="w-full mt-1">
+                  <details className="max-w-xs text-xs text-gray-600 bg-yellow-50 border border-yellow-200 rounded-md p-2">
+                    <summary className="cursor-pointer text-yellow-800 font-medium">Notas para el agente (no enviar al cliente)</summary>
+                    <div className="mt-1 whitespace-pre-wrap text-yellow-900">{message.agentNotes}</div>
+                  </details>
+                </div>
+              )}
             </div>
           ))}
           

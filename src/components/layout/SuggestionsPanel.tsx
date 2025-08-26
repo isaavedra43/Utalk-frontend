@@ -356,33 +356,24 @@ export const SuggestionsPanel: React.FC = () => {
     );
   };
 
-  // Función para enviar respuesta al Copiloto
+  // Función para enviar respuesta al Copiloto -> optimizeResponse
   const handleSendToCopilot = (responseContent: string) => {
-    // Aquí implementarías la lógica para enviar al Copiloto
-    // Por ejemplo, usando un contexto global o un evento personalizado
-    infoLog('Enviando al Copiloto:', responseContent);
-    
-    // Disparar evento personalizado para comunicar con el Copiloto
+    infoLog('Enviando al Copiloto (optimizeResponse):', responseContent);
     const event = new CustomEvent('sendToCopilot', {
-      detail: {
-        content: responseContent,
-        type: 'response',
-        action: 'improve'
-      }
+      detail: { content: responseContent, type: 'response', action: 'improve' }
     });
     window.dispatchEvent(event);
   };
 
-  // Función para enviar producto al Copiloto
+  // Enviar producto/ctx al Copiloto -> analyzeConversation
   const handleSendProductToCopilot = (product: SuggestedProduct) => {
-    infoLog('Enviando producto al Copiloto:', product);
-    
+    infoLog('Enviando producto al Copiloto (analyze-conversation):', product);
     const event = new CustomEvent('sendToCopilot', {
       detail: {
         content: `Producto: ${product.name}\nDescripción: ${product.description}\nPrecio: $${product.price}\nCategoría: ${product.category}`,
         type: 'product',
         action: 'analyze',
-        product: product
+        payload: { conversationMemory: { product } }
       }
     });
     window.dispatchEvent(event);
