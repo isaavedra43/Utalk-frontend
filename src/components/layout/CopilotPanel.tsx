@@ -395,41 +395,23 @@ export const CopilotPanel: React.FC = React.memo(() => {
 
     try {
       const socket = socketRef.current as { connected: boolean; emit: (event: string, data: unknown) => void; once: (event: string, callback: (data: unknown) => void) => void } | null;
+      
+      // ✅ SOLUCIÓN: Solo usar WebSocket si está conectado, sino usar REST directo
       if (socket?.connected) {
+        // ✅ SOLUCIÓN: Solo WebSocket, sin fallback REST
         socket.emit('copilot_chat_message', { 
           message: text, 
           conversationId, 
           agentId: agentIdString,
           workspaceId: WORKSPACE_CONFIG.workspaceId
         });
-        const wsTimeout = window.setTimeout(async () => {
-          if (isTypingRef.current) {
-            try {
-              if (chatRef.current) {
-                const res = await chatRef.current({ 
-                  message: text, 
-                  conversationId, 
-                  agentId: agentIdString,
-                  workspaceId: WORKSPACE_CONFIG.workspaceId
-                });
-                console.log('🔍 DEBUG REST fallback: respuesta completa', res);
-                console.log('🔍 DEBUG REST fallback: res.response', res.response);
-                console.log('🔍 DEBUG REST fallback: res.data?.response', res.data?.response);
-                appendAssistant(res.data?.response || res.response);
-              }
-            } catch (error) {
-              console.error('Error en REST fallback:', error);
-              appendAssistant('Lo siento, hubo un problema. Inténtalo de nuevo.');
-            }
-          }
-        }, 3000);
 
         socket.once('copilot_response', (data: unknown) => {
-          window.clearTimeout(wsTimeout);
           const responseData = data as { response: string; suggestions?: string[] };
           appendAssistant(responseData.response);
         });
       } else {
+        // ✅ SOLUCIÓN: Solo REST directo si no hay WebSocket
         if (chatRef.current) {
           const res = await chatRef.current({ 
             message: text, 
