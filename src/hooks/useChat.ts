@@ -233,7 +233,7 @@ export const useChat = (conversationId: string) => {
     // SOLUCIONADO: Agregar delay para permitir que WebSocket se conecte después del refresh
     const timeoutId = setTimeout(() => {
       // Solo ejecutar si está conectado, hay conversationId válido, no está unido y no se ha intentado antes
-      if (isConnected && conversationId && conversationId.trim() && !isJoined && !joinAttemptedRef.current) {
+      if (isConnected && conversationId && conversationId.trim() && !isJoined && !joinAttemptedRef.current && isValidConversationId) {
         // Validar y sanitizar el ID de conversación
         const sanitizedId = sanitizeConversationId(conversationId);
         if (!sanitizedId) {
@@ -311,17 +311,17 @@ export const useChat = (conversationId: string) => {
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [isConnected, conversationId, isJoined, joinConversation, loadMessages, loadConversation]);
+  }, [isConnected, conversationId, isJoined, joinConversation, loadMessages, loadConversation, isValidConversationId]);
 
   // NUEVO: Mejorar el manejo de estado cuando los mensajes se cargan exitosamente
   useEffect(() => {
     // Si los mensajes se cargaron correctamente pero isJoined sigue siendo false,
     // establecer isJoined como true para permitir el renderizado
-    if (messages.length > 0 && !isJoined && !loading) {
+    if (messages.length > 0 && !isJoined && !loading && isValidConversationId) {
       infoLog('✅ useChat - Mensajes cargados exitosamente, estableciendo isJoined como true');
       setIsJoined(true);
     }
-  }, [messages.length, isJoined, loading]);
+  }, [messages.length, isJoined, loading, isValidConversationId]);
 
   // NUEVO: Log para monitorear cambios en el estado de mensajes (REDUCIDO para evitar spam)
   // useEffect(() => {
