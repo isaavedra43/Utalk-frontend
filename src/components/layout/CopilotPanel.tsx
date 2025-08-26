@@ -7,14 +7,7 @@ import { useChatStore } from '../../stores/useChatStore';
 import type { ConversationMemory, CopilotAnalysis, CopilotImprovements } from '../../services/copilot';
 import { copilotService } from '../../services/copilot';
 
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: string;
-  agentNotes?: string;
-  suggestions?: string[];
-}
+
 
 // Memoizar el componente principal para evitar re-renders innecesarios
 export const CopilotPanel: React.FC = React.memo(() => {
@@ -131,17 +124,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
     const id = backendUser?.id || user?.uid || null;
     currentAgentIdRef.current = id || '';
     
-    // 🔍 DEBUG TEMPORAL: Log para verificar valores del agentId
-    console.log('🔍 DEBUG agentId en CopilotPanel:', {
-      backendUserId: backendUser?.id,
-      userUid: user?.uid,
-      finalId: id,
-      refValue: currentAgentIdRef.current,
-      hasBackendUser: !!backendUser,
-      hasUser: !!user,
-      backendUserKeys: backendUser ? Object.keys(backendUser) : null,
-      userKeys: user ? Object.keys(user) : null
-    });
+
   }, [backendUser?.id, user?.uid]);
 
   // Obtener socket de forma estable sin usar el contexto
@@ -188,22 +171,37 @@ export const CopilotPanel: React.FC = React.memo(() => {
       return { text: raw || '', notes: undefined };
     }
     
+    // ✅ SOLUCIÓN: Limpiar caracteres de escape del backend
+    let cleanRaw = raw;
+    
+    // Remover comillas dobles al inicio y final si existen
+    cleanRaw = cleanRaw.replace(/^"|"$/g, '');
+    
+    // Remover caracteres de escape de comillas
+    cleanRaw = cleanRaw.replace(/\\"/g, '"');
+    
+    // Remover caracteres de escape de newline
+    cleanRaw = cleanRaw.replace(/\\n/g, '\n');
+    
+    // Limpiar espacios extra
+    cleanRaw = cleanRaw.trim();
+    
     // ✅ SOLUCIÓN: Manejar el formato específico del backend
     const marker = /---\s*\n?\s*Notas para el agente\s*\(no enviar al cliente\)\s*:\s*/i;
-    const idx = raw.search(marker);
+    const idx = cleanRaw.search(marker);
     
     if (idx === -1) {
       // No hay notas, devolver todo el contenido como texto principal
-      return { text: raw.trim(), notes: undefined };
+      return { text: cleanRaw, notes: undefined };
     }
     
     // Separar el contenido principal de las notas
-    const before = raw.substring(0, idx).trim();
-    const match = raw.match(marker);
-    const after = raw.substring(idx + (match?.[0]?.length || 0)).trim();
+    const before = cleanRaw.substring(0, idx).trim();
+    const match = cleanRaw.match(marker);
+    const after = cleanRaw.substring(idx + (match?.[0]?.length || 0)).trim();
     
     // ✅ SOLUCIÓN: Asegurar que el texto principal no esté vacío
-    const mainText = before || raw.trim();
+    const mainText = before || cleanRaw;
     
     return { 
       text: mainText, 
@@ -324,24 +322,12 @@ export const CopilotPanel: React.FC = React.memo(() => {
     setIsTyping(true);
     isTypingRef.current = true;
 
-    const agentId = currentAgentIdRef.current;
     const conversationId = activeConversationIdRef.current;
 
     // ✅ SOLUCIÓN: Usar función helper para extraer agentId como string
     const agentIdString = getAgentIdString();
 
-    // 🔍 DEBUG TEMPORAL: Log para verificar valores antes del envío
-    console.log('🔍 DEBUG agentId antes del envío:', {
-      agentId,
-      agentIdString,
-      conversationId,
-      hasAgentId: !!agentIdString,
-      agentIdLength: agentIdString?.length,
-      agentIdType: typeof agentIdString,
-      refValue: currentAgentIdRef.current,
-      backendUserId: backendUser?.id,
-      userUid: user?.uid
-    });
+
 
     // SOLUCIÓN: Verificación adicional antes de enviar
     if (!agentIdString || !conversationId) {
@@ -353,27 +339,12 @@ export const CopilotPanel: React.FC = React.memo(() => {
     }
 
     const appendAssistant = (content: string) => {
-      // ✅ SOLUCIÓN: Limpiar la respuesta del backend
-      let cleanContent = content;
-      
-      // Remover caracteres de escape extra del backend
-      if (typeof cleanContent === 'string') {
-        // Remover comillas dobles al inicio y final si existen
-        cleanContent = cleanContent.replace(/^"|"$/g, '');
-        // Remover caracteres de escape de newline
-        cleanContent = cleanContent.replace(/\\n/g, '\n');
-        // Remover caracteres de escape de comillas
-        cleanContent = cleanContent.replace(/\\"/g, '"');
-        // Limpiar espacios extra
-        cleanContent = cleanContent.trim();
+      // ✅ SOLUCIÓN: Validar que el contenido no esté vacío
+      if (!content || typeof content !== 'string' || content.trim().length === 0) {
+        content = 'Lo siento, no pude procesar la respuesta. Inténtalo de nuevo.';
       }
       
-      // Validar que el contenido no esté vacío
-      if (!cleanContent || cleanContent.length === 0) {
-        cleanContent = 'Lo siento, no pude procesar la respuesta. Inténtalo de nuevo.';
-      }
-      
-      const parsed = extractAgentNotes(cleanContent);
+      const parsed = extractAgentNotes(content);
       // ✅ SOLUCIÓN: Usar la estructura correcta del store global para mensaje del asistente
       const aiResponse = { 
         id: (Date.now() + 1).toString(),
@@ -399,14 +370,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
         addMessage(activeConversationIdRef.current, aiResponse);
       }
       
-      // ✅ SOLUCIÓN: Agregar log para debug
-      console.log('🔍 DEBUG appendAssistant:', {
-        originalContent: content,
-        cleanContent,
-        parsedText: parsed.text,
-        messageId: aiResponse.id,
-        messageCount: storeMessagesArray.length + 1 // Usar storeMessagesArray para contar mensajes
-      });
+
       
       // setMessages(prev => { // Eliminar esta línea
       //   const newMessages = [...prev, aiResponse];
@@ -462,51 +426,39 @@ export const CopilotPanel: React.FC = React.memo(() => {
   const handleSendToCopilot = useCallback(async (event: Event) => {
     const { content, type, action, payload } = (event as CustomEvent).detail || {};
 
-    const pushAssistant = (text: string, suggestions?: string[]) => {
-      // ✅ SOLUCIÓN: Limpiar la respuesta del backend
-      let cleanText = text;
-      
-      // Remover caracteres de escape extra del backend
-      if (typeof cleanText === 'string') {
-        // Remover comillas dobles al inicio y final si existen
-        cleanText = cleanText.replace(/^"|"$/g, '');
-        // Remover caracteres de escape de newline
-        cleanText = cleanText.replace(/\\n/g, '\n');
-        // Remover caracteres de escape de comillas
-        cleanText = cleanText.replace(/\\"/g, '"');
-        // Limpiar espacios extra
-        cleanText = cleanText.trim();
+    const pushAssistant = (text: string) => {
+      // ✅ SOLUCIÓN: Validar que el contenido no esté vacío
+      if (!text || typeof text !== 'string' || text.trim().length === 0) {
+        text = 'Lo siento, no pude procesar la respuesta. Inténtalo de nuevo.';
       }
       
-      // Validar que el contenido no esté vacío
-      if (!cleanText || cleanText.length === 0) {
-        cleanText = 'Lo siento, no pude procesar la respuesta. Inténtalo de nuevo.';
-      }
+      const parsed = extractAgentNotes(text);
       
-      const aiResponse: Message = {
+      // ✅ SOLUCIÓN: Usar la estructura correcta del store global para mensaje del asistente
+      const aiResponse = { 
         id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: cleanText,
-        timestamp: new Date().toISOString(),
-        suggestions
+        conversationId: activeConversationIdRef.current,
+        content: parsed.text, 
+        direction: 'inbound' as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: 'received' as const,
+        type: 'text' as const,
+        metadata: {
+          agentId: getAgentIdString(),
+          ip: '127.0.0.1',
+          requestId: 'copilot-panel',
+          sentBy: 'copilot',
+          source: 'web' as const,
+          timestamp: new Date().toISOString()
+        }
       };
       
-      // ✅ SOLUCIÓN: Agregar log para debug
-      console.log('🔍 DEBUG pushAssistant:', {
-        originalText: text,
-        cleanText,
-        messageId: aiResponse.id
-      });
+      // ✅ SOLUCIÓN: Agregar mensaje del asistente al store global
+      if (activeConversationIdRef.current) {
+        addMessage(activeConversationIdRef.current, aiResponse);
+      }
       
-      // setMessages(prev => { // Eliminar esta línea
-      //   const newMessages = [...prev, aiResponse];
-      //   console.log('🔍 DEBUG pushAssistant setMessages:', {
-      //     previousCount: prev.length,
-      //     newCount: newMessages.length,
-      //     lastMessage: newMessages[newMessages.length - 1]
-      //   });
-      //   return newMessages;
-      // });
       setIsTyping(false);
       isTypingRef.current = false;
     };
@@ -867,20 +819,6 @@ export const CopilotPanel: React.FC = React.memo(() => {
   ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showIntro = storeMessagesArray.length === 0; // Usar storeMessagesArray para determinar si es intro
-
-      // ✅ SOLUCIÓN: Log para verificar el estado de los mensajes en el render
-    console.log('🔍 DEBUG CopilotPanel render:', {
-      messagesCount: storeMessagesArray.length, // Usar storeMessagesArray para contar mensajes
-      showIntro,
-      messages: storeMessagesArray.map(m => ({ 
-        id: m.id, 
-        direction: m.direction, 
-        content: m.content?.substring(0, 50) + '...',
-        contentLength: m.content?.length,
-        hasContent: !!m.content,
-        createdAt: m.createdAt
-      }))
-    });
 
   const suggestedPrompts = useMemo(() => [
     {
