@@ -51,12 +51,19 @@ export const CopilotPanel: React.FC = () => {
   const socketRef = useRef<unknown>(null);
   
   // Refs para funciones estables
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   const chatRef = useRef<Function | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   const generateResponseRef = useRef<Function | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   const analyzeConversationRef = useRef<Function | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   const optimizeResponseRef = useRef<Function | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   const strategySuggestionsRef = useRef<Function | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   const quickResponseRef = useRef<Function | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   const improveExperienceRef = useRef<Function | null>(null);
   
   const { user, backendUser } = useAuthContext();

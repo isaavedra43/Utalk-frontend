@@ -176,7 +176,7 @@ export const useAuth = (): AuthState => {
     if (disconnectSocket) {
       disconnectSocket();
     }
-  }, []);
+  }, [disconnectSocket]);
 
   useEffect(() => {
     window.addEventListener('auth:authentication-failed', handleAuthFailed);
@@ -184,7 +184,7 @@ export const useAuth = (): AuthState => {
     return () => {
       window.removeEventListener('auth:authentication-failed', handleAuthFailed);
     };
-  }, [handleAuthFailed]); // Sin dependencias
+  }, [handleAuthFailed]);
 
   // Escuchar evento de login exitoso - OPTIMIZADO
   const handleLoginSuccess = useCallback((e: Event) => {
@@ -195,7 +195,7 @@ export const useAuth = (): AuthState => {
       infoLog('🔐 useAuth - Login exitoso detectado, conectando WebSocket...');
       connectSocket(accessToken);
     }
-  }, []);
+  }, [connectSocket, isConnected]);
 
   useEffect(() => {
     window.addEventListener('auth:login-success', handleLoginSuccess as EventListener);
@@ -203,7 +203,7 @@ export const useAuth = (): AuthState => {
     return () => {
       window.removeEventListener('auth:login-success', handleLoginSuccess as EventListener);
     };
-  }, [handleLoginSuccess]); // Sin dependencias
+  }, [handleLoginSuccess]);
 
   // Escuchar evento de token refrescado para reconectar WebSocket - OPTIMIZADO
   const handleTokenRefreshed = useCallback((e: Event) => {
@@ -214,7 +214,7 @@ export const useAuth = (): AuthState => {
       infoLog('🔐 useAuth - Token refrescado, reconectando WebSocket...');
       connectSocket(accessToken);
     }
-  }, []);
+  }, [connectSocket, isConnected]);
 
   useEffect(() => {
     window.addEventListener('auth:token-refreshed', handleTokenRefreshed as EventListener);
@@ -222,7 +222,7 @@ export const useAuth = (): AuthState => {
     return () => {
       window.removeEventListener('auth:token-refreshed', handleTokenRefreshed as EventListener);
     };
-  }, [handleTokenRefreshed]); // Sin dependencias
+  }, [handleTokenRefreshed]);
 
   // Retornar la misma API que AuthContext
   return {
