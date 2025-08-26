@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useCallback } from 'react';
 import { infoLog } from '../config/logger';
 import { useAuthStore } from '../stores/useAuthStore';
 import { WebSocketContext } from '../contexts/WebSocketContext';
@@ -171,58 +171,58 @@ export const useAuth = (): AuthState => {
   }, [isAuthenticated, disconnectSocket, isConnected]); // Dependencias mínimas
 
   // Escuchar eventos de autenticación fallida - OPTIMIZADO
-  useEffect(() => {
-    const handleAuthFailed = () => {
-      infoLog('🔐 useAuth - Autenticación fallida, desconectando WebSocket');
-      if (disconnectSocket) {
-        disconnectSocket();
-      }
-    };
+  const handleAuthFailed = useCallback(() => {
+    infoLog('🔐 useAuth - Autenticación fallida, desconectando WebSocket');
+    if (disconnectSocket) {
+      disconnectSocket();
+    }
+  }, []);
 
+  useEffect(() => {
     window.addEventListener('auth:authentication-failed', handleAuthFailed);
     
     return () => {
       window.removeEventListener('auth:authentication-failed', handleAuthFailed);
     };
-  }, [disconnectSocket]);
+  }, [handleAuthFailed]); // Sin dependencias
 
   // Escuchar evento de login exitoso - OPTIMIZADO
-  useEffect(() => {
-    const handleLoginSuccess = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { user: unknown; accessToken: string } | undefined;
-      const accessToken = detail?.accessToken;
-      
-      if (accessToken && connectSocket && !isConnected) {
-        infoLog('🔐 useAuth - Login exitoso detectado, conectando WebSocket...');
-        connectSocket(accessToken);
-      }
-    };
+  const handleLoginSuccess = useCallback((e: Event) => {
+    const detail = (e as CustomEvent).detail as { user: unknown; accessToken: string } | undefined;
+    const accessToken = detail?.accessToken;
+    
+    if (accessToken && connectSocket && !isConnected) {
+      infoLog('🔐 useAuth - Login exitoso detectado, conectando WebSocket...');
+      connectSocket(accessToken);
+    }
+  }, []);
 
+  useEffect(() => {
     window.addEventListener('auth:login-success', handleLoginSuccess as EventListener);
     
     return () => {
       window.removeEventListener('auth:login-success', handleLoginSuccess as EventListener);
     };
-  }, [connectSocket, isConnected]);
+  }, [handleLoginSuccess]); // Sin dependencias
 
   // Escuchar evento de token refrescado para reconectar WebSocket - OPTIMIZADO
-  useEffect(() => {
-    const handleTokenRefreshed = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { accessToken: string } | undefined;
-      const accessToken = detail?.accessToken;
-      
-      if (accessToken && connectSocket && !isConnected) {
-        infoLog('🔐 useAuth - Token refrescado, reconectando WebSocket...');
-        connectSocket(accessToken);
-      }
-    };
+  const handleTokenRefreshed = useCallback((e: Event) => {
+    const detail = (e as CustomEvent).detail as { accessToken: string } | undefined;
+    const accessToken = detail?.accessToken;
+    
+    if (accessToken && connectSocket && !isConnected) {
+      infoLog('🔐 useAuth - Token refrescado, reconectando WebSocket...');
+      connectSocket(accessToken);
+    }
+  }, []);
 
+  useEffect(() => {
     window.addEventListener('auth:token-refreshed', handleTokenRefreshed as EventListener);
     
     return () => {
       window.removeEventListener('auth:token-refreshed', handleTokenRefreshed as EventListener);
     };
-  }, [connectSocket, isConnected]);
+  }, [handleTokenRefreshed]); // Sin dependencias
 
   // Retornar la misma API que AuthContext
   return {

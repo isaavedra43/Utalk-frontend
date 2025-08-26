@@ -170,7 +170,7 @@ export const CopilotPanel: React.FC = () => {
 
   // Memoizar getCurrentConversationMemory para evitar recreaciones
   const getCurrentConversationMemory = useCallback((): ConversationMemory => {
-    const recent = (storeMessagesArray || []).slice(-10).map((m: any) => ({
+    const recent = (storeMessagesArray || []).slice(-10).map((m: { direction?: string; content: string; createdAt?: string }) => ({
       role: m.direction === 'outbound' ? 'user' as const : 'assistant' as const,
       content: m.content,
       timestamp: m.createdAt || new Date().toISOString()
@@ -184,7 +184,7 @@ export const CopilotPanel: React.FC = () => {
         messageCount: recent.length
       }
     };
-  }, [storeMessages]);
+  }, [storeMessagesArray]);
 
   const extractAgentNotes = useCallback((raw: string): { text: string; notes?: string } => {
     const marker = /---\s*\n?\s*Notas para el agente\s*\(no enviar al cliente\)\s*:\s*/i;
