@@ -54,7 +54,7 @@ export const CopilotPanel: React.FC = () => {
 
   const storeMessages = useChatStore((s) => (activeConversationId ? (s.messages[activeConversationId] || []) : []));
 
-  const currentAgentId = useMemo(() => backendUser?.id || user?.uid || '', [backendUser?.id, user?.uid]);
+  const currentAgentId = useMemo(() => backendUser?.id || user?.uid || null, [backendUser?.id, user?.uid]);
 
   const getCurrentConversationMemory = useCallback((): ConversationMemory => {
     const recent = (storeMessages || []).slice(-10).map((m) => ({
@@ -65,11 +65,11 @@ export const CopilotPanel: React.FC = () => {
     return {
       messages: recent,
       summary: `Conversación ${activeConversationId}`,
-      context: {
-        conversationId: activeConversationId,
-        agentId: currentAgentId,
-        messageCount: recent.length
-      }
+              context: {
+          conversationId: activeConversationId,
+          agentId: currentAgentId || '',
+          messageCount: recent.length
+        }
     };
   }, [storeMessages, activeConversationId, currentAgentId]);
 
@@ -88,7 +88,7 @@ export const CopilotPanel: React.FC = () => {
     setChatInput('');
     setIsTyping(true);
 
-    const agentId = currentAgentId;
+    const agentId = currentAgentId || '';
 
     const appendAssistant = (content: string, suggestions?: string[]) => {
       const parsed = extractAgentNotes(content);
@@ -233,7 +233,7 @@ export const CopilotPanel: React.FC = () => {
         if (type === 'strategy') {
           if (!validateBeforeCall()) return;
           await withLoading(setIsStrategyLoading, async () => {
-            const res = await strategySuggestions({ agentId: currentAgentId, analysis: payload?.analysis, conversationMemory: getCurrentConversationMemory() });
+            const res = await strategySuggestions({ agentId: currentAgentId || '', analysis: payload?.analysis, conversationMemory: getCurrentConversationMemory() });
             setStrategyResult(res);
           });
           return;
@@ -258,7 +258,7 @@ export const CopilotPanel: React.FC = () => {
         if (type === 'experience') {
           if (!validateBeforeCall()) return;
           await withLoading(setIsExperienceLoading, async () => {
-            const res = await improveExperience({ agentId: currentAgentId, conversationMemory: getCurrentConversationMemory(), analysis: payload?.analysis });
+            const res = await improveExperience({ agentId: currentAgentId || '', conversationMemory: getCurrentConversationMemory(), analysis: payload?.analysis });
             setExperienceResult(res);
           });
           return;
@@ -382,7 +382,7 @@ export const CopilotPanel: React.FC = () => {
     }
   };
 
-  const handleSuggestionClick = async (suggestion: { id: number; prompt: string; title: string }) => {
+  const handleSuggestionClick = useCallback(async (suggestion: { id: number; prompt: string; title: string }) => {
     if (!validateBeforeCall()) return;
     addToHistory(suggestion.title);
 
@@ -397,7 +397,7 @@ export const CopilotPanel: React.FC = () => {
     try {
       if (suggestion.id === 1) {
         await withLoading(setIsGenerating, async () => {
-          const result = await generateResponse({ conversationId: activeConversationId, agentId: currentAgentId, message: suggestion.prompt });
+          const result = await generateResponse({ conversationId: activeConversationId, agentId: currentAgentId || '', message: suggestion.prompt });
           push(result.response);
         });
       } else if (suggestion.id === 2) {
@@ -413,7 +413,7 @@ export const CopilotPanel: React.FC = () => {
         });
       } else if (suggestion.id === 4) {
         await withLoading(setIsStrategyLoading, async () => {
-          const res = await strategySuggestions({ agentId: currentAgentId, conversationMemory: getCurrentConversationMemory() });
+          const res = await strategySuggestions({ agentId: currentAgentId || '', conversationMemory: getCurrentConversationMemory() });
           setStrategyResult(res);
           push(`Estrategias:\n- ${res.strategies.join('\n- ')}\n\nPlan de Acción:\n- ${res.actionPlan.join('\n- ')}`);
         });
@@ -424,7 +424,7 @@ export const CopilotPanel: React.FC = () => {
         });
       } else if (suggestion.id === 6) {
         await withLoading(setIsExperienceLoading, async () => {
-          const res = await improveExperience({ agentId: currentAgentId, conversationMemory: getCurrentConversationMemory() });
+          const res = await improveExperience({ agentId: currentAgentId || '', conversationMemory: getCurrentConversationMemory() });
           setExperienceResult(res);
           push(`Gaps Identificados:\n- ${res.gaps.join('\n- ')}\n\nMejoras:\n- ${res.improvements.join('\n- ')}\n\nPlan:\n- ${res.plan.join('\n- ')}`);
         });
@@ -433,11 +433,11 @@ export const CopilotPanel: React.FC = () => {
       console.error('Error en handleSuggestionClick:', error);
       showError('Error al procesar la sugerencia. Inténtalo de nuevo.');
     }
-  };
+  }, [validateBeforeCall, addToHistory, currentAgentId, activeConversationId, generateResponse, analyzeConversation, getCurrentConversationMemory, setAnalysisResult, optimizeResponse, strategySuggestions, setStrategyResult, quickResponse, setChatInput, improveExperience, setExperienceResult, showError]);
 
   const showIntro = messages.length === 0;
 
-  const suggestedPrompts = [
+  const suggestedPrompts = useMemo(() => [
     {
       id: 1,
       icon: <Lightbulb className="w-3 h-3" />,
@@ -486,7 +486,7 @@ export const CopilotPanel: React.FC = () => {
       prompt: "Identifica oportunidades para mejorar la experiencia del cliente en nuestro proceso de atención",
       disabled: isExperienceLoading
     }
-  ];
+  ], [isGenerating, isAnalyzing, isOptimizing, isStrategyLoading, isQuickLoading, isExperienceLoading]);
 
   // Atajos de teclado
   useEffect(() => {
@@ -515,14 +515,14 @@ export const CopilotPanel: React.FC = () => {
 
   // Verificar estado del sistema
   useEffect(() => {
-    const checkSystemStatus = async () => {
-      try {
-        await copilotService.health();
-        setSystemStatus('connected');
-      } catch (error) {
-        setSystemStatus('disconnected');
-      }
-    };
+         const checkSystemStatus = async () => {
+       try {
+         await copilotService.health();
+         setSystemStatus('connected');
+       } catch {
+         setSystemStatus('disconnected');
+       }
+     };
     
     checkSystemStatus();
     const interval = setInterval(checkSystemStatus, 30000); // Check cada 30 segundos
