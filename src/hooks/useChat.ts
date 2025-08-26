@@ -38,7 +38,7 @@ export const useChat = (conversationId: string) => {
       isTyping: false,
       isConnected: false,
       isJoined: false,
-      typingUsers: [],
+      typingUsers: new Map<string, Set<string>>(),
       sendMessage: () => Promise.resolve(),
       sendMessageWithAttachments: () => Promise.resolve(),
       handleTyping: () => {},

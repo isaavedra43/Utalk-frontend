@@ -565,6 +565,9 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
     }));
   };
 
+  // Obtener typing users para la conversación actual
+  const currentTypingUsers = typingUsers.get(effectiveConversationId) || new Set<string>();
+
   return (
     <div className="chat-container">
       <ChatHeader 
@@ -583,8 +586,8 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
           onDeleteMessage={deleteOptimisticMessage}
         />
         
-        {typingUsers.size > 0 && (
-          <TypingIndicator users={convertTypingUsers(typingUsers)} />
+        {currentTypingUsers.size > 0 && (
+          <TypingIndicator users={convertTypingUsers(currentTypingUsers)} />
         )}
         
         <div ref={messagesEndRef} />
