@@ -28,7 +28,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
   const [systemStatus, setSystemStatus] = useState<'connected' | 'connecting' | 'disconnected'>('disconnected');
   const [tokenCount, setTokenCount] = useState(0);
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+
   
   // Refs para evitar dependencias inestables
   const isTypingRef = useRef(false);
@@ -235,17 +235,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
     setCommandHistory(prev => [command, ...prev.slice(0, 9)]);
   }, []);
 
-  const toggleDarkMode = useCallback(() => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
-  }, [isDarkMode]);
 
-  const getThemeClasses = useCallback(() => ({
-    container: isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900',
-    card: isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200',
-    input: isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300',
-    button: isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'
-  }), [isDarkMode]);
 
   // ✅ SOLUCIÓN: Función helper para extraer agentId como string
   const getAgentIdString = useCallback((): string => {
@@ -914,7 +904,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
   }, []);
 
   return (
-    <div className={`flex flex-col h-full overflow-hidden ${getThemeClasses().container}`}>
+    <div className="flex flex-col h-full overflow-hidden bg-white text-gray-900">
       {error && (
         <div className="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50">
           <div className="flex items-center">
@@ -956,12 +946,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
                 <Trash2 className="w-4 h-4" />
               </button>
               
-              <button
-                onClick={toggleDarkMode}
-                className="p-1 rounded-lg bg-gray-200 dark:bg-gray-700"
-              >
-                {isDarkMode ? '☀️' : '🌙'}
-              </button>
+
             </div>
           </div>
         </div>
@@ -979,7 +964,7 @@ export const CopilotPanel: React.FC = React.memo(() => {
                 className={`group relative p-2 border rounded-lg transition-all duration-200 text-left overflow-hidden ${
                   suggestion.disabled || isTyping
                     ? 'bg-gray-100 border-gray-300 cursor-not-allowed opacity-50'
-                    : `${getThemeClasses().card} hover:border-blue-300 hover:shadow-sm`
+                    : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-sm'
                 }`}
               >
                 <div className="relative flex items-start space-x-1.5">
