@@ -462,7 +462,7 @@ export const CopilotPanel: React.FC = () => {
     const handler = (e: Event) => handleSendToCopilot(e);
     window.addEventListener('sendToCopilot', handler);
     return () => window.removeEventListener('sendToCopilot', handler);
-  }, []);
+  }, [handleSendToCopilot]);
 
   const renderAnalysisResult = useCallback(() => {
     if (!analysisResult) return null;
