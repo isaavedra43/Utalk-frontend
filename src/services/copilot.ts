@@ -25,6 +25,18 @@ export interface CopilotImprovements {
   plan: string[];
 }
 
+export interface ConversationMemoryMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+}
+
+export interface ConversationMemory {
+  messages: ConversationMemoryMessage[];
+  summary?: string;
+  context?: Record<string, unknown>;
+}
+
 // Endpoints REST dedicados al Copiloto
 const BASE = '/api/copilot';
 
@@ -39,7 +51,7 @@ export const copilotService = {
     return data as CopilotResponse;
   },
 
-  async analyzeConversation(payload: { conversationMemory: Record<string, unknown> }): Promise<CopilotAnalysis> {
+  async analyzeConversation(payload: { conversationMemory: ConversationMemory }): Promise<CopilotAnalysis> {
     const { data } = await api.post(`${BASE}/analyze-conversation`, payload);
     return data as CopilotAnalysis;
   },
@@ -49,17 +61,17 @@ export const copilotService = {
     return data as { optimized: string };
   },
 
-  async strategySuggestions(payload: { analysis?: Record<string, unknown>; conversationMemory?: Record<string, unknown> }): Promise<{ strategies: string[]; actionPlan: string[] }> {
+  async strategySuggestions(payload: { agentId: string; analysis?: Record<string, unknown>; conversationMemory?: ConversationMemory }): Promise<{ strategies: string[]; actionPlan: string[] }> {
     const { data } = await api.post(`${BASE}/strategy-suggestions`, payload);
     return data as { strategies: string[]; actionPlan: string[] };
   },
 
-  async quickResponse(payload: { urgency: 'low' | 'normal' | 'medium' | 'high'; context?: Record<string, unknown> }): Promise<{ quick: string }> {
+  async quickResponse(payload: { urgency: 'low' | 'normal' | 'medium' | 'high'; context?: { lastMessage?: string; conversationId?: string; customerInfo?: Record<string, unknown>; productInfo?: Record<string, unknown>; } }): Promise<{ quick: string }> {
     const { data } = await api.post(`${BASE}/quick-response`, payload);
     return data as { quick: string };
   },
 
-  async improveExperience(payload: { conversationMemory: Record<string, unknown>; analysis?: Record<string, unknown> }): Promise<CopilotImprovements> {
+  async improveExperience(payload: { agentId: string; conversationMemory: ConversationMemory; analysis?: Record<string, unknown> }): Promise<CopilotImprovements> {
     const { data } = await api.post(`${BASE}/improve-experience`, payload);
     return data as CopilotImprovements;
   },

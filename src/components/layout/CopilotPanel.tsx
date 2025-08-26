@@ -4,6 +4,8 @@ import '../../styles/copilot.css';
 import { useCopilot } from '../../hooks/useCopilot';
 import { useAuthContext } from '../../contexts/useAuthContext';
 import { useWebSocketContext } from '../../contexts/useWebSocketContext';
+import { useChatStore } from '../../stores/useChatStore';
+import type { ConversationMemory } from '../../services/copilot';
 
 interface Message {
   id: string;
@@ -11,6 +13,7 @@ interface Message {
   content: string;
   timestamp: string;
   agentNotes?: string;
+  suggestions?: string[];
 }
 
 export const CopilotPanel: React.FC = () => {
@@ -35,18 +38,41 @@ export const CopilotPanel: React.FC = () => {
     return (window as unknown as { __activeConversationId?: string }).__activeConversationId || '';
   }, []);
 
+  // Mensajes reales de la conversación para construir ConversationMemory
+  const storeMessages = useChatStore((s) => (activeConversationId ? (s.messages[activeConversationId] || []) : []));
+
+  const currentAgentId = useMemo(() => backendUser?.id || user?.uid || '', [backendUser?.id, user?.uid]);
+
+  const getCurrentConversationMemory = (): ConversationMemory => {
+    const recent = (storeMessages || []).slice(-10).map((m) => ({
+      role: m.direction === 'outbound' ? 'user' as const : 'assistant' as const,
+      content: m.content,
+      timestamp: m.createdAt || new Date().toISOString()
+    }));
+    return {
+      messages: recent,
+      summary: `Conversación ${activeConversationId}`,
+      context: {
+        conversationId: activeConversationId,
+        agentId: currentAgentId,
+        messageCount: recent.length
+      }
+    };
+  };
+
   // Escuchar eventos internos del front y mapear a endpoints /api/copilot/*
   useEffect(() => {
     const handleSendToCopilot = async (event: CustomEvent) => {
       const { content, type, action, payload } = event.detail || {};
       const agentId = backendUser?.id || user?.uid || '';
 
-      const pushAssistant = (text: string) => {
+      const pushAssistant = (text: string, suggestions?: string[]) => {
         const aiResponse: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
           content: text,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          suggestions
         };
         setMessages(prev => [...prev, aiResponse]);
         setIsTyping(false);
@@ -72,27 +98,35 @@ export const CopilotPanel: React.FC = () => {
         }
 
         if (type === 'product' && action === 'analyze') {
-          const analysis = await analyzeConversation({ conversationMemory: payload?.conversationMemory || { note: content } });
+          const analysis = await analyzeConversation({ conversationMemory: getCurrentConversationMemory() });
           const text = `Tono: ${analysis.tone.tone} | Sentimiento: ${analysis.tone.sentiment} | Urgencia: ${analysis.tone.urgency}\nOportunidades:\n- ${analysis.opportunities.join('\n- ')}`;
           pushAssistant(text);
           return;
         }
 
         if (type === 'strategy') {
-          const res = await strategySuggestions({ analysis: payload?.analysis, conversationMemory: payload?.conversationMemory });
+          const res = await strategySuggestions({ agentId: currentAgentId, analysis: payload?.analysis, conversationMemory: getCurrentConversationMemory() });
           const text = `Estrategias:\n- ${res.strategies.join('\n- ')}\n\nPlan de acción:\n- ${res.actionPlan.join('\n- ')}`;
           pushAssistant(text);
           return;
         }
 
         if (type === 'quick') {
-          const res = await quickResponse({ urgency: payload?.urgency || 'normal', context: payload?.context });
+          const res = await quickResponse({
+            urgency: payload?.urgency || 'normal',
+            context: {
+              lastMessage: typeof content === 'string' ? content : undefined,
+              conversationId: activeConversationId,
+              customerInfo: payload?.customerInfo,
+              productInfo: payload?.productInfo
+            }
+          });
           pushAssistant(res.quick);
           return;
         }
 
         if (type === 'experience') {
-          const res = await improveExperience({ conversationMemory: payload?.conversationMemory || {}, analysis: payload?.analysis });
+          const res = await improveExperience({ agentId: currentAgentId, conversationMemory: getCurrentConversationMemory(), analysis: payload?.analysis });
           const text = `Brechas:\n- ${res.gaps.join('\n- ')}\n\nMejoras:\n- ${res.improvements.join('\n- ')}\n\nPlan:\n- ${res.plan.join('\n- ')}`;
           pushAssistant(text);
           return;
@@ -134,7 +168,7 @@ export const CopilotPanel: React.FC = () => {
     setChatInput('');
     setIsTyping(true);
 
-    const agentId = backendUser?.id || user?.uid || '';
+    const agentId = currentAgentId;
 
     // Preferir WS si está conectado; fallback a REST
     let usedWS = false;
@@ -142,16 +176,16 @@ export const CopilotPanel: React.FC = () => {
       usedWS = emit('copilot_chat_message', { message: text, conversationId: activeConversationId, agentId });
     }
 
-    const appendAssistant = (content: string) => {
+    const appendAssistant = (content: string, suggestions?: string[]) => {
       const parsed = extractAgentNotes(content);
-      const aiResponse: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: parsed.text, agentNotes: parsed.notes, timestamp: new Date().toISOString() };
+      const aiResponse: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: parsed.text, agentNotes: parsed.notes, suggestions, timestamp: new Date().toISOString() };
       setMessages(prev => [...prev, aiResponse]);
       setIsTyping(false);
     };
 
     if (usedWS) {
-      const listener = (data: { response: string }) => {
-        appendAssistant(data.response);
+      const listener = (data: { response: string; suggestions?: string[] }) => {
+        appendAssistant(data.response, data.suggestions);
         off('copilot_response');
       };
       on('copilot_response', listener);
@@ -159,14 +193,14 @@ export const CopilotPanel: React.FC = () => {
       setTimeout(async () => {
         if (isTyping) {
           const res = await chat({ message: text, conversationId: activeConversationId, agentId });
-          appendAssistant(res.response);
+          appendAssistant(res.response, res.suggestions);
           off('copilot_response');
         }
       }, 3000);
     } else {
       try {
         const res = await chat({ message: text, conversationId: activeConversationId, agentId });
-        appendAssistant(res.response);
+        appendAssistant(res.response, res.suggestions);
       } catch {
         appendAssistant('Hubo un problema al contactar al Copiloto.');
       }
@@ -190,7 +224,7 @@ export const CopilotPanel: React.FC = () => {
 
   const handleSuggestionClick = async (suggestion: { id: number; prompt: string; title: string }) => {
     setChatInput(suggestion.prompt);
-    const agentId = backendUser?.id || user?.uid || '';
+    const agentId = currentAgentId;
     setIsTyping(true);
     const push = (text: string) => {
       const userMessage: Message = { id: Date.now().toString(), role: 'user', content: suggestion.title, timestamp: new Date().toISOString() };
@@ -205,19 +239,19 @@ export const CopilotPanel: React.FC = () => {
         const res = await generateResponse({ conversationId: activeConversationId, agentId, message: suggestion.prompt });
         push(res.response);
       } else if (suggestion.id === 2) {
-        const analysis = await analyzeConversation({ conversationMemory: { lastN: 5 } });
+        const analysis = await analyzeConversation({ conversationMemory: getCurrentConversationMemory() });
         push(`Tono: ${analysis.tone.tone} | Sentimiento: ${analysis.tone.sentiment} | Urgencia: ${analysis.tone.urgency}\nOportunidades:\n- ${analysis.opportunities.join('\n- ')}`);
       } else if (suggestion.id === 3) {
         const res = await optimizeResponse({ response: suggestion.prompt });
         push(res.optimized);
       } else if (suggestion.id === 4) {
-        const res = await strategySuggestions({});
+        const res = await strategySuggestions({ agentId: agentId, conversationMemory: getCurrentConversationMemory() });
         push(`Estrategias:\n- ${res.strategies.join('\n- ')}\n\nPlan de acción:\n- ${res.actionPlan.join('\n- ')}`);
       } else if (suggestion.id === 5) {
-        const res = await quickResponse({ urgency: 'normal' });
+        const res = await quickResponse({ urgency: 'normal', context: { conversationId: activeConversationId } });
         push(res.quick);
       } else if (suggestion.id === 6) {
-        const res = await improveExperience({ conversationMemory: { lastN: 5 } });
+        const res = await improveExperience({ agentId: agentId, conversationMemory: getCurrentConversationMemory() });
         push(`Brechas:\n- ${res.gaps.join('\n- ')}\n\nMejoras:\n- ${res.improvements.join('\n- ')}\n\nPlan:\n- ${res.plan.join('\n- ')}`);
       } else {
         setIsTyping(false);
@@ -340,6 +374,20 @@ export const CopilotPanel: React.FC = () => {
               >
                 {message.content}
               </div>
+              {message.role === 'assistant' && message.suggestions && message.suggestions.length > 0 && (
+                <div className="w-full mt-1">
+                  <div className="max-w-xs bg-blue-50 border border-blue-200 rounded-md p-2">
+                    <div className="text-xs font-medium text-blue-800 mb-1">Sugerencias rápidas</div>
+                    <div className="flex flex-wrap gap-1">
+                      {message.suggestions.map((s, i) => (
+                        <button key={i} onClick={() => setChatInput(s)} className="px-1.5 py-0.5 text-xs bg-white border border-blue-200 text-blue-700 rounded hover:bg-blue-100">
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
               {message.role === 'assistant' && message.agentNotes && (
                 <div className="w-full mt-1">
                   <details className="max-w-xs text-xs text-gray-600 bg-yellow-50 border border-yellow-200 rounded-md p-2">

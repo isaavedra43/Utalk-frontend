@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { copilotService, type CopilotResponse, type CopilotAnalysis, type CopilotImprovements } from '../services/copilot';
+import { copilotService, type CopilotResponse, type CopilotAnalysis, type CopilotImprovements, type ConversationMemory } from '../services/copilot';
 
 export const useCopilot = () => {
   const chatMutation = useMutation({
@@ -12,7 +12,7 @@ export const useCopilot = () => {
   });
 
   const analyzeConversationMutation = useMutation({
-    mutationFn: (payload: { conversationMemory: Record<string, unknown> }) => copilotService.analyzeConversation(payload)
+    mutationFn: (payload: { conversationMemory: ConversationMemory }) => copilotService.analyzeConversation(payload)
   });
 
   const optimizeResponseMutation = useMutation({
@@ -20,15 +20,15 @@ export const useCopilot = () => {
   });
 
   const strategySuggestionsMutation = useMutation({
-    mutationFn: (payload: { analysis?: Record<string, unknown>; conversationMemory?: Record<string, unknown> }) => copilotService.strategySuggestions(payload)
+    mutationFn: (payload: { agentId: string; analysis?: Record<string, unknown>; conversationMemory?: ConversationMemory }) => copilotService.strategySuggestions(payload)
   });
 
   const quickResponseMutation = useMutation({
-    mutationFn: (payload: { urgency: 'low' | 'normal' | 'medium' | 'high'; context?: Record<string, unknown> }) => copilotService.quickResponse(payload)
+    mutationFn: (payload: { urgency: 'low' | 'normal' | 'medium' | 'high'; context?: { lastMessage?: string; conversationId?: string; customerInfo?: Record<string, unknown>; productInfo?: Record<string, unknown>; } }) => copilotService.quickResponse(payload)
   });
 
   const improveExperienceMutation = useMutation({
-    mutationFn: (payload: { conversationMemory: Record<string, unknown>; analysis?: Record<string, unknown> }) => copilotService.improveExperience(payload)
+    mutationFn: (payload: { agentId: string; conversationMemory: ConversationMemory; analysis?: Record<string, unknown> }) => copilotService.improveExperience(payload)
   });
 
   const chat = useCallback(async (payload: { message: string; conversationId: string; agentId: string }): Promise<CopilotResponse> => {
@@ -39,7 +39,7 @@ export const useCopilot = () => {
     return await generateResponseMutation.mutateAsync(payload);
   }, [generateResponseMutation]);
 
-  const analyzeConversation = useCallback(async (payload: { conversationMemory: Record<string, unknown> }): Promise<CopilotAnalysis> => {
+  const analyzeConversation = useCallback(async (payload: { conversationMemory: ConversationMemory }): Promise<CopilotAnalysis> => {
     return await analyzeConversationMutation.mutateAsync(payload);
   }, [analyzeConversationMutation]);
 
@@ -47,15 +47,15 @@ export const useCopilot = () => {
     return await optimizeResponseMutation.mutateAsync(payload);
   }, [optimizeResponseMutation]);
 
-  const strategySuggestions = useCallback(async (payload: { analysis?: Record<string, unknown>; conversationMemory?: Record<string, unknown> }): Promise<{ strategies: string[]; actionPlan: string[] }> => {
+  const strategySuggestions = useCallback(async (payload: { agentId: string; analysis?: Record<string, unknown>; conversationMemory?: ConversationMemory }): Promise<{ strategies: string[]; actionPlan: string[] }> => {
     return await strategySuggestionsMutation.mutateAsync(payload);
   }, [strategySuggestionsMutation]);
 
-  const quickResponse = useCallback(async (payload: { urgency: 'low' | 'normal' | 'medium' | 'high'; context?: Record<string, unknown> }): Promise<{ quick: string }> => {
+  const quickResponse = useCallback(async (payload: { urgency: 'low' | 'normal' | 'medium' | 'high'; context?: { lastMessage?: string; conversationId?: string; customerInfo?: Record<string, unknown>; productInfo?: Record<string, unknown>; } }): Promise<{ quick: string }> => {
     return await quickResponseMutation.mutateAsync(payload);
   }, [quickResponseMutation]);
 
-  const improveExperience = useCallback(async (payload: { conversationMemory: Record<string, unknown>; analysis?: Record<string, unknown> }): Promise<CopilotImprovements> => {
+  const improveExperience = useCallback(async (payload: { agentId: string; conversationMemory: ConversationMemory; analysis?: Record<string, unknown> }): Promise<CopilotImprovements> => {
     return await improveExperienceMutation.mutateAsync(payload);
   }, [improveExperienceMutation]);
 
