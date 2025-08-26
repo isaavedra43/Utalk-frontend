@@ -591,9 +591,10 @@ export const CopilotPanel: React.FC = React.memo(() => {
         return;
       }
 
-      if (content) {
-        await handleChatSend(content);
-      }
+      // ✅ SOLUCIÓN: Eliminar duplicación - handleChatSend ya maneja el envío
+      // if (content) {
+      //   await handleChatSend(content);
+      // }
     } catch (err) {
       console.error('Error en sendToCopilot:', err);
       showError('Hubo un problema con el copiloto. Inténtalo de nuevo.');
