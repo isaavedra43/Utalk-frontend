@@ -401,7 +401,10 @@ export const CopilotPanel: React.FC = React.memo(() => {
             try {
               if (chatRef.current) {
                 const res = await chatRef.current({ message: text, conversationId, agentId: agentIdString });
-                appendAssistant(res.response);
+                console.log('🔍 DEBUG REST fallback: respuesta completa', res);
+                console.log('🔍 DEBUG REST fallback: res.response', res.response);
+                console.log('🔍 DEBUG REST fallback: res.data?.response', res.data?.response);
+                appendAssistant(res.data?.response || res.response);
               }
             } catch (error) {
               console.error('Error en REST fallback:', error);
@@ -418,7 +421,10 @@ export const CopilotPanel: React.FC = React.memo(() => {
       } else {
         if (chatRef.current) {
           const res = await chatRef.current({ message: text, conversationId, agentId: agentIdString });
-          appendAssistant(res.response);
+          console.log('🔍 DEBUG REST directo: respuesta completa', res);
+          console.log('🔍 DEBUG REST directo: res.response', res.response);
+          console.log('🔍 DEBUG REST directo: res.data?.response', res.data?.response);
+          appendAssistant(res.data?.response || res.response);
         }
       }
     } catch (error) {
