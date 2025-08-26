@@ -337,8 +337,17 @@ export const CopilotPanel: React.FC = React.memo(() => {
     }
 
     const appendAssistant = (content: string) => {
+      // ✅ SOLUCIÓN: Agregar log para debuggear el contenido que llega
+      console.log('🔍 DEBUG appendAssistant: contenido que llega', { 
+        content, 
+        type: typeof content, 
+        length: content?.length,
+        isEmpty: !content || content.trim().length === 0 
+      });
+      
       // ✅ SOLUCIÓN: Validar que el contenido no esté vacío
       if (!content || typeof content !== 'string' || content.trim().length === 0) {
+        console.log('🔍 DEBUG appendAssistant: contenido vacío, usando mensaje de error');
         content = 'Lo siento, no pude procesar la respuesta. Inténtalo de nuevo.';
       }
       
