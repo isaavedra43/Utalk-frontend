@@ -103,29 +103,28 @@ export const CopilotPanel: React.FC = () => {
     hasImproveExperience: !!improveExperience
   });
 
-  // Obtener el ID de conversación activa de forma estable
-  const activeConversationId = useMemo(() => {
-    const id = (window as unknown as { __activeConversationId?: string }).__activeConversationId || '';
+  // Suscribirse al ID de conversación activa de forma estable desde el store
+  const activeConversationId = useChatStore((s) => s.activeConversation?.id ?? null);
+  useEffect(() => {
+    const id = activeConversationId || '';
     activeConversationIdRef.current = id;
-    
-    // DIAGNÓSTICO: Log de activeConversationId
     console.log(`🔍 CopilotPanel activeConversationId:`, {
       renderCount: renderCount.current,
       id,
       refValue: activeConversationIdRef.current
     });
-    
-    return id;
-  }, []);
+  }, [activeConversationId]);
 
-  const storeMessages = useChatStore((s) => (activeConversationId ? (s.messages[activeConversationId] || []) : []));
+  // Seleccionar mensajes desde el store sin crear nuevos arrays
+  const storeMessages = useChatStore((s) => (activeConversationId ? s.messages[activeConversationId] : undefined));
+  const storeMessagesArray = useMemo(() => (Array.isArray(storeMessages) ? storeMessages : []), [storeMessages]);
 
   // DIAGNÓSTICO: Log de storeMessages
   console.log(`🔍 CopilotPanel storeMessages:`, {
     renderCount: renderCount.current,
     activeConversationId,
-    messageCount: storeMessages?.length || 0,
-    hasMessages: !!storeMessages
+    messageCount: storeMessagesArray.length || 0,
+    hasMessages: !!storeMessagesArray
   });
 
   // Actualizar el ref del agente actual de forma estable
@@ -171,7 +170,7 @@ export const CopilotPanel: React.FC = () => {
 
   // Memoizar getCurrentConversationMemory para evitar recreaciones
   const getCurrentConversationMemory = useCallback((): ConversationMemory => {
-    const recent = (storeMessages || []).slice(-10).map((m) => ({
+    const recent = (storeMessagesArray || []).slice(-10).map((m: any) => ({
       role: m.direction === 'outbound' ? 'user' as const : 'assistant' as const,
       content: m.content,
       timestamp: m.createdAt || new Date().toISOString()
@@ -423,17 +422,13 @@ export const CopilotPanel: React.FC = () => {
     }
   }, []); // SIN DEPENDENCIAS - usa refs internamente
 
-  // useEffect optimizado con dependencias estables
+  // useEffect optimizado: registrar listener UNA sola vez
   useEffect(() => {
-    // DIAGNÓSTICO: Log de event listener effect
-    console.log(`🔍 CopilotPanel event listener effect:`, {
-      renderCount: renderCount.current,
-      hasHandleSendToCopilot: !!handleSendToCopilot
-    });
-    
-    window.addEventListener('sendToCopilot', handleSendToCopilot);
-    return () => window.removeEventListener('sendToCopilot', handleSendToCopilot);
-  }, [handleSendToCopilot]);
+    console.log(`🔍 CopilotPanel event listener effect (one-time)`);
+    const handler = (e: Event) => handleSendToCopilot(e);
+    window.addEventListener('sendToCopilot', handler);
+    return () => window.removeEventListener('sendToCopilot', handler);
+  }, []);
 
   const renderAnalysisResult = useCallback(() => {
     if (!analysisResult) return null;
