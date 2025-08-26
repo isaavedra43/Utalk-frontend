@@ -6,6 +6,7 @@ import { useAuthContext } from '../../contexts/useAuthContext';
 import { useChatStore } from '../../stores/useChatStore';
 import type { ConversationMemory, CopilotAnalysis, CopilotImprovements } from '../../services/copilot';
 import { copilotService } from '../../services/copilot';
+import { WORKSPACE_CONFIG } from '../../config/workspace';
 
 
 
@@ -395,12 +396,22 @@ export const CopilotPanel: React.FC = React.memo(() => {
     try {
       const socket = socketRef.current as { connected: boolean; emit: (event: string, data: unknown) => void; once: (event: string, callback: (data: unknown) => void) => void } | null;
       if (socket?.connected) {
-        socket.emit('copilot_chat_message', { message: text, conversationId, agentId: agentIdString });
+        socket.emit('copilot_chat_message', { 
+          message: text, 
+          conversationId, 
+          agentId: agentIdString,
+          workspaceId: WORKSPACE_CONFIG.workspaceId
+        });
         const wsTimeout = window.setTimeout(async () => {
           if (isTypingRef.current) {
             try {
               if (chatRef.current) {
-                const res = await chatRef.current({ message: text, conversationId, agentId: agentIdString });
+                const res = await chatRef.current({ 
+                  message: text, 
+                  conversationId, 
+                  agentId: agentIdString,
+                  workspaceId: WORKSPACE_CONFIG.workspaceId
+                });
                 console.log('🔍 DEBUG REST fallback: respuesta completa', res);
                 console.log('🔍 DEBUG REST fallback: res.response', res.response);
                 console.log('🔍 DEBUG REST fallback: res.data?.response', res.data?.response);
@@ -420,7 +431,12 @@ export const CopilotPanel: React.FC = React.memo(() => {
         });
       } else {
         if (chatRef.current) {
-          const res = await chatRef.current({ message: text, conversationId, agentId: agentIdString });
+          const res = await chatRef.current({ 
+            message: text, 
+            conversationId, 
+            agentId: agentIdString,
+            workspaceId: WORKSPACE_CONFIG.workspaceId
+          });
           console.log('🔍 DEBUG REST directo: respuesta completa', res);
           console.log('🔍 DEBUG REST directo: res.response', res.response);
           console.log('🔍 DEBUG REST directo: res.data?.response', res.data?.response);
