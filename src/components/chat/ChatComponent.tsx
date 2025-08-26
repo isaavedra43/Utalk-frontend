@@ -565,8 +565,8 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
     }));
   };
 
-  // Obtener typing users para la conversación actual
-  const currentTypingUsers = typingUsers.get(effectiveConversationId) || new Set<string>();
+  // typingUsers ya viene como Set<string> desde useChat, no como Map
+  const currentTypingUsers = typingUsers as Set<string>;
 
   return (
     <div className="chat-container">

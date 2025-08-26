@@ -921,7 +921,7 @@ export const useChat = (conversationId: string) => {
     // Datos
     messages,
     conversation,
-    typingUsers: typingUsers.get(conversationId) || new Set(),
+    typingUsers: typingUsers.get(conversationId) || new Set<string>(),
     
     // Estados
     loading,
