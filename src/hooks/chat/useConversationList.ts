@@ -148,8 +148,11 @@ export const useConversationList = (filters: ConversationFilters = {}) => {
 
   // NOTA: Se elimina el cleanup automático de la URL para no borrar '?conversation' mientras se resuelve la selección.
 
-  // NUEVO: Protección contra estado de autenticación inválido
-  if (!isAuthenticated || authLoading || isAuthenticating) {
+  // NUEVO: Protección contra estado de autenticación inválido - MOVIDO AL FINAL
+  const isAuthValid = isAuthenticated && !authLoading && !isAuthenticating;
+
+  // NUEVO: Return condicional al final, después de que todos los hooks se hayan llamado
+  if (!isAuthValid) {
     return {
       conversations: [],
       activeConversation: null,

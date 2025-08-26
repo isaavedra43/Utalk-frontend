@@ -27,28 +27,8 @@ export const useChat = (conversationId: string) => {
   const navigate = useNavigate();
   const { backendUser } = useAuthContext();
   
-  // NUEVO: Protección contra conversationId inválido al inicio
-  if (!conversationId || typeof conversationId !== 'string' || conversationId.trim() === '') {
-    return {
-      messages: [],
-      conversation: null,
-      loading: false,
-      error: null,
-      sending: false,
-      isTyping: false,
-      isConnected: false,
-      isJoined: false,
-      typingUsers: new Map<string, Set<string>>(),
-      sendMessage: () => Promise.resolve(),
-      sendMessageWithAttachments: () => Promise.resolve(),
-      handleTyping: () => {},
-      handleStopTyping: () => {},
-      markAsRead: () => Promise.resolve(),
-      retryMessage: () => Promise.resolve(),
-      deleteOptimisticMessage: () => {},
-      messagesEndRef: { current: null }
-    };
-  }
+  // VALIDAR conversationId pero NO hacer return temprano
+  const isValidConversationId = !!(conversationId && typeof conversationId === 'string' && conversationId.trim() !== '');
   
   const {
     socket,
@@ -916,6 +896,31 @@ export const useChat = (conversationId: string) => {
   useEffect(() => {
     return cleanup;
   }, [cleanup]);
+
+  // NUEVO: Return condicional al final, después de que todos los hooks se hayan llamado
+  if (!isValidConversationId) {
+    return {
+      messages: [],
+      conversation: null,
+      loading: false,
+      error: null,
+      sending: false,
+      isTyping: false,
+      isConnected: false,
+      isJoined: false,
+      typingUsers: new Set<string>(),
+      sendMessage: () => Promise.resolve(),
+      sendMessageWithAttachments: () => Promise.resolve(),
+      handleTyping: () => {},
+      handleStopTyping: () => {},
+      markAsRead: () => Promise.resolve(),
+      retryMessage: () => Promise.resolve(),
+      deleteOptimisticMessage: () => {},
+      scrollToBottom: () => {},
+      messagesEndRef: { current: null },
+      refresh: () => Promise.resolve()
+    };
+  }
 
   return {
     // Datos
