@@ -902,9 +902,17 @@ export const CopilotPanel: React.FC = React.memo(() => {
     }
   ], [isGenerating, isAnalyzing, isOptimizing, isStrategyLoading, isQuickLoading, isExperienceLoading]);
 
-  // Atajos de teclado optimizados
+  // ✅ SOLUCIÓN: Atajos de teclado optimizados - manejar Enter normal también
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
+      // Enter normal para enviar mensaje
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        if (chatInput.trim()) {
+          handleChatSend();
+        }
+      }
+      
       // Ctrl/Cmd + Enter para enviar mensaje
       if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
         event.preventDefault();
