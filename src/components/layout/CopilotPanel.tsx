@@ -1196,11 +1196,44 @@ export const CopilotPanel: React.FC = React.memo(() => {
           </div>
         </div>
 
-        {/* Contador de tokens y atajos */}
-        <div className="px-3 pb-2">
-          <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
-            <span>Tokens estimados: {tokenCount.toLocaleString()}</span>
-            <span>Atajos: Ctrl+Enter (enviar) | Ctrl+1-6 (sugerencias)</span>
+        {/* ✅ SOLUCIÓN: Contador de tokens y atajos con mejor diseño */}
+        <div className="px-3 pb-2 mt-2">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2 border border-gray-100 dark:border-gray-700">
+            <div className="flex flex-col space-y-1.5">
+              {/* Tokens estimados */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    Tokens estimados
+                  </span>
+                </div>
+                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full">
+                  {tokenCount.toLocaleString()}
+                </span>
+              </div>
+              
+              {/* Atajos de teclado */}
+              <div className="flex items-center justify-between pt-1 border-t border-gray-200 dark:border-gray-600">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    Atajos
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded font-mono">
+                    Ctrl+Enter
+                  </span>
+                  <span className="text-xs text-gray-500">enviar</span>
+                  <span className="text-xs text-gray-400">|</span>
+                  <span className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded font-mono">
+                    Ctrl+1-6
+                  </span>
+                  <span className="text-xs text-gray-500">sugerencias</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
