@@ -11,11 +11,11 @@
   max-width: 320px;
 }
 
-/* Columna 2: Chat (ancho equilibrado) */
+/* Columna 2: Chat (ancho reducido para dar más espacio al Copilot) */
 .chat-column {
   @apply flex-1 bg-white min-w-0 border-r border-gray-200;
-  min-width: 400px;
-  max-width: 800px;
+  min-width: 350px;
+  max-width: 600px;
 }
 
 /* Columna 3: Sugerencias (más ancha) */
@@ -25,11 +25,11 @@
   max-width: 560px;
 }
 
-/* Columna 4: Detalles + Copiloto (mismo tamaño que sugerencias) */
+/* Columna 4: Detalles + Copiloto (más ancho para mejor experiencia) */
 .details-copilot-column {
-  @apply w-[28rem] bg-white;
-  min-width: 448px;
-  max-width: 560px;
+  @apply w-[32rem] bg-white;
+  min-width: 512px;
+  max-width: 640px;
 }
 
 /* Responsive breakpoints - AJUSTADOS para mostrar 4 columnas en más pantallas */
@@ -47,9 +47,9 @@
   }
   
   .details-copilot-column {
-    @apply w-[28rem];
-    min-width: 448px;
-    max-width: 560px;
+    @apply w-[32rem];
+    min-width: 512px;
+    max-width: 640px;
   }
 }
 
@@ -87,8 +87,8 @@
   
   .chat-column {
     @apply flex-1 bg-white min-w-0 border-r border-gray-200;
-    min-width: 320px;
-    max-width: 600px;
+    min-width: 280px;
+    max-width: 500px;
   }
   
   .suggestions-column {
@@ -98,9 +98,9 @@
   }
   
   .details-copilot-column {
-    @apply w-80;
-    min-width: 320px;
-    max-width: 400px;
+    @apply w-96;
+    min-width: 384px;
+    max-width: 480px;
   }
 }
 
@@ -128,9 +128,9 @@
   }
   
   .details-copilot-column {
-    @apply w-80;
-    min-width: 320px;
-    max-width: 400px;
+    @apply w-96;
+    min-width: 384px;
+    max-width: 480px;
   }
 }
 
