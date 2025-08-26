@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Filter, Send, Lightbulb, Users, TrendingUp, Shield, Zap, Star } from 'lucide-react';
 import '../../styles/copilot.css';
 import { useCopilot } from '../../hooks/useCopilot';
 import { useAuthContext } from '../../contexts/useAuthContext';
 import { useWebSocketContext } from '../../contexts/useWebSocketContext';
 import { useChatStore } from '../../stores/useChatStore';
-import type { ConversationMemory } from '../../services/copilot';
+import type { ConversationMemory, CopilotAnalysis, CopilotImprovements } from '../../services/copilot';
 
 interface Message {
   id: string;
@@ -20,6 +20,9 @@ export const CopilotPanel: React.FC = () => {
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<CopilotAnalysis | null>(null);
+  const [strategyResult, setStrategyResult] = useState<{ strategies: string[]; actionPlan: string[] } | null>(null);
+  const [experienceResult, setExperienceResult] = useState<CopilotImprovements | null>(null);
   const { user, backendUser } = useAuthContext();
   const { socket, emit, on, off, isConnected } = useWebSocketContext();
   const {
@@ -43,7 +46,7 @@ export const CopilotPanel: React.FC = () => {
 
   const currentAgentId = useMemo(() => backendUser?.id || user?.uid || '', [backendUser?.id, user?.uid]);
 
-  const getCurrentConversationMemory = (): ConversationMemory => {
+  const getCurrentConversationMemory = useCallback((): ConversationMemory => {
     const recent = (storeMessages || []).slice(-10).map((m) => ({
       role: m.direction === 'outbound' ? 'user' as const : 'assistant' as const,
       content: m.content,
@@ -58,24 +61,86 @@ export const CopilotPanel: React.FC = () => {
         messageCount: recent.length
       }
     };
+  }, [storeMessages, activeConversationId, currentAgentId]);
+
+  const handleChatSend = useCallback(async (override?: string) => {
+    const text = typeof override === 'string' ? override : chatInput.trim();
+    if (!text) return;
+
+        const userMessage: Message = {
+          id: Date.now().toString(),
+          role: 'user',
+      content: text,
+          timestamp: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+        setIsTyping(true);
+
+    const agentId = currentAgentId;
+
+    // Preferir WS si está conectado; fallback a REST
+    let usedWS = false;
+    if (socket && isConnected) {
+      usedWS = emit('copilot_chat_message', { message: text, conversationId: activeConversationId, agentId });
+    }
+
+    const appendAssistant = (content: string, suggestions?: string[]) => {
+      const parsed = extractAgentNotes(content);
+      const aiResponse: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: parsed.text, agentNotes: parsed.notes, suggestions, timestamp: new Date().toISOString() };
+      setMessages(prev => [...prev, aiResponse]);
+      setIsTyping(false);
+    };
+
+    if (usedWS) {
+      const listener = (...args: unknown[]) => {
+        const data = (args && args[0] ? args[0] : { response: '' }) as { response: string; suggestions?: string[] };
+        appendAssistant(data.response, data.suggestions);
+        off('copilot_response');
+      };
+      on('copilot_response', listener);
+      // Fallback de seguridad en 3s para REST si no llega nada
+      setTimeout(async () => {
+        if (isTyping) {
+          const res = await chat({ message: text, conversationId: activeConversationId, agentId });
+          appendAssistant(res.response, res.suggestions);
+          off('copilot_response');
+        }
+      }, 3000);
+    } else {
+      try {
+        const res = await chat({ message: text, conversationId: activeConversationId, agentId });
+        appendAssistant(res.response, res.suggestions);
+      } catch {
+        appendAssistant('Hubo un problema al contactar al Copiloto.');
+      }
+    }
+  }, [chatInput, socket, isConnected, emit, off, on, chat, activeConversationId, currentAgentId, isTyping]);
+
+  const extractAgentNotes = (raw: string): { text: string; notes?: string } => {
+    const marker = /---\s*\n?\s*Notas para el agente\s*\(no enviar al cliente\)\s*:\s*/i;
+    const idx = raw.search(marker);
+    if (idx === -1) return { text: raw };
+    const before = raw.substring(0, idx).trim();
+    const after = raw.substring(idx).replace(marker, '').trim();
+    return { text: before, notes: after };
   };
 
   // Escuchar eventos internos del front y mapear a endpoints /api/copilot/*
   useEffect(() => {
-    const handleSendToCopilot = async (event: CustomEvent) => {
-      const { content, type, action, payload } = event.detail || {};
-      const agentId = backendUser?.id || user?.uid || '';
+    const handleSendToCopilot = async (event: Event) => {
+      const { content, type, action, payload } = (event as CustomEvent).detail || {};
 
       const pushAssistant = (text: string, suggestions?: string[]) => {
-        const aiResponse: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
+          const aiResponse: Message = {
+            id: (Date.now() + 1).toString(),
+            role: 'assistant',
           content: text,
           timestamp: new Date().toISOString(),
           suggestions
-        };
-        setMessages(prev => [...prev, aiResponse]);
-        setIsTyping(false);
+          };
+          setMessages(prev => [...prev, aiResponse]);
+          setIsTyping(false);
       };
 
       // Siempre agregamos el mensaje del usuario cuando viene desde tarjetas/eventos
@@ -99,15 +164,13 @@ export const CopilotPanel: React.FC = () => {
 
         if (type === 'product' && action === 'analyze') {
           const analysis = await analyzeConversation({ conversationMemory: getCurrentConversationMemory() });
-          const text = `Tono: ${analysis.tone.tone} | Sentimiento: ${analysis.tone.sentiment} | Urgencia: ${analysis.tone.urgency}\nOportunidades:\n- ${analysis.opportunities.join('\n- ')}`;
-          pushAssistant(text);
+          setAnalysisResult(analysis);
           return;
         }
 
         if (type === 'strategy') {
           const res = await strategySuggestions({ agentId: currentAgentId, analysis: payload?.analysis, conversationMemory: getCurrentConversationMemory() });
-          const text = `Estrategias:\n- ${res.strategies.join('\n- ')}\n\nPlan de acción:\n- ${res.actionPlan.join('\n- ')}`;
-          pushAssistant(text);
+          setStrategyResult(res);
           return;
         }
 
@@ -127,8 +190,7 @@ export const CopilotPanel: React.FC = () => {
 
         if (type === 'experience') {
           const res = await improveExperience({ agentId: currentAgentId, conversationMemory: getCurrentConversationMemory(), analysis: payload?.analysis });
-          const text = `Brechas:\n- ${res.gaps.join('\n- ')}\n\nMejoras:\n- ${res.improvements.join('\n- ')}\n\nPlan:\n- ${res.plan.join('\n- ')}`;
-          pushAssistant(text);
+          setExperienceResult(res);
           return;
         }
 
@@ -136,76 +198,116 @@ export const CopilotPanel: React.FC = () => {
         if (content) {
           await handleChatSend(content);
         }
-      } catch (e) {
+      } catch {
         pushAssistant('Ocurrió un error procesando la solicitud del Copiloto.');
       }
     };
 
-    window.addEventListener('sendToCopilot', handleSendToCopilot as EventListener);
-    return () => window.removeEventListener('sendToCopilot', handleSendToCopilot as EventListener);
-  }, [backendUser?.id, user?.uid, optimizeResponse, analyzeConversation, strategySuggestions, quickResponse, improveExperience]);
+    window.addEventListener('sendToCopilot', handleSendToCopilot);
+    return () => window.removeEventListener('sendToCopilot', handleSendToCopilot);
+  }, [currentAgentId, activeConversationId, optimizeResponse, analyzeConversation, strategySuggestions, quickResponse, improveExperience, getCurrentConversationMemory, handleChatSend]);
 
-  const extractAgentNotes = (raw: string): { text: string; notes?: string } => {
-    const marker = /---\s*\n?\s*Notas para el agente\s*\(no enviar al cliente\)\s*:\s*/i;
-    const idx = raw.search(marker);
-    if (idx === -1) return { text: raw };
-    const before = raw.substring(0, idx).trim();
-    const after = raw.substring(idx).replace(marker, '').trim();
-    return { text: before, notes: after };
+  // DUPLICADO ELIMINADO
+
+  const renderAnalysisResult = () => {
+    if (!analysisResult) return null;
+    return (
+      <div className="px-3 pb-2">
+        <div className="max-w-full bg-white border border-gray-200 rounded-lg p-3">
+          <h4 className="text-sm font-semibold text-gray-900 mb-2">Análisis de Conversación</h4>
+          <div className="grid grid-cols-3 gap-2 text-xs text-gray-700 mb-2">
+            <p><span className="font-medium">Tono:</span> {analysisResult.tone.tone}</p>
+            <p><span className="font-medium">Sentimiento:</span> {analysisResult.tone.sentiment}</p>
+            <p><span className="font-medium">Urgencia:</span> {analysisResult.tone.urgency}</p>
+          </div>
+          {analysisResult.opportunities?.length > 0 && (
+            <div>
+              <h5 className="text-xs font-medium text-gray-900 mb-1">Oportunidades</h5>
+              <ul className="list-disc list-inside text-xs text-gray-700 space-y-0.5">
+                {analysisResult.opportunities.map((opp, i) => (
+                  <li key={i}>{opp}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
-  const handleChatSend = async (override?: string) => {
-    const text = typeof override === 'string' ? override : chatInput.trim();
-    if (!text) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: text,
-      timestamp: new Date().toISOString()
-    };
-    setMessages(prev => [...prev, userMessage]);
-    setChatInput('');
-    setIsTyping(true);
-
-    const agentId = currentAgentId;
-
-    // Preferir WS si está conectado; fallback a REST
-    let usedWS = false;
-    if (socket && isConnected) {
-      usedWS = emit('copilot_chat_message', { message: text, conversationId: activeConversationId, agentId });
-    }
-
-    const appendAssistant = (content: string, suggestions?: string[]) => {
-      const parsed = extractAgentNotes(content);
-      const aiResponse: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: parsed.text, agentNotes: parsed.notes, suggestions, timestamp: new Date().toISOString() };
-      setMessages(prev => [...prev, aiResponse]);
-      setIsTyping(false);
-    };
-
-    if (usedWS) {
-      const listener = (data: { response: string; suggestions?: string[] }) => {
-        appendAssistant(data.response, data.suggestions);
-        off('copilot_response');
-      };
-      on('copilot_response', listener);
-      // Fallback de seguridad en 3s para REST si no llega nada
-      setTimeout(async () => {
-        if (isTyping) {
-          const res = await chat({ message: text, conversationId: activeConversationId, agentId });
-          appendAssistant(res.response, res.suggestions);
-          off('copilot_response');
-        }
-      }, 3000);
-    } else {
-      try {
-        const res = await chat({ message: text, conversationId: activeConversationId, agentId });
-        appendAssistant(res.response, res.suggestions);
-      } catch {
-        appendAssistant('Hubo un problema al contactar al Copiloto.');
-      }
-    }
+  const renderStrategyResult = () => {
+    if (!strategyResult) return null;
+    return (
+      <div className="px-3 pb-2">
+        <div className="max-w-full bg-white border border-gray-200 rounded-lg p-3">
+          <h4 className="text-sm font-semibold text-gray-900 mb-2">Estrategia de Atención</h4>
+          {strategyResult.strategies?.length > 0 && (
+            <div className="mb-2">
+              <h5 className="text-xs font-medium text-gray-900 mb-1">Estrategias</h5>
+              <ul className="list-disc list-inside text-xs text-gray-700 space-y-0.5">
+                {strategyResult.strategies.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {strategyResult.actionPlan?.length > 0 && (
+            <div>
+              <h5 className="text-xs font-medium text-gray-900 mb-1">Plan de acción</h5>
+              <ul className="list-decimal list-inside text-xs text-gray-700 space-y-0.5">
+                {strategyResult.actionPlan.map((a, i) => (
+                  <li key={i}>{a}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
+
+  const renderExperienceResult = () => {
+    if (!experienceResult) return null;
+    return (
+      <div className="px-3 pb-2">
+        <div className="max-w-full bg-white border border-gray-200 rounded-lg p-3">
+          <h4 className="text-sm font-semibold text-gray-900 mb-2">Mejora de Experiencia</h4>
+          {experienceResult.gaps?.length > 0 && (
+            <div className="mb-2">
+              <h5 className="text-xs font-medium text-gray-900 mb-1">Gaps identificados</h5>
+              <ul className="list-disc list-inside text-xs text-gray-700 space-y-0.5">
+                {experienceResult.gaps.map((g, i) => (
+                  <li key={i}>{g}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {experienceResult.improvements?.length > 0 && (
+            <div className="mb-2">
+              <h5 className="text-xs font-medium text-gray-900 mb-1">Mejoras sugeridas</h5>
+              <ul className="list-disc list-inside text-xs text-gray-700 space-y-0.5">
+                {experienceResult.improvements.map((imp, i) => (
+                  <li key={i}>{imp}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {experienceResult.plan?.length > 0 && (
+            <div>
+              <h5 className="text-xs font-medium text-gray-900 mb-1">Plan de implementación</h5>
+              <ul className="list-decimal list-inside text-xs text-gray-700 space-y-0.5">
+                {experienceResult.plan.map((step, i) => (
+                  <li key={i}>{step}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // (definición única de handleChatSend más arriba)
 
   // funciones locales anteriores eliminadas; ahora todo se resuelve vía API/WS
 
@@ -414,6 +516,11 @@ export const CopilotPanel: React.FC = () => {
         </div>
       )}
 
+      {/* Resultados de análisis/estrategia/experiencia */}
+      {renderAnalysisResult()}
+      {renderStrategyResult()}
+      {renderExperienceResult()}
+
       {/* Message Input with Radiant Colors Animation - siempre en la parte inferior */}
       <div className="p-3 pt-1 border-t border-gray-100">
         <div className="relative">
@@ -440,7 +547,7 @@ export const CopilotPanel: React.FC = () => {
                 </button>
                 
                 <button
-                  onClick={handleChatSend}
+                  onClick={() => handleChatSend()}
                   disabled={!chatInput.trim() || isTyping}
                   className="p-1.5 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
                 >
