@@ -159,7 +159,7 @@ export const useAuth = (): AuthState => {
     };
     
     checkInitialAuth();
-  }, [authStore.loading, authStore.clearAuth, authStore.setBackendUser, authStore.setUser, authStore.validateToken, authStore.setLoading]); // Dependencias agregadas
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Conectar WebSocket cuando se autentica - OPTIMIZADO
   useEffect(() => {

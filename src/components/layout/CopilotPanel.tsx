@@ -348,7 +348,7 @@ export const CopilotPanel: React.FC = () => {
     }
   }, [chatInput, extractAgentNotes, updateTokenCount, validateAgentAndConversation, showError]);
 
-  // SOLUCIÓN PRINCIPAL: handleSendToCopilot sin dependencias inestables
+  // SOLUCIÓN PRINCIPAL: handleSendToCopilot usando refs para evitar dependencias inestables
   const handleSendToCopilot = useCallback(async (event: Event) => {
     const { content, type, action, payload } = (event as CustomEvent).detail || {};
 
@@ -454,7 +454,7 @@ export const CopilotPanel: React.FC = () => {
       console.error('Error en sendToCopilot:', err);
       showError('Hubo un problema con el copiloto. Inténtalo de nuevo.');
     }
-  }, []); // SIN DEPENDENCIAS - usa refs internamente
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // useEffect optimizado: registrar listener UNA sola vez
   useEffect(() => {
@@ -462,7 +462,7 @@ export const CopilotPanel: React.FC = () => {
     const handler = (e: Event) => handleSendToCopilot(e);
     window.addEventListener('sendToCopilot', handler);
     return () => window.removeEventListener('sendToCopilot', handler);
-  }, [handleSendToCopilot]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderAnalysisResult = useCallback(() => {
     if (!analysisResult) return null;
