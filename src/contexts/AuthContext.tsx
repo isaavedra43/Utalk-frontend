@@ -1,5 +1,5 @@
 import React, { createContext } from 'react';
-import { useStableAuth } from '../hooks/useStableAuth';
+import { useAuth } from '../hooks/useAuth';
 
 interface BackendUser {
   id: string;
@@ -27,8 +27,8 @@ interface AuthState {
 const AuthContext = createContext<AuthState | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // ✅ MIGRACIÓN: Usar useStableAuth hook para estado estable
-  const authState = useStableAuth();
+  // ✅ MIGRACIÓN: Usar useAuth hook que internamente usa useAuthStore
+  const authState = useAuth();
 
   return (
     <AuthContext.Provider value={authState}>
