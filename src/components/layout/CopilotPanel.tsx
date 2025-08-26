@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Filter, Send, Lightbulb, Users, TrendingUp, Shield, Zap, Star } from 'lucide-react';
 import '../../styles/copilot.css';
 import { useCopilot } from '../../hooks/useCopilot';
@@ -36,6 +36,11 @@ export const CopilotPanel: React.FC = () => {
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(false);
   
+  // Usar refs para evitar dependencias inestables
+  const isTypingRef = useRef(false);
+  const activeConversationIdRef = useRef('');
+  const currentAgentIdRef = useRef('');
+  
   const { user, backendUser } = useAuthContext();
   const { socket } = useWebSocketContext();
   const {
@@ -48,14 +53,22 @@ export const CopilotPanel: React.FC = () => {
     improveExperience,
   } = useCopilot();
 
+  // Memoizar valores estables
   const activeConversationId = useMemo(() => {
-    return (window as unknown as { __activeConversationId?: string }).__activeConversationId || '';
-  }, []); // Dependencias vacías para evitar re-ejecuciones
+    const id = (window as unknown as { __activeConversationId?: string }).__activeConversationId || '';
+    activeConversationIdRef.current = id;
+    return id;
+  }, []); // Sin dependencias para evitar re-ejecuciones
 
   const storeMessages = useChatStore((s) => (activeConversationId ? (s.messages[activeConversationId] || []) : []));
 
-  const currentAgentId = useMemo(() => backendUser?.id || user?.uid || null, [backendUser?.id, user?.uid]); // Dependencias estables
+  // Actualizar el ref del agente actual
+  useMemo(() => {
+    const id = backendUser?.id || user?.uid || null;
+    currentAgentIdRef.current = id || '';
+  }, [backendUser?.id, user?.uid]);
 
+  // Memoizar getCurrentConversationMemory para evitar recreaciones
   const getCurrentConversationMemory = useCallback((): ConversationMemory => {
     const recent = (storeMessages || []).slice(-10).map((m) => ({
       role: m.direction === 'outbound' ? 'user' as const : 'assistant' as const,
@@ -64,14 +77,23 @@ export const CopilotPanel: React.FC = () => {
     }));
     return {
       messages: recent,
-      summary: `Conversación ${activeConversationId}`,
+      summary: `Conversación ${activeConversationIdRef.current}`,
       context: {
-        conversationId: activeConversationId,
-        agentId: currentAgentId || '',
+        conversationId: activeConversationIdRef.current,
+        agentId: currentAgentIdRef.current,
         messageCount: recent.length
       }
     };
-  }, [storeMessages, activeConversationId, currentAgentId]); // Dependencias estables
+  }, [storeMessages]); // Solo depende de storeMessages
+
+  // Memoizar funciones de estado para evitar recreaciones
+  const setLoadingStates = useMemo(() => ({
+    setIsOptimizing,
+    setIsAnalyzing,
+    setIsStrategyLoading,
+    setIsQuickLoading,
+    setIsExperienceLoading
+  }), []);
 
   const handleChatSend = useCallback(async (override?: string) => {
     const text = typeof override === 'string' ? override : chatInput.trim();
@@ -87,23 +109,33 @@ export const CopilotPanel: React.FC = () => {
     setMessages(prev => [...prev, userMessage]);
     setChatInput('');
     setIsTyping(true);
+    isTypingRef.current = true;
 
-    const agentId = currentAgentId || '';
+    const agentId = currentAgentIdRef.current;
+    const conversationId = activeConversationIdRef.current;
 
     const appendAssistant = (content: string, suggestions?: string[]) => {
       const parsed = extractAgentNotes(content);
-      const aiResponse: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: parsed.text, agentNotes: parsed.notes, suggestions, timestamp: new Date().toISOString() };
+      const aiResponse: Message = { 
+        id: (Date.now() + 1).toString(), 
+        role: 'assistant', 
+        content: parsed.text, 
+        agentNotes: parsed.notes, 
+        suggestions, 
+        timestamp: new Date().toISOString() 
+      };
       setMessages(prev => [...prev, aiResponse]);
       setIsTyping(false);
+      isTypingRef.current = false;
     };
 
     try {
       if (socket?.connected) {
-        socket.emit('copilot_chat_message', { message: text, conversationId: activeConversationId, agentId });
+        socket.emit('copilot_chat_message', { message: text, conversationId, agentId });
         const wsTimeout = window.setTimeout(async () => {
-          if (isTyping) {
+          if (isTypingRef.current) {
             try {
-              const res = await chat({ message: text, conversationId: activeConversationId, agentId });
+              const res = await chat({ message: text, conversationId, agentId });
               appendAssistant(res.response, res.suggestions);
             } catch (error) {
               console.error('Error en REST fallback:', error);
@@ -117,23 +149,23 @@ export const CopilotPanel: React.FC = () => {
           appendAssistant(data.response, data.suggestions);
         });
       } else {
-        const res = await chat({ message: text, conversationId: activeConversationId, agentId });
+        const res = await chat({ message: text, conversationId, agentId });
         appendAssistant(res.response, res.suggestions);
       }
     } catch (error) {
       console.error('Error en handleChatSend:', error);
       appendAssistant('Lo siento, hubo un problema. Inténtalo de nuevo.');
     }
-  }, [chatInput, socket, chat, activeConversationId, currentAgentId, isTyping]); // Dependencias estables
+  }, [chatInput, socket, chat]); // Dependencias mínimas
 
-  const extractAgentNotes = (raw: string): { text: string; notes?: string } => {
+  const extractAgentNotes = useCallback((raw: string): { text: string; notes?: string } => {
     const marker = /---\s*\n?\s*Notas para el agente\s*\(no enviar al cliente\)\s*:\s*/i;
     const idx = raw.search(marker);
     if (idx === -1) return { text: raw, notes: undefined };
     const before = raw.substring(0, idx).trim();
     const after = raw.substring(idx).replace(marker, '').trim();
     return { text: before, notes: after };
-  };
+  }, []);
 
   const showError = useCallback((message: string) => {
     setError(message);
@@ -141,18 +173,18 @@ export const CopilotPanel: React.FC = () => {
   }, []);
 
   const validateBeforeCall = useCallback((): boolean => {
-    if (!activeConversationId) {
+    if (!activeConversationIdRef.current) {
       showError('No hay conversación activa');
       return false;
     }
-    if (!currentAgentId) {
+    if (!currentAgentIdRef.current) {
       showError('No hay agente identificado');
       return false;
     }
     return true;
-  }, [activeConversationId, currentAgentId, showError]);
+  }, [showError]);
 
-  const withLoading = async <T,>(
+  const withLoading = useCallback(async <T,>(
     loadingSetter: (loading: boolean) => void,
     asyncFn: () => Promise<T>
   ): Promise<T> => {
@@ -162,122 +194,146 @@ export const CopilotPanel: React.FC = () => {
     } finally {
       loadingSetter(false);
     }
-  };
+  }, []);
 
-  const updateTokenCount = (text: string) => {
+  const updateTokenCount = useCallback((text: string) => {
     const estimatedTokens = Math.ceil(text.length / 4);
     setTokenCount(prev => prev + estimatedTokens);
-  };
+  }, []);
 
   const addToHistory = useCallback((command: string) => {
     setCommandHistory(prev => [command, ...prev.slice(0, 9)]);
   }, []);
 
-  const toggleDarkMode = () => {
+  const toggleDarkMode = useCallback(() => {
     setIsDarkMode(!isDarkMode);
     document.documentElement.classList.toggle('dark');
-  };
+  }, [isDarkMode]);
 
-  const getThemeClasses = () => ({
+  const getThemeClasses = useCallback(() => ({
     container: isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900',
     card: isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200',
     input: isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300',
     button: isDarkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'
-  });
+  }), [isDarkMode]);
 
-  useEffect(() => {
-    const handleSendToCopilot = async (event: Event) => {
-      const { content, type, action, payload } = (event as CustomEvent).detail || {};
+  // Memoizar el event handler para evitar recreaciones
+  const handleSendToCopilot = useCallback(async (event: Event) => {
+    const { content, type, action, payload } = (event as CustomEvent).detail || {};
 
-      const pushAssistant = (text: string, suggestions?: string[]) => {
-        const aiResponse: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: text,
-          timestamp: new Date().toISOString(),
-          suggestions
-        };
-        setMessages(prev => [...prev, aiResponse]);
-        setIsTyping(false);
+    const pushAssistant = (text: string, suggestions?: string[]) => {
+      const aiResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: text,
+        timestamp: new Date().toISOString(),
+        suggestions
       };
-
-      if (content) {
-        const userMessage: Message = {
-          id: Date.now().toString(),
-          role: 'user',
-          content: String(content),
-          timestamp: new Date().toISOString()
-        };
-        setMessages(prev => [...prev, userMessage]);
-        setIsTyping(true);
-      }
-
-      try {
-        if (type === 'response' && action === 'improve') {
-          await withLoading(setIsOptimizing, async () => {
-            const { optimized } = await optimizeResponse({ response: content });
-            pushAssistant(optimized);
-          });
-          return;
-        }
-
-        if (type === 'product' && action === 'analyze') {
-          if (!validateBeforeCall()) return;
-          await withLoading(setIsAnalyzing, async () => {
-            const analysis = await analyzeConversation({ conversationMemory: getCurrentConversationMemory() });
-            setAnalysisResult(analysis);
-          });
-          return;
-        }
-
-        if (type === 'strategy') {
-          if (!validateBeforeCall()) return;
-          await withLoading(setIsStrategyLoading, async () => {
-            const res = await strategySuggestions({ agentId: currentAgentId || '', analysis: payload?.analysis, conversationMemory: getCurrentConversationMemory() });
-            setStrategyResult(res);
-          });
-          return;
-        }
-
-        if (type === 'quick') {
-          await withLoading(setIsQuickLoading, async () => {
-            const res = await quickResponse({
-              urgency: payload?.urgency || 'normal',
-              context: {
-                lastMessage: typeof content === 'string' ? content : undefined,
-                conversationId: activeConversationId,
-                customerInfo: payload?.customerInfo,
-                productInfo: payload?.productInfo
-              }
-            });
-            pushAssistant(res.quick);
-          });
-          return;
-        }
-
-        if (type === 'experience') {
-          if (!validateBeforeCall()) return;
-          await withLoading(setIsExperienceLoading, async () => {
-            const res = await improveExperience({ agentId: currentAgentId || '', conversationMemory: getCurrentConversationMemory(), analysis: payload?.analysis });
-            setExperienceResult(res);
-          });
-          return;
-        }
-
-        if (content) {
-          await handleChatSend(content);
-        }
-      } catch (err) {
-        console.error('Error en sendToCopilot:', err);
-        showError('Hubo un problema con el copiloto. Inténtalo de nuevo.');
-      }
+      setMessages(prev => [...prev, aiResponse]);
+      setIsTyping(false);
+      isTypingRef.current = false;
     };
 
+    if (content) {
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: String(content),
+        timestamp: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, userMessage]);
+      setIsTyping(true);
+      isTypingRef.current = true;
+    }
+
+    try {
+      if (type === 'response' && action === 'improve') {
+        await withLoading(setLoadingStates.setIsOptimizing, async () => {
+          const { optimized } = await optimizeResponse({ response: content });
+          pushAssistant(optimized);
+        });
+        return;
+      }
+
+      if (type === 'product' && action === 'analyze') {
+        if (!validateBeforeCall()) return;
+        await withLoading(setLoadingStates.setIsAnalyzing, async () => {
+          const analysis = await analyzeConversation({ conversationMemory: getCurrentConversationMemory() });
+          setAnalysisResult(analysis);
+        });
+        return;
+      }
+
+      if (type === 'strategy') {
+        if (!validateBeforeCall()) return;
+        await withLoading(setLoadingStates.setIsStrategyLoading, async () => {
+          const res = await strategySuggestions({ 
+            agentId: currentAgentIdRef.current, 
+            analysis: payload?.analysis, 
+            conversationMemory: getCurrentConversationMemory() 
+          });
+          setStrategyResult(res);
+        });
+        return;
+      }
+
+      if (type === 'quick') {
+        await withLoading(setLoadingStates.setIsQuickLoading, async () => {
+          const res = await quickResponse({
+            urgency: payload?.urgency || 'normal',
+            context: {
+              lastMessage: typeof content === 'string' ? content : undefined,
+              conversationId: activeConversationIdRef.current,
+              customerInfo: payload?.customerInfo,
+              productInfo: payload?.productInfo
+            }
+          });
+          pushAssistant(res.quick);
+        });
+        return;
+      }
+
+      if (type === 'experience') {
+        if (!validateBeforeCall()) return;
+        await withLoading(setLoadingStates.setIsExperienceLoading, async () => {
+          const res = await improveExperience({ 
+            agentId: currentAgentIdRef.current, 
+            conversationMemory: getCurrentConversationMemory(), 
+            analysis: payload?.analysis 
+          });
+          setExperienceResult(res);
+        });
+        return;
+      }
+
+      if (content) {
+        await handleChatSend(content);
+      }
+    } catch (err) {
+      console.error('Error en sendToCopilot:', err);
+      showError('Hubo un problema con el copiloto. Inténtalo de nuevo.');
+    }
+  }, [
+    withLoading, 
+    setLoadingStates, 
+    optimizeResponse, 
+    validateBeforeCall, 
+    analyzeConversation, 
+    getCurrentConversationMemory, 
+    strategySuggestions, 
+    quickResponse, 
+    improveExperience, 
+    handleChatSend, 
+    showError
+  ]);
+
+  // useEffect optimizado con dependencias estables
+  useEffect(() => {
     window.addEventListener('sendToCopilot', handleSendToCopilot);
     return () => window.removeEventListener('sendToCopilot', handleSendToCopilot);
-  }, [currentAgentId, activeConversationId, optimizeResponse, analyzeConversation, strategySuggestions, quickResponse, improveExperience, getCurrentConversationMemory, handleChatSend, validateBeforeCall, setIsOptimizing, setIsAnalyzing, setIsStrategyLoading, setIsQuickLoading, setIsExperienceLoading, showError]); // Dependencias estables
+  }, [handleSendToCopilot]);
 
-  const renderAnalysisResult = () => {
+  const renderAnalysisResult = useCallback(() => {
     if (!analysisResult) return null;
     return (
       <div className="px-3 pb-2">
@@ -301,9 +357,9 @@ export const CopilotPanel: React.FC = () => {
         </div>
       </div>
     );
-  };
+  }, [analysisResult]);
 
-  const renderStrategyResult = () => {
+  const renderStrategyResult = useCallback(() => {
     if (!strategyResult) return null;
     return (
       <div className="px-3 pb-2">
@@ -332,9 +388,9 @@ export const CopilotPanel: React.FC = () => {
         </div>
       </div>
     );
-  };
+  }, [strategyResult]);
 
-  const renderExperienceResult = () => {
+  const renderExperienceResult = useCallback(() => {
     if (!experienceResult) return null;
     return (
       <div className="px-3 pb-2">
@@ -373,31 +429,46 @@ export const CopilotPanel: React.FC = () => {
         </div>
       </div>
     );
-  };
+  }, [experienceResult]);
 
-  const handleChatKeyPress = (e: React.KeyboardEvent) => {
+  const handleChatKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleChatSend();
     }
-  };
+  }, [handleChatSend]);
 
   const handleSuggestionClick = useCallback(async (suggestion: { id: number; prompt: string; title: string }) => {
     if (!validateBeforeCall()) return;
     addToHistory(suggestion.title);
 
     const push = (text: string) => {
-      const userMessage: Message = { id: Date.now().toString(), role: 'user', content: suggestion.title, timestamp: new Date().toISOString() };
+      const userMessage: Message = { 
+        id: Date.now().toString(), 
+        role: 'user', 
+        content: suggestion.title, 
+        timestamp: new Date().toISOString() 
+      };
       setMessages(prev => [...prev, userMessage]);
       const parsed = extractAgentNotes(text);
-      const aiMessage: Message = { id: (Date.now() + 1).toString(), role: 'assistant', content: parsed.text, agentNotes: parsed.notes, timestamp: new Date().toISOString() };
+      const aiMessage: Message = { 
+        id: (Date.now() + 1).toString(), 
+        role: 'assistant', 
+        content: parsed.text, 
+        agentNotes: parsed.notes, 
+        timestamp: new Date().toISOString() 
+      };
       setMessages(prev => [...prev, aiMessage]);
     };
 
     try {
       if (suggestion.id === 1) {
         await withLoading(setIsGenerating, async () => {
-          const result = await generateResponse({ conversationId: activeConversationId, agentId: currentAgentId || '', message: suggestion.prompt });
+          const result = await generateResponse({ 
+            conversationId: activeConversationIdRef.current, 
+            agentId: currentAgentIdRef.current, 
+            message: suggestion.prompt 
+          });
           push(result.response);
         });
       } else if (suggestion.id === 2) {
@@ -413,18 +484,27 @@ export const CopilotPanel: React.FC = () => {
         });
       } else if (suggestion.id === 4) {
         await withLoading(setIsStrategyLoading, async () => {
-          const res = await strategySuggestions({ agentId: currentAgentId || '', conversationMemory: getCurrentConversationMemory() });
+          const res = await strategySuggestions({ 
+            agentId: currentAgentIdRef.current, 
+            conversationMemory: getCurrentConversationMemory() 
+          });
           setStrategyResult(res);
           push(`Estrategias:\n- ${res.strategies.join('\n- ')}\n\nPlan de Acción:\n- ${res.actionPlan.join('\n- ')}`);
         });
       } else if (suggestion.id === 5) {
         await withLoading(setIsQuickLoading, async () => {
-          const res = await quickResponse({ urgency: 'normal', context: { conversationId: activeConversationId } });
+          const res = await quickResponse({ 
+            urgency: 'normal', 
+            context: { conversationId: activeConversationIdRef.current } 
+          });
           setChatInput(res.quick);
         });
       } else if (suggestion.id === 6) {
         await withLoading(setIsExperienceLoading, async () => {
-          const res = await improveExperience({ agentId: currentAgentId || '', conversationMemory: getCurrentConversationMemory() });
+          const res = await improveExperience({ 
+            agentId: currentAgentIdRef.current, 
+            conversationMemory: getCurrentConversationMemory() 
+          });
           setExperienceResult(res);
           push(`Gaps Identificados:\n- ${res.gaps.join('\n- ')}\n\nMejoras:\n- ${res.improvements.join('\n- ')}\n\nPlan:\n- ${res.plan.join('\n- ')}`);
         });
@@ -433,7 +513,30 @@ export const CopilotPanel: React.FC = () => {
       console.error('Error en handleSuggestionClick:', error);
       showError('Error al procesar la sugerencia. Inténtalo de nuevo.');
     }
-  }, [validateBeforeCall, addToHistory, currentAgentId, activeConversationId, generateResponse, analyzeConversation, getCurrentConversationMemory, setAnalysisResult, optimizeResponse, strategySuggestions, setStrategyResult, quickResponse, setChatInput, improveExperience, setExperienceResult, showError]);
+  }, [
+    validateBeforeCall, 
+    addToHistory, 
+    extractAgentNotes, 
+    withLoading, 
+    setIsGenerating, 
+    generateResponse, 
+    setIsAnalyzing, 
+    analyzeConversation, 
+    getCurrentConversationMemory, 
+    setAnalysisResult, 
+    setIsOptimizing, 
+    optimizeResponse, 
+    setIsStrategyLoading, 
+    strategySuggestions, 
+    setStrategyResult, 
+    setIsQuickLoading, 
+    quickResponse, 
+    setChatInput, 
+    setIsExperienceLoading, 
+    improveExperience, 
+    setExperienceResult, 
+    showError
+  ]);
 
   const showIntro = messages.length === 0;
 
@@ -488,7 +591,7 @@ export const CopilotPanel: React.FC = () => {
     }
   ], [isGenerating, isAnalyzing, isOptimizing, isStrategyLoading, isQuickLoading, isExperienceLoading]);
 
-  // Atajos de teclado
+  // Atajos de teclado optimizados
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
       // Ctrl/Cmd + Enter para enviar mensaje
@@ -511,18 +614,18 @@ export const CopilotPanel: React.FC = () => {
     
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [chatInput, suggestedPrompts, handleChatSend, handleSuggestionClick]); // Dependencias estables
+  }, [chatInput, suggestedPrompts, handleChatSend, handleSuggestionClick]);
 
-  // Verificar estado del sistema
+  // Verificar estado del sistema optimizado
   useEffect(() => {
-         const checkSystemStatus = async () => {
-       try {
-         await copilotService.health();
-         setSystemStatus('connected');
-       } catch {
-         setSystemStatus('disconnected');
-       }
-     };
+    const checkSystemStatus = async () => {
+      try {
+        await copilotService.health();
+        setSystemStatus('connected');
+      } catch {
+        setSystemStatus('disconnected');
+      }
+    };
     
     checkSystemStatus();
     const interval = setInterval(checkSystemStatus, 30000); // Check cada 30 segundos
