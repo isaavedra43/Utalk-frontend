@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { infoLog } from '../config/logger';
 import { useAuthStore } from '../stores/useAuthStore';
 import { WebSocketContext } from '../contexts/WebSocketContext';
@@ -33,28 +33,43 @@ export const useAuth = (): AuthState => {
   const authStore = useAuthStore();
   const webSocketContext = useContext(WebSocketContext);
   const { connect: connectSocket, disconnect: disconnectSocket, isConnected } = webSocketContext || {};
+  
+  // Refs para evitar dependencias inestables
+  const hasCheckedInitialAuth = useRef(false);
+  const isAuthenticatedRef = useRef(false);
 
-  // Calcular isAuthenticated basado en el estado del store - ARREGLADO
+  // Calcular isAuthenticated basado en el estado del store - OPTIMIZADO
   const isAuthenticated = useMemo(() => {
     // Si está autenticando, no considerar como autenticado aún
     if (authStore.isAuthenticating) {
+      isAuthenticatedRef.current = false;
       return false;
     }
     
     // Si está cargando, mantener el estado anterior o false
     if (authStore.loading) {
+      isAuthenticatedRef.current = false;
       return false;
     }
     
     // Solo considerar autenticado si tiene tanto user como backendUser
-    return !!(authStore.user && authStore.backendUser);
+    const authenticated = !!(authStore.user && authStore.backendUser);
+    isAuthenticatedRef.current = authenticated;
+    return authenticated;
   }, [authStore.user, authStore.backendUser, authStore.isAuthenticating, authStore.loading]);
 
-  // Verificar estado inicial de autenticación
+  // Verificar estado inicial de autenticación - OPTIMIZADO
   useEffect(() => {
+    // Solo ejecutar una vez al montar el componente
+    if (hasCheckedInitialAuth.current || !authStore.loading) {
+      return;
+    }
+
     const checkInitialAuth = async () => {
       try {
-        // NUEVO: Verificar si el estado está corrupto
+        hasCheckedInitialAuth.current = true;
+        
+        // Verificar si el estado está corrupto
         if (isAuthStateCorrupted()) {
           infoLog('🔐 useAuth - Estado de autenticación corrupto detectado, limpiando completamente...');
           forceCleanAuth();
@@ -68,10 +83,9 @@ export const useAuth = (): AuthState => {
         const { accessToken, refreshToken } = getStoredTokens();
         
         if (accessToken && refreshToken) {
-          
           infoLog('🔐 useAuth - Tokens encontrados en localStorage, validando con backend...');
           
-          // NUEVO: Intentar validar token con el backend
+          // Intentar validar token con el backend
           const validatedUser = await authStore.validateToken(accessToken);
           
           if (validatedUser) {
@@ -144,21 +158,19 @@ export const useAuth = (): AuthState => {
       }
     };
     
-    if (authStore.loading) {
-      checkInitialAuth();
-    }
-  }, [authStore.loading]);
+    checkInitialAuth();
+  }, []); // Sin dependencias para evitar re-ejecuciones
 
-  // Conectar WebSocket cuando se autentica
+  // Conectar WebSocket cuando se autentica - OPTIMIZADO
   useEffect(() => {
     // SOLO desconectar WebSocket si realmente no está autenticado y no está en proceso de autenticación
-    if (disconnectSocket && isConnected && !isAuthenticated && !authStore.loading && !authStore.isAuthenticating) {
+    if (disconnectSocket && isConnected && !isAuthenticatedRef.current && !authStore.loading && !authStore.isAuthenticating) {
       infoLog('🔐 useAuth - Desconectando WebSocket (usuario no autenticado)');
       disconnectSocket();
     }
-  }, [isAuthenticated, authStore.loading, authStore.isAuthenticating, disconnectSocket, isConnected]);
+  }, [isAuthenticated, disconnectSocket, isConnected]); // Dependencias mínimas
 
-  // Escuchar eventos de autenticación fallida
+  // Escuchar eventos de autenticación fallida - OPTIMIZADO
   useEffect(() => {
     const handleAuthFailed = () => {
       infoLog('🔐 useAuth - Autenticación fallida, desconectando WebSocket');
@@ -174,7 +186,7 @@ export const useAuth = (): AuthState => {
     };
   }, [disconnectSocket]);
 
-  // Escuchar evento de login exitoso
+  // Escuchar evento de login exitoso - OPTIMIZADO
   useEffect(() => {
     const handleLoginSuccess = (e: Event) => {
       const detail = (e as CustomEvent).detail as { user: unknown; accessToken: string } | undefined;
@@ -193,7 +205,7 @@ export const useAuth = (): AuthState => {
     };
   }, [connectSocket, isConnected]);
 
-  // Escuchar evento de token refrescado para reconectar WebSocket
+  // Escuchar evento de token refrescado para reconectar WebSocket - OPTIMIZADO
   useEffect(() => {
     const handleTokenRefreshed = (e: Event) => {
       const detail = (e as CustomEvent).detail as { accessToken: string } | undefined;
