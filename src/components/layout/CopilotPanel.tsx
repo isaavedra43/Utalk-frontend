@@ -706,12 +706,13 @@ export const CopilotPanel: React.FC = React.memo(() => {
     );
   }, [experienceResult]);
 
-  const handleChatKeyPress = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleChatSend();
-    }
-  }, [handleChatSend]);
+  // ✅ SOLUCIÓN: Eliminar handleChatKeyPress para evitar duplicación
+  // const handleChatKeyPress = useCallback((e: React.KeyboardEvent) => {
+  //   if (e.key === 'Enter' && !e.shiftKey) {
+  //     e.preventDefault();
+  //     handleChatSend();
+  //   }
+  // }, [handleChatSend]);
 
   const handleSuggestionClick = useCallback(async (suggestion: { id: number; prompt: string; title: string }) => {
     if (!validateBeforeCall()) return;
@@ -1138,7 +1139,8 @@ export const CopilotPanel: React.FC = React.memo(() => {
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 text-xs focus:outline-none"
-                onKeyPress={handleChatKeyPress}
+                // ✅ SOLUCIÓN: Eliminar onKeyPress para evitar duplicación
+                // onKeyPress={handleChatKeyPress}
                 placeholder="Haz una pregunta..."
               />
               
