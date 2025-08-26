@@ -671,7 +671,7 @@ export const CopilotPanel: React.FC = () => {
     setIsExperienceLoading, 
     setExperienceResult, 
     showError
-  ]);
+  ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showIntro = messages.length === 0;
 

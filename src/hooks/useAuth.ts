@@ -168,7 +168,7 @@ export const useAuth = (): AuthState => {
       infoLog('🔐 useAuth - Desconectando WebSocket (usuario no autenticado)');
       disconnectSocket();
     }
-  }, [isAuthenticated, disconnectSocket, isConnected]); // Dependencias mínimas
+  }, [isAuthenticated, disconnectSocket, isConnected, authStore.loading, authStore.isAuthenticating]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Escuchar eventos de autenticación fallida - OPTIMIZADO
   const handleAuthFailed = useCallback(() => {
