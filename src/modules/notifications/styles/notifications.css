@@ -90,6 +90,8 @@
   padding: var(--notification-spacing-lg);
   border-bottom: 1px solid var(--notification-border-light);
   background-color: var(--notification-bg-primary);
+  position: relative;
+  z-index: 2;
 }
 
 .notification-header-title h1 {
@@ -98,6 +100,8 @@
   color: var(--notification-text-primary);
   margin: 0 0 var(--notification-spacing-xs) 0;
   line-height: 1.2;
+  position: relative;
+  z-index: 1;
 }
 
 .notification-header-title p {
@@ -151,6 +155,7 @@
   margin: var(--notification-spacing-md) 0;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-start;
 }
 
 .notification-control-btn {
@@ -294,6 +299,8 @@
   padding: var(--notification-spacing-sm) var(--notification-spacing-lg);
   background-color: var(--notification-bg-tertiary);
   border-bottom: 1px solid var(--notification-border-light);
+  position: relative;
+  z-index: 0;
 }
 
 .notification-stats-item {
@@ -304,16 +311,18 @@
 
 .notification-stats-badges {
   display: flex;
-  gap: var(--notification-spacing-xs);
+  gap: var(--notification-spacing-sm);
+  align-items: center;
 }
 
 .notification-stats-badge {
-  padding: 0.125rem 0.5rem;
+  padding: 0.25rem 0.75rem;
   border-radius: var(--notification-radius-sm);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.025em;
+  white-space: nowrap;
 }
 
 .notification-stats-badge.new {
