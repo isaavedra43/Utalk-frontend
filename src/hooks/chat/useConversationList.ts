@@ -1,16 +1,15 @@
 import { useMemo, useEffect } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import type { ConversationFilters } from '../../types';
 import { conversationsService } from '../../services/conversations';
 import { useChatStore } from '../../stores/useChatStore';
 import { useAuthContext } from '../../contexts/useAuthContext';
-import { encodeConversationIdForUrl } from '../../utils/conversationUtils';
+// import { encodeConversationIdForUrl } from '../../utils/conversationUtils'; // Removido - no se usa
 import { infoLog } from '../../config/logger';
 
 export const useConversationList = (filters: ConversationFilters = {}) => {
   const { isAuthenticated, loading: authLoading, isAuthenticating } = useAuthContext();
-  const navigate = useNavigate();
   const location = useLocation();
   
   const {
@@ -32,15 +31,7 @@ export const useConversationList = (filters: ConversationFilters = {}) => {
     return conversationId ? decodeURIComponent(conversationId) : null;
   }, [location.search]);
 
-  // Sincronizar URL con conversación seleccionada
-  useEffect(() => {
-    if (activeConversation?.id && activeConversation.id !== urlConversationId) {
-      const encodedId = encodeConversationIdForUrl(activeConversation.id);
-      const newSearchParams = new URLSearchParams(location.search);
-      newSearchParams.set('conversation', encodedId);
-      navigate(`${location.pathname}?${newSearchParams.toString()}`, { replace: true });
-    }
-  }, [activeConversation?.id, urlConversationId, navigate, location.pathname, location.search]);
+  // REMOVIDO: useEffect movido después de la declaración de allConversations
 
   // Infinite Query para obtener conversaciones - SOLO DESPUÉS DEL LOGIN
   const {
@@ -106,6 +97,18 @@ export const useConversationList = (filters: ConversationFilters = {}) => {
     
     return uniqueConversations;
   }, [conversationsData?.pages, storeConversations]);
+
+  // Sincronizar conversación activa cuando cambie la URL (sin crear bucle)
+  useEffect(() => {
+    if (urlConversationId && urlConversationId !== activeConversation?.id) {
+      // Buscar la conversación en la lista actual
+      const conversation = allConversations.find(c => c.id === urlConversationId);
+      if (conversation) {
+        infoLog('🔄 useConversationList - Sincronizando conversación desde URL:', urlConversationId);
+        setActiveConversation(conversation);
+      }
+    }
+  }, [urlConversationId, activeConversation?.id, allConversations, setActiveConversation]);
 
   // Sincronizar datos de React Query al store solo para carga inicial
   useEffect(() => {
