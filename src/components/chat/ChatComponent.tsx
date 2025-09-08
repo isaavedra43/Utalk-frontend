@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { infoLog } from '../../config/logger';
-import { useLocation } from 'react-router-dom';
+// import { useLocation } from 'react-router-dom'; // Removido - no se usa
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useChat } from '../../hooks/useChat';
@@ -8,7 +8,7 @@ import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { ChatHeader } from './ChatHeader';
 import { TypingIndicator } from './TypingIndicator';
-import { sanitizeConversationId } from '../../utils/conversationUtils';
+// import { sanitizeConversationId } from '../../utils/conversationUtils'; // Removido - no se usa
 import { convertFirebaseTimestamp } from '../../utils/timestampUtils';
 import { useWarningLogger } from '../../hooks/useWarningLogger';
 
@@ -17,31 +17,17 @@ import './ChatComponent.css';
 import { MessageSquare } from 'lucide-react';
 
 export const ChatComponent = ({ conversationId }: { conversationId?: string }) => {
-  const location = useLocation();
   const { logWarningOnce } = useWarningLogger();
   
-  // NUEVO: Obtener conversationId de la URL si no se proporciona uno
-  const [urlConversationId, setUrlConversationId] = useState<string>('');
+  // Usar directamente el conversationId que se pasa como prop
+  const effectiveConversationId = conversationId || '';
   
-  // Escuchar cambios en la URL para actualizar el conversationId
+  // Log para debugging
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const newUrlConversationId = searchParams.get('conversation');
-    if (newUrlConversationId) {
-      const sanitizedId = sanitizeConversationId(decodeURIComponent(newUrlConversationId));
-      infoLog('🔄 ChatComponent - Cambio de conversación detectado:', {
-        urlId: newUrlConversationId,
-        sanitizedId: sanitizedId || '',
-        previousId: urlConversationId
-      });
-      setUrlConversationId(sanitizedId || '');
-    } else {
-      infoLog('🔄 ChatComponent - Sin conversación en URL');
-      setUrlConversationId('');
+    if (effectiveConversationId) {
+      infoLog('🔄 ChatComponent - Conversación activa:', effectiveConversationId);
     }
-  }, [location.search, urlConversationId]);
-  
-  const effectiveConversationId = conversationId || urlConversationId;
+  }, [effectiveConversationId]);
 
   // SIEMPRE llamar useChat primero, sin importar el conversationId
   const {

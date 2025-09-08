@@ -152,7 +152,10 @@ const AuthenticatedChatContent: React.FC = () => {
             
             {/* Contenido del chat */}
             <div className="flex-1 overflow-hidden">
-              <ChatComponent conversationId={conversationsData.activeConversation?.id} />
+              <ChatComponent 
+                key={conversationsData.activeConversation?.id || 'no-conversation'}
+                conversationId={conversationsData.activeConversation?.id} 
+              />
             </div>
           </div>
         );
@@ -308,7 +311,10 @@ const AuthenticatedChatContent: React.FC = () => {
               </div>
             </div>
           ) : (
-            <ChatComponent conversationId={conversationsData.activeConversation?.id} />
+            <ChatComponent 
+              key={conversationsData.activeConversation?.id || 'no-conversation'}
+              conversationId={conversationsData.activeConversation?.id} 
+            />
           )}
         </div>
         
