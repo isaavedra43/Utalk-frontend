@@ -89,7 +89,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({
             {stats.new} NUEVAS
           </span>
           <span className="notification-stats-badge total">
-            {stats.total} TOTAL
+            ({stats.total} TOTAL)
           </span>
         </div>
       </div>
