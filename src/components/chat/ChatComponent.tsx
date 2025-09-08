@@ -21,15 +21,27 @@ export const ChatComponent = ({ conversationId }: { conversationId?: string }) =
   const { logWarningOnce } = useWarningLogger();
   
   // NUEVO: Obtener conversationId de la URL si no se proporciona uno
-  const effectiveConversationId = conversationId || (() => {
+  const [urlConversationId, setUrlConversationId] = useState<string>('');
+  
+  // Escuchar cambios en la URL para actualizar el conversationId
+  useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
-    const urlConversationId = searchParams.get('conversation');
-    if (urlConversationId) {
-      const sanitizedId = sanitizeConversationId(decodeURIComponent(urlConversationId));
-      return sanitizedId || '';
+    const newUrlConversationId = searchParams.get('conversation');
+    if (newUrlConversationId) {
+      const sanitizedId = sanitizeConversationId(decodeURIComponent(newUrlConversationId));
+      infoLog('🔄 ChatComponent - Cambio de conversación detectado:', {
+        urlId: newUrlConversationId,
+        sanitizedId: sanitizedId || '',
+        previousId: urlConversationId
+      });
+      setUrlConversationId(sanitizedId || '');
+    } else {
+      infoLog('🔄 ChatComponent - Sin conversación en URL');
+      setUrlConversationId('');
     }
-    return '';
-  })();
+  }, [location.search, urlConversationId]);
+  
+  const effectiveConversationId = conversationId || urlConversationId;
 
   // SIEMPRE llamar useChat primero, sin importar el conversationId
   const {
