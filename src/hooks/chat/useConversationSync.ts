@@ -3,6 +3,7 @@ import { useWebSocketContext } from '../../contexts/useWebSocketContext';
 import { useChatStore } from '../../stores/useChatStore';
 import { useAuthContext } from '../../contexts/useAuthContext';
 import { ConversationManager } from '../../services/ConversationManager';
+import { assignmentService } from '../../services/assignments';
 import { infoLog } from '../../config/logger';
 import type { Message, Conversation } from '../../types';
 
@@ -95,6 +96,57 @@ export const useConversationSync = () => {
   
   const { addMessage, updateConversation, addConversation } = useChatStore();
 
+  // NUEVO: Función para asignar conversación a todos los agentes activos
+  const assignToAllActiveAgents = useCallback(async (conversationId: string) => {
+    try {
+      infoLog(`🔄 Asignando conversación ${conversationId} a todos los agentes activos...`);
+      
+      // Obtener todos los agentes activos
+      const activeAgents = await assignmentService.getAvailableAgents();
+      
+      if (activeAgents.length === 0) {
+        infoLog('⚠️ No hay agentes activos disponibles para asignación');
+        return;
+      }
+      
+      infoLog(`👥 Encontrados ${activeAgents.length} agentes activos:`, activeAgents.map(agent => agent.name));
+      
+      // Asignar a cada agente activo
+      const assignmentPromises = activeAgents.map(async (agent) => {
+        try {
+          const result = await assignmentService.assignConversation(
+            conversationId, 
+            agent.email, 
+            agent.role
+          );
+          
+          if (result.success) {
+            infoLog(`✅ Agente ${agent.name} (${agent.email}) asignado exitosamente`);
+          } else {
+            infoLog(`❌ Error asignando agente ${agent.name}: ${result.message}`);
+          }
+          
+          return result;
+        } catch (error) {
+          infoLog(`❌ Error asignando agente ${agent.name}:`, error);
+          return { success: false, error };
+        }
+      });
+      
+      // Esperar a que todas las asignaciones se completen
+      const results = await Promise.allSettled(assignmentPromises);
+      
+      const successful = results.filter(result => 
+        result.status === 'fulfilled' && result.value.success
+      ).length;
+      
+      infoLog(`🎯 Asignación completada: ${successful}/${activeAgents.length} agentes asignados exitosamente`);
+      
+    } catch (error) {
+      infoLog('❌ Error en asignación automática a agentes:', error);
+    }
+  }, []);
+
   // Usar singleton mejorado para controlar estado global
   const manager = useMemo(() => {
     const instance = ConversationManager.getInstance();
@@ -173,41 +225,17 @@ export const useConversationSync = () => {
           }
         }
 
-        // NUEVO: Si es una conversación nueva, crearla en lugar de actualizarla
-        if (data.isNewConversation) {
-          // Crear nueva conversación con los datos del mensaje
-          const newConversation: Conversation = {
-            id: data.conversationId,
-            customerName: contactInfo?.profileName || 'Cliente sin nombre',
-            customerPhone: contactInfo?.phoneNumber || data.message.senderIdentifier || 'unknown',
-            contact: {
-              name: contactInfo?.profileName || 'Cliente sin nombre',
-              phoneNumber: contactInfo?.phoneNumber || data.message.senderIdentifier || 'unknown'
-            },
-            status: 'open',
-            messageCount: 1,
-            unreadCount: 1,
-            participants: [data.message.senderIdentifier || 'unknown', 'admin@company.com'],
-            tenantId: 'default_tenant',
-            workspaceId: 'default_workspace',
-            createdAt: validatedMessage.createdAt,
-            updatedAt: validatedMessage.createdAt,
-            lastMessageAt: validatedMessage.createdAt,
-            lastMessage,
-            priority: 'medium',
-            tags: []
-          };
-          
-          addConversation(newConversation);
-          infoLog(`🆕 Nueva conversación creada: ${data.conversationId}`);
-        } else {
+        // SOLUCIONADO: NO crear conversaciones nuevas aquí para evitar duplicación
+        // Solo actualizar conversaciones existentes
+        if (!data.isNewConversation) {
           updateConversation(data.conversationId, conversationUpdates);
+          infoLog(`📨 Mensaje de WebSocket procesado: ${data.conversationId} - ${validatedMessage.content.substring(0, 50)}...`);
+        } else {
+          infoLog(`🔄 Conversación nueva detectada en WebSocket, delegando a webhook handler: ${data.conversationId}`);
         }
-        
-        infoLog(`📨 Mensaje de WebSocket procesado: ${data.conversationId} - ${validatedMessage.content.substring(0, 50)}...`);
       }
     }
-  }, [addMessage, updateConversation, addConversation]);
+  }, [addMessage, updateConversation]);
 
   const handleMessageRead = useCallback((eventData: unknown) => {
     if (import.meta.env.DEV) {
@@ -326,6 +354,9 @@ export const useConversationSync = () => {
           
           addConversation(newConversation);
           infoLog(`🆕 Nueva conversación creada: ${data.conversationId}`);
+          
+          // NUEVO: Asignar automáticamente a todos los agentes activos
+          assignToAllActiveAgents(data.conversationId);
         } else {
           updateConversation(data.conversationId, conversationUpdates);
         }
@@ -333,7 +364,7 @@ export const useConversationSync = () => {
         infoLog(`🎯 Mensaje de webhook procesado: ${data.conversationId} - ${validatedMessage.content.substring(0, 50)}...`);
       }
     }
-  }, [addMessage, updateConversation, addConversation]);
+  }, [addMessage, updateConversation, addConversation, assignToAllActiveAgents]);
 
   // ESCUCHAR EVENTOS DE CONVERSACIÓN - OPTIMIZADO PARA EVITAR RECONEXIONES
   useEffect(() => {
