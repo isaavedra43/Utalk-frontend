@@ -3,75 +3,7 @@ import type { Conversation, ConversationFilters } from '../types';
 import type { ConversationContact } from '../types/conversation';
 import { sanitizeConversationId, logConversationId, encodeConversationIdForUrl } from '../utils/conversationUtils';
 
-// Mock de datos para desarrollo según la nueva estructura del backend
-const mockConversations = [
-  {
-    id: 'conv_+524773790184_+5214793176502',
-    customerPhone: '+524773790184',
-    contact: {
-      name: 'Isra',
-      phoneNumber: '+524773790184'
-    },
-    lastMessage: {
-      id: 'msg-1',
-      content: 'Hola, necesito información sobre el producto',
-      type: 'text',
-      timestamp: '2025-08-21T17:30:00.000Z',
-      direction: 'inbound',
-      status: 'sent'
-    },
-    lastMessageAt: '2025-08-21T17:30:00.000Z',
-    unreadCount: 2,
-    status: 'open',
-    assignedTo: 'admin@company.com',
-    participants: ['+524773790184', 'admin@company.com', 'agent:admin@company.com', 'whatsapp:+524773790184'],
-    createdAt: '2025-08-21T17:00:00.000Z',
-    updatedAt: '2025-08-21T17:30:00.000Z',
-    priority: 'medium',
-    tags: ['VIP'],
-    // Campos legacy para compatibilidad
-    customerName: 'Isra',
-    messageCount: 5,
-    tenantId: 'default_tenant',
-    workspaceId: 'default_workspace',
-    assignedToName: null,
-    createdBy: 'admin@company.com',
-    metadata: {}
-  },
-  {
-    id: 'conv_+524773790185_+5214793176502',
-    customerPhone: '+524773790185',
-    contact: {
-      name: 'María González',
-      phoneNumber: '+524773790185'
-    },
-    lastMessage: {
-      id: 'msg-2',
-      content: 'Gracias por la información',
-      type: 'text',
-      timestamp: '2025-08-21T16:45:00.000Z',
-      direction: 'outbound',
-      status: 'sent'
-    },
-    lastMessageAt: '2025-08-21T16:45:00.000Z',
-    unreadCount: 0,
-    status: 'open',
-    assignedTo: 'admin@company.com',
-    participants: ['+524773790185', 'admin@company.com', 'agent:admin@company.com', 'whatsapp:+524773790185'],
-    createdAt: '2025-08-21T16:00:00.000Z',
-    updatedAt: '2025-08-21T16:45:00.000Z',
-    priority: 'low',
-    tags: [],
-    // Campos legacy para compatibilidad
-    customerName: 'María González',
-    messageCount: 3,
-    tenantId: 'default_tenant',
-    workspaceId: 'default_workspace',
-    assignedToName: null,
-    createdBy: 'admin@company.com',
-    metadata: {}
-  }
-];
+// Datos mock removidos - usando datos reales del backend
 
 // Tipo para respuesta de lista de conversaciones
 interface ConversationListResponse {
@@ -157,12 +89,12 @@ export const conversationsService = {
       // Mapear la respuesta del backend al formato esperado por el frontend
       backendData = response.data as BackendResponse;
     } catch (error) {
-      console.warn('⚠️ API no disponible, usando datos mock:', error);
+      console.warn('⚠️ Error obteniendo conversaciones del backend:', error);
       
-      // Usar datos mock si la API falla
+      // Retornar lista vacía en lugar de datos mock
       return {
-        conversations: mockConversations as unknown as Conversation[],
-        total: mockConversations.length,
+        conversations: [],
+        total: 0,
         page: parseInt(params.page),
         limit: parseInt(params.limit),
         hasMore: false

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import type { Contact } from '../types';
-import { contactsService, mockContacts } from '../services/contacts';
+import { contactsService } from '../services/contacts';
 import { infoLog } from '../config/logger';
 
 export const useContacts = (filters: {
@@ -25,10 +25,10 @@ export const useContacts = (filters: {
       page: currentPage,
       limit: filters.limit || 20
     }),
-    // Por ahora usar datos mock mientras no hay backend
+    // Usar datos reales del backend
     initialData: {
-      contacts: mockContacts,
-      total: mockContacts.length,
+      contacts: [],
+      total: 0,
       page: 1,
       limit: 20,
       hasMore: false

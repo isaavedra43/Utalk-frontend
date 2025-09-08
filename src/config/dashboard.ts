@@ -3,7 +3,7 @@
 export const DASHBOARD_CONFIG = {
   // Configuración de datos
   data: {
-    useMockData: true, // Cambiar a false para datos reales
+    useMockData: false, // Usar datos reales del backend
     refreshInterval: 30000, // 30 segundos
     cacheTimeout: 5 * 60 * 1000, // 5 minutos
   },
