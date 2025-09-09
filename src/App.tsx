@@ -193,7 +193,9 @@ const InternalChatPage: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <InternalChatModule />
+      <MainLayout>
+        <InternalChatModule />
+      </MainLayout>
     </ErrorBoundary>
   );
 };
@@ -216,7 +218,9 @@ const CampaignsPage: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <CampaignsModule />
+      <MainLayout>
+        <CampaignsModule />
+      </MainLayout>
     </ErrorBoundary>
   );
 };
@@ -239,7 +243,9 @@ const PhonePage: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <PhoneModule />
+      <MainLayout>
+        <PhoneModule />
+      </MainLayout>
     </ErrorBoundary>
   );
 };
@@ -262,7 +268,9 @@ const KnowledgeBasePage: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <KnowledgeBaseModule />
+      <MainLayout>
+        <KnowledgeBaseModule />
+      </MainLayout>
     </ErrorBoundary>
   );
 };
@@ -285,7 +293,9 @@ const HRPage: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <HRModule />
+      <MainLayout>
+        <HRModule />
+      </MainLayout>
     </ErrorBoundary>
   );
 };
@@ -308,7 +318,9 @@ const SupervisionPage: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <SupervisionModule />
+      <MainLayout>
+        <SupervisionModule />
+      </MainLayout>
     </ErrorBoundary>
   );
 };
@@ -331,7 +343,9 @@ const CopilotPage: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <CopilotModule />
+      <MainLayout>
+        <CopilotModule />
+      </MainLayout>
     </ErrorBoundary>
   );
 };
