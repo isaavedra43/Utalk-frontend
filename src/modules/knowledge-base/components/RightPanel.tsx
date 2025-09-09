@@ -128,6 +128,7 @@ export function RightPanel({
         updatedAt: new Date()
       },
       reactions: [],
+      replies: [],
       isEdited: false,
       isDeleted: false,
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2),
@@ -162,6 +163,7 @@ export function RightPanel({
         updatedAt: new Date()
       },
       reactions: [],
+      replies: [],
       isEdited: false,
       isDeleted: false,
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1),
@@ -203,7 +205,7 @@ export function RightPanel({
     {
       id: '2',
       resourceId: resource?.id,
-      type: 'heart',
+      type: 'thumbs-up',
       userId: '2',
       user: {
         id: '2',

@@ -585,7 +585,7 @@ export const Softphone: React.FC<SoftphoneProps> = ({
                 {state.isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
               </Button>
               <Button
-                variant={state.isOnHold ? "secondary" : "outline"}
+                variant={state.isOnHold ? "default" : "outline"}
                 size="lg"
                 onClick={handleHold}
               >

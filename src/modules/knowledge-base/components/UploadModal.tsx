@@ -122,7 +122,11 @@ export function UploadModal({ onClose, onUpload }: UploadModalProps) {
         totalDownloads: 89,
         averageRating: 4.6,
         lastActivity: new Date(),
-        growthRate: 0.15
+        growthRate: 0.15,
+        topResources: [],
+        topUsers: [],
+        userEngagement: [],
+        dailyStats: []
       },
       children: [],
       createdAt: new Date(),
@@ -157,7 +161,11 @@ export function UploadModal({ onClose, onUpload }: UploadModalProps) {
         totalDownloads: 156,
         averageRating: 4.4,
         lastActivity: new Date(),
-        growthRate: 0.22
+        growthRate: 0.22,
+        topResources: [],
+        topUsers: [],
+        userEngagement: [],
+        dailyStats: []
       },
       children: [],
       createdAt: new Date(),
@@ -192,7 +200,11 @@ export function UploadModal({ onClose, onUpload }: UploadModalProps) {
         totalDownloads: 67,
         averageRating: 4.7,
         lastActivity: new Date(),
-        growthRate: 0.18
+        growthRate: 0.18,
+        topResources: [],
+        topUsers: [],
+        userEngagement: [],
+        dailyStats: []
       },
       children: [],
       createdAt: new Date(),

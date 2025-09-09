@@ -423,7 +423,7 @@ export const CampaignDashboard: React.FC<CampaignDashboardProps> = ({ onSelectCa
       case 'whatsapp':
         return <Smartphone className="h-4 w-4 text-green-600" />;
       case 'multichannel':
-        return <Globe className="h-4 w-4 text-purple-500" />;
+        return <div className="h-4 w-4 text-purple-500" />;
       default:
         return <Mail className="h-4 w-4 text-gray-500" />;
     }

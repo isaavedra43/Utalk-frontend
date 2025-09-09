@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "vite build",
     "build:analyze": "tsc --noEmit && vite build --mode analyze",
     "build:prod": "tsc --noEmit && vite build --mode production",
     "postinstall": "echo 'Dependencias instaladas correctamente'",

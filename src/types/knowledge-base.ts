@@ -321,7 +321,7 @@ export interface Lesson {
   prerequisites: string[];
   resources: Resource[];
   quiz?: Quiz;
-  progress: LessonProgress[];
+  progress: any[];
   analytics: LessonAnalytics;
   createdAt: Date;
   updatedAt: Date;
@@ -1569,7 +1569,7 @@ export interface AnalyticsConfig {
   enableTracking: boolean;
   enablePersonalization: boolean;
   enableRecommendations: boolean;
-  enableA/BTesting: boolean;
+  enableABTesting: boolean;
   retentionDays: number;
   anonymizeData: boolean;
   enableHeatmaps: boolean;

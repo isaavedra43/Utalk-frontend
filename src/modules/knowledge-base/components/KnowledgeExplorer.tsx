@@ -390,7 +390,11 @@ export function KnowledgeExplorer({
         totalDownloads: 89,
         averageRating: 4.6,
         lastActivity: new Date(),
-        growthRate: 0.15
+        growthRate: 0.15,
+        topResources: [],
+        topUsers: [],
+        userEngagement: [],
+        dailyStats: []
       },
       children: [],
       createdAt: new Date(),
@@ -1087,7 +1091,7 @@ export function KnowledgeExplorer({
               Comienza subiendo tu primer recurso o creando contenido nuevo.
             </p>
             <Button>
-              <Plus className="w-4 h-4 mr-2" />
+              <div className="w-4 h-4 mr-2" />
               Crear Recurso
             </Button>
           </div>

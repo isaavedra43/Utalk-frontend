@@ -27,7 +27,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         <p className="text-gray-600 mt-1">Configuración del sistema de llamadas</p>
       </div>
 
-      <Tabs defaultValue="numbers" className="space-y-6">
+      <Tabs value="numbers" onValueChange={() => {}} className="space-y-6">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="numbers">Números</TabsTrigger>
           <TabsTrigger value="ivr">IVR</TabsTrigger>
