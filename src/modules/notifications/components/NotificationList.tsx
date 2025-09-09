@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Search, Filter, Check, Pause, Settings, Refresh, Mail } from 'lucide-react';
+import { Bell, Search, Filter, Check, Pause, Settings, RotateCcw, Mail } from 'lucide-react';
 
 interface Notification {
   id: string;
@@ -142,7 +142,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
                 <Settings size={16} />
               </button>
               <button className="action-btn" title="Actualizar">
-                <Refresh size={16} />
+                <RotateCcw size={16} />
               </button>
               <button className="email-btn">
                 <Mail size={16} />
