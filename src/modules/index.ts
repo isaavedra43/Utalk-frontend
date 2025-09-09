@@ -25,4 +25,10 @@ export { KnowledgeBaseModule } from './knowledge-base';
 export { HRModule } from './hr';
 export { SupervisionModule } from './supervision';
 export { CopilotModule } from './copilot';
+
+// Exportar módulos adicionales
+export { ProvidersModule } from './providers';
+export { WarehouseModule } from './warehouse';
+export { ShippingModule } from './shipping';
+export { ServicesModule } from './services';
  

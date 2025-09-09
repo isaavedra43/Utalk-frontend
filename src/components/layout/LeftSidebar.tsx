@@ -15,7 +15,11 @@ import {
   BookOpen,
   UserCheck,
   Eye,
-  Bot
+  Bot,
+  Truck,
+  Warehouse,
+  Package,
+  Settings
 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/useAuthContext';
 import { infoLog } from '../../config/logger';
@@ -117,6 +121,26 @@ export const LeftSidebar: React.FC = () => {
       id: 'copilot',
       icon: Bot,
       title: 'Copiloto IA'
+    },
+    {
+      id: 'providers',
+      icon: Truck,
+      title: 'Proveedores'
+    },
+    {
+      id: 'warehouse',
+      icon: Warehouse,
+      title: 'Almacén'
+    },
+    {
+      id: 'shipping',
+      icon: Package,
+      title: 'Envíos'
+    },
+    {
+      id: 'services',
+      icon: Settings,
+      title: 'Servicios'
     }
   ], []);
 
