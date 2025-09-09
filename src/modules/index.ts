@@ -15,4 +15,14 @@ export { DashboardModule } from './dashboard';
 export { TeamModule } from './team';
 
 // Exportar módulo de notificaciones
+export { NotificationsModule } from './notifications';
+
+// Exportar nuevos módulos
+export { InternalChatModule } from './internal-chat';
+export { CampaignsModule } from './campaigns';
+export { PhoneModule } from './phone';
+export { KnowledgeBaseModule } from './knowledge-base';
+export { HRModule } from './hr';
+export { SupervisionModule } from './supervision';
+export { CopilotModule } from './copilot';
  

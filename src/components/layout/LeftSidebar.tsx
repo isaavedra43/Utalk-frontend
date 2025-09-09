@@ -8,7 +8,14 @@ import {
   LogOut,
   Building2,
   Bell,
-  Download
+  Download,
+  MessageCircle,
+  Megaphone,
+  Phone,
+  BookOpen,
+  UserCheck,
+  Eye,
+  Bot
 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/useAuthContext';
 import { infoLog } from '../../config/logger';
@@ -75,6 +82,41 @@ export const LeftSidebar: React.FC = () => {
       id: 'chat',
       icon: MessageSquare,
       title: 'Mensajes'
+    },
+    {
+      id: 'internal-chat',
+      icon: MessageCircle,
+      title: 'Chat Interno'
+    },
+    {
+      id: 'campaigns',
+      icon: Megaphone,
+      title: 'Campañas'
+    },
+    {
+      id: 'phone',
+      icon: Phone,
+      title: 'Teléfono'
+    },
+    {
+      id: 'knowledge-base',
+      icon: BookOpen,
+      title: 'Base de Conocimiento'
+    },
+    {
+      id: 'hr',
+      icon: UserCheck,
+      title: 'Recursos Humanos'
+    },
+    {
+      id: 'supervision',
+      icon: Eye,
+      title: 'Supervisión'
+    },
+    {
+      id: 'copilot',
+      icon: Bot,
+      title: 'Copiloto IA'
     }
   ], []);
 

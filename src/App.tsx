@@ -8,6 +8,15 @@ import { ForgotPasswordForm } from './modules/auth/components/ForgotPasswordForm
 import { MainLayout } from './components/layout/MainLayout'
 import { ErrorBoundary } from './components/dashboard/ErrorBoundary'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { 
+  InternalChatModule, 
+  CampaignsModule, 
+  PhoneModule, 
+  KnowledgeBaseModule, 
+  HRModule, 
+  SupervisionModule, 
+  CopilotModule 
+} from './modules'
 
 import { useAuthContext } from './contexts/useAuthContext'
 
@@ -165,6 +174,168 @@ const NotificationsPage: React.FC = () => {
   );
 };
 
+// Componentes para los nuevos módulos
+const InternalChatPage: React.FC = () => {
+  const { isAuthenticated, loading } = useAuthContext();
+  
+  if (loading || !isAuthenticated) {
+    return (
+      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Cargando chat interno...
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <InternalChatModule />
+    </ErrorBoundary>
+  );
+};
+
+const CampaignsPage: React.FC = () => {
+  const { isAuthenticated, loading } = useAuthContext();
+  
+  if (loading || !isAuthenticated) {
+    return (
+      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Cargando campañas...
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <CampaignsModule />
+    </ErrorBoundary>
+  );
+};
+
+const PhonePage: React.FC = () => {
+  const { isAuthenticated, loading } = useAuthContext();
+  
+  if (loading || !isAuthenticated) {
+    return (
+      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Cargando teléfono...
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <PhoneModule />
+    </ErrorBoundary>
+  );
+};
+
+const KnowledgeBasePage: React.FC = () => {
+  const { isAuthenticated, loading } = useAuthContext();
+  
+  if (loading || !isAuthenticated) {
+    return (
+      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Cargando base de conocimiento...
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <KnowledgeBaseModule />
+    </ErrorBoundary>
+  );
+};
+
+const HRPage: React.FC = () => {
+  const { isAuthenticated, loading } = useAuthContext();
+  
+  if (loading || !isAuthenticated) {
+    return (
+      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Cargando recursos humanos...
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <HRModule />
+    </ErrorBoundary>
+  );
+};
+
+const SupervisionPage: React.FC = () => {
+  const { isAuthenticated, loading } = useAuthContext();
+  
+  if (loading || !isAuthenticated) {
+    return (
+      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Cargando supervisión...
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <SupervisionModule />
+    </ErrorBoundary>
+  );
+};
+
+const CopilotPage: React.FC = () => {
+  const { isAuthenticated, loading } = useAuthContext();
+  
+  if (loading || !isAuthenticated) {
+    return (
+      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Cargando copiloto...
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <CopilotModule />
+    </ErrorBoundary>
+  );
+};
+
 function App() {
   console.log('🔍 App - Componente App renderizado');
 
@@ -223,6 +394,76 @@ function App() {
                     <AuthProtectedRoute>
                       <ProtectedRoute moduleId="notifications">
                         <NotificationsPage />
+                      </ProtectedRoute>
+                    </AuthProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/internal-chat" 
+                  element={
+                    <AuthProtectedRoute>
+                      <ProtectedRoute moduleId="internal-chat">
+                        <InternalChatPage />
+                      </ProtectedRoute>
+                    </AuthProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/campaigns" 
+                  element={
+                    <AuthProtectedRoute>
+                      <ProtectedRoute moduleId="campaigns">
+                        <CampaignsPage />
+                      </ProtectedRoute>
+                    </AuthProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/phone" 
+                  element={
+                    <AuthProtectedRoute>
+                      <ProtectedRoute moduleId="phone">
+                        <PhonePage />
+                      </ProtectedRoute>
+                    </AuthProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/knowledge-base" 
+                  element={
+                    <AuthProtectedRoute>
+                      <ProtectedRoute moduleId="knowledge-base">
+                        <KnowledgeBasePage />
+                      </ProtectedRoute>
+                    </AuthProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/hr" 
+                  element={
+                    <AuthProtectedRoute>
+                      <ProtectedRoute moduleId="hr">
+                        <HRPage />
+                      </ProtectedRoute>
+                    </AuthProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/supervision" 
+                  element={
+                    <AuthProtectedRoute>
+                      <ProtectedRoute moduleId="supervision">
+                        <SupervisionPage />
+                      </ProtectedRoute>
+                    </AuthProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/copilot" 
+                  element={
+                    <AuthProtectedRoute>
+                      <ProtectedRoute moduleId="copilot">
+                        <CopilotPage />
                       </ProtectedRoute>
                     </AuthProtectedRoute>
                   } 
