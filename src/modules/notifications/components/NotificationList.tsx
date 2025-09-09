@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Search, Filter, Check, Pause, Settings, RotateCcw, Mail } from 'lucide-react';
+import { Bell, Search, Filter, Check, Pause, Settings, RotateCcw, Mail, Clock, User, AlertTriangle, MessageSquare, Calendar, Eye } from 'lucide-react';
 
 interface Notification {
   id: string;
@@ -86,147 +86,222 @@ const NotificationList: React.FC<NotificationListProps> = ({
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'conversation': return '💬';
-      case 'meeting': return '📅';
-      case 'urgent': return '⚠️';
-      case 'update': return '👤';
-      default: return '🔔';
+      case 'conversation': return <MessageSquare className="w-5 h-5" />;
+      case 'meeting': return <Calendar className="w-5 h-5" />;
+      case 'urgent': return <AlertTriangle className="w-5 h-5" />;
+      case 'update': return <User className="w-5 h-5" />;
+      default: return <Bell className="w-5 h-5" />;
     }
   };
 
   const getNotificationColor = (type: string) => {
     switch (type) {
-      case 'conversation': return 'border-l-orange-500';
-      case 'meeting': return 'border-l-blue-500';
-      case 'urgent': return 'border-l-red-500';
-      case 'update': return 'border-l-green-500';
-      default: return 'border-l-gray-500';
+      case 'conversation': return 'border-l-orange-500 bg-orange-50';
+      case 'meeting': return 'border-l-blue-500 bg-blue-50';
+      case 'urgent': return 'border-l-red-500 bg-red-50';
+      case 'update': return 'border-l-green-500 bg-green-50';
+      default: return 'border-l-gray-500 bg-gray-50';
+    }
+  };
+
+  const getNotificationIconColor = (type: string) => {
+    switch (type) {
+      case 'conversation': return 'text-orange-600';
+      case 'meeting': return 'text-blue-600';
+      case 'urgent': return 'text-red-600';
+      case 'update': return 'text-green-600';
+      default: return 'text-gray-600';
     }
   };
 
   return (
-    <div className="notification-center">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
-      <div className="notification-header">
-        <div className="header-content">
-          <div className="header-title">
-            <Bell className="header-icon" />
-            <div>
-              <h1>Centro de Notificaciones</h1>
-              <p>Gestiona todas tus notificaciones desde un solo lugar</p>
-            </div>
-          </div>
-          
-          <div className="header-actions">
-            <div className="search-container">
-              <Search className="search-icon" />
-              <input
-                type="text"
-                placeholder="Buscar notificaciones..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="search-input"
-              />
+      <div className="bg-white shadow-lg border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg">
+                <Bell className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Centro de Notificaciones</h1>
+                <p className="text-gray-600 mt-1">Gestiona todas tus notificaciones desde un solo lugar</p>
+              </div>
             </div>
             
-            <div className="action-buttons">
-              <button className="action-btn" title="Filtros">
-                <Filter size={16} />
-              </button>
-              <button className="action-btn" title="Marcar todo leído" onClick={onMarkAllAsRead}>
-                <Check size={16} />
-              </button>
-              <button className="action-btn" title="Pausar">
-                <Pause size={16} />
-              </button>
-              <button className="action-btn" title="Configuración">
-                <Settings size={16} />
-              </button>
-              <button className="action-btn" title="Actualizar">
-                <RotateCcw size={16} />
-              </button>
-              <button className="email-btn">
-                <Mail size={16} />
-                Email
-              </button>
+            <div className="flex items-center space-x-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Buscar notificaciones..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-4 py-3 w-80 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                />
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <button className="p-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200" title="Filtros">
+                  <Filter className="w-5 h-5" />
+                </button>
+                <button className="p-3 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all duration-200" title="Marcar todo leído" onClick={onMarkAllAsRead}>
+                  <Check className="w-5 h-5" />
+                </button>
+                <button className="p-3 text-gray-600 hover:text-yellow-600 hover:bg-yellow-50 rounded-xl transition-all duration-200" title="Pausar">
+                  <Pause className="w-5 h-5" />
+                </button>
+                <button className="p-3 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-all duration-200" title="Configuración">
+                  <Settings className="w-5 h-5" />
+                </button>
+                <button className="p-3 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all duration-200" title="Actualizar">
+                  <RotateCcw className="w-5 h-5" />
+                </button>
+                <button className="flex items-center space-x-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg">
+                  <Mail className="w-5 h-5" />
+                  <span className="font-medium">Email</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Stats Summary */}
-      <div className="stats-summary">
-        <div className="stats-content">
-          <div className="stats-label">
-            <span>Hoy</span>
-          </div>
-          <div className="stats-badges">
-            <span className="badge badge-new">{unreadCount} NUEVAS</span>
-            <span className="badge badge-total">{notifications.length} TOTAL</span>
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Clock className="w-6 h-6 text-blue-600" />
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900">Hoy</h2>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 px-4 py-2 bg-orange-100 rounded-full">
+                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                <span className="text-orange-700 font-semibold text-sm">{unreadCount} NUEVAS</span>
+              </div>
+              <div className="flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-full">
+                <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                <span className="text-gray-700 font-semibold text-sm">{notifications.length} TOTAL</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="filter-tabs">
-        <button 
-          className={`filter-tab ${selectedFilter === 'all' ? 'active' : ''}`}
-          onClick={() => setSelectedFilter('all')}
-        >
-          Todas ({notifications.length})
-        </button>
-        <button 
-          className={`filter-tab ${selectedFilter === 'unread' ? 'active' : ''}`}
-          onClick={() => setSelectedFilter('unread')}
-        >
-          No leídas ({unreadCount})
-        </button>
-        <button 
-          className={`filter-tab ${selectedFilter === 'urgent' ? 'active' : ''}`}
-          onClick={() => setSelectedFilter('urgent')}
-        >
-          Urgentes ({urgentCount})
-        </button>
+      <div className="max-w-7xl mx-auto px-6 pb-6">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+          <div className="flex">
+            <button 
+              className={`flex-1 px-6 py-4 text-center font-medium transition-all duration-200 ${
+                selectedFilter === 'all' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+              onClick={() => setSelectedFilter('all')}
+            >
+              Todas ({notifications.length})
+            </button>
+            <button 
+              className={`flex-1 px-6 py-4 text-center font-medium transition-all duration-200 ${
+                selectedFilter === 'unread' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+              onClick={() => setSelectedFilter('unread')}
+            >
+              No leídas ({unreadCount})
+            </button>
+            <button 
+              className={`flex-1 px-6 py-4 text-center font-medium transition-all duration-200 ${
+                selectedFilter === 'urgent' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+              onClick={() => setSelectedFilter('urgent')}
+            >
+              Urgentes ({urgentCount})
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Notifications List */}
-      <div className="notifications-list">
+      <div className="max-w-7xl mx-auto px-6 pb-8">
         {filteredNotifications.length === 0 ? (
-          <div className="empty-state">
-            <Bell size={48} className="empty-icon" />
-            <h3>No hay notificaciones</h3>
-            <p>No se encontraron notificaciones con los filtros aplicados</p>
+          <div className="bg-white rounded-2xl shadow-lg p-12 text-center border border-gray-100">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Bell className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay notificaciones</h3>
+            <p className="text-gray-600">No se encontraron notificaciones con los filtros aplicados</p>
           </div>
         ) : (
-          filteredNotifications.map((notification) => (
-            <div 
-              key={notification.id} 
-              className={`notification-item ${getNotificationColor(notification.type)} ${!notification.isRead ? 'unread' : ''}`}
-              onClick={() => onNotificationClick?.(notification)}
-            >
-              <div className="notification-content">
-                <div className="notification-icon">
-                  {getNotificationIcon(notification.type)}
-                </div>
-                <div className="notification-details">
-                  <div className="notification-header">
-                    <h3 className="notification-title">{notification.title}</h3>
-                    <span className="notification-time">{notification.time}</span>
-                  </div>
-                  <p className="notification-message">{notification.message}</p>
-                  <div className="notification-source">{notification.source}</div>
-                  <div className="notification-actions">
-                    {notification.actions?.map((action, index) => (
-                      <button key={index} className="action-button">
-                        {action}
-                      </button>
-                    ))}
+          <div className="space-y-4">
+            {filteredNotifications.map((notification) => (
+              <div 
+                key={notification.id} 
+                className={`bg-white rounded-2xl shadow-lg border-l-4 ${getNotificationColor(notification.type)} hover:shadow-xl transition-all duration-300 cursor-pointer group ${
+                  !notification.isRead ? 'ring-2 ring-blue-100' : ''
+                }`}
+                onClick={() => onNotificationClick?.(notification)}
+              >
+                <div className="p-6">
+                  <div className="flex items-start space-x-4">
+                    <div className={`p-3 rounded-xl ${getNotificationColor(notification.type)} ${getNotificationIconColor(notification.type)}`}>
+                      {getNotificationIcon(notification.type)}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors duration-200">
+                            {notification.title}
+                          </h3>
+                          <p className="text-gray-600 mt-1 leading-relaxed">
+                            {notification.message}
+                          </p>
+                          <div className="flex items-center space-x-4 mt-3">
+                            <span className="text-sm text-gray-500 font-medium">
+                              {notification.source}
+                            </span>
+                            <span className="text-sm text-gray-400">
+                              {notification.time}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {!notification.isRead && (
+                          <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0 mt-1"></div>
+                        )}
+                      </div>
+                      
+                      {notification.actions && notification.actions.length > 0 && (
+                        <div className="flex items-center space-x-3 mt-4">
+                          {notification.actions.map((action, index) => (
+                            <button 
+                              key={index} 
+                              className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Handle action
+                              }}
+                            >
+                              {action}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-              {!notification.isRead && <div className="unread-indicator" />}
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </div>
