@@ -59,6 +59,66 @@ const mockNotifications: Notification[] = [
     source: 'Cliente',
     isRead: true,
     actions: ['Ver detalles']
+  },
+  {
+    id: '5',
+    title: 'Nueva oportunidad de venta',
+    message: 'Se ha detectado una nueva oportunidad de venta con María González',
+    time: 'hace 1h',
+    type: 'conversation',
+    source: 'María González (Email)',
+    isRead: false,
+    actions: ['Ver oportunidad', 'Contactar']
+  },
+  {
+    id: '6',
+    title: 'Recordatorio de seguimiento',
+    message: 'Es hora de hacer seguimiento con el cliente Juan Pérez',
+    time: 'hace 2h',
+    type: 'meeting',
+    source: 'Juan Pérez',
+    isRead: false,
+    actions: ['Programar llamada', 'Enviar email']
+  },
+  {
+    id: '7',
+    title: 'Alerta de sistema',
+    message: 'Se ha detectado un problema con la conexión de WhatsApp',
+    time: 'hace 3h',
+    type: 'urgent',
+    source: 'Sistema',
+    isRead: true,
+    actions: ['Verificar', 'Reportar']
+  },
+  {
+    id: '8',
+    title: 'Cliente satisfecho',
+    message: 'El cliente Laura Rodríguez ha calificado el servicio como excelente',
+    time: 'hace 4h',
+    type: 'update',
+    source: 'Laura Rodríguez',
+    isRead: true,
+    actions: ['Ver reseña', 'Agradecer']
+  },
+  {
+    id: '9',
+    title: 'Nueva conversación asignada',
+    message: 'Te han asignado la conversación con Roberto Silva sobre soporte técnico',
+    time: 'hace 5h',
+    type: 'conversation',
+    source: 'Roberto Silva (Chat)',
+    isRead: false,
+    actions: ['Responder', 'Reasignar']
+  },
+  {
+    id: '10',
+    title: 'Reunión cancelada',
+    message: 'La reunión con TechCorp ha sido cancelada por el cliente',
+    time: 'hace 6h',
+    type: 'meeting',
+    source: 'TechCorp',
+    isRead: true,
+    actions: ['Reprogramar', 'Contactar']
   }
 ];
 
@@ -241,7 +301,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
             <p className="text-gray-600">No se encontraron notificaciones con los filtros aplicados</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="max-h-[calc(100vh-400px)] overflow-y-auto space-y-4 pr-2">
             {filteredNotifications.map((notification) => (
               <div 
                 key={notification.id} 
