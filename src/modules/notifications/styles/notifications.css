@@ -296,7 +296,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--notification-spacing-sm) var(--notification-spacing-lg);
+  padding: var(--notification-spacing-lg);
   background-color: var(--notification-bg-tertiary);
   border-bottom: 1px solid var(--notification-border-light);
   position: relative;
@@ -309,6 +309,13 @@
   font-weight: 500;
 }
 
+.notification-stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
 .notification-stats-badges {
   display: flex;
   gap: var(--notification-spacing-sm);
@@ -316,13 +323,15 @@
 }
 
 .notification-stats-badge {
-  padding: 0.25rem 0.75rem;
+  padding: 0.375rem 0.875rem;
   border-radius: var(--notification-radius-sm);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.025em;
   white-space: nowrap;
+  display: inline-block;
+  min-width: fit-content;
 }
 
 .notification-stats-badge.new {

@@ -81,16 +81,16 @@ export const NotificationList: React.FC<NotificationListProps> = ({
 
       {/* Resumen de estadísticas */}
       <div className="notification-stats-summary">
-        <div className="notification-stats-item">
+        <div className="notification-stats-header">
           <span className="notification-stats-label">Hoy</span>
-        </div>
-        <div className="notification-stats-badges">
-          <span className="notification-stats-badge new">
-            {stats.new} NUEVAS
-          </span>
-          <span className="notification-stats-badge total">
-            {stats.total} TOTAL
-          </span>
+          <div className="notification-stats-badges">
+            <span className="notification-stats-badge new">
+              {stats.new} NUEVAS
+            </span>
+            <span className="notification-stats-badge total">
+              {stats.total} TOTAL
+            </span>
+          </div>
         </div>
       </div>
 
