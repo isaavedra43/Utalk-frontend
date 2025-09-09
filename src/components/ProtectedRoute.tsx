@@ -9,12 +9,34 @@ interface ProtectedRouteProps {
   requiredAction?: 'read' | 'write' | 'configure';
 }
 
+// Lista de nuevos módulos que no requieren verificación de permisos
+const NEW_MODULES = [
+  'internal-chat',
+  'campaigns', 
+  'phone',
+  'knowledge-base',
+  'hr',
+  'supervision',
+  'copilot',
+  'providers',
+  'warehouse',
+  'shipping',
+  'services'
+];
+
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   moduleId,
   children,
   fallback,
   requiredAction = 'read'
 }) => {
+  // Para los nuevos módulos, permitir acceso directo sin verificación de permisos
+  if (NEW_MODULES.includes(moduleId)) {
+    infoLog('Acceso directo a nuevo módulo', { moduleId });
+    return <>{children}</>;
+  }
+
+  // Para módulos existentes, usar el sistema de permisos normal
   const { canAccessModule, hasPermission, loading, error } = useModulePermissions();
 
   // Si está cargando, mostrar loading
