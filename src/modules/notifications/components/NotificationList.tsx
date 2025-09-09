@@ -71,17 +71,18 @@ const NotificationList: React.FC<NotificationListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
 
-  const filteredNotifications = notifications.filter(notification => {
-    const matchesSearch = notification.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         notification.message.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredNotifications = (notifications || []).filter(notification => {
+    if (!notification) return false;
+    const matchesSearch = (notification.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (notification.message || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = selectedFilter === 'all' || 
                          (selectedFilter === 'unread' && !notification.isRead) ||
                          (selectedFilter === 'urgent' && notification.type === 'urgent');
     return matchesSearch && matchesFilter;
   });
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-  const urgentCount = notifications.filter(n => n.type === 'urgent').length;
+  const unreadCount = (notifications || []).filter(n => n && !n.isRead).length;
+  const urgentCount = (notifications || []).filter(n => n && n.type === 'urgent').length;
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -215,7 +216,7 @@ const NotificationList: React.FC<NotificationListProps> = ({
                   <p className="notification-message">{notification.message}</p>
                   <div className="notification-source">{notification.source}</div>
                   <div className="notification-actions">
-                    {notification.actions.map((action, index) => (
+                    {notification.actions?.map((action, index) => (
                       <button key={index} className="action-button">
                         {action}
                       </button>
