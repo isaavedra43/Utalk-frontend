@@ -3,7 +3,7 @@ import { Phone, PhoneCall, PhoneIncoming, PhoneOutgoing, Mic, Headphones } from 
 
 const PhoneModule: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50">
+    <div className="min-h-screen bg-white">
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="text-center">
           <div className="w-24 h-24 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-lg">

@@ -12,7 +12,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { 
   InternalChatModule, 
   CampaignsModule, 
-  PhoneModule, 
+  CallsModule, 
   KnowledgeBaseModule, 
   HRModule, 
   SupervisionModule, 
@@ -258,14 +258,7 @@ const PhonePage: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
-        <div className="hidden lg:block">
-          <LeftSidebar />
-        </div>
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <PhoneModule />
-        </div>
-      </div>
+      <MainLayout />
     </ErrorBoundary>
   );
 };

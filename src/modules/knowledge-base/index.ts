@@ -1,1 +1,18 @@
 export { default as KnowledgeBaseModule } from './KnowledgeBaseModule';
+export { KnowledgeExplorer } from './components/KnowledgeExplorer';
+export { RightPanel } from './components/RightPanel';
+export { RAGPanel } from './components/RAGPanel';
+export { UploadModal } from './components/UploadModal';
+export { CreateResourceModal } from './components/CreateResourceModal';
+export { CreateCourseModal } from './components/CreateCourseModal';
+export { CreateCollectionModal } from './components/CreateCollectionModal';
+export { SettingsModal } from './components/SettingsModal';
+export { ShareModal } from './components/ShareModal';
+export { ExportModal } from './components/ExportModal';
+export { SearchModal } from './components/SearchModal';
+export { ResourceViewer } from './components/ResourceViewer';
+export { CourseModule } from './components/CourseModule';
+export { BlogModule } from './components/BlogModule';
+export { NewsModule } from './components/NewsModule';
+export { AnalyticsModule } from './components/AnalyticsModule';
+export { AdminModule } from './components/AdminModule';

@@ -1,0 +1,15 @@
+export { default } from './CallsModule';
+export { default as CallsModule } from './CallsModule';
+export * from './components/CallsDashboard';
+export * from './components/CallsHistory';
+export * from './components/QueuesPanel';
+export * from './components/AgentsPanel';
+export * from './components/VoicemailsPanel';
+export * from './components/CallbacksPanel';
+export * from './components/QAPanel';
+export * from './components/AnalyticsPanel';
+export * from './components/AdminPanel';
+export * from './components/SupervisorPanel';
+export * from './components/Softphone';
+export * from './components/CallTrays';
+export * from './components/NotificationsPanel';

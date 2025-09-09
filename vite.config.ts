@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import autoprefixer from 'autoprefixer';
 import tailwindcss from 'tailwindcss';
+import path from 'path';
 
 // Configuración mínima y estable para producción
 export default defineConfig({
@@ -52,6 +53,11 @@ export default defineConfig({
   css: {
     postcss: {
       plugins: [autoprefixer, tailwindcss]
+    }
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src')
     }
   }
 });

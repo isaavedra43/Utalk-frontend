@@ -1,84 +1,70 @@
-import React from 'react';
-import { MessageSquare, Users, Clock, Zap } from 'lucide-react';
+import React, { useState } from 'react';
+import { InternalChatSidebar } from './components/InternalChatSidebar';
+import { InternalChatHeader } from './components/InternalChatHeader';
+import { InternalChatMessages } from './components/InternalChatMessages';
+import { InternalChatComposer } from './components/InternalChatComposer';
+import { InternalChatRightPanel } from './components/InternalChatRightPanel';
+import { InternalChatProvider } from './context/InternalChatContext';
+import { CopilotPanel } from '../../components/layout/CopilotPanel';
+import './styles/internal-chat.css';
 
 const InternalChatModule: React.FC = () => {
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  const [leftPanelOpen, setLeftPanelOpen] = useState(false);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <div className="max-w-4xl mx-auto px-6 py-12">
-        <div className="text-center">
-          <div className="w-24 h-24 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-lg">
-            <MessageSquare className="w-12 h-12 text-white" />
-          </div>
+    <InternalChatProvider>
+      <div className="flex h-screen bg-gray-50 overflow-hidden">
+        {/* Sidebar izquierdo */}
+        <InternalChatSidebar />
+        
+        {/* Área principal del chat */}
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Header del canal */}
+          <InternalChatHeader 
+            onToggleRightPanel={() => setRightPanelOpen(!rightPanelOpen)}
+            rightPanelOpen={rightPanelOpen}
+            onOpenCopilot={() => setLeftPanelOpen(true)}
+          />
           
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Chat Interno
-          </h1>
-          
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Comunicación interna entre equipos, departamentos y colaboradores. 
-            Mantén a tu equipo conectado y colaborando en tiempo real.
-          </p>
-          
-          <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
-            <div className="flex items-center justify-center mb-6">
-              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
-                <Clock className="w-8 h-8 text-orange-600" />
+          {/* Área de mensajes */}
+          <div className="flex-1 flex min-h-0">
+            {/* Panel izquierdo del Copiloto */}
+            {leftPanelOpen && (
+              <div className="w-96 bg-white border-r border-gray-200 flex flex-col h-full">
+                <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                  <h2 className="text-lg font-semibold text-gray-900">Copiloto IA</h2>
+                  <button
+                    onClick={() => setLeftPanelOpen(false)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  <CopilotPanel />
+                </div>
               </div>
+            )}
+
+            <div className="flex-1 flex flex-col min-h-0">
+              <InternalChatMessages />
+              <InternalChatComposer />
             </div>
             
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-              Próximamente
-            </h2>
-            
-            <p className="text-gray-600 mb-6">
-              Estamos trabajando en esta funcionalidad. Pronto podrás disfrutar de:
-            </p>
-            
-            <div className="grid md:grid-cols-2 gap-6 text-left">
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Users className="w-4 h-4 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Chats de Equipo</h3>
-                  <p className="text-sm text-gray-600">Comunicación por departamentos y proyectos</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Zap className="w-4 h-4 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Mensajes Instantáneos</h3>
-                  <p className="text-sm text-gray-600">Notificaciones en tiempo real</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <MessageSquare className="w-4 h-4 text-purple-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Historial de Conversaciones</h3>
-                  <p className="text-sm text-gray-600">Acceso a mensajes anteriores</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Clock className="w-4 h-4 text-orange-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Estado de Disponibilidad</h3>
-                  <p className="text-sm text-gray-600">Ver quién está en línea</p>
-                </div>
-              </div>
-            </div>
+            {/* Panel derecho */}
+            {rightPanelOpen && (
+              <InternalChatRightPanel 
+                onClose={() => setRightPanelOpen(false)}
+              />
+            )}
           </div>
         </div>
+
       </div>
-    </div>
+    </InternalChatProvider>
   );
 };
 

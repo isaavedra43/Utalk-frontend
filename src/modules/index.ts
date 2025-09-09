@@ -19,10 +19,10 @@ export { NotificationsModule } from './notifications';
 
 // Exportar nuevos módulos
 export { InternalChatModule } from './internal-chat';
-export { CampaignsModule } from './campaigns';
-export { PhoneModule } from './phone';
-export { KnowledgeBaseModule } from './knowledge-base';
-export { HRModule } from './hr';
+export { default as CampaignsModule } from './campaigns/CampaignsModule';
+export { default as HRModule } from './hr/HRModule';
+export { default as CallsModule } from './calls';
+export { default as KnowledgeBaseModule } from './knowledge-base/KnowledgeBaseModule';
 export { SupervisionModule } from './supervision';
 export { CopilotModule } from './copilot';
 

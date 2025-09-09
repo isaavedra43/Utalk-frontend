@@ -9,6 +9,7 @@ const DashboardModule = lazy(() => import('../../modules/dashboard').then(m => (
 const TeamModule = lazy(() => import('../../modules/team/TeamModule').then(m => ({ default: m.default })));
 const ClientModule = lazy(() => import('../../modules/clients/ClientModule').then(m => ({ default: m.ClientModule })));
 const NotificationsModule = lazy(() => import('../../modules/notifications/NotificationsModule').then(m => ({ default: m.default })));
+import { CallsModule } from '../../modules';
 
 import { ModulePlaceholder } from './ModulePlaceholder';
 
@@ -65,6 +66,7 @@ export const MainLayout: React.FC = () => {
     if (path === '/team') return 'team';
     if (path === '/clients') return 'clients';
     if (path === '/notifications') return 'notifications';
+    if (path === '/phone') return 'phone';
     return 'dashboard'; // default
   };
   
@@ -111,8 +113,11 @@ export const MainLayout: React.FC = () => {
             <NotificationsModule />
           </Suspense>
         )}
+        {currentModule === 'phone' && (
+          <CallsModule />
+        )}
 
-        {currentModule !== 'chat' && currentModule !== 'dashboard' && currentModule !== 'team' && currentModule !== 'clients' && currentModule !== 'notifications' && (
+        {currentModule !== 'chat' && currentModule !== 'dashboard' && currentModule !== 'team' && currentModule !== 'clients' && currentModule !== 'notifications' && currentModule !== 'phone' && (
           <ModulePlaceholder moduleName={currentModule} />
         )}
       </div>
