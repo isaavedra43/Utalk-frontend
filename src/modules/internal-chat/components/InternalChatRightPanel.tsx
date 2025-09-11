@@ -52,10 +52,10 @@ export const InternalChatRightPanel: React.FC<InternalChatRightPanelProps> = ({ 
   }
 
   return (
-    <div className="w-[32rem] bg-white border-l border-gray-200 flex flex-col h-full internal-chat-right-panel">
+    <div className="w-full lg:w-[32rem] bg-white border-l border-gray-200 flex flex-col h-full internal-chat-right-panel">
       {/* Header del panel */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">Detalles del Canal</h2>
+      <div className="flex items-center justify-between p-3 lg:p-4 border-b border-gray-200">
+        <h2 className="text-base lg:text-lg font-semibold text-gray-900">Detalles del Canal</h2>
         <button
           onClick={onClose}
           className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
@@ -65,23 +65,23 @@ export const InternalChatRightPanel: React.FC<InternalChatRightPanelProps> = ({ 
       </div>
 
       {/* Tabs de navegación */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-gray-200 overflow-x-auto">
         {tabs.map((tab) => {
           const IconComponent = tab.icon;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 text-sm font-medium transition-colors ${
+              className={`flex-1 min-w-[80px] flex items-center justify-center space-x-1 lg:space-x-2 px-2 lg:px-4 py-3 text-xs lg:text-sm font-medium transition-colors ${
                 activeTab === tab.id
                   ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <IconComponent className="h-4 w-4" />
-              <span>{tab.name}</span>
+              <IconComponent className="h-3 w-3 lg:h-4 lg:w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">{tab.name}</span>
               {tab.badge && (
-                <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                <span className="bg-red-500 text-white text-xs rounded-full px-1 lg:px-2 py-1 min-w-[16px] lg:min-w-[20px] text-center">
                   {tab.badge}
                 </span>
               )}

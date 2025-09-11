@@ -450,26 +450,52 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
 
   return (
     <div className="space-y-6">
+      {/* Título de la vista */}
+      <div className="bg-white p-6 rounded-lg border border-gray-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Empleados</h1>
+            <p className="text-gray-600 mt-1">
+              Gestiona y administra la información de todos los empleados de la empresa
+            </p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+              <span className="text-sm text-gray-600">247 activos</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+              <span className="text-sm text-gray-600">3 pendientes</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+              <span className="text-sm text-gray-600">1 vencido</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Filtros y búsqueda */}
       <div className="bg-white p-4 rounded-lg border border-gray-200">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="relative">
               <input
                 type="text"
                 placeholder="Buscar empleados..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full sm:w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             </div>
             
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <select
                 value={filters.status?.[0] || ''}
                 onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value ? [e.target.value as EmployeeStatus] : undefined }))}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Todos los estados</option>
                 <option value="active">Activo</option>
@@ -481,7 +507,7 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
               <select
                 value={filters.department?.[0] || ''}
                 onChange={(e) => setFilters(prev => ({ ...prev, department: e.target.value ? [e.target.value] : undefined }))}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Todos los departamentos</option>
                 <option value="Marketing">Marketing</option>
@@ -493,7 +519,7 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex items-center space-x-1">
               <button
                 onClick={() => setViewMode('list')}
@@ -513,9 +539,9 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
               </button>
             </div>
 
-            <button className="flex items-center space-x-2 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+            <button className="flex items-center justify-center space-x-2 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
               <Download className="h-4 w-4" />
-              <span>Exportar</span>
+              <span className="hidden sm:inline">Exportar</span>
             </button>
           </div>
         </div>
@@ -531,180 +557,269 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
 
       {/* Lista de empleados */}
       {viewMode === 'list' ? (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        <>
+          {/* Vista móvil - Cards */}
+          <div className="lg:hidden space-y-3">
+            {filteredEmployees.map((employee) => (
+              <div key={employee.id} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
                     <input
                       type="checkbox"
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      checked={selectedEmployees.includes(employee.id)}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedEmployees(filteredEmployees.map(emp => emp.id));
+                          setSelectedEmployees(prev => [...prev, employee.id]);
                         } else {
-                          setSelectedEmployees([]);
+                          setSelectedEmployees(prev => prev.filter(id => id !== employee.id));
                         }
                       }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1"
                     />
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Empleado
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Puesto
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Área
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Sede
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Estado
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Sueldo Base
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    SBC
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Fecha Ingreso
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Saldo Vacaciones
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Incidencias 30d
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Cumplimiento
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredEmployees.map((employee) => (
-                  <tr key={employee.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <input
-                        type="checkbox"
-                        checked={selectedEmployees.includes(employee.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedEmployees(prev => [...prev, employee.id]);
-                          } else {
-                            setSelectedEmployees(prev => prev.filter(id => id !== employee.id));
-                          }
-                        }}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                            <span className="text-white text-sm font-medium">
-                              {employee.firstName.charAt(0)}{employee.lastName.charAt(0)}
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                      <span className="text-white text-lg font-medium">
+                        {employee.firstName.charAt(0)}{employee.lastName.charAt(0)}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-semibold text-gray-900 truncate">
+                        {employee.firstName} {employee.lastName}
+                      </h3>
+                      <p className="text-sm text-gray-500 truncate">{employee.employeeNumber}</p>
+                      <div className="flex items-center mt-1">
+                        <Building2 className="h-4 w-4 text-gray-400 mr-1" />
+                        <span className="text-sm text-gray-600 truncate">{employee.position.department}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => onSelectEmployee(employee)}
+                      className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Ver detalles"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors" title="Editar">
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors" title="Más opciones">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Puesto</p>
+                    <p className="text-sm font-medium text-gray-900 truncate">{employee.position.title}</p>
+                    <p className="text-xs text-gray-500">{employee.position.level}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Estado</p>
+                    <div className="flex items-center space-x-2 mt-1">
+                      {getStatusIcon(employee.status)}
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(employee.status)}`}>
+                        {getStatusText(employee.status)}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Sueldo Base</p>
+                    <div className="flex items-center mt-1">
+                      <DollarSign className="h-4 w-4 text-gray-400 mr-1" />
+                      <span className="text-sm font-medium text-gray-900">{formatCurrency(employee.salary.baseSalary)}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">SBC</p>
+                    <p className="text-sm font-medium text-gray-900">{formatCurrency(employee.sbc)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Fecha Ingreso</p>
+                    <div className="flex items-center mt-1">
+                      <Calendar className="h-4 w-4 text-gray-400 mr-1" />
+                      <span className="text-sm text-gray-900">{formatDate(employee.hireDate)}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Vacaciones</p>
+                    <p className="text-sm font-medium text-gray-900">{employee.vacationBalance} días</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Vista desktop - Tabla completa */}
+          <div className="hidden lg:block bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <div className="inline-block min-w-full align-middle">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="sticky left-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedEmployees(filteredEmployees.map(emp => emp.id));
+                            } else {
+                              setSelectedEmployees([]);
+                            }
+                          }}
+                        />
+                      </th>
+                      <th className="sticky left-12 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10 min-w-[200px]">
+                        Empleado
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
+                        Puesto
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                        Área
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
+                        Estado
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                        Sueldo Base
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
+                        SBC
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                        Fecha Ingreso
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                        Saldo Vacaciones
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                        Incidencias 30d
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                        Cumplimiento
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                        Acciones
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredEmployees.map((employee) => (
+                      <tr key={employee.id} className="hover:bg-gray-50">
+                        <td className="sticky left-0 bg-white px-6 py-4 whitespace-nowrap z-10">
+                          <input
+                            type="checkbox"
+                            checked={selectedEmployees.includes(employee.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedEmployees(prev => [...prev, employee.id]);
+                              } else {
+                                setSelectedEmployees(prev => prev.filter(id => id !== employee.id));
+                              }
+                            }}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="sticky left-12 bg-white px-6 py-4 whitespace-nowrap z-10">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-10 w-10">
+                              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                                <span className="text-white text-sm font-medium">
+                                  {employee.firstName.charAt(0)}{employee.lastName.charAt(0)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">
+                                {employee.firstName} {employee.lastName}
+                              </div>
+                              <div className="text-sm text-gray-500">{employee.employeeNumber}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{employee.position.title}</div>
+                          <div className="text-sm text-gray-500">{employee.position.level}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Building2 className="h-4 w-4 text-gray-400 mr-1" />
+                            <span className="text-sm text-gray-900">{employee.position.department}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center space-x-2">
+                            {getStatusIcon(employee.status)}
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(employee.status)}`}>
+                              {getStatusText(employee.status)}
                             </span>
                           </div>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {employee.firstName} {employee.lastName}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <DollarSign className="h-4 w-4 text-gray-400 mr-1" />
+                            <span className="text-sm text-gray-900">{formatCurrency(employee.salary.baseSalary)}</span>
                           </div>
-                          <div className="text-sm text-gray-500">{employee.employeeNumber}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{employee.position.title}</div>
-                      <div className="text-sm text-gray-500">{employee.position.level}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <Building2 className="h-4 w-4 text-gray-400 mr-1" />
-                        <span className="text-sm text-gray-900">{employee.position.department}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 text-gray-400 mr-1" />
-                        <span className="text-sm text-gray-900">{employee.location.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-2">
-                        {getStatusIcon(employee.status)}
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(employee.status)}`}>
-                          {getStatusText(employee.status)}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <DollarSign className="h-4 w-4 text-gray-400 mr-1" />
-                        <span className="text-sm text-gray-900">{formatCurrency(employee.salary.baseSalary)}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">{formatCurrency(employee.sbc)}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 text-gray-400 mr-1" />
-                        <span className="text-sm text-gray-900">{formatDate(employee.hireDate)}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900">{employee.vacationBalance} días</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        {employee.metrics.incidentsLast30Days > 0 ? (
-                          <AlertTriangle className="h-4 w-4 text-red-500 mr-1" />
-                        ) : (
-                          <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
-                        )}
-                        <span className="text-sm text-gray-900">{employee.metrics.incidentsLast30Days}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <Shield className="h-4 w-4 text-gray-400 mr-1" />
-                        <span className="text-sm text-gray-900">{employee.metrics.documentCompliance}%</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => onSelectEmployee(employee)}
-                          className="text-blue-600 hover:text-blue-900"
-                          title="Ver detalles"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button className="text-gray-600 hover:text-gray-900" title="Editar">
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button className="text-gray-600 hover:text-gray-900" title="Documentos">
-                          <FileText className="h-4 w-4" />
-                        </button>
-                        <button className="text-gray-600 hover:text-gray-900" title="Más opciones">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-900">{formatCurrency(employee.sbc)}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 text-gray-400 mr-1" />
+                            <span className="text-sm text-gray-900">{formatDate(employee.hireDate)}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-900">{employee.vacationBalance} días</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            {employee.metrics.incidentsLast30Days > 0 ? (
+                              <AlertTriangle className="h-4 w-4 text-red-500 mr-1" />
+                            ) : (
+                              <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+                            )}
+                            <span className="text-sm text-gray-900">{employee.metrics.incidentsLast30Days}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Shield className="h-4 w-4 text-gray-400 mr-1" />
+                            <span className="text-sm text-gray-900">{employee.metrics.documentCompliance}%</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => onSelectEmployee(employee)}
+                              className="text-blue-600 hover:text-blue-900"
+                              title="Ver detalles"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button className="text-gray-600 hover:text-gray-900" title="Editar">
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button className="text-gray-600 hover:text-gray-900" title="Documentos">
+                              <FileText className="h-4 w-4" />
+                            </button>
+                            <button className="text-gray-600 hover:text-gray-900" title="Más opciones">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
-        </div>
+        </>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredEmployees.map((employee) => (

@@ -72,6 +72,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { ShareModal } from './components/ShareModal';
 import { ExportModal } from './components/ExportModal';
 import { RAGPanel } from './components/RAGPanel';
+import { MobileMenuButton } from '../../components/layout/MobileMenuButton';
 
 export default function KnowledgeBaseModule() {
   const [state, setState] = useState<KnowledgeBaseState>({
@@ -130,7 +131,7 @@ export default function KnowledgeBaseModule() {
     userRatings: [],
     
     // UI
-    sidebarOpen: true,
+    sidebarOpen: typeof window !== 'undefined' ? window.innerWidth >= 1024 : true,
     rightPanelOpen: false,
     rightPanelTab: 'info',
     selectedResources: [],
@@ -214,6 +215,20 @@ export default function KnowledgeBaseModule() {
       notifications: mockNotifications,
       unreadCount: mockNotifications.filter(n => !n.read).length
     }));
+  }, []);
+
+  // Manejar resize de ventana
+  useEffect(() => {
+    const handleResize = () => {
+      const isDesktop = window.innerWidth >= 1024;
+      setState(prev => ({
+        ...prev,
+        sidebarOpen: isDesktop ? prev.sidebarOpen : false
+      }));
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const handleViewChange = (view: KnowledgeBaseView) => {
@@ -430,9 +445,17 @@ export default function KnowledgeBaseModule() {
   };
 
   return (
-    <div className="flex h-screen bg-white">
+    <div className="h-full bg-white flex">
+      {/* Overlay para móvil */}
+      {state.sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setState(prev => ({ ...prev, sidebarOpen: false }))}
+        />
+      )}
+      
       {/* Sidebar */}
-      <div className={`${state.sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 bg-white border-r border-gray-200 flex flex-col`}>
+      <div className={`${state.sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 bg-white border-r border-gray-200 flex flex-col ${!state.sidebarOpen ? 'lg:flex' : 'flex'} ${state.sidebarOpen ? 'fixed lg:relative z-50 lg:z-auto h-full' : 'hidden lg:flex'}`}>
         {/* Logo */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center space-x-3">
@@ -461,19 +484,26 @@ export default function KnowledgeBaseModule() {
           ].map((item) => (
             <button
               key={item.id}
-              onClick={() => handleViewChange(item.id as KnowledgeBaseView)}
-              className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
+              onClick={() => {
+                handleViewChange(item.id as KnowledgeBaseView);
+                // Cerrar sidebar en móvil después de seleccionar
+                if (window.innerWidth < 1024) {
+                  setState(prev => ({ ...prev, sidebarOpen: false }));
+                }
+              }}
+              className={`w-full flex items-center ${state.sidebarOpen ? 'space-x-3 px-3' : 'justify-center px-2'} py-2 rounded-lg text-left transition-colors ${
                 state.currentView === item.id
                   ? 'bg-blue-100 text-blue-700'
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
+              title={!state.sidebarOpen ? item.label : undefined}
             >
-              <item.icon className="w-5 h-5" />
+              <item.icon className="w-5 h-5 flex-shrink-0" />
               {state.sidebarOpen && (
                 <>
-                  <span className="flex-1">{item.label}</span>
+                  <span className="flex-1 truncate">{item.label}</span>
                   {item.count > 0 && (
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="secondary" className="text-xs flex-shrink-0">
                       {item.count}
                     </Badge>
                   )}
@@ -484,183 +514,86 @@ export default function KnowledgeBaseModule() {
         </nav>
 
         {/* User Profile */}
-        {state.sidebarOpen && state.user && (
+        {state.user && (
           <div className="p-4 border-t border-gray-200">
-            <div className="flex items-center space-x-3">
+            <div className={`flex items-center ${state.sidebarOpen ? 'space-x-3' : 'justify-center'}`}>
               <Avatar className="w-8 h-8">
                 <AvatarImage src={state.user.avatar} />
                 <AvatarFallback>{state.user.name.charAt(0)}</AvatarFallback>
               </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {state.user.name}
-                </p>
-                <p className="text-xs text-gray-600 truncate">
-                  {state.user.role}
-                </p>
-              </div>
-            </div>
+              {state.sidebarOpen && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {state.user.name}
+                  </p>
+                  <p className="text-xs text-gray-600 truncate">
+                    {state.user.role}
+                  </p>
                 </div>
+              )}
+            </div>
+          </div>
         )}
                 </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header móvil */}
+        <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              <MobileMenuButton />
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setState(prev => ({ ...prev, sidebarOpen: !prev.sidebarOpen }))}
+                className="lg:hidden"
               >
                 <Menu className="w-5 h-5" />
               </Button>
-              
-              <div className="flex items-center space-x-2">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {state.currentView === 'explore' && 'Explorar Conocimiento'}
-                  {state.currentView === 'collections' && 'Colecciones'}
-                  {state.currentView === 'courses' && 'Cursos'}
-                  {state.currentView === 'blogs' && 'Blogs'}
-                  {state.currentView === 'news' && 'Noticias'}
-                  {state.currentView === 'analytics' && 'Analítica'}
-                  {state.currentView === 'admin' && 'Administración'}
-                </h2>
-                </div>
-                </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleModalToggle('upload')}
+              >
+                <Upload className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowRAGPanel(true)}
+              >
+                <Bot className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
 
-            <div className="flex items-center space-x-3">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Buscar conocimiento... (Cmd+K)"
-                  className="pl-10 w-80"
-                  value={state.searchQuery}
-                  onChange={(e) => setState(prev => ({ ...prev, searchQuery: e.target.value }))}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleSearch(state.searchQuery);
-                    }
-                  }}
-                />
-              </div>
-              
-              {/* Quick Actions */}
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleModalToggle('upload')}
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Subir
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowRAGPanel(true)}
-                >
-                  <Bot className="w-4 h-4 mr-2" />
-                  Copiloto
-                </Button>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Crear
-                      <ChevronDown className="w-4 h-4 ml-2" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleModalToggle('createResource')}>
-                      <FileText className="w-4 h-4 mr-2" />
-                      Nuevo Recurso
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleModalToggle('createCourse')}>
-                      <GraduationCap className="w-4 h-4 mr-2" />
-                      Nuevo Curso
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleModalToggle('createCollection')}>
-                      <BookOpen className="w-4 h-4 mr-2" />
-                      Nueva Colección
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleModalToggle('createResource')}>
-                      <FileText className="w-4 h-4 mr-2" />
-                      Nuevo Blog
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleModalToggle('createResource')}>
-                      <Newspaper className="w-4 h-4 mr-2" />
-                      Nueva Noticia
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* Notifications */}
-                <Button variant="ghost" size="sm" className="relative">
-                  <Bell className="w-4 h-4" />
-                  {state.unreadCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center text-xs">
-                      {state.unreadCount}
-                    </Badge>
-                  )}
-                </Button>
-
-                {/* User Menu */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <Avatar className="w-6 h-6">
-                        <AvatarImage src={state.user?.avatar} />
-                        <AvatarFallback>{state.user?.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <User className="w-4 h-4 mr-2" />
-                      Perfil
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleModalToggle('settings')}>
-                      <Settings className="w-4 h-4 mr-2" />
-                      Configuración
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      Cerrar Sesión
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-                </div>
-                </div>
-        </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
           <div className="h-full flex">
             {/* Main Content */}
-            <div className="flex-1 overflow-auto">
-              <div className="max-w-[1400px] mx-auto p-6">
+            <div className="flex-1 overflow-y-auto min-w-0">
+              <div className="max-w-[1400px] mx-auto p-4 lg:p-6">
                 {renderContent()}
               </div>
             </div>
 
             {/* Right Panel */}
             {state.rightPanelOpen && (
-              <RightPanel
-                resource={state.currentResource}
-                course={state.currentCourse}
-                collection={state.currentCollection}
-                activeTab={state.rightPanelTab}
-                onTabChange={handleRightPanelTabChange}
-                onClose={() => setState(prev => ({ ...prev, rightPanelOpen: false }))}
-              />
+              <div className="hidden lg:block">
+                <RightPanel
+                  resource={state.currentResource}
+                  course={state.currentCourse}
+                  collection={state.currentCollection}
+                  activeTab={state.rightPanelTab}
+                  onTabChange={handleRightPanelTabChange}
+                  onClose={() => setState(prev => ({ ...prev, rightPanelOpen: false }))}
+                />
+              </div>
             )}
           </div>
         </div>

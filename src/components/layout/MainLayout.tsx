@@ -3,12 +3,24 @@ import { useLocation } from 'react-router-dom';
 import { useUIStore } from '../../stores/useUIStore';
 import { useAuthContext } from '../../contexts/useAuthContext';
 import { LeftSidebar } from './LeftSidebar';
+import { MobileMenu } from './MobileMenu';
+import { useMobileMenuContext } from '../../contexts/MobileMenuContext';
 // Lazy load de módulos
 const ChatModule = lazy(() => import('../chat/ChatModule').then(m => ({ default: m.ChatModule })));
 const DashboardModule = lazy(() => import('../../modules/dashboard').then(m => ({ default: m.DashboardModule })));
 const TeamModule = lazy(() => import('../../modules/team/TeamModule').then(m => ({ default: m.default })));
 const ClientModule = lazy(() => import('../../modules/clients/ClientModule').then(m => ({ default: m.ClientModule })));
 const NotificationsModule = lazy(() => import('../../modules/notifications/NotificationsModule').then(m => ({ default: m.default })));
+const InternalChatModule = lazy(() => import('../../modules/internal-chat/InternalChatModule').then(m => ({ default: m.default })));
+const CampaignsModule = lazy(() => import('../../modules/campaigns/CampaignsModule').then(m => ({ default: m.default })));
+const KnowledgeBaseModule = lazy(() => import('../../modules/knowledge-base/KnowledgeBaseModule').then(m => ({ default: m.default })));
+const HRModule = lazy(() => import('../../modules/hr').then(m => ({ default: m.HRModule })));
+const SupervisionModule = lazy(() => import('../../modules/supervision/SupervisionModule').then(m => ({ default: m.default })));
+const CopilotModule = lazy(() => import('../../modules/copilot/CopilotModule').then(m => ({ default: m.default })));
+const ProvidersModule = lazy(() => import('../../modules/providers/ProvidersModule').then(m => ({ default: m.default })));
+const WarehouseModule = lazy(() => import('../../modules/warehouse/WarehouseModule').then(m => ({ default: m.default })));
+const ShippingModule = lazy(() => import('../../modules/shipping/ShippingModule').then(m => ({ default: m.default })));
+const ServicesModule = lazy(() => import('../../modules/services/ServicesModule').then(m => ({ default: m.default })));
 import { CallsModule } from '../../modules';
 
 import { ModulePlaceholder } from './ModulePlaceholder';
@@ -17,6 +29,7 @@ export const MainLayout: React.FC = () => {
   const location = useLocation();
   const { setCurrentModule } = useUIStore();
   const { isAuthenticated, loading } = useAuthContext();
+  const { isOpen: isMobileMenuOpen, closeMenu: closeMobileMenu } = useMobileMenuContext();
   
   // NUEVO: Protección contra estado de autenticación inválido
   if (loading) {
@@ -66,7 +79,17 @@ export const MainLayout: React.FC = () => {
     if (path === '/team') return 'team';
     if (path === '/clients') return 'clients';
     if (path === '/notifications') return 'notifications';
+    if (path === '/internal-chat') return 'internal-chat';
+    if (path === '/campaigns') return 'campaigns';
     if (path === '/phone') return 'phone';
+    if (path === '/knowledge-base') return 'knowledge-base';
+    if (path === '/hr') return 'hr';
+    if (path === '/supervision') return 'supervision';
+    if (path === '/copilot') return 'copilot';
+    if (path === '/providers') return 'providers';
+    if (path === '/warehouse') return 'warehouse';
+    if (path === '/shipping') return 'shipping';
+    if (path === '/services') return 'services';
     return 'dashboard'; // default
   };
   
@@ -81,10 +104,13 @@ export const MainLayout: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Sidebar izquierdo - Oculto en móviles, visible en desktop */}
-      <div className="hidden lg:block">
+      {/* Sidebar izquierdo - Oculto en móviles, visible en desktop, oculto en knowledge-base */}
+      <div className={`hidden lg:block ${currentModule === 'knowledge-base' ? 'hidden' : ''}`}>
         <LeftSidebar />
       </div>
+      
+      {/* Menú móvil global */}
+      <MobileMenu isOpen={isMobileMenuOpen} onClose={closeMobileMenu} />
       
       {/* Contenido principal */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -113,11 +139,61 @@ export const MainLayout: React.FC = () => {
             <NotificationsModule />
           </Suspense>
         )}
+        {currentModule === 'internal-chat' && (
+          <Suspense fallback={Fallback}>
+            <InternalChatModule />
+          </Suspense>
+        )}
+        {currentModule === 'campaigns' && (
+          <Suspense fallback={Fallback}>
+            <CampaignsModule />
+          </Suspense>
+        )}
         {currentModule === 'phone' && (
           <CallsModule />
         )}
+        {currentModule === 'knowledge-base' && (
+          <Suspense fallback={Fallback}>
+            <KnowledgeBaseModule />
+          </Suspense>
+        )}
+        {currentModule === 'hr' && (
+          <Suspense fallback={Fallback}>
+            <HRModule />
+          </Suspense>
+        )}
+        {currentModule === 'supervision' && (
+          <Suspense fallback={Fallback}>
+            <SupervisionModule />
+          </Suspense>
+        )}
+        {currentModule === 'copilot' && (
+          <Suspense fallback={Fallback}>
+            <CopilotModule />
+          </Suspense>
+        )}
+        {currentModule === 'providers' && (
+          <Suspense fallback={Fallback}>
+            <ProvidersModule />
+          </Suspense>
+        )}
+        {currentModule === 'warehouse' && (
+          <Suspense fallback={Fallback}>
+            <WarehouseModule />
+          </Suspense>
+        )}
+        {currentModule === 'shipping' && (
+          <Suspense fallback={Fallback}>
+            <ShippingModule />
+          </Suspense>
+        )}
+        {currentModule === 'services' && (
+          <Suspense fallback={Fallback}>
+            <ServicesModule />
+          </Suspense>
+        )}
 
-        {currentModule !== 'chat' && currentModule !== 'dashboard' && currentModule !== 'team' && currentModule !== 'clients' && currentModule !== 'notifications' && currentModule !== 'phone' && (
+        {currentModule !== 'chat' && currentModule !== 'dashboard' && currentModule !== 'team' && currentModule !== 'clients' && currentModule !== 'notifications' && currentModule !== 'internal-chat' && currentModule !== 'campaigns' && currentModule !== 'phone' && currentModule !== 'knowledge-base' && currentModule !== 'hr' && currentModule !== 'supervision' && currentModule !== 'copilot' && currentModule !== 'providers' && currentModule !== 'warehouse' && currentModule !== 'shipping' && currentModule !== 'services' && (
           <ModulePlaceholder moduleName={currentModule} />
         )}
       </div>

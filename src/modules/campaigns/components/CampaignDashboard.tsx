@@ -436,78 +436,79 @@ export const CampaignDashboard: React.FC<CampaignDashboardProps> = ({ onSelectCa
   });
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
       {/* Métricas principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+        <div className="bg-white p-4 lg:p-6 rounded-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Campañas Activas</p>
-              <p className="text-2xl font-bold text-gray-900">3</p>
+              <p className="text-xl lg:text-2xl font-bold text-gray-900">3</p>
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <Play className="h-6 w-6 text-green-600" />
+            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <Play className="h-5 w-5 lg:h-6 lg:w-6 text-green-600" />
             </div>
           </div>
-          <div className="mt-4 flex items-center">
+          <div className="mt-3 lg:mt-4 flex items-center">
             <TrendingUp className="h-4 w-4 text-green-500" />
-            <span className="text-sm text-green-600 ml-1">+12% vs mes anterior</span>
+            <span className="text-xs lg:text-sm text-green-600 ml-1">+12% vs mes anterior</span>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
+        <div className="bg-white p-4 lg:p-6 rounded-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Enviados</p>
-              <p className="text-2xl font-bold text-gray-900">61,000</p>
+              <p className="text-xl lg:text-2xl font-bold text-gray-900">61,000</p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Mail className="h-6 w-6 text-blue-600" />
+            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Mail className="h-5 w-5 lg:h-6 lg:w-6 text-blue-600" />
             </div>
           </div>
-          <div className="mt-4 flex items-center">
+          <div className="mt-3 lg:mt-4 flex items-center">
             <TrendingUp className="h-4 w-4 text-green-500" />
-            <span className="text-sm text-green-600 ml-1">+8% vs mes anterior</span>
+            <span className="text-xs lg:text-sm text-green-600 ml-1">+8% vs mes anterior</span>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
+        <div className="bg-white p-4 lg:p-6 rounded-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Tasa de Apertura</p>
-              <p className="text-2xl font-bold text-gray-900">42.3%</p>
+              <p className="text-xl lg:text-2xl font-bold text-gray-900">42.3%</p>
             </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <BarChart3 className="h-6 w-6 text-purple-600" />
+            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+              <BarChart3 className="h-5 w-5 lg:h-6 lg:w-6 text-purple-600" />
             </div>
           </div>
-          <div className="mt-4 flex items-center">
+          <div className="mt-3 lg:mt-4 flex items-center">
             <TrendingUp className="h-4 w-4 text-green-500" />
-            <span className="text-sm text-green-600 ml-1">+2.1% vs mes anterior</span>
+            <span className="text-xs lg:text-sm text-green-600 ml-1">+2.1% vs mes anterior</span>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
+        <div className="bg-white p-4 lg:p-6 rounded-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">ROI Promedio</p>
-              <p className="text-2xl font-bold text-gray-900">4,826%</p>
+              <p className="text-xl lg:text-2xl font-bold text-gray-900">4,826%</p>
             </div>
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <TrendingUp className="h-6 w-6 text-yellow-600" />
+            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+              <TrendingUp className="h-5 w-5 lg:h-6 lg:w-6 text-yellow-600" />
             </div>
           </div>
-          <div className="mt-4 flex items-center">
+          <div className="mt-3 lg:mt-4 flex items-center">
             <TrendingUp className="h-4 w-4 text-green-500" />
-            <span className="text-sm text-green-600 ml-1">+15% vs mes anterior</span>
+            <span className="text-xs lg:text-sm text-green-600 ml-1">+15% vs mes anterior</span>
           </div>
         </div>
       </div>
 
       {/* Filtros y controles */}
       <div className="bg-white p-4 rounded-lg border border-gray-200">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+          {/* Filtros */}
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
             <div className="flex items-center space-x-2">
               <label className="text-sm font-medium text-gray-700">Estado:</label>
               <select
@@ -541,7 +542,8 @@ export const CampaignDashboard: React.FC<CampaignDashboardProps> = ({ onSelectCa
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          {/* Controles */}
+          <div className="flex items-center justify-between lg:justify-end space-x-3">
             <div className="flex items-center space-x-1">
               <button
                 onClick={() => setViewMode('grid')}
@@ -563,7 +565,7 @@ export const CampaignDashboard: React.FC<CampaignDashboardProps> = ({ onSelectCa
 
             <button className="flex items-center space-x-2 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
               <Download className="h-4 w-4" />
-              <span>Exportar</span>
+              <span className="hidden sm:inline">Exportar</span>
             </button>
           </div>
         </div>
@@ -571,20 +573,20 @@ export const CampaignDashboard: React.FC<CampaignDashboardProps> = ({ onSelectCa
 
       {/* Lista de campañas */}
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
           {filteredCampaigns.map((campaign) => (
             <div
               key={campaign.id}
               className="bg-white rounded-lg border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => onSelectCampaign(campaign)}
             >
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">{campaign.name}</h3>
+              <div className="p-4 lg:p-6">
+                <div className="flex items-start justify-between mb-3 lg:mb-4">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base lg:text-lg font-semibold text-gray-900 mb-1 truncate">{campaign.name}</h3>
                     <p className="text-sm text-gray-600 line-clamp-2">{campaign.description}</p>
                   </div>
-                  <div className="flex items-center space-x-1 ml-4">
+                  <div className="flex items-center space-x-1 ml-2 lg:ml-4 flex-shrink-0">
                     {getStatusIcon(campaign.status)}
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(campaign.status)}`}>
                       {campaign.status}
@@ -592,7 +594,7 @@ export const CampaignDashboard: React.FC<CampaignDashboardProps> = ({ onSelectCa
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2 mb-4">
+                <div className="flex items-center space-x-2 mb-3 lg:mb-4 flex-wrap">
                   {campaign.channels.map((channel) => (
                     <div key={channel} className="flex items-center space-x-1">
                       {getChannelIcon(channel)}
@@ -601,7 +603,7 @@ export const CampaignDashboard: React.FC<CampaignDashboardProps> = ({ onSelectCa
                   ))}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-2 gap-3 lg:gap-4 mb-3 lg:mb-4">
                   <div>
                     <p className="text-xs text-gray-500">Enviados</p>
                     <p className="text-sm font-semibold text-gray-900">{campaign.metrics.sent.toLocaleString()}</p>

@@ -272,30 +272,30 @@ export const Softphone: React.FC<SoftphoneProps> = ({
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-3 lg:p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Phone className="w-5 h-5 text-white" />
+          <div className="flex items-center space-x-2 lg:space-x-3">
+            <div className="w-7 h-7 lg:w-8 lg:h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Phone className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Softphone</h2>
-              <div className="flex items-center space-x-2">
+              <h2 className="text-base lg:text-lg font-semibold text-gray-900">Softphone</h2>
+              <div className="flex items-center space-x-1 lg:space-x-2">
                 {twilioDevice.isConnected ? (
                   <div className="flex items-center space-x-1">
-                    <Wifi className="w-4 h-4 text-green-600" />
+                    <Wifi className="w-3 h-3 lg:w-4 lg:h-4 text-green-600" />
                     <span className="text-xs text-green-600 font-medium">Conectado</span>
                   </div>
                 ) : (
                   <div className="flex items-center space-x-1">
-                    <WifiOff className="w-4 h-4 text-red-600" />
+                    <WifiOff className="w-3 h-3 lg:w-4 lg:h-4 text-red-600" />
                     <span className="text-xs text-red-600 font-medium">Desconectado</span>
                   </div>
                 )}
                 {state.isConnected && (
-                  <div className="flex items-center space-x-1 ml-2">
+                  <div className="flex items-center space-x-1 ml-1 lg:ml-2">
                     {getSignalIcon()}
-                    <span className="text-xs text-gray-600">En llamada</span>
+                    <span className="text-xs text-gray-600 hidden sm:inline">En llamada</span>
                   </div>
                 )}
               </div>
@@ -313,19 +313,19 @@ export const Softphone: React.FC<SoftphoneProps> = ({
 
       {/* Estado de la llamada */}
       {state.currentCall && (
-        <div className="p-4 bg-blue-50 border-b border-blue-200">
-          <div className="flex items-center justify-between">
-            <div>
+        <div className="p-3 lg:p-4 bg-blue-50 border-b border-blue-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-blue-900">
                 {state.currentCall.direction === 'inbound' ? 'Llamada entrante' : 'Llamada saliente'}
               </p>
-              <p className="text-lg font-semibold text-blue-900">
+              <p className="text-base lg:text-lg font-semibold text-blue-900 truncate">
                 {state.currentCall.direction === 'inbound' ? state.currentCall.from : state.currentCall.to}
               </p>
             </div>
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <p className="text-sm text-blue-700">Duración</p>
-              <p className="text-lg font-semibold text-blue-900">
+              <p className="text-base lg:text-lg font-semibold text-blue-900">
                 {formatTime(Math.floor((Date.now() - state.currentCall.startTime.getTime()) / 1000))}
               </p>
             </div>
@@ -395,20 +395,20 @@ export const Softphone: React.FC<SoftphoneProps> = ({
               </div>
 
               {/* Teclado */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2 lg:gap-3">
                 {[
                   ['1', '2', '3'],
                   ['4', '5', '6'],
                   ['7', '8', '9'],
                   ['*', '0', '#']
                 ].map((row, rowIndex) => (
-                  <div key={rowIndex} className="flex space-x-3">
+                  <div key={rowIndex} className="flex space-x-2 lg:space-x-3">
                     {row.map((digit) => (
                       <Button
                         key={digit}
                         variant="outline"
                         size="lg"
-                        className="flex-1 h-12 text-lg font-mono"
+                        className="flex-1 h-10 lg:h-12 text-base lg:text-lg font-mono"
                         onClick={() => handleDialpadInput(digit)}
                       >
                         {digit}

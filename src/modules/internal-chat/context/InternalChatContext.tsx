@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { 
   InternalChatState, 
   InternalChatActions, 
@@ -168,6 +168,14 @@ const InternalChatContext = createContext<{
 // Provider
 export const InternalChatProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(internalChatReducer, initialState);
+
+  // Efecto para establecer automáticamente el primer canal como activo
+  useEffect(() => {
+    if (state.channels.length > 0 && !state.activeChannel) {
+      // Seleccionar el primer canal como activo si no hay ninguno seleccionado
+      dispatch({ type: 'SET_ACTIVE_CHANNEL', payload: state.channels[0].id });
+    }
+  }, [state.channels, state.activeChannel]);
 
   const actions: InternalChatActions = {
     setActiveChannel: (channelId: string) => {

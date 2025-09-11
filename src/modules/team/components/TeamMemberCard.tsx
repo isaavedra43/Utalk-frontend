@@ -46,7 +46,7 @@ const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
 
   return (
     <div
-      className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
+      className={`p-3 lg:p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
         isSelected
           ? 'border-blue-500 bg-blue-50 shadow-md'
           : 'border-gray-200 hover:border-gray-300 hover:shadow-sm bg-white'
@@ -64,21 +64,21 @@ const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
       aria-selected={isSelected}
     >
       {/* Header con avatar, nombre y menú */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3 lg:mb-4">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+          <div className="w-10 h-10 lg:w-10 lg:h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
             {member.avatar}
           </div>
-          <div>
-            <h3 className="font-medium text-gray-900 text-sm">{member.name}</h3>
+          <div className="min-w-0 flex-1">
+            <h3 className="font-medium text-gray-900 text-sm lg:text-sm truncate">{member.name}</h3>
             <p className="text-xs text-gray-500 capitalize">{member.role}</p>
             {member.email && (
-              <p className="text-xs text-gray-400">{member.email}</p>
+              <p className="text-xs text-gray-400 truncate">{member.email}</p>
             )}
           </div>
         </div>
         <button 
-          className="text-gray-400 hover:text-gray-600 p-1"
+          className="text-gray-400 hover:text-gray-600 p-1 flex-shrink-0"
           aria-label={`Opciones para ${member.name}`}
           aria-haspopup="true"
         >
@@ -88,8 +88,8 @@ const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
         </button>
       </div>
 
-      {/* Permisos */}
-      <div className="mb-4">
+      {/* Permisos - Solo en desktop */}
+      <div className="hidden lg:block mb-4">
         <h4 className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">PERMISOS</h4>
         <div className="grid grid-cols-2 gap-1">
           {Object.entries(member.permissions).map(([permissionName, isActive]) => (
@@ -113,7 +113,7 @@ const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
       {/* Métricas de rendimiento */}
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="bg-gray-50 rounded-lg p-2">
-          <div className="text-lg font-bold text-gray-900">
+          <div className="text-base lg:text-lg font-bold text-gray-900">
             {member.performance.totalChats}
           </div>
           <div className="text-xs text-gray-500 flex items-center justify-center mt-1">
@@ -124,7 +124,7 @@ const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
           </div>
         </div>
         <div className="bg-gray-50 rounded-lg p-2">
-          <div className="text-lg font-bold text-gray-900">
+          <div className="text-base lg:text-lg font-bold text-gray-900">
             {member.performance.csat}
           </div>
           <div className="text-xs text-gray-500 flex items-center justify-center mt-1">
@@ -135,10 +135,28 @@ const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
           </div>
         </div>
         <div className="bg-gray-50 rounded-lg p-2">
-          <div className="text-lg font-bold text-gray-900">
+          <div className="text-base lg:text-lg font-bold text-gray-900">
             {member.performance.conversionRate}%
           </div>
           <div className="text-xs text-gray-500 mt-1">Conv.</div>
+        </div>
+      </div>
+
+      {/* Estado móvil */}
+      <div className="lg:hidden mt-3 pt-3 border-t border-gray-200">
+        <div className="flex items-center justify-between">
+          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+            member.isActive 
+              ? 'bg-green-100 text-green-800' 
+              : 'bg-red-100 text-red-800'
+          }`}>
+            {member.isActive ? 'Activo' : 'Inactivo'}
+          </span>
+          <div className="flex items-center space-x-1">
+            {Object.entries(member.permissions).filter(([_, isActive]) => isActive).map(([permissionName]) => (
+              <div key={permissionName} className="w-2 h-2 bg-blue-500 rounded-full" title={permissionName} />
+            ))}
+          </div>
         </div>
       </div>
     </div>

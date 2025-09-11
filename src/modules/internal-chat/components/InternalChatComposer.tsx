@@ -86,108 +86,83 @@ export const InternalChatComposer: React.FC = () => {
   }
 
   return (
-    <div className="internal-chat-composer p-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Botón de acciones expandibles */}
-        {!showActions && (
-          <div className="flex items-center justify-between mb-4">
+    <div className="mobile-chat-composer">
+      {/* Panel de plantillas */}
+      {showActions && (
+        <div className="templates-panel">
+          <div className="templates-header">
+            <h3>Plantillas de Solicitud</h3>
             <button
-              onClick={() => setShowActions(true)}
-              className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              onClick={() => setShowActions(false)}
+              className="close-button"
             >
-              <Plus className="h-4 w-4" />
-              <span>Acciones</span>
+              ×
             </button>
           </div>
-        )}
-
-        {/* Panel de acciones */}
-        {showActions && (
-          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-900">Plantillas de Solicitud</h3>
-              <button
-                onClick={() => setShowActions(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                ×
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {requestTemplates.map((template) => {
-                const IconComponent = template.icon;
-                return (
-                  <button
-                    key={template.id}
-                    onClick={() => handleTemplateSelect(template.id)}
-                    className="flex items-center space-x-2 p-3 text-left bg-white hover:bg-gray-50 rounded-lg border border-gray-200 transition-colors"
-                  >
-                    <IconComponent className={`h-4 w-4 ${template.color}`} />
-                    <span className="text-sm text-gray-700">{template.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Composer principal */}
-        <div className="flex items-end space-x-3">
-          {/* Botones de acción izquierda */}
-          <div className="flex items-center space-x-2">
-            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-              <Plus className="h-5 w-5" />
-            </button>
-            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-              <Image className="h-5 w-5" />
-            </button>
-            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-              <AtSign className="h-5 w-5" />
-            </button>
-            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-              <Smile className="h-5 w-5" />
-            </button>
-          </div>
-
-          {/* Área de texto */}
-          <div className="flex-1 relative">
-            <textarea
-              ref={textareaRef}
-              value={message}
-              onChange={handleTextareaChange}
-              onKeyPress={handleKeyPress}
-              placeholder="Escribe un mensaje..."
-              className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-hidden"
-              style={{ minHeight: '48px', maxHeight: '120px' }}
-              rows={1}
-            />
-          </div>
-
-          {/* Botones de acción derecha */}
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={handleCopilotClick}
-              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-              title="Copiloto IA"
-            >
-              <Sparkles className="h-5 w-5" />
-            </button>
-            <button
-              onClick={handleSendMessage}
-              disabled={!message.trim()}
-              className="p-2 text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition-colors"
-            >
-              <Send className="h-5 w-5" />
-            </button>
+          
+          <div className="templates-grid">
+            {requestTemplates.map((template) => {
+              const IconComponent = template.icon;
+              return (
+                <button
+                  key={template.id}
+                  onClick={() => handleTemplateSelect(template.id)}
+                  className="template-item"
+                >
+                  <IconComponent className={`h-4 w-4 ${template.color}`} />
+                  <span>{template.name}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
+      )}
 
-        {/* Indicador de canal activo */}
-        <div className="mt-2 text-xs text-gray-500">
-          Enviando a #{activeChannel.name}
-        </div>
+      {/* Botones de acción */}
+      <div className="action-buttons">
+        <button 
+          className="action-btn"
+          onClick={() => setShowActions(true)}
+        >
+          <Plus className="h-4 w-4" />
+        </button>
+        <button className="action-btn">
+          <Image className="h-4 w-4" />
+        </button>
+        <button className="action-btn">
+          <AtSign className="h-4 w-4" />
+        </button>
+        <button className="action-btn">
+          <Smile className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Textbox principal */}
+      <div className="textbox-container">
+        <textarea
+          ref={textareaRef}
+          value={message}
+          onChange={handleTextareaChange}
+          onKeyPress={handleKeyPress}
+          placeholder="Escribe un mensaje..."
+          className="message-textbox"
+          rows={1}
+        />
+        
+        <button
+          onClick={handleSendMessage}
+          disabled={!message.trim()}
+          className="send-button"
+        >
+          <Send className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Indicador de canal */}
+      <div className="channel-indicator">
+        Enviando a #{activeChannel.name}
       </div>
     </div>
   );
 };
+

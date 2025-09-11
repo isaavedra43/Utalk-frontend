@@ -312,26 +312,27 @@ export const CallsHistory: React.FC<CallsHistoryProps> = ({
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center justify-between mb-4">
+      <div className="p-4 lg:p-6 border-b border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 space-y-4 sm:space-y-0">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Historial de Llamadas</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Historial de Llamadas</h1>
+            <p className="text-sm lg:text-base text-gray-600 mt-1">
               {filteredCalls.length} llamadas encontradas
             </p>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 lg:space-x-3">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
+              className="flex-1 sm:flex-none"
             >
               <Filter className="w-4 h-4 mr-2" />
-              Filtros
+              <span className="hidden sm:inline">Filtros</span>
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
               <Download className="w-4 h-4 mr-2" />
-              Exportar
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
           </div>
         </div>
@@ -353,9 +354,9 @@ export const CallsHistory: React.FC<CallsHistoryProps> = ({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="mt-4 p-4 bg-gray-50 rounded-lg"
+            className="mt-4 p-3 lg:p-4 bg-gray-50 rounded-lg"
           >
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700">Dirección</label>
                 <select className="w-full mt-1 p-2 border border-gray-300 rounded-lg">

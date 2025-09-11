@@ -129,8 +129,8 @@ export const ClientList: React.FC<ClientListProps> = ({
   return (
     <div className="bg-white rounded-lg shadow-sm">
       {/* Header de la lista */}
-      <div className="px-6 py-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
+      <div className="px-4 lg:px-6 py-4 border-b border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
           <h2 className="text-lg font-semibold text-gray-900">
             {totalClients} clientes
           </h2>
@@ -142,50 +142,109 @@ export const ClientList: React.FC<ClientListProps> = ({
 
       {/* Contenido de clientes */}
       {currentView === 'list' ? (
-        /* Vista de tabla */
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Cliente
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Estado
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Score
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Win Rate
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Valor
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Estado
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Fecha
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+        <>
+          {/* Vista de tabla - Desktop */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Cliente
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Score
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Win Rate
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Valor
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Fecha
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {clients.map((client) => (
+                  <ClientItem
+                    key={client.id}
+                    client={client}
+                    isSelected={selectedClient?.id === client.id}
+                    onSelect={onClientSelect}
+                    onAction={handleClientAction}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Vista de tarjetas - Mobile */}
+          <div className="lg:hidden">
+            <div className="space-y-3 p-4">
               {clients.map((client) => (
-                <ClientItem
+                <div
                   key={client.id}
-                  client={client}
-                  isSelected={selectedClient?.id === client.id}
-                  onSelect={onClientSelect}
-                  onAction={handleClientAction}
-                />
+                  onClick={() => onClientSelect(client)}
+                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                    selectedClient?.id === client.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 bg-white hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-600 font-medium text-sm">
+                          {client.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-gray-900">{client.name}</h3>
+                        <p className="text-sm text-gray-500">
+                          {client.company || 'Sin empresa'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-gray-900">
+                        {client.aiScore || 0}
+                      </div>
+                      <div className="text-xs text-gray-500">Score</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center space-x-4">
+                      <div>
+                        <span className="text-gray-500">Estado:</span>
+                        <span className={`ml-1 px-2 py-1 rounded-full text-xs font-medium ${
+                          client.status === 'active' 
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {client.status}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-gray-500">
+                      {client.value ? `$${client.value.toLocaleString()}` : 'Sin valor'}
+                    </div>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          </div>
+        </>
       ) : currentView === 'cards' ? (
         /* Vista de tarjetas */
         <ClientCardView
@@ -204,8 +263,8 @@ export const ClientList: React.FC<ClientListProps> = ({
       ) : null}
 
       {/* Paginación */}
-      <div className="px-6 py-4 border-t border-gray-200">
-        <div className="flex items-center justify-between">
+      <div className="px-4 lg:px-6 py-4 border-t border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
           <div className="flex items-center space-x-2">
             <span className="text-sm text-gray-700">
               Mostrar

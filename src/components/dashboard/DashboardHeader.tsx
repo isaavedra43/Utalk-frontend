@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, Star, RefreshCw, Bell } from 'lucide-react';
 import type { DashboardHeader as DashboardHeaderType } from '../../types/dashboard';
+import { MobileMenuButton } from '../layout/MobileMenuButton';
 
 interface DashboardHeaderProps {
   header: DashboardHeaderType;
@@ -26,14 +27,17 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     <div className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
         {/* Lado izquierdo - Saludo y tiempo */}
-        <div className="flex flex-col">
-          <h1 className="text-xl font-semibold text-gray-900">
-            {header.greeting}
-          </h1>
-          <div className="flex items-center space-x-4 text-sm text-gray-500">
-            <span>{header.currentTime}</span>
-            <span>•</span>
-            <span>{header.lastUpdated}</span>
+        <div className="flex items-center space-x-4">
+          <MobileMenuButton />
+          <div className="flex flex-col">
+            <h1 className="text-xl font-semibold text-gray-900">
+              {header.greeting}
+            </h1>
+            <div className="flex items-center space-x-4 text-sm text-gray-500">
+              <span>{header.currentTime}</span>
+              <span>•</span>
+              <span>{header.lastUpdated}</span>
+            </div>
           </div>
         </div>
 

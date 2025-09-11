@@ -14,8 +14,20 @@ import {
   Bell, 
   LayoutDashboard, 
   Building2,
-  Sparkles
+  Sparkles,
+  MessageSquare,
+  MessageCircle,
+  Megaphone,
+  Phone,
+  BookOpen,
+  UserCheck,
+  Eye,
+  Bot,
+  Truck,
+  Warehouse,
+  Package
 } from 'lucide-react';
+import { MobileMenuButton } from '../layout/MobileMenuButton';
 import '../../styles/four-column-layout.css';
 
 // Tipos para las vistas móviles
@@ -24,7 +36,7 @@ type MobileView = 'conversations' | 'chat' | 'details' | 'suggestions';
 // Componente interno para el contenido autenticado
 const AuthenticatedChatContent: React.FC = () => {
   const [mobileView, setMobileView] = useState<MobileView>('conversations');
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  // El menú móvil ahora es global, no local
   
   // UNA sola instancia del hook useConversations
   const conversationsData = useConversations({});
@@ -78,12 +90,7 @@ const AuthenticatedChatContent: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <h1 className="text-lg font-semibold">Conversaciones</h1>
               </div>
-              <button
-                onClick={() => setShowMobileMenu(true)}
-                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
-              >
-                <Menu className="h-5 w-5" />
-              </button>
+              <MobileMenuButton className="bg-white/20 hover:bg-white/30" />
             </div>
             
             {/* Contenido de conversaciones */}
@@ -211,68 +218,13 @@ const AuthenticatedChatContent: React.FC = () => {
     }
   };
 
-  // Menú lateral móvil (para cambiar de módulo si se requiere)
-  const renderMobileMenu = () => {
-    if (!showMobileMenu) return null;
-
-    return (
-      <div className="fixed inset-0 z-50 lg:hidden">
-        {/* Overlay */}
-        <div 
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-          onClick={() => setShowMobileMenu(false)}
-        />
-        
-        {/* Menú */}
-        <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl">
-          <div className="flex flex-col h-full">
-            {/* Header del menú */}
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-              <h2 className="text-lg font-semibold">Menú</h2>
-              <button
-                onClick={() => setShowMobileMenu(false)}
-                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            
-            {/* Navegación del menú */}
-            <div className="flex-1 p-4">
-              <div className="space-y-2">
-                {[
-                  { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-                  { id: 'clients', icon: Building2, label: 'Clientes', path: '/clients' },
-                  { id: 'team', icon: Users, label: 'Equipo', path: '/team' },
-                  { id: 'notifications', icon: Bell, label: 'Notificaciones', path: '/notifications' }
-                ].map((item) => (
-                  <a
-                    key={item.id}
-                    href={item.path}
-                    className="flex items-center justify-between p-4 rounded-xl bg-gray-50 hover:bg-blue-50 transition-colors"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <item.icon className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <span className="font-medium text-gray-900">{item.label}</span>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  // El menú móvil ahora es global, no local
 
   return (
     <div className="h-full flex flex-col">
       {/* Vista móvil estilo WhatsApp */}
       <div className="lg:hidden h-full">
         {renderMobileView()}
-        {renderMobileMenu()}
       </div>
 
       {/* Vista desktop - Layout de 4 columnas */}

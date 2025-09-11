@@ -105,13 +105,13 @@ const TeamModule: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-screen bg-gray-100 overflow-hidden">
       {/* Layout principal con header integrado */}
-      <div className="flex w-full h-full">
+      <div className="flex flex-col lg:flex-row w-full h-full">
         {/* Panel izquierdo - Lista de vendedores */}
-        <div className="w-80 lg:w-96 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+        <div className="w-full lg:w-80 xl:w-96 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
           {/* Header del módulo con búsqueda y filtros */}
-          <div className="p-6 border-b border-gray-200 bg-white">
+          <div className="p-4 lg:p-6 border-b border-gray-200 bg-white">
             <Suspense fallback={<LoadingSpinner />}>
               <TeamHeader 
                 filters={filters}
@@ -142,9 +142,8 @@ const TeamModule: React.FC = () => {
           </div>
         </div>
 
-        {/* Panel central - Detalles del miembro seleccionado */}
-        <div className="flex-1 bg-white flex flex-col min-w-0">
-          
+        {/* Panel central - Detalles del miembro seleccionado - Solo Desktop */}
+        <div className="hidden lg:flex flex-1 bg-white flex-col min-w-0">
           {selectedMember ? (
             <Suspense fallback={<LoadingSpinner />}>
               <TeamMemberDetails 
@@ -171,8 +170,8 @@ const TeamModule: React.FC = () => {
           )}
         </div>
 
-        {/* Panel derecho - Permisos y Coaching */}
-        <div className="w-96 xl:w-[420px] bg-white border-l border-gray-200 flex flex-col flex-shrink-0">
+        {/* Panel derecho - Permisos y Coaching - Solo Desktop */}
+        <div className="hidden lg:flex w-96 xl:w-[420px] bg-white border-l border-gray-200 flex-col flex-shrink-0">
           {selectedMember ? (
             <div className="flex-1 overflow-y-auto scrollbar-medium">
               <Suspense fallback={<LoadingSpinner />}>
@@ -201,6 +200,34 @@ const TeamModule: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Modal móvil para detalles del miembro */}
+      {selectedMember && (
+        <div className="lg:hidden fixed inset-0 z-50 bg-white">
+          <div className="flex flex-col h-full">
+            <Suspense fallback={<LoadingSpinner />}>
+              <TeamMemberDetails 
+                member={selectedMember}
+                onRefresh={refreshTeam}
+                onClose={() => selectMember(null)}
+              />
+            </Suspense>
+            
+            {/* Paneles de permisos y coaching en móvil */}
+            <div className="flex-1 overflow-y-auto bg-gray-50">
+              <Suspense fallback={<LoadingSpinner />}>
+                <PermissionsPanel member={selectedMember} />
+              </Suspense>
+              <Suspense fallback={<LoadingSpinner />}>
+                <CoachingPanel member={selectedMember} />
+              </Suspense>
+              <Suspense fallback={<LoadingSpinner />}>
+                <SuggestedPlan member={selectedMember} />
+              </Suspense>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal para crear nuevo agente */}
       <Suspense fallback={<LoadingSpinner />}>

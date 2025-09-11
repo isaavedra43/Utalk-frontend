@@ -14,7 +14,8 @@ import {
   Factory, 
   Wrench,
   MessageCircle,
-  Hash
+  Hash,
+  X
 } from 'lucide-react';
 import { useInternalChat } from '../context/InternalChatContext';
 import { InternalChannel, DirectMessage } from '../../../types/internal-chat';
@@ -230,14 +231,21 @@ const defaultDirectMessages: DirectMessage[] = [
   },
 ];
 
-export const InternalChatSidebar: React.FC = () => {
+interface InternalChatSidebarProps {
+  onClose?: () => void;
+  onChannelSelect?: (channelId: string) => void;
+}
+
+export const InternalChatSidebar: React.FC<InternalChatSidebarProps> = ({ onClose, onChannelSelect }) => {
   const { state, actions } = useInternalChat();
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateChannelModalOpen, setIsCreateChannelModalOpen] = useState(false);
 
   // Inicializar canales por defecto si no existen
   React.useEffect(() => {
+    console.log('Sidebar: channels length:', state.channels.length);
     if (state.channels.length === 0) {
+      console.log('Sidebar: Creating default channels');
       defaultChannels.forEach(channelData => {
         actions.createChannel(channelData);
       });
@@ -256,8 +264,28 @@ export const InternalChatSidebar: React.FC = () => {
     channel.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  console.log('Sidebar: filteredChannels:', filteredChannels.length);
+  
+  // Usar canales por defecto si no hay canales en el estado
+  const channelsToShow = filteredChannels.length > 0 ? filteredChannels : defaultChannels.map((channel, index) => ({
+    ...channel,
+    id: `default_${index}`,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }));
+
   const handleChannelClick = (channelId: string) => {
     actions.setActiveChannel(channelId);
+    
+    // Si hay función onChannelSelect (móvil), usarla
+    if (onChannelSelect) {
+      onChannelSelect(channelId);
+    }
+    
+    // Cerrar sidebar en móvil después de seleccionar canal
+    if (onClose) {
+      onClose();
+    }
   };
 
   const handleCreateChannel = (channelData: any) => {
@@ -280,7 +308,20 @@ export const InternalChatSidebar: React.FC = () => {
   };
 
   return (
-    <div className="w-80 internal-chat-sidebar flex flex-col h-full">
+    <div className={`${onChannelSelect ? 'w-full' : 'w-80'} internal-chat-sidebar flex flex-col h-full`}>
+      {/* Header móvil */}
+      {onClose && (
+        <div className="lg:hidden flex items-center justify-between p-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Canales</h2>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      )}
+
       {/* Barra de búsqueda */}
       <div className="p-4 border-b border-gray-200">
         <div className="relative">
@@ -311,7 +352,7 @@ export const InternalChatSidebar: React.FC = () => {
           </div>
 
           <div className="space-y-1">
-            {filteredChannels.map((channel) => {
+            {channelsToShow.map((channel) => {
               const IconComponent = channelIcons[channel.icon] || Hash;
               return (
                 <button

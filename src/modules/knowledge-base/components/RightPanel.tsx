@@ -460,7 +460,7 @@ export function RightPanel({
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Información</h3>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Autor</label>
               <div className="flex items-center space-x-2 mt-1">
@@ -502,7 +502,7 @@ export function RightPanel({
 
           {/* File-specific metadata */}
           {resource && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {resource.metadata.fileSize && (
                 <div>
                   <label className="text-sm font-medium text-gray-600 dark:text-gray-400">Tamaño</label>
@@ -825,7 +825,7 @@ export function RightPanel({
       {resource && (
         <div className="space-y-6">
           {/* Overview */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center space-x-2">
@@ -878,7 +878,7 @@ export function RightPanel({
           {/* Engagement */}
           <div className="space-y-4">
             <h4 className="text-md font-semibold">Compromiso</h4>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Tasa de Rebote</span>
@@ -1027,7 +1027,7 @@ export function RightPanel({
   }
 
   return (
-    <div className="w-96 bg-white border-l border-gray-200 flex flex-col h-full">
+    <div className="w-full lg:w-96 bg-white border-l border-gray-200 flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">

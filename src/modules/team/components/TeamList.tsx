@@ -58,8 +58,8 @@ const TeamList: React.FC<TeamListProps> = ({
 
   return (
     <div className="flex-1 flex flex-col h-full">
-      {/* Header de la lista */}
-      <div className="p-4 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+      {/* Header de la lista - Desktop */}
+      <div className="hidden lg:block p-4 border-b border-gray-200 bg-gray-50 flex-shrink-0">
         <h2 className="text-lg font-semibold text-gray-900 mb-2">
           Lista de Agentes
         </h2>
@@ -77,11 +77,24 @@ const TeamList: React.FC<TeamListProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Header de la lista - Mobile */}
+      <div className="lg:hidden px-4 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-gray-900">
+            {totalMembers} miembros del equipo
+          </h2>
+          <div className="flex items-center space-x-3 text-xs text-gray-500">
+            <span>{activeMembers} activos</span>
+            <span>{inactiveMembers} inactivos</span>
+          </div>
+        </div>
+      </div>
       
       {/* Lista de miembros */}
       <div className="flex-1 flex flex-col min-h-0">
         <div className="flex-1 overflow-y-auto scrollbar-medium min-h-0">
-          <div className="p-4 space-y-3">
+          <div className="p-4 lg:p-4 space-y-3">
             {filteredMembers.map((member) => (
               <TeamMemberCard
                 key={member.id}

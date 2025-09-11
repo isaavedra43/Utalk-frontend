@@ -57,7 +57,8 @@ import {
   SignalZero,
   SignalLow,
   SignalMedium,
-  SignalHigh
+  SignalHigh,
+  X
 } from 'lucide-react';
 
 import { Button } from '../../components/ui/button';
@@ -69,6 +70,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '../../components/ui/avatar'
 import { Separator } from '../../components/ui/separator';
 import { Progress } from '../../components/ui/progress';
 import { ScrollArea } from '../../components/ui/scroll-area';
+import { MobileMenuButton } from '../../components/layout/MobileMenuButton';
 
 import {
   CallsState,
@@ -123,6 +125,9 @@ const CallsModule: React.FC = () => {
     supervisorMode: false,
     realTimeUpdates: true
   });
+
+  // Estado del sidebar móvil
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Estado del softphone
   const [softphoneState, setSoftphoneState] = useState<SoftphoneState>({
@@ -382,141 +387,259 @@ const CallsModule: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-white">
-      {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        {/* Logo */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Phone className="w-5 h-5 text-white" />
+    <div className="h-full flex flex-col">
+      {/* Header del módulo */}
+      <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-4">
+        <div className="flex items-center justify-between">
+          {/* Header móvil */}
+          <div className="lg:hidden flex items-center justify-between w-full">
+            <div className="flex items-center space-x-3">
+              <MobileMenuButton />
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <Phone className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold text-gray-900">Llamadas</h1>
+                  <p className="text-sm text-gray-600">UTalk Ultra</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900">Módulo de Llamadas</h1>
-              <p className="text-xs text-gray-600">UTalk Ultra</p>
+            
+            {/* Botón del softphone en móvil */}
+            <Button
+              variant={state.softphoneOpen ? "default" : "outline"}
+              size="sm"
+              onClick={handleSoftphoneToggle}
+              className="flex items-center space-x-2"
+            >
+              <Phone className="w-4 h-4" />
+              <span className="hidden sm:inline">Softphone</span>
+            </Button>
+          </div>
+
+          {/* Header desktop */}
+          <div className="hidden lg:flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <h2 className="text-xl font-semibold text-gray-900">
+                {navigationItems.find(item => item.id === state.currentView)?.label || 'Llamadas'}
+              </h2>
+              {state.realTimeUpdates && (
+                <div className="flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-xs text-gray-600">En vivo</span>
+                </div>
+              )}
             </div>
           </div>
-        </div>
 
-        {/* Navegación */}
-        <nav className="flex-1 p-4 space-y-2">
-          {navigationItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = state.currentView === item.id;
-            
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleViewChange(item.id as CallsView)}
-                className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                  isActive
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
+          <div className="flex items-center space-x-2 lg:space-x-4">
+            {/* Softphone Toggle - Responsive */}
+            <Button
+              variant={state.softphoneOpen ? "default" : "outline"}
+              size="sm"
+              onClick={handleSoftphoneToggle}
+              className="hidden sm:flex"
+            >
+              <Phone className="w-4 h-4 mr-2" />
+              <span className="hidden lg:inline">Softphone</span>
+            </Button>
+
+            {/* Supervisor Mode - Responsive */}
+            {mockUser.permissions.includes('supervisor') && (
+              <Button
+                variant={state.supervisorMode ? "default" : "outline"}
+                size="sm"
+                onClick={handleSupervisorToggle}
+                className="hidden sm:flex"
               >
-                <Icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : item.color}`} />
-                <span className="font-medium">{item.label}</span>
-                {item.id === 'calls' && state.calls.length > 0 && (
-                  <Badge variant="secondary" className="ml-auto">
-                    {state.calls.length}
-                  </Badge>
-                )}
-                {item.id === 'voicemails' && state.voicemails.filter(v => v.status === 'new').length > 0 && (
-                  <Badge variant="destructive" className="ml-auto">
-                    {state.voicemails.filter(v => v.status === 'new').length}
-                  </Badge>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Usuario */}
-        <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center space-x-3">
-            <Avatar className="w-8 h-8">
-              <AvatarImage src={mockUser.avatar} />
-              <AvatarFallback>{mockUser.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {mockUser.name}
-              </p>
-              <p className="text-xs text-gray-600 truncate">
-                {mockUser.role}
-              </p>
-            </div>
+                <Eye className="w-4 h-4 mr-2" />
+                <span className="hidden lg:inline">Supervisor</span>
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Contenido principal */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {navigationItems.find(item => item.id === state.currentView)?.label || 'Llamadas'}
-                </h2>
-                {state.realTimeUpdates && (
-                  <div className="flex items-center space-x-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-xs text-gray-600">En vivo</span>
-                  </div>
-                )}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar izquierdo - Desktop */}
+        <div className="hidden lg:flex w-64 bg-white border-r border-gray-200 flex-col">
+          {/* Logo */}
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Phone className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-gray-900">Módulo de Llamadas</h1>
+                <p className="text-xs text-gray-600">UTalk Ultra</p>
               </div>
             </div>
+          </div>
 
-            <div className="flex items-center space-x-4">
-              {/* Búsqueda */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Buscar llamadas..."
-                  value={state.searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10 w-64"
-                />
-              </div>
-
-
-              {/* Softphone Toggle */}
-              <Button
-                variant={state.softphoneOpen ? "default" : "outline"}
-                size="sm"
-                onClick={handleSoftphoneToggle}
-              >
-                <Phone className="w-4 h-4 mr-2" />
-                Softphone
-              </Button>
-
-              {/* Supervisor Mode */}
-              {mockUser.permissions.includes('supervisor') && (
-                <Button
-                  variant={state.supervisorMode ? "default" : "outline"}
-                  size="sm"
-                  onClick={handleSupervisorToggle}
+          {/* Navegación */}
+          <nav className="flex-1 p-4 space-y-2">
+            {navigationItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = state.currentView === item.id;
+              
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleViewChange(item.id as CallsView)}
+                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                    isActive
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
                 >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Supervisor
-                </Button>
-              )}
+                  <Icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : item.color}`} />
+                  <span className="font-medium">{item.label}</span>
+                  {item.id === 'calls' && state.calls.length > 0 && (
+                    <Badge variant="secondary" className="ml-auto">
+                      {state.calls.length}
+                    </Badge>
+                  )}
+                  {item.id === 'voicemails' && state.voicemails.filter(v => v.status === 'new').length > 0 && (
+                    <Badge variant="destructive" className="ml-auto">
+                      {state.voicemails.filter(v => v.status === 'new').length}
+                    </Badge>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Usuario */}
+          <div className="p-4 border-t border-gray-200">
+            <div className="flex items-center space-x-3">
+              <Avatar className="w-8 h-8">
+                <AvatarImage src={mockUser.avatar} />
+                <AvatarFallback>{mockUser.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {mockUser.name}
+                </p>
+                <p className="text-xs text-gray-600 truncate">
+                  {mockUser.role}
+                </p>
+              </div>
             </div>
           </div>
-        </header>
+        </div>
 
-        {/* Contenido */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Área principal */}
-          <div className="flex-1 overflow-y-auto">
-            {renderMainContent()}
+        {/* Sidebar móvil - Overlay */}
+        {sidebarOpen && (
+          <div className="lg:hidden fixed inset-0 z-50">
+            <div 
+              className="absolute inset-0 bg-black bg-opacity-50"
+              onClick={() => setSidebarOpen(false)}
+            />
+            <div className="relative w-64 h-full bg-white shadow-xl">
+              {/* Header móvil */}
+              <div className="p-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                      <Phone className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h1 className="text-lg font-semibold text-gray-900">Llamadas</h1>
+                      <p className="text-sm text-gray-500">UTalk Ultra</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSidebarOpen(false)}
+                    className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Navegación móvil */}
+              <nav className="flex-1 p-4 space-y-2">
+                {navigationItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = state.currentView === item.id;
+                  
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        handleViewChange(item.id as CallsView);
+                        setSidebarOpen(false);
+                      }}
+                      className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                        isActive
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      <Icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : item.color}`} />
+                      <span className="font-medium">{item.label}</span>
+                      {item.id === 'calls' && state.calls.length > 0 && (
+                        <Badge variant="secondary" className="ml-auto">
+                          {state.calls.length}
+                        </Badge>
+                      )}
+                      {item.id === 'voicemails' && state.voicemails.filter(v => v.status === 'new').length > 0 && (
+                        <Badge variant="destructive" className="ml-auto">
+                          {state.voicemails.filter(v => v.status === 'new').length}
+                        </Badge>
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+
+              {/* Usuario móvil */}
+              <div className="p-4 border-t border-gray-200">
+                <div className="flex items-center space-x-3">
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src={mockUser.avatar} />
+                    <AvatarFallback>{mockUser.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {mockUser.name}
+                    </p>
+                    <p className="text-xs text-gray-600 truncate">
+                      {mockUser.role}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
+        )}
 
-          {/* Softphone */}
-          {state.softphoneOpen && (
-            <div className="w-80 border-l border-gray-200 bg-gray-50">
+        {/* Contenido del tab activo */}
+        <div className="flex-1 overflow-y-auto">
+          {renderMainContent()}
+        </div>
+
+        {/* Panel izquierdo del Softphone - Desktop */}
+        {state.softphoneOpen && (
+          <div className="hidden lg:flex w-80 bg-white border-l border-gray-200 flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Softphone</h2>
+              <button
+                onClick={handleSoftphoneToggle}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
               <Softphone
                 state={softphoneState}
                 onStateChange={setSoftphoneState}
@@ -525,10 +648,39 @@ const CallsModule: React.FC = () => {
                 user={mockUser}
               />
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
+      {/* Panel móvil del Softphone - Overlay */}
+      {state.softphoneOpen && (
+        <div className="lg:hidden fixed inset-0 z-50">
+          <div 
+            className="absolute inset-0 bg-black bg-opacity-50"
+            onClick={handleSoftphoneToggle}
+          />
+          <div className="absolute right-0 top-0 h-full w-80 bg-gray-50 shadow-xl">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Softphone</h2>
+              <button
+                onClick={handleSoftphoneToggle}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <Softphone
+                state={softphoneState}
+                onStateChange={setSoftphoneState}
+                twilioDevice={twilioDevice}
+                onDeviceChange={setTwilioDevice}
+                user={mockUser}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -224,14 +224,14 @@ export const CallsDashboard: React.FC<CallsDashboardProps> = ({
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard de Llamadas</h1>
-          <p className="text-gray-600 mt-1">Vista general del sistema de llamadas en tiempo real</p>
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Dashboard de Llamadas</h1>
+          <p className="text-sm lg:text-base text-gray-600 mt-1">Vista general del sistema de llamadas en tiempo real</p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
           <div className="flex items-center space-x-1">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-sm text-gray-600">Sistema activo</span>
@@ -240,15 +240,17 @@ export const CallsDashboard: React.FC<CallsDashboardProps> = ({
             variant="outline"
             size="sm"
             onClick={() => onViewChange('analytics')}
+            className="w-full sm:w-auto"
           >
             <TrendingUp className="w-4 h-4 mr-2" />
-            Ver Analítica
+            <span className="hidden sm:inline">Ver Analítica</span>
+            <span className="sm:hidden">Analítica</span>
           </Button>
         </div>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         {mockData.kpis.map((kpi, index) => {
           const Icon = kpi.icon;
           return (
@@ -258,11 +260,11 @@ export const CallsDashboard: React.FC<CallsDashboardProps> = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <Card className="p-6">
+              <Card className="p-4 lg:p-6">
                 <div className="flex items-center justify-between">
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-600">{kpi.title}</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{kpi.value}</p>
+                    <p className="text-xl lg:text-2xl font-bold text-gray-900 mt-1">{kpi.value}</p>
                     <div className="flex items-center mt-2">
                       {kpi.trend === 'up' ? (
                         <TrendingUp className="w-4 h-4 text-green-600 mr-1" />
@@ -276,8 +278,8 @@ export const CallsDashboard: React.FC<CallsDashboardProps> = ({
                       </span>
                     </div>
                   </div>
-                  <div className={`w-12 h-12 rounded-lg ${kpi.bgColor} flex items-center justify-center`}>
-                    <Icon className={`w-6 h-6 ${kpi.color}`} />
+                  <div className={`w-10 h-10 lg:w-12 lg:h-12 rounded-lg ${kpi.bgColor} flex items-center justify-center flex-shrink-0`}>
+                    <Icon className={`w-5 h-5 lg:w-6 lg:h-6 ${kpi.color}`} />
                   </div>
                 </div>
               </Card>
@@ -286,16 +288,17 @@ export const CallsDashboard: React.FC<CallsDashboardProps> = ({
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
         {/* Estado de Colas */}
         <div className="lg:col-span-2">
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
+          <Card className="p-4 lg:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 lg:mb-6 space-y-2 sm:space-y-0">
               <h2 className="text-lg font-semibold text-gray-900">Estado de Colas</h2>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onViewChange('queues')}
+                className="w-full sm:w-auto"
               >
                 Ver todas
               </Button>

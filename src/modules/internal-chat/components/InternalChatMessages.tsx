@@ -2,11 +2,38 @@ import React, { useEffect, useRef } from 'react';
 import { useInternalChat } from '../context/InternalChatContext';
 import { ApprovalCard } from './ApprovalCard';
 
-export const InternalChatMessages: React.FC = () => {
+interface InternalChatMessagesProps {
+  forceShowChat?: boolean;
+}
+
+export const InternalChatMessages: React.FC<InternalChatMessagesProps> = ({ forceShowChat = false }) => {
   const { state } = useInternalChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeChannel = state.activeChannel;
+  
+  // Canal por defecto para móvil cuando forceShowChat es true
+  const defaultChannel = {
+    id: 'default_channel',
+    name: 'Canal Seleccionado',
+    description: 'Canal activo',
+    icon: 'pagos',
+    type: 'public' as const,
+    members: [],
+    unreadCount: 0,
+    isActive: true,
+    settings: {
+      approvers: [],
+      autoForwardRules: [],
+      sla: { enabled: false, duration: 0, escalationUsers: [] },
+      templates: [],
+    },
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+  
+  // Usar canal por defecto si forceShowChat es true y no hay activeChannel
+  const currentChannel = activeChannel || (forceShowChat ? defaultChannel : null);
 
   // Datos de ejemplo para las ApprovalCards (basados en la imagen)
   const sampleApprovalCards = [
@@ -101,7 +128,7 @@ export const InternalChatMessages: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [state.messages, activeChannel?.id]);
 
-  if (!activeChannel) {
+  if (!currentChannel) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -121,28 +148,34 @@ export const InternalChatMessages: React.FC = () => {
     );
   }
 
-  const channelMessages = state.messages[activeChannel.id] || [];
+  const channelMessages = currentChannel ? state.messages[currentChannel.id] || [] : [];
 
   return (
     <div className="flex-1 overflow-y-auto bg-gray-50">
-      <div className="max-w-4xl mx-auto px-6 py-6">
+      <div className="max-w-4xl mx-auto px-4 lg:px-6 py-4 lg:py-6">
         {/* Mensaje de bienvenida del canal */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="text-center mb-6 lg:mb-8">
+          <div className="w-12 h-12 lg:w-16 lg:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 lg:mb-4">
+            <svg className="w-6 h-6 lg:w-8 lg:h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            #{activeChannel.name}
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 mb-2">
+            #{currentChannel.name}
           </h2>
-          <p className="text-gray-600">
-            {activeChannel.description}
+          <p className="text-sm lg:text-base text-gray-600 px-4">
+            {currentChannel.description}
           </p>
+          {/* Indicador de funciones disponibles en móvil */}
+          <div className="lg:hidden mt-4 p-3 bg-blue-50 rounded-lg mx-4">
+            <p className="text-xs text-blue-600 font-medium">
+              💡 Usa los botones del header para acceder a ajustes, copiloto y detalles del canal
+            </p>
+          </div>
         </div>
 
         {/* ApprovalCards */}
-        <div className="space-y-4">
+        <div className="space-y-3 lg:space-y-4">
           {sampleApprovalCards.map((card) => (
             <ApprovalCard
               key={card.id}
@@ -169,26 +202,26 @@ export const InternalChatMessages: React.FC = () => {
 
         {/* Mensajes regulares (si los hay) */}
         {channelMessages.length > 0 && (
-          <div className="mt-8 space-y-4">
+          <div className="mt-6 lg:mt-8 space-y-3 lg:space-y-4">
             {channelMessages.map((message) => (
-              <div key={message.id} className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+              <div key={message.id} className="bg-white rounded-lg p-3 lg:p-4 shadow-sm border border-gray-200">
                 <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">
+                  <div className="w-7 h-7 lg:w-8 lg:h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-xs lg:text-sm font-medium">
                       {message.senderName.charAt(0)}
                     </span>
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2 mb-1">
-                      <span className="font-medium text-gray-900">{message.senderName}</span>
-                      <span className="text-sm text-gray-500">
+                      <span className="font-medium text-gray-900 text-sm lg:text-base">{message.senderName}</span>
+                      <span className="text-xs lg:text-sm text-gray-500">
                         {message.timestamp.toLocaleTimeString('es-ES', {
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
                       </span>
                     </div>
-                    <p className="text-gray-700">{message.content}</p>
+                    <p className="text-sm lg:text-base text-gray-700 break-words">{message.content}</p>
                   </div>
                 </div>
               </div>

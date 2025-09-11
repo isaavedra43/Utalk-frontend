@@ -1,4 +1,5 @@
 import React from 'react';
+import { Shield, CheckCircle, XCircle } from 'lucide-react';
 import type { TeamMember } from '../../../types/team';
 
 interface PermissionsPanelProps {
@@ -29,11 +30,9 @@ const PermissionsPanel: React.FC<PermissionsPanelProps> = ({ member }) => {
   const totalPermissions = permissionsArray.length;
 
   return (
-    <div className="p-4 border-b border-gray-200">
+    <div className="p-4 lg:p-4 border-b border-gray-200">
       <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-        </svg>
+        <Shield className="w-5 h-5 mr-2 text-gray-500" />
         Permisos y Accesos
       </h3>
       
@@ -52,9 +51,11 @@ const PermissionsPanel: React.FC<PermissionsPanelProps> = ({ member }) => {
                   {permission.level}
                 </span>
               </div>
-              <div className={`w-3 h-3 rounded-full transition-colors ${
-                permission.isActive ? 'bg-green-500' : 'bg-gray-300'
-              }`} />
+              {permission.isActive ? (
+                <CheckCircle className="w-4 h-4 text-green-500" />
+              ) : (
+                <XCircle className="w-4 h-4 text-gray-300" />
+              )}
             </div>
             <p className="text-xs text-gray-600">{permission.description}</p>
           </div>

@@ -823,12 +823,12 @@ export function KnowledgeExplorer({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900">
             Explorar Conocimiento
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-gray-600 mt-1 text-sm lg:text-base">
             Descubre y accede a todo el conocimiento de la organización
           </p>
         </div>
@@ -883,7 +883,7 @@ export function KnowledgeExplorer({
               <CardTitle className="text-lg">Filtros</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Resource Types */}
                 <div>
                   <label className="text-sm font-medium mb-2 block">Tipo de Recurso</label>
@@ -999,7 +999,7 @@ export function KnowledgeExplorer({
       {/* Collections */}
       <div>
         <h2 className="text-lg font-semibold mb-4">Colecciones</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {mockCollections.map((collection) => (
             <Card 
               key={collection.id} 
@@ -1060,7 +1060,7 @@ export function KnowledgeExplorer({
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
               <Card key={i} className="animate-pulse">
                 <CardHeader>
@@ -1097,7 +1097,7 @@ export function KnowledgeExplorer({
           </div>
         ) : (
           <div className={viewMode === 'grid' 
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
+            ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6' 
             : 'space-y-2'
           }>
             {mockResources.map((resource) => 

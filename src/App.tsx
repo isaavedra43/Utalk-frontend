@@ -3,6 +3,7 @@ import React, { memo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { WebSocketProvider } from './contexts/WebSocketContext'
+import { MobileMenuProvider } from './contexts/MobileMenuContext'
 import { AuthModule } from './modules/auth'
 import { ForgotPasswordForm } from './modules/auth/components/ForgotPasswordForm'
 import { MainLayout } from './components/layout/MainLayout'
@@ -198,14 +199,7 @@ const InternalChatPage: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
-        <div className="hidden lg:block">
-          <LeftSidebar />
-        </div>
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <InternalChatModule />
-        </div>
-      </div>
+      <MainLayout />
     </ErrorBoundary>
   );
 };
@@ -228,14 +222,7 @@ const CampaignsPage: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
-        <div className="hidden lg:block">
-          <LeftSidebar />
-        </div>
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <CampaignsModule />
-        </div>
-      </div>
+      <MainLayout />
     </ErrorBoundary>
   );
 };
@@ -264,31 +251,9 @@ const PhonePage: React.FC = () => {
 };
 
 const KnowledgeBasePage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuthContext();
-  
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Cargando base de conocimiento...
-          </h3>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <ErrorBoundary>
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
-        <div className="hidden lg:block">
-          <LeftSidebar />
-        </div>
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <KnowledgeBaseModule />
-        </div>
-      </div>
+      <MainLayout />
     </ErrorBoundary>
   );
 };
@@ -311,14 +276,7 @@ const HRPage: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
-        <div className="hidden lg:block">
-          <LeftSidebar />
-        </div>
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <HRModule />
-        </div>
-      </div>
+      <MainLayout />
     </ErrorBoundary>
   );
 };
@@ -341,14 +299,7 @@ const SupervisionPage: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
-        <div className="hidden lg:block">
-          <LeftSidebar />
-        </div>
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <SupervisionModule />
-        </div>
-      </div>
+      <MainLayout />
     </ErrorBoundary>
   );
 };
@@ -371,14 +322,7 @@ const CopilotPage: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
-        <div className="hidden lg:block">
-          <LeftSidebar />
-        </div>
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <CopilotModule />
-        </div>
-      </div>
+      <MainLayout />
     </ErrorBoundary>
   );
 };
@@ -402,14 +346,7 @@ const ProvidersPage: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
-        <div className="hidden lg:block">
-          <LeftSidebar />
-        </div>
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <ProvidersModule />
-        </div>
-      </div>
+      <MainLayout />
     </ErrorBoundary>
   );
 };
@@ -432,14 +369,7 @@ const WarehousePage: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
-        <div className="hidden lg:block">
-          <LeftSidebar />
-        </div>
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <WarehouseModule />
-        </div>
-      </div>
+      <MainLayout />
     </ErrorBoundary>
   );
 };
@@ -462,14 +392,7 @@ const ShippingPage: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
-        <div className="hidden lg:block">
-          <LeftSidebar />
-        </div>
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <ShippingModule />
-        </div>
-      </div>
+      <MainLayout />
     </ErrorBoundary>
   );
 };
@@ -492,14 +415,7 @@ const ServicesPage: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
-        <div className="hidden lg:block">
-          <LeftSidebar />
-        </div>
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <ServicesModule />
-        </div>
-      </div>
+      <MainLayout />
     </ErrorBoundary>
   );
 };
@@ -512,7 +428,8 @@ function App() {
       <ErrorBoundary>
         <AuthProvider>
           <WebSocketProvider>
-            <div className="app">
+            <MobileMenuProvider>
+              <div className="app">
               <Routes>
                 <Route path="/login" element={<AuthModule />} />
                 <Route path="/forgot-password" element={<ForgotPasswordForm />} />
@@ -679,7 +596,8 @@ function App() {
 
                 <Route path="/" element={<Navigate to="/login" replace />} />
               </Routes>
-            </div>
+              </div>
+            </MobileMenuProvider>
           </WebSocketProvider>
         </AuthProvider>
       </ErrorBoundary>
