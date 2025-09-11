@@ -15,7 +15,7 @@ import {
   CheckCircle,
   Camera
 } from 'lucide-react';
-import { employeesApi, type Employee } from '../../../services/employeesApi';
+import { employeesApi } from '../../../services/employeesApi';
 import type { Employee, PersonalInfo, Position, Location, Contract, SalaryInfo } from '../../../types/hr';
 
 interface AddEmployeeModalProps {

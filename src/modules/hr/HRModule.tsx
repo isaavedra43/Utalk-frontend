@@ -21,7 +21,6 @@ import {
 import { EmployeeList } from './components/EmployeeList';
 import { EmployeeDetail } from './components/EmployeeDetail';
 import { EmployeeDetailView } from './components/EmployeeDetailView';
-import { type Employee } from '../../services/employeesApi';
 import { HRDashboard } from './components/HRDashboard';
 import { PayrollModule } from './components/PayrollModule';
 import { TalentModule } from './components/TalentModule';
