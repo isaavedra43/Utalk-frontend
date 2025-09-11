@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Search,
   Filter,
@@ -18,9 +18,15 @@ import {
   DollarSign,
   Calendar,
   TrendingUp,
-  Shield
+  Shield,
+  Upload,
+  FileSpreadsheet,
+  Loader2
 } from 'lucide-react';
-import type { Employee, EmployeeFilter, EmployeeStatus } from '../../../types/hr';
+import { AddEmployeeModal } from './AddEmployeeModal';
+import { ImportEmployeesModal } from './ImportEmployeesModal';
+import { EditEmployeeModal } from './EditEmployeeModal';
+import { employeesApi, type Employee, type GetEmployeesResponse } from '../../../services/employeesApi';
 
 interface EmployeeListProps {
   onSelectEmployee: (employee: Employee) => void;
@@ -28,395 +34,190 @@ interface EmployeeListProps {
 
 export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState<EmployeeFilter>({});
+  const [filters, setFilters] = useState<any>({});
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  
+  // Estados para los modales
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedEmployeeForEdit, setSelectedEmployeeForEdit] = useState<Employee | null>(null);
 
-  // Datos mock para demostración
-  const employees: Employee[] = [
-    {
-      id: '1',
-      employeeNumber: 'EMP001',
-      firstName: 'Ana',
-      lastName: 'García',
-      email: 'ana.garcia@empresa.com',
-      phone: '+52 55 1234 5678',
-      avatar: undefined,
-      status: 'active',
-      hireDate: new Date('2022-03-15'),
-      personalInfo: {
-        rfc: 'GARA920315MDF',
-        curp: 'GARA920315MDFNNS01',
-        nss: '12345678901',
-        birthDate: new Date('1992-03-15'),
-        gender: 'female',
-        maritalStatus: 'single',
-        address: {
-          street: 'Av. Reforma',
-          number: '123',
-          neighborhood: 'Centro',
-          city: 'Ciudad de México',
-          state: 'CDMX',
-          zipCode: '06000',
-          country: 'México'
-        },
-        emergencyContact: {
-          name: 'María García',
-          relationship: 'Madre',
-          phone: '+52 55 9876 5432'
-        },
-        bankInfo: {
-          bankName: 'BBVA',
-          accountNumber: '0123456789',
-          clabe: '012345678901234567',
-          accountType: 'checking'
-        }
-      },
-      position: {
-        id: 'pos1',
-        title: 'Gerente de Marketing',
-        department: 'Marketing',
-        level: 'Senior',
-        reportsTo: 'CEO',
-        jobDescription: 'Liderar estrategias de marketing digital',
-        requirements: ['Licenciatura en Marketing', '5+ años experiencia'],
-        skills: ['Marketing Digital', 'SEO', 'Analytics'],
-        salaryRange: { min: 25000, max: 35000 }
-      },
-      location: {
-        id: 'loc1',
-        name: 'Oficina Central',
-        address: {
-          street: 'Av. Insurgentes',
-          number: '456',
-          neighborhood: 'Roma Norte',
-          city: 'Ciudad de México',
-          state: 'CDMX',
-          zipCode: '06700',
-          country: 'México'
-        },
-        timezone: 'America/Mexico_City',
-        isRemote: false
-      },
-      contract: {
-        id: 'con1',
-        type: 'permanent',
-        startDate: new Date('2022-03-15'),
-        workingHours: 40,
-        schedule: 'Lunes a Viernes 9:00-18:00',
-        benefits: ['Seguro médico', 'Vales de despensa', 'Vacaciones'],
-        clauses: ['Confidencialidad', 'No competencia']
-      },
-      salary: {
-        baseSalary: 30000,
-        currency: 'MXN',
-        frequency: 'monthly',
-        paymentMethod: 'bank_transfer',
-        allowances: [
-          { id: '1', name: 'Vales de despensa', amount: 2000, isTaxable: false, isImss: false, isInfonavit: false }
-        ],
-        deductions: [
-          { id: '1', name: 'ISR', amount: 0, isPercentage: true, isVoluntary: false },
-          { id: '2', name: 'IMSS', amount: 0, isPercentage: true, isVoluntary: false }
-        ]
-      },
-      sbc: 32000,
-      vacationBalance: 15,
-      sickLeaveBalance: 5,
-      metrics: {
-        totalEarnings: 30000,
-        totalDeductions: 4500,
-        netPay: 25500,
-        attendanceRate: 98.5,
-        lateArrivals: 2,
-        absences: 0,
-        vacationDaysUsed: 5,
-        vacationDaysRemaining: 15,
-        overtimeHours: 8,
-        overtimeAmount: 1200,
-        incidentsCount: 0,
-        incidentsLast30Days: 0,
-        documentCompliance: 100,
-        trainingCompletion: 95,
-        performanceScore: 4.2,
-        lastEvaluationDate: new Date('2024-10-15')
-      },
-      createdAt: new Date('2022-03-15'),
-      updatedAt: new Date('2024-11-22'),
-      createdBy: 'admin',
-      updatedBy: 'admin'
-    },
-    {
-      id: '2',
-      employeeNumber: 'EMP002',
-      firstName: 'Carlos',
-      lastName: 'López',
-      email: 'carlos.lopez@empresa.com',
-      phone: '+52 55 2345 6789',
-      avatar: undefined,
-      status: 'active',
-      hireDate: new Date('2021-08-20'),
-      personalInfo: {
-        rfc: 'LOPC850820HDF',
-        curp: 'LOPC850820HDFNNS02',
-        nss: '23456789012',
-        birthDate: new Date('1985-08-20'),
-        gender: 'male',
-        maritalStatus: 'married',
-        address: {
-          street: 'Calle Morelos',
-          number: '789',
-          neighborhood: 'Condesa',
-          city: 'Ciudad de México',
-          state: 'CDMX',
-          zipCode: '06140',
-          country: 'México'
-        },
-        emergencyContact: {
-          name: 'Laura López',
-          relationship: 'Esposa',
-          phone: '+52 55 8765 4321'
-        },
-        bankInfo: {
-          bankName: 'Santander',
-          accountNumber: '1234567890',
-          clabe: '123456789012345678',
-          accountType: 'checking'
-        }
-      },
-      position: {
-        id: 'pos2',
-        title: 'Desarrollador Senior',
-        department: 'Tecnología',
-        level: 'Senior',
-        reportsTo: 'CTO',
-        jobDescription: 'Desarrollo de aplicaciones web',
-        requirements: ['Ingeniería en Sistemas', '3+ años experiencia'],
-        skills: ['React', 'Node.js', 'TypeScript'],
-        salaryRange: { min: 35000, max: 45000 }
-      },
-      location: {
-        id: 'loc1',
-        name: 'Oficina Central',
-        address: {
-          street: 'Av. Insurgentes',
-          number: '456',
-          neighborhood: 'Roma Norte',
-          city: 'Ciudad de México',
-          state: 'CDMX',
-          zipCode: '06700',
-          country: 'México'
-        },
-        timezone: 'America/Mexico_City',
-        isRemote: true
-      },
-      contract: {
-        id: 'con2',
-        type: 'permanent',
-        startDate: new Date('2021-08-20'),
-        workingHours: 40,
-        schedule: 'Lunes a Viernes 9:00-18:00',
-        benefits: ['Seguro médico', 'Vales de despensa', 'Vacaciones'],
-        clauses: ['Confidencialidad', 'No competencia']
-      },
-      salary: {
-        baseSalary: 40000,
-        currency: 'MXN',
-        frequency: 'monthly',
-        paymentMethod: 'bank_transfer',
-        allowances: [
-          { id: '1', name: 'Vales de despensa', amount: 2000, isTaxable: false, isImss: false, isInfonavit: false }
-        ],
-        deductions: [
-          { id: '1', name: 'ISR', amount: 0, isPercentage: true, isVoluntary: false },
-          { id: '2', name: 'IMSS', amount: 0, isPercentage: true, isVoluntary: false }
-        ]
-      },
-      sbc: 42000,
-      vacationBalance: 20,
-      sickLeaveBalance: 3,
-      metrics: {
-        totalEarnings: 40000,
-        totalDeductions: 6000,
-        netPay: 34000,
-        attendanceRate: 96.8,
-        lateArrivals: 5,
-        absences: 1,
-        vacationDaysUsed: 10,
-        vacationDaysRemaining: 20,
-        overtimeHours: 12,
-        overtimeAmount: 1800,
-        incidentsCount: 1,
-        incidentsLast30Days: 0,
-        documentCompliance: 95,
-        trainingCompletion: 100,
-        performanceScore: 4.5,
-        lastEvaluationDate: new Date('2024-09-20')
-      },
-      createdAt: new Date('2021-08-20'),
-      updatedAt: new Date('2024-11-22'),
-      createdBy: 'admin',
-      updatedBy: 'admin'
-    },
-    {
-      id: '3',
-      employeeNumber: 'EMP003',
-      firstName: 'María',
-      lastName: 'Rodríguez',
-      email: 'maria.rodriguez@empresa.com',
-      phone: '+52 55 3456 7890',
-      avatar: undefined,
-      status: 'active',
-      hireDate: new Date('2023-01-10'),
-      personalInfo: {
-        rfc: 'ROMM900110MDF',
-        curp: 'ROMM900110MDFNNS03',
-        nss: '34567890123',
-        birthDate: new Date('1990-01-10'),
-        gender: 'female',
-        maritalStatus: 'single',
-        address: {
-          street: 'Av. Chapultepec',
-          number: '321',
-          neighborhood: 'Polanco',
-          city: 'Ciudad de México',
-          state: 'CDMX',
-          zipCode: '11560',
-          country: 'México'
-        },
-        emergencyContact: {
-          name: 'José Rodríguez',
-          relationship: 'Padre',
-          phone: '+52 55 7654 3210'
-        },
-        bankInfo: {
-          bankName: 'HSBC',
-          accountNumber: '2345678901',
-          clabe: '234567890123456789',
-          accountType: 'checking'
-        }
-      },
-      position: {
-        id: 'pos3',
-        title: 'Analista de Recursos Humanos',
-        department: 'Recursos Humanos',
-        level: 'Mid',
-        reportsTo: 'Gerente RH',
-        jobDescription: 'Análisis de datos de RRHH',
-        requirements: ['Licenciatura en Psicología', '2+ años experiencia'],
-        skills: ['Análisis de datos', 'Excel', 'Power BI'],
-        salaryRange: { min: 20000, max: 28000 }
-      },
-      location: {
-        id: 'loc1',
-        name: 'Oficina Central',
-        address: {
-          street: 'Av. Insurgentes',
-          number: '456',
-          neighborhood: 'Roma Norte',
-          city: 'Ciudad de México',
-          state: 'CDMX',
-          zipCode: '06700',
-          country: 'México'
-        },
-        timezone: 'America/Mexico_City',
-        isRemote: false
-      },
-      contract: {
-        id: 'con3',
-        type: 'permanent',
-        startDate: new Date('2023-01-10'),
-        workingHours: 40,
-        schedule: 'Lunes a Viernes 9:00-18:00',
-        benefits: ['Seguro médico', 'Vales de despensa', 'Vacaciones'],
-        clauses: ['Confidencialidad', 'No competencia']
-      },
-      salary: {
-        baseSalary: 24000,
-        currency: 'MXN',
-        frequency: 'monthly',
-        paymentMethod: 'bank_transfer',
-        allowances: [
-          { id: '1', name: 'Vales de despensa', amount: 2000, isTaxable: false, isImss: false, isInfonavit: false }
-        ],
-        deductions: [
-          { id: '1', name: 'ISR', amount: 0, isPercentage: true, isVoluntary: false },
-          { id: '2', name: 'IMSS', amount: 0, isPercentage: true, isVoluntary: false }
-        ]
-      },
-      sbc: 26000,
-      vacationBalance: 10,
-      sickLeaveBalance: 5,
-      metrics: {
-        totalEarnings: 24000,
-        totalDeductions: 3600,
-        netPay: 20400,
-        attendanceRate: 99.2,
-        lateArrivals: 1,
-        absences: 0,
-        vacationDaysUsed: 5,
-        vacationDaysRemaining: 10,
-        overtimeHours: 4,
-        overtimeAmount: 600,
-        incidentsCount: 0,
-        incidentsLast30Days: 0,
-        documentCompliance: 100,
-        trainingCompletion: 90,
-        performanceScore: 4.0,
-        lastEvaluationDate: new Date('2024-08-15')
-      },
-      createdAt: new Date('2023-01-10'),
-      updatedAt: new Date('2024-11-22'),
-      createdBy: 'admin',
-      updatedBy: 'admin'
-    }
-  ];
+  // Estados para los datos de la API
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0
+  });
+  const [summary, setSummary] = useState({
+    total: 0,
+    active: 0,
+    inactive: 0,
+    pending: 0,
+    expired: 0
+  });
 
-  const filteredEmployees = useMemo(() => {
-    return employees.filter(employee => {
-      const matchesSearch = !searchQuery || 
-        `${employee.firstName} ${employee.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        employee.employeeNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        employee.email.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesStatus = !filters.status || filters.status.includes(employee.status);
-      const matchesDepartment = !filters.department || filters.department.includes(employee.position.department);
-      
-      return matchesSearch && matchesStatus && matchesDepartment;
-    });
-  }, [employees, searchQuery, filters]);
+  // Función para cargar empleados desde la API
+  const loadEmployees = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  const getStatusIcon = (status: EmployeeStatus) => {
-    switch (status) {
-      case 'active':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'inactive':
-        return <XCircle className="h-4 w-4 text-gray-400" />;
-      case 'terminated':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'on_leave':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
-      default:
-        return <Clock className="h-4 w-4 text-gray-400" />;
+      const response = await employeesApi.getEmployees({
+        page: pagination.page,
+        limit: pagination.limit,
+        search: searchQuery || undefined,
+        department: filters.department || undefined,
+        status: filters.status || undefined,
+        sortBy: 'createdAt',
+        sortOrder: 'desc'
+      });
+
+      setEmployees(response.employees);
+      setPagination(response.pagination);
+      setSummary(response.summary);
+    } catch (err) {
+      console.error('Error loading employees:', err);
+      setError('Error al cargar los empleados. Por favor, intenta de nuevo.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStatusColor = (status: EmployeeStatus) => {
+  // Cargar empleados al montar el componente y cuando cambien los filtros
+  useEffect(() => {
+    loadEmployees();
+  }, [pagination.page, pagination.limit]);
+
+  // Función para buscar empleados con debounce
+  const handleSearch = useMemo(() => {
+    let timeoutId: NodeJS.Timeout;
+    return (query: string) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setSearchQuery(query);
+        setPagination(prev => ({ ...prev, page: 1 }));
+        loadEmployees();
+      }, 300);
+    };
+  }, []);
+
+  // Función para manejar el cambio de filtros
+  const handleFilterChange = (newFilters: any) => {
+    setFilters(newFilters);
+    setPagination(prev => ({ ...prev, page: 1 }));
+    loadEmployees();
+  };
+
+  // Función para manejar la adición de empleados
+  const handleAddEmployee = async (employeeData: Partial<Employee>) => {
+    try {
+      await employeesApi.createEmployee(employeeData);
+      setIsAddModalOpen(false);
+      loadEmployees(); // Recargar la lista
+    } catch (error) {
+      console.error('Error al agregar empleado:', error);
+    }
+  };
+
+  // Función para manejar la importación de empleados
+  const handleImportEmployees = async (file: File) => {
+    try {
+      const options = {
+        updateExisting: true,
+        skipErrors: false,
+        validateData: true
+      };
+      
+      await employeesApi.importEmployees(file, options);
+      setIsImportModalOpen(false);
+      loadEmployees(); // Recargar la lista
+    } catch (error) {
+      console.error('Error al importar empleados:', error);
+    }
+  };
+
+  const handleEditEmployee = (employee: Employee) => {
+    setSelectedEmployeeForEdit(employee);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEmployee = async (updatedEmployee: Employee) => {
+    try {
+      await employeesApi.updateEmployee(updatedEmployee.id, updatedEmployee);
+      setIsEditModalOpen(false);
+      setSelectedEmployeeForEdit(null);
+      loadEmployees(); // Recargar la lista
+    } catch (error) {
+      console.error('Error al actualizar empleado:', error);
+    }
+  };
+
+  // Función para exportar empleados
+  const handleExportEmployees = async (format: 'excel' | 'csv' | 'pdf') => {
+    try {
+      const blob = await employeesApi.exportEmployees({
+        format,
+        filters,
+        fields: ['personalInfo', 'position', 'location', 'contract', 'status']
+      });
+
+      // Crear URL para descargar el archivo
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `empleados.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error al exportar empleados:', error);
+    }
+  };
+
+  // Función para cambiar página
+  const handlePageChange = (newPage: number) => {
+    setPagination(prev => ({ ...prev, page: newPage }));
+  };
+
+  // Función para obtener las iniciales del empleado
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  };
+
+  // Función para formatear la fecha
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-MX', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Función para obtener el color del estado
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
         return 'bg-green-100 text-green-800';
       case 'inactive':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-yellow-100 text-yellow-800';
       case 'terminated':
         return 'bg-red-100 text-red-800';
       case 'on_leave':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getStatusText = (status: EmployeeStatus) => {
+  // Función para obtener el texto del estado
+  const getStatusText = (status: string) => {
     switch (status) {
       case 'active':
         return 'Activo';
@@ -425,28 +226,29 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
       case 'terminated':
         return 'Terminado';
       case 'on_leave':
-        return 'En licencia';
+        return 'En Licencia';
       default:
         return 'Desconocido';
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Error al cargar empleados</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={loadEmployees}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -458,445 +260,393 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
             <p className="text-gray-600 mt-1">
               Gestiona y administra la información de todos los empleados de la empresa
             </p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-              <span className="text-sm text-gray-600">247 activos</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-              <span className="text-sm text-gray-600">3 pendientes</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-              <span className="text-sm text-gray-600">1 vencido</span>
+            <div className="flex items-center space-x-4 mt-2">
+              <span className="flex items-center text-sm text-green-600">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+                {summary.active} activos
+              </span>
+              <span className="flex items-center text-sm text-yellow-600">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
+                {summary.pending} pendientes
+              </span>
+              <span className="flex items-center text-sm text-red-600">
+                <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
+                {summary.expired} vencidos
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Filtros y búsqueda */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="relative">
+      {/* Filtros y controles */}
+      <div className="bg-white p-6 rounded-lg border border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <div className="flex items-center space-x-4">
+            <div className="relative flex-1 min-w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="Buscar empleados..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={(e) => handleSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             </div>
             
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <select
-                value={filters.status?.[0] || ''}
-                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value ? [e.target.value as EmployeeStatus] : undefined }))}
-                className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Todos los estados</option>
-                <option value="active">Activo</option>
-                <option value="inactive">Inactivo</option>
-                <option value="terminated">Terminado</option>
-                <option value="on_leave">En licencia</option>
-              </select>
-              
-              <select
-                value={filters.department?.[0] || ''}
-                onChange={(e) => setFilters(prev => ({ ...prev, department: e.target.value ? [e.target.value] : undefined }))}
-                className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Todos los departamentos</option>
-                <option value="Marketing">Marketing</option>
-                <option value="Tecnología">Tecnología</option>
-                <option value="Recursos Humanos">Recursos Humanos</option>
-                <option value="Ventas">Ventas</option>
-                <option value="Finanzas">Finanzas</option>
-              </select>
-            </div>
+            <select
+              value={filters.status || ''}
+              onChange={(e) => handleFilterChange({ ...filters, status: e.target.value || undefined })}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Todos los estados</option>
+              <option value="active">Activos</option>
+              <option value="inactive">Inactivos</option>
+              <option value="terminated">Terminados</option>
+              <option value="on_leave">En Licencia</option>
+            </select>
+
+            <select
+              value={filters.department || ''}
+              onChange={(e) => handleFilterChange({ ...filters, department: e.target.value || undefined })}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Todos los departamentos</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Ventas">Ventas</option>
+              <option value="Recursos Humanos">Recursos Humanos</option>
+              <option value="Tecnología">Tecnología</option>
+              <option value="Finanzas">Finanzas</option>
+              <option value="Operaciones">Operaciones</option>
+            </select>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="flex items-center space-x-1">
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
-              >
-                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                </svg>
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
-              >
-                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
-              </button>
-            </div>
-
-            <button className="flex items-center justify-center space-x-2 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => handleExportEmployees('excel')}
+              className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
               <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Exportar</span>
+              <span>Exportar</span>
+            </button>
+
+            <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+            >
+              <Upload className="h-4 w-4" />
+              <span>Importar</span>
+            </button>
+
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Agregar Empleado</span>
             </button>
           </div>
         </div>
 
-        {/* Resultados */}
-        <div className="flex items-center justify-between text-sm text-gray-600">
-          <span>{filteredEmployees.length} empleados encontrados</span>
-          {selectedEmployees.length > 0 && (
-            <span>{selectedEmployees.length} seleccionados</span>
+        <div className="text-sm text-gray-600">
+          {loading ? (
+            <div className="flex items-center">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Cargando empleados...
+            </div>
+          ) : (
+            `${pagination.total} empleados encontrados`
           )}
         </div>
       </div>
 
       {/* Lista de empleados */}
-      {viewMode === 'list' ? (
-        <>
-          {/* Vista móvil - Cards */}
-          <div className="lg:hidden space-y-3">
-            {filteredEmployees.map((employee) => (
-              <div key={employee.id} className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedEmployees.includes(employee.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedEmployees(prev => [...prev, employee.id]);
-                        } else {
-                          setSelectedEmployees(prev => prev.filter(id => id !== employee.id));
-                        }
-                      }}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1"
-                    />
-                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                      <span className="text-white text-lg font-medium">
-                        {employee.firstName.charAt(0)}{employee.lastName.charAt(0)}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-semibold text-gray-900 truncate">
-                        {employee.firstName} {employee.lastName}
-                      </h3>
-                      <p className="text-sm text-gray-500 truncate">{employee.employeeNumber}</p>
-                      <div className="flex items-center mt-1">
-                        <Building2 className="h-4 w-4 text-gray-400 mr-1" />
-                        <span className="text-sm text-gray-600 truncate">{employee.position.department}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => onSelectEmployee(employee)}
-                      className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Ver detalles"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                    <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors" title="Editar">
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors" title="Más opciones">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide">Puesto</p>
-                    <p className="text-sm font-medium text-gray-900 truncate">{employee.position.title}</p>
-                    <p className="text-xs text-gray-500">{employee.position.level}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide">Estado</p>
-                    <div className="flex items-center space-x-2 mt-1">
-                      {getStatusIcon(employee.status)}
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(employee.status)}`}>
-                        {getStatusText(employee.status)}
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide">Sueldo Base</p>
-                    <div className="flex items-center mt-1">
-                      <DollarSign className="h-4 w-4 text-gray-400 mr-1" />
-                      <span className="text-sm font-medium text-gray-900">{formatCurrency(employee.salary.baseSalary)}</span>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide">SBC</p>
-                    <p className="text-sm font-medium text-gray-900">{formatCurrency(employee.sbc)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide">Fecha Ingreso</p>
-                    <div className="flex items-center mt-1">
-                      <Calendar className="h-4 w-4 text-gray-400 mr-1" />
-                      <span className="text-sm text-gray-900">{formatDate(employee.hireDate)}</span>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide">Vacaciones</p>
-                    <p className="text-sm font-medium text-gray-900">{employee.vacationBalance} días</p>
-                  </div>
-                </div>
-              </div>
-            ))}
+      {loading ? (
+        <div className="bg-white rounded-lg border border-gray-200 p-8">
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mr-3" />
+            <span className="text-gray-600">Cargando empleados...</span>
           </div>
-
-          {/* Vista desktop - Tabla completa */}
-          <div className="hidden lg:block bg-white rounded-lg border border-gray-200 overflow-hidden">
+        </div>
+      ) : employees.length > 0 ? (
+        <>
+          {/* Vista de tabla */}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
-              <div className="inline-block min-w-full align-middle">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="sticky left-0 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedEmployees(employees.map(emp => emp.id));
+                          } else {
+                            setSelectedEmployees([]);
+                          }
+                        }}
+                      />
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Empleado
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Estado
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Sueldo Base
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      SBC
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Fecha Ingreso
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Saldo Vacaciones
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Incidencias 30d
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Cumplimiento
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {employees.map((employee) => (
+                    <tr key={employee.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <input
                           type="checkbox"
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          checked={selectedEmployees.includes(employee.id)}
                           onChange={(e) => {
                             if (e.target.checked) {
-                              setSelectedEmployees(filteredEmployees.map(emp => emp.id));
+                              setSelectedEmployees([...selectedEmployees, employee.id]);
                             } else {
-                              setSelectedEmployees([]);
+                              setSelectedEmployees(selectedEmployees.filter(id => id !== employee.id));
                             }
                           }}
                         />
-                      </th>
-                      <th className="sticky left-12 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider z-10 min-w-[200px]">
-                        Empleado
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[150px]">
-                        Puesto
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-                        Área
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
-                        Estado
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-                        Sueldo Base
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
-                        SBC
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-                        Fecha Ingreso
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-                        Saldo Vacaciones
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-                        Incidencias 30d
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-                        Cumplimiento
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
-                        Acciones
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredEmployees.map((employee) => (
-                      <tr key={employee.id} className="hover:bg-gray-50">
-                        <td className="sticky left-0 bg-white px-6 py-4 whitespace-nowrap z-10">
-                          <input
-                            type="checkbox"
-                            checked={selectedEmployees.includes(employee.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedEmployees(prev => [...prev, employee.id]);
-                              } else {
-                                setSelectedEmployees(prev => prev.filter(id => id !== employee.id));
-                              }
-                            }}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                        </td>
-                        <td className="sticky left-12 bg-white px-6 py-4 whitespace-nowrap z-10">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10">
-                              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                                <span className="text-white text-sm font-medium">
-                                  {employee.firstName.charAt(0)}{employee.lastName.charAt(0)}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">
-                                {employee.firstName} {employee.lastName}
-                              </div>
-                              <div className="text-sm text-gray-500">{employee.employeeNumber}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{employee.position.title}</div>
-                          <div className="text-sm text-gray-500">{employee.position.level}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <Building2 className="h-4 w-4 text-gray-400 mr-1" />
-                            <span className="text-sm text-gray-900">{employee.position.department}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center space-x-2">
-                            {getStatusIcon(employee.status)}
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(employee.status)}`}>
-                              {getStatusText(employee.status)}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <DollarSign className="h-4 w-4 text-gray-400 mr-1" />
-                            <span className="text-sm text-gray-900">{formatCurrency(employee.salary.baseSalary)}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-900">{formatCurrency(employee.sbc)}</span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <Calendar className="h-4 w-4 text-gray-400 mr-1" />
-                            <span className="text-sm text-gray-900">{formatDate(employee.hireDate)}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-900">{employee.vacationBalance} días</span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            {employee.metrics.incidentsLast30Days > 0 ? (
-                              <AlertTriangle className="h-4 w-4 text-red-500 mr-1" />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            {employee.personalInfo.avatar ? (
+                              <img
+                                className="h-10 w-10 rounded-full object-cover"
+                                src={employee.personalInfo.avatar}
+                                alt={`${employee.personalInfo.firstName} ${employee.personalInfo.lastName}`}
+                              />
                             ) : (
-                              <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+                              <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium">
+                                {getInitials(employee.personalInfo.firstName, employee.personalInfo.lastName)}
+                              </div>
                             )}
-                            <span className="text-sm text-gray-900">{employee.metrics.incidentsLast30Days}</span>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <Shield className="h-4 w-4 text-gray-400 mr-1" />
-                            <span className="text-sm text-gray-900">{employee.metrics.documentCompliance}%</span>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {employee.personalInfo.firstName} {employee.personalInfo.lastName}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {employee.position.title} • {employee.position.department}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {employee.employeeNumber}
+                            </div>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => onSelectEmployee(employee)}
-                              className="text-blue-600 hover:text-blue-900"
-                              title="Ver detalles"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                            <button className="text-gray-600 hover:text-gray-900" title="Editar">
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button className="text-gray-600 hover:text-gray-900" title="Documentos">
-                              <FileText className="h-4 w-4" />
-                            </button>
-                            <button className="text-gray-600 hover:text-gray-900" title="Más opciones">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(employee.status)}`}>
+                          {getStatusText(employee.status)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        ${employee.contract.salary.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        ${employee.contract.salary.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatDate(employee.contract.startDate)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        15 días
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          0
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="text-sm text-gray-900">100%</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => onSelectEmployee(employee)}
+                            className="text-blue-600 hover:text-blue-900"
+                            title="Ver detalles"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleEditEmployee(employee)}
+                            className="text-gray-600 hover:text-gray-900" 
+                            title="Editar"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button className="text-gray-600 hover:text-gray-900" title="Documentos">
+                            <FileText className="h-4 w-4" />
+                          </button>
+                          <button className="text-gray-600 hover:text-gray-900" title="Más opciones">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-        </>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredEmployees.map((employee) => (
-            <div
-              key={employee.id}
-              className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => onSelectEmployee(employee)}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                    <span className="text-white text-lg font-medium">
-                      {employee.firstName.charAt(0)}{employee.lastName.charAt(0)}
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {employee.firstName} {employee.lastName}
-                    </h3>
-                    <p className="text-sm text-gray-500">{employee.employeeNumber}</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  {getStatusIcon(employee.status)}
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(employee.status)}`}>
-                    {getStatusText(employee.status)}
-                  </span>
-                </div>
-              </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Puesto</span>
-                  <span className="text-sm font-medium text-gray-900">{employee.position.title}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Área</span>
-                  <span className="text-sm font-medium text-gray-900">{employee.position.department}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Sueldo Base</span>
-                  <span className="text-sm font-medium text-gray-900">{formatCurrency(employee.salary.baseSalary)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">SBC</span>
-                  <span className="text-sm font-medium text-gray-900">{formatCurrency(employee.sbc)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Vacaciones</span>
-                  <span className="text-sm font-medium text-gray-900">{employee.vacationBalance} días</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Cumplimiento</span>
-                  <span className="text-sm font-medium text-gray-900">{employee.metrics.documentCompliance}%</span>
-                </div>
+          {/* Paginación */}
+          {pagination.totalPages > 1 && (
+            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 rounded-lg border border-gray-200">
+              <div className="flex-1 flex justify-between sm:hidden">
+                <button
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page === 1}
+                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Anterior
+                </button>
+                <button
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={pagination.page === pagination.totalPages}
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Siguiente
+                </button>
               </div>
-
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">Ingreso: {formatDate(employee.hireDate)}</span>
-                  <div className="flex items-center space-x-2">
-                    <button className="p-1 text-gray-400 hover:text-gray-600">
-                      <Eye className="h-4 w-4" />
+              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">
+                    Mostrando{' '}
+                    <span className="font-medium">{(pagination.page - 1) * pagination.limit + 1}</span>{' '}
+                    a{' '}
+                    <span className="font-medium">
+                      {Math.min(pagination.page * pagination.limit, pagination.total)}
+                    </span>{' '}
+                    de{' '}
+                    <span className="font-medium">{pagination.total}</span>{' '}
+                    empleados
+                  </p>
+                </div>
+                <div>
+                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <button
+                      onClick={() => handlePageChange(pagination.page - 1)}
+                      disabled={pagination.page === 1}
+                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Anterior
                     </button>
-                    <button className="p-1 text-gray-400 hover:text-gray-600">
-                      <Edit className="h-4 w-4" />
+                    
+                    {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (pagination.totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (pagination.page <= 3) {
+                        pageNum = i + 1;
+                      } else if (pagination.page >= pagination.totalPages - 2) {
+                        pageNum = pagination.totalPages - 4 + i;
+                      } else {
+                        pageNum = pagination.page - 2 + i;
+                      }
+                      
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            pageNum === pagination.page
+                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                    
+                    <button
+                      onClick={() => handlePageChange(pagination.page + 1)}
+                      disabled={pagination.page === pagination.totalPages}
+                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Siguiente
                     </button>
-                    <button className="p-1 text-gray-400 hover:text-gray-600">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
-                  </div>
+                  </nav>
                 </div>
               </div>
             </div>
-          ))}
+          )}
+        </>
+      ) : (
+        <div className="bg-white rounded-lg border border-gray-200 p-8">
+          <div className="text-center">
+            <User className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No hay empleados</h3>
+            <p className="text-gray-600 mb-4">
+              {searchQuery || Object.keys(filters).length > 0
+                ? 'No se encontraron empleados que coincidan con los criterios de búsqueda.'
+                : 'Aún no hay empleados registrados en el sistema.'}
+            </p>
+            {!searchQuery && Object.keys(filters).length === 0 && (
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Agregar primer empleado
+              </button>
+            )}
+          </div>
         </div>
       )}
+
+      {/* Modales */}
+      <AddEmployeeModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSave={handleAddEmployee}
+      />
+
+      <ImportEmployeesModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleImportEmployees}
+      />
+
+      <EditEmployeeModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedEmployeeForEdit(null);
+        }}
+        employee={selectedEmployeeForEdit}
+        onSave={handleSaveEmployee}
+      />
     </div>
   );
 };

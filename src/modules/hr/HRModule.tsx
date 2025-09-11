@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { EmployeeList } from './components/EmployeeList';
 import { EmployeeDetail } from './components/EmployeeDetail';
+import { EmployeeDetailView } from './components/EmployeeDetailView';
+import { type Employee } from '../../services/employeesApi';
 import { HRDashboard } from './components/HRDashboard';
 import { PayrollModule } from './components/PayrollModule';
 import { TalentModule } from './components/TalentModule';
@@ -34,8 +36,19 @@ import type { Employee } from '../../types/hr';
 const HRModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState('employees');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [showEmployeeDetail, setShowEmployeeDetail] = useState(false);
   const [leftPanelOpen, setLeftPanelOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
+
+  const handleEmployeeSelect = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setShowEmployeeDetail(true);
+  };
+
+  const handleBackToEmployeeList = () => {
+    setShowEmployeeDetail(false);
+    setSelectedEmployee(null);
+  };
 
   const tabs = [
     { id: 'dashboard', name: 'Panorama', icon: BarChart3 },
@@ -60,6 +73,73 @@ const HRModule: React.FC = () => {
   }, [sidebarOpen]);
 
   const renderTabContent = () => {
+    // Si estamos mostrando la vista de detalle del empleado
+    if (showEmployeeDetail && selectedEmployee) {
+      return (
+        <EmployeeDetailView 
+          employee={{
+            id: selectedEmployee.id,
+            employeeNumber: selectedEmployee.employeeNumber,
+            personalInfo: {
+              firstName: selectedEmployee.firstName,
+              lastName: selectedEmployee.lastName,
+              email: selectedEmployee.email,
+              phone: selectedEmployee.phone,
+              avatar: selectedEmployee.avatar
+            },
+            position: {
+              id: selectedEmployee.position?.id || '',
+              title: selectedEmployee.position?.title || '',
+              department: selectedEmployee.position?.department || selectedEmployee.department || '',
+              level: selectedEmployee.position?.level || selectedEmployee.level || '',
+              reportsTo: selectedEmployee.position?.reportsTo || selectedEmployee.reportsTo,
+              jobDescription: selectedEmployee.position?.jobDescription || '',
+              requirements: selectedEmployee.position?.requirements || [],
+              skills: selectedEmployee.position?.skills || [],
+              salaryRange: selectedEmployee.position?.salaryRange || { min: 0, max: 0 }
+            },
+            location: {
+              id: selectedEmployee.location?.id || '',
+              name: selectedEmployee.location?.name || '',
+              address: selectedEmployee.location?.address?.street 
+                ? `${selectedEmployee.location.address.street} ${selectedEmployee.location.address.number}, ${selectedEmployee.location.address.neighborhood}, ${selectedEmployee.location.address.city}`
+                : '',
+              city: selectedEmployee.location?.address?.city || '',
+              state: selectedEmployee.location?.address?.state || '',
+              country: selectedEmployee.location?.address?.country || '',
+              postalCode: selectedEmployee.location?.address?.zipCode || '',
+              timezone: selectedEmployee.location?.timezone || '',
+              isRemote: selectedEmployee.location?.isRemote || false
+            },
+            contract: {
+              id: selectedEmployee.contract?.id || '',
+              type: selectedEmployee.contract?.type || selectedEmployee.contractType || '',
+              startDate: new Date(selectedEmployee.contract?.startDate || selectedEmployee.hireDate),
+              endDate: selectedEmployee.contract?.endDate,
+              workingHours: selectedEmployee.contract?.workingHours || 40,
+              workingDays: selectedEmployee.contract?.workingDays || '',
+              workingHoursRange: selectedEmployee.contract?.workingHoursRange || '',
+              customSchedule: selectedEmployee.contract?.customSchedule || {
+                enabled: false,
+                days: {
+                  lunes: { enabled: true, startTime: '09:00', endTime: '18:00' },
+                  martes: { enabled: true, startTime: '09:00', endTime: '18:00' },
+                  miercoles: { enabled: true, startTime: '09:00', endTime: '18:00' },
+                  jueves: { enabled: true, startTime: '09:00', endTime: '18:00' },
+                  viernes: { enabled: true, startTime: '09:00', endTime: '18:00' },
+                  sabado: { enabled: false, startTime: '09:00', endTime: '14:00' },
+                  domingo: { enabled: false, startTime: '09:00', endTime: '18:00' }
+                }
+              },
+              benefits: selectedEmployee.contract?.benefits || [],
+              clauses: selectedEmployee.contract?.clauses || []
+            }
+          }}
+          onBack={handleBackToEmployeeList}
+        />
+      );
+    }
+
     switch (activeTab) {
       case 'dashboard':
         return <HRDashboard />;
@@ -71,7 +151,7 @@ const HRModule: React.FC = () => {
             onEdit={(employee) => setSelectedEmployee(employee)}
           />
         ) : (
-          <EmployeeList onSelectEmployee={setSelectedEmployee} />
+          <EmployeeList onSelectEmployee={handleEmployeeSelect} />
         );
       case 'payroll':
         return <PayrollModule />;
@@ -86,7 +166,7 @@ const HRModule: React.FC = () => {
       case 'copilot':
         return <HRCopilot />;
       default:
-        return <EmployeeList onSelectEmployee={setSelectedEmployee} />;
+        return <EmployeeList onSelectEmployee={handleEmployeeSelect} />;
     }
   };
 
