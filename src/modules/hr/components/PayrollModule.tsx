@@ -273,7 +273,7 @@ export const PayrollModule: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{employee.position.title}</div>
+                      <div className="text-sm text-gray-900">{employee.employee.position.title}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
