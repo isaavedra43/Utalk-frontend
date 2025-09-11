@@ -107,15 +107,20 @@ export const useBaseSocket = () => {
 				
 				// NUEVO: Clasificación mejorada de errores
 				const msg = error.message.toLowerCase();
-				const isAuthError = msg.includes('authentication_required') || msg.includes('jwt token required') || msg.includes('unauthorized');
+				const isAuthError = msg.includes('authentication_required') || msg.includes('jwt token required') || msg.includes('unauthorized') || msg.includes('authentication error');
 				const isTimeout = msg.includes('timeout') || msg.includes('etimedout');
 				const isTransport = msg.includes('transport');
 				const isRefused = msg.includes('econnrefused') || msg.includes('enotfound');
 
 				if (isAuthError) {
-					console.error('🔐 Error de autenticación WebSocket');
+					console.error('🔐 Error de autenticación WebSocket, notificando para refresh token');
 					setConnectionError('Error de autenticación: Token inválido o expirado');
 					isConnectingRef.current = false;
+					
+					// Notificar error de autenticación para que el interceptor maneje el refresh
+					window.dispatchEvent(new CustomEvent('websocket:auth-error', { 
+						detail: { error: error.message } 
+					}));
 				} else if (isTimeout || isTransport || isRefused) {
 					infoLog('🔄 Error transitorio, intentando reconexión...');
 					// NUEVO: No establecer error para errores transitorios

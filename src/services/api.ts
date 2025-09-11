@@ -214,98 +214,176 @@ api.interceptors.response.use(
 
     // Solo manejar errores 401 para refresh token
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Si ya estamos refrescando, agregar a la cola
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then(token => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return api(originalRequest);
-        }).catch(err => {
-          return Promise.reject(err);
-        });
-      }
+      const errorCode = error.response.data?.error?.code;
+      const errorMessage = error.response.data?.error?.message || 'Error de autenticación';
+      
+      logger.authError('Error 401 detectado', error as Error, {
+        errorCode,
+        errorMessage,
+        url: originalRequest.url,
+        method: originalRequest.method
+      });
 
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      try {
-        const refreshToken = localStorage.getItem('refresh_token');
-        if (!refreshToken) {
-          logger.authError('No hay refresh token disponible', new Error('Refresh token no encontrado'), {
-            hasAccessToken: !!localStorage.getItem('access_token'),
-            hasRefreshToken: false
-          });
-          
-          // Limpiar tokens y redirigir
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('user');
-          
-          // Notificar que la autenticación falló
-          window.dispatchEvent(new CustomEvent('auth:authentication-failed'));
-          
-          processQueue(new Error('No refresh token available'));
-          throw new Error('No refresh token available');
-        }
-
-        logger.authInfo('Intentando refresh token', {
-          hasRefreshToken: !!refreshToken,
-          refreshTokenPreview: refreshToken ? refreshToken.substring(0, 20) + '...' : 'null'
+      // Manejar MALFORMED_TOKEN inmediatamente sin intentar refresh
+      if (errorCode === 'MALFORMED_TOKEN' || errorCode === 'INVALID_TOKEN') {
+        logger.authError('Token corrupto detectado, limpiando inmediatamente', error as Error, {
+          errorCode
         });
         
-        const response = await api.post('/api/auth/refresh', { refreshToken });
-        
-        const { accessToken, refreshToken: newRefreshToken } = response.data;
-        
-        localStorage.setItem('access_token', accessToken);
-        localStorage.setItem('refresh_token', newRefreshToken);
-        
-        logger.authInfo('Token refrescado exitosamente', {
-          hasNewAccessToken: !!accessToken,
-          hasNewRefreshToken: !!newRefreshToken,
-          accessTokenPreview: accessToken ? accessToken.substring(0, 20) + '...' : 'null'
-        });
-        
-        // Notificar a la aplicación que el token fue refrescado para reautenticar WS
-        window.dispatchEvent(new CustomEvent('auth:token-refreshed', { detail: { accessToken } }));
-        
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        
-        logger.apiInfo('Reintentando request original con nuevo token', {
-          method: originalRequest.method?.toUpperCase(),
-          url: originalRequest.url
-        });
-        
-        processQueue(null, accessToken);
-        return api(originalRequest);
-      } catch (refreshError) {
-        logger.authError('Error refrescando token', refreshError as Error, {
-          originalError: error.message,
-          refreshAttempted: true
-        });
-        
-        // Limpiar tokens y redirigir al login
+        // Limpiar tokens inmediatamente
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
         
-        logger.authInfo('Tokens limpiados, redirigiendo al login');
-        
         // Notificar que la autenticación falló
         window.dispatchEvent(new CustomEvent('auth:authentication-failed'));
         
-        processQueue(refreshError as Error);
-        
-        // Redirigir al login solo si no estamos ya en login
+        // Redirigir al login
         if (window.location.pathname !== '/login') {
           window.location.href = '/login';
         }
         
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
+        return Promise.reject(error);
       }
+
+      // Solo intentar refresh para TOKEN_EXPIRED
+      if (errorCode === 'TOKEN_EXPIRED') {
+        // Si ya estamos refrescando, agregar a la cola
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          }).then(token => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          }).catch(err => {
+            return Promise.reject(err);
+          });
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        try {
+          const refreshToken = localStorage.getItem('refresh_token');
+          if (!refreshToken) {
+            logger.authError('No hay refresh token disponible', new Error('Refresh token no encontrado'), {
+              hasAccessToken: !!localStorage.getItem('access_token'),
+              hasRefreshToken: false
+            });
+            
+            // Limpiar tokens y redirigir
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            
+            // Notificar que la autenticación falló
+            window.dispatchEvent(new CustomEvent('auth:authentication-failed'));
+            
+            processQueue(new Error('No refresh token available'));
+            throw new Error('No refresh token available');
+          }
+
+          logger.authInfo('Intentando refresh token para TOKEN_EXPIRED', {
+            hasRefreshToken: !!refreshToken,
+            refreshTokenPreview: refreshToken ? refreshToken.substring(0, 20) + '...' : 'null'
+          });
+          
+          const response = await api.post('/api/auth/refresh', { refreshToken });
+          
+          const { accessToken, refreshToken: newRefreshToken } = response.data;
+          
+          localStorage.setItem('access_token', accessToken);
+          localStorage.setItem('refresh_token', newRefreshToken);
+          
+          logger.authInfo('Token refrescado exitosamente', {
+            hasNewAccessToken: !!accessToken,
+            hasNewRefreshToken: !!newRefreshToken,
+            accessTokenPreview: accessToken ? accessToken.substring(0, 20) + '...' : 'null'
+          });
+          
+          // Notificar a la aplicación que el token fue refrescado para reautenticar WS
+          window.dispatchEvent(new CustomEvent('auth:token-refreshed', { detail: { accessToken } }));
+          
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          
+          logger.apiInfo('Reintentando request original con nuevo token', {
+            method: originalRequest.method?.toUpperCase(),
+            url: originalRequest.url
+          });
+          
+          processQueue(null, accessToken);
+          return api(originalRequest);
+        } catch (refreshError) {
+          logger.authError('Error refrescando token', refreshError as Error, {
+            originalError: error.message,
+            refreshAttempted: true
+          });
+          
+          // Limpiar tokens y redirigir al login
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          localStorage.removeItem('user');
+          
+          logger.authInfo('Tokens limpiados, redirigiendo al login');
+          
+          // Notificar que la autenticación falló
+          window.dispatchEvent(new CustomEvent('auth:authentication-failed'));
+          
+          processQueue(refreshError as Error);
+          
+          // Redirigir al login solo si no estamos ya en login
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+          
+          return Promise.reject(refreshError);
+        } finally {
+          isRefreshing = false;
+        }
+      } else {
+        // Otros errores 401 no manejados - limpiar y redirigir
+        logger.authError('Error 401 no manejado, limpiando autenticación', error as Error, {
+          errorCode,
+          errorMessage
+        });
+        
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        
+        window.dispatchEvent(new CustomEvent('auth:authentication-failed'));
+        
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+        
+        return Promise.reject(error);
+      }
+    }
+
+    // Manejar errores 404 específicos sin retry
+    if (error.response?.status === 404) {
+      const errorCode = error.response.data?.error?.code;
+      
+      if (errorCode === 'CONVERSATION_NOT_FOUND') {
+        logger.apiInfo('Conversación no encontrada, no reintentando', {
+          url: originalRequest.url,
+          conversationId: originalRequest.url?.match(/conv_[^&?]+/)?.[0]
+        });
+        // No hacer retry de conversaciones no encontradas
+        return Promise.reject(error);
+      }
+    }
+
+    // Manejar errores 500 sin retry
+    if (error.response?.status === 500) {
+      logger.apiError('Error interno del servidor, no reintentando', error as Error, {
+        url: originalRequest.url,
+        method: originalRequest.method,
+        errorDetails: error.response.data
+      });
+      // No hacer retry de errores 500
+      return Promise.reject(error);
     }
 
     return Promise.reject(error);

@@ -243,19 +243,47 @@ export const useWebSocketConnection = () => {
 
   // Reautenticar socket cuando se refresca el access token (solo si estamos en /chat)
   useEffect(() => {
-    const handler = (e: Event) => {
+    const handleTokenRefresh = (e: Event) => {
       const detail = (e as CustomEvent).detail as { accessToken?: string } | undefined;
       const accessToken = detail?.accessToken;
       if (!accessToken) return;
       if (!isChatRoute) return;
-      debugLog('[DEBUG][WS] Token refrescado, reconectando (/chat)');
+      
+      debugLog('[DEBUG][WS] Token refrescado, reautenticando WebSocket...', {
+        hasNewToken: !!accessToken,
+        isConnected,
+        reconnectAttempts
+      });
+      
+      // Resetear intentos de reconexión
+      setReconnectAttempts(0);
+      
+      // Desconectar socket actual
       disconnect();
-      connect(accessToken);
+      
+      // Esperar un momento para asegurar desconexión limpia y reconectar
+      setTimeout(() => {
+        debugLog('[DEBUG][WS] Reconectando con nuevo token...');
+        connect(accessToken, { timeout: 60000 });
+      }, 500);
     };
 
-    window.addEventListener('auth:token-refreshed', handler as unknown as EventListener);
-    return () => window.removeEventListener('auth:token-refreshed', handler as unknown as EventListener);
-  }, [connect, disconnect, isChatRoute]);
+    const handleAuthFailed = () => {
+      debugLog('[DEBUG][WS] Autenticación fallida, desconectando WebSocket...');
+      if (isConnected) {
+        disconnect();
+      }
+      setReconnectAttempts(0);
+    };
+
+    window.addEventListener('auth:token-refreshed', handleTokenRefresh as unknown as EventListener);
+    window.addEventListener('auth:authentication-failed', handleAuthFailed as unknown as EventListener);
+    
+    return () => {
+      window.removeEventListener('auth:token-refreshed', handleTokenRefresh as unknown as EventListener);
+      window.removeEventListener('auth:authentication-failed', handleAuthFailed as unknown as EventListener);
+    };
+  }, [connect, disconnect, isChatRoute, isConnected, reconnectAttempts]);
 
   // Conectar WebSocket cuando el usuario esté autenticado y esté en /chat
   useEffect(() => {

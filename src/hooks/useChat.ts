@@ -790,9 +790,14 @@ export const useChat = (conversationId: string) => {
             }
           }, 2000);
         } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-          errorMessage = 'Sesión expirada. Por favor, recarga la página.';
+          errorMessage = 'Sesión expirada. Reautenticando...';
+          // No hacer nada más, el interceptor de API se encargará del refresh
+        } else if (error.message.includes('404') && error.message.includes('CONVERSATION_NOT_FOUND')) {
+          errorMessage = 'Esta conversación no existe o no tienes permisos para verla.';
         } else if (error.message.includes('429') || error.message.includes('Too Many Requests')) {
           errorMessage = 'Demasiados mensajes. Espera un momento antes de enviar otro.';
+        } else if (error.message.includes('500')) {
+          errorMessage = 'Error del servidor. Intenta de nuevo más tarde.';
         } else {
           errorMessage = error.message;
         }
