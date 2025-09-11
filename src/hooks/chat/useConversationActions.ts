@@ -17,7 +17,7 @@ export const useConversationActions = () => {
     conversations
   } = useChatStore();
 
-  // Función para seleccionar una conversación
+  // Función para seleccionar una conversación con mejor manejo de errores
   const selectConversation = useCallback((conversationId: string) => {
     if (!conversationId) {
       infoLog('⚠️ useConversationActions - ID de conversación vacío');
@@ -30,22 +30,47 @@ export const useConversationActions = () => {
       return;
     }
 
-    // Actualizar URL con el ID de la conversación
-    const encodedId = encodeConversationIdForUrl(sanitizedId);
-    const newSearchParams = new URLSearchParams(location.search);
-    newSearchParams.set('conversation', encodedId);
-    
-    const newUrl = `${location.pathname}?${newSearchParams.toString()}`;
-    navigate(newUrl, { replace: true });
+    try {
+      // Verificar si ya es la conversación activa
+      if (activeConversation?.id === sanitizedId) {
+        infoLog('ℹ️ useConversationActions - Conversación ya está activa:', sanitizedId);
+        return;
+      }
 
-    // Actualizar estado local con la conversación existente si está en el store
-    const existing = conversations.find(c => c.id === sanitizedId) || null;
-    if (existing) {
-      setActiveConversation(existing);
+      // Actualizar URL con el ID de la conversación
+      const encodedId = encodeConversationIdForUrl(sanitizedId);
+      const newSearchParams = new URLSearchParams(location.search);
+      newSearchParams.set('conversation', encodedId);
+      
+      const newUrl = `${location.pathname}?${newSearchParams.toString()}`;
+      navigate(newUrl, { replace: true });
+
+      // Actualizar estado local con la conversación existente si está en el store
+      const existing = conversations.find(c => c.id === sanitizedId) || null;
+      if (existing) {
+        setActiveConversation(existing);
+        infoLog('✅ useConversationActions - Conversación seleccionada desde store:', sanitizedId);
+      } else {
+        // Si no existe en el store, crear una conversación temporal
+        const tempConversation = {
+          id: sanitizedId,
+          customerName: 'Cargando...',
+          customerPhone: sanitizedId,
+          lastMessage: null,
+          unreadCount: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        } as any;
+        
+        setActiveConversation(tempConversation);
+        infoLog('⚠️ useConversationActions - Conversación temporal creada:', sanitizedId);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error al seleccionar conversación:', error);
+      infoLog('❌ useConversationActions - Error al seleccionar conversación:', sanitizedId, error);
     }
-    
-    infoLog('✅ useConversationActions - Conversación seleccionada:', sanitizedId);
-  }, [navigate, location.pathname, location.search, setActiveConversation, conversations]);
+  }, [navigate, location.pathname, location.search, setActiveConversation, conversations, activeConversation]);
 
   // Función para deseleccionar conversación
   const deselectConversation = useCallback(() => {

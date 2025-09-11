@@ -174,7 +174,7 @@ export const useWebSocketConnection = () => {
     infoLog(`🔌 Saliendo de conversación: ${conversationId}`);
   }, [socket, emit]);
 
-  // Conectar/desconectar WS según la ruta - OPTIMIZADO
+  // Conectar/desconectar WS según la ruta - OPTIMIZADO CON RECUPERACIÓN
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     
@@ -194,6 +194,21 @@ export const useWebSocketConnection = () => {
     if (connectionError && connectionError.includes('RATE_LIMITED')) {
       debugLog('[DEBUG][WS] Rate limited detectado, no reconectar');
       return;
+    }
+    
+    // NUEVO: Recuperación automática para errores de "Too many events"
+    if (connectionError && connectionError.includes('Demasiados eventos')) {
+      debugLog('[DEBUG][WS] Error de demasiados eventos detectado, implementando recuperación...');
+      
+      // Esperar 10 segundos y luego intentar reconectar
+      const recoveryTimeout = setTimeout(() => {
+        if (token && isChatRoute) {
+          debugLog('[DEBUG][WS] Intentando recuperación automática...');
+          connect(token, { timeout: 60000 });
+        }
+      }, 10000);
+      
+      return () => clearTimeout(recoveryTimeout);
     }
   }, [isChatRoute, isConnected, connectionError, isConnecting, connect, disconnect]);
 

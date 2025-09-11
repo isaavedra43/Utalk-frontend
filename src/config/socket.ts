@@ -7,26 +7,40 @@ const SOCKET_CONFIG = {
   transports: ['websocket', 'polling'], // NUEVO: Permitir fallback a polling
   timeout: 60000, // NUEVO: Aumentado a 60 segundos
   reconnection: true,
-  reconnectionAttempts: 5, // NUEVO: Reducido para evitar loops infinitos
-  reconnectionDelay: 2000, // NUEVO: Delay inicial de 2 segundos
+  reconnectionAttempts: 3, // REDUCIDO: Solo 3 intentos para evitar loops
+  reconnectionDelay: 5000, // AUMENTADO: Delay inicial de 5 segundos
   reconnectionDelayMax: 30000, // NUEVO: Máximo 30 segundos
-  maxReconnectionAttempts: 5, // NUEVO: Máximo 5 intentos
+  maxReconnectionAttempts: 3, // REDUCIDO: Máximo 3 intentos
   autoConnect: false, // No conectar automáticamente
   forceNew: true,
   upgrade: true,
   rememberUpgrade: true,
   // NUEVO: Configuraciones adicionales para estabilidad
   pingTimeout: 60000, // NUEVO: Timeout de ping de 60 segundos
-  pingInterval: 25000, // NUEVO: Ping cada 25 segundos
+  pingInterval: 30000, // AUMENTADO: Ping cada 30 segundos (menos frecuente)
   closeOnBeforeunload: false, // NUEVO: No cerrar en beforeunload
-  // NUEVO: Configuraciones de transporte
+  // NUEVO: Configuraciones de transporte optimizadas
   transportOptions: {
     websocket: {
       // NUEVO: Configuraciones específicas de WebSocket
       perMessageDeflate: false, // NUEVO: Deshabilitar compresión para evitar problemas
-      maxPayload: 1000000 // NUEVO: Máximo 1MB de payload
+      maxPayload: 1000000, // NUEVO: Máximo 1MB de payload
+      // NUEVO: Configuraciones para reducir eventos
+      binaryType: 'arraybuffer',
+      protocols: []
+    },
+    polling: {
+      // NUEVO: Configuraciones para polling
+      timeout: 60000,
+      extraHeaders: {}
     }
-  }
+  },
+  // NUEVO: Configuraciones para reducir eventos
+  maxHttpBufferSize: 1e6, // 1MB
+  allowEIO3: true,
+  // NUEVO: Throttling de eventos
+  eventThrottleMs: 100, // 100ms entre eventos
+  maxEventsPerSecond: 10 // Máximo 10 eventos por segundo
 };
 
 export const createSocket = (token: string, options?: { timeout?: number }) => {

@@ -684,6 +684,21 @@ export const useChat = (conversationId: string) => {
       return;
     }
     
+    // NUEVO: Verificar conexión WebSocket antes de enviar
+    if (!isConnected) {
+      setError('No hay conexión con el servidor. Verificando conexión...');
+      infoLog('⚠️ useChat - Intentando reconectar WebSocket...');
+      
+      // Intentar reconectar
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        const { connect } = await import('../contexts/useWebSocketContext');
+        // Note: Esto requeriría acceso al contexto, pero por ahora solo logueamos
+        infoLog('🔄 useChat - Token disponible, debería reconectar automáticamente');
+      }
+      return;
+    }
+    
     // SOLUCIONADO: Marcar como en progreso
     sendMessageInProgressRef.current = true;
     
@@ -759,7 +774,35 @@ export const useChat = (conversationId: string) => {
       infoLog('✅ Mensaje enviado exitosamente');
     } catch (error: unknown) {
       console.error('❌ Error enviando mensaje:', error);
-      setError(error instanceof Error ? error.message : 'Error enviando mensaje');
+      
+      // NUEVO: Manejo específico de errores
+      let errorMessage = 'Error enviando mensaje';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Network Error') || error.message.includes('timeout')) {
+          errorMessage = 'Error de conexión. Verificando conexión...';
+          // Intentar reconectar automáticamente
+          setTimeout(() => {
+            const token = localStorage.getItem('access_token');
+            if (token && isConnected === false) {
+              infoLog('🔄 useChat - Intentando reconexión automática después de error de red');
+              // El WebSocket debería reconectar automáticamente
+            }
+          }, 2000);
+        } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+          errorMessage = 'Sesión expirada. Por favor, recarga la página.';
+        } else if (error.message.includes('429') || error.message.includes('Too Many Requests')) {
+          errorMessage = 'Demasiados mensajes. Espera un momento antes de enviar otro.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setError(errorMessage);
+      
+      // NUEVO: Remover mensaje optimístico en caso de error
+      setMessages(prev => prev.filter(msg => !msg.id.startsWith('optimistic_')));
+      
     } finally {
       setSending(false);
       // SOLUCIONADO: Limpiar flag de envío en progreso

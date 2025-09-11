@@ -5,6 +5,7 @@ import { useAuthContext } from '../../contexts/useAuthContext';
 import { ConversationManager } from '../../services/ConversationManager';
 import { assignmentService } from '../../services/assignments';
 import { infoLog } from '../../config/logger';
+import { createThrottledCallback, EVENT_THROTTLE_CONFIGS } from '../../utils/eventThrottler';
 import type { Message, Conversation } from '../../types';
 
 // Tipos para validación de mensajes de webhook
@@ -391,17 +392,17 @@ export const useConversationSync = () => {
       console.debug('[DEBUG][ConversationSync] Registrando listeners de WS');
     }
 
-    // Registrar listeners para eventos de conversación
-    on('conversation-event', handleConversationEvent);
-    on('new-message', handleNewMessage);
-    on('message-read', handleMessageRead);
-    on('conversation-joined', handleConversationJoined);
-    on('conversation-left', handleConversationLeft);
-    on('state-synced', handleStateSynced);
+    // Registrar listeners para eventos de conversación con throttling
+    on('conversation-event', createThrottledCallback('conversation-event', handleConversationEvent, EVENT_THROTTLE_CONFIGS['conversation-event']));
+    on('new-message', createThrottledCallback('new-message', handleNewMessage, EVENT_THROTTLE_CONFIGS['new-message']));
+    on('message-read', createThrottledCallback('message-read', handleMessageRead, EVENT_THROTTLE_CONFIGS['message-read']));
+    on('conversation-joined', createThrottledCallback('conversation-joined', handleConversationJoined, EVENT_THROTTLE_CONFIGS['conversation-joined']));
+    on('conversation-left', createThrottledCallback('conversation-left', handleConversationLeft, EVENT_THROTTLE_CONFIGS['conversation-left']));
+    on('state-synced', createThrottledCallback('state-synced', handleStateSynced, EVENT_THROTTLE_CONFIGS['state-synced']));
     
-    // Registrar listeners para eventos de webhook
-    on('webhook:conversation-created', handleWebhookConversationCreated);
-    on('webhook:new-message', handleWebhookNewMessage);
+    // Registrar listeners para eventos de webhook con throttling
+    on('webhook:conversation-created', createThrottledCallback('webhook:conversation-created', handleWebhookConversationCreated, EVENT_THROTTLE_CONFIGS['webhook:conversation-created']));
+    on('webhook:new-message', createThrottledCallback('webhook:new-message', handleWebhookNewMessage, EVENT_THROTTLE_CONFIGS['webhook:new-message']));
     
     // Registrar listeners para eventos personalizados del DOM
     const handleWebSocketStateSynced = (e: Event) => {

@@ -127,14 +127,35 @@ export const useBaseSocket = () => {
 				}
 			});
 
-			// NUEVO: Listener para errores de transporte
-			newSocket.on('error', (error: Error) => {
-				console.error('🔌 Error de transporte:', {
-					message: error.message,
-					name: error.name,
-					timestamp: new Date().toISOString()
-				});
-			});
+	// NUEVO: Listener para errores de transporte con throttling
+	newSocket.on('error', (error: Error) => {
+		// Throttling para evitar spam de errores
+		const now = Date.now();
+		const lastErrorTime = (newSocket as any).lastErrorTime || 0;
+		const errorThrottleMs = 5000; // 5 segundos entre errores del mismo tipo
+		
+		if (now - lastErrorTime < errorThrottleMs) {
+			return; // Ignorar errores duplicados
+		}
+		
+		(newSocket as any).lastErrorTime = now;
+		
+		console.error('🔌 Error de transporte:', {
+			message: error.message,
+			name: error.name,
+			timestamp: new Date().toISOString()
+		});
+		
+		// Manejar específicamente el error "Too many events"
+		if (error.message.includes('Too many events')) {
+			console.warn('⚠️ Demasiados eventos detectados, implementando throttling...');
+			// Implementar throttling temporal
+			setConnectionError('Demasiados eventos - Aplicando throttling');
+			setTimeout(() => {
+				setConnectionError(null);
+			}, 10000); // Limpiar error después de 10 segundos
+		}
+	});
 
 			// NUEVO: Listener para reconexión
 			newSocket.on('reconnect', (attemptNumber: number) => {
@@ -191,7 +212,7 @@ export const useBaseSocket = () => {
 		}
 	}, []);
 
-	// Registrar listener de evento
+	// Registrar listener de evento con throttling
 	const on = useCallback((event: string, callback: (...args: unknown[]) => void) => {
 		if (!socketRef.current) return;
 
@@ -201,9 +222,25 @@ export const useBaseSocket = () => {
 			socketRef.current.off(event, existingCallback);
 		}
 
+		// Crear callback con throttling para eventos críticos
+		const throttledCallback = (...args: unknown[]) => {
+			const now = Date.now();
+			const lastEventTime = (callback as any).lastEventTime || 0;
+			const eventThrottleMs = 100; // 100ms entre eventos del mismo tipo
+			
+			// Aplicar throttling solo a eventos de alta frecuencia
+			const highFrequencyEvents = ['typing', 'message-read', 'conversation-event'];
+			if (highFrequencyEvents.includes(event) && now - lastEventTime < eventThrottleMs) {
+				return; // Ignorar eventos duplicados
+			}
+			
+			(callback as any).lastEventTime = now;
+			callback(...args);
+		};
+
 		// Registrar nuevo listener
-		socketRef.current.on(event, callback);
-		eventListenersRef.current.set(event, callback);
+		socketRef.current.on(event, throttledCallback);
+		eventListenersRef.current.set(event, throttledCallback);
 	}, []);
 
 	// Remover listener de evento

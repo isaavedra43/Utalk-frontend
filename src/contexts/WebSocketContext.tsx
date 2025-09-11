@@ -1,6 +1,7 @@
 import React, { createContext } from 'react';
 import { Socket } from 'socket.io-client';
 import { useWebSocket, useWebSocketTyping } from '../hooks/websocket';
+import '../utils/debugUtils'; // Importar utilidades de debug
 
 // Interface simplificada que combina todos los hooks
 interface WebSocketContextType {
