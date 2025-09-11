@@ -268,10 +268,12 @@ export const PayrollModule: React.FC = () => {
                 {weekPayroll.details.map((employee: any, index: number) => (
                   <tr key={index} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{employee.employee}</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {employee.employee.personalInfo.firstName} {employee.employee.personalInfo.lastName}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{employee.position}</div>
+                      <div className="text-sm text-gray-900">{employee.position.title}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
