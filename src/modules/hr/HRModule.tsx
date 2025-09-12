@@ -124,7 +124,7 @@ const HRModule: React.FC = () => {
             contract: {
               id: selectedEmployee.contract?.id || '',
               type: selectedEmployee.contract?.type || selectedEmployee.contractType || '',
-              startDate: new Date(selectedEmployee.contract?.startDate || selectedEmployee.hireDate),
+              startDate: selectedEmployee.contract?.startDate || selectedEmployee.hireDate || new Date().toISOString(),
               endDate: selectedEmployee.contract?.endDate,
               workingHours: selectedEmployee.contract?.workingHours || 40,
               workingDays: selectedEmployee.contract?.workingDays || '',

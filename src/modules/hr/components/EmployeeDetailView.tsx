@@ -48,7 +48,7 @@ interface Employee {
     address: string;
   };
   contract: {
-    startDate: Date;
+    startDate: string | Date;
     type: string;
   };
 }
@@ -90,8 +90,12 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
     { id: 'history' as TabType, label: 'Historial', icon: History }
   ];
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('es-MX', {
+  const formatDate = (date: string | Date) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(dateObj.getTime())) {
+      return 'Fecha no válida';
+    }
+    return dateObj.toLocaleDateString('es-MX', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
