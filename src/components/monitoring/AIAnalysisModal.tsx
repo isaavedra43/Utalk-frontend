@@ -131,7 +131,7 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ onClose }) => 
       
       // Crear prompt para ChatGPT
       const prompt = `
-Analiza los siguientes datos de monitoreo de una aplicación web y proporciona un análisis detallado:
+Analiza los siguientes datos de monitoreo de una aplicación web y proporciona un análisis SÚPER DETALLADO y EXTENSO:
 
 ## RESUMEN GENERAL:
 - APIs: ${data.summary.totalAPIs} llamadas
@@ -140,56 +140,92 @@ Analiza los siguientes datos de monitoreo de una aplicación web y proporciona u
 - Logs: ${data.summary.totalLogs} entradas
 - Rendimiento: ${data.summary.totalPerformance} métricas
 
-## ESTADÍSTICAS DE APIs:
+## ESTADÍSTICAS DETALLADAS DE APIs:
 - Total: ${data.apiStats.total}
 - Exitosas: ${data.apiStats.successful}
 - Fallidas: ${data.apiStats.failed}
 - Tiempo promedio de respuesta: ${data.apiStats.averageResponseTime.toFixed(2)}ms
 - Endpoint más lento: ${data.apiStats.slowestEndpoint.url || 'N/A'} (${data.apiStats.slowestEndpoint.duration || 0}ms)
+- Errores más frecuentes: ${Object.entries(data.apiStats.mostFrequentError).slice(0, 3).map(([error, count]) => `${error} (${count})`).join(', ')}
 
-## ESTADÍSTICAS DE WEBSOCKETS:
+## ESTADÍSTICAS DETALLADAS DE WEBSOCKETS:
 - Total eventos: ${data.wsStats.total}
 - Conexiones: ${data.wsStats.connections}
 - Desconexiones: ${data.wsStats.disconnections}
 - Mensajes: ${data.wsStats.messages}
 - Errores: ${data.wsStats.errors}
 
-## ESTADÍSTICAS DE ERRORES:
+## ESTADÍSTICAS DETALLADAS DE ERRORES:
 - Total: ${data.errorStats.total}
 - Errores críticos: ${data.errorStats.criticalErrors}
-- Tipos más comunes: ${Object.entries(data.errorStats.byType).slice(0, 3).map(([type, count]) => `${type} (${count})`).join(', ')}
-- Fuentes más problemáticas: ${Object.entries(data.errorStats.bySource).slice(0, 3).map(([source, count]) => `${source} (${count})`).join(', ')}
+- Tipos más comunes: ${Object.entries(data.errorStats.byType).slice(0, 5).map(([type, count]) => `${type} (${count})`).join(', ')}
+- Fuentes más problemáticas: ${Object.entries(data.errorStats.bySource).slice(0, 5).map(([source, count]) => `${source} (${count})`).join(', ')}
 
-## ESTADÍSTICAS DE RENDIMIENTO:
+## ESTADÍSTICAS DETALLADAS DE RENDIMIENTO:
 - Memoria promedio: ${data.perfStats.averageMemory.toFixed(2)}MB
 - Tiempo de renderizado promedio: ${data.perfStats.averageRenderTime.toFixed(2)}ms
 - Componente más lento: ${data.perfStats.slowestComponent.name} (${data.perfStats.slowestComponent.value}ms)
 
-## MUESTRAS DE ERRORES:
-${data.sampleErrors.map(error => `- ${error.name}: ${error.message} (${error.source})`).join('\n')}
+## ESTADÍSTICAS DETALLADAS DE LOGS:
+- Total: ${data.logStats.total}
+- Por nivel: ${Object.entries(data.logStats.byLevel).map(([level, count]) => `${level} (${count})`).join(', ')}
+- Por categoría: ${Object.entries(data.logStats.byCategory).slice(0, 5).map(([category, count]) => `${category} (${count})`).join(', ')}
 
-## MUESTRAS DE APIs:
-${data.sampleAPIs.map(api => `- ${api.method} ${api.url}: ${api.status} (${api.duration}ms) ${api.error ? `- ERROR: ${api.error}` : ''}`).join('\n')}
+## MUESTRAS DETALLADAS DE ERRORES:
+${data.sampleErrors.map(error => `- ${error.name}: ${error.message} (${error.source}) - URL: ${error.url || 'N/A'} - Stack: ${error.stack ? error.stack.substring(0, 200) + '...' : 'N/A'}`).join('\n')}
 
-## MUESTRAS DE LOGS:
-${data.sampleLogs.map(log => `- [${log.level.toUpperCase()}] ${log.category}: ${log.message}`).join('\n')}
+## MUESTRAS DETALLADAS DE APIs:
+${data.sampleAPIs.map(api => `- ${api.method} ${api.url}: ${api.status} (${api.duration}ms) ${api.error ? `- ERROR: ${api.error}` : ''} - Headers: ${JSON.stringify(api.requestHeaders || {})}`).join('\n')}
 
-Por favor, proporciona un análisis estructurado que incluya:
+## MUESTRAS DETALLADAS DE LOGS:
+${data.sampleLogs.map(log => `- [${log.level.toUpperCase()}] ${log.category}: ${log.message} - Source: ${log.source} - Data: ${JSON.stringify(log.data || {})}`).join('\n')}
 
-1. **RESUMEN EJECUTIVO**: Un párrafo que resuma el estado general del sistema
-2. **PROBLEMAS CRÍTICOS**: Lista de los 3-5 problemas más importantes que necesitan atención inmediata
-3. **RECOMENDACIONES**: Acciones específicas para resolver los problemas identificados
-4. **INSIGHTS DE RENDIMIENTO**: Análisis del rendimiento y optimizaciones sugeridas
-5. **PATRONES DE ERRORES**: Patrones identificados en los errores y cómo solucionarlos
+## INSTRUCCIONES ESPECÍFICAS:
 
-Responde en español y sé específico y accionable en tus recomendaciones.
+Necesito un análisis SÚPER EXTENSO y DETALLADO que incluya:
+
+1. **RESUMEN EJECUTIVO**: Un párrafo completo que resuma el estado general del sistema, incluyendo todos los aspectos críticos
+
+2. **PROBLEMAS CRÍTICOS**: Lista detallada de TODOS los problemas importantes (mínimo 5-8), con:
+   - Descripción específica del problema
+   - Componente/módulo afectado
+   - Impacto en el sistema
+   - Urgencia del problema
+
+3. **RECOMENDACIONES ESPECÍFICAS**: Acciones detalladas para resolver cada problema, incluyendo:
+   - Código específico a modificar
+   - Archivos a revisar
+   - Pasos exactos a seguir
+   - Configuraciones a cambiar
+
+4. **INSIGHTS DE RENDIMIENTO**: Análisis profundo del rendimiento con:
+   - Cuellos de botella identificados
+   - Optimizaciones específicas
+   - Código a optimizar
+   - Métricas objetivo
+
+5. **PATRONES DE ERRORES**: Análisis detallado de patrones con:
+   - Causas raíz de cada error
+   - Soluciones específicas
+   - Prevención de errores futuros
+   - Código a implementar
+
+6. **ANÁLISIS TÉCNICO PROFUNDO**: Incluye:
+   - Análisis de cada componente afectado
+   - Flujo de datos problemático
+   - Configuraciones incorrectas
+   - Dependencias problemáticas
+
+7. **PLAN DE ACCIÓN**: Orden específico de implementación de soluciones
+
+Responde en español, sé EXTREMADAMENTE específico y técnico. Incluye nombres de archivos, funciones, componentes, y código específico cuando sea posible. El análisis debe ser tan detallado que pueda usarse como guía completa para solucionar todos los problemas identificados.
 `;
 
       console.log('🤖 Enviando datos a ChatGPT API...');
       console.log('📊 Datos preparados:', data);
 
-      // Usar la función de configuración de IA
-      const aiResponse = await callOpenAI(prompt);
+      // Usar la función de configuración de IA con más tokens para análisis extenso
+      const aiResponse = await callOpenAI(prompt, undefined, { max_tokens: 4000, temperature: 0.3 });
 
       // Parsear la respuesta de la IA
       const analysisResult: AIAnalysisResult = {
@@ -440,7 +476,15 @@ Generado por el Sistema de Monitoreo UTalk
                 <div className="results-actions">
                   <button onClick={copyToClipboard} className="action-button copy">
                     <Copy className="w-4 h-4" />
-                    Copiar
+                    Copiar Resumen
+                  </button>
+                  <button onClick={() => {
+                    const fullText = document.querySelector('.analysis-text')?.textContent || '';
+                    navigator.clipboard.writeText(fullText);
+                    alert('Análisis completo copiado al portapapeles');
+                  }} className="action-button copy-full">
+                    <Copy className="w-4 h-4" />
+                    Copiar Todo
                   </button>
                   <button onClick={exportAnalysis} className="action-button export">
                     <Download className="w-4 h-4" />
@@ -502,6 +546,55 @@ Generado por el Sistema de Monitoreo UTalk
                         <li key={index}>{pattern}</li>
                       ))}
                     </ul>
+                  </div>
+                </div>
+
+                {/* ANÁLISIS COMPLETO Y EXTENSO */}
+                <div className="analysis-section full-analysis">
+                  <h4>📋 Análisis Completo y Extenso</h4>
+                  <div className="section-content">
+                    <div className="full-analysis-content">
+                      <pre className="analysis-text">
+{`ANÁLISIS COMPLETO DEL SISTEMA - ${analysisResult.generatedAt}
+========================================================
+
+RESUMEN EJECUTIVO:
+${analysisResult.summary}
+
+PROBLEMAS CRÍTICOS IDENTIFICADOS:
+${analysisResult.criticalIssues.map((issue, i) => `${i + 1}. ${issue}`).join('\n')}
+
+RECOMENDACIONES ESPECÍFICAS:
+${analysisResult.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}
+
+INSIGHTS DE RENDIMIENTO:
+${analysisResult.performanceInsights.map((insight, i) => `${i + 1}. ${insight}`).join('\n')}
+
+PATRONES DE ERRORES DETECTADOS:
+${analysisResult.errorPatterns.map((pattern, i) => `${i + 1}. ${pattern}`).join('\n')}
+
+DETALLES TÉCNICOS:
+- Período analizado: ${analysisResult.dataRange}
+- Total de elementos procesados: ${analysisResult.totalItems}
+- Fecha de generación: ${analysisResult.generatedAt}
+
+CONTEXTO ADICIONAL:
+Este análisis fue generado por IA basándose en los datos de monitoreo capturados
+en tiempo real del sistema. Incluye análisis de APIs, WebSockets, errores, logs,
+métricas de rendimiento y cambios de estado para proporcionar una visión completa
+del estado del sistema y recomendaciones específicas para su optimización.
+
+Para aplicar las soluciones recomendadas:
+1. Revisa cada problema crítico identificado
+2. Implementa las recomendaciones en el orden de prioridad sugerido
+3. Monitorea los cambios con el sistema de monitoreo
+4. Genera un nuevo análisis después de implementar las mejoras
+
+---
+Generado por el Sistema de Monitoreo UTalk con IA
+`}
+                      </pre>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -816,6 +909,11 @@ Generado por el Sistema de Monitoreo UTalk
           color: #3b82f6;
         }
 
+        .action-button.copy-full:hover {
+          border-color: #8b5cf6;
+          color: #8b5cf6;
+        }
+
         .action-button.export:hover {
           border-color: #10b981;
           color: #10b981;
@@ -862,6 +960,64 @@ Generado por el Sistema de Monitoreo UTalk
 
         .section-content li {
           margin-bottom: 8px;
+        }
+
+        .full-analysis {
+          background: #f8fafc;
+          border: 2px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 24px;
+          margin-top: 24px;
+        }
+
+        .full-analysis h4 {
+          color: #1e40af;
+          font-size: 18px;
+          margin-bottom: 20px;
+          border-bottom: 2px solid #e2e8f0;
+          padding-bottom: 12px;
+        }
+
+        .full-analysis-content {
+          background: white;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          padding: 20px;
+          overflow-x: auto;
+        }
+
+        .analysis-text {
+          font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+          font-size: 13px;
+          line-height: 1.6;
+          color: #1f2937;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          margin: 0;
+          background: #f9fafb;
+          padding: 16px;
+          border-radius: 6px;
+          border: 1px solid #e5e7eb;
+          max-height: 600px;
+          overflow-y: auto;
+        }
+
+        .analysis-text::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .analysis-text::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 4px;
+        }
+
+        .analysis-text::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 4px;
+        }
+
+        .analysis-text::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
         }
 
         @media (max-width: 640px) {
