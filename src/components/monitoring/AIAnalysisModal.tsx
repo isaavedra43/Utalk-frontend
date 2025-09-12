@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { X, Brain, Download, Copy, RefreshCw, AlertTriangle, CheckCircle, Clock, Key, Loader2 } from 'lucide-react';
+import { X, Brain, Download, Copy, RefreshCw, AlertTriangle, CheckCircle, Key, Loader2 } from 'lucide-react';
 import { useMonitoring } from './MonitoringContext';
-import { callOpenAI, getOpenAIAPIKey, validateAPIKey, setAPIKey } from '../../config/ai';
+import { callOpenAI, setAPIKey } from '../../config/ai';
 
 interface AIAnalysisModalProps {
   onClose: () => void;
@@ -19,14 +19,13 @@ interface AIAnalysisResult {
 }
 
 export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ onClose }) => {
-  const { apis, websockets, logs, errors, performance, states, validations } = useMonitoring();
+  const { apis, websockets, logs, errors, performance, states } = useMonitoring();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AIAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const prepareDataForAnalysis = () => {
     const now = Date.now();
-    const oneHourAgo = now - (60 * 60 * 1000);
     const oneDayAgo = now - (24 * 60 * 60 * 1000);
 
     console.log('🔍 DEBUG - Datos del store de monitoreo:');
@@ -95,8 +94,12 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ onClose }) => 
     // Estadísticas de Rendimiento
     const perfStats = {
       total: recentPerformance.length,
-      averageMemory: recentPerformance.filter(p => p.type === 'memory').reduce((sum, p) => sum + p.value, 0) / recentPerformance.filter(p => p.type === 'memory').length || 0,
-      averageRenderTime: recentPerformance.filter(p => p.type === 'render').reduce((sum, p) => sum + p.value, 0) / recentPerformance.filter(p => p.type === 'render').length || 0,
+      averageMemory: recentPerformance.filter(p => p.name?.includes('memory')).length > 0 
+        ? recentPerformance.filter(p => p.name?.includes('memory')).reduce((sum, p) => sum + p.value, 0) / recentPerformance.filter(p => p.name?.includes('memory')).length 
+        : 0,
+      averageRenderTime: recentPerformance.filter(p => p.type === 'render').length > 0 
+        ? recentPerformance.filter(p => p.type === 'render').reduce((sum, p) => sum + p.value, 0) / recentPerformance.filter(p => p.type === 'render').length 
+        : 0,
       slowestComponent: recentPerformance.reduce((slowest, perf) => 
         perf.value > slowest.value ? perf : slowest, recentPerformance[0] || { value: 0, name: 'N/A' })
     };
@@ -135,7 +138,7 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ onClose }) => 
       sampleErrors: recentErrors.slice(0, 10).map(error => ({
         ...error,
         timestamp: error.timestamp || new Date().toISOString(),
-        context: {
+        additionalContext: {
           userAgent: navigator.userAgent,
           url: window.location.href,
           timestamp: new Date().toISOString(),
@@ -147,14 +150,12 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ onClose }) => 
         timestamp: api.timestamp || new Date().toISOString(),
         requestHeaders: api.requestHeaders || {},
         responseHeaders: api.responseHeaders || {},
-        requestBody: api.requestBody || {},
-        responseBody: api.responseBody || {},
         fullUrl: api.url || 'N/A'
       })),
       sampleLogs: recentLogs.slice(0, 10).map(log => ({
         ...log,
         timestamp: log.timestamp || new Date().toISOString(),
-        context: {
+        additionalContext: {
           userAgent: navigator.userAgent,
           url: window.location.href,
           timestamp: new Date().toISOString()
@@ -196,11 +197,11 @@ ${data.sampleErrors.map((error, index) => `
 - **URL**: ${error.url || 'N/A'}
 - **Stack Trace**: ${error.stack ? error.stack.substring(0, 500) : 'N/A'}
 - **Timestamp**: ${error.timestamp || 'N/A'}
-- **Contexto**: ${JSON.stringify(error.context || {})}
+- **Contexto**: ${JSON.stringify(error.additionalContext || {})}
 `).join('\n')}
 
 ## ANÁLISIS DETALLADO DE APIs FALLIDAS:
-${data.sampleAPIs.filter(api => api.status >= 400 || api.error).map((api, index) => `
+${data.sampleAPIs.filter(api => (api.status && api.status >= 400) || api.error).map((api, index) => `
 ### API FALLIDA ${index + 1}:
 - **Método**: ${api.method || 'N/A'}
 - **URL Completa**: ${api.fullUrl || api.url || 'N/A'}
@@ -209,10 +210,10 @@ ${data.sampleAPIs.filter(api => api.status >= 400 || api.error).map((api, index)
 - **Error Message**: ${api.error || 'N/A'}
 - **Headers de Request**: ${JSON.stringify(api.requestHeaders || {})}
 - **Headers de Response**: ${JSON.stringify(api.responseHeaders || {})}
-- **Body de Request**: ${JSON.stringify(api.requestBody || {})}
-- **Body de Response**: ${JSON.stringify(api.responseBody || {})}
+- **Body de Request**: ${JSON.stringify({})}
+- **Body de Response**: ${JSON.stringify({})}
 - **Timestamp**: ${api.timestamp || 'N/A'}
-- **Contexto**: ${JSON.stringify(api.context || {})}
+- **Contexto**: ${JSON.stringify({})}
 `).join('\n')}
 
 ## ANÁLISIS DETALLADO DE LOGS CRÍTICOS:
@@ -224,7 +225,7 @@ ${data.sampleLogs.filter(log => log.level === 'error' || log.level === 'warn').m
 - **Fuente**: ${log.source}
 - **Datos**: ${JSON.stringify(log.data || {})}
 - **Timestamp**: ${log.timestamp || 'N/A'}
-- **Contexto**: ${JSON.stringify(log.context || {})}
+- **Contexto**: ${JSON.stringify(log.additionalContext || {})}
 `).join('\n')}
 
 ## ESTADÍSTICAS DE RENDIMIENTO:
@@ -345,11 +346,11 @@ Responde en español, sé EXTREMADAMENTE específico y técnico. Incluye nombres
 
       // Parsear la respuesta de la IA
       const analysisResult: AIAnalysisResult = {
-        summary: extractSection(aiResponse, 'RESUMEN EJECUTIVO') || 'Análisis completado',
-        criticalIssues: extractList(aiResponse, 'PROBLEMAS CRÍTICOS'),
-        recommendations: extractList(aiResponse, 'RECOMENDACIONES'),
-        performanceInsights: extractList(aiResponse, 'INSIGHTS DE RENDIMIENTO'),
-        errorPatterns: extractList(aiResponse, 'PATRONES DE ERRORES'),
+        summary: extractSection(String(aiResponse), 'RESUMEN EJECUTIVO') || 'Análisis completado',
+        criticalIssues: extractList(String(aiResponse), 'PROBLEMAS CRÍTICOS') || [],
+        recommendations: extractList(String(aiResponse), 'RECOMENDACIONES') || [],
+        performanceInsights: extractList(String(aiResponse), 'INSIGHTS DE RENDIMIENTO') || [],
+        errorPatterns: extractList(String(aiResponse), 'PATRONES DE ERRORES') || [],
         generatedAt: new Date().toLocaleString(),
         dataRange: data.timeRange.duration,
         totalItems: data.summary.totalAPIs + data.summary.totalWebSockets + data.summary.totalErrors + data.summary.totalLogs
@@ -362,7 +363,7 @@ Responde en español, sé EXTREMADAMENTE específico y técnico. Incluye nombres
 
     } catch (error) {
       console.error('❌ Error en análisis de IA:', error);
-      setError(`Error al generar análisis: ${error.message}`);
+      setError(`Error al generar análisis: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setIsAnalyzing(false);
     }
@@ -478,101 +479,74 @@ Datos analizados: ${analysisResult.totalItems} elementos en ${analysisResult.dat
   const totalDataItems = apis.length + websockets.length + logs.length + errors.length + performance.length + states.length;
 
   return (
-    <div className="ai-analysis-modal-overlay">
-      <div className="ai-analysis-modal">
-        <div className="ai-analysis-header">
-          <div className="header-content">
-            <Brain className="w-6 h-6 text-purple-600" />
-            <h2>Análisis Inteligente con IA</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-5">
+      <div className="bg-white rounded-xl shadow-2xl max-w-6xl max-h-[90vh] w-full overflow-hidden flex flex-col">
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-purple-600 to-blue-600 text-white">
+          <div className="flex items-center space-x-3">
+            <Brain className="w-6 h-6" />
+            <h2 className="text-xl font-semibold">Análisis Inteligente con IA</h2>
           </div>
-          <button onClick={onClose} className="close-button">
+          <button onClick={onClose} className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
-        
-        {/* Botón de cerrar flotante siempre visible */}
-        <div className="floating-close-button">
-          <button onClick={onClose} className="floating-close">
-            <X className="w-6 h-6" />
-            <span>Cerrar</span>
-          </button>
-        </div>
 
-        <div className="ai-analysis-body">
+        <div className="flex-1 overflow-y-auto p-6">
           {!analysisResult ? (
-            <div className="analysis-setup">
-              <div className="setup-content">
-                <div className="setup-icon">
-                  <Brain className="w-16 h-16 text-purple-500" />
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="text-center max-w-2xl">
+                <div className="mb-6">
+                  <Brain className="w-16 h-16 text-purple-600 mx-auto" />
                 </div>
-                <h3>Análisis Completo del Sistema</h3>
-                <p className="setup-description">
-                  La IA analizará todos los datos de monitoreo y generará un reporte detallado con:
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">Análisis Inteligente de Monitoreo</h3>
+                <p className="text-gray-600 mb-8">
+                  Utiliza inteligencia artificial para analizar todos los datos de monitoreo 
+                  y obtener insights detallados sobre el rendimiento y problemas del sistema.
                 </p>
                 
-                <div className="analysis-features">
-                  <div className="feature-item">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>Identificación de problemas críticos</span>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                    <span className="text-2xl font-bold text-gray-900 block">{apis.length}</span>
+                    <span className="text-sm text-gray-500">APIs</span>
                   </div>
-                  <div className="feature-item">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>Recomendaciones específicas de solución</span>
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                    <span className="text-2xl font-bold text-gray-900 block">{websockets.length}</span>
+                    <span className="text-sm text-gray-500">WebSockets</span>
                   </div>
-                  <div className="feature-item">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>Análisis de patrones de errores</span>
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                    <span className="text-2xl font-bold text-gray-900 block">{logs.length}</span>
+                    <span className="text-sm text-gray-500">Logs</span>
                   </div>
-                  <div className="feature-item">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span>Insights de rendimiento</span>
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                    <span className="text-2xl font-bold text-gray-900 block">{errors.length}</span>
+                    <span className="text-sm text-gray-500">Errores</span>
                   </div>
-                </div>
-
-                <div className="data-summary">
-                  <h4>Datos a Analizar:</h4>
-                  <div className="data-stats">
-                    <div className="stat-item">
-                      <span className="stat-label">APIs:</span>
-                      <span className="stat-value">{apis.length}</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">WebSockets:</span>
-                      <span className="stat-value">{websockets.length}</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Errores:</span>
-                      <span className="stat-value">{errors.length}</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Logs:</span>
-                      <span className="stat-value">{logs.length}</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Rendimiento:</span>
-                      <span className="stat-value">{performance.length}</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Estados:</span>
-                      <span className="stat-value">{states.length}</span>
-                    </div>
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                    <span className="text-2xl font-bold text-gray-900 block">{performance.length}</span>
+                    <span className="text-sm text-gray-500">Métricas</span>
                   </div>
-                  <div className="total-items">
-                    <strong>Total: {totalDataItems} elementos</strong>
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                    <span className="text-2xl font-bold text-gray-900 block">{states.length}</span>
+                    <span className="text-sm text-gray-500">Estados</span>
                   </div>
                 </div>
-
+                
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
+                  <span className="text-blue-800 font-medium">Total de elementos a analizar: </span>
+                  <span className="text-blue-900 font-bold text-xl">{totalDataItems}</span>
+                </div>
+                
                 {error && (
-                  <div className="error-message">
-                    <AlertTriangle className="w-5 h-5 text-red-500" />
-                    <span>{error}</span>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-center space-x-3">
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                    <span className="text-red-800">{error}</span>
                   </div>
                 )}
 
-                <div className="api-key-section">
-                  <div className="api-key-info">
-                    <Key className="w-4 h-4" />
-                    <span>API Key de OpenAI configurada</span>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Key className="w-4 h-4 text-blue-600" />
+                    <span className="text-blue-800 font-medium">API Key de OpenAI configurada</span>
                   </div>
                   <button
                     onClick={() => {
@@ -582,181 +556,161 @@ Datos analizados: ${analysisResult.totalItems} elementos en ${analysisResult.dat
                         alert('API Key actualizada correctamente');
                       }
                     }}
-                    className="api-key-button"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
                   >
                     Cambiar API Key
                   </button>
                 </div>
-
+                
                 {totalDataItems === 0 && (
-                  <p className="no-data-warning">
+                  <p className="text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
                     ⚠️ No hay datos para analizar. Interactúa con la aplicación para generar información de monitoreo.
                   </p>
                 )}
-
-                {/* Botón principal siempre visible */}
-                <div className="start-analysis-section">
-                  <button
-                    onClick={generateAIAnalysis}
-                    disabled={isAnalyzing}
-                    className="start-analysis-button"
-                  >
-                    {isAnalyzing ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Analizando...
-                      </>
-                    ) : (
-                      <>
-                        <Brain className="w-5 h-5" />
-                        Iniciar Análisis con IA
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* Botón de emergencia siempre visible */}
-                <div className="emergency-analysis-section">
-                  <button
-                    onClick={generateAIAnalysis}
-                    disabled={isAnalyzing}
-                    className="emergency-analysis-button"
-                  >
-                    {isAnalyzing ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Analizando con IA...
-                      </>
-                    ) : (
-                      <>
-                        <Brain className="w-5 h-5" />
-                        🚀 GENERAR ANÁLISIS AHORA
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* Botón simple de texto */}
-                <div className="simple-analysis-section">
-                  <button
-                    onClick={generateAIAnalysis}
-                    disabled={isAnalyzing}
-                    className="simple-analysis-button"
-                  >
-                    {isAnalyzing ? 'Analizando...' : 'HACER ANÁLISIS'}
-                  </button>
-                </div>
+                
+                <button 
+                  onClick={generateAIAnalysis}
+                  disabled={isAnalyzing || totalDataItems === 0}
+                  className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-8 py-3 rounded-lg font-medium flex items-center space-x-2 mx-auto transition-colors"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Analizando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Brain className="w-5 h-5" />
+                      <span>Iniciar Análisis con IA</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           ) : (
-            <div className="analysis-results">
-              <div className="results-header">
-                <div className="results-info">
-                  <h3>Análisis Completado</h3>
-                  <p className="results-meta">
-                    Generado el {analysisResult.generatedAt} • {analysisResult.dataRange} • {analysisResult.totalItems} elementos analizados
-                  </p>
+            <div className="space-y-6">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center space-x-3 mb-2">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                  <h3 className="text-lg font-semibold text-green-800">Análisis Completado</h3>
                 </div>
-                <div className="results-actions">
-                  <button onClick={copyToClipboard} className="action-button copy">
-                    <Copy className="w-4 h-4" />
-                    Copiar Resumen
-                  </button>
-                  <button onClick={() => {
-                    const textarea = document.querySelector('.analysis-text') as HTMLTextAreaElement;
-                    if (textarea) {
-                      textarea.select();
-                      textarea.setSelectionRange(0, 99999); // Para dispositivos móviles
-                      try {
-                        document.execCommand('copy');
-                        alert('✅ Análisis completo copiado al portapapeles');
-                      } catch (err) {
-                        // Fallback para navegadores modernos
-                        navigator.clipboard.writeText(textarea.value).then(() => {
-                          alert('✅ Análisis completo copiado al portapapeles');
-                        }).catch(() => {
-                          alert('❌ Error al copiar. Intenta seleccionar y copiar manualmente.');
-                        });
-                      }
-                    } else {
-                      alert('❌ No se encontró el texto del análisis');
-                    }
-                  }} className="action-button copy-full">
-                    <Copy className="w-4 h-4" />
-                    Copiar Todo
-                  </button>
-                  <button onClick={exportAnalysis} className="action-button export">
-                    <Download className="w-4 h-4" />
-                    Exportar
-                  </button>
-                  <button onClick={() => setAnalysisResult(null)} className="action-button refresh">
-                    <RefreshCw className="w-4 h-4" />
-                    Nuevo Análisis
-                  </button>
+                <div className="text-sm text-green-700 space-y-1">
+                  <div>Generado: {analysisResult.generatedAt}</div>
+                  <div>Rango: {analysisResult.dataRange}</div>
+                  <div>Elementos: {analysisResult.totalItems}</div>
                 </div>
               </div>
-
-              <div className="analysis-sections">
-                <div className="analysis-section">
-                  <h4>📊 Resumen Ejecutivo</h4>
-                  <div className="section-content">
-                    <p>{analysisResult.summary}</p>
-                  </div>
+              
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                  <span className="text-red-800">{error}</span>
                 </div>
-
-                <div className="analysis-section">
-                  <h4>🚨 Problemas Críticos</h4>
-                  <div className="section-content">
-                    <ul>
-                      {analysisResult.criticalIssues.map((issue, index) => (
-                        <li key={index}>{issue}</li>
-                      ))}
-                    </ul>
-                  </div>
+              )}
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h2 className="text-xl font-bold text-blue-900 mb-3">Resumen Ejecutivo</h2>
+                <p className="text-blue-800 leading-relaxed">{analysisResult.summary}</p>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-gray-900 mb-1">{analysisResult.criticalIssues.length}</div>
+                  <div className="text-sm text-gray-500">Problemas Críticos</div>
                 </div>
-
-                <div className="analysis-section">
-                  <h4>💡 Recomendaciones</h4>
-                  <div className="section-content">
-                    <ul>
-                      {analysisResult.recommendations.map((rec, index) => (
-                        <li key={index}>{rec}</li>
-                      ))}
-                    </ul>
-                  </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-gray-900 mb-1">{analysisResult.recommendations.length}</div>
+                  <div className="text-sm text-gray-500">Recomendaciones</div>
                 </div>
-
-                <div className="analysis-section">
-                  <h4>⚡ Insights de Rendimiento</h4>
-                  <div className="section-content">
-                    <ul>
-                      {analysisResult.performanceInsights.map((insight, index) => (
-                        <li key={index}>{insight}</li>
-                      ))}
-                    </ul>
-                  </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-gray-900 mb-1">{analysisResult.performanceInsights.length}</div>
+                  <div className="text-sm text-gray-500">Insights de Rendimiento</div>
                 </div>
-
-                <div className="analysis-section">
-                  <h4>🔍 Patrones de Errores</h4>
-                  <div className="section-content">
-                    <ul>
-                      {analysisResult.errorPatterns.map((pattern, index) => (
-                        <li key={index}>{pattern}</li>
-                      ))}
-                    </ul>
-                  </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-gray-900 mb-1">{analysisResult.errorPatterns.length}</div>
+                  <div className="text-sm text-gray-500">Patrones de Error</div>
                 </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-3 mb-6">
+                <button onClick={copyToClipboard} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                  <Copy className="w-4 h-4" />
+                  <span>Copiar Resumen</span>
+                </button>
+                <button onClick={exportAnalysis} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                  <Download className="w-4 h-4" />
+                  <span>Exportar</span>
+                </button>
+                <button onClick={() => setAnalysisResult(null)} className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Nuevo Análisis</span>
+                </button>
+              </div>
+              
+              {analysisResult.criticalIssues.length > 0 && (
+                <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-red-800 mb-4 flex items-center space-x-2">
+                    <AlertTriangle className="w-5 h-5" />
+                    <span>Problemas Críticos</span>
+                  </h3>
+                  <ul className="space-y-2">
+                    {analysisResult.criticalIssues.map((issue, index) => (
+                      <li key={index} className="text-red-700 py-2 border-b border-red-200 last:border-b-0">{issue}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {analysisResult.recommendations.length > 0 && (
+                <div className="bg-green-50 border-l-4 border-green-500 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-green-800 mb-4 flex items-center space-x-2">
+                    <CheckCircle className="w-5 h-5" />
+                    <span>Recomendaciones</span>
+                  </h3>
+                  <ul className="space-y-2">
+                    {analysisResult.recommendations.map((recommendation, index) => (
+                      <li key={index} className="text-green-700 py-2 border-b border-green-200 last:border-b-0">{recommendation}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {analysisResult.performanceInsights.length > 0 && (
+                <div className="bg-yellow-50 border-l-4 border-yellow-500 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-yellow-800 mb-4 flex items-center space-x-2">
+                    <Brain className="w-5 h-5" />
+                    <span>Insights de Rendimiento</span>
+                  </h3>
+                  <ul className="space-y-2">
+                    {analysisResult.performanceInsights.map((insight, index) => (
+                      <li key={index} className="text-yellow-700 py-2 border-b border-yellow-200 last:border-b-0">{insight}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {analysisResult.errorPatterns.length > 0 && (
+                <div className="bg-purple-50 border-l-4 border-purple-500 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-purple-800 mb-4 flex items-center space-x-2">
+                    <AlertTriangle className="w-5 h-5" />
+                    <span>Patrones de Error</span>
+                  </h3>
+                  <ul className="space-y-2">
+                    {analysisResult.errorPatterns.map((pattern, index) => (
+                      <li key={index} className="text-purple-700 py-2 border-b border-purple-200 last:border-b-0">{pattern}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
-                {/* ANÁLISIS COMPLETO Y EXTENSO */}
-                <div className="analysis-section full-analysis">
-                  <h4>📋 Análisis Completo y Extenso</h4>
-                  <div className="section-content">
-                    <div className="full-analysis-content">
-                      <textarea 
-                        className="analysis-text"
-                        readOnly
-                        value={`ANÁLISIS COMPLETO DEL SISTEMA - ${analysisResult.generatedAt}
+              {/* Análisis completo */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Análisis Completo</h3>
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <textarea 
+                    className="w-full h-96 p-4 border border-gray-300 rounded-lg font-mono text-sm resize-none"
+                    readOnly
+                    value={`ANÁLISIS COMPLETO DEL SISTEMA - ${analysisResult.generatedAt}
 ========================================================
 
 RESUMEN EJECUTIVO:
@@ -793,636 +747,13 @@ Para aplicar las soluciones recomendadas:
 
 ---
 Generado por el Sistema de Monitoreo UTalk con IA`}
-                      />
-                    </div>
-                  </div>
+                  />
                 </div>
               </div>
             </div>
           )}
         </div>
       </div>
-
-      <style jsx>{`
-        .ai-analysis-modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.6);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 10002;
-          padding: 20px;
-        }
-
-        .ai-analysis-modal {
-          background: white;
-          border-radius: 20px;
-          box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
-          max-width: 98vw;
-          width: 100%;
-          max-height: 98vh;
-          overflow: hidden;
-          position: relative;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .ai-analysis-header {
-          padding: 24px;
-          border-bottom: 1px solid #e5e7eb;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border-radius: 20px 20px 0 0;
-        }
-
-        .header-content {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .header-content h2 {
-          margin: 0;
-          font-size: 20px;
-          font-weight: 600;
-        }
-
-        .close-button {
-          padding: 8px;
-          border: none;
-          background: rgba(255, 255, 255, 0.2);
-          color: white;
-          cursor: pointer;
-          border-radius: 8px;
-          transition: all 0.2s ease;
-        }
-
-        .close-button:hover {
-          background: rgba(255, 255, 255, 0.3);
-        }
-
-        .floating-close-button {
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          z-index: 10003;
-        }
-
-        .floating-close {
-          background: #ef4444;
-          color: white;
-          border: none;
-          border-radius: 12px;
-          padding: 12px 16px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-weight: 600;
-          font-size: 14px;
-          cursor: pointer;
-          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-          transition: all 0.2s ease;
-        }
-
-        .floating-close:hover {
-          background: #dc2626;
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
-        }
-
-        .start-analysis-section {
-          margin-top: 24px;
-          display: flex;
-          justify-content: center;
-        }
-
-        .start-analysis-button {
-          background: linear-gradient(135deg, #8b5cf6, #a855f7);
-          color: white;
-          border: none;
-          border-radius: 12px;
-          padding: 16px 32px;
-          font-size: 16px;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-        }
-
-        .start-analysis-button:hover:not(:disabled) {
-          background: linear-gradient(135deg, #7c3aed, #9333ea);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
-        }
-
-        .start-analysis-button:disabled {
-          background: #9ca3af;
-          cursor: not-allowed;
-          transform: none;
-          box-shadow: none;
-        }
-
-        .emergency-analysis-section {
-          margin-top: 16px;
-          display: flex;
-          justify-content: center;
-        }
-
-        .emergency-analysis-button {
-          background: linear-gradient(135deg, #ef4444, #dc2626);
-          color: white;
-          border: none;
-          border-radius: 16px;
-          padding: 20px 40px;
-          font-size: 18px;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
-          text-transform: uppercase;
-          letter-spacing: 1px;
-        }
-
-        .emergency-analysis-button:hover:not(:disabled) {
-          background: linear-gradient(135deg, #dc2626, #b91c1c);
-          transform: translateY(-3px);
-          box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
-        }
-
-        .emergency-analysis-button:disabled {
-          background: #9ca3af;
-          cursor: not-allowed;
-          transform: none;
-          box-shadow: none;
-        }
-
-        .simple-analysis-section {
-          margin-top: 16px;
-          display: flex;
-          justify-content: center;
-        }
-
-        .simple-analysis-button {
-          background: #10b981;
-          color: white;
-          border: none;
-          border-radius: 8px;
-          padding: 12px 24px;
-          font-size: 16px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .simple-analysis-button:hover:not(:disabled) {
-          background: #059669;
-        }
-
-        .simple-analysis-button:disabled {
-          background: #9ca3af;
-          cursor: not-allowed;
-        }
-
-        .ai-analysis-body {
-          padding: 24px;
-          flex: 1;
-          overflow-y: auto;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .analysis-setup {
-          text-align: center;
-        }
-
-        .setup-content {
-          max-width: 600px;
-          margin: 0 auto;
-        }
-
-        .setup-icon {
-          margin-bottom: 24px;
-        }
-
-        .setup-content h3 {
-          margin: 0 0 16px 0;
-          font-size: 24px;
-          font-weight: 600;
-          color: #1f2937;
-        }
-
-        .setup-description {
-          margin: 0 0 32px 0;
-          color: #6b7280;
-          font-size: 16px;
-          line-height: 1.6;
-        }
-
-        .analysis-features {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 16px;
-          margin-bottom: 32px;
-        }
-
-        .feature-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 16px;
-          background: #f8fafc;
-          border-radius: 12px;
-          border: 1px solid #e5e7eb;
-        }
-
-        .feature-item span {
-          font-weight: 500;
-          color: #1f2937;
-        }
-
-        .data-summary {
-          background: #f8fafc;
-          border: 1px solid #e5e7eb;
-          border-radius: 12px;
-          padding: 20px;
-          margin-bottom: 32px;
-        }
-
-        .data-summary h4 {
-          margin: 0 0 16px 0;
-          font-size: 16px;
-          font-weight: 600;
-          color: #1f2937;
-        }
-
-        .data-stats {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-          gap: 12px;
-          margin-bottom: 16px;
-        }
-
-        .stat-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 8px 12px;
-          background: white;
-          border-radius: 8px;
-          border: 1px solid #e5e7eb;
-        }
-
-        .stat-label {
-          color: #6b7280;
-          font-size: 14px;
-        }
-
-        .stat-value {
-          font-weight: 600;
-          color: #1f2937;
-          font-size: 14px;
-        }
-
-        .total-items {
-          text-align: center;
-          padding-top: 16px;
-          border-top: 1px solid #e5e7eb;
-          color: #1f2937;
-        }
-
-        .error-message {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 12px;
-          background: #fef2f2;
-          border: 1px solid #fecaca;
-          border-radius: 8px;
-          color: #dc2626;
-          margin-bottom: 24px;
-        }
-
-        .analyze-button {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 16px 32px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border: none;
-          border-radius: 12px;
-          font-size: 16px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          margin: 0 auto;
-        }
-
-        .analyze-button:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-        }
-
-        .analyze-button:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-          transform: none;
-        }
-
-        .no-data-warning {
-          margin-top: 16px;
-          padding: 12px;
-          background: #fef3c7;
-          border: 1px solid #fde68a;
-          border-radius: 8px;
-          color: #92400e;
-          font-size: 14px;
-        }
-
-        .api-key-section {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 12px 16px;
-          background: #f0f9ff;
-          border: 1px solid #bae6fd;
-          border-radius: 8px;
-          margin-bottom: 24px;
-        }
-
-        .api-key-info {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: #0369a1;
-          font-size: 14px;
-          font-weight: 500;
-        }
-
-        .api-key-button {
-          padding: 6px 12px;
-          background: #0ea5e9;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .api-key-button:hover {
-          background: #0284c7;
-        }
-
-        .analysis-results {
-          max-width: 100%;
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-        }
-
-        .results-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 32px;
-          padding-bottom: 20px;
-          border-bottom: 1px solid #e5e7eb;
-        }
-
-        .results-info h3 {
-          margin: 0 0 8px 0;
-          font-size: 20px;
-          font-weight: 600;
-          color: #1f2937;
-        }
-
-        .results-meta {
-          margin: 0;
-          color: #6b7280;
-          font-size: 14px;
-        }
-
-        .results-actions {
-          display: flex;
-          gap: 8px;
-        }
-
-        .action-button {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 8px 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 8px;
-          background: white;
-          color: #374151;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 500;
-          transition: all 0.2s ease;
-        }
-
-        .action-button:hover {
-          background: #f9fafb;
-          border-color: #9ca3af;
-        }
-
-        .action-button.copy:hover {
-          border-color: #3b82f6;
-          color: #3b82f6;
-        }
-
-        .action-button.copy-full:hover {
-          border-color: #8b5cf6;
-          color: #8b5cf6;
-        }
-
-        .action-button.export:hover {
-          border-color: #10b981;
-          color: #10b981;
-        }
-
-        .action-button.refresh:hover {
-          border-color: #f59e0b;
-          color: #f59e0b;
-        }
-
-        .analysis-sections {
-          display: flex;
-          flex-direction: column;
-          gap: 24px;
-          flex: 1;
-          overflow-y: auto;
-          padding-right: 8px;
-        }
-
-        .analysis-section {
-          background: #f8fafc;
-          border: 1px solid #e5e7eb;
-          border-radius: 12px;
-          padding: 20px;
-        }
-
-        .analysis-section h4 {
-          margin: 0 0 16px 0;
-          font-size: 16px;
-          font-weight: 600;
-          color: #1f2937;
-        }
-
-        .section-content {
-          color: #374151;
-          line-height: 1.6;
-        }
-
-        .section-content p {
-          margin: 0;
-        }
-
-        .section-content ul {
-          margin: 0;
-          padding-left: 20px;
-        }
-
-        .section-content li {
-          margin-bottom: 8px;
-        }
-
-        .full-analysis {
-          background: #f8fafc;
-          border: 2px solid #e2e8f0;
-          border-radius: 12px;
-          padding: 24px;
-          margin-top: 24px;
-        }
-
-        .full-analysis h4 {
-          color: #1e40af;
-          font-size: 18px;
-          margin-bottom: 20px;
-          border-bottom: 2px solid #e2e8f0;
-          padding-bottom: 12px;
-        }
-
-        .full-analysis-content {
-          background: white;
-          border: 1px solid #d1d5db;
-          border-radius: 8px;
-          padding: 20px;
-          overflow-x: auto;
-        }
-
-        .analysis-text {
-          font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-          font-size: 13px;
-          line-height: 1.6;
-          color: #1f2937;
-          margin: 0;
-          background: #f9fafb;
-          padding: 16px;
-          border-radius: 6px;
-          border: 1px solid #e5e7eb;
-          height: 400px;
-          width: 100%;
-          resize: vertical;
-          overflow-y: auto;
-          box-sizing: border-box;
-        }
-
-        .analysis-text::-webkit-scrollbar {
-          width: 8px;
-        }
-
-        .analysis-text::-webkit-scrollbar-track {
-          background: #f1f5f9;
-          border-radius: 4px;
-        }
-
-        .analysis-text::-webkit-scrollbar-thumb {
-          background: #cbd5e1;
-          border-radius: 4px;
-        }
-
-        .analysis-text::-webkit-scrollbar-thumb:hover {
-          background: #94a3b8;
-        }
-
-        @media (max-width: 1024px) {
-          .ai-analysis-modal {
-            max-width: 95vw;
-            max-height: 95vh;
-            margin: 10px;
-          }
-          
-          .analysis-text {
-            height: 300px;
-            font-size: 12px;
-          }
-        }
-
-        @media (max-width: 640px) {
-          .ai-analysis-modal {
-            margin: 5px;
-            max-width: 98vw;
-            max-height: 98vh;
-            border-radius: 12px;
-          }
-          
-          .ai-analysis-header {
-            padding: 16px;
-          }
-          
-          .ai-analysis-body {
-            padding: 16px;
-          }
-          
-          .results-header {
-            flex-direction: column;
-            gap: 16px;
-          }
-          
-          .results-actions {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .analysis-text {
-            height: 250px;
-            font-size: 11px;
-            padding: 12px;
-          }
-          
-          .start-analysis-button,
-          .emergency-analysis-button {
-            padding: 12px 20px;
-            font-size: 14px;
-          }
-          
-          .analysis-features {
-            grid-template-columns: 1fr;
-          }
-          
-          .data-stats {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-      `}</style>
     </div>
   );
 };
