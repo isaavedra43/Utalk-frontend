@@ -123,11 +123,13 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ onClose }) => 
   };
 
   const generateAIAnalysis = async () => {
+    console.log('🚀 Iniciando análisis con IA...');
     setIsAnalyzing(true);
     setError(null);
 
     try {
       const data = prepareDataForAnalysis();
+      console.log('📊 Datos preparados para análisis:', data);
       
       // Crear prompt para ChatGPT
       const prompt = `
@@ -453,10 +455,11 @@ Generado por el Sistema de Monitoreo UTalk
                   </p>
                 )}
 
+                {/* Botón principal siempre visible */}
                 <div className="start-analysis-section">
                   <button
                     onClick={generateAIAnalysis}
-                    disabled={isAnalyzing || totalDataItems === 0}
+                    disabled={isAnalyzing}
                     className="start-analysis-button"
                   >
                     {isAnalyzing ? (
@@ -473,7 +476,7 @@ Generado por el Sistema de Monitoreo UTalk
                   </button>
                 </div>
 
-                {/* Botón adicional de emergencia */}
+                {/* Botón de emergencia siempre visible */}
                 <div className="emergency-analysis-section">
                   <button
                     onClick={generateAIAnalysis}
@@ -491,6 +494,17 @@ Generado por el Sistema de Monitoreo UTalk
                         🚀 GENERAR ANÁLISIS AHORA
                       </>
                     )}
+                  </button>
+                </div>
+
+                {/* Botón simple de texto */}
+                <div className="simple-analysis-section">
+                  <button
+                    onClick={generateAIAnalysis}
+                    disabled={isAnalyzing}
+                    className="simple-analysis-button"
+                  >
+                    {isAnalyzing ? 'Analizando...' : 'HACER ANÁLISIS'}
                   </button>
                 </div>
               </div>
@@ -800,6 +814,33 @@ Generado por el Sistema de Monitoreo UTalk con IA`}
           cursor: not-allowed;
           transform: none;
           box-shadow: none;
+        }
+
+        .simple-analysis-section {
+          margin-top: 16px;
+          display: flex;
+          justify-content: center;
+        }
+
+        .simple-analysis-button {
+          background: #10b981;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          padding: 12px 24px;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .simple-analysis-button:hover:not(:disabled) {
+          background: #059669;
+        }
+
+        .simple-analysis-button:disabled {
+          background: #9ca3af;
+          cursor: not-allowed;
         }
 
         .ai-analysis-body {
