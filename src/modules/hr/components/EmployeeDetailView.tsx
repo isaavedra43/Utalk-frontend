@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Component, ErrorInfo, ReactNode } from 'react';
 import { 
   ArrowLeft, 
   Download, 
@@ -17,16 +17,51 @@ import {
   Award,
   History
 } from 'lucide-react';
-// Temporalmente comentados para identificar el problema
-// import EmployeePayrollView from './EmployeePayrollView';
-// import EmployeeAttendanceView from './EmployeeAttendanceView';
-// import EmployeeVacationsView from './EmployeeVacationsView';
-// import EmployeeDocumentsView from './EmployeeDocumentsView';
-// import EmployeeIncidentsView from './EmployeeIncidentsView';
-// import EmployeeEvaluationsView from './EmployeeEvaluationsView';
-// import EmployeeSkillsView from './EmployeeSkillsView';
-// import EmployeeHistoryView from './EmployeeHistoryView';
+import EmployeePayrollView from './EmployeePayrollView';
+import EmployeeAttendanceView from './EmployeeAttendanceView';
+import EmployeeVacationsView from './EmployeeVacationsView';
+import EmployeeDocumentsView from './EmployeeDocumentsView';
+import EmployeeIncidentsView from './EmployeeIncidentsView';
+import EmployeeEvaluationsView from './EmployeeEvaluationsView';
+import EmployeeSkillsView from './EmployeeSkillsView';
+import EmployeeHistoryView from './EmployeeHistoryView';
 import EditEmployeeModal from './EditEmployeeModal';
+
+// Error Boundary para manejar errores en componentes
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error?: Error;
+}
+
+class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('❌ Error capturado por ErrorBoundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 text-center">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <AlertTriangle className="h-5 w-5 text-yellow-400 mx-auto mb-2" />
+            <p className="text-yellow-700">Este módulo está temporalmente no disponible</p>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 interface Employee {
   id: string;
@@ -67,10 +102,11 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
 }) => {
   console.log('🚀 EmployeeDetailView iniciando con empleado:', employee);
   
-  try {
-    const [activeTab, setActiveTab] = useState<TabType>('summary');
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [currentEmployee, setCurrentEmployee] = useState(employee);
+  const [activeTab, setActiveTab] = useState<TabType>('summary');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [currentEmployee, setCurrentEmployee] = useState(employee);
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleEditClick = () => {
     setIsEditModalOpen(true);
@@ -110,28 +146,87 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
+  // Validar datos del empleado
+  if (!currentEmployee || !currentEmployee.id) {
+    console.error('❌ Datos del empleado inválidos:', currentEmployee);
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
+              <h3 className="text-lg font-medium text-red-800">Datos del empleado no válidos</h3>
+            </div>
+            <p className="mt-2 text-sm text-red-700">
+              No se pudieron cargar los datos del empleado correctamente.
+            </p>
+            <div className="mt-4">
+              <button
+                onClick={onBack}
+                className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700"
+              >
+                Volver a la lista
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const renderTabContent = () => {
-    // Temporalmente solo mostrar resumen para identificar el problema
     console.log('🎯 Renderizando contenido de tab:', activeTab);
     console.log('👤 Datos del empleado:', currentEmployee);
     
     switch (activeTab) {
       case 'payroll':
-        return <div className="p-6 text-center text-gray-500">Módulo de Nómina - En desarrollo</div>;
+        return (
+          <ErrorBoundary>
+            <EmployeePayrollView employeeId={currentEmployee.id} onBack={onBack} />
+          </ErrorBoundary>
+        );
       case 'attendance':
-        return <div className="p-6 text-center text-gray-500">Módulo de Asistencia - En desarrollo</div>;
+        return (
+          <ErrorBoundary>
+            <EmployeeAttendanceView employeeId={currentEmployee.id} onBack={onBack} />
+          </ErrorBoundary>
+        );
       case 'vacations':
-        return <div className="p-6 text-center text-gray-500">Módulo de Vacaciones - En desarrollo</div>;
+        return (
+          <ErrorBoundary>
+            <EmployeeVacationsView employeeId={currentEmployee.id} onBack={onBack} />
+          </ErrorBoundary>
+        );
       case 'documents':
-        return <div className="p-6 text-center text-gray-500">Módulo de Documentos - En desarrollo</div>;
+        return (
+          <ErrorBoundary>
+            <EmployeeDocumentsView employeeId={currentEmployee.id} onBack={onBack} />
+          </ErrorBoundary>
+        );
       case 'incidents':
-        return <div className="p-6 text-center text-gray-500">Módulo de Incidentes - En desarrollo</div>;
+        return (
+          <ErrorBoundary>
+            <EmployeeIncidentsView employeeId={currentEmployee.id} onBack={onBack} />
+          </ErrorBoundary>
+        );
       case 'evaluations':
-        return <div className="p-6 text-center text-gray-500">Módulo de Evaluaciones - En desarrollo</div>;
+        return (
+          <ErrorBoundary>
+            <EmployeeEvaluationsView employeeId={currentEmployee.id} onBack={onBack} />
+          </ErrorBoundary>
+        );
       case 'skills':
-        return <div className="p-6 text-center text-gray-500">Módulo de Habilidades - En desarrollo</div>;
+        return (
+          <ErrorBoundary>
+            <EmployeeSkillsView employeeId={currentEmployee.id} onBack={onBack} />
+          </ErrorBoundary>
+        );
       case 'history':
-        return <div className="p-6 text-center text-gray-500">Módulo de Historial - En desarrollo</div>;
+        return (
+          <ErrorBoundary>
+            <EmployeeHistoryView employeeId={currentEmployee.id} onBack={onBack} />
+          </ErrorBoundary>
+        );
       case 'summary':
       default:
         return (
@@ -341,32 +436,6 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
       />
     </div>
   );
-  } catch (error) {
-    console.error('❌ Error en EmployeeDetailView:', error);
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <div className="flex items-center">
-              <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
-              <h3 className="text-lg font-medium text-red-800">Error al cargar detalles del empleado</h3>
-            </div>
-            <p className="mt-2 text-sm text-red-700">
-              Ha ocurrido un error inesperado. Por favor, intenta recargar la página.
-            </p>
-            <div className="mt-4">
-              <button
-                onClick={onBack}
-                className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700"
-              >
-                Volver a la lista
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 };
 
 export { EmployeeDetailView };
