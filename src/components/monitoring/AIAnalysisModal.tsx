@@ -29,6 +29,14 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ onClose }) => 
     const oneHourAgo = now - (60 * 60 * 1000);
     const oneDayAgo = now - (24 * 60 * 60 * 1000);
 
+    console.log('🔍 DEBUG - Datos del store de monitoreo:');
+    console.log('📊 APIs totales:', apis.length);
+    console.log('🔌 WebSockets totales:', websockets.length);
+    console.log('📝 Logs totales:', logs.length);
+    console.log('❌ Errores totales:', errors.length);
+    console.log('⚡ Performance totales:', performance.length);
+    console.log('🔄 States totales:', states.length);
+
     // Filtrar datos recientes
     const recentAPIs = apis.filter(api => api.timestamp >= oneDayAgo);
     const recentWebSockets = websockets.filter(ws => ws.timestamp >= oneDayAgo);
@@ -36,6 +44,14 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ onClose }) => 
     const recentErrors = errors.filter(error => error.timestamp >= oneDayAgo);
     const recentPerformance = performance.filter(perf => perf.timestamp >= oneDayAgo);
     const recentStates = states.filter(state => state.timestamp >= oneDayAgo);
+
+    console.log('🔍 DEBUG - Datos filtrados (últimas 24h):');
+    console.log('📊 APIs recientes:', recentAPIs.length);
+    console.log('🔌 WebSockets recientes:', recentWebSockets.length);
+    console.log('📝 Logs recientes:', recentLogs.length);
+    console.log('❌ Errores recientes:', recentErrors.length);
+    console.log('⚡ Performance recientes:', recentPerformance.length);
+    console.log('🔄 States recientes:', recentStates.length);
 
     // Estadísticas de APIs
     const apiStats = {
@@ -158,7 +174,11 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ onClose }) => 
       
       // Crear prompt para ChatGPT
       const prompt = `
-Eres un experto en debugging y análisis de sistemas web. Analiza estos datos de monitoreo y proporciona un análisis TÉCNICO EXTREMADAMENTE DETALLADO:
+Eres un experto en debugging y análisis de sistemas web. Analiza estos datos de monitoreo y proporciona un análisis TÉCNICO EXTREMADAMENTE DETALLADO.
+
+IMPORTANTE: DEBES ANALIZAR CADA DATO INDIVIDUALMENTE. NO PUEDES RESPONDER CON "Análisis completado" o mensajes genéricos. DEBES proporcionar análisis específicos y técnicos para cada error, API fallida y log crítico.
+
+DATOS REALES DEL SISTEMA:
 
 ## DATOS DEL SISTEMA:
 - APIs: ${data.summary.totalAPIs} llamadas (${data.apiStats.successful} exitosas, ${data.apiStats.failed} fallidas)
@@ -285,6 +305,35 @@ Para CADA log crítico, especifica:
 - **ALERTAS** a configurar
 - **MÉTRICAS** a monitorear
 
+INSTRUCCIONES CRÍTICAS:
+1. DEBES analizar CADA error individualmente
+2. DEBES analizar CADA API fallida individualmente  
+3. DEBES analizar CADA log crítico individualmente
+4. NO PUEDES responder con mensajes genéricos como "Análisis completado"
+5. DEBES proporcionar soluciones específicas y técnicas
+6. DEBES incluir código específico y nombres de archivos
+7. DEBES explicar la causa raíz de cada problema
+8. DEBES dar pasos específicos para solucionar cada problema
+
+FORMATO DE RESPUESTA REQUERIDO:
+## RESUMEN EJECUTIVO:
+[Análisis general del estado del sistema]
+
+## PROBLEMAS CRÍTICOS IDENTIFICADOS:
+[Para cada problema crítico, especifica: nombre del problema, ubicación, causa, impacto, solución]
+
+## RECOMENDACIONES ESPECÍFICAS:
+[Para cada recomendación, especifica: qué hacer, dónde hacerlo, cómo hacerlo, por qué es importante]
+
+## INSIGHTS DE RENDIMIENTO:
+[Análisis específico de métricas de rendimiento y optimizaciones]
+
+## PATRONES DE ERRORES DETECTADOS:
+[Análisis de patrones, correlaciones y causas comunes]
+
+## DETALLES TÉCNICOS:
+[Información técnica específica sobre el período analizado]
+
 Responde en español, sé EXTREMADAMENTE específico y técnico. Incluye nombres de archivos, funciones, componentes, y código específico. El análisis debe ser una guía técnica completa para solucionar TODOS los problemas identificados.
 `;
 
@@ -308,6 +357,8 @@ Responde en español, sé EXTREMADAMENTE específico y técnico. Incluye nombres
 
       setAnalysisResult(analysisResult);
       console.log('✅ Análisis completado:', analysisResult);
+      console.log('🤖 Respuesta completa de la IA:', aiResponse);
+      console.log('📊 Resultado parseado:', analysisResult);
 
     } catch (error) {
       console.error('❌ Error en análisis de IA:', error);
@@ -318,9 +369,22 @@ Responde en español, sé EXTREMADAMENTE específico y técnico. Incluye nombres
   };
 
   const extractSection = (text: string, section: string): string => {
-    const regex = new RegExp(`${section}[\\s\\S]*?(?=\\n\\d+\\.|\\n[A-ZÁÉÍÓÚÑ]+:|$)`, 'i');
-    const match = text.match(regex);
-    return match ? match[0].replace(section, '').trim() : '';
+    // Buscar la sección con diferentes variaciones
+    const patterns = [
+      new RegExp(`${section}[\\s\\S]*?(?=\\n\\d+\\.|\\n[A-ZÁÉÍÓÚÑ]+:|$)`, 'i'),
+      new RegExp(`${section}[\\s\\S]*?(?=\\n##|\\n[A-ZÁÉÍÓÚÑ]+:|$)`, 'i'),
+      new RegExp(`${section}[\\s\\S]*?(?=\\n[A-ZÁÉÍÓÚÑ]+:|$)`, 'i'),
+      new RegExp(`${section}[\\s\\S]*?(?=\\n\\n|$)`, 'i')
+    ];
+    
+    for (const regex of patterns) {
+      const match = text.match(regex);
+      if (match) {
+        return match[0].replace(section, '').trim();
+      }
+    }
+    
+    return '';
   };
 
   const extractList = (text: string, section: string): string[] => {
