@@ -147,17 +147,64 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
   // Función para manejar la importación de empleados
   const handleImportEmployees = async (file: File) => {
     try {
+      setLoading(true);
+      setError(null);
+      
+      // Validar tipo de archivo
+      const allowedTypes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+        'application/vnd.ms-excel', // .xls
+        'text/csv', // .csv
+        'application/csv'
+      ];
+      
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error('Formato de archivo no válido. Solo se permiten archivos Excel (.xlsx, .xls) o CSV (.csv)');
+      }
+      
+      // Validar tamaño del archivo (máximo 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        throw new Error('El archivo es demasiado grande. El tamaño máximo permitido es 10MB');
+      }
+      
+      console.log('📤 Iniciando importación de empleados...', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
+      });
+      
       const options = {
         updateExisting: true,
         skipErrors: false,
         validateData: true
       };
       
-      await employeesApi.importEmployees(file, options);
-      setIsImportModalOpen(false);
-      loadEmployees(); // Recargar la lista
+      const result = await employeesApi.importEmployees(file, options);
+      
+      console.log('✅ Importación completada:', result);
+      
+      // Mostrar resultado de la importación
+      if (result.success) {
+        console.log(`✅ Importación exitosa: ${result.imported} empleados importados, ${result.updated} actualizados`);
+        
+        if (result.errors && result.errors.length > 0) {
+          console.warn('⚠️ Errores encontrados durante la importación:', result.errors);
+        }
+        
+        setIsImportModalOpen(false);
+        loadEmployees(); // Recargar la lista
+        
+        // Mostrar mensaje de éxito
+        alert(`Importación exitosa!\n\n- Empleados importados: ${result.imported}\n- Empleados actualizados: ${result.updated}\n- Errores: ${result.errors?.length || 0}`);
+      } else {
+        throw new Error(result.message || 'Error durante la importación');
+      }
     } catch (error) {
-      console.error('Error al importar empleados:', error);
+      console.error('❌ Error al importar empleados:', error);
+      setError(error instanceof Error ? error.message : 'Error al importar empleados. Por favor, verifica el formato del archivo.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -180,23 +227,77 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
   // Función para exportar empleados
   const handleExportEmployees = async (format: 'excel' | 'csv' | 'pdf') => {
     try {
+      setLoading(true);
+      
       const blob = await employeesApi.exportEmployees({
-        format,
+        format: format === 'excel' ? 'xlsx' : format, // Corregir formato Excel
         filters,
-        fields: ['personalInfo', 'position', 'location', 'contract', 'status']
+        fields: [
+          'employeeNumber',
+          'personalInfo.firstName',
+          'personalInfo.lastName', 
+          'personalInfo.email',
+          'personalInfo.phone',
+          'personalInfo.dateOfBirth',
+          'personalInfo.gender',
+          'personalInfo.maritalStatus',
+          'personalInfo.nationality',
+          'personalInfo.rfc',
+          'personalInfo.curp',
+          'personalInfo.address.street',
+          'personalInfo.address.city',
+          'personalInfo.address.state',
+          'personalInfo.address.country',
+          'personalInfo.address.postalCode',
+          'position.title',
+          'position.department',
+          'position.level',
+          'position.reportsTo',
+          'position.jobDescription',
+          'position.startDate',
+          'position.endDate',
+          'location.office',
+          'location.address',
+          'location.city',
+          'location.state',
+          'location.country',
+          'location.postalCode',
+          'location.timezone',
+          'contract.type',
+          'contract.startDate',
+          'contract.endDate',
+          'contract.salary',
+          'contract.currency',
+          'contract.workingDays',
+          'contract.workingHoursRange',
+          'contract.benefits',
+          'contract.notes',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]
       });
 
       // Crear URL para descargar el archivo
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `empleados.${format}`;
+      
+      // Corregir extensión del archivo
+      const fileExtension = format === 'excel' ? 'xlsx' : format;
+      link.download = `empleados_plantilla.${fileExtension}`;
+      
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+      
+      console.log(`✅ Archivo exportado exitosamente: empleados_plantilla.${fileExtension}`);
     } catch (error) {
       console.error('Error al exportar empleados:', error);
+      setError('Error al exportar empleados. Por favor, intenta de nuevo.');
+    } finally {
+      setLoading(false);
     }
   };
 

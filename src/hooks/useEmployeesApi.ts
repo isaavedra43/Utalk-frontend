@@ -122,15 +122,26 @@ export const useEmployees = () => {
   };
 
   const exportEmployees = async (params: {
-    format: 'excel' | 'csv' | 'pdf';
+    format: 'xlsx' | 'csv' | 'pdf';
     filters?: Record<string, any>;
     fields?: string[];
   }) => {
     try {
-      return await employeesApi.exportEmployees(params);
+      setLoading(true);
+      setError(null);
+      
+      console.log('📤 Iniciando exportación de empleados...', params);
+      
+      const result = await employeesApi.exportEmployees(params);
+      
+      console.log('✅ Exportación completada exitosamente');
+      return result;
     } catch (error) {
-      console.error('Error exporting employees:', error);
+      console.error('❌ Error exporting employees:', error);
+      setError('Error al exportar empleados. Por favor, intenta de nuevo.');
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 

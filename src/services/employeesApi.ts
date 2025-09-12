@@ -349,7 +349,7 @@ class EmployeesApiService {
   }
 
   async exportEmployees(params: {
-    format: 'excel' | 'csv' | 'pdf';
+    format: 'xlsx' | 'csv' | 'pdf';
     filters?: Record<string, any>;
     fields?: string[];
   }): Promise<Blob> {
@@ -364,9 +364,28 @@ class EmployeesApiService {
       }
     });
 
+    // Asegurar que el formato sea correcto
+    const format = params.format === 'excel' ? 'xlsx' : params.format;
+    searchParams.set('format', format);
+
+    console.log('📤 Exportando empleados con parámetros:', {
+      format,
+      filters: params.filters,
+      fields: params.fields
+    });
+
     const response = await api.get(`/api/employees/export?${searchParams.toString()}`, {
       responseType: 'blob',
+      headers: {
+        'Accept': format === 'xlsx' 
+          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          : format === 'csv' 
+          ? 'text/csv'
+          : 'application/pdf'
+      }
     });
+    
+    console.log('✅ Archivo exportado exitosamente');
     return response.data;
   }
 
