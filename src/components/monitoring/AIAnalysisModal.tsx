@@ -116,9 +116,34 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ onClose }) => 
       errorStats,
       perfStats,
       logStats,
-      sampleErrors: recentErrors.slice(0, 5),
-      sampleAPIs: recentAPIs.slice(0, 5),
-      sampleLogs: recentLogs.slice(0, 5)
+      sampleErrors: recentErrors.slice(0, 10).map(error => ({
+        ...error,
+        timestamp: error.timestamp || new Date().toISOString(),
+        context: {
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+          timestamp: new Date().toISOString(),
+          stack: error.stack || 'N/A'
+        }
+      })),
+      sampleAPIs: recentAPIs.slice(0, 10).map(api => ({
+        ...api,
+        timestamp: api.timestamp || new Date().toISOString(),
+        requestHeaders: api.requestHeaders || {},
+        responseHeaders: api.responseHeaders || {},
+        requestBody: api.requestBody || {},
+        responseBody: api.responseBody || {},
+        fullUrl: api.url || 'N/A'
+      })),
+      sampleLogs: recentLogs.slice(0, 10).map(log => ({
+        ...log,
+        timestamp: log.timestamp || new Date().toISOString(),
+        context: {
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+          timestamp: new Date().toISOString()
+        }
+      }))
     };
   };
 
@@ -133,101 +158,141 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({ onClose }) => 
       
       // Crear prompt para ChatGPT
       const prompt = `
-Analiza los siguientes datos de monitoreo de una aplicación web y proporciona un análisis SÚPER DETALLADO y EXTENSO:
+Eres un experto en debugging y análisis de sistemas web. Analiza estos datos de monitoreo y proporciona un análisis TÉCNICO EXTREMADAMENTE DETALLADO:
 
-## RESUMEN GENERAL:
-- APIs: ${data.summary.totalAPIs} llamadas
-- WebSockets: ${data.summary.totalWebSockets} eventos  
-- Errores: ${data.summary.totalErrors} errores
+## DATOS DEL SISTEMA:
+- APIs: ${data.summary.totalAPIs} llamadas (${data.apiStats.successful} exitosas, ${data.apiStats.failed} fallidas)
+- WebSockets: ${data.summary.totalWebSockets} eventos
+- Errores: ${data.summary.totalErrors} errores críticos
 - Logs: ${data.summary.totalLogs} entradas
 - Rendimiento: ${data.summary.totalPerformance} métricas
 
-## ESTADÍSTICAS DETALLADAS DE APIs:
-- Total: ${data.apiStats.total}
-- Exitosas: ${data.apiStats.successful}
-- Fallidas: ${data.apiStats.failed}
+## ANÁLISIS DETALLADO DE ERRORES - ANALIZA CADA UNO INDIVIDUALMENTE:
+${data.sampleErrors.map((error, index) => `
+### ERROR ${index + 1}:
+- **Tipo**: ${error.name}
+- **Mensaje**: ${error.message}
+- **Fuente**: ${error.source}
+- **URL**: ${error.url || 'N/A'}
+- **Stack Trace**: ${error.stack ? error.stack.substring(0, 500) : 'N/A'}
+- **Timestamp**: ${error.timestamp || 'N/A'}
+- **Contexto**: ${JSON.stringify(error.context || {})}
+`).join('\n')}
+
+## ANÁLISIS DETALLADO DE APIs FALLIDAS:
+${data.sampleAPIs.filter(api => api.status >= 400 || api.error).map((api, index) => `
+### API FALLIDA ${index + 1}:
+- **Método**: ${api.method || 'N/A'}
+- **URL Completa**: ${api.fullUrl || api.url || 'N/A'}
+- **Status Code**: ${api.status || 'N/A'}
+- **Duración**: ${api.duration || 0}ms
+- **Error Message**: ${api.error || 'N/A'}
+- **Headers de Request**: ${JSON.stringify(api.requestHeaders || {})}
+- **Headers de Response**: ${JSON.stringify(api.responseHeaders || {})}
+- **Body de Request**: ${JSON.stringify(api.requestBody || {})}
+- **Body de Response**: ${JSON.stringify(api.responseBody || {})}
+- **Timestamp**: ${api.timestamp || 'N/A'}
+- **Contexto**: ${JSON.stringify(api.context || {})}
+`).join('\n')}
+
+## ANÁLISIS DETALLADO DE LOGS CRÍTICOS:
+${data.sampleLogs.filter(log => log.level === 'error' || log.level === 'warn').map((log, index) => `
+### LOG CRÍTICO ${index + 1}:
+- **Nivel**: ${log.level.toUpperCase()}
+- **Categoría**: ${log.category}
+- **Mensaje**: ${log.message}
+- **Fuente**: ${log.source}
+- **Datos**: ${JSON.stringify(log.data || {})}
+- **Timestamp**: ${log.timestamp || 'N/A'}
+- **Contexto**: ${JSON.stringify(log.context || {})}
+`).join('\n')}
+
+## ESTADÍSTICAS DE RENDIMIENTO:
 - Tiempo promedio de respuesta: ${data.apiStats.averageResponseTime.toFixed(2)}ms
 - Endpoint más lento: ${data.apiStats.slowestEndpoint.url || 'N/A'} (${data.apiStats.slowestEndpoint.duration || 0}ms)
-- Errores más frecuentes: ${Object.entries(data.apiStats.mostFrequentError).slice(0, 3).map(([error, count]) => `${error} (${count})`).join(', ')}
-
-## ESTADÍSTICAS DETALLADAS DE WEBSOCKETS:
-- Total eventos: ${data.wsStats.total}
-- Conexiones: ${data.wsStats.connections}
-- Desconexiones: ${data.wsStats.disconnections}
-- Mensajes: ${data.wsStats.messages}
-- Errores: ${data.wsStats.errors}
-
-## ESTADÍSTICAS DETALLADAS DE ERRORES:
-- Total: ${data.errorStats.total}
-- Errores críticos: ${data.errorStats.criticalErrors}
-- Tipos más comunes: ${Object.entries(data.errorStats.byType).slice(0, 5).map(([type, count]) => `${type} (${count})`).join(', ')}
-- Fuentes más problemáticas: ${Object.entries(data.errorStats.bySource).slice(0, 5).map(([source, count]) => `${source} (${count})`).join(', ')}
-
-## ESTADÍSTICAS DETALLADAS DE RENDIMIENTO:
 - Memoria promedio: ${data.perfStats.averageMemory.toFixed(2)}MB
-- Tiempo de renderizado promedio: ${data.perfStats.averageRenderTime.toFixed(2)}ms
 - Componente más lento: ${data.perfStats.slowestComponent.name} (${data.perfStats.slowestComponent.value}ms)
 
-## ESTADÍSTICAS DETALLADAS DE LOGS:
-- Total: ${data.logStats.total}
-- Por nivel: ${Object.entries(data.logStats.byLevel).map(([level, count]) => `${level} (${count})`).join(', ')}
-- Por categoría: ${Object.entries(data.logStats.byCategory).slice(0, 5).map(([category, count]) => `${category} (${count})`).join(', ')}
+## INSTRUCCIONES CRÍTICAS:
 
-## MUESTRAS DETALLADAS DE ERRORES:
-${data.sampleErrors.map(error => `- ${error.name}: ${error.message} (${error.source}) - URL: ${error.url || 'N/A'} - Stack: ${error.stack ? error.stack.substring(0, 200) + '...' : 'N/A'}`).join('\n')}
+Proporciona un análisis TÉCNICO EXTREMADAMENTE DETALLADO que incluya:
 
-## MUESTRAS DETALLADAS DE APIs:
-${data.sampleAPIs.map(api => `- ${api.method} ${api.url}: ${api.status} (${api.duration}ms) ${api.error ? `- ERROR: ${api.error}` : ''} - Headers: ${JSON.stringify(api.requestHeaders || {})}`).join('\n')}
+### 1. ANÁLISIS INDIVIDUAL DE CADA ERROR:
+Para CADA error, especifica:
+- **¿QUÉ ERROR ES EXACTAMENTE?** (tipo, código, descripción técnica)
+- **¿DÓNDE OCURRE?** (archivo, función, línea, componente)
+- **¿CUÁNDO OCURRE?** (patrón temporal, frecuencia)
+- **¿POR QUÉ OCURRE?** (causa raíz técnica)
+- **¿QUÉ LO OCASIONA?** (trigger, condición, flujo de datos)
+- **¿CÓMO SE MANIFIESTA?** (síntomas, impacto en usuario)
+- **¿QUÉ RESPUESTA DA EL BACKEND?** (status code, mensaje de error)
+- **¿CÓMO SE PUEDE SOLUCIONAR?** (código específico, configuración)
+- **¿ES UN ERROR CRÍTICO?** (impacto en funcionalidad)
+- **¿AFECTA A OTROS COMPONENTES?** (propagación del error)
 
-## MUESTRAS DETALLADAS DE LOGS:
-${data.sampleLogs.map(log => `- [${log.level.toUpperCase()}] ${log.category}: ${log.message} - Source: ${log.source} - Data: ${JSON.stringify(log.data || {})}`).join('\n')}
+### 2. ANÁLISIS DE APIS FALLIDAS:
+Para CADA API fallida, especifica:
+- **¿QUÉ ENDPOINT FALLA?** (URL completa, método HTTP)
+- **¿QUÉ DATOS SE ENVÍAN?** (request body, headers)
+- **¿QUÉ RESPUESTA RECIBE?** (status code, error message, response body)
+- **¿POR QUÉ FALLA?** (validación, autenticación, servidor, red)
+- **¿CÓMO SE DEBE ARREGLAR?** (código frontend, backend, configuración)
+- **¿ES UN ERROR DE AUTENTICACIÓN?** (token, permisos, roles)
+- **¿ES UN ERROR DE VALIDACIÓN?** (datos incorrectos, formato)
+- **¿ES UN ERROR DE SERVIDOR?** (500, timeout, conexión)
+- **¿ES UN ERROR DE RED?** (CORS, DNS, conectividad)
+- **¿QUÉ HEADERS FALTAN?** (Content-Type, Authorization, etc.)
 
-## INSTRUCCIONES ESPECÍFICAS:
+### 3. ANÁLISIS DE LOGS CRÍTICOS:
+Para CADA log crítico, especifica:
+- **¿QUÉ TIPO DE LOG ES?** (error, warning, info, debug)
+- **¿DE QUÉ CATEGORÍA?** (authentication, network, validation, etc.)
+- **¿QUÉ MENSAJE ESPECÍFICO?** (descripción detallada)
+- **¿DÓNDE SE GENERA?** (componente, función, archivo)
+- **¿CUÁNDO OCURRE?** (patrón temporal, frecuencia)
+- **¿POR QUÉ ES CRÍTICO?** (impacto en funcionalidad)
+- **¿QUÉ ACCIÓN REQUIERE?** (fix, monitoring, investigation)
 
-Necesito un análisis SÚPER EXTENSO y DETALLADO que incluya:
+### 4. PATRONES Y RELACIONES:
+- **¿HAY ERRORES RELACIONADOS?** (cadenas de errores, dependencias)
+- **¿QUÉ LOS OCASIONA?** (configuración, dependencias, flujo de datos)
+- **¿CUÁL ES EL ORDEN DE APARICIÓN?** (secuencia, timing)
+- **¿AFECTAN A MÚLTIPLES COMPONENTES?** (propagación, impacto)
+- **¿HAY PATRONES TEMPORALES?** (horarios, frecuencia)
+- **¿SE REPITEN LOS MISMOS ERRORES?** (recurrencia, causas)
 
-1. **RESUMEN EJECUTIVO**: Un párrafo completo que resuma el estado general del sistema, incluyendo todos los aspectos críticos
+### 5. SOLUCIONES TÉCNICAS ESPECÍFICAS:
+- **CÓDIGO EXACTO** a modificar (archivo, función, línea)
+- **CONFIGURACIONES** a cambiar (variables, headers, timeouts)
+- **DEPENDENCIAS** a actualizar o instalar
+- **FLUJOS DE DATOS** a corregir
+- **VALIDACIONES** a implementar
+- **ERROR HANDLING** a mejorar
+- **LOGGING** a implementar
 
-2. **PROBLEMAS CRÍTICOS**: Lista detallada de TODOS los problemas importantes (mínimo 5-8), con:
-   - Descripción específica del problema
-   - Componente/módulo afectado
-   - Impacto en el sistema
-   - Urgencia del problema
+### 6. PLAN DE IMPLEMENTACIÓN:
+- **ORDEN DE PRIORIDAD** (crítico, alto, medio, bajo)
+- **DEPENDENCIAS** entre soluciones
+- **TIEMPO ESTIMADO** para cada fix
+- **TESTING** requerido
+- **ROLLBACK** plan si algo falla
 
-3. **RECOMENDACIONES ESPECÍFICAS**: Acciones detalladas para resolver cada problema, incluyendo:
-   - Código específico a modificar
-   - Archivos a revisar
-   - Pasos exactos a seguir
-   - Configuraciones a cambiar
+### 7. PREVENCIÓN Y MONITOREO:
+- **MONITOREO** adicional necesario
+- **VALIDACIONES** preventivas
+- **ERROR HANDLING** mejorado
+- **LOGGING** más detallado
+- **ALERTAS** a configurar
+- **MÉTRICAS** a monitorear
 
-4. **INSIGHTS DE RENDIMIENTO**: Análisis profundo del rendimiento con:
-   - Cuellos de botella identificados
-   - Optimizaciones específicas
-   - Código a optimizar
-   - Métricas objetivo
-
-5. **PATRONES DE ERRORES**: Análisis detallado de patrones con:
-   - Causas raíz de cada error
-   - Soluciones específicas
-   - Prevención de errores futuros
-   - Código a implementar
-
-6. **ANÁLISIS TÉCNICO PROFUNDO**: Incluye:
-   - Análisis de cada componente afectado
-   - Flujo de datos problemático
-   - Configuraciones incorrectas
-   - Dependencias problemáticas
-
-7. **PLAN DE ACCIÓN**: Orden específico de implementación de soluciones
-
-Responde en español, sé EXTREMADAMENTE específico y técnico. Incluye nombres de archivos, funciones, componentes, y código específico cuando sea posible. El análisis debe ser tan detallado que pueda usarse como guía completa para solucionar todos los problemas identificados.
+Responde en español, sé EXTREMADAMENTE específico y técnico. Incluye nombres de archivos, funciones, componentes, y código específico. El análisis debe ser una guía técnica completa para solucionar TODOS los problemas identificados.
 `;
 
       console.log('🤖 Enviando datos a ChatGPT API...');
       console.log('📊 Datos preparados:', data);
 
       // Usar la función de configuración de IA con más tokens para análisis extenso
-      const aiResponse = await callOpenAI(prompt, undefined, { max_tokens: 4000, temperature: 0.3 });
+      const aiResponse = await callOpenAI(prompt, undefined, { max_tokens: 6000, temperature: 0.2 });
 
       // Parsear la respuesta de la IA
       const analysisResult: AIAnalysisResult = {
