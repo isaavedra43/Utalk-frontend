@@ -301,27 +301,27 @@ class EmployeesApiService {
       }
     });
 
-    const response = await api.get(`/employees?${searchParams.toString()}`);
+    const response = await api.get(`/api/employees?${searchParams.toString()}`);
     return response.data;
   }
 
   async getEmployee(id: string): Promise<GetEmployeeResponse> {
-    const response = await api.get(`/employees/${id}`);
+    const response = await api.get(`/api/employees/${id}`);
     return response.data;
   }
 
   async createEmployee(employeeData: Partial<Employee>): Promise<{ employee: Employee; message: string }> {
-    const response = await api.post('/employees', employeeData);
+    const response = await api.post('/api/employees', employeeData);
     return response.data;
   }
 
   async updateEmployee(id: string, updates: Partial<Employee>): Promise<{ employee: Employee; message: string }> {
-    const response = await api.put(`/employees/${id}`, updates);
+    const response = await api.put(`/api/employees/${id}`, updates);
     return response.data;
   }
 
   async deleteEmployee(id: string): Promise<{ message: string; deletedAt: string }> {
-    const response = await api.delete(`/employees/${id}`);
+    const response = await api.delete(`/api/employees/${id}`);
     return response.data;
   }
 
@@ -340,7 +340,7 @@ class EmployeesApiService {
     formData.append('file', file);
     formData.append('options', JSON.stringify(options));
 
-    const response = await api.post('/employees/import', formData, {
+    const response = await api.post('/api/employees/import', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -364,7 +364,7 @@ class EmployeesApiService {
       }
     });
 
-    const response = await api.get(`/employees/export?${searchParams.toString()}`, {
+    const response = await api.get(`/api/employees/export?${searchParams.toString()}`, {
       responseType: 'blob',
     });
     return response.data;
@@ -394,7 +394,7 @@ class EmployeesApiService {
       }
     });
 
-    const response = await api.get(`/employees/${employeeId}/payroll?${searchParams.toString()}`);
+    const response = await api.get(`/api/employees/${employeeId}/payroll?${searchParams.toString()}`);
     return response.data;
   }
 
@@ -424,7 +424,7 @@ class EmployeesApiService {
       }
     });
 
-    const response = await api.get(`/payroll/weekly?${searchParams.toString()}`);
+    const response = await api.get(`/api/payroll/weekly?${searchParams.toString()}`);
     return response.data;
   }
 
@@ -461,7 +461,7 @@ class EmployeesApiService {
       }
     });
 
-    const response = await api.get(`/employees/${employeeId}/attendance?${searchParams.toString()}`);
+    const response = await api.get(`/api/employees/${employeeId}/attendance?${searchParams.toString()}`);
     return response.data;
   }
 
@@ -495,7 +495,7 @@ class EmployeesApiService {
       }
     });
 
-    const response = await api.get(`/employees/${employeeId}/vacations?${searchParams.toString()}`);
+    const response = await api.get(`/api/employees/${employeeId}/vacations?${searchParams.toString()}`);
     return response.data;
   }
 
@@ -505,7 +505,7 @@ class EmployeesApiService {
     type: string;
     reason?: string;
   }): Promise<{ request: VacationRequest; message: string }> {
-    const response = await api.post(`/employees/${employeeId}/vacations`, requestData);
+    const response = await api.post(`/api/employees/${employeeId}/vacations`, requestData);
     return response.data;
   }
 
@@ -537,7 +537,7 @@ class EmployeesApiService {
       }
     });
 
-    const response = await api.get(`/employees/${employeeId}/documents?${searchParams.toString()}`);
+    const response = await api.get(`/api/employees/${employeeId}/documents?${searchParams.toString()}`);
     return response.data;
   }
 
@@ -560,7 +560,7 @@ class EmployeesApiService {
       }
     });
 
-    const response = await api.post(`/employees/${employeeId}/documents`, formData, {
+    const response = await api.post(`/api/employees/${employeeId}/documents`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -569,7 +569,7 @@ class EmployeesApiService {
   }
 
   async deleteDocument(employeeId: string, documentId: string): Promise<{ message: string; deletedAt: string }> {
-    const response = await api.delete(`/employees/${employeeId}/documents/${documentId}`);
+    const response = await api.delete(`/api/employees/${employeeId}/documents/${documentId}`);
     return response.data;
   }
 
@@ -606,7 +606,7 @@ class EmployeesApiService {
       }
     });
 
-    const response = await api.get(`/employees/${employeeId}/incidents?${searchParams.toString()}`);
+    const response = await api.get(`/api/employees/${employeeId}/incidents?${searchParams.toString()}`);
     return response.data;
   }
 
@@ -620,7 +620,7 @@ class EmployeesApiService {
     witnesses?: string[];
     attachments?: string[];
   }): Promise<{ incident: Incident; message: string }> {
-    const response = await api.post(`/employees/${employeeId}/incidents`, incidentData);
+    const response = await api.post(`/api/employees/${employeeId}/incidents`, incidentData);
     return response.data;
   }
 
@@ -657,7 +657,7 @@ class EmployeesApiService {
       }
     });
 
-    const response = await api.get(`/employees/${employeeId}/evaluations?${searchParams.toString()}`);
+    const response = await api.get(`/api/employees/${employeeId}/evaluations?${searchParams.toString()}`);
     return response.data;
   }
 
@@ -693,7 +693,7 @@ class EmployeesApiService {
       }
     });
 
-    const response = await api.get(`/employees/${employeeId}/skills?${searchParams.toString()}`);
+    const response = await api.get(`/api/employees/${employeeId}/skills?${searchParams.toString()}`);
     return response.data;
   }
 
@@ -709,7 +709,7 @@ class EmployeesApiService {
     targetLevel?: string;
     targetDate?: string;
   }): Promise<{ skill: Skill; message: string }> {
-    const response = await api.post(`/employees/${employeeId}/skills`, skillData);
+    const response = await api.post(`/api/employees/${employeeId}/skills`, skillData);
     return response.data;
   }
 
@@ -745,7 +745,7 @@ class EmployeesApiService {
       }
     });
 
-    const response = await api.get(`/employees/${employeeId}/history?${searchParams.toString()}`);
+    const response = await api.get(`/api/employees/${employeeId}/history?${searchParams.toString()}`);
     return response.data;
   }
 }
