@@ -3,41 +3,41 @@ export const API_CONFIG = {
   BASE_URL: process.env.VITE_API_URL || 'http://localhost:3000/api',
   ENDPOINTS: {
     // Empleados
-    EMPLOYEES: '/employees',
-    EMPLOYEE_BY_ID: (id: string) => `/employees/${id}`,
-    EMPLOYEES_IMPORT: '/employees/import',
-    EMPLOYEES_EXPORT: '/employees/export',
+    EMPLOYEES: '/api/employees',
+    EMPLOYEE_BY_ID: (id: string) => `/api/employees/${id}`,
+    EMPLOYEES_IMPORT: '/api/employees/import',
+    EMPLOYEES_EXPORT: '/api/employees/export',
     
     // Nómina
-    EMPLOYEE_PAYROLL: (id: string) => `/employees/${id}/payroll`,
-    WEEKLY_PAYROLL: '/payroll/weekly',
+    EMPLOYEE_PAYROLL: (id: string) => `/api/employees/${id}/payroll`,
+    WEEKLY_PAYROLL: '/api/payroll/weekly',
     
     // Asistencia
-    EMPLOYEE_ATTENDANCE: (id: string) => `/employees/${id}/attendance`,
-    ATTENDANCE_RECORD: (employeeId: string, recordId: string) => `/employees/${employeeId}/attendance/${recordId}`,
+    EMPLOYEE_ATTENDANCE: (id: string) => `/api/employees/${id}/attendance`,
+    ATTENDANCE_RECORD: (employeeId: string, recordId: string) => `/api/employees/${employeeId}/attendance/${recordId}`,
     
     // Vacaciones
-    EMPLOYEE_VACATIONS: (id: string) => `/employees/${id}/vacations`,
-    VACATION_REQUEST: (employeeId: string, requestId: string) => `/employees/${employeeId}/vacations/${requestId}`,
+    EMPLOYEE_VACATIONS: (id: string) => `/api/employees/${id}/vacations`,
+    VACATION_REQUEST: (employeeId: string, requestId: string) => `/api/employees/${employeeId}/vacations/${requestId}`,
     
     // Documentos
-    EMPLOYEE_DOCUMENTS: (id: string) => `/employees/${id}/documents`,
-    EMPLOYEE_DOCUMENT: (employeeId: string, documentId: string) => `/employees/${employeeId}/documents/${documentId}`,
+    EMPLOYEE_DOCUMENTS: (id: string) => `/api/employees/${id}/documents`,
+    EMPLOYEE_DOCUMENT: (employeeId: string, documentId: string) => `/api/employees/${employeeId}/documents/${documentId}`,
     
     // Incidencias
-    EMPLOYEE_INCIDENTS: (id: string) => `/employees/${id}/incidents`,
-    EMPLOYEE_INCIDENT: (employeeId: string, incidentId: string) => `/employees/${employeeId}/incidents/${incidentId}`,
+    EMPLOYEE_INCIDENTS: (id: string) => `/api/employees/${id}/incidents`,
+    EMPLOYEE_INCIDENT: (employeeId: string, incidentId: string) => `/api/employees/${employeeId}/incidents/${incidentId}`,
     
     // Evaluaciones
-    EMPLOYEE_EVALUATIONS: (id: string) => `/employees/${id}/evaluations`,
-    EMPLOYEE_EVALUATION: (employeeId: string, evaluationId: string) => `/employees/${employeeId}/evaluations/${evaluationId}`,
+    EMPLOYEE_EVALUATIONS: (id: string) => `/api/employees/${id}/evaluations`,
+    EMPLOYEE_EVALUATION: (employeeId: string, evaluationId: string) => `/api/employees/${employeeId}/evaluations/${evaluationId}`,
     
     // Habilidades
-    EMPLOYEE_SKILLS: (id: string) => `/employees/${id}/skills`,
-    EMPLOYEE_SKILL: (employeeId: string, skillId: string) => `/employees/${employeeId}/skills/${skillId}`,
+    EMPLOYEE_SKILLS: (id: string) => `/api/employees/${id}/skills`,
+    EMPLOYEE_SKILL: (employeeId: string, skillId: string) => `/api/employees/${employeeId}/skills/${skillId}`,
     
     // Historial
-    EMPLOYEE_HISTORY: (id: string) => `/employees/${id}/history`
+    EMPLOYEE_HISTORY: (id: string) => `/api/employees/${id}/history`
   },
   
   // Headers por defecto
