@@ -23,6 +23,7 @@ import {
   FileSpreadsheet,
   Loader2
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { AddEmployeeModal } from './AddEmployeeModal';
 import { ImportEmployeesModal } from './ImportEmployeesModal';
 import { EditEmployeeModal } from './EditEmployeeModal';
@@ -229,75 +230,168 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
     try {
       setLoading(true);
       
-      const blob = await employeesApi.exportEmployees({
-        format: format === 'excel' ? 'xlsx' : format, // Corregir formato Excel
-        filters,
-        fields: [
-          'employeeNumber',
-          'personalInfo.firstName',
-          'personalInfo.lastName', 
-          'personalInfo.email',
-          'personalInfo.phone',
-          'personalInfo.dateOfBirth',
-          'personalInfo.gender',
-          'personalInfo.maritalStatus',
-          'personalInfo.nationality',
-          'personalInfo.rfc',
-          'personalInfo.curp',
-          'personalInfo.address.street',
-          'personalInfo.address.city',
-          'personalInfo.address.state',
-          'personalInfo.address.country',
-          'personalInfo.address.postalCode',
-          'position.title',
-          'position.department',
-          'position.level',
-          'position.reportsTo',
-          'position.jobDescription',
-          'position.startDate',
-          'position.endDate',
-          'location.office',
-          'location.address',
-          'location.city',
-          'location.state',
-          'location.country',
-          'location.postalCode',
-          'location.timezone',
-          'contract.type',
-          'contract.startDate',
-          'contract.endDate',
-          'contract.salary',
-          'contract.currency',
-          'contract.workingDays',
-          'contract.workingHoursRange',
-          'contract.benefits',
-          'contract.notes',
-          'status',
-          'createdAt',
-          'updatedAt'
-        ]
-      });
+      if (format === 'excel') {
+        // Generar Excel real desde el frontend
+        await generateExcelFile();
+      } else {
+        // Para CSV y PDF, usar el backend
+        const blob = await employeesApi.exportEmployees({
+          format: format,
+          filters,
+          fields: ['personalInfo', 'position', 'location', 'contract', 'status']
+        });
 
-      // Crear URL para descargar el archivo
+        // Crear URL para descargar el archivo
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `empleados.${format}`;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }
+      
+      console.log(`✅ Archivo exportado exitosamente: empleados_plantilla.${format === 'excel' ? 'xlsx' : format}`);
+    } catch (error) {
+      console.error('Error al exportar empleados:', error);
+      setError('Error al exportar empleados. Por favor, intenta de nuevo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Función para generar archivo Excel real
+  const generateExcelFile = async () => {
+    try {
+      console.log('📊 Generando archivo Excel real...');
+      
+      // Crear datos de la plantilla con todas las columnas necesarias
+      const plantillaData = [
+        {
+          'Número de Empleado': 'EMP001',
+          'Nombre': 'Juan',
+          'Apellido': 'Pérez',
+          'Email': 'juan.perez@empresa.com',
+          'Teléfono': '+52 55 1234 5678',
+          'Fecha de Nacimiento': '1990-01-15',
+          'Género': 'M',
+          'Estado Civil': 'Soltero',
+          'Nacionalidad': 'Mexicana',
+          'RFC': 'PEPJ900115ABC',
+          'CURP': 'PEPJ900115HDFRRN01',
+          'Calle': 'Av. Reforma 123',
+          'Ciudad': 'Ciudad de México',
+          'Estado': 'CDMX',
+          'País': 'México',
+          'Código Postal': '06600',
+          'Puesto': 'Desarrollador',
+          'Departamento': 'Tecnología',
+          'Nivel': 'Senior',
+          'Supervisor': 'María García',
+          'Descripción del Puesto': 'Desarrollo de aplicaciones web',
+          'Fecha de Inicio': '2023-01-15',
+          'Fecha de Fin': '',
+          'Oficina': 'Oficina Central',
+          'Dirección de Oficina': 'Av. Insurgentes 456',
+          'Ciudad de Oficina': 'Ciudad de México',
+          'Estado de Oficina': 'CDMX',
+          'País de Oficina': 'México',
+          'Código Postal de Oficina': '06700',
+          'Zona Horaria': 'America/Mexico_City',
+          'Tipo de Contrato': 'Permanente',
+          'Fecha de Inicio de Contrato': '2023-01-15',
+          'Fecha de Fin de Contrato': '',
+          'Salario': '50000',
+          'Moneda': 'MXN',
+          'Días Laborales': 'Lunes a Viernes',
+          'Horario de Trabajo': '09:00-18:00',
+          'Beneficios': 'Seguro médico, vales de despensa',
+          'Notas del Contrato': 'Contrato por tiempo indefinido',
+          'Estado del Empleado': 'Activo',
+          'Fecha de Creación': '2023-01-15',
+          'Fecha de Actualización': '2023-01-15'
+        }
+      ];
+
+      // Crear hoja de trabajo
+      const ws = XLSX.utils.json_to_sheet(plantillaData);
+      
+      // Configurar ancho de columnas
+      const colWidths = [
+        { wch: 20 }, // Número de Empleado
+        { wch: 15 }, // Nombre
+        { wch: 15 }, // Apellido
+        { wch: 25 }, // Email
+        { wch: 18 }, // Teléfono
+        { wch: 18 }, // Fecha de Nacimiento
+        { wch: 8 },  // Género
+        { wch: 12 }, // Estado Civil
+        { wch: 12 }, // Nacionalidad
+        { wch: 15 }, // RFC
+        { wch: 18 }, // CURP
+        { wch: 20 }, // Calle
+        { wch: 15 }, // Ciudad
+        { wch: 10 }, // Estado
+        { wch: 10 }, // País
+        { wch: 12 }, // Código Postal
+        { wch: 20 }, // Puesto
+        { wch: 15 }, // Departamento
+        { wch: 10 }, // Nivel
+        { wch: 20 }, // Supervisor
+        { wch: 30 }, // Descripción del Puesto
+        { wch: 15 }, // Fecha de Inicio
+        { wch: 15 }, // Fecha de Fin
+        { wch: 20 }, // Oficina
+        { wch: 25 }, // Dirección de Oficina
+        { wch: 15 }, // Ciudad de Oficina
+        { wch: 10 }, // Estado de Oficina
+        { wch: 10 }, // País de Oficina
+        { wch: 12 }, // Código Postal de Oficina
+        { wch: 20 }, // Zona Horaria
+        { wch: 15 }, // Tipo de Contrato
+        { wch: 20 }, // Fecha de Inicio de Contrato
+        { wch: 20 }, // Fecha de Fin de Contrato
+        { wch: 12 }, // Salario
+        { wch: 8 },  // Moneda
+        { wch: 15 }, // Días Laborales
+        { wch: 15 }, // Horario de Trabajo
+        { wch: 30 }, // Beneficios
+        { wch: 30 }, // Notas del Contrato
+        { wch: 15 }, // Estado del Empleado
+        { wch: 15 }, // Fecha de Creación
+        { wch: 15 }  // Fecha de Actualización
+      ];
+      
+      ws['!cols'] = colWidths;
+
+      // Crear libro de trabajo
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Empleados');
+
+      // Generar archivo Excel
+      const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      
+      // Crear blob y descargar
+      const blob = new Blob([excelBuffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      
-      // Corregir extensión del archivo
-      const fileExtension = format === 'excel' ? 'xlsx' : format;
-      link.download = `empleados_plantilla.${fileExtension}`;
+      link.download = 'empleados_plantilla.xlsx';
       
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
-      console.log(`✅ Archivo exportado exitosamente: empleados_plantilla.${fileExtension}`);
+      console.log('✅ Archivo Excel generado exitosamente desde el frontend');
     } catch (error) {
-      console.error('Error al exportar empleados:', error);
-      setError('Error al exportar empleados. Por favor, intenta de nuevo.');
-    } finally {
-      setLoading(false);
+      console.error('❌ Error generando archivo Excel:', error);
+      throw error;
     }
   };
 
