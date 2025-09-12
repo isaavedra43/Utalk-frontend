@@ -74,73 +74,90 @@ export const getOpenAIAPIKey = (): string => {
   throw new Error('API key de OpenAI requerida para el análisis con IA');
 };
 
-// Función para hacer llamadas a la API de OpenAI
+// Función para hacer llamadas a la API de OpenAI usando XMLHttpRequest
 export const callOpenAI = async (
   prompt: string,
   systemPrompt: string = AI_CONFIG.SYSTEM_PROMPTS.MONITORING_ANALYSIS,
   options: Partial<typeof AI_CONFIG.DEFAULT_CONFIG> = {}
 ) => {
-  try {
-    const apiKey = getOpenAIAPIKey();
-    
-    if (!apiKey) {
-      throw new Error('API key de OpenAI no configurada');
-    }
+  return new Promise((resolve, reject) => {
+    try {
+      const apiKey = getOpenAIAPIKey();
+      
+      if (!apiKey) {
+        reject(new Error('API key de OpenAI no configurada'));
+        return;
+      }
 
-    console.log('🔑 API Key obtenida:', apiKey.substring(0, 10) + '...');
-    console.log('📝 Enviando prompt a OpenAI...');
+      console.log('🔑 API Key obtenida:', apiKey.substring(0, 10) + '...');
+      console.log('📝 Enviando prompt a OpenAI...');
 
-    const requestBody = {
-      model: 'gpt-4o-mini', // Cambio a modelo más económico
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt
-        },
-        {
-          role: 'user',
-          content: prompt
+      const requestBody = {
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: options.max_tokens || 4000,
+        temperature: options.temperature || 0.3
+      };
+
+      console.log('📦 Request body preparado:', {
+        model: requestBody.model,
+        messagesCount: requestBody.messages.length,
+        maxTokens: requestBody.max_tokens
+      });
+
+      const xhr = new XMLHttpRequest();
+      
+      xhr.open('POST', AI_CONFIG.OPENAI_API_URL, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('Authorization', `Bearer ${apiKey}`);
+      
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          console.log('📡 Respuesta recibida:', xhr.status, xhr.statusText);
+          
+          if (xhr.status === 200) {
+            try {
+              const data = JSON.parse(xhr.responseText);
+              console.log('✅ Datos recibidos de OpenAI:', data);
+              
+              if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+                reject(new Error('Respuesta inválida de OpenAI'));
+                return;
+              }
+              
+              resolve(data.choices[0].message.content);
+            } catch (parseError) {
+              console.error('❌ Error parseando respuesta:', parseError);
+              reject(new Error('Error parseando respuesta de OpenAI'));
+            }
+          } else {
+            console.error('❌ Error en respuesta:', xhr.responseText);
+            reject(new Error(`Error en la API de OpenAI: ${xhr.status} ${xhr.statusText}`));
+          }
         }
-      ],
-      max_tokens: options.max_tokens || 4000,
-      temperature: options.temperature || 0.3
-    };
-
-    console.log('📦 Request body preparado:', {
-      model: requestBody.model,
-      messagesCount: requestBody.messages.length,
-      maxTokens: requestBody.max_tokens
-    });
-
-    const response = await window.fetch(AI_CONFIG.OPENAI_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    console.log('📡 Respuesta recibida:', response.status, response.statusText);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Error en respuesta:', errorText);
-      throw new Error(`Error en la API de OpenAI: ${response.status} ${response.statusText}`);
+      };
+      
+      xhr.onerror = function() {
+        console.error('❌ Error de red en XMLHttpRequest');
+        reject(new Error('Error de red al conectar con OpenAI'));
+      };
+      
+      xhr.send(JSON.stringify(requestBody));
+      
+    } catch (error) {
+      console.error('❌ Error en callOpenAI:', error);
+      reject(error);
     }
-
-    const data = await response.json();
-    console.log('✅ Datos recibidos de OpenAI:', data);
-    
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      throw new Error('Respuesta inválida de OpenAI');
-    }
-
-    return data.choices[0].message.content;
-  } catch (error) {
-    console.error('❌ Error en callOpenAI:', error);
-    throw error;
-  }
+  });
 };
 
 // Función para validar la API key
