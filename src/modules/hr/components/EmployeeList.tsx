@@ -78,9 +78,28 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
         sortOrder: 'desc'
       });
 
-      setEmployees(response.employees);
-      setPagination(response.pagination);
-      setSummary(response.summary);
+      // Manejar respuesta vacía correctamente
+      if (response && response.employees) {
+        setEmployees(response.employees);
+        setPagination(response.pagination);
+        setSummary(response.summary);
+      } else {
+        // Si no hay respuesta o employees es null/undefined, establecer arrays vacíos
+        setEmployees([]);
+        setPagination({
+          page: 1,
+          limit: 20,
+          total: 0,
+          totalPages: 0
+        });
+        setSummary({
+          total: 0,
+          active: 0,
+          inactive: 0,
+          pending: 0,
+          expired: 0
+        });
+      }
     } catch (err) {
       console.error('Error loading employees:', err);
       setError('Error al cargar los empleados. Por favor, intenta de nuevo.');
@@ -417,7 +436,35 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {employees.map((employee) => (
+                  {employees.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center space-y-4">
+                          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-medium text-gray-900 mb-1">No hay empleados</h3>
+                            <p className="text-sm text-gray-500">
+                              {searchQuery ? 'No se encontraron empleados que coincidan con tu búsqueda' : 'Aún no hay empleados registrados en el sistema'}
+                            </p>
+                          </div>
+                          {!searchQuery && (
+                            <button
+                              onClick={() => setIsAddModalOpen(true)}
+                              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              Agregar primer empleado
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    employees.map((employee) => (
                     <tr key={employee.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <input
@@ -513,7 +560,7 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )))}
                 </tbody>
               </table>
             </div>

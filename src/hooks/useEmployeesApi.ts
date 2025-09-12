@@ -43,9 +43,28 @@ export const useEmployees = () => {
         sortOrder: params.sortOrder || 'desc'
       });
 
-      setEmployees(response.employees);
-      setPagination(response.pagination);
-      setSummary(response.summary);
+      // Manejar respuesta vacía correctamente
+      if (response && response.employees) {
+        setEmployees(response.employees);
+        setPagination(response.pagination);
+        setSummary(response.summary);
+      } else {
+        // Si no hay respuesta o employees es null/undefined, establecer arrays vacíos
+        setEmployees([]);
+        setPagination({
+          page: 1,
+          limit: 20,
+          total: 0,
+          totalPages: 0
+        });
+        setSummary({
+          total: 0,
+          active: 0,
+          inactive: 0,
+          pending: 0,
+          expired: 0
+        });
+      }
     } catch (err) {
       console.error('Error loading employees:', err);
       setError('Error al cargar los empleados. Por favor, intenta de nuevo.');
