@@ -447,23 +447,26 @@ Generado por el Sistema de Monitoreo UTalk
                   </button>
                 </div>
 
-                <button
-                  onClick={generateAIAnalysis}
-                  disabled={isAnalyzing || totalDataItems === 0}
-                  className="analyze-button"
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <RefreshCw className="w-5 h-5 animate-spin" />
-                      Analizando con IA...
-                    </>
-                  ) : (
-                    <>
-                      <Brain className="w-5 h-5" />
-                      Generar Análisis con IA
-                    </>
-                  )}
-                </button>
+                <div className="start-analysis-section">
+                  <button
+                    onClick={generateAIAnalysis}
+                    disabled={isAnalyzing || totalDataItems === 0}
+                    className="start-analysis-button"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Analizando...
+                      </>
+                    ) : (
+                      <>
+                        <Brain className="w-5 h-5" />
+                        Iniciar Análisis con IA
+                      </>
+                    )}
+                  </button>
+                </div>
+
 
                 {totalDataItems === 0 && (
                   <p className="no-data-warning">
@@ -705,6 +708,41 @@ Generado por el Sistema de Monitoreo UTalk con IA`}
           background: #dc2626;
           transform: translateY(-2px);
           box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+        }
+
+        .start-analysis-section {
+          margin-top: 24px;
+          display: flex;
+          justify-content: center;
+        }
+
+        .start-analysis-button {
+          background: linear-gradient(135deg, #8b5cf6, #a855f7);
+          color: white;
+          border: none;
+          border-radius: 12px;
+          padding: 16px 32px;
+          font-size: 16px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        .start-analysis-button:hover:not(:disabled) {
+          background: linear-gradient(135deg, #7c3aed, #9333ea);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
+        }
+
+        .start-analysis-button:disabled {
+          background: #9ca3af;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
         }
 
         .ai-analysis-body {
