@@ -348,6 +348,14 @@ Generado por el Sistema de Monitoreo UTalk
             <X className="w-5 h-5" />
           </button>
         </div>
+        
+        {/* Botón de cerrar flotante siempre visible */}
+        <div className="floating-close-button">
+          <button onClick={onClose} className="floating-close">
+            <X className="w-6 h-6" />
+            <span>Cerrar</span>
+          </button>
+        </div>
 
         <div className="ai-analysis-body">
           {!analysisResult ? (
@@ -479,9 +487,12 @@ Generado por el Sistema de Monitoreo UTalk
                     Copiar Resumen
                   </button>
                   <button onClick={() => {
-                    const fullText = document.querySelector('.analysis-text')?.textContent || '';
-                    navigator.clipboard.writeText(fullText);
-                    alert('Análisis completo copiado al portapapeles');
+                    const textarea = document.querySelector('.analysis-text') as HTMLTextAreaElement;
+                    if (textarea) {
+                      textarea.select();
+                      document.execCommand('copy');
+                      alert('Análisis completo copiado al portapapeles');
+                    }
                   }} className="action-button copy-full">
                     <Copy className="w-4 h-4" />
                     Copiar Todo
@@ -554,8 +565,10 @@ Generado por el Sistema de Monitoreo UTalk
                   <h4>📋 Análisis Completo y Extenso</h4>
                   <div className="section-content">
                     <div className="full-analysis-content">
-                      <pre className="analysis-text">
-{`ANÁLISIS COMPLETO DEL SISTEMA - ${analysisResult.generatedAt}
+                      <textarea 
+                        className="analysis-text"
+                        readOnly
+                        value={`ANÁLISIS COMPLETO DEL SISTEMA - ${analysisResult.generatedAt}
 ========================================================
 
 RESUMEN EJECUTIVO:
@@ -591,9 +604,8 @@ Para aplicar las soluciones recomendadas:
 4. Genera un nuevo análisis después de implementar las mejoras
 
 ---
-Generado por el Sistema de Monitoreo UTalk con IA
-`}
-                      </pre>
+Generado por el Sistema de Monitoreo UTalk con IA`}
+                      />
                     </div>
                   </div>
                 </div>
@@ -622,10 +634,11 @@ Generado por el Sistema de Monitoreo UTalk con IA
           background: white;
           border-radius: 20px;
           box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
-          max-width: 800px;
+          max-width: 95vw;
           width: 100%;
-          max-height: 90vh;
+          max-height: 95vh;
           overflow-y: auto;
+          position: relative;
         }
 
         .ai-analysis-header {
@@ -663,6 +676,35 @@ Generado por el Sistema de Monitoreo UTalk con IA
 
         .close-button:hover {
           background: rgba(255, 255, 255, 0.3);
+        }
+
+        .floating-close-button {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          z-index: 10003;
+        }
+
+        .floating-close {
+          background: #ef4444;
+          color: white;
+          border: none;
+          border-radius: 12px;
+          padding: 12px 16px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+          transition: all 0.2s ease;
+        }
+
+        .floating-close:hover {
+          background: #dc2626;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
         }
 
         .ai-analysis-body {
@@ -991,14 +1033,14 @@ Generado por el Sistema de Monitoreo UTalk con IA
           font-size: 13px;
           line-height: 1.6;
           color: #1f2937;
-          white-space: pre-wrap;
-          word-wrap: break-word;
           margin: 0;
           background: #f9fafb;
           padding: 16px;
           border-radius: 6px;
           border: 1px solid #e5e7eb;
-          max-height: 600px;
+          height: 500px;
+          width: 100%;
+          resize: vertical;
           overflow-y: auto;
         }
 
