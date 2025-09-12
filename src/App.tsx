@@ -25,6 +25,7 @@ import {
 } from './modules'
 
 import { useAuthContext } from './contexts/useAuthContext'
+import { MonitoringBubble } from './components/monitoring'
 
 // Componente de protección de rutas - OPTIMIZADO
 const AuthProtectedRoute: React.FC<{ children: React.ReactNode }> = memo(({ children }) => {
@@ -423,6 +424,9 @@ const ServicesPage: React.FC = () => {
 function App() {
   console.log('🔍 App - Componente App renderizado');
 
+  // Solo mostrar el módulo de monitoreo en desarrollo o con flag especial
+  const showMonitoring = import.meta.env.DEV || localStorage.getItem('utalk_monitoring_enabled') === 'true';
+
   return (
     <Router>
       <ErrorBoundary>
@@ -596,6 +600,9 @@ function App() {
 
                 <Route path="/" element={<Navigate to="/login" replace />} />
               </Routes>
+              
+              {/* Módulo de Monitoreo - Solo en desarrollo o con flag habilitado */}
+              {showMonitoring && <MonitoringBubble enabled={true} />}
               </div>
             </MobileMenuProvider>
           </WebSocketProvider>
