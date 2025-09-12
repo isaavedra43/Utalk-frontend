@@ -164,10 +164,18 @@ export const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport }) =
     try {
       const data = prepareDataForExport();
       const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      
+      console.log('🔍 CSV Export - Data prepared:', data);
 
+      let hasData = false;
       Object.entries(data).forEach(([dataType, items]) => {
+        console.log(`🔍 CSV Export - Processing ${dataType}:`, items.length, 'items');
+        
         if (items.length > 0) {
+          hasData = true;
           const headers = Object.keys(items[0]);
+          console.log('🔍 CSV Export - Headers:', headers);
+          
           const csvContent = [
             headers.join(','),
             ...items.map(item => 
@@ -180,6 +188,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport }) =
             )
           ].join('\n');
 
+          console.log('🔍 CSV Export - Content length:', csvContent.length);
+
           const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
           const link = document.createElement('a');
           const url = URL.createObjectURL(blob);
@@ -190,12 +200,20 @@ export const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport }) =
           link.click();
           document.body.removeChild(link);
           URL.revokeObjectURL(url);
+          
+          console.log(`✅ CSV Export - ${dataType} exported successfully`);
         }
       });
 
+      if (!hasData) {
+        console.warn('⚠️ CSV Export - No data to export');
+        alert('No hay datos para exportar. Asegúrate de que el monitoreo esté capturando información.');
+      }
+
       onExport('csv');
     } catch (error) {
-      console.error('Error exporting to CSV:', error);
+      console.error('❌ Error exporting to CSV:', error);
+      alert(`Error al exportar CSV: ${error.message}`);
     } finally {
       setIsExporting(false);
     }
@@ -206,6 +224,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport }) =
     try {
       const data = prepareDataForExport();
       const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      
+      console.log('🔍 TXT Export - Data prepared:', data);
 
       let fullContent = `MONITORING DATA EXPORT\n`;
       fullContent += `Generated: ${new Date().toLocaleString()}\n`;
@@ -213,9 +233,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport }) =
       fullContent += `Selected Data: ${selectedData.join(', ')}\n`;
       fullContent += `\n${'='.repeat(80)}\n\n`;
 
+      let hasData = false;
       Object.entries(data).forEach(([dataType, items]) => {
+        console.log(`🔍 TXT Export - Processing ${dataType}:`, items.length, 'items');
+        
         if (items.length === 0) return;
-
+        
+        hasData = true;
         fullContent += `${dataType.toUpperCase()}\n`;
         fullContent += `${'='.repeat(dataType.length)}\n`;
         fullContent += `Total items: ${items.length}\n\n`;
@@ -231,6 +255,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport }) =
         fullContent += `\n${'='.repeat(80)}\n\n`;
       });
 
+      if (!hasData) {
+        fullContent += `NO DATA AVAILABLE\n`;
+        fullContent += `The monitoring system may not be capturing data yet.\n`;
+        fullContent += `Try interacting with the application to generate some data.\n`;
+      }
+
+      console.log('🔍 TXT Export - Content length:', fullContent.length);
+
       const blob = new Blob([fullContent], { type: 'text/plain;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
@@ -242,9 +274,16 @@ export const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport }) =
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
+      console.log('✅ TXT Export - File exported successfully');
+      
+      if (!hasData) {
+        alert('Se exportó un archivo vacío. El monitoreo puede no estar capturando datos aún. Intenta interactuar con la aplicación.');
+      }
+
       onExport('txt');
     } catch (error) {
-      console.error('Error exporting to TXT:', error);
+      console.error('❌ Error exporting to TXT:', error);
+      alert(`Error al exportar TXT: ${error.message}`);
     } finally {
       setIsExporting(false);
     }
@@ -386,6 +425,41 @@ export const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport }) =
                   }, 0)}
                 </span>
               </div>
+            </div>
+            
+            {/* Debug Info */}
+            <div className="debug-info">
+              <h5>🔍 Información de Debug</h5>
+              <div className="debug-stats">
+                {dataOptions.map(option => (
+                  <div key={option.id} className="debug-item">
+                    <span className="debug-label">{option.label}:</span>
+                    <span className="debug-value">{option.count} registros</span>
+                  </div>
+                ))}
+              </div>
+              <button 
+                onClick={() => {
+                  console.log('🔍 Debug - Current monitoring data:', {
+                    apis: apis.length,
+                    websockets: websockets.length,
+                    logs: logs.length,
+                    errors: errors.length,
+                    performance: performance.length,
+                    states: states.length,
+                    validations: validations.length
+                  });
+                  console.log('🔍 Debug - Sample data:', {
+                    apis: apis.slice(0, 2),
+                    websockets: websockets.slice(0, 2),
+                    logs: logs.slice(0, 2),
+                    errors: errors.slice(0, 2)
+                  });
+                }}
+                className="debug-button"
+              >
+                📊 Ver datos en consola
+              </button>
             </div>
           </div>
         </div>
@@ -645,6 +719,62 @@ export const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport }) =
 
         .cancel-button:hover {
           background: #f9fafb;
+          border-color: #9ca3af;
+        }
+
+        .debug-info {
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px solid #e5e7eb;
+        }
+
+        .debug-info h5 {
+          margin: 0 0 12px 0;
+          font-size: 14px;
+          font-weight: 600;
+          color: #1f2937;
+        }
+
+        .debug-stats {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+
+        .debug-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 4px 8px;
+          background: #f3f4f6;
+          border-radius: 4px;
+          font-size: 12px;
+        }
+
+        .debug-label {
+          color: #6b7280;
+        }
+
+        .debug-value {
+          font-weight: 500;
+          color: #1f2937;
+        }
+
+        .debug-button {
+          padding: 6px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          background: #f9fafb;
+          color: #374151;
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 500;
+          transition: all 0.2s ease;
+        }
+
+        .debug-button:hover {
+          background: #f3f4f6;
           border-color: #9ca3af;
         }
 

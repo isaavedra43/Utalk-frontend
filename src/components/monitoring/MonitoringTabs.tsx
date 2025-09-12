@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useMonitoring } from './MonitoringContext';
+import { AIAnalysisModal } from './AIAnalysisModal';
 import { 
   Clock, 
   CheckCircle, 
@@ -14,7 +15,8 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Brain
 } from 'lucide-react';
 import './MonitoringTabs.css';
 
@@ -27,6 +29,7 @@ export const MonitoringTabs: React.FC<MonitoringTabsProps> = ({ activeTab }) => 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLevel, setFilterLevel] = useState<string>('all');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [showAIAnalysis, setShowAIAnalysis] = useState(false);
 
   const toggleExpanded = (id: string) => {
     const newExpanded = new Set(expandedItems);
@@ -584,6 +587,8 @@ export const MonitoringTabs: React.FC<MonitoringTabsProps> = ({ activeTab }) => 
         state.action?.toLowerCase().includes(searchTerm.toLowerCase());
     });
 
+    const totalDataItems = apis.length + websockets.length + logs.length + errors.length + performance.length + states.length;
+
     return (
       <div className="monitoring-tab-content">
         <div className="tab-header">
@@ -598,6 +603,14 @@ export const MonitoringTabs: React.FC<MonitoringTabsProps> = ({ activeTab }) => 
                 className="search-input"
               />
             </div>
+            <button
+              onClick={() => setShowAIAnalysis(true)}
+              className="ai-analysis-button"
+              title="Análisis Inteligente con IA"
+            >
+              <Brain className="w-4 h-4" />
+              <span>Análisis IA</span>
+            </button>
           </div>
         </div>
 
@@ -606,6 +619,18 @@ export const MonitoringTabs: React.FC<MonitoringTabsProps> = ({ activeTab }) => 
             <div className="empty-state">
               <Database className="w-12 h-12 text-gray-300" />
               <p>No hay cambios de estado que mostrar</p>
+              {totalDataItems > 0 && (
+                <div className="ai-analysis-cta">
+                  <p>💡 Tienes {totalDataItems} elementos de monitoreo disponibles</p>
+                  <button
+                    onClick={() => setShowAIAnalysis(true)}
+                    className="cta-analysis-button"
+                  >
+                    <Brain className="w-5 h-5" />
+                    Generar Análisis Completo con IA
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="state-list">
@@ -674,6 +699,9 @@ export const MonitoringTabs: React.FC<MonitoringTabsProps> = ({ activeTab }) => 
   return (
     <div className="monitoring-tabs-container">
       {renderContent()}
+      {showAIAnalysis && (
+        <AIAnalysisModal onClose={() => setShowAIAnalysis(false)} />
+      )}
     </div>
   );
 };
