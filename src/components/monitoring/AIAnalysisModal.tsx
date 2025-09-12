@@ -447,6 +447,12 @@ Generado por el Sistema de Monitoreo UTalk
                   </button>
                 </div>
 
+                {totalDataItems === 0 && (
+                  <p className="no-data-warning">
+                    ⚠️ No hay datos para analizar. Interactúa con la aplicación para generar información de monitoreo.
+                  </p>
+                )}
+
                 <div className="start-analysis-section">
                   <button
                     onClick={generateAIAnalysis}
@@ -467,12 +473,26 @@ Generado por el Sistema de Monitoreo UTalk
                   </button>
                 </div>
 
-
-                {totalDataItems === 0 && (
-                  <p className="no-data-warning">
-                    ⚠️ No hay datos para analizar. Interactúa con la aplicación para generar información de monitoreo.
-                  </p>
-                )}
+                {/* Botón adicional de emergencia */}
+                <div className="emergency-analysis-section">
+                  <button
+                    onClick={generateAIAnalysis}
+                    disabled={isAnalyzing}
+                    className="emergency-analysis-button"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Analizando con IA...
+                      </>
+                    ) : (
+                      <>
+                        <Brain className="w-5 h-5" />
+                        🚀 GENERAR ANÁLISIS AHORA
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
@@ -739,6 +759,43 @@ Generado por el Sistema de Monitoreo UTalk con IA`}
         }
 
         .start-analysis-button:disabled {
+          background: #9ca3af;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+        }
+
+        .emergency-analysis-section {
+          margin-top: 16px;
+          display: flex;
+          justify-content: center;
+        }
+
+        .emergency-analysis-button {
+          background: linear-gradient(135deg, #ef4444, #dc2626);
+          color: white;
+          border: none;
+          border-radius: 16px;
+          padding: 20px 40px;
+          font-size: 18px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+
+        .emergency-analysis-button:hover:not(:disabled) {
+          background: linear-gradient(135deg, #dc2626, #b91c1c);
+          transform: translateY(-3px);
+          box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
+        }
+
+        .emergency-analysis-button:disabled {
           background: #9ca3af;
           cursor: not-allowed;
           transform: none;
