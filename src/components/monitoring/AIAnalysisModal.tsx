@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Brain, Download, Copy, RefreshCw, AlertTriangle, CheckCircle, Clock, Key } from 'lucide-react';
+import { X, Brain, Download, Copy, RefreshCw, AlertTriangle, CheckCircle, Clock, Key, Loader2 } from 'lucide-react';
 import { useMonitoring } from './MonitoringContext';
 import { callOpenAI, getOpenAIAPIKey, validateAPIKey, setAPIKey } from '../../config/ai';
 

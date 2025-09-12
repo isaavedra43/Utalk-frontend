@@ -80,16 +80,18 @@ export const callOpenAI = async (
   systemPrompt: string = AI_CONFIG.SYSTEM_PROMPTS.MONITORING_ANALYSIS,
   options: Partial<typeof AI_CONFIG.DEFAULT_CONFIG> = {}
 ) => {
-  const apiKey = getOpenAIAPIKey();
-  
-  const response = await fetch(AI_CONFIG.OPENAI_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: AI_CONFIG.MODEL,
+  try {
+    const apiKey = getOpenAIAPIKey();
+    
+    if (!apiKey) {
+      throw new Error('API key de OpenAI no configurada');
+    }
+
+    console.log('🔑 API Key obtenida:', apiKey.substring(0, 10) + '...');
+    console.log('📝 Enviando prompt a OpenAI...');
+
+    const requestBody = {
+      model: 'gpt-4o-mini', // Cambio a modelo más económico
       messages: [
         {
           role: 'system',
@@ -100,21 +102,45 @@ export const callOpenAI = async (
           content: prompt
         }
       ],
-      ...AI_CONFIG.DEFAULT_CONFIG,
-      ...options
-    })
-  });
+      max_tokens: options.max_tokens || 4000,
+      temperature: options.temperature || 0.3
+    };
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(
-      `Error en la API de OpenAI: ${response.status} ${response.statusText}\n` +
-      `Detalles: ${errorData.error?.message || 'Error desconocido'}`
-    );
+    console.log('📦 Request body preparado:', {
+      model: requestBody.model,
+      messagesCount: requestBody.messages.length,
+      maxTokens: requestBody.max_tokens
+    });
+
+    const response = await window.fetch(AI_CONFIG.OPENAI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    console.log('📡 Respuesta recibida:', response.status, response.statusText);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Error en respuesta:', errorText);
+      throw new Error(`Error en la API de OpenAI: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ Datos recibidos de OpenAI:', data);
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Respuesta inválida de OpenAI');
+    }
+
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error('❌ Error en callOpenAI:', error);
+    throw error;
   }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
 };
 
 // Función para validar la API key
