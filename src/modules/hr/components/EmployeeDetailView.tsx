@@ -17,14 +17,15 @@ import {
   Award,
   History
 } from 'lucide-react';
-import EmployeePayrollView from './EmployeePayrollView';
-import EmployeeAttendanceView from './EmployeeAttendanceView';
-import EmployeeVacationsView from './EmployeeVacationsView';
-import EmployeeDocumentsView from './EmployeeDocumentsView';
-import EmployeeIncidentsView from './EmployeeIncidentsView';
-import EmployeeEvaluationsView from './EmployeeEvaluationsView';
-import EmployeeSkillsView from './EmployeeSkillsView';
-import EmployeeHistoryView from './EmployeeHistoryView';
+// Temporalmente comentados para identificar el problema
+// import EmployeePayrollView from './EmployeePayrollView';
+// import EmployeeAttendanceView from './EmployeeAttendanceView';
+// import EmployeeVacationsView from './EmployeeVacationsView';
+// import EmployeeDocumentsView from './EmployeeDocumentsView';
+// import EmployeeIncidentsView from './EmployeeIncidentsView';
+// import EmployeeEvaluationsView from './EmployeeEvaluationsView';
+// import EmployeeSkillsView from './EmployeeSkillsView';
+// import EmployeeHistoryView from './EmployeeHistoryView';
 import EditEmployeeModal from './EditEmployeeModal';
 
 interface Employee {
@@ -64,9 +65,12 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   employee, 
   onBack 
 }) => {
-  const [activeTab, setActiveTab] = useState<TabType>('summary');
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [currentEmployee, setCurrentEmployee] = useState(employee);
+  console.log('🚀 EmployeeDetailView iniciando con empleado:', employee);
+  
+  try {
+    const [activeTab, setActiveTab] = useState<TabType>('summary');
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [currentEmployee, setCurrentEmployee] = useState(employee);
 
   const handleEditClick = () => {
     setIsEditModalOpen(true);
@@ -107,23 +111,27 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   };
 
   const renderTabContent = () => {
+    // Temporalmente solo mostrar resumen para identificar el problema
+    console.log('🎯 Renderizando contenido de tab:', activeTab);
+    console.log('👤 Datos del empleado:', currentEmployee);
+    
     switch (activeTab) {
       case 'payroll':
-        return <EmployeePayrollView employeeId={currentEmployee.id} onBack={onBack} />;
+        return <div className="p-6 text-center text-gray-500">Módulo de Nómina - En desarrollo</div>;
       case 'attendance':
-        return <EmployeeAttendanceView employeeId={currentEmployee.id} onBack={onBack} />;
+        return <div className="p-6 text-center text-gray-500">Módulo de Asistencia - En desarrollo</div>;
       case 'vacations':
-        return <EmployeeVacationsView employeeId={currentEmployee.id} onBack={onBack} />;
+        return <div className="p-6 text-center text-gray-500">Módulo de Vacaciones - En desarrollo</div>;
       case 'documents':
-        return <EmployeeDocumentsView employeeId={currentEmployee.id} onBack={onBack} />;
+        return <div className="p-6 text-center text-gray-500">Módulo de Documentos - En desarrollo</div>;
       case 'incidents':
-        return <EmployeeIncidentsView employeeId={currentEmployee.id} onBack={onBack} />;
+        return <div className="p-6 text-center text-gray-500">Módulo de Incidentes - En desarrollo</div>;
       case 'evaluations':
-        return <EmployeeEvaluationsView employeeId={currentEmployee.id} onBack={onBack} />;
+        return <div className="p-6 text-center text-gray-500">Módulo de Evaluaciones - En desarrollo</div>;
       case 'skills':
-        return <EmployeeSkillsView employeeId={currentEmployee.id} onBack={onBack} />;
+        return <div className="p-6 text-center text-gray-500">Módulo de Habilidades - En desarrollo</div>;
       case 'history':
-        return <EmployeeHistoryView employeeId={currentEmployee.id} onBack={onBack} />;
+        return <div className="p-6 text-center text-gray-500">Módulo de Historial - En desarrollo</div>;
       case 'summary':
       default:
         return (
@@ -333,6 +341,32 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
       />
     </div>
   );
+  } catch (error) {
+    console.error('❌ Error en EmployeeDetailView:', error);
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
+              <h3 className="text-lg font-medium text-red-800">Error al cargar detalles del empleado</h3>
+            </div>
+            <p className="mt-2 text-sm text-red-700">
+              Ha ocurrido un error inesperado. Por favor, intenta recargar la página.
+            </p>
+            <div className="mt-4">
+              <button
+                onClick={onBack}
+                className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700"
+              >
+                Volver a la lista
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 };
 
 export { EmployeeDetailView };
