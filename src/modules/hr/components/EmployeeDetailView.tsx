@@ -1,67 +1,14 @@
-import React, { useState, Component, ErrorInfo, ReactNode } from 'react';
+import React, { useState } from 'react';
 import { 
   ArrowLeft, 
-  Download, 
-  Share2, 
   Edit, 
-  MoreHorizontal,
   User,
   Building,
   MapPin,
   Calendar,
   DollarSign,
-  Clock,
-  FileText,
-  AlertTriangle,
-  Star,
-  Award,
-  History
+  AlertTriangle
 } from 'lucide-react';
-import EmployeePayrollView from './EmployeePayrollView';
-import EmployeeAttendanceView from './EmployeeAttendanceView';
-import EmployeeVacationsView from './EmployeeVacationsView';
-import EmployeeDocumentsView from './EmployeeDocumentsView';
-import EmployeeIncidentsView from './EmployeeIncidentsView';
-import EmployeeEvaluationsView from './EmployeeEvaluationsView';
-import EmployeeSkillsView from './EmployeeSkillsView';
-import EmployeeHistoryView from './EmployeeHistoryView';
-import EditEmployeeModal from './EditEmployeeModal';
-
-// Error Boundary para manejar errores en componentes
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error?: Error;
-}
-
-class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
-  constructor(props: { children: ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('❌ Error capturado por ErrorBoundary:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="p-6 text-center">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <AlertTriangle className="h-5 w-5 text-yellow-400 mx-auto mb-2" />
-            <p className="text-yellow-700">Este módulo está temporalmente no disponible</p>
-          </div>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
 
 interface Employee {
   id: string;
@@ -87,6 +34,7 @@ interface Employee {
     startDate: string | Date;
     type: string;
   };
+  status: string;
 }
 
 interface EmployeeDetailViewProps {
@@ -102,338 +50,252 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
 }) => {
   console.log('🚀 EmployeeDetailView iniciando con empleado:', employee);
   
-  const [activeTab, setActiveTab] = useState<TabType>('summary');
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [currentEmployee, setCurrentEmployee] = useState(employee);
-  const [hasError, setHasError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-
-  const handleEditClick = () => {
-    setIsEditModalOpen(true);
-  };
-
-  const handleSaveEmployee = (updatedEmployee: Employee) => {
-    setCurrentEmployee(updatedEmployee);
-    // Aquí se podría hacer una llamada al backend para guardar los cambios
-    console.log('Empleado actualizado:', updatedEmployee);
-  };
-
-  const tabs = [
-    { id: 'summary' as TabType, label: 'Resumen', icon: User },
-    { id: 'payroll' as TabType, label: 'Nómina', icon: DollarSign },
-    { id: 'attendance' as TabType, label: 'Asistencia', icon: Clock },
-    { id: 'vacations' as TabType, label: 'Vacaciones', icon: Calendar },
-    { id: 'documents' as TabType, label: 'Documentos', icon: FileText },
-    { id: 'incidents' as TabType, label: 'Incidentes', icon: AlertTriangle },
-    { id: 'evaluations' as TabType, label: 'Evaluaciones', icon: Star },
-    { id: 'skills' as TabType, label: 'Habilidades', icon: Award },
-    { id: 'history' as TabType, label: 'Historial', icon: History }
-  ];
-
-  const formatDate = (date: string | Date) => {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    if (isNaN(dateObj.getTime())) {
-      return 'Fecha no válida';
-    }
-    return dateObj.toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  };
-
-  // Validar datos del empleado
-  if (!currentEmployee || !currentEmployee.id) {
-    console.error('❌ Datos del empleado inválidos:', currentEmployee);
+  // Validación básica
+  if (!employee) {
+    console.error('❌ No se recibió empleado');
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <div className="flex items-center">
-              <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
-              <h3 className="text-lg font-medium text-red-800">Datos del empleado no válidos</h3>
-            </div>
-            <p className="mt-2 text-sm text-red-700">
-              No se pudieron cargar los datos del empleado correctamente.
-            </p>
-            <div className="mt-4">
-              <button
-                onClick={onBack}
-                className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700"
-              >
-                Volver a la lista
-              </button>
-            </div>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <AlertTriangle className="h-5 w-5 text-red-400 mx-auto mb-2" />
+          <p className="text-red-700">Error: No se encontraron datos del empleado</p>
+          <button onClick={onBack} className="mt-4 bg-red-600 text-white px-4 py-2 rounded">
+            Volver a la lista
+          </button>
         </div>
       </div>
     );
   }
 
+  const [activeTab, setActiveTab] = useState<TabType>('summary');
+
+  const formatDate = (date: string | Date) => {
+    try {
+      const dateObj = typeof date === 'string' ? new Date(date) : date;
+      if (isNaN(dateObj.getTime())) {
+        return 'Fecha no válida';
+      }
+      return dateObj.toLocaleDateString('es-MX', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formateando fecha:', error);
+      return 'Fecha no válida';
+    }
+  };
+
+  const getInitials = (firstName: string, lastName: string) => {
+    try {
+      return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
+    } catch (error) {
+      console.error('Error obteniendo iniciales:', error);
+      return 'NN';
+    }
+  };
+
+  const tabs = [
+    { id: 'summary' as TabType, label: 'Resumen', icon: User },
+    { id: 'payroll' as TabType, label: 'Nómina', icon: DollarSign },
+    { id: 'attendance' as TabType, label: 'Asistencia', icon: Calendar },
+    { id: 'vacations' as TabType, label: 'Vacaciones', icon: Calendar },
+    { id: 'documents' as TabType, label: 'Documentos', icon: User },
+    { id: 'incidents' as TabType, label: 'Incidentes', icon: AlertTriangle },
+    { id: 'evaluations' as TabType, label: 'Evaluaciones', icon: User },
+    { id: 'skills' as TabType, label: 'Habilidades', icon: User },
+    { id: 'history' as TabType, label: 'Historial', icon: User }
+  ];
+
   const renderTabContent = () => {
     console.log('🎯 Renderizando contenido de tab:', activeTab);
-    console.log('👤 Datos del empleado:', currentEmployee);
     
-    switch (activeTab) {
-      case 'payroll':
-        return (
-          <ErrorBoundary>
-            <EmployeePayrollView employeeId={currentEmployee.id} onBack={onBack} />
-          </ErrorBoundary>
-        );
-      case 'attendance':
-        return (
-          <ErrorBoundary>
-            <EmployeeAttendanceView employeeId={currentEmployee.id} onBack={onBack} />
-          </ErrorBoundary>
-        );
-      case 'vacations':
-        return (
-          <ErrorBoundary>
-            <EmployeeVacationsView employeeId={currentEmployee.id} onBack={onBack} />
-          </ErrorBoundary>
-        );
-      case 'documents':
-        return (
-          <ErrorBoundary>
-            <EmployeeDocumentsView employeeId={currentEmployee.id} onBack={onBack} />
-          </ErrorBoundary>
-        );
-      case 'incidents':
-        return (
-          <ErrorBoundary>
-            <EmployeeIncidentsView employeeId={currentEmployee.id} onBack={onBack} />
-          </ErrorBoundary>
-        );
-      case 'evaluations':
-        return (
-          <ErrorBoundary>
-            <EmployeeEvaluationsView employeeId={currentEmployee.id} onBack={onBack} />
-          </ErrorBoundary>
-        );
-      case 'skills':
-        return (
-          <ErrorBoundary>
-            <EmployeeSkillsView employeeId={currentEmployee.id} onBack={onBack} />
-          </ErrorBoundary>
-        );
-      case 'history':
-        return (
-          <ErrorBoundary>
-            <EmployeeHistoryView employeeId={currentEmployee.id} onBack={onBack} />
-          </ErrorBoundary>
-        );
-      case 'summary':
-      default:
-        return (
-          <div className="space-y-6">
-            {/* Información Básica */}
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Información Personal</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Nombre Completo</label>
-                    <p className="text-gray-900">{currentEmployee.personalInfo.firstName} {currentEmployee.personalInfo.lastName}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Número de Empleado</label>
-                    <p className="text-gray-900">{currentEmployee.employeeNumber}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Teléfono</label>
-                    <p className="text-gray-900">{currentEmployee.personalInfo.phone}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
-                    <p className="text-gray-900">{currentEmployee.personalInfo.email || 'No especificado'}</p>
-                  </div>
+    if (activeTab === 'summary') {
+      return (
+        <div className="space-y-6">
+          {/* Información Básica */}
+          <div className="bg-white rounded-xl shadow-sm border">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Información Personal</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Nombre Completo</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {employee.personalInfo?.firstName || 'N/A'} {employee.personalInfo?.lastName || 'N/A'}
+                  </p>
                 </div>
-              </div>
-            </div>
-
-            {/* Información Laboral */}
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Información Laboral</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Puesto</label>
-                    <p className="text-gray-900">{currentEmployee.position.title}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Departamento</label>
-                    <p className="text-gray-900">{currentEmployee.position.department}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Nivel</label>
-                    <p className="text-gray-900">{currentEmployee.position.level}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Reporta a</label>
-                    <p className="text-gray-900">{currentEmployee.position.reportsTo || 'No especificado'}</p>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Email</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {employee.personalInfo?.email || 'N/A'}
+                  </p>
                 </div>
-              </div>
-            </div>
-
-            {/* Información de Ubicación */}
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Ubicación</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Oficina</label>
-                    <p className="text-gray-900">{currentEmployee.location.office}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Dirección</label>
-                    <p className="text-gray-900">{currentEmployee.location.address}</p>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Teléfono</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {employee.personalInfo?.phone || 'N/A'}
+                  </p>
                 </div>
-              </div>
-            </div>
-
-            {/* Información de Contrato */}
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Contrato</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Fecha de Ingreso</label>
-                    <p className="text-gray-900">{formatDate(currentEmployee.contract.startDate)}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Tipo de Contrato</label>
-                    <p className="text-gray-900">{currentEmployee.contract.type}</p>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Número de Empleado</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {employee.employeeNumber || 'N/A'}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
-        );
+
+          {/* Información Laboral */}
+          <div className="bg-white rounded-xl shadow-sm border">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Información Laboral</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Puesto</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {employee.position?.title || 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Departamento</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {employee.position?.department || 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Nivel</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {employee.position?.level || 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Estado</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {employee.status || 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Información de Contrato */}
+          <div className="bg-white rounded-xl shadow-sm border">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Información de Contrato</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Tipo de Contrato</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {employee.contract?.type || 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500">Fecha de Inicio</label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {employee.contract?.startDate ? formatDate(employee.contract.startDate) : 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
     }
+
+    // Para otros tabs, mostrar mensaje temporal
+    return (
+      <div className="bg-white rounded-xl shadow-sm border p-6">
+        <div className="text-center">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <User className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+            <h3 className="text-lg font-medium text-blue-800">Módulo en Desarrollo</h3>
+            <p className="text-blue-600 mt-1">
+              El módulo de {tabs.find(tab => tab.id === activeTab)?.label} estará disponible próximamente.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-6">
-            {/* Employee Profile Card */}
-            <div className="flex items-center space-x-6 mb-6">
+          <div className="flex items-center justify-between py-6">
+            <div className="flex items-center">
               <button
                 onClick={onBack}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="mr-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full"
               >
-                <ArrowLeft className="h-5 w-5 text-gray-600" />
+                <ArrowLeft className="w-5 h-5" />
               </button>
               
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  {currentEmployee.personalInfo.avatar ? (
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  {employee.personalInfo?.avatar ? (
                     <img
-                      src={currentEmployee.personalInfo.avatar}
-                      alt={`${currentEmployee.personalInfo.firstName} ${currentEmployee.personalInfo.lastName}`}
-                      className="h-16 w-16 rounded-full object-cover"
+                      className="h-12 w-12 rounded-full object-cover"
+                      src={employee.personalInfo.avatar}
+                      alt={`${employee.personalInfo?.firstName} ${employee.personalInfo?.lastName}`}
                     />
                   ) : (
-                    <div className="h-16 w-16 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center">
-                      <span className="text-white font-semibold text-lg">
-                        {getInitials(currentEmployee.personalInfo.firstName, currentEmployee.personalInfo.lastName)}
-                      </span>
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white text-lg font-medium">
+                      {getInitials(employee.personalInfo?.firstName || '', employee.personalInfo?.lastName || '')}
                     </div>
                   )}
                 </div>
-                
-                <div>
+                <div className="ml-4">
                   <h1 className="text-2xl font-bold text-gray-900">
-                    {currentEmployee.personalInfo.firstName} {currentEmployee.personalInfo.lastName}
+                    {employee.personalInfo?.firstName || 'N/A'} {employee.personalInfo?.lastName || 'N/A'}
                   </h1>
-                  <p className="text-lg text-gray-600">{currentEmployee.position.title}</p>
-                  
-                  <div className="flex items-center space-x-6 mt-2">
-                    <div className="flex items-center space-x-1 text-sm text-gray-600">
-                      <Building className="h-4 w-4" />
-                      <span>{currentEmployee.position.department}</span>
-                    </div>
-                    <div className="flex items-center space-x-1 text-sm text-gray-600">
-                      <MapPin className="h-4 w-4" />
-                      <span>{currentEmployee.location.office}</span>
-                    </div>
-                    <div className="flex items-center space-x-1 text-sm text-gray-600">
-                      <Calendar className="h-4 w-4" />
-                      <span>Ingreso: {formatDate(currentEmployee.contract.startDate)}</span>
-                    </div>
-                  </div>
+                  <p className="text-sm text-gray-500">
+                    {employee.position?.title || 'N/A'} • {employee.position?.department || 'N/A'}
+                  </p>
                 </div>
-              </div>
-              
-              <div className="flex items-center space-x-3 ml-auto">
-                <button className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  <Download className="h-4 w-4" />
-                  <span>Exportar</span>
-                </button>
-                <button className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  <Share2 className="h-4 w-4" />
-                  <span>Compartir</span>
-                </button>
-                <button 
-                  onClick={handleEditClick}
-                  className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <Edit className="h-4 w-4" />
-                  <span>Editar</span>
-                </button>
-                <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                  <MoreHorizontal className="h-5 w-5" />
-                </button>
               </div>
             </div>
 
-            {/* Navigation Tabs */}
-            <div className="border-b border-gray-200">
-              <nav className="-mb-px flex space-x-8">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                        activeTab === tab.id
-                          ? 'border-blue-500 text-blue-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                      }`}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span>{tab.label}</span>
-                    </button>
-                  );
-                })}
-              </nav>
+            <div className="flex items-center space-x-3">
+              <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                <Edit className="w-4 h-4 mr-2" />
+                Editar
+              </button>
             </div>
+          </div>
+
+          {/* Navigation Tabs */}
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`
+                      flex items-center py-4 px-1 border-b-2 font-medium text-sm
+                      ${activeTab === tab.id
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }
+                    `}
+                  >
+                    <Icon className="w-4 h-4 mr-2" />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
           </div>
         </div>
       </div>
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {renderTabContent(        )}
+        {renderTabContent()}
       </div>
-
-      {/* Modal de Edición */}
-      <EditEmployeeModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        employee={currentEmployee}
-        onSave={handleSaveEmployee}
-      />
     </div>
   );
 };
