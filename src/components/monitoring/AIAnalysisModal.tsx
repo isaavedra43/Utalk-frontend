@@ -296,44 +296,54 @@ Datos analizados: ${analysisResult.totalItems} elementos en ${analysisResult.dat
   };
 
   const exportAnalysis = () => {
-    if (analysisResult) {
-      const text = `
-ANÁLISIS DE MONITOREO GENERADO POR IA
-=====================================
-Fecha: ${analysisResult.generatedAt}
-Período: ${analysisResult.dataRange}
-Total de elementos analizados: ${analysisResult.totalItems}
-
-RESUMEN EJECUTIVO:
-${analysisResult.summary}
-
-PROBLEMAS CRÍTICOS:
-${analysisResult.criticalIssues.map((issue, i) => `${i + 1}. ${issue}`).join('\n')}
-
-RECOMENDACIONES:
-${analysisResult.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}
-
-INSIGHTS DE RENDIMIENTO:
-${analysisResult.performanceInsights.map((insight, i) => `${i + 1}. ${insight}`).join('\n')}
-
-PATRONES DE ERRORES:
-${analysisResult.errorPatterns.map((pattern, i) => `${i + 1}. ${pattern}`).join('\n')}
-
----
-Generado por el Sistema de Monitoreo UTalk
-      `.trim();
-
-      const blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `analisis_monitoreo_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+    if (!analysisResult) return;
+    
+    const textarea = document.querySelector('.analysis-text') as HTMLTextAreaElement;
+    if (!textarea) {
+      alert('❌ No se encontró el texto del análisis');
+      return;
     }
+    
+    const analysisText = textarea.value;
+    const timestamp = new Date().toISOString().split('T')[0];
+    
+    // Exportar como TXT
+    const txtBlob = new Blob([analysisText], { type: 'text/plain;charset=utf-8' });
+    const txtUrl = URL.createObjectURL(txtBlob);
+    const txtLink = document.createElement('a');
+    txtLink.href = txtUrl;
+    txtLink.download = `analisis-ia-${timestamp}.txt`;
+    txtLink.style.visibility = 'hidden';
+    document.body.appendChild(txtLink);
+    txtLink.click();
+    document.body.removeChild(txtLink);
+    URL.revokeObjectURL(txtUrl);
+    
+    // Exportar como JSON
+    const exportData = {
+      summary: analysisResult.summary,
+      criticalIssues: analysisResult.criticalIssues,
+      recommendations: analysisResult.recommendations,
+      performanceInsights: analysisResult.performanceInsights,
+      errorPatterns: analysisResult.errorPatterns,
+      generatedAt: analysisResult.generatedAt,
+      dataRange: analysisResult.dataRange,
+      totalItems: analysisResult.totalItems,
+      fullAnalysis: analysisText
+    };
+    
+    const jsonBlob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const jsonUrl = URL.createObjectURL(jsonBlob);
+    const jsonLink = document.createElement('a');
+    jsonLink.href = jsonUrl;
+    jsonLink.download = `analisis-ia-${timestamp}.json`;
+    jsonLink.style.visibility = 'hidden';
+    document.body.appendChild(jsonLink);
+    jsonLink.click();
+    document.body.removeChild(jsonLink);
+    URL.revokeObjectURL(jsonUrl);
+    
+    alert('✅ Análisis exportado como TXT y JSON');
   };
 
   const totalDataItems = apis.length + websockets.length + logs.length + errors.length + performance.length + states.length;
@@ -527,8 +537,20 @@ Generado por el Sistema de Monitoreo UTalk
                     const textarea = document.querySelector('.analysis-text') as HTMLTextAreaElement;
                     if (textarea) {
                       textarea.select();
-                      document.execCommand('copy');
-                      alert('Análisis completo copiado al portapapeles');
+                      textarea.setSelectionRange(0, 99999); // Para dispositivos móviles
+                      try {
+                        document.execCommand('copy');
+                        alert('✅ Análisis completo copiado al portapapeles');
+                      } catch (err) {
+                        // Fallback para navegadores modernos
+                        navigator.clipboard.writeText(textarea.value).then(() => {
+                          alert('✅ Análisis completo copiado al portapapeles');
+                        }).catch(() => {
+                          alert('❌ Error al copiar. Intenta seleccionar y copiar manualmente.');
+                        });
+                      }
+                    } else {
+                      alert('❌ No se encontró el texto del análisis');
                     }
                   }} className="action-button copy-full">
                     <Copy className="w-4 h-4" />
@@ -671,11 +693,13 @@ Generado por el Sistema de Monitoreo UTalk con IA`}
           background: white;
           border-radius: 20px;
           box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
-          max-width: 95vw;
+          max-width: 98vw;
           width: 100%;
-          max-height: 95vh;
-          overflow-y: auto;
+          max-height: 98vh;
+          overflow: hidden;
           position: relative;
+          display: flex;
+          flex-direction: column;
         }
 
         .ai-analysis-header {
@@ -845,6 +869,10 @@ Generado por el Sistema de Monitoreo UTalk con IA`}
 
         .ai-analysis-body {
           padding: 24px;
+          flex: 1;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
         }
 
         .analysis-setup {
@@ -1033,6 +1061,10 @@ Generado por el Sistema de Monitoreo UTalk con IA`}
 
         .analysis-results {
           max-width: 100%;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
         }
 
         .results-header {
@@ -1106,6 +1138,9 @@ Generado por el Sistema de Monitoreo UTalk con IA`}
           display: flex;
           flex-direction: column;
           gap: 24px;
+          flex: 1;
+          overflow-y: auto;
+          padding-right: 8px;
         }
 
         .analysis-section {
@@ -1174,10 +1209,11 @@ Generado por el Sistema de Monitoreo UTalk con IA`}
           padding: 16px;
           border-radius: 6px;
           border: 1px solid #e5e7eb;
-          height: 500px;
+          height: 400px;
           width: 100%;
           resize: vertical;
           overflow-y: auto;
+          box-sizing: border-box;
         }
 
         .analysis-text::-webkit-scrollbar {
@@ -1198,10 +1234,33 @@ Generado por el Sistema de Monitoreo UTalk con IA`}
           background: #94a3b8;
         }
 
+        @media (max-width: 1024px) {
+          .ai-analysis-modal {
+            max-width: 95vw;
+            max-height: 95vh;
+            margin: 10px;
+          }
+          
+          .analysis-text {
+            height: 300px;
+            font-size: 12px;
+          }
+        }
+
         @media (max-width: 640px) {
           .ai-analysis-modal {
-            margin: 10px;
-            max-width: none;
+            margin: 5px;
+            max-width: 98vw;
+            max-height: 98vh;
+            border-radius: 12px;
+          }
+          
+          .ai-analysis-header {
+            padding: 16px;
+          }
+          
+          .ai-analysis-body {
+            padding: 16px;
           }
           
           .results-header {
@@ -1212,6 +1271,18 @@ Generado por el Sistema de Monitoreo UTalk con IA`}
           .results-actions {
             width: 100%;
             justify-content: center;
+          }
+          
+          .analysis-text {
+            height: 250px;
+            font-size: 11px;
+            padding: 12px;
+          }
+          
+          .start-analysis-button,
+          .emergency-analysis-button {
+            padding: 12px 20px;
+            font-size: 14px;
           }
           
           .analysis-features {
