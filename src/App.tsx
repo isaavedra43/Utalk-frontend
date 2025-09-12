@@ -424,8 +424,8 @@ const ServicesPage: React.FC = () => {
 function App() {
   console.log('🔍 App - Componente App renderizado');
 
-  // Solo mostrar el módulo de monitoreo en desarrollo o con flag especial
-  const showMonitoring = import.meta.env.DEV || localStorage.getItem('utalk_monitoring_enabled') === 'true';
+  // Mostrar el módulo de monitoreo siempre (desarrollo y producción)
+  const showMonitoring = true; // Siempre visible para debugging urgente
 
   return (
     <Router>
