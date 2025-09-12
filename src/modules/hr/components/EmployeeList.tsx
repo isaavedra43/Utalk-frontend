@@ -69,6 +69,14 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
       setLoading(true);
       setError(null);
 
+      console.log('🔄 Cargando empleados...', {
+        page: pagination.page,
+        limit: pagination.limit,
+        search: searchQuery,
+        department: filters.department,
+        status: filters.status
+      });
+
       const response = await employeesApi.getEmployees({
         page: pagination.page,
         limit: pagination.limit,
@@ -79,12 +87,17 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
         sortOrder: 'desc'
       });
 
+      console.log('📊 Respuesta del API:', response);
+
       // Manejar respuesta vacía correctamente
       if (response && response.employees) {
+        console.log('✅ Empleados encontrados:', response.employees.length);
+        console.log('📋 Datos de empleados:', response.employees);
         setEmployees(response.employees);
         setPagination(response.pagination);
         setSummary(response.summary);
       } else {
+        console.log('⚠️ No hay empleados en la respuesta');
         // Si no hay respuesta o employees es null/undefined, establecer arrays vacíos
         setEmployees([]);
         setPagination({
@@ -102,7 +115,7 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
         });
       }
     } catch (err) {
-      console.error('Error loading employees:', err);
+      console.error('❌ Error loading employees:', err);
       setError('Error al cargar los empleados. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
@@ -631,7 +644,15 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {employees.length === 0 ? (
+                  {(() => {
+                    console.log('🎨 Renderizando empleados:', {
+                      employeesLength: employees.length,
+                      employees: employees,
+                      loading: loading,
+                      error: error
+                    });
+                    return employees.length === 0;
+                  })() ? (
                     <tr>
                       <td colSpan={9} className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center space-y-4">
