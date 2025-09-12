@@ -302,26 +302,75 @@ class EmployeesApiService {
     });
 
     const response = await api.get(`/api/employees?${searchParams.toString()}`);
+    
+    // El backend devuelve { success: true, data: { employees, pagination, summary } }
+    // Necesitamos extraer solo la parte 'data'
+    if (response.data && response.data.success && response.data.data) {
+      return response.data.data;
+    }
+    
+    // Fallback por si la estructura es diferente
     return response.data;
   }
 
   async getEmployee(id: string): Promise<GetEmployeeResponse> {
     const response = await api.get(`/api/employees/${id}`);
+    
+    // El backend devuelve { success: true, data: { employee, relatedData } }
+    // Necesitamos extraer solo la parte 'data'
+    if (response.data && response.data.success && response.data.data) {
+      return response.data.data;
+    }
+    
+    // Fallback por si la estructura es diferente
     return response.data;
   }
 
   async createEmployee(employeeData: Partial<Employee>): Promise<{ employee: Employee; message: string }> {
     const response = await api.post('/api/employees', employeeData);
+    
+    // El backend devuelve { success: true, data: { employee }, message }
+    // Necesitamos extraer solo la parte 'data' si existe
+    if (response.data && response.data.success && response.data.data) {
+      return {
+        employee: response.data.data.employee,
+        message: response.data.message || 'Empleado creado exitosamente'
+      };
+    }
+    
+    // Fallback por si la estructura es diferente
     return response.data;
   }
 
   async updateEmployee(id: string, updates: Partial<Employee>): Promise<{ employee: Employee; message: string }> {
     const response = await api.put(`/api/employees/${id}`, updates);
+    
+    // El backend devuelve { success: true, data: { employee }, message }
+    // Necesitamos extraer solo la parte 'data' si existe
+    if (response.data && response.data.success && response.data.data) {
+      return {
+        employee: response.data.data.employee,
+        message: response.data.message || 'Empleado actualizado exitosamente'
+      };
+    }
+    
+    // Fallback por si la estructura es diferente
     return response.data;
   }
 
   async deleteEmployee(id: string): Promise<{ message: string; deletedAt: string }> {
     const response = await api.delete(`/api/employees/${id}`);
+    
+    // El backend devuelve { success: true, message, data: { deletedAt } }
+    // Necesitamos extraer la información correctamente
+    if (response.data && response.data.success) {
+      return {
+        message: response.data.message || 'Empleado eliminado exitosamente',
+        deletedAt: response.data.data?.deletedAt || new Date().toISOString()
+      };
+    }
+    
+    // Fallback por si la estructura es diferente
     return response.data;
   }
 
@@ -345,6 +394,20 @@ class EmployeesApiService {
         'Content-Type': 'multipart/form-data',
       },
     });
+    
+    // El backend devuelve { success: true/false, data: { imported, updated, errors, ... }, message }
+    // Necesitamos mantener toda la estructura para importEmployees
+    if (response.data && response.data.data) {
+      return {
+        success: response.data.success,
+        imported: response.data.data.imported || 0,
+        updated: response.data.data.updated || 0,
+        errors: response.data.data.errors || [],
+        message: response.data.message || 'Importación completada'
+      };
+    }
+    
+    // Fallback por si la estructura es diferente
     return response.data;
   }
 
