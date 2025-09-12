@@ -16,13 +16,19 @@ import {
   User,
   LogOut,
   Menu,
-  X
+  X,
+  FileText
 } from 'lucide-react';
 import { EmployeeList } from './components/EmployeeList';
 import { EmployeeDetail } from './components/EmployeeDetail';
 import { EmployeeDetailView } from './components/EmployeeDetailView';
 import { HRDashboard } from './components/HRDashboard';
 import { PayrollModule } from './components/PayrollModule';
+import { AttendanceModule } from './components/AttendanceModule';
+import { VacationModule } from './components/VacationModule';
+import { DocumentModule } from './components/DocumentModule';
+import { EmployeeSearchModule } from './components/EmployeeSearchModule';
+import { OrgChartModule } from './components/OrgChartModule';
 import { TalentModule } from './components/TalentModule';
 import { RecruitmentModule } from './components/RecruitmentModule';
 import { AnalyticsModule } from './components/AnalyticsModule';
@@ -30,7 +36,7 @@ import { ComplianceModule } from './components/ComplianceModule';
 import { HRCopilot } from './components/HRCopilot';
 import { MobileMenuButton } from '../../components/layout/MobileMenuButton';
 import { Button } from '../../components/ui/button';
-import type { Employee } from '../../types/hr';
+import type { Employee } from '../../types/employee';
 
 const HRModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState('employees');
@@ -52,7 +58,12 @@ const HRModule: React.FC = () => {
   const tabs = [
     { id: 'dashboard', name: 'Panorama', icon: BarChart3 },
     { id: 'employees', name: 'Empleados', icon: Users },
+    { id: 'search', name: 'Búsqueda', icon: Search },
+    { id: 'orgchart', name: 'Organigrama', icon: BarChart3 },
     { id: 'payroll', name: 'Nómina', icon: DollarSign },
+    { id: 'attendance', name: 'Asistencia', icon: Calendar },
+    { id: 'vacations', name: 'Vacaciones', icon: Calendar },
+    { id: 'documents', name: 'Documentos', icon: FileText },
     { id: 'talent', name: 'Talento', icon: Target },
     { id: 'recruitment', name: 'Reclutamiento', icon: UserPlus },
     { id: 'analytics', name: 'Analítica', icon: TrendingUp },
@@ -152,8 +163,64 @@ const HRModule: React.FC = () => {
         ) : (
           <EmployeeList onSelectEmployee={handleEmployeeSelect} />
         );
+      case 'search':
+        return <EmployeeSearchModule onEmployeeSelect={(employeeId) => {
+          // Cargar empleado y mostrar detalles
+          console.log('Empleado seleccionado:', employeeId);
+        }} />;
+      case 'orgchart':
+        return <OrgChartModule onEmployeeSelect={(employeeId) => {
+          // Cargar empleado y mostrar detalles
+          console.log('Empleado seleccionado desde organigrama:', employeeId);
+        }} />;
       case 'payroll':
-        return <PayrollModule />;
+        return selectedEmployee ? (
+          <PayrollModule 
+            employeeId={selectedEmployee.id} 
+            employeeName={`${selectedEmployee.firstName} ${selectedEmployee.lastName}`} 
+          />
+        ) : (
+          <div className="text-center py-12">
+            <DollarSign className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">Selecciona un empleado para ver su nómina</p>
+          </div>
+        );
+      case 'attendance':
+        return selectedEmployee ? (
+          <AttendanceModule 
+            employeeId={selectedEmployee.id} 
+            employeeName={`${selectedEmployee.firstName} ${selectedEmployee.lastName}`} 
+          />
+        ) : (
+          <div className="text-center py-12">
+            <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">Selecciona un empleado para ver su asistencia</p>
+          </div>
+        );
+      case 'vacations':
+        return selectedEmployee ? (
+          <VacationModule 
+            employeeId={selectedEmployee.id} 
+            employeeName={`${selectedEmployee.firstName} ${selectedEmployee.lastName}`} 
+          />
+        ) : (
+          <div className="text-center py-12">
+            <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">Selecciona un empleado para ver sus vacaciones</p>
+          </div>
+        );
+      case 'documents':
+        return selectedEmployee ? (
+          <DocumentModule 
+            employeeId={selectedEmployee.id} 
+            employeeName={`${selectedEmployee.firstName} ${selectedEmployee.lastName}`} 
+          />
+        ) : (
+          <div className="text-center py-12">
+            <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">Selecciona un empleado para ver sus documentos</p>
+          </div>
+        );
       case 'talent':
         return <TalentModule />;
       case 'recruitment':
