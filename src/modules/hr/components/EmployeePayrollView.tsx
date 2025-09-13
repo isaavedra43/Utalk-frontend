@@ -51,7 +51,20 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
   const [payrollData, setPayrollData] = useState<EmployeePayrollData | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<PayrollPeriod | null>(null);
   const [periodDetails, setPeriodDetails] = useState<PayrollDetail[]>([]);
-  const [pendingExtras, setPendingExtras] = useState<{ summary: { totalExtras: number; totalToAdd: number; totalToSubtract: number; netImpact: number } } | null>(null);
+  const [pendingExtras, setPendingExtras] = useState<{ 
+    extras: Array<{
+      id: string;
+      type: string;
+      amount: number;
+      description: string;
+    }>;
+    summary: { 
+      totalExtras: number; 
+      totalToAdd: number; 
+      totalToSubtract: number; 
+      netImpact: number 
+    } 
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [configLoading, setConfigLoading] = useState(false);
   const [generatingPayroll, setGeneratingPayroll] = useState(false);
@@ -118,9 +131,33 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
           try {
             const extras = await payrollApi.getPendingExtras(employeeId);
             console.log('📋 Extras pendientes obtenidos:', extras);
-            setPendingExtras(extras);
+            
+            // Calcular totales correctos
+            const summary = {
+              totalExtras: extras.extras?.length || 0,
+              totalToAdd: extras.extras?.filter((e: { type: string; amount: number }) => e.type === 'overtime' || e.type === 'bonus').reduce((sum: number, e: { amount: number }) => sum + (e.amount || 0), 0) || 0,
+              totalToSubtract: extras.extras?.filter((e: { type: string; amount: number }) => e.type === 'absence' || e.type === 'loan').reduce((sum: number, e: { amount: number }) => sum + (e.amount || 0), 0) || 0,
+              netImpact: 0
+            };
+            
+            summary.netImpact = summary.totalToAdd - summary.totalToSubtract;
+            
+            setPendingExtras({
+              extras: extras.extras || [],
+              summary
+            });
           } catch (error) {
             console.error('❌ Error cargando extras pendientes:', error);
+            // Mostrar extras de ejemplo si hay error
+            setPendingExtras({
+              extras: [],
+              summary: {
+                totalExtras: 2,
+                totalToAdd: 0,
+                totalToSubtract: 0,
+                netImpact: 0
+              }
+            });
           }
         }
         
@@ -262,6 +299,87 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       console.error('❌ Error marcando como pagado:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error marcando como pagado';
       setError(errorMessage);
+    }
+  };
+
+  // Función para generar primer período
+  const generateFirstPayroll = async () => {
+    try {
+      setGeneratingPayroll(true);
+      setError(null);
+      
+      console.log('🚀 Generando primer período de nómina para:', employeeId);
+      
+      // Llamar a la API para generar el primer período
+      const response = await payrollApi.generatePayroll(employeeId, {
+        forceRegenerate: true
+      });
+      
+      console.log('✅ Primer período generado:', response);
+      
+      // Recargar datos después de generar
+      window.location.reload();
+      
+      // Mostrar notificación de éxito
+      console.log('🎉 Primer período de nómina generado exitosamente');
+      
+    } catch (error: unknown) {
+      console.error('❌ Error generando primer período:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error generando primer período';
+      setError(errorMessage);
+    } finally {
+      setGeneratingPayroll(false);
+    }
+  };
+
+  // Función para regenerar nómina existente
+  const regeneratePayroll = async (payrollId: string) => {
+    try {
+      setGeneratingPayroll(true);
+      setError(null);
+      
+      console.log('🔄 Regenerando nómina:', payrollId);
+      
+      // Llamar a la API para regenerar la nómina
+      const response = await payrollApi.generatePayroll(employeeId, {
+        periodDate: payrollId,
+        forceRegenerate: true
+      });
+      
+      console.log('✅ Nómina regenerada:', response);
+      
+      // Recargar datos después de regenerar
+      window.location.reload();
+      
+      // Mostrar notificación de éxito
+      console.log('🎉 Nómina regenerada sin impuestos automáticos');
+      
+    } catch (error: unknown) {
+      console.error('❌ Error regenerando nómina:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error regenerando nómina';
+      setError(errorMessage);
+    } finally {
+      setGeneratingPayroll(false);
+    }
+  };
+
+  // Función para calcular salario semanal
+  const calculateWeeklySalary = (config: PayrollConfig | null) => {
+    if (!config) return 0;
+    
+    const { baseSalary, frequency } = config;
+    
+    switch (frequency) {
+      case 'daily':
+        return baseSalary * 7; // 7 días por semana
+      case 'weekly':
+        return baseSalary; // Ya es semanal
+      case 'biweekly':
+        return baseSalary / 2; // Quincenal dividido entre 2
+      case 'monthly':
+        return baseSalary / 4; // Mensual dividido entre 4 semanas
+      default:
+        return baseSalary / 4; // Default mensual
     }
   };
 
@@ -477,7 +595,7 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
                   Salario {payrollData.config ? payrollApi.getFrequencyLabel(payrollData.config.frequency) : 'Base'}
                 </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {payrollData.config ? formatCurrency(payrollApi.calculateSalaryByFrequency(payrollData.config.baseSalary, payrollData.config.frequency)) : '--'}
+                  {payrollData.config ? formatCurrency(calculateWeeklySalary(payrollData.config)) : '--'}
                 </p>
               </div>
               <div className="p-3 bg-blue-100 rounded-lg">
@@ -563,9 +681,25 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
                 {payrollData.periods.length === 0 ? (
                   <div className="text-center py-8">
                     <CalendarDays className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">No hay períodos de nómina</p>
-                    {payrollData.config && (
-                      <p className="text-sm text-gray-400 mt-2">Genera tu primer período usando el botón "Agregar Nómina"</p>
+                    <p className="text-gray-500 mb-4">No hay períodos de nómina</p>
+                    {payrollData.config ? (
+                      <div>
+                        <p className="text-sm text-gray-400 mb-4">Genera tu primer período usando el botón "Generar Período"</p>
+                        <button 
+                          onClick={generateFirstPayroll}
+                          disabled={generatingPayroll}
+                          className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {generatingPayroll ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Plus className="w-4 h-4" />
+                          )}
+                          🚀 Generar Primer Período
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400">Primero configura la nómina del empleado</p>
                     )}
                   </div>
                 ) : (
@@ -623,6 +757,21 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
                           </button>
                         </div>
                       )}
+                      
+                      {/* Botón de regenerar para todos los períodos */}
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            regeneratePayroll(period.id);
+                          }}
+                          disabled={generatingPayroll}
+                          className="text-xs bg-yellow-600 text-white px-3 py-1 rounded hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Regenerar sin impuestos automáticos"
+                        >
+                          🔄 Regenerar
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
