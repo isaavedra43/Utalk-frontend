@@ -13,7 +13,8 @@ import {
   ChevronDown,
   Eye,
   Share2,
-  MoreHorizontal
+  MoreHorizontal,
+  Plus
 } from 'lucide-react';
 import PayrollChart from './PayrollChart';
 import { employeesApi, type PayrollPeriod } from '../../../services/employeesApi';
@@ -284,6 +285,10 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
               <button className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                 <Share2 className="h-4 w-4" />
                 <span>Compartir</span>
+              </button>
+              <button className="flex items-center space-x-2 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors">
+                <Plus className="h-4 w-4" />
+                <span>Agregar Nómina</span>
               </button>
               <button className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
                 <Download className="h-4 w-4" />

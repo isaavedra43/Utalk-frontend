@@ -27,7 +27,8 @@ import {
   BarChart3,
   PieChart,
   Activity,
-  Building
+  Building,
+  Plus
 } from 'lucide-react';
 import AttendanceChart from './AttendanceChart';
 
@@ -341,6 +342,10 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
               <button className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                 <Share2 className="h-4 w-4" />
                 <span>Compartir</span>
+              </button>
+              <button className="flex items-center space-x-2 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors">
+                <Plus className="h-4 w-4" />
+                <span>Registrar Asistencia</span>
               </button>
               <button className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
                 <Download className="h-4 w-4" />
