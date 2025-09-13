@@ -482,13 +482,25 @@ class PayrollApiService {
 
   async getCurrentPayrollPeriod(): Promise<PayrollPeriod | null> {
     try {
-      return await this.request('/api/payroll-periods/current');
+      return await this.request('/api/payroll/current-period');
     } catch (error) {
       if (error instanceof Error && error.message.includes('404')) {
         return null;
       }
       throw error;
     }
+  }
+
+  // Alias para compatibilidad
+  async getCurrentPeriod(): Promise<PayrollPeriod | null> {
+    return this.getCurrentPayrollPeriod();
+  }
+
+  // Procesar período de nómina
+  async processPeriod(periodId: string): Promise<any> {
+    return this.request(`/api/payroll-periods/${periodId}/process`, {
+      method: 'POST',
+    });
   }
 
   async updatePayrollPeriod(periodId: string, periodData: Partial<PayrollPeriod>): Promise<PayrollPeriod> {
