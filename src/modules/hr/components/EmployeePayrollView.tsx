@@ -65,11 +65,17 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
     const loadPayrollData = async () => {
       try {
         setLoading(true);
-        const response = await employeesApi.getEmployeePayroll(employeeId, {
-          year: new Date().getFullYear()
-        });
         
-        // Usar datos de la API o datos mock como fallback
+        // Por ahora usar datos mock directamente para mostrar la estructura
+        // TODO: Implementar llamada real a la API
+        // const response = await employeesApi.getEmployeePayroll(employeeId, {
+        //   year: new Date().getFullYear()
+        // });
+        
+        // Simular delay de carga
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Usar datos mock temporalmente
         const mockPayrollData: EmployeePayrollData = {
       employeeId: 'EMP241001',
       employeeName: 'Ana García',
@@ -226,7 +232,8 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
   };
 
   const filteredPeriods = payrollData?.periods.filter(period => {
-    const matchesSearch = period.period.toLowerCase().includes(searchTerm.toLowerCase());
+    const periodString = `${period.periodStart} - ${period.periodEnd}`;
+    const matchesSearch = periodString.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterPeriod === 'all' || period.status === filterPeriod;
     return matchesSearch && matchesFilter;
   }) || [];
