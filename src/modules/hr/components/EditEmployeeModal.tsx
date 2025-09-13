@@ -200,11 +200,88 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  // Función para preparar datos según la pestaña activa
+  const prepareDataForSubmission = () => {
+    switch (activeTab) {
+      case 'personal':
+        return {
+          personalInfo: {
+            firstName: formData.personalInfo?.firstName,
+            lastName: formData.personalInfo?.lastName,
+            email: formData.personalInfo?.email,
+            phone: formData.personalInfo?.phone,
+            dateOfBirth: formData.personalInfo?.dateOfBirth,
+            gender: formData.personalInfo?.gender,
+            maritalStatus: formData.personalInfo?.maritalStatus,
+            nationality: formData.personalInfo?.nationality,
+            rfc: formData.personalInfo?.rfc,
+            curp: formData.personalInfo?.curp,
+            nss: formData.personalInfo?.nss,
+            address: formData.personalInfo?.address
+          }
+        };
+      
+      case 'position':
+        return {
+          position: {
+            title: formData.position?.title,
+            department: formData.position?.department,
+            level: formData.position?.level,
+            reportsTo: formData.position?.reportsTo,
+            jobDescription: formData.position?.jobDescription,
+            startDate: formData.position?.startDate,
+            endDate: formData.position?.endDate
+          }
+        };
+      
+      case 'contract':
+        return {
+          contract: {
+            type: formData.contract?.type,
+            startDate: formData.contract?.startDate,
+            endDate: formData.contract?.endDate,
+            salary: formData.contract?.salary,
+            currency: formData.contract?.currency,
+            workingDays: formData.contract?.workingDays,
+            workingHoursRange: formData.contract?.workingHoursRange,
+            benefits: formData.contract?.benefits
+          }
+        };
+      
+      case 'location':
+        return {
+          location: {
+            office: formData.location?.office,
+            isRemote: formData.location?.isRemote,
+            address: formData.location?.address
+          }
+        };
+      
+      case 'salary':
+        return {
+          salary: {
+            baseSalary: formData.salary?.baseSalary,
+            currency: formData.salary?.currency,
+            frequency: formData.salary?.frequency,
+            paymentMethod: formData.salary?.paymentMethod,
+            sbc: formData.sbc
+          },
+          vacationBalance: formData.vacationBalance,
+          sickLeaveBalance: formData.sickLeaveBalance
+        };
+      
+      default:
+        return formData;
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateForm()) {
-      onSubmit(formData);
+      const dataToSubmit = prepareDataForSubmission();
+      console.log('📋 Datos a enviar para la pestaña:', activeTab, dataToSubmit);
+      onSubmit(dataToSubmit);
     }
   };
 
@@ -878,7 +955,7 @@ const EditEmployeeModal: React.FC<EditEmployeeModalProps> = ({
               ) : (
                 <Save className="h-4 w-4" />
               )}
-              <span>{loading ? 'Guardando...' : 'Guardar Cambios'}</span>
+              <span>{loading ? 'Guardando...' : `Guardar ${tabs.find(tab => tab.id === activeTab)?.label}`}</span>
             </button>
           </div>
         </form>

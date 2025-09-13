@@ -18,6 +18,8 @@ import {
   Plus
 } from 'lucide-react';
 import EditEmployeeModal from './EditEmployeeModal';
+import { employeesApi } from '../../../services/employeesApi';
+import { useNotifications } from '../../../contexts/NotificationContext';
 
 // Importar todos los componentes que ya tienes desarrollados
 import EmployeePayrollView from './EmployeePayrollView';
@@ -48,46 +50,55 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>('summary');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  const { showNotification } = useNotifications();
 
   // Función para manejar la actualización del empleado
   const handleUpdateEmployee = async (updatedData: Partial<Employee>) => {
+    if (!employee?.id) {
+      showNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'No se pudo identificar el empleado'
+      });
+      return;
+    }
+
     setIsUpdating(true);
     try {
-      console.log('🔄 Actualizando empleado:', updatedData);
+      console.log('🔄 Actualizando empleado:', { employeeId: employee.id, updatedData });
       
-      // Aquí harías la llamada al API
-      // const response = await fetch(`/api/employees/${employee.id}`, {
-      //   method: 'PUT',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': `Bearer ${token}`
-      //   },
-      //   body: JSON.stringify(updatedData)
-      // });
+      // Llamada real al API usando el servicio
+      const result = await employeesApi.updateEmployee(employee.id, updatedData);
       
-      // const result = await response.json();
-      
-      // if (!response.ok) {
-      //   throw new Error(result.error || 'Error al actualizar empleado');
-      // }
-      
-      // Simular actualización exitosa
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      console.log('✅ Empleado actualizado exitosamente');
-      
-      // Aquí actualizarías el estado del empleado con los nuevos datos
-      // setEmployee(result.data.employee);
+      console.log('✅ Empleado actualizado exitosamente:', result);
       
       // Cerrar modal
       setIsEditModalOpen(false);
       
       // Mostrar mensaje de éxito
-      alert('Empleado actualizado exitosamente');
+      showNotification({
+        type: 'success',
+        title: 'Empleado Actualizado',
+        message: result.message || 'La información del empleado ha sido actualizada exitosamente'
+      });
+
+      // Recargar después de un breve delay para que el usuario vea la notificación
+      if (result.employee) {
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      }
       
     } catch (error) {
       console.error('❌ Error al actualizar empleado:', error);
-      alert('Error al actualizar empleado: ' + (error as Error).message);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al actualizar empleado';
+      
+      showNotification({
+        type: 'error',
+        title: 'Error al Actualizar',
+        message: errorMessage
+      });
     } finally {
       setIsUpdating(false);
     }

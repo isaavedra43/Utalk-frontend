@@ -11,7 +11,7 @@ import {
   PayrollBulkOperation 
 } from '../types/payroll';
 import payrollService from '../services/payrollService';
-import { useNotification } from '../contexts/NotificationContext';
+import { useNotifications } from '../contexts/NotificationContext';
 
 // ===================================================================
 // HOOK PRINCIPAL PARA GESTIÓN DE PERÍODOS
@@ -29,7 +29,7 @@ export const usePayrollPeriods = (initialPage = 1, initialLimit = 20) => {
     totalPages: 0
   });
 
-  const { showNotification } = useNotification();
+  const { showNotification } = useNotifications();
 
   // Cargar períodos
   const loadPeriods = useCallback(async (
@@ -288,7 +288,7 @@ export const usePayrollEmployees = (periodId: string | null) => {
     totalPages: 0
   });
 
-  const { showNotification } = useNotification();
+  const { showNotification } = useNotifications();
 
   // Cargar empleados del período
   const loadEmployees = useCallback(async (
@@ -382,7 +382,7 @@ export const usePayrollDetail = (payrollId: string | null) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { showNotification } = useNotification();
+  const { showNotification } = useNotifications();
 
   // Cargar nómina individual
   const loadPayroll = useCallback(async () => {
@@ -542,7 +542,7 @@ export const usePayrollBulkOperations = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { showNotification } = useNotification();
+  const { showNotification } = useNotifications();
 
   // Ejecutar operación masiva
   const executeBulkOperation = useCallback(async (operation: PayrollBulkOperation) => {
@@ -650,7 +650,7 @@ export const usePayrollExport = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { showNotification } = useNotification();
+  const { showNotification } = useNotifications();
 
   // Exportar período
   const exportPeriod = useCallback(async (
