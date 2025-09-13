@@ -17,6 +17,7 @@ import {
   Award,
   History
 } from 'lucide-react';
+import EditEmployeeModal from './EditEmployeeModal';
 
 // Importar todos los componentes que ya tienes desarrollados
 import EmployeePayrollView from './EmployeePayrollView';
@@ -45,6 +46,52 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   console.log('🚀 EmployeeDetailView iniciando con empleado:', employee);
   
   const [activeTab, setActiveTab] = useState<TabType>('summary');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Función para manejar la actualización del empleado
+  const handleUpdateEmployee = async (updatedData: Partial<Employee>) => {
+    setIsUpdating(true);
+    try {
+      console.log('🔄 Actualizando empleado:', updatedData);
+      
+      // Aquí harías la llamada al API
+      // const response = await fetch(`/api/employees/${employee.id}`, {
+      //   method: 'PUT',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //     'Authorization': `Bearer ${token}`
+      //   },
+      //   body: JSON.stringify(updatedData)
+      // });
+      
+      // const result = await response.json();
+      
+      // if (!response.ok) {
+      //   throw new Error(result.error || 'Error al actualizar empleado');
+      // }
+      
+      // Simular actualización exitosa
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      console.log('✅ Empleado actualizado exitosamente');
+      
+      // Aquí actualizarías el estado del empleado con los nuevos datos
+      // setEmployee(result.data.employee);
+      
+      // Cerrar modal
+      setIsEditModalOpen(false);
+      
+      // Mostrar mensaje de éxito
+      alert('Empleado actualizado exitosamente');
+      
+    } catch (error) {
+      console.error('❌ Error al actualizar empleado:', error);
+      alert('Error al actualizar empleado: ' + (error as Error).message);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const tabs = [
     { id: 'summary' as TabType, label: 'Resumen', icon: User },
@@ -683,7 +730,10 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
                     <Share2 className="h-4 w-4" />
                     <span>Compartir</span>
                   </button>
-                  <button className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                  <button 
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
                     <Edit className="h-4 w-4" />
                     <span>Editar</span>
                   </button>
@@ -723,6 +773,15 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {renderTabContent()}
         </div>
+
+        {/* Modal de Edición */}
+        <EditEmployeeModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onSubmit={handleUpdateEmployee}
+          employee={employee}
+          loading={isUpdating}
+        />
       </div>
     );
   } catch (error) {
