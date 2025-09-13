@@ -307,8 +307,8 @@ class PayrollApiService {
     return this.request(endpoint);
   }
 
-  // CONSULTA DE PERÍODOS
-  async getPayrollPeriods(employeeId: string, filters: { limit?: number; year?: number; month?: number; status?: string } = {}): Promise<PayrollPeriodsResponse> {
+  // CONSULTA DE PERÍODOS POR EMPLEADO
+  async getEmployeePayrollPeriods(employeeId: string, filters: { limit?: number; year?: number; month?: number; status?: string } = {}): Promise<PayrollPeriodsResponse> {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {

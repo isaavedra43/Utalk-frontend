@@ -105,7 +105,7 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
         console.log('📋 Configuración obtenida:', config);
         
         // 2. Obtener períodos de nómina
-        const periodsResponse = await payrollApi.getPayrollPeriods(employeeId, {
+        const periodsResponse = await payrollApi.getEmployeePayrollPeriods(employeeId, {
           limit: 50,
           year: new Date().getFullYear()
         });

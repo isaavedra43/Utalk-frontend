@@ -130,3 +130,8 @@ export const handleApiError = (error: any) => {
     return 'Ha ocurrido un error inesperado.';
   }
 };
+
+// Exportación compatible para el módulo de nómina
+export const apiConfig = {
+  baseURL: process.env.VITE_API_URL || 'https://utalk-backend-production.up.railway.app'
+};
