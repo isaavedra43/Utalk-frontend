@@ -128,6 +128,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'attendance' | 'overtime' | 'absences' | 'extras' | 'loans'>('overview');
   const [isExtrasModalOpen, setIsExtrasModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Función para manejar el registro de extras
   const handleExtrasSubmit = async (data: {
@@ -149,6 +150,9 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
     try {
       // Recargar datos para obtener información actualizada
       await loadAllData();
+      
+      // Forzar actualización de todas las tablas
+      setRefreshKey(prev => prev + 1);
       
       console.log('✅ Extra registrado exitosamente');
     } catch (error) {
@@ -811,6 +815,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
         {activeTab === 'overtime' && (
           <ErrorBoundary>
             <OvertimeTable
+              key={`overtime-${refreshKey}`}
               employeeId={employeeId}
               employee={employee}
               onAddOvertime={() => setIsExtrasModalOpen(true)}
@@ -822,6 +827,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
         {activeTab === 'absences' && (
           <ErrorBoundary>
             <AbsencesTable
+              key={`absences-${refreshKey}`}
               employeeId={employeeId}
               employee={employee}
               onAddAbsence={() => setIsExtrasModalOpen(true)}
@@ -833,6 +839,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
         {activeTab === 'loans' && (
           <ErrorBoundary>
             <LoansTable
+              key={`loans-${refreshKey}`}
               employeeId={employeeId}
               employee={employee}
               onAddLoan={() => setIsExtrasModalOpen(true)}
@@ -844,6 +851,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
         {activeTab === 'extras' && (
           <ErrorBoundary>
             <EmployeeMovementsTable
+              key={`movements-${refreshKey}`}
               employeeId={employeeId}
               employee={employee}
               onAddMovement={() => setIsExtrasModalOpen(true)}
