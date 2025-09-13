@@ -19,7 +19,8 @@ import {
   Truck,
   Warehouse,
   Package,
-  Settings
+  Settings,
+  Calculator
 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/useAuthContext';
 import { infoLog } from '../../config/logger';
@@ -141,6 +142,11 @@ export const LeftSidebar: React.FC = () => {
       id: 'services',
       icon: Settings,
       title: 'Servicios'
+    },
+    {
+      id: 'payroll',
+      icon: Calculator,
+      title: 'Nómina General'
     }
   ], []);
 

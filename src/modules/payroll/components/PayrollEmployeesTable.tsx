@@ -332,9 +332,9 @@ const PayrollEmployeesTable: React.FC<PayrollEmployeesTableProps> = ({
                   
                   {/* Estado */}
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${payrollStatus.color}-100 text-${payrollStatus.color}-800`}>
-                      {getStatusIcon(payrollStatus.status)}
-                      <span className="ml-1">{payrollStatus.label}</span>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${getPayrollStatus(payroll).color}-100 text-${getPayrollStatus(payroll).color}-800`}>
+                      {getStatusIcon(getPayrollStatus(payroll).status)}
+                      <span className="ml-1">{getPayrollStatus(payroll).label}</span>
                     </span>
                   </td>
                   
@@ -393,7 +393,6 @@ const PayrollEmployeesTable: React.FC<PayrollEmployeesTableProps> = ({
           </div>
         </div>
       </div>
-    </div>
   );
 };
 
