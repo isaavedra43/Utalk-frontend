@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   CalendarDays, 
   Download, 
@@ -74,9 +74,8 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [downloadingPDF, setDownloadingPDF] = useState<string | null>(null);
 
-  // Cargar datos de nómina desde la API REAL
-  useEffect(() => {
-    const loadPayrollData = async () => {
+  // Función para cargar datos de nómina
+  const loadPayrollData = useCallback(async () => {
       try {
         setLoading(true);
         setError(null);
@@ -188,12 +187,14 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       } finally {
         setLoading(false);
       }
-    };
+    }, [employeeId]);
 
+  // Cargar datos cuando cambie el employeeId
+  useEffect(() => {
     if (employeeId) {
       loadPayrollData();
     }
-  }, [employeeId]);
+  }, [employeeId, loadPayrollData]);
 
   // Función para cargar detalles de un período específico
   const loadPeriodDetails = async (payrollId: string) => {
@@ -234,7 +235,7 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       console.log('✅ Nómina generada:', result);
       
       // Recargar datos después de generar nómina
-      window.location.reload(); // Forzar recarga completa
+      await loadPayrollData();
       
     } catch (error: unknown) {
       console.error('❌ Error generando nómina:', error);
@@ -257,7 +258,7 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       console.log('✅ Configuración guardada:', result);
       
       // Recargar datos después de configurar
-      window.location.reload();
+      await loadPayrollData();
       
     } catch (error: unknown) {
       console.error('❌ Error configurando nómina:', error);
@@ -276,7 +277,7 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       await payrollApi.approvePayroll(payrollId);
       
       // Recargar datos
-      window.location.reload();
+      await loadPayrollData();
       
     } catch (error: unknown) {
       console.error('❌ Error aprobando nómina:', error);
@@ -293,7 +294,7 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       await payrollApi.markAsPaid(payrollId, new Date().toISOString().split('T')[0]);
       
       // Recargar datos
-      window.location.reload();
+      await loadPayrollData();
       
     } catch (error: unknown) {
       console.error('❌ Error marcando como pagado:', error);
@@ -318,7 +319,7 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       console.log('✅ Primer período generado:', response);
       
       // Recargar datos después de generar
-      window.location.reload();
+      await loadPayrollData();
       
       // Mostrar notificación de éxito
       console.log('🎉 Primer período de nómina generado exitosamente');
@@ -349,7 +350,7 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       console.log('✅ Nómina regenerada:', response);
       
       // Recargar datos después de regenerar
-      window.location.reload();
+      await loadPayrollData();
       
       // Mostrar notificación de éxito
       console.log('🎉 Nómina regenerada sin impuestos automáticos');
@@ -913,6 +914,7 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       {isConfigModalOpen && (
         <PayrollConfigModal
           currentConfig={payrollData.config}
+          employee={employee}
           onClose={() => setIsConfigModalOpen(false)}
           onSave={handleConfigurePayroll}
           loading={configLoading}
@@ -925,6 +927,7 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
 // Modal de Configuración de Nómina
 interface PayrollConfigModalProps {
   currentConfig: PayrollConfig | null;
+  employee: Employee;
   onClose: () => void;
   onSave: (config: Partial<PayrollConfig>) => void;
   loading: boolean;
@@ -932,20 +935,73 @@ interface PayrollConfigModalProps {
 
 const PayrollConfigModal: React.FC<PayrollConfigModalProps> = ({
   currentConfig,
+  employee,
   onClose,
   onSave,
   loading
 }) => {
+  // Función para obtener información del empleado
+  const getEmployeeInfo = () => {
+    // Extraer información del empleado
+    const salary = employee.salary?.baseSalary || employee.contract.salary || 0;
+    const frequency = employee.salary?.frequency || 'monthly';
+    const workingDays = employee.contract.workingDays || 'Lunes a Viernes';
+    const workSchedule = employee.contract.workingHoursRange || employee.contract.schedule || '09:00-18:00';
+    const paymentMethod = employee.salary?.paymentMethod || 'bank_transfer';
+    
+    // Calcular días laborales por semana
+    const workingDaysPerWeek = workingDays.includes('Lunes a Viernes') ? 5 : 
+                              workingDays.includes('Lunes a Sábado') ? 6 : 5;
+    
+    // Calcular horas laborales por día
+    const scheduleMatch = workSchedule.match(/(\d{2}):(\d{2})-(\d{2}):(\d{2})/);
+    const workingHoursPerDay = scheduleMatch ? 
+      (parseInt(scheduleMatch[3]) - parseInt(scheduleMatch[1])) + 
+      (parseInt(scheduleMatch[4]) - parseInt(scheduleMatch[2])) / 60 : 8;
+    
+    // Convertir método de pago
+    const paymentMethodMap: Record<string, 'transfer' | 'cash' | 'check'> = {
+      'bank_transfer': 'transfer',
+      'cash': 'cash',
+      'check': 'check'
+    };
+    
+    return {
+      salary,
+      frequency,
+      workingDaysPerWeek,
+      workingHoursPerDay,
+      paymentMethod: paymentMethodMap[paymentMethod] || 'transfer'
+    };
+  };
+
+  const employeeInfo = getEmployeeInfo();
+
   const [config, setConfig] = useState({
-    frequency: (currentConfig?.frequency || 'weekly') as 'daily' | 'weekly' | 'biweekly' | 'monthly',
-    baseSalary: currentConfig?.baseSalary || 0,
-    sbc: currentConfig?.sbc || 0,
-    workingDaysPerWeek: currentConfig?.workingDaysPerWeek || 5,
-    workingHoursPerDay: currentConfig?.workingHoursPerDay || 8,
+    frequency: (currentConfig?.frequency || employeeInfo.frequency) as 'daily' | 'weekly' | 'biweekly' | 'monthly',
+    baseSalary: currentConfig?.baseSalary || employeeInfo.salary,
+    sbc: currentConfig?.sbc || employeeInfo.salary,
+    workingDaysPerWeek: currentConfig?.workingDaysPerWeek || employeeInfo.workingDaysPerWeek,
+    workingHoursPerDay: currentConfig?.workingHoursPerDay || employeeInfo.workingHoursPerDay,
     overtimeRate: currentConfig?.overtimeRate || 1.5,
-    paymentMethod: (currentConfig?.paymentMethod || 'transfer') as 'transfer' | 'cash' | 'check',
+    paymentMethod: (currentConfig?.paymentMethod || employeeInfo.paymentMethod) as 'transfer' | 'cash' | 'check',
     notes: currentConfig?.notes || ''
   });
+
+  // Actualizar configuración cuando cambie la información del empleado
+  useEffect(() => {
+    if (!currentConfig) {
+      setConfig(prev => ({
+        ...prev,
+        frequency: employeeInfo.frequency as 'daily' | 'weekly' | 'biweekly' | 'monthly',
+        baseSalary: employeeInfo.salary,
+        sbc: employeeInfo.salary,
+        workingDaysPerWeek: employeeInfo.workingDaysPerWeek,
+        workingHoursPerDay: employeeInfo.workingHoursPerDay,
+        paymentMethod: employeeInfo.paymentMethod
+      }));
+    }
+  }, [employee, currentConfig, employeeInfo]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -968,6 +1024,32 @@ const PayrollConfigModal: React.FC<PayrollConfigModalProps> = ({
         </div>
         
         <form onSubmit={handleSubmit} className="p-6">
+          {/* Información del Empleado */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h4 className="text-sm font-medium text-blue-900 mb-2">Información del Empleado</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div>
+                <span className="text-blue-700 font-medium">Salario:</span>
+                <span className="text-blue-600 ml-2">${employeeInfo.salary.toLocaleString('es-MX')} MXN</span>
+              </div>
+              <div>
+                <span className="text-blue-700 font-medium">Frecuencia:</span>
+                <span className="text-blue-600 ml-2 capitalize">{employeeInfo.frequency}</span>
+              </div>
+              <div>
+                <span className="text-blue-700 font-medium">Días de trabajo:</span>
+                <span className="text-blue-600 ml-2">{employee.contract.workingDays || 'Lunes a Viernes'}</span>
+              </div>
+              <div>
+                <span className="text-blue-700 font-medium">Horario:</span>
+                <span className="text-blue-600 ml-2">{employee.contract.workingHoursRange || employee.contract.schedule || '09:00-18:00'}</span>
+              </div>
+            </div>
+            <p className="text-xs text-blue-600 mt-2">
+              💡 Los campos se han pre-llenado automáticamente con la información del empleado
+            </p>
+          </div>
+
           {/* Frecuencia de Pago */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-3">
