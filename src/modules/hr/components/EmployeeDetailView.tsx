@@ -1,4 +1,4 @@
-import React, { useState, Component, ErrorInfo, ReactNode } from 'react';
+import React, { useState } from 'react';
 import { 
   ArrowLeft, 
   Download, 
@@ -17,6 +17,8 @@ import {
   Award,
   History
 } from 'lucide-react';
+
+// Importar todos los componentes que ya tienes desarrollados
 import EmployeePayrollView from './EmployeePayrollView';
 import EmployeeAttendanceView from './EmployeeAttendanceView';
 import EmployeeVacationsView from './EmployeeVacationsView';
@@ -25,47 +27,6 @@ import EmployeeIncidentsView from './EmployeeIncidentsView';
 import EmployeeEvaluationsView from './EmployeeEvaluationsView';
 import EmployeeSkillsView from './EmployeeSkillsView';
 import EmployeeHistoryView from './EmployeeHistoryView';
-// import EditEmployeeModal from './EditEmployeeModal'; // Temporalmente comentado
-
-// Error Boundary para manejar errores en componentes
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error?: Error;
-}
-
-class ErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, ErrorBoundaryState> {
-  constructor(props: { children: ReactNode; fallback?: ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    console.error('❌ ErrorBoundary capturó error:', error);
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('❌ Error completo capturado:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return this.props.fallback || (
-        <div className="p-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-            <User className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-            <h3 className="text-lg font-medium text-blue-800 mb-1">Módulo en Desarrollo</h3>
-            <p className="text-blue-600 text-sm">
-              Esta sección estará disponible próximamente. Actualmente no hay datos para mostrar.
-            </p>
-          </div>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
 
 interface Employee {
   id: string;
@@ -107,12 +68,6 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   console.log('🚀 EmployeeDetailView iniciando con empleado:', employee);
   
   const [activeTab, setActiveTab] = useState<TabType>('summary');
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const currentEmployee = employee; // Usar directamente el prop employee
-
-  const handleEditClick = () => {
-    setIsEditModalOpen(true);
-  };
 
   const tabs = [
     { id: 'summary' as TabType, label: 'Resumen', icon: User },
@@ -127,44 +82,39 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   ];
 
   const formatDate = (date: string | Date) => {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    if (isNaN(dateObj.getTime())) {
+    try {
+      const dateObj = typeof date === 'string' ? new Date(date) : date;
+      if (isNaN(dateObj.getTime())) {
+        return 'Fecha no válida';
+      }
+      return dateObj.toLocaleDateString('es-MX', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch {
       return 'Fecha no válida';
     }
-    return dateObj.toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
   };
 
   const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    try {
+      return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
+    } catch {
+      return 'NN';
+    }
   };
 
-  // Validar datos del empleado
-  if (!currentEmployee || !currentEmployee.id) {
-    console.error('❌ Datos del empleado inválidos:', currentEmployee);
+  // Validación básica del empleado
+  if (!employee || !employee.id) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <div className="flex items-center">
-              <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
-              <h3 className="text-lg font-medium text-red-800">Datos del empleado no válidos</h3>
-            </div>
-            <p className="mt-2 text-sm text-red-700">
-              No se pudieron cargar los datos del empleado correctamente.
-            </p>
-            <div className="mt-4">
-              <button
-                onClick={onBack}
-                className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700"
-              >
-                Volver a la lista
-              </button>
-            </div>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <AlertTriangle className="h-5 w-5 text-red-400 mx-auto mb-2" />
+          <p className="text-red-700">Error: No se encontraron datos del empleado</p>
+          <button onClick={onBack} className="mt-4 bg-red-600 text-white px-4 py-2 rounded">
+            Volver a la lista
+          </button>
         </div>
       </div>
     );
@@ -172,210 +122,239 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
 
   const renderTabContent = () => {
     console.log('🎯 Renderizando contenido de tab:', activeTab);
-    console.log('👤 Datos del empleado:', currentEmployee);
+    console.log('👤 Datos del empleado:', employee);
     
-    switch (activeTab) {
-      case 'payroll':
-        return (
-          <ErrorBoundary fallback={
-            <div className="p-6">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                <DollarSign className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-                <h3 className="text-lg font-medium text-blue-800 mb-1">Nómina</h3>
-                <p className="text-blue-600 text-sm">No hay información de nómina disponible para este empleado.</p>
-              </div>
-            </div>
-          }>
-            <EmployeePayrollView employeeId={currentEmployee.id} onBack={onBack} />
-          </ErrorBoundary>
-        );
-      case 'attendance':
-        return (
-          <ErrorBoundary fallback={
-            <div className="p-6">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                <Clock className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-                <h3 className="text-lg font-medium text-blue-800 mb-1">Asistencia</h3>
-                <p className="text-blue-600 text-sm">No hay información de asistencia disponible para este empleado.</p>
-              </div>
-            </div>
-          }>
-            <EmployeeAttendanceView employeeId={currentEmployee.id} onBack={onBack} />
-          </ErrorBoundary>
-        );
-      case 'vacations':
-        return (
-          <ErrorBoundary fallback={
-            <div className="p-6">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                <Calendar className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-                <h3 className="text-lg font-medium text-blue-800 mb-1">Vacaciones</h3>
-                <p className="text-blue-600 text-sm">No hay información de vacaciones disponible para este empleado.</p>
-              </div>
-            </div>
-          }>
-            <EmployeeVacationsView employeeId={currentEmployee.id} onBack={onBack} />
-          </ErrorBoundary>
-        );
-      case 'documents':
-        return (
-          <ErrorBoundary fallback={
-            <div className="p-6">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                <FileText className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-                <h3 className="text-lg font-medium text-blue-800 mb-1">Documentos</h3>
-                <p className="text-blue-600 text-sm">No hay documentos disponibles para este empleado.</p>
-              </div>
-            </div>
-          }>
-            <EmployeeDocumentsView employeeId={currentEmployee.id} onBack={onBack} />
-          </ErrorBoundary>
-        );
-      case 'incidents':
-        return (
-          <ErrorBoundary fallback={
-            <div className="p-6">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                <AlertTriangle className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-                <h3 className="text-lg font-medium text-blue-800 mb-1">Incidentes</h3>
-                <p className="text-blue-600 text-sm">No hay incidentes registrados para este empleado.</p>
-              </div>
-            </div>
-          }>
-            <EmployeeIncidentsView employeeId={currentEmployee.id} onBack={onBack} />
-          </ErrorBoundary>
-        );
-      case 'evaluations':
-        return (
-          <ErrorBoundary fallback={
-            <div className="p-6">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                <Star className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-                <h3 className="text-lg font-medium text-blue-800 mb-1">Evaluaciones</h3>
-                <p className="text-blue-600 text-sm">No hay evaluaciones disponibles para este empleado.</p>
-              </div>
-            </div>
-          }>
-            <EmployeeEvaluationsView employeeId={currentEmployee.id} onBack={onBack} />
-          </ErrorBoundary>
-        );
-      case 'skills':
-        return (
-          <ErrorBoundary fallback={
-            <div className="p-6">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                <Award className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-                <h3 className="text-lg font-medium text-blue-800 mb-1">Habilidades</h3>
-                <p className="text-blue-600 text-sm">No hay habilidades registradas para este empleado.</p>
-              </div>
-            </div>
-          }>
-            <EmployeeSkillsView employeeId={currentEmployee.id} onBack={onBack} />
-          </ErrorBoundary>
-        );
-      case 'history':
-        return (
-          <ErrorBoundary fallback={
-            <div className="p-6">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                <History className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-                <h3 className="text-lg font-medium text-blue-800 mb-1">Historial</h3>
-                <p className="text-blue-600 text-sm">No hay historial disponible para este empleado.</p>
-              </div>
-            </div>
-          }>
-            <EmployeeHistoryView employeeId={currentEmployee.id} onBack={onBack} />
-          </ErrorBoundary>
-        );
-      case 'summary':
-      default:
-        return (
-          <div className="space-y-6">
-            {/* Información Básica */}
-            <div className="bg-white rounded-xl shadow-sm border">
+    try {
+      switch (activeTab) {
+        case 'payroll':
+          try {
+            return <EmployeePayrollView employeeId={employee.id} onBack={onBack} />;
+          } catch (error) {
+            console.error('Error en EmployeePayrollView:', error);
+            return (
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Información Personal</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Nombre Completo</label>
-                    <p className="text-gray-900">{currentEmployee.personalInfo.firstName} {currentEmployee.personalInfo.lastName}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Número de Empleado</label>
-                    <p className="text-gray-900">{currentEmployee.employeeNumber}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Teléfono</label>
-                    <p className="text-gray-900">{currentEmployee.personalInfo.phone}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
-                    <p className="text-gray-900">{currentEmployee.personalInfo.email || 'No especificado'}</p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                  <DollarSign className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <h3 className="text-lg font-medium text-blue-800 mb-1">Nómina</h3>
+                  <p className="text-blue-600 text-sm">No hay información de nómina disponible para este empleado.</p>
+                </div>
+              </div>
+            );
+          }
+        
+        case 'attendance':
+          try {
+            return <EmployeeAttendanceView employeeId={employee.id} onBack={onBack} />;
+          } catch (error) {
+            console.error('Error en EmployeeAttendanceView:', error);
+            return (
+              <div className="p-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                  <Clock className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <h3 className="text-lg font-medium text-blue-800 mb-1">Asistencia</h3>
+                  <p className="text-blue-600 text-sm">No hay información de asistencia disponible para este empleado.</p>
+                </div>
+              </div>
+            );
+          }
+        
+        case 'vacations':
+          try {
+            return <EmployeeVacationsView employeeId={employee.id} onBack={onBack} />;
+          } catch (error) {
+            console.error('Error en EmployeeVacationsView:', error);
+            return (
+              <div className="p-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                  <Calendar className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <h3 className="text-lg font-medium text-blue-800 mb-1">Vacaciones</h3>
+                  <p className="text-blue-600 text-sm">No hay información de vacaciones disponible para este empleado.</p>
+                </div>
+              </div>
+            );
+          }
+        
+        case 'documents':
+          try {
+            return <EmployeeDocumentsView employeeId={employee.id} onBack={onBack} />;
+          } catch (error) {
+            console.error('Error en EmployeeDocumentsView:', error);
+            return (
+              <div className="p-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                  <FileText className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <h3 className="text-lg font-medium text-blue-800 mb-1">Documentos</h3>
+                  <p className="text-blue-600 text-sm">No hay documentos disponibles para este empleado.</p>
+                </div>
+              </div>
+            );
+          }
+        
+        case 'incidents':
+          try {
+            return <EmployeeIncidentsView employeeId={employee.id} onBack={onBack} />;
+          } catch (error) {
+            console.error('Error en EmployeeIncidentsView:', error);
+            return (
+              <div className="p-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                  <AlertTriangle className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <h3 className="text-lg font-medium text-blue-800 mb-1">Incidentes</h3>
+                  <p className="text-blue-600 text-sm">No hay incidentes registrados para este empleado.</p>
+                </div>
+              </div>
+            );
+          }
+        
+        case 'evaluations':
+          try {
+            return <EmployeeEvaluationsView employeeId={employee.id} onBack={onBack} />;
+          } catch (error) {
+            console.error('Error en EmployeeEvaluationsView:', error);
+            return (
+              <div className="p-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                  <Star className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <h3 className="text-lg font-medium text-blue-800 mb-1">Evaluaciones</h3>
+                  <p className="text-blue-600 text-sm">No hay evaluaciones disponibles para este empleado.</p>
+                </div>
+              </div>
+            );
+          }
+        
+        case 'skills':
+          try {
+            return <EmployeeSkillsView employeeId={employee.id} onBack={onBack} />;
+          } catch (error) {
+            console.error('Error en EmployeeSkillsView:', error);
+            return (
+              <div className="p-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                  <Award className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <h3 className="text-lg font-medium text-blue-800 mb-1">Habilidades</h3>
+                  <p className="text-blue-600 text-sm">No hay habilidades registradas para este empleado.</p>
+                </div>
+              </div>
+            );
+          }
+        
+        case 'history':
+          try {
+            return <EmployeeHistoryView employeeId={employee.id} onBack={onBack} />;
+          } catch (error) {
+            console.error('Error en EmployeeHistoryView:', error);
+            return (
+              <div className="p-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                  <History className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <h3 className="text-lg font-medium text-blue-800 mb-1">Historial</h3>
+                  <p className="text-blue-600 text-sm">No hay historial disponible para este empleado.</p>
+                </div>
+              </div>
+            );
+          }
+        
+        case 'summary':
+        default:
+          return (
+            <div className="space-y-6">
+              {/* Información Básica */}
+              <div className="bg-white rounded-xl shadow-sm border">
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Información Personal</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Nombre Completo</label>
+                      <p className="text-gray-900">{employee.personalInfo?.firstName || 'N/A'} {employee.personalInfo?.lastName || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Número de Empleado</label>
+                      <p className="text-gray-900">{employee.employeeNumber || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Teléfono</label>
+                      <p className="text-gray-900">{employee.personalInfo?.phone || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
+                      <p className="text-gray-900">{employee.personalInfo?.email || 'No especificado'}</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Información Laboral */}
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Información Laboral</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Puesto</label>
-                    <p className="text-gray-900">{currentEmployee.position.title}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Departamento</label>
-                    <p className="text-gray-900">{currentEmployee.position.department}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Nivel</label>
-                    <p className="text-gray-900">{currentEmployee.position.level}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Reporta a</label>
-                    <p className="text-gray-900">{currentEmployee.position.reportsTo || 'No especificado'}</p>
+              {/* Información Laboral */}
+              <div className="bg-white rounded-xl shadow-sm border">
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Información Laboral</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Puesto</label>
+                      <p className="text-gray-900">{employee.position?.title || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Departamento</label>
+                      <p className="text-gray-900">{employee.position?.department || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Nivel</label>
+                      <p className="text-gray-900">{employee.position?.level || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Reporta a</label>
+                      <p className="text-gray-900">{employee.position?.reportsTo || 'No especificado'}</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Información de Ubicación */}
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Ubicación</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Oficina</label>
-                    <p className="text-gray-900">{currentEmployee.location.office}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Dirección</label>
-                    <p className="text-gray-900">{currentEmployee.location.address}</p>
+              {/* Información de Ubicación */}
+              <div className="bg-white rounded-xl shadow-sm border">
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Ubicación</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Oficina</label>
+                      <p className="text-gray-900">{employee.location?.office || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Dirección</label>
+                      <p className="text-gray-900">{employee.location?.address || 'N/A'}</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Información de Contrato */}
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Contrato</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Fecha de Ingreso</label>
-                    <p className="text-gray-900">{formatDate(currentEmployee.contract.startDate)}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Tipo de Contrato</label>
-                    <p className="text-gray-900">{currentEmployee.contract.type}</p>
+              {/* Información de Contrato */}
+              <div className="bg-white rounded-xl shadow-sm border">
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Contrato</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Fecha de Ingreso</label>
+                      <p className="text-gray-900">{employee.contract?.startDate ? formatDate(employee.contract.startDate) : 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Tipo de Contrato</label>
+                      <p className="text-gray-900">{employee.contract?.type || 'N/A'}</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+          );
+      }
+    } catch (error) {
+      console.error('❌ Error en renderTabContent:', error);
+      return (
+        <div className="p-6">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+            <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-2" />
+            <h3 className="text-lg font-medium text-red-800 mb-1">Error Temporal</h3>
+            <p className="text-red-600 text-sm">Ocurrió un error al cargar este módulo. Intenta cambiar de pestaña.</p>
           </div>
-        );
+        </div>
+      );
     }
   };
 
@@ -396,16 +375,16 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
               
               <div className="flex items-center space-x-4">
                 <div className="relative">
-                  {currentEmployee.personalInfo.avatar ? (
+                  {employee.personalInfo?.avatar ? (
                     <img
-                      src={currentEmployee.personalInfo.avatar}
-                      alt={`${currentEmployee.personalInfo.firstName} ${currentEmployee.personalInfo.lastName}`}
+                      src={employee.personalInfo.avatar}
+                      alt={`${employee.personalInfo.firstName} ${employee.personalInfo.lastName}`}
                       className="h-16 w-16 rounded-full object-cover"
                     />
                   ) : (
                     <div className="h-16 w-16 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center">
                       <span className="text-white font-semibold text-lg">
-                        {getInitials(currentEmployee.personalInfo.firstName, currentEmployee.personalInfo.lastName)}
+                        {getInitials(employee.personalInfo?.firstName || '', employee.personalInfo?.lastName || '')}
                       </span>
                     </div>
                   )}
@@ -413,22 +392,22 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
                 
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">
-                    {currentEmployee.personalInfo.firstName} {currentEmployee.personalInfo.lastName}
+                    {employee.personalInfo?.firstName || 'N/A'} {employee.personalInfo?.lastName || 'N/A'}
                   </h1>
-                  <p className="text-lg text-gray-600">{currentEmployee.position.title}</p>
+                  <p className="text-lg text-gray-600">{employee.position?.title || 'N/A'}</p>
                   
                   <div className="flex items-center space-x-6 mt-2">
                     <div className="flex items-center space-x-1 text-sm text-gray-600">
                       <Building className="h-4 w-4" />
-                      <span>{currentEmployee.position.department}</span>
+                      <span>{employee.position?.department || 'N/A'}</span>
                     </div>
                     <div className="flex items-center space-x-1 text-sm text-gray-600">
                       <MapPin className="h-4 w-4" />
-                      <span>{currentEmployee.location.office}</span>
+                      <span>{employee.location?.office || 'N/A'}</span>
                     </div>
                     <div className="flex items-center space-x-1 text-sm text-gray-600">
                       <Calendar className="h-4 w-4" />
-                      <span>Ingreso: {formatDate(currentEmployee.contract.startDate)}</span>
+                      <span>Ingreso: {employee.contract?.startDate ? formatDate(employee.contract.startDate) : 'N/A'}</span>
                     </div>
                   </div>
                 </div>
@@ -443,10 +422,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
                   <Share2 className="h-4 w-4" />
                   <span>Compartir</span>
                 </button>
-                <button 
-                  onClick={handleEditClick}
-                  className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                >
+                <button className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
                   <Edit className="h-4 w-4" />
                   <span>Editar</span>
                 </button>
@@ -484,26 +460,8 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {renderTabContent(        )}
+        {renderTabContent()}
       </div>
-
-      {/* Modal de Edición */}
-      {isEditModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Editar Empleado</h3>
-            <p className="text-gray-600 mb-4">Esta funcionalidad estará disponible próximamente.</p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setIsEditModalOpen(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
