@@ -10,12 +10,12 @@ import {
   MapPin,
   Calendar,
   DollarSign,
-  Clock,
   FileText,
   AlertTriangle,
   Star,
   Award,
-  History
+  History,
+  Plus
 } from 'lucide-react';
 import EditEmployeeModal from './EditEmployeeModal';
 
@@ -96,7 +96,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   const tabs = [
     { id: 'summary' as TabType, label: 'Resumen', icon: User },
     { id: 'payroll' as TabType, label: 'Nómina', icon: DollarSign },
-    { id: 'attendance' as TabType, label: 'Asistencia', icon: Clock },
+    { id: 'attendance' as TabType, label: 'Extras', icon: Plus },
     { id: 'vacations' as TabType, label: 'Vacaciones', icon: Calendar },
     { id: 'documents' as TabType, label: 'Documentos', icon: FileText },
     { id: 'incidents' as TabType, label: 'Incidentes', icon: AlertTriangle },
@@ -174,7 +174,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
             if (!employee?.id) {
               throw new Error('ID de empleado no disponible');
             }
-            return <EmployeePayrollView employeeId={employee.id} onBack={onBack} />;
+            return <EmployeePayrollView employeeId={employee.id} employee={employee} onBack={onBack} />;
           } catch (error) {
             console.error('❌ Error específico en EmployeePayrollView:', error);
             return (
@@ -196,8 +196,8 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
             return (
               <div className="p-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                  <Clock className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-                  <h3 className="text-lg font-medium text-blue-800 mb-1">Asistencia</h3>
+                  <Plus className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <h3 className="text-lg font-medium text-blue-800 mb-1">Extras</h3>
                   <p className="text-blue-600 text-sm">No hay información de asistencia disponible para este empleado.</p>
                 </div>
               </div>

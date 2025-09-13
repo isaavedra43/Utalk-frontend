@@ -47,11 +47,13 @@ interface EmployeePayrollData {
 
 interface EmployeePayrollViewProps {
   employeeId: string;
+  employee: any; // Agregamos el empleado como prop
   onBack: () => void;
 }
 
 const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({ 
   employeeId, 
+  employee,
   onBack 
 }) => {
   const [payrollData, setPayrollData] = useState<EmployeePayrollData | null>(null);
@@ -76,13 +78,16 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
         // Simular delay de carga
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Usar datos mock temporalmente
+        // Usar datos reales del empleado
+        const employeeName = employee ? `${employee.personalInfo?.firstName || ''} ${employee.personalInfo?.lastName || ''}`.trim() : 'Empleado';
+        const baseSalary = employee?.contract?.salary || employee?.salary?.baseSalary || 0;
+        
         const mockPayrollData: EmployeePayrollData = {
-      employeeId: 'EMP241001',
-      employeeName: 'Ana García',
-      position: 'Gerente de Marketing',
-      department: 'Marketing',
-      baseSalary: 25000,
+      employeeId: employeeId,
+      employeeName: employeeName,
+      position: employee?.position?.title || 'Sin Puesto',
+      department: employee?.position?.department || 'Sin Departamento',
+      baseSalary: baseSalary,
       currency: 'MXN',
       paymentFrequency: 'monthly',
       currentPeriod: {
