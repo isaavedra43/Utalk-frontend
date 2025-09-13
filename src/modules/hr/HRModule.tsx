@@ -23,8 +23,6 @@ import { EmployeeList } from './components/EmployeeList';
 import { EmployeeDetail } from './components/EmployeeDetail';
 import { EmployeeDetailView } from './components/EmployeeDetailView';
 import { HRDashboard } from './components/HRDashboard';
-import { PayrollModule } from './components/PayrollModule';
-import { PayrollGeneralModule } from './components/PayrollGeneralModule';
 import { AttendanceModule } from './components/AttendanceModule';
 import { VacationModule } from './components/VacationModule';
 import { DocumentModule } from './components/DocumentModule';
@@ -61,7 +59,6 @@ const HRModule: React.FC = () => {
     { id: 'employees', name: 'Empleados', icon: Users },
     { id: 'search', name: 'Búsqueda', icon: Search },
     { id: 'orgchart', name: 'Organigrama', icon: BarChart3 },
-    { id: 'payroll', name: 'Nómina', icon: DollarSign },
     { id: 'attendance', name: 'Asistencia', icon: Calendar },
     { id: 'vacations', name: 'Vacaciones', icon: Calendar },
     { id: 'documents', name: 'Documentos', icon: FileText },
@@ -117,8 +114,6 @@ const HRModule: React.FC = () => {
           // Cargar empleado y mostrar detalles
           console.log('Empleado seleccionado desde organigrama:', employeeId);
         }} />;
-      case 'payroll':
-        return <PayrollGeneralModule />;
       case 'attendance':
         return selectedEmployee ? (
           <AttendanceModule 
@@ -319,7 +314,7 @@ const HRModule: React.FC = () => {
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Buscar empleados, nómina, documentos..."
+                  placeholder="Buscar empleados, documentos..."
                   className="w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />

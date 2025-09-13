@@ -32,5 +32,4 @@ export { WarehouseModule } from './warehouse';
 export { ShippingModule } from './shipping';
 export { ServicesModule } from './services';
 
-// Módulo de nómina integrado en HR
  

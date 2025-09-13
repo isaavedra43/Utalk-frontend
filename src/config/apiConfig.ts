@@ -8,9 +8,6 @@ export const API_CONFIG = {
     EMPLOYEES_IMPORT: '/api/employees/import',
     EMPLOYEES_EXPORT: '/api/employees/export',
     
-    // Nómina
-    EMPLOYEE_PAYROLL: (id: string) => `/api/employees/${id}/payroll`,
-    WEEKLY_PAYROLL: '/api/payroll/weekly',
     
     // Asistencia
     EMPLOYEE_ATTENDANCE: (id: string) => `/api/employees/${id}/attendance`,
@@ -131,7 +128,3 @@ export const handleApiError = (error: any) => {
   }
 };
 
-// Exportación compatible para el módulo de nómina
-export const apiConfig = {
-  baseURL: process.env.VITE_API_URL || 'https://utalk-backend-production.up.railway.app'
-};

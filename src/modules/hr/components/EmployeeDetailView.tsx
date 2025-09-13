@@ -9,7 +9,6 @@ import {
   Building,
   MapPin,
   Calendar,
-  DollarSign,
   FileText,
   AlertTriangle,
   Star,
@@ -22,7 +21,6 @@ import { employeesApi } from '../../../services/employeesApi';
 import { useNotifications } from '../../../contexts/NotificationContext';
 
 // Importar todos los componentes que ya tienes desarrollados
-import EmployeePayrollView from './EmployeePayrollView';
 import EmployeeAttendanceView from './EmployeeAttendanceView';
 import EmployeeVacationsView from './EmployeeVacationsView';
 import EmployeeDocumentsView from './EmployeeDocumentsView';
@@ -39,7 +37,7 @@ interface EmployeeDetailViewProps {
   onBack: () => void;
 }
 
-type TabType = 'summary' | 'payroll' | 'attendance' | 'vacations' | 'documents' | 'incidents' | 'evaluations' | 'skills' | 'history';
+type TabType = 'summary' | 'attendance' | 'vacations' | 'documents' | 'incidents' | 'evaluations' | 'skills' | 'history';
 
 const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({ 
   employee, 
@@ -106,7 +104,6 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
 
   const tabs = [
     { id: 'summary' as TabType, label: 'Resumen', icon: User },
-    { id: 'payroll' as TabType, label: 'Nómina', icon: DollarSign },
     { id: 'attendance' as TabType, label: 'Extras', icon: Plus },
     { id: 'vacations' as TabType, label: 'Vacaciones', icon: Calendar },
     { id: 'documents' as TabType, label: 'Documentos', icon: FileText },
@@ -179,25 +176,6 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
     
     try {
       switch (activeTab) {
-        case 'payroll':
-          try {
-            console.log('🎯 Renderizando EmployeePayrollView para empleado:', employee.id);
-            if (!employee?.id) {
-              throw new Error('ID de empleado no disponible');
-            }
-            return <EmployeePayrollView employeeId={employee.id} employee={employee} onBack={onBack} />;
-          } catch (error) {
-            console.error('❌ Error específico en EmployeePayrollView:', error);
-            return (
-              <div className="p-6">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                  <DollarSign className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-                  <h3 className="text-lg font-medium text-blue-800 mb-1">Nómina</h3>
-                  <p className="text-blue-600 text-sm">No hay información de nómina disponible para este empleado.</p>
-                </div>
-              </div>
-            );
-          }
         
         case 'attendance':
           try {
