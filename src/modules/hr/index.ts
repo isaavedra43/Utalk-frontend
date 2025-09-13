@@ -12,7 +12,7 @@ export { EmployeeIncidentsView } from './components/EmployeeIncidentsView';
 export { EmployeeEvaluationsView } from './components/EmployeeEvaluationsView';
 export { EmployeeSkillsView } from './components/EmployeeSkillsView';
 export { EmployeeHistoryView } from './components/EmployeeHistoryView';
-export { EditEmployeeModal } from './components/EditEmployeeModal';
+export { default as EditEmployeeModal } from './components/EditEmployeeModal';
 export { UploadFilesModal } from './components/UploadFilesModal';
 export { PayrollChart } from './components/PayrollChart';
 export { AttendanceChart } from './components/AttendanceChart';
