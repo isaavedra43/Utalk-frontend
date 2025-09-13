@@ -26,7 +26,7 @@ import {
 import * as XLSX from 'xlsx';
 import { AddEmployeeModal } from './AddEmployeeModal';
 import { ImportEmployeesModal } from './ImportEmployeesModal';
-import { EditEmployeeModal } from './EditEmployeeModal';
+import EditEmployeeModal from './EditEmployeeModal';
 import { employeesApi, type Employee, type GetEmployeesResponse } from '../../../services/employeesApi';
 
 interface EmployeeListProps {
