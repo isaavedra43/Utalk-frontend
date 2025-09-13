@@ -33,7 +33,37 @@ export const CreateConversationModal: React.FC<CreateConversationModalProps> = (
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleInputChange = (field: keyof CreateConversationFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    let processedValue = value;
+    
+    // Formatear automáticamente el teléfono
+    if (field === 'customerPhone') {
+      // Remover todo excepto números y +
+      const cleanValue = value.replace(/[^\d+]/g, '');
+      
+      // Si empieza con 52, agregar +
+      if (cleanValue.startsWith('52') && !cleanValue.startsWith('+52')) {
+        processedValue = '+' + cleanValue;
+      } else if (cleanValue.startsWith('1') && !cleanValue.startsWith('+52')) {
+        processedValue = '+52' + cleanValue;
+      } else if (!cleanValue.startsWith('+')) {
+        processedValue = '+' + cleanValue;
+      } else {
+        processedValue = cleanValue;
+      }
+      
+      // Formatear con espacios: +52 1 XXX XXX XXXX
+      if (processedValue.length >= 4) {
+        const formatted = processedValue
+          .replace(/^(\+52)(\d{1})(\d{3})(\d{3})(\d{4}).*/, '$1 $2 $3 $4 $5')
+          .replace(/^(\+52)(\d{1})(\d{3})(\d{3}).*/, '$1 $2 $3 $4')
+          .replace(/^(\+52)(\d{1})(\d{3}).*/, '$1 $2 $3')
+          .replace(/^(\+52)(\d{1}).*/, '$1 $2')
+          .replace(/^(\+52).*/, '$1');
+        processedValue = formatted;
+      }
+    }
+    
+    setFormData(prev => ({ ...prev, [field]: processedValue }));
     // Limpiar error del campo cuando el usuario empiece a escribir
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -56,8 +86,18 @@ export const CreateConversationModal: React.FC<CreateConversationModalProps> = (
 
     if (!formData.customerPhone.trim()) {
       newErrors.customerPhone = 'El teléfono es requerido';
-    } else if (!/^\+?[\d\s\-()]+$/.test(formData.customerPhone)) {
-      newErrors.customerPhone = 'Formato de teléfono inválido';
+    } else {
+      // Validación específica para números mexicanos de WhatsApp
+      const phoneRegex = /^\+52\s?1\s?\d{3}\s?\d{3}\s?\d{4}$/;
+      const cleanPhone = formData.customerPhone.replace(/\s/g, '');
+      
+      if (!formData.customerPhone.startsWith('+52')) {
+        newErrors.customerPhone = 'Debe empezar con +52 (código de México)';
+      } else if (!phoneRegex.test(formData.customerPhone)) {
+        newErrors.customerPhone = 'Formato: +52 1 XXX XXX XXXX (ej: +52 1 477 123 4567)';
+      } else if (cleanPhone.length !== 13) {
+        newErrors.customerPhone = 'El número debe tener 10 dígitos después del +52 1';
+      }
     }
 
     if (formData.customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.customerEmail)) {
@@ -153,6 +193,9 @@ export const CreateConversationModal: React.FC<CreateConversationModalProps> = (
               }`}
               placeholder="+52 1 477 123 4567"
             />
+            <p className="mt-1 text-xs text-gray-500">
+              Formato: +52 1 XXX XXX XXXX (se formatea automáticamente)
+            </p>
             {errors.customerPhone && (
               <p className="mt-1 text-sm text-red-600">{errors.customerPhone}</p>
             )}

@@ -6,6 +6,7 @@ import { SuggestionsPanel } from '../layout/SuggestionsPanel';
 import { useConversations } from '../../hooks/chat/useConversations';
 import { useCreateConversation } from '../../hooks/chat/useCreateConversation';
 import { useChatStore } from '../../stores/useChatStore';
+import { infoLog } from '../../config/logger';
 import { 
   ChevronLeft, 
   Settings, 
