@@ -36,7 +36,7 @@ import { ComplianceModule } from './components/ComplianceModule';
 import { HRCopilot } from './components/HRCopilot';
 import { MobileMenuButton } from '../../components/layout/MobileMenuButton';
 import { Button } from '../../components/ui/button';
-import type { Employee } from '../../types/employee';
+import type { Employee } from '../../services/employeesApi';
 
 const HRModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState('employees');

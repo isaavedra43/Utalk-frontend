@@ -1,6 +1,6 @@
 import api from './api';
 
-// Interfaces para tipos de datos
+// Interfaces para tipos de datos - ALINEADAS 100% CON BACKEND
 export interface Employee {
   id: string;
   employeeNumber: string;
@@ -16,40 +16,68 @@ export interface Employee {
     nationality?: string;
     rfc?: string;
     curp?: string;
+    nss?: string;
     address?: {
       street: string;
       city: string;
       state: string;
       country: string;
       postalCode: string;
+      number?: string;
+      neighborhood?: string;
+      zipCode?: string;
     };
+    emergencyContact?: any;
+    bankInfo?: any;
   };
   position: {
+    id?: string;
     title: string;
     department: string;
     level: 'Junior' | 'Mid' | 'Senior' | 'Lead' | 'Manager' | 'Director';
     reportsTo?: string;
     jobDescription?: string;
-    startDate: string;
+    startDate?: string;
     endDate?: string;
+    requirements?: any[];
+    skills?: any[];
+    salaryRange?: {
+      min: number;
+      max: number;
+    };
   };
   location: {
+    id?: string;
+    name?: string;
     office: string;
-    address: string;
-    city: string;
-    state: string;
-    country: string;
-    postalCode: string;
+    address?: {
+      street?: string;
+      number?: string;
+      neighborhood?: string;
+      city?: string;
+      state?: string;
+      country?: string;
+      postalCode?: string;
+    };
+    street?: string;
+    number?: string;
+    neighborhood?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postalCode?: string;
+    zipCode?: string;
     timezone?: string;
+    isRemote?: boolean;
   };
   contract: {
     type: 'permanent' | 'temporary' | 'intern' | 'contractor';
     startDate: string;
     endDate?: string;
-    salary: number;
-    currency: string;
-    workingDays: string;
-    workingHoursRange: string;
+    salary?: number;
+    currency?: string;
+    workingDays?: string;
+    workingHoursRange?: string;
     customSchedule?: {
       enabled: boolean;
       days: {
@@ -62,14 +90,44 @@ export interface Employee {
         domingo: { enabled: boolean; startTime: string; endTime: string; };
       };
     };
-    benefits?: string[];
+    benefits?: string;
+    clauses?: any[];
+    schedule?: string;
     notes?: string;
   };
   status: 'active' | 'inactive' | 'terminated' | 'on_leave';
+  salary?: {
+    baseSalary?: number;
+    currency?: string;
+    frequency?: string;
+    paymentMethod?: string;
+    allowances?: any[];
+    deductions?: any[];
+  };
+  sbc?: number;
+  vacationBalance?: number;
+  sickLeaveBalance?: number;
+  metrics?: {
+    totalEarnings?: number;
+    totalDeductions?: number;
+    netPay?: number;
+    attendanceRate?: number;
+    lateArrivals?: number;
+    absences?: number;
+    vacationDaysUsed?: number;
+    vacationDaysRemaining?: number;
+    overtimeHours?: number;
+    overtimeAmount?: number;
+    incidentsCount?: number;
+    incidentsLast30Days?: number;
+    documentCompliance?: number;
+    trainingCompletion?: number;
+    performanceScore?: number;
+  };
   createdAt: string;
   updatedAt: string;
   createdBy: string;
-  updatedBy: string;
+  updatedBy?: string;
 }
 
 export interface PayrollPeriod {
