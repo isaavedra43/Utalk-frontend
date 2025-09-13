@@ -18,19 +18,6 @@ import {
 import PayrollChart from './PayrollChart';
 import { employeesApi, type PayrollPeriod } from '../../../services/employeesApi';
 
-interface PayrollPeriod {
-  id: string;
-  period: string;
-  startDate: string;
-  endDate: string;
-  grossSalary: number;
-  deductions: number;
-  netSalary: number;
-  status: 'paid' | 'pending' | 'processing';
-  paymentDate?: string;
-  pdfUrl?: string;
-}
-
 interface PayrollDetail {
   type: 'perception' | 'deduction';
   concept: string;
@@ -93,9 +80,10 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       paymentFrequency: 'monthly',
       currentPeriod: {
         id: 'PER202401',
-        period: 'Enero 2024',
-        startDate: '2024-01-01',
-        endDate: '2024-01-31',
+        periodStart: '2024-01-01',
+        periodEnd: '2024-01-31',
+        weekNumber: 1,
+        year: 2024,
         grossSalary: 25000,
         deductions: 3750,
         netSalary: 21250,
@@ -106,9 +94,10 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       periods: [
         {
           id: 'PER202401',
-          period: 'Enero 2024',
-          startDate: '2024-01-01',
-          endDate: '2024-01-31',
+          periodStart: '2024-01-01',
+          periodEnd: '2024-01-31',
+          weekNumber: 1,
+          year: 2024,
           grossSalary: 25000,
           deductions: 3750,
           netSalary: 21250,
@@ -118,9 +107,10 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
         },
         {
           id: 'PER202312',
-          period: 'Diciembre 2023',
-          startDate: '2023-12-01',
-          endDate: '2023-12-31',
+          periodStart: '2023-12-01',
+          periodEnd: '2023-12-31',
+          weekNumber: 52,
+          year: 2023,
           grossSalary: 25000,
           deductions: 3750,
           netSalary: 21250,
@@ -129,9 +119,10 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
         },
         {
           id: 'PER202311',
-          period: 'Noviembre 2023',
-          startDate: '2023-11-01',
-          endDate: '2023-11-30',
+          periodStart: '2023-11-01',
+          periodEnd: '2023-11-30',
+          weekNumber: 48,
+          year: 2023,
           grossSalary: 25000,
           deductions: 3750,
           netSalary: 21250,
@@ -510,7 +501,7 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
                     <div className="p-6">
                       <PayrollChart 
                         data={payrollData.periods.map(period => ({
-                          period: period.period,
+                          period: `${period.periodStart} - ${period.periodEnd}`,
                           grossSalary: period.grossSalary,
                           netSalary: period.netSalary,
                           deductions: period.deductions,
@@ -526,7 +517,7 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
                     <div className="p-6">
                       <PayrollChart 
                         data={payrollData.periods.map(period => ({
-                          period: period.period,
+                          period: `${period.periodStart} - ${period.periodEnd}`,
                           grossSalary: period.grossSalary,
                           netSalary: period.netSalary,
                           deductions: period.deductions,

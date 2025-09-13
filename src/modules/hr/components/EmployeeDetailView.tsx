@@ -292,7 +292,9 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
             const isRemote = employee?.location?.isRemote;
             const workingDays = employee?.contract?.workingDays || 'N/A';
             const workingHoursRange = employee?.contract?.workingHoursRange || 'N/A';
-            const locationAddress = employee?.location?.address || 'N/A';
+            const locationAddress = typeof employee?.location?.address === 'string' 
+              ? employee.location.address 
+              : employee?.location?.address?.street || 'N/A';
             
             const contractStartDate = employee?.contract?.startDate;
             const contractEndDate = employee?.contract?.endDate;
