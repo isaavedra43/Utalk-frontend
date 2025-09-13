@@ -264,6 +264,11 @@ class PayrollApiService {
     });
   }
 
+  // GENERACIÓN DE PDF
+  async generatePayrollPDF(payrollId: string): Promise<{ pdfUrl: string; fileName: string; size: number; payrollId: string; employeeId: string; employeeName: string }> {
+    return this.request(`/payroll/pdf/${payrollId}`);
+  }
+
   // UTILIDADES
   calculateDatesByFrequency(frequency: string): { startDate: string; endDate: string } {
     const today = new Date();

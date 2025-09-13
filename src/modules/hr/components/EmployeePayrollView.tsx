@@ -59,6 +59,7 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingPDF, setDownloadingPDF] = useState<string | null>(null);
 
   // Cargar datos de nómina desde la API REAL
   useEffect(() => {
@@ -264,6 +265,38 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
     }
   };
 
+  // Función para descargar PDF
+  const handleDownloadPDF = async (payrollId: string) => {
+    try {
+      setDownloadingPDF(payrollId);
+      setError(null);
+      
+      console.log('📄 Generando PDF para período:', payrollId);
+      
+      const result = await payrollApi.generatePayrollPDF(payrollId);
+      console.log('✅ PDF generado exitosamente:', result);
+      
+      // Abrir PDF en nueva ventana para visualización
+      window.open(result.pdfUrl, '_blank');
+      
+      // También crear enlace de descarga automática
+      const link = document.createElement('a');
+      link.href = result.pdfUrl;
+      link.download = result.fileName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+    } catch (error: unknown) {
+      console.error('❌ Error generando PDF:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error generando PDF';
+      setError(errorMessage);
+    } finally {
+      setDownloadingPDF(null);
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
@@ -376,10 +409,16 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
           </button>
           
           <button
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors"
+            onClick={() => selectedPeriod && handleDownloadPDF(selectedPeriod.id)}
+            disabled={!selectedPeriod || downloadingPDF === selectedPeriod?.id}
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Download className="w-4 h-4" />
-            Exportar
+            {downloadingPDF === selectedPeriod?.id ? (
+              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            {downloadingPDF === selectedPeriod?.id ? 'Generando...' : 'Exportar'}
           </button>
         </div>
       </div>
@@ -611,8 +650,17 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedPeriod.status)}`}>
                       {payrollApi.getStatusLabel(selectedPeriod.status)}
                     </span>
-                    <button className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50">
-                      <Download className="w-4 h-4" />
+                    <button 
+                      onClick={() => handleDownloadPDF(selectedPeriod.id)}
+                      disabled={downloadingPDF === selectedPeriod.id}
+                      className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Descargar PDF"
+                    >
+                      {downloadingPDF === selectedPeriod.id ? (
+                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -935,4 +983,5 @@ const PayrollConfigModal: React.FC<PayrollConfigModalProps> = ({
   );
 };
 
+export { EmployeePayrollView };
 export default EmployeePayrollView;
