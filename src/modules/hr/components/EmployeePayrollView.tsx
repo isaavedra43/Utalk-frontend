@@ -13,7 +13,15 @@ import {
   X,
   CheckCircle,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Upload,
+  FileText,
+  Image,
+  Paperclip,
+  Mail,
+  MessageSquare,
+  Copy,
+  ExternalLink
 } from 'lucide-react';
 import { payrollApi, type PayrollPeriod, type PayrollConfig, type PayrollDetail } from '../../../services/payrollApi';
 import { Employee } from '../../../services/employeesApi';
@@ -73,6 +81,16 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [downloadingPDF, setDownloadingPDF] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<Array<{
+    id: string;
+    name: string;
+    type: string;
+    size: number;
+    url: string;
+    uploadedAt: string;
+  }>>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Función para cargar datos de nómina
   const loadPayrollData = useCallback(async () => {
@@ -416,6 +434,145 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
     }
   };
 
+  // Función para subir archivo
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !selectedPeriod) return;
+
+    try {
+      setUploadingFile(true);
+      setError(null);
+
+      console.log('📎 Subiendo archivo:', file.name);
+
+      // Crear FormData para subir el archivo
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('payrollId', selectedPeriod.id);
+      formData.append('employeeId', employeeId);
+
+      // TODO: Conectar con API real para subir archivos
+      // const response = await payrollApi.uploadAttachment(formData);
+      
+      // Mock de subida exitosa
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const newAttachment = {
+        id: Date.now().toString(),
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        url: URL.createObjectURL(file), // URL temporal para preview
+        uploadedAt: new Date().toISOString()
+      };
+
+      setAttachments(prev => [...prev, newAttachment]);
+      console.log('✅ Archivo subido exitosamente');
+
+    } catch (error: unknown) {
+      console.error('❌ Error subiendo archivo:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error subiendo archivo';
+      setError(errorMessage);
+    } finally {
+      setUploadingFile(false);
+      // Limpiar el input
+      event.target.value = '';
+    }
+  };
+
+  // Función para eliminar archivo adjunto
+  const handleRemoveAttachment = (attachmentId: string) => {
+    setAttachments(prev => prev.filter(att => att.id !== attachmentId));
+    console.log('🗑️ Archivo eliminado:', attachmentId);
+  };
+
+  // Función para formatear tamaño de archivo
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Función para obtener icono según tipo de archivo
+  const getFileIcon = (type: string) => {
+    if (type.startsWith('image/')) {
+      return <Image className="w-4 h-4" />;
+    } else if (type.includes('pdf')) {
+      return <FileText className="w-4 h-4" />;
+    } else {
+      return <Paperclip className="w-4 h-4" />;
+    }
+  };
+
+  // Funciones para compartir
+  const generateShareContent = () => {
+    if (!selectedPeriod || !employee) return '';
+    
+    const periodInfo = `${formatDate(selectedPeriod.periodStart)} - ${formatDate(selectedPeriod.periodEnd)}`;
+    const content = `📊 Nómina de ${employee.personalInfo.firstName} ${employee.personalInfo.lastName}
+    
+📅 Período: ${periodInfo}
+💰 Salario Bruto: ${formatCurrency(selectedPeriod.grossSalary)}
+💸 Deducciones: ${formatCurrency(selectedPeriod.totalDeductions)}
+💵 Salario Neto: ${formatCurrency(selectedPeriod.netSalary)}
+📋 Estado: ${payrollApi.getStatusLabel(selectedPeriod.status)}
+
+Generado desde Utalk HR`;
+    
+    return content;
+  };
+
+  const handleShareWhatsApp = () => {
+    const content = generateShareContent();
+    const url = `https://wa.me/?text=${encodeURIComponent(content)}`;
+    window.open(url, '_blank');
+  };
+
+  const handleShareEmail = () => {
+    const content = generateShareContent();
+    const subject = `Nómina - ${employee?.personalInfo.firstName} ${employee?.personalInfo.lastName} - ${formatDate(selectedPeriod?.periodStart || '')}`;
+    const body = content;
+    const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(url);
+  };
+
+  const handleShareTelegram = () => {
+    const content = generateShareContent();
+    const url = `https://t.me/share/url?url=&text=${encodeURIComponent(content)}`;
+    window.open(url, '_blank');
+  };
+
+  const handleShareTwitter = () => {
+    const content = generateShareContent();
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(content)}`;
+    window.open(url, '_blank');
+  };
+
+  const handleShareLinkedIn = () => {
+    const content = generateShareContent();
+    const url = `https://www.linkedin.com/sharing/share-offsite/?url=&summary=${encodeURIComponent(content)}`;
+    window.open(url, '_blank');
+  };
+
+  const handleCopyToClipboard = async () => {
+    try {
+      const content = generateShareContent();
+      await navigator.clipboard.writeText(content);
+      console.log('✅ Contenido copiado al portapapeles');
+      // Aquí podrías agregar una notificación de éxito
+    } catch (error) {
+      console.error('❌ Error copiando al portapapeles:', error);
+    }
+  };
+
+  const handleShareFacebook = () => {
+    const content = generateShareContent();
+    const url = `https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent(content)}`;
+    window.open(url, '_blank');
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
@@ -500,7 +657,9 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
           </button>
           
           <button
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+            onClick={() => setIsShareModalOpen(true)}
+            disabled={!selectedPeriod}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Share2 className="w-4 h-4" />
             Compartir
@@ -527,18 +686,6 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
             Agregar Nómina
           </button>
           
-          <button
-            onClick={() => selectedPeriod && handleDownloadPDF(selectedPeriod.id)}
-            disabled={!selectedPeriod || downloadingPDF === selectedPeriod?.id}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {downloadingPDF === selectedPeriod?.id ? (
-              <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-            {downloadingPDF === selectedPeriod?.id ? 'Generando...' : 'Exportar'}
-          </button>
         </div>
       </div>
 
@@ -725,53 +872,13 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
                           <p className="text-sm text-gray-500">
                             Bruto: {formatCurrency(period.grossSalary)} | Neto: {formatCurrency(period.netSalary)}
                           </p>
+                          <p className="text-sm text-red-600 mt-1">
+                            Deducciones: {formatCurrency(period.totalDeductions)}
+                          </p>
                         </div>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(period.status)}`}>
                           {payrollApi.getStatusLabel(period.status)}
                         </span>
-                      </div>
-                      
-                      {period.status === 'calculated' && (
-                        <div className="flex gap-2 mt-3">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleApprovePayroll(period.id);
-                            }}
-                            className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
-                          >
-                            Aprobar
-                          </button>
-                        </div>
-                      )}
-                      
-                      {period.status === 'approved' && (
-                        <div className="flex gap-2 mt-3">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMarkAsPaid(period.id);
-                            }}
-                            className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors"
-                          >
-                            Marcar como Pagado
-                          </button>
-                        </div>
-                      )}
-                      
-                      {/* Botón de regenerar para todos los períodos */}
-                      <div className="flex gap-2 mt-3">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            regeneratePayroll(period.id);
-                          }}
-                          disabled={generatingPayroll}
-                          className="text-xs bg-yellow-600 text-white px-3 py-1 rounded hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Regenerar sin impuestos automáticos"
-                        >
-                          🔄 Regenerar
-                        </button>
                       </div>
                     </div>
                   ))
@@ -891,6 +998,136 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
                       )}
                     </div>
                   </div>
+
+                  {/* Archivos Adjuntos */}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-semibold text-blue-700 flex items-center gap-2">
+                        <Paperclip className="w-5 h-5" />
+                        Archivos Adjuntos
+                      </h4>
+                      <div className="flex items-center gap-3">
+                        {/* Botones de Acción de Nómina */}
+                        <div className="flex items-center gap-2">
+                          {selectedPeriod.status === 'calculated' && (
+                            <button
+                              onClick={() => handleApprovePayroll(selectedPeriod.id)}
+                              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              Aprobar
+                            </button>
+                          )}
+                          
+                          {selectedPeriod.status === 'approved' && (
+                            <button
+                              onClick={() => handleMarkAsPaid(selectedPeriod.id)}
+                              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                            >
+                              <DollarSign className="w-4 h-4" />
+                              Marcar como Pagado
+                            </button>
+                          )}
+                          
+                          <button
+                            onClick={() => setIsConfigModalOpen(true)}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gray-600 text-white hover:bg-gray-700 transition-colors"
+                          >
+                            <Settings className="w-4 h-4" />
+                            Editar
+                          </button>
+                          
+                          <button
+                            onClick={() => regeneratePayroll(selectedPeriod.id)}
+                            disabled={generatingPayroll}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-yellow-600 text-white hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Regenerar nómina"
+                          >
+                            {generatingPayroll ? (
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Plus className="w-4 h-4" />
+                            )}
+                            Regenerar
+                          </button>
+                        </div>
+                        
+                        {/* Botón de Subir Archivo */}
+                        <div className="relative">
+                          <input
+                            type="file"
+                            id="file-upload"
+                            onChange={handleFileUpload}
+                            disabled={uploadingFile}
+                            className="hidden"
+                            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                          />
+                          <label
+                            htmlFor="file-upload"
+                            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                              uploadingFile
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                            }`}
+                          >
+                            {uploadingFile ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                                Subiendo...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-4 h-4" />
+                                Subir Archivo
+                              </>
+                            )}
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {attachments.length === 0 ? (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                          <Paperclip className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                          <p className="text-gray-500 text-sm">No hay archivos adjuntos</p>
+                          <p className="text-gray-400 text-xs">Sube documentos, imágenes o archivos relacionados con esta nómina</p>
+                        </div>
+                      ) : (
+                        attachments.map((attachment) => (
+                          <div key={attachment.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-blue-100 rounded-lg">
+                                {getFileIcon(attachment.type)}
+                              </div>
+                              <div>
+                                <p className="font-medium text-blue-800">{attachment.name}</p>
+                                <p className="text-sm text-blue-600">
+                                  {formatFileSize(attachment.size)} • {new Date(attachment.uploadedAt).toLocaleDateString('es-MX')}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => window.open(attachment.url, '_blank')}
+                                className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-100 transition-colors"
+                                title="Ver archivo"
+                              >
+                                <FileText className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleRemoveAttachment(attachment.id)}
+                                className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-100 transition-colors"
+                                title="Eliminar archivo"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -909,6 +1146,117 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* Modal de Compartir */}
+      {isShareModalOpen && selectedPeriod && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <Share2 className="w-5 h-5" />
+                  Compartir Nómina
+                </h3>
+                <button
+                  onClick={() => setIsShareModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-6">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Información a compartir:</h4>
+                <div className="bg-gray-50 p-3 rounded-lg text-sm text-gray-600">
+                  <p><strong>Empleado:</strong> {employee?.personalInfo.firstName} {employee?.personalInfo.lastName}</p>
+                  <p><strong>Período:</strong> {formatDate(selectedPeriod.periodStart)} - {formatDate(selectedPeriod.periodEnd)}</p>
+                  <p><strong>Salario Bruto:</strong> {formatCurrency(selectedPeriod.grossSalary)}</p>
+                  <p><strong>Deducciones:</strong> {formatCurrency(selectedPeriod.totalDeductions)}</p>
+                  <p><strong>Salario Neto:</strong> {formatCurrency(selectedPeriod.netSalary)}</p>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-gray-700">Compartir en:</h4>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={handleShareWhatsApp}
+                    className="flex items-center gap-3 p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                      <MessageSquare className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-green-700">WhatsApp</span>
+                  </button>
+                  
+                  <button
+                    onClick={handleShareEmail}
+                    className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                      <Mail className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-blue-700">Email</span>
+                  </button>
+                  
+                  <button
+                    onClick={handleShareTelegram}
+                    className="flex items-center gap-3 p-3 bg-sky-50 hover:bg-sky-100 rounded-lg transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-sky-500 rounded-full flex items-center justify-center">
+                      <MessageSquare className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-sky-700">Telegram</span>
+                  </button>
+                  
+                  <button
+                    onClick={handleShareTwitter}
+                    className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-blue-400 rounded-full flex items-center justify-center">
+                      <ExternalLink className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-blue-700">Twitter</span>
+                  </button>
+                  
+                  <button
+                    onClick={handleShareLinkedIn}
+                    className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                      <ExternalLink className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-blue-700">LinkedIn</span>
+                  </button>
+                  
+                  <button
+                    onClick={handleShareFacebook}
+                    className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                  >
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                      <ExternalLink className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-blue-700">Facebook</span>
+                  </button>
+                </div>
+                
+                <div className="pt-3 border-t border-gray-200">
+                  <button
+                    onClick={handleCopyToClipboard}
+                    className="w-full flex items-center justify-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <Copy className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm font-medium text-gray-700">Copiar al Portapapeles</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Configuración */}
       {isConfigModalOpen && (
