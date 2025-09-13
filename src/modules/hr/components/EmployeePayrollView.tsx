@@ -11,15 +11,18 @@ import {
   Search,
   ChevronDown,
   Eye,
-  Share2,
   Plus,
   Settings,
-  X
+  X,
+  AlertCircle,
+  Info
 } from 'lucide-react';
 import PayrollChart from './PayrollChart';
 import PayrollConfigForm from './PayrollConfigForm';
+import TaxConfigurationModal from './TaxConfigurationModal';
 import { payrollApi, type PayrollPeriod, type PayrollConfig, type PayrollDetail } from '../../../services/payrollApi';
 import { Employee } from '../../../services/employeesApi';
+import { TaxSettingsConfig } from '../../../types/hr';
 
 // PayrollDetail ahora viene del payrollApi
 // interface PayrollDetail se importa desde payrollApi
@@ -64,7 +67,14 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [isPayPeriodModalOpen, setIsPayPeriodModalOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  const [isTaxConfigModalOpen, setIsTaxConfigModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Nuevos estados para funcionalidades avanzadas
+  const [payrollPreview, setPayrollPreview] = useState<any>(null);
+  const [showAdvancedFeatures, setShowAdvancedFeatures] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [payPeriodConfig, setPayPeriodConfig] = useState<{
     frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'hourly';
     startDate: string;
@@ -268,28 +278,77 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
     }
   };
 
-  // Función para generar período de nómina
+  // Función para generar período de nómina (mejorada)
   const handleGeneratePayroll = async () => {
     try {
       setGeneratingPayroll(true);
-      console.log('💰 Generando período de nómina para:', employeeId);
+      console.log('💰 Generando período de nómina avanzada para:', employeeId);
       
-      const response = await payrollApi.generatePayroll(employeeId, {
+      // Usar el nuevo endpoint avanzado
+      const response = await payrollApi.generateAdvancedPayroll(employeeId, {
         periodDate: new Date().toISOString().split('T')[0],
-        forceRegenerate: false
+        forceRegenerate: false,
+        ignoreDuplicates: false
       });
       
-      console.log('✅ Período generado:', response);
+      console.log('✅ Período avanzado generado:', response);
+      
+      // Mostrar información sobre extras y duplicados aplicados
+      console.log('Extras aplicados:', response.data.summary.extrasApplied);
+      console.log('Impuestos aplicados:', response.data.summary.taxesApplied);
+      console.log('Duplicados encontrados:', response.data.summary.duplicatesFound);
       
       // Recargar datos
       window.location.reload(); // Temporal, luego optimizaremos
       
     } catch (error: unknown) {
-        console.error('❌ Error generando nómina:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Error generando nómina';
+        console.error('❌ Error generando nómina avanzada:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Error generando nómina avanzada';
         setError(errorMessage);
     } finally {
       setGeneratingPayroll(false);
+    }
+  };
+
+  // Nueva función para vista previa de nómina
+  const handlePreviewPayroll = async () => {
+    try {
+      setPreviewLoading(true);
+      setError(null);
+      
+      console.log('👁️ Generando vista previa de nómina para:', employeeId);
+      
+      const response = await payrollApi.previewPayroll(employeeId, new Date().toISOString().split('T')[0]);
+      
+      console.log('✅ Vista previa generada:', response);
+      setPayrollPreview(response.data);
+      setIsPreviewModalOpen(true);
+      
+    } catch (error: unknown) {
+      console.error('❌ Error generando vista previa:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error generando vista previa';
+      setError(errorMessage);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+
+  // Nueva función para guardar configuración de impuestos
+  const handleSaveTaxConfiguration = async (settings: TaxSettingsConfig) => {
+    try {
+      console.log('💾 Guardando configuración de impuestos:', settings);
+      
+      // La configuración ya se guarda en el modal, solo cerramos
+      setIsTaxConfigModalOpen(false);
+      
+      // Opcional: recargar datos para reflejar cambios
+      // await loadPayrollData();
+      
+    } catch (error: unknown) {
+      console.error('❌ Error guardando configuración de impuestos:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error guardando configuración de impuestos';
+      setError(errorMessage);
     }
   };
 
@@ -448,10 +507,35 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
             </div>
             
             <div className="flex items-center space-x-3">
-              <button className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                <Share2 className="h-4 w-4" />
-                <span>Compartir</span>
+              <button 
+                onClick={() => setShowAdvancedFeatures(!showAdvancedFeatures)}
+                className={`flex items-center space-x-2 px-4 py-2 border rounded-lg transition-colors ${
+                  showAdvancedFeatures 
+                    ? 'bg-blue-50 border-blue-200 text-blue-700' 
+                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <Settings className="h-4 w-4" />
+                <span>Avanzado</span>
               </button>
+              
+              <button 
+                onClick={handlePreviewPayroll}
+                disabled={previewLoading}
+                className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                <Eye className="h-4 w-4" />
+                <span>{previewLoading ? 'Cargando...' : 'Vista Previa'}</span>
+              </button>
+              
+              <button 
+                onClick={() => setIsTaxConfigModalOpen(true)}
+                className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Settings className="h-4 w-4" />
+                <span>Configurar Impuestos</span>
+              </button>
+              
               <button 
                 onClick={() => setIsPayPeriodModalOpen(true)}
                 className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -459,10 +543,16 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
                 <Settings className="h-4 w-4" />
                 <span>Configurar Período</span>
               </button>
-              <button className="flex items-center space-x-2 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors">
+              
+              <button 
+                onClick={handleGeneratePayroll}
+                disabled={generatingPayroll}
+                className="flex items-center space-x-2 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
                 <Plus className="h-4 w-4" />
-                <span>Agregar Nómina</span>
+                <span>{generatingPayroll ? 'Generando...' : 'Generar Nómina'}</span>
               </button>
+              
               <button className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
                 <Download className="h-4 w-4" />
                 <span>Exportar</span>
@@ -885,6 +975,187 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
                 onCancel={() => setIsConfigModalOpen(false)}
                 loading={configLoading}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Configuración de Impuestos */}
+      {isTaxConfigModalOpen && (
+        <TaxConfigurationModal
+          isOpen={isTaxConfigModalOpen}
+          onClose={() => setIsTaxConfigModalOpen(false)}
+          employeeId={employeeId}
+          employeeName={`${employee.personalInfo?.firstName} ${employee.personalInfo?.lastName}`}
+          onSave={handleSaveTaxConfiguration}
+          loading={configLoading}
+        />
+      )}
+
+      {/* Modal de Vista Previa */}
+      {isPreviewModalOpen && payrollPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] mx-4 overflow-hidden">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Vista Previa de Nómina</h3>
+                <button
+                  onClick={() => setIsPreviewModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 max-h-[70vh] overflow-y-auto">
+              <div className="space-y-6">
+                {/* Información del período */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-900 mb-2">Información del Período</h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-blue-700">Empleado:</span>
+                      <span className="ml-2 font-medium">{payrollPreview.employee.name}</span>
+                    </div>
+                    <div>
+                      <span className="text-blue-700">Período:</span>
+                      <span className="ml-2 font-medium">
+                        {formatDate(payrollPreview.period.startDate)} - {formatDate(payrollPreview.period.endDate)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Resumen */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                    <p className="text-sm text-green-600 mb-1">Salario Bruto</p>
+                    <p className="text-2xl font-bold text-green-800">
+                      {formatCurrency(payrollPreview.preview.grossSalary)}
+                    </p>
+                  </div>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                    <p className="text-sm text-red-600 mb-1">Total Deducciones</p>
+                    <p className="text-2xl font-bold text-red-800">
+                      {formatCurrency(payrollPreview.preview.totalDeductions)}
+                    </p>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                    <p className="text-sm text-blue-600 mb-1">Salario Neto</p>
+                    <p className="text-2xl font-bold text-blue-800">
+                      {formatCurrency(payrollPreview.preview.netSalary)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Percepciones */}
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                    <TrendingUp className="h-4 w-4 mr-2 text-green-600" />
+                    Percepciones
+                  </h4>
+                  <div className="space-y-2">
+                    {payrollPreview.preview.perceptions.details.map((detail, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                        <div>
+                          <p className="font-medium text-gray-900">{detail.concept}</p>
+                          {detail.description && (
+                            <p className="text-sm text-gray-600">{detail.description}</p>
+                          )}
+                          <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                            {detail.source}
+                          </span>
+                        </div>
+                        <p className="font-medium text-green-600">
+                          +{formatCurrency(detail.amount)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Deducciones */}
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3 flex items-center">
+                    <TrendingDown className="h-4 w-4 mr-2 text-red-600" />
+                    Deducciones
+                  </h4>
+                  <div className="space-y-2">
+                    {payrollPreview.preview.deductions.details.map((detail, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                        <div>
+                          <p className="font-medium text-gray-900">{detail.concept}</p>
+                          {detail.description && (
+                            <p className="text-sm text-gray-600">{detail.description}</p>
+                          )}
+                          <span className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded-full">
+                            {detail.source}
+                          </span>
+                        </div>
+                        <p className="font-medium text-red-600">
+                          -{formatCurrency(detail.amount)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Advertencias */}
+                {payrollPreview.preview.warnings.length > 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h4 className="font-medium text-yellow-900 mb-2 flex items-center">
+                      <AlertCircle className="h-4 w-4 mr-2" />
+                      Advertencias
+                    </h4>
+                    <ul className="text-sm text-yellow-700 space-y-1">
+                      {payrollPreview.preview.warnings.map((warning, index) => (
+                        <li key={index}>• {warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Recomendaciones */}
+                {payrollPreview.preview.recommendations.length > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 mb-2 flex items-center">
+                      <Info className="h-4 w-4 mr-2" />
+                      Recomendaciones
+                    </h4>
+                    <ul className="text-sm text-blue-700 space-y-1">
+                      {payrollPreview.preview.recommendations.map((rec, index) => (
+                        <li key={index}>• {rec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  Esta es una simulación. Los valores reales pueden variar.
+                </div>
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => setIsPreviewModalOpen(false)}
+                    className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cerrar
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsPreviewModalOpen(false);
+                      handleGeneratePayroll();
+                    }}
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Generar Nómina
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
