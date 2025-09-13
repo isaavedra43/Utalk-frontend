@@ -133,63 +133,7 @@ const OvertimeTable: React.FC<OvertimeTableProps> = ({
     setError(null);
   };
 
-  // Datos de ejemplo (fallback)
-  const fallbackOvertimeRecords: OvertimeRecord[] = [
-    {
-      id: 'OT001',
-      date: '2024-01-14',
-      description: 'Reunión con cliente - Proyecto urgente',
-      hours: 2.5,
-      hourlyRate: hourlyRate,
-      totalAmount: 2.5 * hourlyRate * 1.5, // 1.5x para horas extra regulares
-      status: 'approved',
-      approvedBy: 'Juan Pérez',
-      approvedAt: '2024-01-14T20:00:00Z',
-      type: 'regular',
-      location: 'office',
-      attachments: ['meeting_notes.pdf']
-    },
-    {
-      id: 'OT002',
-      date: '2024-01-16',
-      description: 'Finalización de proyecto - Entrega urgente',
-      hours: 4.0,
-      hourlyRate: hourlyRate,
-      totalAmount: 4.0 * hourlyRate * 1.5,
-      status: 'approved',
-      approvedBy: 'María López',
-      approvedAt: '2024-01-16T22:00:00Z',
-      type: 'regular',
-      location: 'office',
-      attachments: ['project_report.pdf']
-    },
-    {
-      id: 'OT003',
-      date: '2024-01-20',
-      description: 'Trabajo en fin de semana - Implementación',
-      hours: 6.0,
-      hourlyRate: hourlyRate,
-      totalAmount: 6.0 * hourlyRate * 2.0, // 2x para fines de semana
-      status: 'pending',
-      type: 'weekend',
-      location: 'remote',
-      attachments: []
-    },
-    {
-      id: 'OT004',
-      date: '2024-01-22',
-      description: 'Soporte técnico - Emergencia',
-      hours: 1.5,
-      hourlyRate: hourlyRate,
-      totalAmount: 1.5 * hourlyRate * 1.5,
-      status: 'rejected',
-      approvedBy: 'Carlos Ruiz',
-      approvedAt: '2024-01-22T19:30:00Z',
-      type: 'regular',
-      location: 'office',
-      attachments: ['incident_report.pdf']
-    }
-  ];
+  // NO usar datos mock - solo mostrar datos reales del backend
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -251,7 +195,7 @@ const OvertimeTable: React.FC<OvertimeTableProps> = ({
     });
   };
 
-  const filteredRecords = (overtimeRecords.length > 0 ? overtimeRecords : fallbackOvertimeRecords).filter(record => {
+  const filteredRecords = overtimeRecords.filter(record => {
     const matchesSearch = record.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          record.date.includes(searchTerm);
     const matchesFilter = filterStatus === 'all' || record.status === filterStatus;

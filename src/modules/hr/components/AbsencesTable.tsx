@@ -136,72 +136,7 @@ const AbsencesTable: React.FC<AbsencesTableProps> = ({
     setError(null);
   };
 
-  // Datos de ejemplo (fallback)
-  const fallbackAbsenceRecords: AbsenceRecord[] = [
-    {
-      id: 'ABS001',
-      date: '2024-01-19',
-      reason: 'Gripe - Fiebre alta',
-      type: 'sick_leave',
-      status: 'approved',
-      duration: 1,
-      approvedBy: 'Juan Pérez',
-      approvedAt: '2024-01-19T08:30:00Z',
-      justification: 'Certificado médico presentado',
-      attachments: ['medical_certificate.pdf'],
-      salaryDeduction: -dailySalary
-    },
-    {
-      id: 'ABS002',
-      date: '2024-01-25',
-      reason: 'Cita médica - Dentista',
-      type: 'medical_appointment',
-      status: 'approved',
-      duration: 0.5,
-      approvedBy: 'María López',
-      approvedAt: '2024-01-24T16:00:00Z',
-      justification: 'Cita programada con anticipación',
-      attachments: ['appointment_confirmation.pdf'],
-      salaryDeduction: -dailySalary * 0.5
-    },
-    {
-      id: 'ABS003',
-      date: '2024-02-02',
-      reason: 'Emergencia familiar',
-      type: 'emergency',
-      status: 'pending',
-      duration: 2,
-      justification: 'Fallecimiento de familiar cercano',
-      attachments: [],
-      salaryDeduction: -dailySalary * 2
-    },
-    {
-      id: 'ABS004',
-      date: '2024-02-10',
-      reason: 'Vacaciones personales',
-      type: 'vacation',
-      status: 'approved',
-      duration: 3,
-      approvedBy: 'Carlos Ruiz',
-      approvedAt: '2024-02-08T14:00:00Z',
-      justification: 'Vacaciones aprobadas con 2 semanas de anticipación',
-      attachments: ['vacation_request.pdf'],
-      salaryDeduction: 0 // Las vacaciones no descuentan salario
-    },
-    {
-      id: 'ABS005',
-      date: '2024-02-15',
-      reason: 'Asunto personal',
-      type: 'personal_leave',
-      status: 'rejected',
-      duration: 1,
-      approvedBy: 'Ana García',
-      approvedAt: '2024-02-14T17:00:00Z',
-      justification: 'No se proporcionó justificación suficiente',
-      attachments: [],
-      salaryDeduction: -dailySalary
-    }
-  ];
+  // NO usar datos mock - solo mostrar datos reales del backend
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -268,7 +203,7 @@ const AbsencesTable: React.FC<AbsencesTableProps> = ({
     });
   };
 
-  const filteredRecords = (absenceRecords.length > 0 ? absenceRecords : fallbackAbsenceRecords).filter(record => {
+  const filteredRecords = absenceRecords.filter(record => {
     const matchesSearch = record.reason.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          record.date.includes(searchTerm) ||
                          getTypeLabel(record.type).toLowerCase().includes(searchTerm.toLowerCase());
