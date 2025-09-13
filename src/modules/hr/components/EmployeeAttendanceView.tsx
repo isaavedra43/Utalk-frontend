@@ -28,11 +28,15 @@ import {
   PieChart,
   Activity,
   Building,
-  Plus
+  Plus,
+  CreditCard
 } from 'lucide-react';
 import AttendanceChart from './AttendanceChart';
 import EmployeeExtrasModal from './EmployeeExtrasModal';
 import EmployeeMovementsTable from './EmployeeMovementsTable';
+import OvertimeTable from './OvertimeTable';
+import AbsencesTable from './AbsencesTable';
+import LoansTable from './LoansTable';
 
 interface AttendanceRecord {
   id: string;
@@ -113,7 +117,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
   const [filterType, setFilterType] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'attendance' | 'overtime' | 'absences' | 'extras'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'attendance' | 'overtime' | 'absences' | 'extras' | 'loans'>('overview');
   const [isExtrasModalOpen, setIsExtrasModalOpen] = useState(false);
   const [extrasData, setExtrasData] = useState<any[]>([]);
 
@@ -452,6 +456,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                 { id: 'attendance', label: 'Asistencia', icon: CalendarDays },
                 { id: 'overtime', label: 'Horas Extra', icon: Zap },
                 { id: 'absences', label: 'Ausencias', icon: UserX },
+                { id: 'loans', label: 'Préstamos', icon: CreditCard },
                 { id: 'extras', label: 'Extras', icon: Plus }
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -681,94 +686,31 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
           </div>
         )}
 
+        {/* Pestaña de Horas Extra - Nueva Tabla */}
         {activeTab === 'overtime' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Registro de Horas Extra</h3>
-                <div className="space-y-4">
-                  {attendanceData.overtime.map((overtime) => (
-                    <div key={overtime.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-gray-900">{formatDate(overtime.date)}</h4>
-                          <p className="text-sm text-gray-600">{overtime.reason}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-lg font-bold text-orange-600">+{overtime.hours}h</p>
-                          <p className="text-sm text-gray-500 capitalize">{overtime.type}</p>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          {overtime.approved ? (
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                          )}
-                          <span className={`text-sm font-medium ${
-                            overtime.approved ? 'text-green-600' : 'text-yellow-600'
-                          }`}>
-                            {overtime.approved ? 'Aprobado' : 'Pendiente'}
-                          </span>
-                        </div>
-                        {overtime.approvedBy && (
-                          <p className="text-sm text-gray-500">
-                            Por: {overtime.approvedBy}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          <OvertimeTable
+            employeeId={employeeId}
+            employee={employee}
+            onAddOvertime={() => setIsExtrasModalOpen(true)}
+          />
         )}
 
+        {/* Pestaña de Ausencias - Nueva Tabla */}
         {activeTab === 'absences' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Registro de Ausencias</h3>
-                <div className="space-y-4">
-                  {attendanceData.absences.map((absence) => (
-                    <div key={absence.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-gray-900">{formatDate(absence.date)}</h4>
-                          <p className="text-sm text-gray-600">{absence.reason}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-lg font-bold text-red-600">{absence.days} día{absence.days > 1 ? 's' : ''}</p>
-                          <p className="text-sm text-gray-500 capitalize">{absence.type.replace('_', ' ')}</p>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          {absence.status === 'approved' && <CheckCircle className="h-4 w-4 text-green-500" />}
-                          {absence.status === 'pending' && <AlertTriangle className="h-4 w-4 text-yellow-500" />}
-                          {absence.status === 'rejected' && <XCircle className="h-4 w-4 text-red-500" />}
-                          <span className={`text-sm font-medium ${
-                            absence.status === 'approved' ? 'text-green-600' :
-                            absence.status === 'pending' ? 'text-yellow-600' : 'text-red-600'
-                          }`}>
-                            {absence.status === 'approved' ? 'Aprobado' :
-                             absence.status === 'pending' ? 'Pendiente' : 'Rechazado'}
-                          </span>
-                        </div>
-                        {absence.approvedBy && (
-                          <p className="text-sm text-gray-500">
-                            Por: {absence.approvedBy}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          <AbsencesTable
+            employeeId={employeeId}
+            employee={employee}
+            onAddAbsence={() => setIsExtrasModalOpen(true)}
+          />
+        )}
+
+        {/* Pestaña de Préstamos - Nueva Tabla */}
+        {activeTab === 'loans' && (
+          <LoansTable
+            employeeId={employeeId}
+            employee={employee}
+            onAddLoan={() => setIsExtrasModalOpen(true)}
+          />
         )}
 
         {/* Pestaña de Extras - Tabla General de Movimientos */}
