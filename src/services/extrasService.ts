@@ -1,4 +1,6 @@
 import { api } from './api';
+import { handleApiError } from '../config/apiConfig';
+import { logger } from '../utils/logger';
 
 // Tipos para los movimientos
 export interface LoanPayment {
@@ -121,32 +123,94 @@ export interface PayrollImpact {
 }
 
 class ExtrasService {
+  // Helper para manejar errores de API
+  private handleError(error: unknown, context: string): never {
+    const errorMessage = handleApiError(error);
+    const errorObj = error instanceof Error ? error : new Error('Unknown error');
+    const apiError = error as { response?: { status?: number; data?: unknown } };
+    
+    logger.apiError(`Error en ${context}`, errorObj, {
+      status: apiError.response?.status,
+      data: apiError.response?.data,
+      context
+    });
+    
+    // Crear error con mensaje más descriptivo
+    const enhancedError = new Error(errorMessage);
+    (enhancedError as Error & { originalError?: unknown; status?: number; context?: string }).originalError = error;
+    (enhancedError as Error & { originalError?: unknown; status?: number; context?: string }).status = (error as { response?: { status?: number } })?.response?.status;
+    (enhancedError as Error & { originalError?: unknown; status?: number; context?: string }).context = context;
+    
+    throw enhancedError;
+  }
+
+  // Validar fechas antes de enviar
+  private validateDateRange(startDate?: string, endDate?: string) {
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      if (start > end) {
+        throw new Error('La fecha de inicio no puede ser mayor a la fecha de fin');
+      }
+      
+      // Validar que las fechas no sean futuras
+      const today = new Date();
+      if (start > today) {
+        throw new Error('La fecha de inicio no puede ser futura');
+      }
+    }
+  }
+
   // MOVIMIENTOS DE EXTRAS
   async registerMovement(employeeId: string, movementData: MovementRequest): Promise<MovementRecord> {
     try {
+      // Validar datos antes de enviar
+      if (!employeeId) {
+        throw new Error('ID de empleado es requerido');
+      }
+      
       const response = await api.post(`/api/employees/${employeeId}/extras`, movementData);
       return response.data;
     } catch (error) {
-      console.error('Error registering movement:', error);
-      throw error;
+      this.handleError(error, 'registerMovement');
+      throw error; // Re-lanzar para que el caller pueda manejar el error
     }
   }
 
   async getMovements(employeeId: string, filters: Record<string, string | number> = {}): Promise<MovementRecord[]> {
     try {
-      const params = new URLSearchParams(filters);
-      const response = await api.get(`/api/employees/${employeeId}/extras?${params}`);
+      if (!employeeId) {
+        throw new Error('ID de empleado es requerido');
+      }
+      
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+      const queryString = params.toString();
+      const url = queryString ? `/api/employees/${employeeId}/extras?${queryString}` : `/api/employees/${employeeId}/extras`;
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
-      console.error('Error fetching movements:', error);
-      throw error;
+      this.handleError(error, 'getMovements');
+      return []; // Para satisfacer el tipo de retorno
     }
   }
 
   async getOvertimeRecords(employeeId: string, filters: Record<string, string | number> = {}): Promise<MovementRecord[]> {
     try {
-      const params = new URLSearchParams(filters);
-      const response = await api.get(`/api/employees/${employeeId}/overtime?${params}`);
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+      const queryString = params.toString();
+      const url = queryString ? `/api/employees/${employeeId}/overtime?${queryString}` : `/api/employees/${employeeId}/overtime`;
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching overtime records:', error);
@@ -156,8 +220,15 @@ class ExtrasService {
 
   async getAbsenceRecords(employeeId: string, filters: Record<string, string | number> = {}): Promise<MovementRecord[]> {
     try {
-      const params = new URLSearchParams(filters);
-      const response = await api.get(`/api/employees/${employeeId}/absences?${params}`);
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+      const queryString = params.toString();
+      const url = queryString ? `/api/employees/${employeeId}/absences?${queryString}` : `/api/employees/${employeeId}/absences`;
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching absence records:', error);
@@ -167,8 +238,15 @@ class ExtrasService {
 
   async getLoanRecords(employeeId: string, filters: Record<string, string | number> = {}): Promise<MovementRecord[]> {
     try {
-      const params = new URLSearchParams(filters);
-      const response = await api.get(`/api/employees/${employeeId}/loans?${params}`);
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+      const queryString = params.toString();
+      const url = queryString ? `/api/employees/${employeeId}/loans?${queryString}` : `/api/employees/${employeeId}/loans`;
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching loan records:', error);
@@ -178,8 +256,15 @@ class ExtrasService {
 
   async getBonusRecords(employeeId: string, filters: Record<string, string | number> = {}): Promise<MovementRecord[]> {
     try {
-      const params = new URLSearchParams(filters);
-      const response = await api.get(`/api/employees/${employeeId}/bonuses?${params}`);
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+      const queryString = params.toString();
+      const url = queryString ? `/api/employees/${employeeId}/bonuses?${queryString}` : `/api/employees/${employeeId}/bonuses`;
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching bonus records:', error);
@@ -189,8 +274,15 @@ class ExtrasService {
 
   async getDeductionRecords(employeeId: string, filters: Record<string, string | number> = {}): Promise<MovementRecord[]> {
     try {
-      const params = new URLSearchParams(filters);
-      const response = await api.get(`/api/employees/${employeeId}/deductions?${params}`);
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+      const queryString = params.toString();
+      const url = queryString ? `/api/employees/${employeeId}/deductions?${queryString}` : `/api/employees/${employeeId}/deductions`;
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching deduction records:', error);
@@ -200,8 +292,15 @@ class ExtrasService {
 
   async getDamageRecords(employeeId: string, filters: Record<string, string | number> = {}): Promise<MovementRecord[]> {
     try {
-      const params = new URLSearchParams(filters);
-      const response = await api.get(`/api/employees/${employeeId}/damages?${params}`);
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+      const queryString = params.toString();
+      const url = queryString ? `/api/employees/${employeeId}/damages?${queryString}` : `/api/employees/${employeeId}/damages`;
+      const response = await api.get(url);
       return response.data;
     } catch (error) {
       console.error('Error fetching damage records:', error);
@@ -257,15 +356,33 @@ class ExtrasService {
   // MÉTRICAS Y RESÚMENES
   async getMovementsSummary(employeeId: string, startDate?: string, endDate?: string): Promise<MovementsSummary> {
     try {
+      // Validar parámetros requeridos
+      if (!employeeId) {
+        throw new Error('ID de empleado es requerido');
+      }
+      
+      // Si no se proporcionan fechas, usar últimos 30 días
+      if (!startDate || !endDate) {
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        
+        endDate = endDate || today.toISOString().split('T')[0];
+        startDate = startDate || thirtyDaysAgo.toISOString().split('T')[0];
+      }
+      
+      // Validar rango de fechas
+      this.validateDateRange(startDate, endDate);
+      
       const params = new URLSearchParams();
-      if (startDate) params.append('startDate', startDate);
-      if (endDate) params.append('endDate', endDate);
+      params.append('startDate', startDate);
+      params.append('endDate', endDate);
       
       const response = await api.get(`/api/employees/${employeeId}/movements-summary?${params}`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching movements summary:', error);
-      throw error;
+      this.handleError(error, 'getMovementsSummary');
+      throw error; // Re-lanzar para que el caller pueda manejar el error
     }
   }
 
@@ -438,12 +555,13 @@ class ExtrasService {
     const hourlyRate = dailySalary / 8;
 
     switch (movementData.type) {
-      case 'overtime':
+      case 'overtime': {
         const multipliers = { regular: 1.5, weekend: 2.0, holiday: 3.0 };
         const multiplier = multipliers[movementData.overtimeType || 'regular'];
         return (movementData.hours || 0) * hourlyRate * multiplier;
+      }
       
-      case 'absence':
+      case 'absence': {
         const deductionRates = {
           sick_leave: 0.4,
           personal_leave: 1.0,
@@ -454,6 +572,7 @@ class ExtrasService {
         };
         const rate = deductionRates[movementData.absenceType || 'other'];
         return dailySalary * (movementData.duration || 1) * rate;
+      }
       
       case 'loan':
         return movementData.totalAmount || 0;

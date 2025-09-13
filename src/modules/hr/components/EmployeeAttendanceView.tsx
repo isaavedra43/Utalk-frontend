@@ -161,6 +161,14 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
     try {
       setLoading(true);
 
+      // Calcular fechas por defecto (últimos 30 días)
+      const today = new Date();
+      const thirtyDaysAgo = new Date(today);
+      thirtyDaysAgo.setDate(today.getDate() - 30);
+      
+      const endDate = today.toISOString().split('T')[0];
+      const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+
       // Cargar métricas de asistencia
       const metrics = await extrasService.getAttendanceMetrics(employeeId);
 
@@ -168,7 +176,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
       const charts = await extrasService.getChartData(employeeId);
 
       // Cargar resumen de movimientos
-      const summary = await extrasService.getMovementsSummary(employeeId);
+      const summary = await extrasService.getMovementsSummary(employeeId, startDate, endDate);
 
       // Crear datos de asistencia combinados
       const combinedAttendanceData: EmployeeAttendanceData = {

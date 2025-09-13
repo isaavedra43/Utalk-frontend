@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { extrasService, MovementRecord, AttendanceMetrics, MovementsSummary } from '../services/extrasService';
+import { logger } from '../utils/logger';
 
 export interface UseExtrasOptions {
   employeeId: string;
@@ -41,20 +42,47 @@ export const useExtras = (options: UseExtrasOptions): UseExtrasReturn => {
       setLoading(true);
       setError(null);
 
+      // Calcular fechas por defecto (últimos 30 días)
+      const today = new Date();
+      const thirtyDaysAgo = new Date(today);
+      thirtyDaysAgo.setDate(today.getDate() - 30);
+      
+      const endDate = today.toISOString().split('T')[0];
+      const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+
       // Cargar todos los datos en paralelo
       const [metricsData, movementsData, summaryData] = await Promise.all([
         extrasService.getAttendanceMetrics(employeeId),
         extrasService.getMovements(employeeId),
-        extrasService.getMovementsSummary(employeeId)
+        extrasService.getMovementsSummary(employeeId, startDate, endDate)
       ]);
 
       setMetrics(metricsData);
       setMovements(movementsData);
       setSummary(summaryData);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error cargando datos de extras';
+      let errorMessage = 'Error cargando datos de extras';
+      
+      if (err instanceof Error) {
+        errorMessage = err.message;
+        
+        // Manejo específico de errores
+        if (err.message.includes('400')) {
+          errorMessage = 'Datos inválidos. Verifica la información del empleado.';
+        } else if (err.message.includes('404')) {
+          errorMessage = 'Empleado no encontrado.';
+        } else if (err.message.includes('500')) {
+          errorMessage = 'Error del servidor. Inténtalo de nuevo más tarde.';
+        } else if (err.message.includes('Network Error') || err.message.includes('timeout')) {
+          errorMessage = 'Error de conexión. Verifica tu conexión a internet.';
+        }
+      }
+      
       setError(errorMessage);
-      console.error('Error en useExtras:', err);
+      logger.apiError('Error en useExtras', err as Error, {
+        employeeId,
+        context: 'refreshData'
+      });
     } finally {
       setLoading(false);
     }
@@ -63,6 +91,40 @@ export const useExtras = (options: UseExtrasOptions): UseExtrasReturn => {
   const registerMovement = useCallback(async (movementData: any): Promise<MovementRecord> => {
     try {
       setError(null);
+      
+      // Validación de datos antes de enviar
+      if (!movementData.type) {
+        throw new Error('El tipo de movimiento es requerido');
+      }
+      
+      if (!movementData.date) {
+        throw new Error('La fecha es requerida');
+      }
+      
+      if (!movementData.description?.trim()) {
+        throw new Error('La descripción es requerida');
+      }
+      
+      // Validar fecha no futura
+      const movementDate = new Date(movementData.date);
+      const today = new Date();
+      if (movementDate > today) {
+        throw new Error('La fecha no puede ser futura');
+      }
+      
+      // Validaciones específicas por tipo
+      if (movementData.type === 'overtime' && (!movementData.hours || movementData.hours <= 0)) {
+        throw new Error('Las horas extra deben ser mayor a 0');
+      }
+      
+      if (movementData.type === 'absence' && (!movementData.duration || movementData.duration <= 0)) {
+        throw new Error('La duración de la ausencia debe ser mayor a 0');
+      }
+      
+      if (movementData.type === 'loan' && (!movementData.totalAmount || movementData.totalAmount <= 0)) {
+        throw new Error('El monto del préstamo debe ser mayor a 0');
+      }
+      
       const result = await extrasService.registerMovement(employeeId, movementData);
       
       // Actualizar datos localmente para UI inmediata
@@ -75,6 +137,10 @@ export const useExtras = (options: UseExtrasOptions): UseExtrasReturn => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error registrando movimiento';
       setError(errorMessage);
+      logger.apiError('Error en registerMovement', err as Error, {
+        employeeId,
+        movementData
+      });
       throw err;
     }
   }, [employeeId, refreshData]);
