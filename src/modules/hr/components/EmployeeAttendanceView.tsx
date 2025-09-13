@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import AttendanceChart from './AttendanceChart';
 import EmployeeExtrasModal from './EmployeeExtrasModal';
+import EmployeeMovementsTable from './EmployeeMovementsTable';
 
 interface AttendanceRecord {
   id: string;
@@ -98,11 +99,13 @@ interface EmployeeAttendanceData {
 
 interface EmployeeAttendanceViewProps {
   employeeId: string;
+  employee: any; // Agregamos el empleado como prop
   onBack: () => void;
 }
 
 const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({ 
   employeeId, 
+  employee,
   onBack 
 }) => {
   const [attendanceData, setAttendanceData] = useState<EmployeeAttendanceData | null>(null);
@@ -768,107 +771,13 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
           </div>
         )}
 
-        {/* Pestaña de Extras */}
+        {/* Pestaña de Extras - Tabla General de Movimientos */}
         {activeTab === 'extras' && (
-          <div className="bg-white rounded-xl shadow-sm border">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">Registro de Extras</h3>
-                <button
-                  onClick={() => setIsExtrasModalOpen(true)}
-                  className="flex items-center space-x-2 px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Nuevo Extra</span>
-                </button>
-              </div>
-
-              {extrasData.length === 0 ? (
-                <div className="text-center py-12">
-                  <Plus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No hay extras registrados</h3>
-                  <p className="text-gray-600 mb-4">
-                    Registra faltas, horas extra, préstamos, descuentos y otros extras.
-                  </p>
-                  <button
-                    onClick={() => setIsExtrasModalOpen(true)}
-                    className="flex items-center space-x-2 px-4 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors mx-auto"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Registrar Primer Extra</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {extrasData.map((extra) => (
-                    <div key={extra.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start space-x-3">
-                          <div className={`p-2 rounded-lg ${
-                            extra.type === 'absence' ? 'bg-red-100' :
-                            extra.type === 'overtime' ? 'bg-blue-100' :
-                            extra.type === 'loan' ? 'bg-purple-100' :
-                            extra.type === 'bonus' ? 'bg-green-100' :
-                            'bg-gray-100'
-                          }`}>
-                            {extra.type === 'absence' && <UserX className="h-5 w-5 text-red-600" />}
-                            {extra.type === 'overtime' && <Clock className="h-5 w-5 text-blue-600" />}
-                            {extra.type === 'loan' && <CreditCard className="h-5 w-5 text-purple-600" />}
-                            {extra.type === 'bonus' && <TrendingUp className="h-5 w-5 text-green-600" />}
-                            {extra.type === 'discount' && <TrendingDown className="h-5 w-5 text-red-600" />}
-                            {extra.type === 'deduction' && <Minus className="h-5 w-5 text-orange-600" />}
-                            {extra.type === 'damage' && <Wrench className="h-5 w-5 text-red-700" />}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <h4 className="font-medium text-gray-900">
-                                {extra.type === 'absence' && 'Falta'}
-                                {extra.type === 'overtime' && 'Horas Extra'}
-                                {extra.type === 'loan' && 'Préstamo'}
-                                {extra.type === 'bonus' && 'Bono'}
-                                {extra.type === 'discount' && 'Descuento'}
-                                {extra.type === 'deduction' && 'Deducción'}
-                                {extra.type === 'damage' && 'Daño/Rotura'}
-                              </h4>
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                extra.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                extra.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {extra.status === 'approved' ? 'Aprobado' :
-                                 extra.status === 'pending' ? 'Pendiente' : 'Rechazado'}
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-600 mb-2">{extra.reason}</p>
-                            <div className="flex items-center space-x-4 text-sm text-gray-500">
-                              <span>📅 {new Date(extra.date).toLocaleDateString('es-MX')}</span>
-                              {extra.hours && <span>⏰ {extra.hours}h</span>}
-                              <span className={`font-medium ${
-                                extra.amount >= 0 ? 'text-green-600' : 'text-red-600'
-                              }`}>
-                                {extra.amount >= 0 ? '+' : ''}${Math.abs(extra.amount).toFixed(2)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {extra.attachments && extra.attachments.length > 0 && (
-                            <div className="text-xs text-gray-500 flex items-center space-x-1">
-                              <FileText className="h-3 w-3" />
-                              <span>{extra.attachments.length}</span>
-                            </div>
-                          )}
-                          <button className="p-1 text-gray-400 hover:text-gray-600">
-                            <Eye className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <EmployeeMovementsTable
+            employeeId={employeeId}
+            employee={employee}
+            onAddMovement={() => setIsExtrasModalOpen(true)}
+          />
         )}
       </div>
 

@@ -190,7 +190,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
         
         case 'attendance':
           try {
-            return <EmployeeAttendanceView employeeId={employee.id} onBack={onBack} />;
+            return <EmployeeAttendanceView employeeId={employee.id} employee={employee} onBack={onBack} />;
           } catch (error) {
             console.error('Error en EmployeeAttendanceView:', error);
             return (
