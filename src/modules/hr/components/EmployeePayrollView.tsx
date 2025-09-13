@@ -992,32 +992,31 @@ const PayrollConfigModal: React.FC<PayrollConfigModalProps> = ({
     }
   };
 
-  const [config, setConfig] = useState({
-    frequency: (currentConfig?.frequency || employeeInfo.frequency) as 'daily' | 'weekly' | 'biweekly' | 'monthly',
-    baseSalary: currentConfig?.baseSalary || employeeInfo.salary,
-    sbc: currentConfig?.sbc || employeeInfo.salary,
-    workingDaysPerWeek: currentConfig?.workingDaysPerWeek || employeeInfo.workingDaysPerWeek,
-    workingHoursPerDay: currentConfig?.workingHoursPerDay || employeeInfo.workingHoursPerDay,
-    overtimeRate: currentConfig?.overtimeRate || 1,
-    paymentMethod: (currentConfig?.paymentMethod || employeeInfo.paymentMethod) as 'transfer' | 'cash' | 'check',
-    notes: currentConfig?.notes || ''
-  });
+  // Función para obtener la configuración inicial
+  const getInitialConfig = useCallback(() => {
+    const frequency = (currentConfig?.frequency || 'weekly') as 'daily' | 'weekly' | 'biweekly' | 'monthly';
+    const baseSalary = currentConfig?.baseSalary || calculateSalaryForFrequency(employeeInfo.salary, frequency);
+    
+    return {
+      frequency,
+      baseSalary,
+      sbc: currentConfig?.sbc || employeeInfo.salary,
+      workingDaysPerWeek: currentConfig?.workingDaysPerWeek || employeeInfo.workingDaysPerWeek,
+      workingHoursPerDay: currentConfig?.workingHoursPerDay || employeeInfo.workingHoursPerDay,
+      overtimeRate: currentConfig?.overtimeRate || 1,
+      paymentMethod: (currentConfig?.paymentMethod || employeeInfo.paymentMethod) as 'transfer' | 'cash' | 'check',
+      notes: currentConfig?.notes || ''
+    };
+  }, [currentConfig, employeeInfo]);
+
+  const [config, setConfig] = useState(getInitialConfig());
 
   // Actualizar configuración cuando cambie la información del empleado
   useEffect(() => {
     if (!currentConfig) {
-      const frequency = employeeInfo.frequency as 'daily' | 'weekly' | 'biweekly' | 'monthly';
-      setConfig(prev => ({
-        ...prev,
-        frequency,
-        baseSalary: calculateSalaryForFrequency(employeeInfo.salary, frequency),
-        sbc: employeeInfo.salary,
-        workingDaysPerWeek: employeeInfo.workingDaysPerWeek,
-        workingHoursPerDay: employeeInfo.workingHoursPerDay,
-        paymentMethod: employeeInfo.paymentMethod
-      }));
+      setConfig(getInitialConfig());
     }
-  }, [employee, currentConfig, employeeInfo]);
+  }, [employee, currentConfig, getInitialConfig]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1082,11 +1081,16 @@ const PayrollConfigModal: React.FC<PayrollConfigModalProps> = ({
                   key={value}
                   type="button"
                   onClick={() => {
+                    const newFrequency = value as 'daily' | 'weekly' | 'biweekly' | 'monthly';
+                    const newBaseSalary = calculateSalaryForFrequency(employeeInfo.salary, newFrequency);
+                    
+                    console.log('🔄 Cambiando frecuencia a:', newFrequency);
+                    console.log('💰 Nuevo salario base:', newBaseSalary);
+                    
                     setConfig(prev => ({ 
                       ...prev, 
-                      frequency: value as 'daily' | 'weekly' | 'biweekly' | 'monthly',
-                      // Actualizar el salario base según la frecuencia seleccionada
-                      baseSalary: calculateSalaryForFrequency(employeeInfo.salary, value as 'daily' | 'weekly' | 'biweekly' | 'monthly')
+                      frequency: newFrequency,
+                      baseSalary: newBaseSalary
                     }));
                   }}
                   className={`p-3 border-2 rounded-lg text-center transition-all ${
