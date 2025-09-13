@@ -42,7 +42,6 @@ const PayrollGeneralView: React.FC = () => {
     currentPeriod,
     loading: periodsLoading,
     error: periodsError,
-    pagination,
     loadPeriods,
     createPeriod,
     processPeriod,

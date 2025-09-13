@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 import { PayrollPeriod } from '../../../types/payroll';
-import { formatCurrency, formatPercentage } from '../../../utils/payrollUtils';
+import { formatCurrency } from '../../../utils/payrollUtils';
 
 interface PayrollStatsProps {
   period: PayrollPeriod;

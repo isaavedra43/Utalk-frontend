@@ -12,14 +12,13 @@ import {
   Edit,
   RefreshCw,
   Check,
-  X,
   AlertCircle,
   FileText,
   Download
 } from 'lucide-react';
 
 import { PayrollPeriod, PayrollEmployee } from '../../../types/payroll';
-import { formatCurrency, getPeriodStatusColor } from '../../../utils/payrollUtils';
+import { formatCurrency } from '../../../utils/payrollUtils';
 
 interface Employee {
   id: string;
@@ -41,7 +40,7 @@ interface PayrollEmployeesTableProps {
     employee: Employee;
     payroll: PayrollEmployee | null;
   }>;
-  period: PayrollPeriod;
+  period?: PayrollPeriod;
   loading?: boolean;
 }
 
@@ -51,10 +50,6 @@ const PayrollEmployeesTable: React.FC<PayrollEmployeesTableProps> = ({
   loading = false
 }) => {
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
-  const [sortConfig, setSortConfig] = useState<{
-    key: string;
-    direction: 'asc' | 'desc';
-  }>({ key: 'employee.personalInfo.lastName', direction: 'asc' });
 
   // Manejar selección de empleados
   const handleSelectEmployee = (employeeId: string) => {
@@ -72,43 +67,6 @@ const PayrollEmployeesTable: React.FC<PayrollEmployeesTableProps> = ({
       setSelectedEmployees(employees.map(emp => emp.employee.id));
     }
   };
-
-  // Ordenamiento
-  const handleSort = (key: string) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  // Obtener valor para ordenamiento
-  const getSortValue = (item: any, key: string) => {
-    const keys = key.split('.');
-    let value = item;
-    for (const k of keys) {
-      value = value?.[k];
-    }
-    return value;
-  };
-
-  // Ordenar empleados
-  const sortedEmployees = React.useMemo(() => {
-    const sorted = [...employees].sort((a, b) => {
-      const aValue = getSortValue(a, sortConfig.key);
-      const bValue = getSortValue(b, sortConfig.key);
-      
-      if (aValue < bValue) {
-        return sortConfig.direction === 'asc' ? -1 : 1;
-      }
-      if (aValue > bValue) {
-        return sortConfig.direction === 'asc' ? 1 : -1;
-      }
-      return 0;
-    });
-    
-    return sorted;
-  }, [employees, sortConfig]);
 
   // Obtener estado de la nómina
   const getPayrollStatus = (payroll: PayrollEmployee | null) => {
@@ -207,24 +165,15 @@ const PayrollEmployeesTable: React.FC<PayrollEmployeesTableProps> = ({
                 />
               </th>
               
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('employee.personalInfo.lastName')}
-              >
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Empleado
               </th>
               
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('employee.position.department')}
-              >
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Departamento
               </th>
               
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('payroll.grossSalary')}
-              >
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Salario Bruto
               </th>
               
@@ -236,10 +185,7 @@ const PayrollEmployeesTable: React.FC<PayrollEmployeesTableProps> = ({
                 Deducciones
               </th>
               
-              <th 
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => handleSort('payroll.netSalary')}
-              >
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Salario Neto
               </th>
               
@@ -254,7 +200,7 @@ const PayrollEmployeesTable: React.FC<PayrollEmployeesTableProps> = ({
           </thead>
           
           <tbody className="bg-white divide-y divide-gray-200">
-            {sortedEmployees.map(({ employee, payroll }) => {
+            {employees.map(({ employee, payroll }) => {
               const payrollStatus = getPayrollStatus(payroll);
               
               return (
@@ -332,9 +278,9 @@ const PayrollEmployeesTable: React.FC<PayrollEmployeesTableProps> = ({
                   
                   {/* Estado */}
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${getPayrollStatus(payroll).color}-100 text-${getPayrollStatus(payroll).color}-800`}>
-                      {getStatusIcon(getPayrollStatus(payroll).status)}
-                      <span className="ml-1">{getPayrollStatus(payroll).label}</span>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${payrollStatus.color}-100 text-${payrollStatus.color}-800`}>
+                      {getStatusIcon(payrollStatus.status)}
+                      <span className="ml-1">{payrollStatus.label}</span>
                     </span>
                   </td>
                   
@@ -393,6 +339,7 @@ const PayrollEmployeesTable: React.FC<PayrollEmployeesTableProps> = ({
           </div>
         </div>
       </div>
+    </div>
   );
 };
 
