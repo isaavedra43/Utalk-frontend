@@ -213,26 +213,40 @@ class ExtrasService {
         throw new Error('ID de empleado es requerido');
       }
       
-      const params = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          params.append(key, String(value));
-        }
-      });
-      const queryString = params.toString();
-      const url = queryString ? `/api/employees/${employeeId}/overtime?${queryString}` : `/api/employees/${employeeId}/overtime`;
-      const response = await api.get(url);
+      // Usar el endpoint general de movimientos y filtrar por tipo 'overtime'
+      const allMovements = await this.getMovements(employeeId, filters);
       
-      // El backend devuelve: { success: true, data: { movements: [], statistics: {...} } }
-      if (response.data?.success && response.data?.data?.movements) {
-        return response.data.data.movements;
-      }
+      // Filtrar solo los movimientos de tipo 'overtime'
+      const overtimeMovements = allMovements.filter(movement => movement.type === 'overtime');
       
-      // Fallback para formato anterior
-      return response.data || [];
+      console.log('🔍 Movimientos encontrados:', allMovements.length);
+      console.log('⏰ Horas extra filtradas:', overtimeMovements.length);
+      
+      return overtimeMovements;
     } catch (error) {
-      this.handleError(error, 'getOvertimeRecords');
-      return [];
+      console.error('Error en getOvertimeRecords, intentando endpoint específico...', error);
+      
+      // Fallback al endpoint específico si el general falla
+      try {
+        const params = new URLSearchParams();
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            params.append(key, String(value));
+          }
+        });
+        const queryString = params.toString();
+        const url = queryString ? `/api/employees/${employeeId}/overtime?${queryString}` : `/api/employees/${employeeId}/overtime`;
+        const response = await api.get(url);
+        
+        if (response.data?.success && response.data?.data?.movements) {
+          return response.data.data.movements;
+        }
+        
+        return response.data || [];
+      } catch (fallbackError) {
+        this.handleError(fallbackError, 'getOvertimeRecords');
+        return [];
+      }
     }
   }
 
@@ -242,26 +256,40 @@ class ExtrasService {
         throw new Error('ID de empleado es requerido');
       }
       
-      const params = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          params.append(key, String(value));
-        }
-      });
-      const queryString = params.toString();
-      const url = queryString ? `/api/employees/${employeeId}/absences?${queryString}` : `/api/employees/${employeeId}/absences`;
-      const response = await api.get(url);
+      // Usar el endpoint general de movimientos y filtrar por tipo 'absence'
+      const allMovements = await this.getMovements(employeeId, filters);
       
-      // El backend devuelve: { success: true, data: { movements: [], statistics: {...} } }
-      if (response.data?.success && response.data?.data?.movements) {
-        return response.data.data.movements;
-      }
+      // Filtrar solo los movimientos de tipo 'absence'
+      const absenceMovements = allMovements.filter(movement => movement.type === 'absence');
       
-      // Fallback para formato anterior
-      return response.data || [];
+      console.log('🔍 Movimientos encontrados:', allMovements.length);
+      console.log('🚫 Ausencias filtradas:', absenceMovements.length);
+      
+      return absenceMovements;
     } catch (error) {
-      this.handleError(error, 'getAbsenceRecords');
-      return [];
+      console.error('Error en getAbsenceRecords, intentando endpoint específico...', error);
+      
+      // Fallback al endpoint específico si el general falla
+      try {
+        const params = new URLSearchParams();
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            params.append(key, String(value));
+          }
+        });
+        const queryString = params.toString();
+        const url = queryString ? `/api/employees/${employeeId}/absences?${queryString}` : `/api/employees/${employeeId}/absences`;
+        const response = await api.get(url);
+        
+        if (response.data?.success && response.data?.data?.movements) {
+          return response.data.data.movements;
+        }
+        
+        return response.data || [];
+      } catch (fallbackError) {
+        this.handleError(fallbackError, 'getAbsenceRecords');
+        return [];
+      }
     }
   }
 
@@ -271,26 +299,42 @@ class ExtrasService {
         throw new Error('ID de empleado es requerido');
       }
       
-      const params = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          params.append(key, String(value));
-        }
-      });
-      const queryString = params.toString();
-      const url = queryString ? `/api/employees/${employeeId}/loans?${queryString}` : `/api/employees/${employeeId}/loans`;
-      const response = await api.get(url);
+      // Usar el endpoint general de movimientos y filtrar por tipo 'loan'
+      // Esto es más confiable que el endpoint específico de loans que puede tener problemas
+      const allMovements = await this.getMovements(employeeId, filters);
       
-      // El backend devuelve: { success: true, data: { movements: [], statistics: {...} } }
-      if (response.data?.success && response.data?.data?.movements) {
-        return response.data.data.movements;
-      }
+      // Filtrar solo los movimientos de tipo 'loan'
+      const loanMovements = allMovements.filter(movement => movement.type === 'loan');
       
-      // Fallback para formato anterior
-      return response.data || [];
+      console.log('🔍 Movimientos encontrados:', allMovements.length);
+      console.log('💰 Préstamos filtrados:', loanMovements.length);
+      
+      return loanMovements;
     } catch (error) {
-      this.handleError(error, 'getLoanRecords');
-      return [];
+      console.error('Error en getLoanRecords, intentando endpoint específico...', error);
+      
+      // Fallback al endpoint específico si el general falla
+      try {
+        const params = new URLSearchParams();
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            params.append(key, String(value));
+          }
+        });
+        const queryString = params.toString();
+        const url = queryString ? `/api/employees/${employeeId}/loans?${queryString}` : `/api/employees/${employeeId}/loans`;
+        const response = await api.get(url);
+        
+        // El backend devuelve: { success: true, data: { movements: [], statistics: {...} } }
+        if (response.data?.success && response.data?.data?.movements) {
+          return response.data.data.movements;
+        }
+        
+        return response.data || [];
+      } catch (fallbackError) {
+        this.handleError(fallbackError, 'getLoanRecords');
+        return [];
+      }
     }
   }
 
