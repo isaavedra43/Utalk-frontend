@@ -87,64 +87,7 @@ const HRModule: React.FC = () => {
     if (showEmployeeDetail && selectedEmployee) {
       return (
         <EmployeeDetailView 
-          employee={{
-            id: selectedEmployee.id,
-            employeeNumber: selectedEmployee.employeeNumber,
-            personalInfo: {
-              firstName: selectedEmployee.firstName,
-              lastName: selectedEmployee.lastName,
-              email: selectedEmployee.email,
-              phone: selectedEmployee.phone,
-              avatar: selectedEmployee.avatar
-            },
-            position: {
-              id: selectedEmployee.position?.id || '',
-              title: selectedEmployee.position?.title || '',
-              department: selectedEmployee.position?.department || selectedEmployee.department || '',
-              level: selectedEmployee.position?.level || selectedEmployee.level || '',
-              reportsTo: selectedEmployee.position?.reportsTo || selectedEmployee.reportsTo,
-              jobDescription: selectedEmployee.position?.jobDescription || '',
-              requirements: selectedEmployee.position?.requirements || [],
-              skills: selectedEmployee.position?.skills || [],
-              salaryRange: selectedEmployee.position?.salaryRange || { min: 0, max: 0 }
-            },
-            location: {
-              id: selectedEmployee.location?.id || '',
-              name: selectedEmployee.location?.name || '',
-              address: selectedEmployee.location?.address?.street 
-                ? `${selectedEmployee.location.address.street} ${selectedEmployee.location.address.number}, ${selectedEmployee.location.address.neighborhood}, ${selectedEmployee.location.address.city}`
-                : '',
-              city: selectedEmployee.location?.address?.city || '',
-              state: selectedEmployee.location?.address?.state || '',
-              country: selectedEmployee.location?.address?.country || '',
-              postalCode: selectedEmployee.location?.address?.zipCode || '',
-              timezone: selectedEmployee.location?.timezone || '',
-              isRemote: selectedEmployee.location?.isRemote || false
-            },
-            contract: {
-              id: selectedEmployee.contract?.id || '',
-              type: selectedEmployee.contract?.type || selectedEmployee.contractType || '',
-              startDate: selectedEmployee.contract?.startDate || selectedEmployee.hireDate || new Date().toISOString(),
-              endDate: selectedEmployee.contract?.endDate,
-              workingHours: selectedEmployee.contract?.workingHours || 40,
-              workingDays: selectedEmployee.contract?.workingDays || '',
-              workingHoursRange: selectedEmployee.contract?.workingHoursRange || '',
-              customSchedule: selectedEmployee.contract?.customSchedule || {
-                enabled: false,
-                days: {
-                  lunes: { enabled: true, startTime: '09:00', endTime: '18:00' },
-                  martes: { enabled: true, startTime: '09:00', endTime: '18:00' },
-                  miercoles: { enabled: true, startTime: '09:00', endTime: '18:00' },
-                  jueves: { enabled: true, startTime: '09:00', endTime: '18:00' },
-                  viernes: { enabled: true, startTime: '09:00', endTime: '18:00' },
-                  sabado: { enabled: false, startTime: '09:00', endTime: '14:00' },
-                  domingo: { enabled: false, startTime: '09:00', endTime: '18:00' }
-                }
-              },
-              benefits: selectedEmployee.contract?.benefits || [],
-              clauses: selectedEmployee.contract?.clauses || []
-            }
-          }}
+          employee={selectedEmployee}
           onBack={handleBackToEmployeeList}
         />
       );
