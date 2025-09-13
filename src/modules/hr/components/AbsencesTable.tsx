@@ -10,14 +10,12 @@ import {
   AlertTriangle, 
   XCircle,
   Calendar,
-  Clock,
   DollarSign,
-  FileText,
   Heart,
   Car,
   Home
 } from 'lucide-react';
-import { extrasService, MovementRecord } from '../../../services/extrasService';
+import { extrasService } from '../../../services/extrasService';
 
 interface AbsenceRecord {
   id: string;
@@ -35,7 +33,10 @@ interface AbsenceRecord {
 
 interface AbsencesTableProps {
   employeeId: string;
-  employee: any;
+  employee: {
+    contract?: { salary?: number };
+    salary?: { baseSalary?: number };
+  };
   onAddAbsence: () => void;
 }
 
@@ -50,6 +51,8 @@ const AbsencesTable: React.FC<AbsencesTableProps> = ({
   const [selectedRecord, setSelectedRecord] = useState<AbsenceRecord | null>(null);
   const [absenceRecords, setAbsenceRecords] = useState<AbsenceRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Calcular salario diario basado en el salario real con manejo de errores
   const baseSalary = (() => {
@@ -93,8 +96,25 @@ const AbsencesTable: React.FC<AbsencesTableProps> = ({
         }));
         
         setAbsenceRecords(absenceData);
-      } catch (error) {
-        console.error('Error cargando ausencias:', error);
+      } catch (err) {
+        let errorMessage = 'Error cargando ausencias';
+        
+        if (err instanceof Error) {
+          if (err.message.includes('400')) {
+            errorMessage = 'Datos inválidos para cargar ausencias';
+          } else if (err.message.includes('404')) {
+            errorMessage = 'No se encontraron datos de ausencias para este empleado';
+          } else if (err.message.includes('500')) {
+            errorMessage = 'Error del servidor. Inténtalo de nuevo más tarde';
+          } else if (err.message.includes('Network Error') || err.message.includes('timeout')) {
+            errorMessage = 'Error de conexión. Verifica tu conexión a internet';
+          } else {
+            errorMessage = err.message;
+          }
+        }
+        
+        console.error('Error cargando ausencias:', err);
+        setError(errorMessage);
         setAbsenceRecords([]);
       } finally {
         setLoading(false);
@@ -104,7 +124,17 @@ const AbsencesTable: React.FC<AbsencesTableProps> = ({
     if (employeeId) {
       loadAbsenceData();
     }
-  }, [employeeId, dailySalary]);
+  }, [employeeId, dailySalary, retryCount]);
+
+  // Función para reintentar la carga de datos
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+  };
+
+  // Función para limpiar errores
+  const clearError = () => {
+    setError(null);
+  };
 
   // Datos de ejemplo (fallback)
   const fallbackAbsenceRecords: AbsenceRecord[] = [
@@ -261,6 +291,38 @@ const AbsencesTable: React.FC<AbsencesTableProps> = ({
         <div className="p-8 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Cargando ausencias...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Estado de error
+  if (error) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border">
+        <div className="p-8 text-center">
+          <div className="w-12 h-12 mx-auto mb-4 text-red-500">
+            <AlertTriangle className="w-full h-full" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Error al cargar ausencias</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <div className="flex justify-center space-x-3">
+            <button
+              onClick={handleRetry}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>Reintentar</span>
+            </button>
+            <button
+              onClick={clearError}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
       </div>
     );

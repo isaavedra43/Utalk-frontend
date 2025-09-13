@@ -193,7 +193,14 @@ class ExtrasService {
       const queryString = params.toString();
       const url = queryString ? `/api/employees/${employeeId}/extras?${queryString}` : `/api/employees/${employeeId}/extras`;
       const response = await api.get(url);
-      return response.data;
+      
+      // El backend devuelve: { success: true, data: { movements: [], statistics: {...} } }
+      if (response.data?.success && response.data?.data?.movements) {
+        return response.data.data.movements;
+      }
+      
+      // Fallback para formato anterior
+      return response.data || [];
     } catch (error) {
       this.handleError(error, 'getMovements');
       return []; // Para satisfacer el tipo de retorno
@@ -202,6 +209,10 @@ class ExtrasService {
 
   async getOvertimeRecords(employeeId: string, filters: Record<string, string | number> = {}): Promise<MovementRecord[]> {
     try {
+      if (!employeeId) {
+        throw new Error('ID de empleado es requerido');
+      }
+      
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -211,15 +222,26 @@ class ExtrasService {
       const queryString = params.toString();
       const url = queryString ? `/api/employees/${employeeId}/overtime?${queryString}` : `/api/employees/${employeeId}/overtime`;
       const response = await api.get(url);
-      return response.data;
+      
+      // El backend devuelve: { success: true, data: { movements: [], statistics: {...} } }
+      if (response.data?.success && response.data?.data?.movements) {
+        return response.data.data.movements;
+      }
+      
+      // Fallback para formato anterior
+      return response.data || [];
     } catch (error) {
-      console.error('Error fetching overtime records:', error);
-      throw error;
+      this.handleError(error, 'getOvertimeRecords');
+      return [];
     }
   }
 
   async getAbsenceRecords(employeeId: string, filters: Record<string, string | number> = {}): Promise<MovementRecord[]> {
     try {
+      if (!employeeId) {
+        throw new Error('ID de empleado es requerido');
+      }
+      
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -229,15 +251,26 @@ class ExtrasService {
       const queryString = params.toString();
       const url = queryString ? `/api/employees/${employeeId}/absences?${queryString}` : `/api/employees/${employeeId}/absences`;
       const response = await api.get(url);
-      return response.data;
+      
+      // El backend devuelve: { success: true, data: { movements: [], statistics: {...} } }
+      if (response.data?.success && response.data?.data?.movements) {
+        return response.data.data.movements;
+      }
+      
+      // Fallback para formato anterior
+      return response.data || [];
     } catch (error) {
-      console.error('Error fetching absence records:', error);
-      throw error;
+      this.handleError(error, 'getAbsenceRecords');
+      return [];
     }
   }
 
   async getLoanRecords(employeeId: string, filters: Record<string, string | number> = {}): Promise<MovementRecord[]> {
     try {
+      if (!employeeId) {
+        throw new Error('ID de empleado es requerido');
+      }
+      
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -247,15 +280,26 @@ class ExtrasService {
       const queryString = params.toString();
       const url = queryString ? `/api/employees/${employeeId}/loans?${queryString}` : `/api/employees/${employeeId}/loans`;
       const response = await api.get(url);
-      return response.data;
+      
+      // El backend devuelve: { success: true, data: { movements: [], statistics: {...} } }
+      if (response.data?.success && response.data?.data?.movements) {
+        return response.data.data.movements;
+      }
+      
+      // Fallback para formato anterior
+      return response.data || [];
     } catch (error) {
-      console.error('Error fetching loan records:', error);
-      throw error;
+      this.handleError(error, 'getLoanRecords');
+      return [];
     }
   }
 
   async getBonusRecords(employeeId: string, filters: Record<string, string | number> = {}): Promise<MovementRecord[]> {
     try {
+      if (!employeeId) {
+        throw new Error('ID de empleado es requerido');
+      }
+      
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -265,15 +309,26 @@ class ExtrasService {
       const queryString = params.toString();
       const url = queryString ? `/api/employees/${employeeId}/bonuses?${queryString}` : `/api/employees/${employeeId}/bonuses`;
       const response = await api.get(url);
-      return response.data;
+      
+      // El backend devuelve: { success: true, data: { movements: [], statistics: {...} } }
+      if (response.data?.success && response.data?.data?.movements) {
+        return response.data.data.movements;
+      }
+      
+      // Fallback para formato anterior
+      return response.data || [];
     } catch (error) {
-      console.error('Error fetching bonus records:', error);
-      throw error;
+      this.handleError(error, 'getBonusRecords');
+      return [];
     }
   }
 
   async getDeductionRecords(employeeId: string, filters: Record<string, string | number> = {}): Promise<MovementRecord[]> {
     try {
+      if (!employeeId) {
+        throw new Error('ID de empleado es requerido');
+      }
+      
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -283,15 +338,26 @@ class ExtrasService {
       const queryString = params.toString();
       const url = queryString ? `/api/employees/${employeeId}/deductions?${queryString}` : `/api/employees/${employeeId}/deductions`;
       const response = await api.get(url);
-      return response.data;
+      
+      // El backend devuelve: { success: true, data: { movements: [], statistics: {...} } }
+      if (response.data?.success && response.data?.data?.movements) {
+        return response.data.data.movements;
+      }
+      
+      // Fallback para formato anterior
+      return response.data || [];
     } catch (error) {
-      console.error('Error fetching deduction records:', error);
-      throw error;
+      this.handleError(error, 'getDeductionRecords');
+      return [];
     }
   }
 
   async getDamageRecords(employeeId: string, filters: Record<string, string | number> = {}): Promise<MovementRecord[]> {
     try {
+      if (!employeeId) {
+        throw new Error('ID de empleado es requerido');
+      }
+      
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -301,10 +367,17 @@ class ExtrasService {
       const queryString = params.toString();
       const url = queryString ? `/api/employees/${employeeId}/damages?${queryString}` : `/api/employees/${employeeId}/damages`;
       const response = await api.get(url);
-      return response.data;
+      
+      // El backend devuelve: { success: true, data: { movements: [], statistics: {...} } }
+      if (response.data?.success && response.data?.data?.movements) {
+        return response.data.data.movements;
+      }
+      
+      // Fallback para formato anterior
+      return response.data || [];
     } catch (error) {
-      console.error('Error fetching damage records:', error);
-      throw error;
+      this.handleError(error, 'getDamageRecords');
+      return [];
     }
   }
 
