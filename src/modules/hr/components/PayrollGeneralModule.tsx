@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Calendar, 
   DollarSign, 
@@ -20,402 +20,175 @@ import {
   History,
   ArrowLeft,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  MoreHorizontal
 } from 'lucide-react';
-import { 
-  PayrollPeriod, 
-  EmployeePayrollData, 
-  PayrollGeneralSummary, 
-  PayrollGeneralFilters,
-  PayrollVoucher 
-} from '../../../types/payrollGeneral';
-import { PayrollPeriodModal } from './PayrollPeriodModal';
-import { PayrollVoucherModal } from './PayrollVoucherModal';
-import { PayrollGeneralReport } from './PayrollGeneralReport';
+import { payrollApi, PayrollPeriod, PayrollEmployee } from '../../../services/payrollApi';
 
 export const PayrollGeneralModule: React.FC = () => {
+  // Estados principales
   const [currentPeriod, setCurrentPeriod] = useState<PayrollPeriod | null>(null);
-  const [employeePayrolls, setEmployeePayrolls] = useState<EmployeePayrollData[]>([]);
-  const [summary, setSummary] = useState<PayrollGeneralSummary | null>(null);
+  const [employees, setEmployees] = useState<PayrollEmployee[]>([]);
+  const [periods, setPeriods] = useState<PayrollPeriod[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Estados para historial de nóminas
+  // Estados de vista
   const [viewMode, setViewMode] = useState<'current' | 'history'>('current');
-  const [payrollHistory, setPayrollHistory] = useState<PayrollPeriod[]>([]);
-  const [selectedHistoryPeriod, setSelectedHistoryPeriod] = useState<PayrollPeriod | null>(null);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyPage, setHistoryPage] = useState(1);
-  const [historyTotalPages, setHistoryTotalPages] = useState(1);
-  
-  // Modales
-  const [showPeriodModal, setShowPeriodModal] = useState(false);
-  const [showVoucherModal, setShowVoucherModal] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<EmployeePayrollData | null>(null);
-  
-  // Filtros
-  const [filters, setFilters] = useState<PayrollGeneralFilters>({
-    department: 'all',
-    status: 'all',
-    search: '',
-  });
-  
-  // Selección múltiple
   const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
+  
+  // Estados de modales
+  const [showPeriodModal, setShowPeriodModal] = useState(false);
+  const [processingPayroll, setProcessingPayroll] = useState(false);
+  
+  // Estados de filtros y paginación
+  const [filters, setFilters] = useState({
+    search: '',
+    department: 'all',
+    status: 'all'
+  });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0
+  });
 
+  // Cargar período actual al montar el componente
   useEffect(() => {
-    if (viewMode === 'current') {
-      loadPayrollData();
-    } else if (viewMode === 'history') {
-      loadPayrollHistory();
-    }
-  }, [currentPeriod, viewMode, historyPage]);
+    loadCurrentPeriod();
+    loadPeriods();
+  }, []);
 
-  const loadPayrollHistory = async () => {
+  // Cargar empleados cuando cambie el período actual o los filtros
+  useEffect(() => {
+    if (currentPeriod && viewMode === 'current') {
+      loadPeriodEmployees();
+    }
+  }, [currentPeriod, filters, pagination.page]);
+
+  // Función para cargar el período actual
+  const loadCurrentPeriod = useCallback(async () => {
     try {
-      setHistoryLoading(true);
       setError(null);
-      
-      // TODO: Conectar con API real para obtener historial
-      // const response = await payrollGeneralService.getPayrollHistory({ page: historyPage, limit: 10 });
-      
-      // Mock de historial de nóminas
-      const mockHistory: PayrollPeriod[] = [
-        {
-          id: '1',
-          name: 'Nómina Semanal 37 - 2025',
-          startDate: '2025-09-08',
-          endDate: '2025-09-14',
-          frequency: 'weekly',
-          status: 'paid',
-          createdAt: '2025-09-13T12:13:33.725Z',
-          updatedAt: '2025-09-13T12:20:41.709Z'
-        },
-        {
-          id: '2',
-          name: 'Nómina Semanal 36 - 2025',
-          startDate: '2025-09-01',
-          endDate: '2025-09-07',
-          frequency: 'weekly',
-          status: 'paid',
-          createdAt: '2025-09-06T12:13:33.725Z',
-          updatedAt: '2025-09-06T12:20:41.709Z'
-        },
-        {
-          id: '3',
-          name: 'Nómina Semanal 35 - 2025',
-          startDate: '2025-08-25',
-          endDate: '2025-08-31',
-          frequency: 'weekly',
-          status: 'paid',
-          createdAt: '2025-08-30T12:13:33.725Z',
-          updatedAt: '2025-08-30T12:20:41.709Z'
-        },
-        {
-          id: '4',
-          name: 'Nómina Semanal 34 - 2025',
-          startDate: '2025-08-18',
-          endDate: '2025-08-24',
-          frequency: 'weekly',
-          status: 'paid',
-          createdAt: '2025-08-23T12:13:33.725Z',
-          updatedAt: '2025-08-23T12:20:41.709Z'
-        },
-        {
-          id: '5',
-          name: 'Nómina Semanal 33 - 2025',
-          startDate: '2025-08-11',
-          endDate: '2025-08-17',
-          frequency: 'weekly',
-          status: 'paid',
-          createdAt: '2025-08-16T12:13:33.725Z',
-          updatedAt: '2025-08-16T12:20:41.709Z'
-        }
-      ];
-      
-      setPayrollHistory(mockHistory);
-      setHistoryTotalPages(3); // Mock de paginación
-      
-    } catch (err: any) {
-      setError(err.message || 'Error al cargar historial de nóminas');
-    } finally {
-      setHistoryLoading(false);
+      const period = await payrollApi.getCurrentPayrollPeriod();
+      setCurrentPeriod(period);
+    } catch (error) {
+      console.error('Error cargando período actual:', error);
+      // No mostrar error si no hay período actual
     }
-  };
+  }, []);
 
-  const loadPayrollData = async () => {
+  // Función para cargar todos los períodos
+  const loadPeriods = useCallback(async () => {
+    try {
+      setError(null);
+      const response = await payrollApi.getPayrollPeriods({
+        page: 1,
+        limit: 50
+      });
+      setPeriods(response.periods);
+    } catch (error) {
+      console.error('Error cargando períodos:', error);
+      setError('Error cargando períodos de nómina');
+    }
+  }, []);
+
+  // Función para cargar empleados del período
+  const loadPeriodEmployees = useCallback(async () => {
     if (!currentPeriod) return;
-    
+
     try {
       setLoading(true);
       setError(null);
       
-      // TODO: Conectar con API real
-      // const response = await payrollGeneralService.getPayrollByPeriod(currentPeriod.id);
-      // const extrasResponse = await payrollGeneralService.getAllExtrasForPeriod(currentPeriod.id);
-      
-      // Datos de ejemplo con extras reales del período
-      const mockData: EmployeePayrollData[] = [
-        {
-          employeeId: '1',
-          employeeNumber: 'EMP241001',
-          fullName: 'Juan Pérez García',
-          position: 'Desarrollador Senior',
-          department: 'Tecnología',
-          avatar: '/avatars/juan.jpg',
-          baseSalary: 50000,
-          dailySalary: 1666.67,
-          hourlyRate: 208.33,
-          workDays: 22,
-          workedDays: 20,
-          absentDays: 2,
-          lateArrivals: 1,
-          overtime: 1.5, // 1.5 horas extra del período
-          basePay: 33333.33, // 20 días trabajados * 1666.67
-          overtimePay: 312.50, // 1.5h * 208.33/h
-          bonuses: 0,
-          allowances: 0,
-          totalPerceptions: 33645.83,
-          // Deducciones basadas en extras reales (sin impuestos)
-          loans: 83.33, // Pago mensual de préstamo
-          advances: 0,
-          absenceDeductions: 3333.34, // 2 días faltados * 1666.67
-          otherDeductions: 0,
-          totalDeductions: 3416.67,
-          netPay: 30229.16,
-          status: 'pending',
-          extras: {
-            overtime: [
-              {
-                id: '1',
-                date: '2024-09-12',
-                description: 'Trabajo extra en proyecto urgente',
-                hours: 1.5,
-                hourlyRate: 208.33,
-                totalAmount: 312.50,
-                status: 'approved',
-                type: 'regular'
-              }
-            ],
-            absences: [
-              {
-                id: '1',
-                date: '2024-09-12',
-                description: 'Falta sin justificar',
-                days: 2,
-                dailyRate: 1666.67,
-                totalAmount: 3333.34,
-                status: 'approved',
-                type: 'unpaid'
-              }
-            ],
-            loans: [
-              {
-                id: '1',
-                date: '2024-09-12',
-                description: 'Préstamo personal',
-                monthlyPayment: 83.33,
-                status: 'active',
-                remainingAmount: 2000
-              }
-            ],
-            advances: []
-          }
-        },
-        {
-          employeeId: '2',
-          employeeNumber: 'EMP241002',
-          fullName: 'María López Hernández',
-          position: 'Contadora',
-          department: 'Finanzas',
-          baseSalary: 40000,
-          dailySalary: 1333.33,
-          hourlyRate: 166.67,
-          workDays: 22,
-          workedDays: 22,
-          absentDays: 0,
-          lateArrivals: 0,
-          overtime: 0,
-          basePay: 40000, // 22 días trabajados * 1333.33 (redondeado)
-          overtimePay: 0,
-          bonuses: 0,
-          allowances: 0,
-          totalPerceptions: 40000,
-          // Sin deducciones por extras
-          loans: 0,
-          advances: 0,
-          absenceDeductions: 0,
-          otherDeductions: 0,
-          totalDeductions: 0,
-          netPay: 40000,
-          status: 'approved',
-          extras: {
-            overtime: [],
-            absences: [],
-            loans: [],
-            advances: []
-          }
-        }
-      ];
-      
-      setEmployeePayrolls(mockData);
-      
-      // Calcular resumen
-      const mockSummary: PayrollGeneralSummary = {
-        totalEmployees: mockData.length,
-        totalGrossPay: mockData.reduce((sum, emp) => sum + emp.totalPerceptions, 0),
-        totalDeductions: mockData.reduce((sum, emp) => sum + emp.totalDeductions, 0),
-        totalNetPay: mockData.reduce((sum, emp) => sum + emp.netPay, 0),
-        totalAbsences: mockData.reduce((sum, emp) => sum + emp.absentDays, 0),
-        totalLoans: mockData.reduce((sum, emp) => sum + emp.loans, 0),
-        averageSalary: mockData.reduce((sum, emp) => sum + emp.netPay, 0) / mockData.length,
-        departmentBreakdown: [
-          { department: 'Tecnología', employees: 1, totalPay: 30229.16 },
-          { department: 'Finanzas', employees: 1, totalPay: 40000 }
-        ],
-        statusBreakdown: {
-          pending: mockData.filter(emp => emp.status === 'pending').length,
-          approved: mockData.filter(emp => emp.status === 'approved').length,
-          paid: mockData.filter(emp => emp.status === 'paid').length
-        }
-      };
-      
-      setSummary(mockSummary);
-      
-    } catch (err: any) {
-      setError(err.message || 'Error al cargar datos de nómina');
+      const response = await payrollApi.getPeriodEmployees(currentPeriod.id, {
+        page: pagination.page,
+        limit: pagination.limit,
+        search: filters.search || undefined,
+        department: filters.department !== 'all' ? filters.department : undefined,
+        status: filters.status !== 'all' ? filters.status : undefined
+      });
+
+      setEmployees(response.employees);
+      setPagination(prev => ({
+        ...prev,
+        total: response.pagination.total,
+        totalPages: response.pagination.totalPages
+      }));
+
+    } catch (error) {
+      console.error('Error cargando empleados:', error);
+      setError('Error cargando empleados del período');
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPeriod, filters, pagination.page, pagination.limit]);
 
-  const handleCreatePeriod = async (periodData: Partial<PayrollPeriod>) => {
+  // Función para crear nuevo período
+  const handleCreatePeriod = async (periodData: {
+    name: string;
+    startDate: string;
+    endDate: string;
+    frequency: 'weekly' | 'biweekly' | 'monthly';
+    configurations: {
+      calculateTaxes: boolean;
+      includeOvertime: boolean;
+      applyAbsenceDeductions: boolean;
+      includeLoans: boolean;
+    };
+  }) => {
     try {
       setLoading(true);
+      setError(null);
       
-      // TODO: Conectar con API
-      // const response = await payrollGeneralService.createPeriod(periodData);
-      
-      // Mock de creación exitosa
-      const newPeriod: PayrollPeriod = {
-        id: Date.now().toString(),
-        name: periodData.name!,
-        startDate: periodData.startDate!,
-        endDate: periodData.endDate!,
-        frequency: periodData.frequency!,
-        status: 'draft',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      
+      const newPeriod = await payrollApi.createPayrollPeriod(periodData);
       setCurrentPeriod(newPeriod);
       setShowPeriodModal(false);
+      setViewMode('current');
       
-    } catch (err: any) {
-      setError(err.message || 'Error al crear período');
+      // Recargar períodos
+      await loadPeriods();
+      
+    } catch (error) {
+      console.error('Error creando período:', error);
+      setError('Error creando período de nómina');
     } finally {
       setLoading(false);
     }
   };
 
+  // Función para procesar nómina masiva
   const handleProcessPayroll = async () => {
-    if (!currentPeriod) return;
-    
+    if (!currentPeriod || !payrollApi.canProcessPeriod(currentPeriod.status)) return;
+
     try {
-      setLoading(true);
+      setProcessingPayroll(true);
+      setError(null);
       
-      // TODO: Conectar con API para procesar nómina
-      // await payrollGeneralService.processPayroll(currentPeriod.id);
+      const result = await payrollApi.processMassPayroll(currentPeriod.id);
       
-      // Mock de procesamiento
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      if (result.success) {
+        // Actualizar período actual
+        setCurrentPeriod(result.period);
+        // Recargar empleados
+        await loadPeriodEmployees();
+        
+        if (result.errorsCount > 0) {
+          setError(`Nómina procesada con ${result.errorsCount} errores. Revisa los empleados individualmente.`);
+        }
+      }
       
-      setCurrentPeriod({
-        ...currentPeriod,
-        status: 'processing'
-      });
-      
-    } catch (err: any) {
-      setError(err.message || 'Error al procesar nómina');
+    } catch (error) {
+      console.error('Error procesando nómina:', error);
+      setError('Error procesando nómina masiva');
     } finally {
-      setLoading(false);
+      setProcessingPayroll(false);
     }
   };
 
-  const handleViewVoucher = (employee: EmployeePayrollData) => {
-    setSelectedEmployee(employee);
-    setShowVoucherModal(true);
-  };
-
-  const handleViewHistoryPeriod = async (period: PayrollPeriod) => {
-    setSelectedHistoryPeriod(period);
-    setCurrentPeriod(period);
-    setViewMode('current');
-    // Cargar datos del período seleccionado
-    await loadPayrollData();
-  };
-
-  const handleBackToHistory = () => {
-    setViewMode('history');
-    setCurrentPeriod(null);
-    setEmployeePayrolls([]);
-    setSummary(null);
-  };
-
-  const handleGenerateNewPayroll = () => {
-    setViewMode('current');
-    setCurrentPeriod(null);
-    setShowPeriodModal(true);
-  };
-
-  const handleSelectEmployee = (employeeId: string, selected: boolean) => {
-    const newSelected = new Set(selectedEmployees);
-    if (selected) {
-      newSelected.add(employeeId);
-    } else {
-      newSelected.delete(employeeId);
-    }
-    setSelectedEmployees(newSelected);
-    setSelectAll(newSelected.size === employeePayrolls.length);
-  };
-
-  const handleSelectAll = (selected: boolean) => {
-    if (selected) {
-      setSelectedEmployees(new Set(employeePayrolls.map(emp => emp.employeeId)));
-    } else {
-      setSelectedEmployees(new Set());
-    }
-    setSelectAll(selected);
-  };
-
-  const getStatusIcon = (status: EmployeePayrollData['status']) => {
-    switch (status) {
-      case 'paid':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'approved':
-        return <Clock className="w-4 h-4 text-blue-500" />;
-      case 'pending':
-        return <AlertCircle className="w-4 h-4 text-yellow-500" />;
-      default:
-        return <XCircle className="w-4 h-4 text-gray-400" />;
-    }
-  };
-
-  const getStatusColor = (status: EmployeePayrollData['status']) => {
-    switch (status) {
-      case 'paid':
-        return 'bg-green-100 text-green-800';
-      case 'approved':
-        return 'bg-blue-100 text-blue-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
+  // Funciones de utilidad
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
@@ -423,156 +196,11 @@ export const PayrollGeneralModule: React.FC = () => {
     }).format(amount);
   };
 
-  const filteredEmployees = employeePayrolls.filter(employee => {
-    const matchesSearch = !filters.search || 
-      employee.fullName.toLowerCase().includes(filters.search.toLowerCase()) ||
-      employee.employeeNumber.toLowerCase().includes(filters.search.toLowerCase());
-    
-    const matchesDepartment = !filters.department || filters.department === 'all' || 
-      employee.department === filters.department;
-    
-    const matchesStatus = !filters.status || filters.status === 'all' || 
-      employee.status === filters.status;
-    
-    return matchesSearch && matchesDepartment && matchesStatus;
-  });
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-MX');
+  };
 
-  // Vista de historial de nóminas
-  if (viewMode === 'history') {
-    return (
-      <div className="payroll-general-module">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Historial de Nóminas</h1>
-            <p className="text-gray-600">Consulta y revisa todas las nóminas procesadas anteriormente</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleGenerateNewPayroll}
-              className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Generar Nueva Nómina
-            </button>
-          </div>
-        </div>
-
-        {historyLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600">Cargando historial de nóminas...</p>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Períodos de Nómina ({payrollHistory.length})
-              </h3>
-            </div>
-
-            {payrollHistory.length === 0 ? (
-              <div className="text-center py-12">
-                <History className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">No hay nóminas procesadas anteriormente</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-200">
-                {payrollHistory.map((period) => (
-                  <div key={period.id} className="p-6 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h4 className="text-lg font-medium text-gray-900">{period.name}</h4>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            period.status === 'paid' ? 'bg-green-100 text-green-800' :
-                            period.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                            period.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {period.status === 'paid' ? 'Pagado' :
-                             period.status === 'completed' ? 'Completado' :
-                             period.status === 'processing' ? 'Procesando' :
-                             'Borrador'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-6 text-sm text-gray-600">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            <span>
-                              {new Date(period.startDate).toLocaleDateString('es-MX')} - {new Date(period.endDate).toLocaleDateString('es-MX')}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            <span>
-                              Procesado: {new Date(period.updatedAt).toLocaleDateString('es-MX')}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <DollarSign className="w-4 h-4" />
-                            <span className="capitalize">{period.frequency}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleViewHistoryPeriod(period)}
-                          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors"
-                        >
-                          <Eye className="w-4 h-4" />
-                          Ver Detalles
-                        </button>
-                        <button className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
-                          <Download className="w-4 h-4" />
-                          Exportar
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Paginación */}
-            {historyTotalPages > 1 && (
-              <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                <div className="text-sm text-gray-700">
-                  Página {historyPage} de {historyTotalPages}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setHistoryPage(prev => Math.max(1, prev - 1))}
-                    disabled={historyPage === 1}
-                    className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setHistoryPage(prev => Math.min(historyTotalPages, prev + 1))}
-                    disabled={historyPage === historyTotalPages}
-                    className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {showPeriodModal && (
-          <PayrollPeriodModal
-            onClose={() => setShowPeriodModal(false)}
-            onSubmit={handleCreatePeriod}
-            loading={loading}
-          />
-        )}
-      </div>
-    );
-  }
-
+  // Vista principal - sin período activo
   if (!currentPeriod) {
     return (
       <div className="payroll-general-module">
@@ -618,6 +246,7 @@ export const PayrollGeneralModule: React.FC = () => {
           </div>
         </div>
 
+        {/* Modal de crear período */}
         {showPeriodModal && (
           <PayrollPeriodModal
             onClose={() => setShowPeriodModal(false)}
@@ -629,399 +258,177 @@ export const PayrollGeneralModule: React.FC = () => {
     );
   }
 
+  return <div>Vista con período activo - En construcción</div>;
+};
+
+// Modal para configurar período de nómina
+interface PayrollPeriodModalProps {
+  period?: PayrollPeriod | null;
+  onClose: () => void;
+  onSubmit: (data: any) => void;
+  loading: boolean;
+}
+
+const PayrollPeriodModal: React.FC<PayrollPeriodModalProps> = ({
+  period,
+  onClose,
+  onSubmit,
+  loading
+}) => {
+  const [formData, setFormData] = useState({
+    name: period?.name || '',
+    startDate: period?.startDate || '',
+    endDate: period?.endDate || '',
+    frequency: period?.frequency || 'monthly' as 'weekly' | 'biweekly' | 'monthly',
+    configurations: {
+      calculateTaxes: period?.configurations?.calculateTaxes ?? true,
+      includeOvertime: period?.configurations?.includeOvertime ?? true,
+      applyAbsenceDeductions: period?.configurations?.applyAbsenceDeductions ?? true,
+      includeLoans: period?.configurations?.includeLoans ?? true
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
   return (
-    <div className="payroll-general-module">
-      {/* Header */}
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            {selectedHistoryPeriod && (
-              <button
-                onClick={handleBackToHistory}
-                className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 px-3 py-1 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Volver al Historial
-              </button>
-            )}
-            <h1 className="text-3xl font-bold text-gray-900">Nómina General</h1>
-          </div>
-          <div className="flex items-center gap-4 mt-2">
-            <span className="text-gray-600">Período actual:</span>
-            <span className="font-semibold text-blue-600">{currentPeriod.name}</span>
-            <span className="text-sm text-gray-500">
-              ({new Date(currentPeriod.startDate).toLocaleDateString('es-MX')} - {new Date(currentPeriod.endDate).toLocaleDateString('es-MX')})
-            </span>
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              currentPeriod.status === 'completed' ? 'bg-green-100 text-green-800' :
-              currentPeriod.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-              currentPeriod.status === 'paid' ? 'bg-purple-100 text-purple-800' :
-              'bg-gray-100 text-gray-800'
-            }`}>
-              {currentPeriod.status === 'completed' ? 'Completado' :
-               currentPeriod.status === 'processing' ? 'Procesando' :
-               currentPeriod.status === 'paid' ? 'Pagado' :
-               'Borrador'}
-            </span>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Configurar Nuevo Período de Nómina
+            </h3>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <XCircle className="w-5 h-5" />
+            </button>
           </div>
         </div>
-        
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowPeriodModal(true)}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            <Settings className="w-4 h-4" />
-            Configurar Período
-          </button>
-          
-          <button
-            onClick={() => setShowReportModal(true)}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors"
-          >
-            <FileText className="w-4 h-4" />
-            Reporte General
-          </button>
-          
-          <button
-            onClick={handleProcessPayroll}
-            disabled={loading || currentPeriod.status !== 'draft'}
-            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <DollarSign className="w-4 h-4" />
-            )}
-            Procesar Nómina
-          </button>
-        </div>
-      </div>
 
-      {/* Summary Cards */}
-      {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Empleados</p>
-                <p className="text-2xl font-bold text-gray-900">{summary.totalEmployees}</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-full">
-                <Users className="w-6 h-6 text-blue-600" />
-              </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Frecuencia de Pago */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Frecuencia de Pago
+            </label>
+            <div className="grid grid-cols-3 gap-3">
+              {(['weekly', 'biweekly', 'monthly'] as const).map((freq) => (
+                <button
+                  key={freq}
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, frequency: freq }))}
+                  className={`p-4 border rounded-lg text-center transition-colors ${
+                    formData.frequency === freq
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  <Calendar className="w-6 h-6 mx-auto mb-2" />
+                  <div className="font-medium">
+                    {freq === 'weekly' ? 'Semanal' : freq === 'biweekly' ? 'Quincenal' : 'Mensual'}
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Nómina Total</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.totalNetPay)}</p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-full">
-                <DollarSign className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
+          {/* Nombre del Período */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Nombre del Período
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Ej: Septiembre 2025"
+              required
+            />
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Deducciones</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.totalDeductions)}</p>
-              </div>
-              <div className="p-3 bg-red-100 rounded-full">
-                <TrendingUp className="w-6 h-6 text-red-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Promedio Salarial</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.averageSalary)}</p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-full">
-                <TrendingUp className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Filters and Actions */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border mb-6">
-        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-          <div className="flex flex-col sm:flex-row gap-4 flex-1">
-            <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          {/* Fechas */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Fecha de Inicio
+              </label>
               <input
-                type="text"
-                placeholder="Buscar empleado o número..."
-                value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
               />
             </div>
-            
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-400" />
-              <select
-                value={filters.department}
-                onChange={(e) => setFilters({ ...filters, department: e.target.value })}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">Todos los departamentos</option>
-                <option value="Tecnología">Tecnología</option>
-                <option value="Finanzas">Finanzas</option>
-                <option value="Ventas">Ventas</option>
-                <option value="RRHH">RRHH</option>
-              </select>
-              
-              <select
-                value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value as any })}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">Todos los estados</option>
-                <option value="pending">Pendiente</option>
-                <option value="approved">Aprobado</option>
-                <option value="paid">Pagado</option>
-              </select>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Fecha de Fin
+              </label>
+              <input
+                type="date"
+                value={formData.endDate}
+                onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
             </div>
           </div>
-          
-          {selectedEmployees.size > 0 && (
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600">
-                {selectedEmployees.size} empleado(s) seleccionado(s)
-              </span>
-              <button className="flex items-center gap-2 text-blue-600 hover:text-blue-800 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors">
-                <Printer className="w-4 h-4" />
-                Imprimir Vales
-              </button>
-              <button className="flex items-center gap-2 text-green-600 hover:text-green-800 px-3 py-1.5 rounded-lg hover:bg-green-50 transition-colors">
-                <CheckCircle className="w-4 h-4" />
-                Aprobar Seleccionados
-              </button>
+
+          {/* Configuraciones del Período */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-3">Configuraciones del Período</h4>
+            <div className="space-y-3">
+              {[
+                { key: 'calculateTaxes', label: 'Calcular automáticamente deducciones de impuestos' },
+                { key: 'includeOvertime', label: 'Incluir cálculo de horas extra' },
+                { key: 'applyAbsenceDeductions', label: 'Aplicar deducciones por faltas' },
+                { key: 'includeLoans', label: 'Incluir préstamos y adelantos' }
+              ].map(({ key, label }) => (
+                <label key={key} className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={formData.configurations[key as keyof typeof formData.configurations]}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      configurations: {
+                        ...prev.configurations,
+                        [key]: e.target.checked
+                      }
+                    }))}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-blue-600">{label}</span>
+                </label>
+              ))}
             </div>
-          )}
-        </div>
+          </div>
+
+          {/* Botones */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {loading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              Crear Período
+            </button>
+          </div>
+        </form>
       </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-          {error}
-        </div>
-      )}
-
-      {/* Employee Payroll Table */}
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Nómina de Empleados ({filteredEmployees.length})
-          </h3>
-        </div>
-
-        {loading && employeePayrolls.length === 0 ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600">Cargando nómina...</p>
-            </div>
-          </div>
-        ) : filteredEmployees.length === 0 ? (
-          <div className="text-center py-12">
-            <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No hay empleados que coincidan con los filtros</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left">
-                    <input
-                      type="checkbox"
-                      checked={selectAll}
-                      onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Empleado
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Asistencia
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Percepciones
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Deducciones
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Neto a Pagar
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Estado
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredEmployees.map((employee) => (
-                  <tr key={employee.employeeId} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedEmployees.has(employee.employeeId)}
-                        onChange={(e) => handleSelectEmployee(employee.employeeId, e.target.checked)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          {employee.avatar ? (
-                            <img className="h-10 w-10 rounded-full object-cover" src={employee.avatar} alt="" />
-                          ) : (
-                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                              <span className="text-sm font-medium text-gray-600">
-                                {employee.fullName.split(' ').map(n => n[0]).join('')}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{employee.fullName}</div>
-                          <div className="text-sm text-gray-500">{employee.employeeNumber}</div>
-                          <div className="text-xs text-gray-400">{employee.position}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        <div>Trabajados: {employee.workedDays}/{employee.workDays}</div>
-                        <div className="text-red-600">Faltas: {employee.absentDays}</div>
-                        <div className="text-blue-600">Extras: {employee.overtime}h</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        <div className="font-medium">{formatCurrency(employee.totalPerceptions)}</div>
-                        <div className="text-xs text-gray-500">
-                          Base: {formatCurrency(employee.basePay)}
-                        </div>
-                        {employee.overtimePay > 0 && (
-                          <div className="text-xs text-green-600">
-                            +Extras: {formatCurrency(employee.overtimePay)}
-                          </div>
-                        )}
-                        {employee.bonuses > 0 && (
-                          <div className="text-xs text-green-600">
-                            +Bonos: {formatCurrency(employee.bonuses)}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        <div className="font-medium text-red-600">{formatCurrency(employee.totalDeductions)}</div>
-                        {employee.absenceDeductions > 0 && (
-                          <div className="text-xs text-red-600">
-                            Faltas: {formatCurrency(employee.absenceDeductions)}
-                          </div>
-                        )}
-                        {employee.loans > 0 && (
-                          <div className="text-xs text-orange-600">
-                            Préstamos: {formatCurrency(employee.loans)}
-                          </div>
-                        )}
-                        {employee.advances > 0 && (
-                          <div className="text-xs text-orange-600">
-                            Adelantos: {formatCurrency(employee.advances)}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-lg font-bold text-green-600">
-                        {formatCurrency(employee.netPay)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(employee.status)}
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(employee.status)}`}>
-                          {employee.status === 'paid' ? 'Pagado' : 
-                           employee.status === 'approved' ? 'Aprobado' : 
-                           'Pendiente'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleViewVoucher(employee)}
-                          className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
-                          title="Ver Vale"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          className="text-gray-600 hover:text-gray-900 p-1 rounded hover:bg-gray-50"
-                          title="Editar"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50"
-                          title="Imprimir Vale"
-                        >
-                          <Printer className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Modales */}
-      {showPeriodModal && (
-        <PayrollPeriodModal
-          period={currentPeriod}
-          onClose={() => setShowPeriodModal(false)}
-          onSubmit={handleCreatePeriod}
-          loading={loading}
-        />
-      )}
-
-      {showVoucherModal && selectedEmployee && (
-        <PayrollVoucherModal
-          employee={selectedEmployee}
-          period={currentPeriod}
-          onClose={() => setShowVoucherModal(false)}
-        />
-      )}
-
-      {showReportModal && summary && (
-        <PayrollGeneralReport
-          period={currentPeriod}
-          employees={employeePayrolls}
-          summary={summary}
-          onClose={() => setShowReportModal(false)}
-        />
-      )}
     </div>
   );
 };

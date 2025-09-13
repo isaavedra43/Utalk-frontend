@@ -158,6 +158,76 @@ export interface PayrollAttachmentResponse {
   total: number;
 }
 
+// Interfaces para Nómina General
+export interface PayrollPeriod {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  frequency: 'weekly' | 'biweekly' | 'monthly';
+  status: 'draft' | 'calculated' | 'approved' | 'paid' | 'closed';
+  configurations: {
+    calculateTaxes: boolean;
+    includeOvertime: boolean;
+    applyAbsenceDeductions: boolean;
+    includeLoans: boolean;
+  };
+  summary: {
+    totalEmployees: number;
+    totalPayroll: number;
+    totalPerceptions: number;
+    totalDeductions: number;
+    averageSalary: number;
+    employeesProcessed: number;
+    employeesPending: number;
+    employeesApproved: number;
+    employeesPaid: number;
+  };
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  processedAt?: string;
+  approvedAt?: string;
+  paidAt?: string;
+  closedAt?: string;
+}
+
+export interface PayrollEmployee {
+  employee: {
+    id: string;
+    employeeNumber: string;
+    name: string;
+    position: string;
+    department: string;
+  };
+  payroll: {
+    id: string;
+    grossSalary: number;
+    totalPerceptions: number;
+    totalDeductions: number;
+    netSalary: number;
+    status: 'calculated' | 'approved' | 'paid';
+    workedDays: number;
+  };
+  attendance?: {
+    workedDays: number;
+    totalDays: number;
+    absences: number;
+    overtimeHours: number;
+  };
+}
+
+export interface PayrollPeriodResponse {
+  period: PayrollPeriod;
+  employees: PayrollEmployee[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
 class PayrollApiService {
   private async request<T>(
     endpoint: string, 
@@ -366,6 +436,148 @@ class PayrollApiService {
     });
   }
 
+  // ===== MÓDULO DE NÓMINA GENERAL =====
+
+  // GESTIÓN DE PERÍODOS
+  async createPayrollPeriod(periodData: {
+    name: string;
+    startDate: string;
+    endDate: string;
+    frequency: 'weekly' | 'biweekly' | 'monthly';
+    configurations: {
+      calculateTaxes: boolean;
+      includeOvertime: boolean;
+      applyAbsenceDeductions: boolean;
+      includeLoans: boolean;
+    };
+  }): Promise<PayrollPeriod> {
+    return this.request('/api/payroll-periods', {
+      method: 'POST',
+      body: JSON.stringify(periodData),
+    });
+  }
+
+  async getPayrollPeriods(options: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    search?: string;
+  } = {}): Promise<{ periods: PayrollPeriod[]; total: number; pagination: any }> {
+    const params = new URLSearchParams();
+    Object.entries(options).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, value.toString());
+      }
+    });
+    
+    const queryString = params.toString();
+    const endpoint = `/api/payroll-periods${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request(endpoint);
+  }
+
+  async getPayrollPeriod(periodId: string): Promise<PayrollPeriod> {
+    return this.request(`/api/payroll-periods/${periodId}`);
+  }
+
+  async getCurrentPayrollPeriod(): Promise<PayrollPeriod | null> {
+    try {
+      return await this.request('/api/payroll-periods/current');
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('404')) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async updatePayrollPeriod(periodId: string, periodData: Partial<PayrollPeriod>): Promise<PayrollPeriod> {
+    return this.request(`/api/payroll-periods/${periodId}`, {
+      method: 'PUT',
+      body: JSON.stringify(periodData),
+    });
+  }
+
+  async deletePayrollPeriod(periodId: string): Promise<void> {
+    return this.request(`/api/payroll-periods/${periodId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // PROCESAMIENTO MASIVO
+  async processMassPayroll(periodId: string): Promise<{
+    success: boolean;
+    period: PayrollPeriod;
+    summary: PayrollPeriod['summary'];
+    processedCount: number;
+    errorsCount: number;
+    errors?: Array<{ employeeId: string; employeeName: string; error: string }>;
+  }> {
+    return this.request(`/api/payroll-periods/${periodId}/process`, {
+      method: 'POST',
+    });
+  }
+
+  async getPeriodEmployees(periodId: string, options: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    department?: string;
+    status?: string;
+  } = {}): Promise<PayrollPeriodResponse> {
+    const params = new URLSearchParams();
+    Object.entries(options).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, value.toString());
+      }
+    });
+    
+    const queryString = params.toString();
+    const endpoint = `/api/payroll-periods/${periodId}/employees${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request(endpoint);
+  }
+
+  // ESTADOS Y APROBACIONES
+  async approvePeriod(periodId: string): Promise<PayrollPeriod> {
+    return this.request(`/api/payroll-periods/${periodId}/approve`, {
+      method: 'PUT',
+    });
+  }
+
+  async markPeriodAsPaid(periodId: string): Promise<PayrollPeriod> {
+    return this.request(`/api/payroll-periods/${periodId}/mark-paid`, {
+      method: 'PUT',
+    });
+  }
+
+  async closePeriod(periodId: string): Promise<PayrollPeriod> {
+    return this.request(`/api/payroll-periods/${periodId}/close`, {
+      method: 'PUT',
+    });
+  }
+
+  async approveEmployeePayroll(periodId: string, employeeId: string): Promise<{ success: boolean }> {
+    return this.request(`/api/payroll-periods/${periodId}/employees/${employeeId}/approve`, {
+      method: 'PUT',
+    });
+  }
+
+  async markEmployeeAsPaid(periodId: string, employeeId: string): Promise<{ success: boolean }> {
+    return this.request(`/api/payroll-periods/${periodId}/employees/${employeeId}/mark-paid`, {
+      method: 'PUT',
+    });
+  }
+
+  // REPORTES Y EXPORTACIÓN
+  async generatePeriodReport(periodId: string, format: 'pdf' | 'excel' = 'pdf'): Promise<{ reportUrl: string; fileName: string }> {
+    return this.request(`/api/payroll-periods/${periodId}/reports/${format}`);
+  }
+
+  async exportPeriodData(periodId: string, format: 'excel' | 'csv' = 'excel'): Promise<{ exportUrl: string; fileName: string }> {
+    return this.request(`/api/payroll-periods/${periodId}/export/${format}`);
+  }
+
   // UTILIDADES
   calculateDatesByFrequency(frequency: string): { startDate: string; endDate: string } {
     const today = new Date();
@@ -466,6 +678,45 @@ class PayrollApiService {
       case 'cancelled': return 'danger';
       default: return 'light';
     }
+  }
+
+  // Métodos para períodos de nómina general
+  getPeriodStatusLabel(status: string): string {
+    switch (status) {
+      case 'draft': return 'Borrador';
+      case 'calculated': return 'Calculado';
+      case 'approved': return 'Aprobado';
+      case 'paid': return 'Pagado';
+      case 'closed': return 'Cerrado';
+      default: return status;
+    }
+  }
+
+  getPeriodStatusColor(status: string): string {
+    switch (status) {
+      case 'draft': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'calculated': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'approved': return 'bg-green-100 text-green-800 border-green-200';
+      case 'paid': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'closed': return 'bg-purple-100 text-purple-800 border-purple-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  }
+
+  canProcessPeriod(status: string): boolean {
+    return status === 'draft';
+  }
+
+  canApprovePeriod(status: string): boolean {
+    return status === 'calculated';
+  }
+
+  canMarkAsPaid(status: string): boolean {
+    return status === 'approved';
+  }
+
+  canClosePeriod(status: string): boolean {
+    return status === 'paid';
   }
 }
 
