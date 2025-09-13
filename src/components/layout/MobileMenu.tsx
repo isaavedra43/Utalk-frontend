@@ -18,8 +18,7 @@ import {
   Truck, 
   Warehouse, 
   Package, 
-  Settings,
-  Calculator 
+  Settings
 } from 'lucide-react';
 
 interface MobileMenuProps {
@@ -78,8 +77,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
                 { id: 'providers', icon: Truck, label: 'Proveedores', path: '/providers' },
                 { id: 'warehouse', icon: Warehouse, label: 'Almacén', path: '/warehouse' },
                 { id: 'shipping', icon: Package, label: 'Envíos', path: '/shipping' },
-                { id: 'services', icon: Settings, label: 'Servicios', path: '/services' },
-                { id: 'payroll', icon: Calculator, label: 'Nómina General', path: '/payroll' }
+                { id: 'services', icon: Settings, label: 'Servicios', path: '/services' }
               ].map((item) => (
                 <button
                   key={item.id}

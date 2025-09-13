@@ -22,8 +22,7 @@ import {
   ProvidersModule,
   WarehouseModule,
   ShippingModule,
-  ServicesModule,
-  PayrollGeneralView
+  ServicesModule
 } from './modules'
 
 import { useAuthContext } from './contexts/useAuthContext'
@@ -423,28 +422,6 @@ const ServicesPage: React.FC = () => {
   );
 };
 
-const PayrollPage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuthContext();
-  
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Cargando nómina general...
-          </h3>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <ErrorBoundary>
-      <PayrollGeneralView />
-    </ErrorBoundary>
-  );
-};
 
 function App() {
   console.log('🔍 App - Componente App renderizado');
@@ -619,16 +596,6 @@ function App() {
                     <AuthProtectedRoute>
                       <ProtectedRoute moduleId="services">
                         <ServicesPage />
-                      </ProtectedRoute>
-                    </AuthProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/payroll" 
-                  element={
-                    <AuthProtectedRoute>
-                      <ProtectedRoute moduleId="payroll">
-                        <PayrollPage />
                       </ProtectedRoute>
                     </AuthProtectedRoute>
                   } 
