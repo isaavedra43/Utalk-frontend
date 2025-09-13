@@ -108,7 +108,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   
   const [activeTab, setActiveTab] = useState<TabType>('summary');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [currentEmployee, setCurrentEmployee] = useState(employee);
+  const currentEmployee = employee; // Usar directamente el prop employee
 
   const handleEditClick = () => {
     setIsEditModalOpen(true);
