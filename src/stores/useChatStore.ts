@@ -37,6 +37,12 @@ interface ChatStore extends ChatState {
   markConversationAsRead: (conversationId: string) => void;
   markMessageAsRead: (conversationId: string, messageId: string) => void;
   updateConversationUnreadCount: (conversationId: string, unreadCount: number) => void;
+  
+  // Limpieza
+  clearAllConversations: () => void;
+  removeInvalidConversation: (conversationId: string) => void;
+  
+  // Sincronización
   syncConversationsWithQuery: (conversations: Conversation[]) => void;
 }
 
@@ -285,6 +291,22 @@ export const useChatStore = create<ChatStore>()(
             };
           });
         },
+
+        // Limpieza completa de conversaciones
+        clearAllConversations: () => set({
+          conversations: [],
+          activeConversation: null,
+          messages: {}
+        }),
+
+        // Remover conversación inválida específica
+        removeInvalidConversation: (conversationId) => set((state) => ({
+          conversations: state.conversations.filter(c => c.id !== conversationId),
+          activeConversation: state.activeConversation?.id === conversationId ? null : state.activeConversation,
+          messages: Object.fromEntries(
+            Object.entries(state.messages).filter(([key]) => key !== conversationId)
+          )
+        })),
 
         syncConversationsWithQuery: (conversations) => set((state) => {
           const existingIds = new Set(state.conversations.map(c => c.id));

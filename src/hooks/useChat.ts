@@ -175,10 +175,7 @@ export const useChat = (conversationId: string) => {
           setMessages([]);
           
           // Remover la conversación inválida del store
-          const { removeInvalidConversation } = useChatStore.getState();
-          if (removeInvalidConversation) {
-            removeInvalidConversation(conversationId);
-          }
+          useChatStore.getState().removeInvalidConversation(conversationId);
         } else {
           setError(err instanceof Error ? err.message : 'Error cargando mensajes');
         }
@@ -255,10 +252,7 @@ export const useChat = (conversationId: string) => {
           setMessages([]);
           
           // Remover la conversación inválida del store
-          const { removeInvalidConversation } = useChatStore.getState();
-          if (removeInvalidConversation) {
-            removeInvalidConversation(conversationId);
-          }
+          useChatStore.getState().removeInvalidConversation(conversationId);
         } else {
           setError(err instanceof Error ? err.message : 'Error cargando conversación');
         }

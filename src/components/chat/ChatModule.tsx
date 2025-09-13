@@ -5,6 +5,7 @@ import { RightSidebar } from '../layout/RightSidebar';
 import { SuggestionsPanel } from '../layout/SuggestionsPanel';
 import { useConversations } from '../../hooks/chat/useConversations';
 import { useCreateConversation } from '../../hooks/chat/useCreateConversation';
+import { useChatStore } from '../../stores/useChatStore';
 import { 
   ChevronLeft, 
   Settings, 
@@ -47,7 +48,22 @@ const AuthenticatedChatContent: React.FC = () => {
   // Limpiar URL de conversaciones persistentes al montar el componente
   useEffect(() => {
     conversationsData.clearConversationFromUrl();
-  }, [conversationsData.clearConversationFromUrl]);
+    
+    // CRÍTICO: Si hay conversaciones en el store pero el backend devuelve lista vacía,
+    // forzar limpieza del store para evitar conversaciones fantasma
+    if (conversationsData.conversations.length === 0 && !conversationsData.isLoading) {
+      // Usar setTimeout para permitir que React Query termine de cargar
+      const timeoutId = setTimeout(() => {
+        if (conversationsData.conversations.length === 0) {
+          const { clearAllConversations } = useChatStore.getState();
+          clearAllConversations();
+          infoLog('🧹 ChatModule - Limpieza forzada de conversaciones fantasma');
+        }
+      }, 1000);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [conversationsData.clearConversationFromUrl, conversationsData.conversations.length, conversationsData.isLoading]);
 
   // Función para manejar creación de conversación
   const handleCreateConversation = useCallback(async (data: {

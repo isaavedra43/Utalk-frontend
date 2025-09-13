@@ -111,15 +111,47 @@ export const useConversationList = (filters: ConversationFilters = {}) => {
   //   }
   // }, [urlConversationId, activeConversation?.id, allConversations, setActiveConversation]);
 
-  // Sincronizar datos de React Query al store solo para carga inicial
+  // Sincronizar datos de React Query al store
   useEffect(() => {
-    if (isAuthenticated && !authLoading && conversationsData?.pages && storeConversations.length === 0) {
+    if (isAuthenticated && !authLoading && conversationsData?.pages) {
       const queryConversations = conversationsData.pages.flatMap(page => page.conversations);
-      if (queryConversations.length > 0) {
-        setConversations(queryConversations);
+      
+      // CRÍTICO: Siempre sincronizar con el backend, incluso si devuelve lista vacía
+      // Esto limpia conversaciones obsoletas del store local
+      setConversations(queryConversations);
+      
+      if (queryConversations.length === 0) {
+        infoLog('🧹 useConversationList - Backend devolvió lista vacía, limpiando store local');
+        // Si no hay conversaciones en el backend, limpiar también la conversación activa
+        setActiveConversation(null);
+        
+        // Limpiar también el caché del navegador para evitar conversaciones persistentes
+        if (typeof window !== 'undefined') {
+          try {
+            // Limpiar localStorage relacionado con conversaciones
+            Object.keys(localStorage).forEach(key => {
+              if (key.includes('conversation') || key.includes('chat')) {
+                localStorage.removeItem(key);
+              }
+            });
+            
+            // Limpiar sessionStorage relacionado con conversaciones
+            Object.keys(sessionStorage).forEach(key => {
+              if (key.includes('conversation') || key.includes('chat')) {
+                sessionStorage.removeItem(key);
+              }
+            });
+            
+            infoLog('🧹 useConversationList - Caché del navegador limpiado');
+          } catch (error) {
+            console.warn('⚠️ Error limpiando caché del navegador:', error);
+          }
+        }
+      } else {
+        infoLog('✅ useConversationList - Conversaciones sincronizadas:', queryConversations.length);
       }
     }
-  }, [conversationsData?.pages, setConversations, isAuthenticated, authLoading, storeConversations.length]);
+  }, [conversationsData?.pages, setConversations, setActiveConversation, isAuthenticated, authLoading]);
 
   // Manejar eventos de nuevas conversaciones
   useEffect(() => {
