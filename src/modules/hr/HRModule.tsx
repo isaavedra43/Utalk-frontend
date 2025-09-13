@@ -24,6 +24,7 @@ import { EmployeeDetail } from './components/EmployeeDetail';
 import { EmployeeDetailView } from './components/EmployeeDetailView';
 import { HRDashboard } from './components/HRDashboard';
 import { PayrollModule } from './components/PayrollModule';
+import { PayrollGeneralModule } from './components/PayrollGeneralModule';
 import { AttendanceModule } from './components/AttendanceModule';
 import { VacationModule } from './components/VacationModule';
 import { DocumentModule } from './components/DocumentModule';
@@ -117,17 +118,7 @@ const HRModule: React.FC = () => {
           console.log('Empleado seleccionado desde organigrama:', employeeId);
         }} />;
       case 'payroll':
-        return selectedEmployee ? (
-          <PayrollModule 
-            employeeId={selectedEmployee.id} 
-            employeeName={`${selectedEmployee.firstName} ${selectedEmployee.lastName}`} 
-          />
-        ) : (
-          <div className="text-center py-12">
-            <DollarSign className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">Selecciona un empleado para ver su nómina</p>
-          </div>
-        );
+        return <PayrollGeneralModule />;
       case 'attendance':
         return selectedEmployee ? (
           <AttendanceModule 
