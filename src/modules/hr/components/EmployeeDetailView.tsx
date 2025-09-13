@@ -37,21 +37,124 @@ interface Employee {
     email?: string;
     phone: string;
     avatar?: string;
+    dateOfBirth?: string;
+    gender?: string;
+    maritalStatus?: string;
+    nationality?: string;
+    rfc?: string;
+    curp?: string;
+    nss?: string;
+    address?: {
+      street?: string;
+      city?: string;
+      state?: string;
+      country?: string;
+      postalCode?: string;
+      number?: string;
+      neighborhood?: string;
+    };
+    emergencyContact?: {
+      name?: string;
+      phone?: string;
+      relationship?: string;
+    };
+    bankInfo?: {
+      bankName?: string;
+      accountNumber?: string;
+      clabe?: string;
+    };
   };
   position: {
     title: string;
     department: string;
     level: string;
     reportsTo?: string;
+    jobDescription?: string;
+    startDate?: string;
+    endDate?: string;
+    requirements?: string[];
+    skills?: string[];
+    salaryRange?: {
+      min: number;
+      max: number;
+    };
   };
   location: {
     office: string;
-    address: string;
+    address?: string;
+    timezone?: string;
+    isRemote?: boolean;
+    name?: string;
+    street?: string;
+    number?: string;
+    neighborhood?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postalCode?: string;
   };
   contract: {
     startDate: string | Date;
     type: string;
+    endDate?: string;
+    salary?: number;
+    currency?: string;
+    workingDays?: string;
+    workingHoursRange?: string;
+    customSchedule?: {
+      enabled?: boolean;
+      days?: Record<string, {
+        enabled: boolean;
+        startTime: string;
+        endTime: string;
+      }>;
+    };
+    benefits?: string;
+    clauses?: string[];
+    schedule?: string;
+    notes?: string;
   };
+  status?: string;
+  salary?: {
+    baseSalary?: number;
+    currency?: string;
+    frequency?: string;
+    paymentMethod?: string;
+    allowances?: {
+      name: string;
+      amount: number;
+      type: string;
+    }[];
+    deductions?: {
+      name: string;
+      amount: number;
+      type: string;
+    }[];
+  };
+  sbc?: number;
+  vacationBalance?: number;
+  sickLeaveBalance?: number;
+  metrics?: {
+    totalEarnings?: number;
+    totalDeductions?: number;
+    netPay?: number;
+    attendanceRate?: number;
+    lateArrivals?: number;
+    absences?: number;
+    vacationDaysUsed?: number;
+    vacationDaysRemaining?: number;
+    overtimeHours?: number;
+    overtimeAmount?: number;
+    incidentsCount?: number;
+    incidentsLast30Days?: number;
+    documentCompliance?: number;
+    trainingCompletion?: number;
+    performanceScore?: number;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 interface EmployeeDetailViewProps {
@@ -258,11 +361,11 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
         default:
           return (
             <div className="space-y-6">
-              {/* Información Básica */}
+              {/* Información Personal Completa */}
               <div className="bg-white rounded-xl shadow-sm border">
                 <div className="p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Información Personal</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1">Nombre Completo</label>
                       <p className="text-gray-900">{employee.personalInfo?.firstName || 'N/A'} {employee.personalInfo?.lastName || 'N/A'}</p>
@@ -272,22 +375,93 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
                       <p className="text-gray-900">{employee.employeeNumber || 'N/A'}</p>
                     </div>
                     <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
+                      <p className="text-gray-900">{employee.personalInfo?.email || 'No especificado'}</p>
+                    </div>
+                    <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1">Teléfono</label>
                       <p className="text-gray-900">{employee.personalInfo?.phone || 'N/A'}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
-                      <p className="text-gray-900">{employee.personalInfo?.email || 'No especificado'}</p>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Fecha de Nacimiento</label>
+                      <p className="text-gray-900">{employee.personalInfo?.dateOfBirth ? formatDate(employee.personalInfo.dateOfBirth) : 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Género</label>
+                      <p className="text-gray-900">{employee.personalInfo?.gender || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Estado Civil</label>
+                      <p className="text-gray-900">{employee.personalInfo?.maritalStatus || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Nacionalidad</label>
+                      <p className="text-gray-900">{employee.personalInfo?.nationality || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">RFC</label>
+                      <p className="text-gray-900">{employee.personalInfo?.rfc || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">CURP</label>
+                      <p className="text-gray-900">{employee.personalInfo?.curp || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">NSS</label>
+                      <p className="text-gray-900">{employee.personalInfo?.nss || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Estado</label>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        employee.status === 'active' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {employee.status === 'active' ? 'Activo' : employee.status || 'N/A'}
+                      </span>
                     </div>
                   </div>
+                  
+                  {/* Dirección Personal */}
+                  {employee.personalInfo?.address && (
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <h4 className="text-md font-medium text-gray-900 mb-3">Dirección Personal</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">Calle</label>
+                          <p className="text-gray-900">{employee.personalInfo.address.street || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">Número</label>
+                          <p className="text-gray-900">{employee.personalInfo.address.number || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">Colonia</label>
+                          <p className="text-gray-900">{employee.personalInfo.address.neighborhood || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">Ciudad</label>
+                          <p className="text-gray-900">{employee.personalInfo.address.city || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">Estado</label>
+                          <p className="text-gray-900">{employee.personalInfo.address.state || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">Código Postal</label>
+                          <p className="text-gray-900">{employee.personalInfo.address.postalCode || 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Información Laboral */}
+              {/* Información Laboral Completa */}
               <div className="bg-white rounded-xl shadow-sm border">
                 <div className="p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Información Laboral</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1">Puesto</label>
                       <p className="text-gray-900">{employee.position?.title || 'N/A'}</p>
@@ -304,43 +478,167 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
                       <label className="block text-sm font-medium text-gray-600 mb-1">Reporta a</label>
                       <p className="text-gray-900">{employee.position?.reportsTo || 'No especificado'}</p>
                     </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Fecha de Inicio en Puesto</label>
+                      <p className="text-gray-900">{employee.position?.startDate ? formatDate(employee.position.startDate) : 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Fecha de Fin en Puesto</label>
+                      <p className="text-gray-900">{employee.position?.endDate ? formatDate(employee.position.endDate) : 'Actualmente en el puesto'}</p>
+                    </div>
                   </div>
+                  
+                  {/* Descripción del Puesto */}
+                  {employee.position?.jobDescription && (
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <h4 className="text-md font-medium text-gray-900 mb-3">Descripción del Puesto</h4>
+                      <p className="text-gray-700">{employee.position.jobDescription}</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Información de Ubicación */}
+              {/* Información de Ubicación y Horarios */}
               <div className="bg-white rounded-xl shadow-sm border">
                 <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Ubicación</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Ubicación y Horarios</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1">Oficina</label>
                       <p className="text-gray-900">{employee.location?.office || 'N/A'}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1">Dirección</label>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Zona Horaria</label>
+                      <p className="text-gray-900">{employee.location?.timezone || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Modalidad</label>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        employee.location?.isRemote 
+                          ? 'bg-blue-100 text-blue-800' 
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        {employee.location?.isRemote ? 'Remoto' : 'Presencial'}
+                      </span>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Días de Trabajo</label>
+                      <p className="text-gray-900">{employee.contract?.workingDays || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Horario de Trabajo</label>
+                      <p className="text-gray-900">{employee.contract?.workingHoursRange || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Dirección de Oficina</label>
                       <p className="text-gray-900">{employee.location?.address || 'N/A'}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Información de Contrato */}
+              {/* Información de Contrato y Salario */}
               <div className="bg-white rounded-xl shadow-sm border">
                 <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Contrato</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Contrato y Salario</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1">Fecha de Ingreso</label>
                       <p className="text-gray-900">{employee.contract?.startDate ? formatDate(employee.contract.startDate) : 'N/A'}</p>
                     </div>
                     <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Fecha de Fin de Contrato</label>
+                      <p className="text-gray-900">{employee.contract?.endDate ? formatDate(employee.contract.endDate) : 'Indefinido'}</p>
+                    </div>
+                    <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1">Tipo de Contrato</label>
                       <p className="text-gray-900">{employee.contract?.type || 'N/A'}</p>
                     </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Salario</label>
+                      <p className="text-gray-900">
+                        {employee.contract?.salary 
+                          ? `$${employee.contract.salary.toLocaleString()} ${employee.contract.currency || 'MXN'}` 
+                          : employee.salary?.baseSalary 
+                            ? `$${employee.salary.baseSalary.toLocaleString()} ${employee.salary.currency || 'MXN'}`
+                            : 'N/A'
+                        }
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Frecuencia de Pago</label>
+                      <p className="text-gray-900">{employee.salary?.frequency || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Método de Pago</label>
+                      <p className="text-gray-900">{employee.salary?.paymentMethod || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">SBC</label>
+                      <p className="text-gray-900">{employee.sbc ? `$${employee.sbc.toLocaleString()}` : 'N/A'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Días de Vacaciones</label>
+                      <p className="text-gray-900">{employee.vacationBalance || 0} días</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Días de Enfermedad</label>
+                      <p className="text-gray-900">{employee.sickLeaveBalance || 0} días</p>
+                    </div>
                   </div>
+                  
+                  {/* Beneficios */}
+                  {employee.contract?.benefits && (
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <h4 className="text-md font-medium text-gray-900 mb-3">Beneficios</h4>
+                      <p className="text-gray-700">{employee.contract.benefits}</p>
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* Métricas y Rendimiento */}
+              {employee.metrics && (
+                <div className="bg-white rounded-xl shadow-sm border">
+                  <div className="p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Métricas y Rendimiento</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">Asistencia</label>
+                        <p className="text-gray-900">{employee.metrics.attendanceRate || 0}%</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">Retardos</label>
+                        <p className="text-gray-900">{employee.metrics.lateArrivals || 0}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">Faltas</label>
+                        <p className="text-gray-900">{employee.metrics.absences || 0}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">Horas Extra</label>
+                        <p className="text-gray-900">{employee.metrics.overtimeHours || 0} hrs</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">Incidentes</label>
+                        <p className="text-gray-900">{employee.metrics.incidentsCount || 0}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">Cumplimiento Documental</label>
+                        <p className="text-gray-900">{employee.metrics.documentCompliance || 0}%</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">Capacitación</label>
+                        <p className="text-gray-900">{employee.metrics.trainingCompletion || 0}%</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">Puntuación de Rendimiento</label>
+                        <p className="text-gray-900">{employee.metrics.performanceScore || 0}/100</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           );
       }
