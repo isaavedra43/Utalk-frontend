@@ -17,7 +17,7 @@ export const PayrollGeneralModule: React.FC = () => {
         throw new Error('Token de autenticación no encontrado. Por favor, inicia sesión nuevamente.');
       }
       
-      const response = await fetch('https://utalk-backend-production.up.railway.app/api/payroll/current-period', {
+      const response = await fetch('https://utalk-backend-production.up.railway.app/api/payroll-periods/current', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

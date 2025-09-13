@@ -482,7 +482,7 @@ class PayrollApiService {
 
   async getCurrentPayrollPeriod(): Promise<PayrollPeriod | null> {
     try {
-      return await this.request('/api/payroll/current-period');
+      return await this.request('/api/payroll-periods/current');
     } catch (error) {
       if (error instanceof Error && error.message.includes('404')) {
         return null;
