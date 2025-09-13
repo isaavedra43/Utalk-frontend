@@ -16,7 +16,11 @@ import {
   AlertCircle,
   Eye,
   Edit,
-  Printer
+  Printer,
+  History,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { 
   PayrollPeriod, 
@@ -36,6 +40,14 @@ export const PayrollGeneralModule: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Estados para historial de nóminas
+  const [viewMode, setViewMode] = useState<'current' | 'history'>('current');
+  const [payrollHistory, setPayrollHistory] = useState<PayrollPeriod[]>([]);
+  const [selectedHistoryPeriod, setSelectedHistoryPeriod] = useState<PayrollPeriod | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyTotalPages, setHistoryTotalPages] = useState(1);
+  
   // Modales
   const [showPeriodModal, setShowPeriodModal] = useState(false);
   const [showVoucherModal, setShowVoucherModal] = useState(false);
@@ -54,8 +66,84 @@ export const PayrollGeneralModule: React.FC = () => {
   const [selectAll, setSelectAll] = useState(false);
 
   useEffect(() => {
-    loadPayrollData();
-  }, [currentPeriod]);
+    if (viewMode === 'current') {
+      loadPayrollData();
+    } else if (viewMode === 'history') {
+      loadPayrollHistory();
+    }
+  }, [currentPeriod, viewMode, historyPage]);
+
+  const loadPayrollHistory = async () => {
+    try {
+      setHistoryLoading(true);
+      setError(null);
+      
+      // TODO: Conectar con API real para obtener historial
+      // const response = await payrollGeneralService.getPayrollHistory({ page: historyPage, limit: 10 });
+      
+      // Mock de historial de nóminas
+      const mockHistory: PayrollPeriod[] = [
+        {
+          id: '1',
+          name: 'Nómina Semanal 37 - 2025',
+          startDate: '2025-09-08',
+          endDate: '2025-09-14',
+          frequency: 'weekly',
+          status: 'paid',
+          createdAt: '2025-09-13T12:13:33.725Z',
+          updatedAt: '2025-09-13T12:20:41.709Z'
+        },
+        {
+          id: '2',
+          name: 'Nómina Semanal 36 - 2025',
+          startDate: '2025-09-01',
+          endDate: '2025-09-07',
+          frequency: 'weekly',
+          status: 'paid',
+          createdAt: '2025-09-06T12:13:33.725Z',
+          updatedAt: '2025-09-06T12:20:41.709Z'
+        },
+        {
+          id: '3',
+          name: 'Nómina Semanal 35 - 2025',
+          startDate: '2025-08-25',
+          endDate: '2025-08-31',
+          frequency: 'weekly',
+          status: 'paid',
+          createdAt: '2025-08-30T12:13:33.725Z',
+          updatedAt: '2025-08-30T12:20:41.709Z'
+        },
+        {
+          id: '4',
+          name: 'Nómina Semanal 34 - 2025',
+          startDate: '2025-08-18',
+          endDate: '2025-08-24',
+          frequency: 'weekly',
+          status: 'paid',
+          createdAt: '2025-08-23T12:13:33.725Z',
+          updatedAt: '2025-08-23T12:20:41.709Z'
+        },
+        {
+          id: '5',
+          name: 'Nómina Semanal 33 - 2025',
+          startDate: '2025-08-11',
+          endDate: '2025-08-17',
+          frequency: 'weekly',
+          status: 'paid',
+          createdAt: '2025-08-16T12:13:33.725Z',
+          updatedAt: '2025-08-16T12:20:41.709Z'
+        }
+      ];
+      
+      setPayrollHistory(mockHistory);
+      setHistoryTotalPages(3); // Mock de paginación
+      
+    } catch (err: any) {
+      setError(err.message || 'Error al cargar historial de nóminas');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   const loadPayrollData = async () => {
     if (!currentPeriod) return;
@@ -261,6 +349,27 @@ export const PayrollGeneralModule: React.FC = () => {
     setShowVoucherModal(true);
   };
 
+  const handleViewHistoryPeriod = async (period: PayrollPeriod) => {
+    setSelectedHistoryPeriod(period);
+    setCurrentPeriod(period);
+    setViewMode('current');
+    // Cargar datos del período seleccionado
+    await loadPayrollData();
+  };
+
+  const handleBackToHistory = () => {
+    setViewMode('history');
+    setCurrentPeriod(null);
+    setEmployeePayrolls([]);
+    setSummary(null);
+  };
+
+  const handleGenerateNewPayroll = () => {
+    setViewMode('current');
+    setCurrentPeriod(null);
+    setShowPeriodModal(true);
+  };
+
   const handleSelectEmployee = (employeeId: string, selected: boolean) => {
     const newSelected = new Set(selectedEmployees);
     if (selected) {
@@ -328,6 +437,142 @@ export const PayrollGeneralModule: React.FC = () => {
     return matchesSearch && matchesDepartment && matchesStatus;
   });
 
+  // Vista de historial de nóminas
+  if (viewMode === 'history') {
+    return (
+      <div className="payroll-general-module">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Historial de Nóminas</h1>
+            <p className="text-gray-600">Consulta y revisa todas las nóminas procesadas anteriormente</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleGenerateNewPayroll}
+              className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Generar Nueva Nómina
+            </button>
+          </div>
+        </div>
+
+        {historyLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600">Cargando historial de nóminas...</p>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Períodos de Nómina ({payrollHistory.length})
+              </h3>
+            </div>
+
+            {payrollHistory.length === 0 ? (
+              <div className="text-center py-12">
+                <History className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">No hay nóminas procesadas anteriormente</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {payrollHistory.map((period) => (
+                  <div key={period.id} className="p-6 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h4 className="text-lg font-medium text-gray-900">{period.name}</h4>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            period.status === 'paid' ? 'bg-green-100 text-green-800' :
+                            period.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                            period.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {period.status === 'paid' ? 'Pagado' :
+                             period.status === 'completed' ? 'Completado' :
+                             period.status === 'processing' ? 'Procesando' :
+                             'Borrador'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-6 text-sm text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            <span>
+                              {new Date(period.startDate).toLocaleDateString('es-MX')} - {new Date(period.endDate).toLocaleDateString('es-MX')}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-4 h-4" />
+                            <span>
+                              Procesado: {new Date(period.updatedAt).toLocaleDateString('es-MX')}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="w-4 h-4" />
+                            <span className="capitalize">{period.frequency}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleViewHistoryPeriod(period)}
+                          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors"
+                        >
+                          <Eye className="w-4 h-4" />
+                          Ver Detalles
+                        </button>
+                        <button className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                          <Download className="w-4 h-4" />
+                          Exportar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Paginación */}
+            {historyTotalPages > 1 && (
+              <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  Página {historyPage} de {historyTotalPages}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setHistoryPage(prev => Math.max(1, prev - 1))}
+                    disabled={historyPage === 1}
+                    className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setHistoryPage(prev => Math.min(historyTotalPages, prev + 1))}
+                    disabled={historyPage === historyTotalPages}
+                    className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {showPeriodModal && (
+          <PayrollPeriodModal
+            onClose={() => setShowPeriodModal(false)}
+            onSubmit={handleCreatePeriod}
+            loading={loading}
+          />
+        )}
+      </div>
+    );
+  }
+
   if (!currentPeriod) {
     return (
       <div className="payroll-general-module">
@@ -335,6 +580,15 @@ export const PayrollGeneralModule: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Nómina General</h1>
             <p className="text-gray-600">Gestión completa de nómina para todos los empleados</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setViewMode('history')}
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <History className="w-4 h-4" />
+              Ver Historial
+            </button>
           </div>
         </div>
 
@@ -346,13 +600,22 @@ export const PayrollGeneralModule: React.FC = () => {
           <p className="text-gray-600 mb-8 max-w-md mx-auto">
             Para comenzar a gestionar la nómina, primero debes configurar un período de pago
           </p>
-          <button
-            onClick={() => setShowPeriodModal(true)}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            Configurar Período de Nómina
-          </button>
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={() => setShowPeriodModal(true)}
+              className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              Configurar Período de Nómina
+            </button>
+            <button
+              onClick={() => setViewMode('history')}
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <History className="w-5 h-5" />
+              Ver Nóminas Anteriores
+            </button>
+          </div>
         </div>
 
         {showPeriodModal && (
@@ -371,7 +634,18 @@ export const PayrollGeneralModule: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Nómina General</h1>
+          <div className="flex items-center gap-3 mb-2">
+            {selectedHistoryPeriod && (
+              <button
+                onClick={handleBackToHistory}
+                className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 px-3 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Volver al Historial
+              </button>
+            )}
+            <h1 className="text-3xl font-bold text-gray-900">Nómina General</h1>
+          </div>
           <div className="flex items-center gap-4 mt-2">
             <span className="text-gray-600">Período actual:</span>
             <span className="font-semibold text-blue-600">{currentPeriod.name}</span>
