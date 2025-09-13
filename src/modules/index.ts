@@ -31,4 +31,7 @@ export { ProvidersModule } from './providers';
 export { WarehouseModule } from './warehouse';
 export { ShippingModule } from './shipping';
 export { ServicesModule } from './services';
+
+// Exportar módulo de nómina general
+export { PayrollGeneralView, payrollModuleConfig } from './payroll';
  
