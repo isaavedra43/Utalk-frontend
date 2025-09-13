@@ -977,13 +977,28 @@ const PayrollConfigModal: React.FC<PayrollConfigModalProps> = ({
 
   const employeeInfo = getEmployeeInfo();
 
+  // Función para calcular el salario según la frecuencia
+  const calculateSalaryForFrequency = (monthlySalary: number, frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly') => {
+    switch (frequency) {
+      case 'daily':
+        return Math.round(monthlySalary / 30); // Salario diario
+      case 'weekly':
+        return Math.round(monthlySalary / 4); // Salario semanal
+      case 'biweekly':
+        return Math.round(monthlySalary / 2); // Salario quincenal
+      case 'monthly':
+      default:
+        return monthlySalary; // Salario mensual
+    }
+  };
+
   const [config, setConfig] = useState({
     frequency: (currentConfig?.frequency || employeeInfo.frequency) as 'daily' | 'weekly' | 'biweekly' | 'monthly',
     baseSalary: currentConfig?.baseSalary || employeeInfo.salary,
     sbc: currentConfig?.sbc || employeeInfo.salary,
     workingDaysPerWeek: currentConfig?.workingDaysPerWeek || employeeInfo.workingDaysPerWeek,
     workingHoursPerDay: currentConfig?.workingHoursPerDay || employeeInfo.workingHoursPerDay,
-    overtimeRate: currentConfig?.overtimeRate || 1.5,
+    overtimeRate: currentConfig?.overtimeRate || 1,
     paymentMethod: (currentConfig?.paymentMethod || employeeInfo.paymentMethod) as 'transfer' | 'cash' | 'check',
     notes: currentConfig?.notes || ''
   });
@@ -991,10 +1006,11 @@ const PayrollConfigModal: React.FC<PayrollConfigModalProps> = ({
   // Actualizar configuración cuando cambie la información del empleado
   useEffect(() => {
     if (!currentConfig) {
+      const frequency = employeeInfo.frequency as 'daily' | 'weekly' | 'biweekly' | 'monthly';
       setConfig(prev => ({
         ...prev,
-        frequency: employeeInfo.frequency as 'daily' | 'weekly' | 'biweekly' | 'monthly',
-        baseSalary: employeeInfo.salary,
+        frequency,
+        baseSalary: calculateSalaryForFrequency(employeeInfo.salary, frequency),
         sbc: employeeInfo.salary,
         workingDaysPerWeek: employeeInfo.workingDaysPerWeek,
         workingHoursPerDay: employeeInfo.workingHoursPerDay,
@@ -1065,7 +1081,14 @@ const PayrollConfigModal: React.FC<PayrollConfigModalProps> = ({
                 <button
                   key={value}
                   type="button"
-                  onClick={() => setConfig(prev => ({ ...prev, frequency: value as 'daily' | 'weekly' | 'biweekly' | 'monthly' }))}
+                  onClick={() => {
+                    setConfig(prev => ({ 
+                      ...prev, 
+                      frequency: value as 'daily' | 'weekly' | 'biweekly' | 'monthly',
+                      // Actualizar el salario base según la frecuencia seleccionada
+                      baseSalary: calculateSalaryForFrequency(employeeInfo.salary, value as 'daily' | 'weekly' | 'biweekly' | 'monthly')
+                    }));
+                  }}
                   className={`p-3 border-2 rounded-lg text-center transition-all ${
                     config.frequency === value
                       ? 'border-blue-500 bg-blue-50 text-blue-700'
@@ -1082,7 +1105,9 @@ const PayrollConfigModal: React.FC<PayrollConfigModalProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Salario Base Mensual
+                Salario Base {config.frequency === 'daily' ? 'Diario' : 
+                             config.frequency === 'weekly' ? 'Semanal' : 
+                             config.frequency === 'biweekly' ? 'Quincenal' : 'Mensual'}
               </label>
               <input
                 type="number"
@@ -1146,7 +1171,7 @@ const PayrollConfigModal: React.FC<PayrollConfigModalProps> = ({
                 min="1"
                 max="3"
                 value={config.overtimeRate}
-                onChange={(e) => setConfig(prev => ({ ...prev, overtimeRate: parseFloat(e.target.value) || 1.5 }))}
+                onChange={(e) => setConfig(prev => ({ ...prev, overtimeRate: parseFloat(e.target.value) || 1 }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
