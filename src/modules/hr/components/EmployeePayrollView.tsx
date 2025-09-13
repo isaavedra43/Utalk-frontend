@@ -6,51 +6,46 @@ import {
   TrendingUp, 
   TrendingDown,
   DollarSign,
-  Clock,
   Receipt,
   Filter,
   Search,
   ChevronDown,
   Eye,
   Share2,
-  MoreHorizontal,
   Plus,
   Settings,
-  Calendar,
   X
 } from 'lucide-react';
 import PayrollChart from './PayrollChart';
-import { employeesApi, type PayrollPeriod } from '../../../services/employeesApi';
+import PayrollConfigForm from './PayrollConfigForm';
+import { payrollApi, type PayrollPeriod, type PayrollConfig, type PayrollDetail } from '../../../services/payrollApi';
+import { Employee } from '../../../services/employeesApi';
 
-interface PayrollDetail {
-  type: 'perception' | 'deduction';
-  concept: string;
-  amount: number;
-  description: string;
-}
+// PayrollDetail ahora viene del payrollApi
+// interface PayrollDetail se importa desde payrollApi
 
 interface EmployeePayrollData {
-  employeeId: string;
-  employeeName: string;
-  position: string;
-  department: string;
-  baseSalary: number;
-  currency: string;
-  paymentFrequency: 'weekly' | 'biweekly' | 'monthly';
-  currentPeriod: PayrollPeriod;
+  config: PayrollConfig | null;
   periods: PayrollPeriod[];
   summary: {
+    totalPeriods: number;
     totalGross: number;
     totalDeductions: number;
     totalNet: number;
     averageNet: number;
-    periodsCount: number;
+    byStatus: {
+      calculated: number;
+      approved: number;
+      paid: number;
+      cancelled?: number;
+    };
   };
+  hasData: boolean;
 }
 
 interface EmployeePayrollViewProps {
   employeeId: string;
-  employee: any; // Agregamos el empleado como prop
+  employee: Employee;
   onBack: () => void;
 }
 
@@ -63,9 +58,13 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
   const [selectedPeriod, setSelectedPeriod] = useState<PayrollPeriod | null>(null);
   const [periodDetails, setPeriodDetails] = useState<PayrollDetail[]>([]);
   const [loading, setLoading] = useState(true);
+  const [configLoading, setConfigLoading] = useState(false);
+  const [generatingPayroll, setGeneratingPayroll] = useState(false);
   const [filterPeriod, setFilterPeriod] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isPayPeriodModalOpen, setIsPayPeriodModalOpen] = useState(false);
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [payPeriodConfig, setPayPeriodConfig] = useState<{
     frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'hourly';
     startDate: string;
@@ -84,252 +83,290 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
     totalToPay: 0
   });
 
-  // Función para calcular salario según frecuencia
-  const calculateSalaryByFrequency = (baseSalary: number, frequency: string): number => {
-    switch (frequency) {
-      case 'daily':
-        return baseSalary / 30; // Asumiendo 30 días por mes
-      case 'weekly':
-        return baseSalary / 4; // 4 semanas por mes
-      case 'biweekly':
-        return baseSalary / 2; // 2 quincenas por mes
-      case 'monthly':
-        return baseSalary;
-      case 'hourly':
-        return baseSalary / 160; // Asumiendo 160 horas por mes (8h x 20 días)
-      default:
-        return baseSalary;
-    }
-  };
-
-  // Función para obtener etiquetas de frecuencia
-  const getFrequencyLabel = (frequency: string): string => {
-    switch (frequency) {
-      case 'daily': return 'Diario';
-      case 'weekly': return 'Semanal';
-      case 'biweekly': return 'Quincenal';
-      case 'monthly': return 'Mensual';
-      case 'hourly': return 'Por Hora';
-      default: return 'Mensual';
-    }
-  };
-
-  // Función para calcular fechas según frecuencia
-  const calculateDatesByFrequency = (frequency: string, baseDate?: Date) => {
-    const today = baseDate || new Date();
-    let startDate: Date;
-    let endDate: Date;
-
-    switch (frequency) {
-      case 'daily':
-        startDate = new Date(today);
-        endDate = new Date(today);
-        break;
-      case 'weekly':
-        const dayOfWeek = today.getDay();
-        startDate = new Date(today);
-        startDate.setDate(today.getDate() - dayOfWeek + 1); // Lunes
-        endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + 6); // Domingo
-        break;
-      case 'biweekly':
-        const dayOfMonth = today.getDate();
-        if (dayOfMonth <= 15) {
-          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-          endDate = new Date(today.getFullYear(), today.getMonth(), 15);
-        } else {
-          startDate = new Date(today.getFullYear(), today.getMonth(), 16);
-          endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        }
-        break;
-      case 'monthly':
-        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-        endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        break;
-      case 'hourly':
-        startDate = new Date(today);
-        endDate = new Date(today);
-        break;
-      default:
-        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-        endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    }
-
-    return {
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0]
-    };
-  };
+  // Las funciones de cálculo ahora se usan desde payrollApi
 
   // Función para manejar cambio de frecuencia de pago
   const handleFrequencyChange = async (frequency: string) => {
-    if (!employee?.contract?.salary) return;
+    if (!payrollData?.config?.baseSalary) return;
 
-    const dates = calculateDatesByFrequency(frequency);
-    const calculatedSalary = calculateSalaryByFrequency(employee.contract.salary, frequency);
+    const dates = payrollApi.calculateDatesByFrequency(frequency);
+    const calculatedSalary = payrollApi.calculateSalaryByFrequency(payrollData.config.baseSalary, frequency);
     
-    // Aquí deberías llamar a la API para obtener las deducciones del período
-    // Por ahora usamos datos mock
-    const totalDeductions = 1750; // Esto vendría de los extras del período
+    // TODO: Aquí deberías llamar a la API para obtener las deducciones del período
+    // Por ahora usamos estimación básica
+    const totalDeductions = calculatedSalary * 0.15; // Estimación del 15%
     const totalToPay = calculatedSalary - totalDeductions;
 
     setPayPeriodConfig({
-      frequency: frequency as any,
+      frequency: frequency as 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'hourly',
       startDate: dates.startDate,
       endDate: dates.endDate,
-      label: getFrequencyLabel(frequency),
+      label: payrollApi.getFrequencyLabel(frequency),
       calculatedSalary,
       totalDeductions,
       totalToPay
     });
   };
 
-  // Cargar datos de nómina desde la API
+  // Cargar datos de nómina desde la API REAL
   useEffect(() => {
     const loadPayrollData = async () => {
       try {
         setLoading(true);
+        setError(null);
         
-        // Por ahora usar datos mock directamente para mostrar la estructura
-        // TODO: Implementar llamada real a la API
-        // const response = await employeesApi.getEmployeePayroll(employeeId, {
-        //   year: new Date().getFullYear()
-        // });
+        console.log('🔄 Cargando datos de nómina para empleado:', employeeId);
         
-        // Simular delay de carga
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // 1. Obtener configuración de nómina
+        const config = await payrollApi.getPayrollConfig(employeeId);
+        console.log('📋 Configuración obtenida:', config);
         
-        // Usar datos reales del empleado
-        const employeeName = employee ? `${employee.personalInfo?.firstName || ''} ${employee.personalInfo?.lastName || ''}`.trim() : 'Empleado';
-        const baseSalary = employee?.contract?.salary || employee?.salary?.baseSalary || 0;
+        // 2. Obtener períodos de nómina
+        const periodsResponse = await payrollApi.getPayrollPeriods(employeeId, {
+          limit: 50,
+          year: new Date().getFullYear()
+        });
         
-        const mockPayrollData: EmployeePayrollData = {
-      employeeId: employeeId,
-      employeeName: employeeName,
-      position: employee?.position?.title || 'Sin Puesto',
-      department: employee?.position?.department || 'Sin Departamento',
-      baseSalary: baseSalary,
-      currency: 'MXN',
-      paymentFrequency: 'monthly',
-      currentPeriod: {
-        id: 'PER202401',
-        periodStart: '2024-01-01',
-        periodEnd: '2024-01-31',
-        weekNumber: 1,
-        year: 2024,
-        grossSalary: 25000,
-        deductions: 3750,
-        netSalary: 21250,
-        status: 'paid',
-        paymentDate: '2024-02-05',
-        pdfUrl: '/receipts/EMP241001_PER202401.pdf'
-      },
-      periods: [
-        {
-          id: 'PER202401',
-          periodStart: '2024-01-01',
-          periodEnd: '2024-01-31',
-          weekNumber: 1,
-          year: 2024,
-          grossSalary: 25000,
-          deductions: 3750,
-          netSalary: 21250,
-          status: 'paid',
-          paymentDate: '2024-02-05',
-          pdfUrl: '/receipts/EMP241001_PER202401.pdf'
-        },
-        {
-          id: 'PER202312',
-          periodStart: '2023-12-01',
-          periodEnd: '2023-12-31',
-          weekNumber: 52,
-          year: 2023,
-          grossSalary: 25000,
-          deductions: 3750,
-          netSalary: 21250,
-          status: 'paid',
-          paymentDate: '2024-01-05'
-        },
-        {
-          id: 'PER202311',
-          periodStart: '2023-11-01',
-          periodEnd: '2023-11-30',
-          weekNumber: 48,
-          year: 2023,
-          grossSalary: 25000,
-          deductions: 3750,
-          netSalary: 21250,
-          status: 'paid',
-          paymentDate: '2023-12-05'
+        console.log('📊 Períodos obtenidos:', periodsResponse.data);
+        
+        // 3. Construir datos de nómina
+        const payrollData: EmployeePayrollData = {
+          config: config,
+          periods: periodsResponse.data.periods || [],
+          summary: periodsResponse.data.summary || {
+            totalPeriods: 0,
+            totalGross: 0,
+            totalDeductions: 0,
+            totalNet: 0,
+            averageNet: 0,
+            byStatus: {
+              calculated: 0,
+              approved: 0,
+              paid: 0,
+              cancelled: 0
+            }
+          },
+          hasData: config !== null || (periodsResponse.data.periods && periodsResponse.data.periods.length > 0)
+        };
+        
+        console.log('✅ Datos de nómina procesados:', payrollData);
+        
+        setPayrollData(payrollData);
+        
+        // Configurar el período más reciente por defecto
+        if (payrollData.periods.length > 0) {
+          const latestPeriod = payrollData.periods[0]; // Los períodos vienen ordenados por fecha
+          setSelectedPeriod(latestPeriod);
+          
+          // Cargar detalles del período más reciente
+          await loadPeriodDetails(latestPeriod.id);
         }
-      ],
-      summary: {
-        totalGross: 75000,
-        totalDeductions: 11250,
-        totalNet: 63750,
-        averageNet: 21250,
-        periodsCount: 3
-      }
-    };
-
-    const mockPeriodDetails: PayrollDetail[] = [
-      {
-        type: 'perception',
-        concept: 'Sueldo Base',
-        amount: 25000,
-        description: 'Salario mensual base'
-      },
-      {
-        type: 'perception',
-        concept: 'Bono de Productividad',
-        amount: 2000,
-        description: 'Bono por cumplimiento de objetivos'
-      },
-      {
-        type: 'perception',
-        concept: 'Vales de Despensa',
-        amount: 1000,
-        description: 'Vales de despensa mensuales'
-      },
-      {
-        type: 'deduction',
-        concept: 'ISR',
-        amount: 2500,
-        description: 'Impuesto Sobre la Renta'
-      },
-      {
-        type: 'deduction',
-        concept: 'IMSS',
-        amount: 750,
-        description: 'Cuotas del IMSS'
-      },
-      {
-        type: 'deduction',
-        concept: 'Ahorro Voluntario',
-        amount: 500,
-        description: 'Ahorro voluntario para retiro'
-      }
-    ];
-
-        setPayrollData(mockPayrollData);
-        setSelectedPeriod(mockPayrollData.currentPeriod);
-        setPeriodDetails(mockPeriodDetails);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error loading payroll data:', error);
-        setError('Error al cargar los datos de nómina.');
+        
+        // Si hay configuración, actualizar el estado del modal de período
+        if (config) {
+          const dates = payrollApi.calculateDatesByFrequency(config.frequency);
+          const calculatedSalary = payrollApi.calculateSalaryByFrequency(config.baseSalary, config.frequency);
+          
+          setPayPeriodConfig({
+            frequency: config.frequency,
+            startDate: dates.startDate,
+            endDate: dates.endDate,
+            label: payrollApi.getFrequencyLabel(config.frequency),
+            calculatedSalary,
+            totalDeductions: 0, // Se calculará dinámicamente
+            totalToPay: calculatedSalary
+          });
+        }
+        
+      } catch (error: unknown) {
+        console.error('❌ Error cargando datos de nómina:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Error cargando datos de nómina';
+        setError(errorMessage);
+        
+        // Si no hay configuración, mostrar datos vacíos pero permitir configurar
+        setPayrollData({
+          config: null,
+          periods: [],
+          summary: {
+            totalPeriods: 0,
+            totalGross: 0,
+            totalDeductions: 0,
+            totalNet: 0,
+            averageNet: 0,
+            byStatus: {
+              calculated: 0,
+              approved: 0,
+              paid: 0,
+              cancelled: 0
+            }
+          },
+          hasData: false
+        });
+      } finally {
         setLoading(false);
       }
     };
 
-    loadPayrollData();
-  }, [employeeId]);
+    if (employeeId && employee) {
+      loadPayrollData();
+    }
+  }, [employeeId, employee]);
+
+  // Función para cargar detalles de un período específico
+  const loadPeriodDetails = async (payrollId: string) => {
+    try {
+      console.log('📋 Cargando detalles del período:', payrollId);
+      
+      const detailsResponse = await payrollApi.getPayrollDetails(payrollId);
+      console.log('✅ Detalles obtenidos:', detailsResponse.data);
+      
+      // Combinar percepciones y deducciones
+      const allDetails = [
+        ...detailsResponse.data.perceptions,
+        ...detailsResponse.data.deductions
+      ];
+      
+      setPeriodDetails(allDetails);
+      
+    } catch (error: unknown) {
+      console.error('❌ Error cargando detalles del período:', error);
+      setPeriodDetails([]);
+    }
+  };
+
+  // Función para configurar nómina inicial
+  const handleConfigurePayroll = async (configData: {
+    frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'hourly';
+    baseSalary: number;
+    sbc: number;
+  }) => {
+    try {
+      setConfigLoading(true);
+      console.log('🔧 Configurando nómina:', configData);
+      
+      const response = await payrollApi.createPayrollConfig(employeeId, {
+        ...configData,
+        workingDaysPerWeek: 5,
+        workingHoursPerDay: 8,
+        overtimeRate: 1.5,
+        currency: 'MXN',
+        paymentMethod: 'transfer',
+        taxRegime: 'general'
+      });
+      
+      console.log('✅ Configuración creada:', response);
+      
+      // Recargar datos
+      window.location.reload(); // Temporal, luego optimizaremos
+      
+    } catch (error: unknown) {
+        console.error('❌ Error configurando nómina:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Error configurando nómina';
+        setError(errorMessage);
+    } finally {
+      setConfigLoading(false);
+    }
+  };
+
+  // Función para generar período de nómina
+  const handleGeneratePayroll = async () => {
+    try {
+      setGeneratingPayroll(true);
+      console.log('💰 Generando período de nómina para:', employeeId);
+      
+      const response = await payrollApi.generatePayroll(employeeId, {
+        periodDate: new Date().toISOString().split('T')[0],
+        forceRegenerate: false
+      });
+      
+      console.log('✅ Período generado:', response);
+      
+      // Recargar datos
+      window.location.reload(); // Temporal, luego optimizaremos
+      
+    } catch (error: unknown) {
+        console.error('❌ Error generando nómina:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Error generando nómina';
+        setError(errorMessage);
+    } finally {
+      setGeneratingPayroll(false);
+    }
+  };
+
+  // Función para aprobar período
+  const handleApprovePayroll = async (payrollId: string) => {
+    try {
+      console.log('✅ Aprobando período:', payrollId);
+      
+      const response = await payrollApi.approvePayroll(payrollId);
+      console.log('✅ Período aprobado:', response);
+      
+      // Actualizar el período en el estado local
+      if (selectedPeriod && selectedPeriod.id === payrollId) {
+        setSelectedPeriod({
+          ...selectedPeriod,
+          status: 'approved'
+        });
+      }
+      
+      // Actualizar la lista de períodos
+      if (payrollData) {
+        const updatedPeriods = payrollData.periods.map(period => 
+          period.id === payrollId ? { ...period, status: 'approved' as const } : period
+        );
+        setPayrollData({
+          ...payrollData,
+          periods: updatedPeriods
+        });
+      }
+      
+    } catch (error: unknown) {
+        console.error('❌ Error aprobando período:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Error aprobando período';
+        setError(errorMessage);
+    }
+  };
+
+  // Función para marcar como pagado
+  const handleMarkAsPaid = async (payrollId: string) => {
+    try {
+      console.log('💰 Marcando como pagado:', payrollId);
+      
+      const response = await payrollApi.markAsPaid(payrollId, new Date().toISOString().split('T')[0]);
+      console.log('✅ Período marcado como pagado:', response);
+      
+      // Actualizar el período en el estado local
+      if (selectedPeriod && selectedPeriod.id === payrollId) {
+        setSelectedPeriod({
+          ...selectedPeriod,
+          status: 'paid'
+        });
+      }
+      
+      // Actualizar la lista de períodos
+      if (payrollData) {
+        const updatedPeriods = payrollData.periods.map(period => 
+          period.id === payrollId ? { ...period, status: 'paid' as const } : period
+        );
+        setPayrollData({
+          ...payrollData,
+          periods: updatedPeriods
+        });
+      }
+      
+    } catch (error: unknown) {
+        console.error('❌ Error marcando como pagado:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Error marcando como pagado';
+        setError(errorMessage);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'paid': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'processing': return 'bg-blue-100 text-blue-800';
+      case 'approved': return 'bg-blue-100 text-blue-800';
+      case 'calculated': return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -337,8 +374,9 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
   const getStatusText = (status: string) => {
     switch (status) {
       case 'paid': return 'Pagado';
-      case 'pending': return 'Pendiente';
-      case 'processing': return 'Procesando';
+      case 'approved': return 'Aprobado';
+      case 'calculated': return 'Calculado';
+      case 'cancelled': return 'Cancelado';
       default: return 'Desconocido';
     }
   };
@@ -403,7 +441,9 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
               </button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Nómina</h1>
-                <p className="text-gray-600">{payrollData.employeeName} - {payrollData.position}</p>
+                <p className="text-gray-600">
+                  {employee.personalInfo?.firstName} {employee.personalInfo?.lastName} - {employee.position?.title || 'Sin Puesto'}
+                </p>
               </div>
             </div>
             
@@ -438,11 +478,13 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
           <div className="bg-white p-6 rounded-xl shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Salario {payPeriodConfig.label}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Salario {payrollData.config ? payrollApi.getFrequencyLabel(payrollData.config.frequency) : 'Base'}
+                </p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {payPeriodConfig.calculatedSalary > 0 
-                    ? formatCurrency(payPeriodConfig.calculatedSalary) 
-                    : formatCurrency(payrollData.baseSalary)
+                  {payrollData.config 
+                    ? formatCurrency(payrollApi.calculateSalaryByFrequency(payrollData.config.baseSalary, payrollData.config.frequency))
+                    : formatCurrency(employee.contract?.salary || employee.salary?.baseSalary || 0)
                   }
                 </p>
               </div>
@@ -455,12 +497,9 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
           <div className="bg-white p-6 rounded-xl shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total por Pagar</p>
+                <p className="text-sm font-medium text-gray-600">Total Neto Pagado</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {payPeriodConfig.totalToPay !== 0 
-                    ? formatCurrency(payPeriodConfig.totalToPay) 
-                    : formatCurrency(payrollData.summary.averageNet)
-                  }
+                  {formatCurrency(payrollData.summary.totalNet)}
                 </p>
               </div>
               <div className="p-3 bg-green-100 rounded-lg">
@@ -472,12 +511,9 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
           <div className="bg-white p-6 rounded-xl shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Deducciones del Período</p>
+                <p className="text-sm font-medium text-gray-600">Total Deducciones</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {payPeriodConfig.totalDeductions > 0 
-                    ? formatCurrency(payPeriodConfig.totalDeductions) 
-                    : formatCurrency(payrollData.summary.totalDeductions)
-                  }
+                  {formatCurrency(payrollData.summary.totalDeductions)}
                 </p>
               </div>
               <div className="p-3 bg-red-100 rounded-lg">
@@ -489,14 +525,13 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
           <div className="bg-white p-6 rounded-xl shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Período Actual</p>
-                <p className="text-lg font-bold text-gray-900">
-                  {payPeriodConfig.startDate && payPeriodConfig.endDate 
-                    ? `${new Date(payPeriodConfig.startDate).toLocaleDateString('es-ES')} - ${new Date(payPeriodConfig.endDate).toLocaleDateString('es-ES')}`
-                    : 'No configurado'
-                  }
+                <p className="text-sm font-medium text-gray-600">Períodos Totales</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {payrollData.summary.totalPeriods}
                 </p>
-                <p className="text-sm text-gray-500 mt-1">{payPeriodConfig.label}</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {payrollData.config ? payrollApi.getFrequencyLabel(payrollData.config.frequency) : 'Sin configurar'}
+                </p>
               </div>
               <div className="p-3 bg-purple-100 rounded-lg">
                 <CalendarDays className="h-6 w-6 text-purple-600" />
@@ -504,6 +539,81 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Mostrar configuración inicial si no hay datos */}
+        {!payrollData.hasData && (
+          <div className="bg-white rounded-xl shadow-sm border mb-8">
+            <div className="p-8 text-center">
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
+                <Settings className="h-8 w-8 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Configurar Nómina</h3>
+              <p className="text-gray-600 mb-6">
+                Este empleado no tiene configuración de nómina. Configura la frecuencia de pago y el salario base para comenzar a generar períodos.
+              </p>
+              
+              <div className="flex items-center justify-center space-x-4">
+                <button
+                  onClick={() => setIsConfigModalOpen(true)}
+                  disabled={configLoading}
+                  className="flex items-center space-x-2 px-6 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Settings className="h-4 w-4" />
+                  <span>{configLoading ? 'Configurando...' : 'Configurar Nómina'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mostrar botón para generar nómina si hay configuración pero no períodos */}
+        {payrollData.hasData && payrollData.config && payrollData.periods.length === 0 && (
+          <div className="bg-white rounded-xl shadow-sm border mb-8">
+            <div className="p-8 text-center">
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                <Plus className="h-8 w-8 text-green-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Generar Primer Período</h3>
+              <p className="text-gray-600 mb-6">
+                La configuración de nómina está lista. Genera el primer período de pago para comenzar.
+              </p>
+              
+              <div className="flex items-center justify-center space-x-4">
+                <button
+                  onClick={handleGeneratePayroll}
+                  disabled={generatingPayroll}
+                  className="flex items-center space-x-2 px-6 py-3 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>{generatingPayroll ? 'Generando...' : 'Generar Período'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mostrar error si hay alguno */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-8">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <X className="h-5 w-5 text-red-400" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Error</h3>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
+              </div>
+              <div className="ml-auto pl-3">
+                <button
+                  onClick={() => setError(null)}
+                  className="inline-flex bg-red-50 rounded-md p-1.5 text-red-500 hover:bg-red-100 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Lista de Períodos */}
@@ -522,8 +632,9 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
                       >
                         <option value="all">Todos</option>
                         <option value="paid">Pagados</option>
-                        <option value="pending">Pendientes</option>
-                        <option value="processing">Procesando</option>
+                        <option value="approved">Aprobados</option>
+                        <option value="calculated">Calculados</option>
+                        <option value="cancelled">Cancelados</option>
                       </select>
                     </div>
                   </div>
@@ -553,7 +664,9 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-gray-900">{period.period}</h4>
+                      <h4 className="font-medium text-gray-900">
+                        {formatDate(period.periodStart)} - {formatDate(period.periodEnd)}
+                      </h4>
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(period.status)}`}>
                         {getStatusText(period.status)}
                       </span>
@@ -580,9 +693,11 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
                   <div className="p-6 border-b">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900">{selectedPeriod.period}</h3>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          Período {payrollData.config ? payrollApi.getFrequencyLabel(payrollData.config.frequency) : ''}
+                        </h3>
                         <p className="text-sm text-gray-600">
-                          {formatDate(selectedPeriod.startDate)} - {formatDate(selectedPeriod.endDate)}
+                          {formatDate(selectedPeriod.periodStart)} - {formatDate(selectedPeriod.periodEnd)}
                         </p>
                       </div>
                       <div className="flex items-center space-x-3">
@@ -608,13 +723,50 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
                       </div>
                       <div className="text-center">
                         <p className="text-sm text-gray-600 mb-1">Deducciones</p>
-                        <p className="text-2xl font-bold text-red-600">{formatCurrency(selectedPeriod.deductions)}</p>
+                        <p className="text-2xl font-bold text-red-600">{formatCurrency(selectedPeriod.totalDeductions)}</p>
                       </div>
                       <div className="text-center">
                         <p className="text-sm text-gray-600 mb-1">Salario Neto</p>
                         <p className="text-2xl font-bold text-green-600">{formatCurrency(selectedPeriod.netSalary)}</p>
                       </div>
                     </div>
+
+                    {/* Botones de acción según el estado */}
+                    {selectedPeriod.status === 'calculated' && (
+                      <div className="flex items-center justify-center space-x-4 mb-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <button
+                          onClick={() => handleApprovePayroll(selectedPeriod.id)}
+                          className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          <span>✓</span>
+                          <span>Aprobar Período</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {selectedPeriod.status === 'approved' && (
+                      <div className="flex items-center justify-center space-x-4 mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <button
+                          onClick={() => handleMarkAsPaid(selectedPeriod.id)}
+                          className="flex items-center space-x-2 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                        >
+                          <span>💰</span>
+                          <span>Marcar como Pagado</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {selectedPeriod.status === 'paid' && (
+                      <div className="flex items-center justify-center space-x-4 mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
+                        <div className="flex items-center space-x-2 text-green-700">
+                          <span>✅</span>
+                          <span className="font-medium">Período Pagado</span>
+                          {selectedPeriod.paymentDate && (
+                            <span className="text-sm">- {formatDate(selectedPeriod.paymentDate)}</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Desglose de Percepciones y Deducciones */}
                     <div className="space-y-4">
@@ -670,8 +822,8 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
                           period: `${period.periodStart} - ${period.periodEnd}`,
                           grossSalary: period.grossSalary,
                           netSalary: period.netSalary,
-                          deductions: period.deductions,
-                          date: period.startDate
+                          deductions: period.totalDeductions,
+                          date: period.periodStart
                         }))}
                         type="comparison"
                         height={200}
@@ -686,8 +838,8 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
                           period: `${period.periodStart} - ${period.periodEnd}`,
                           grossSalary: period.grossSalary,
                           netSalary: period.netSalary,
-                          deductions: period.deductions,
-                          date: period.startDate
+                          deductions: period.totalDeductions,
+                          date: period.periodStart
                         }))}
                         type="net"
                         height={200}
@@ -710,6 +862,34 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       </div>
 
       {/* Modal de Configuración de Período de Pago */}
+      {/* Modal de Configuración Inicial de Nómina */}
+      {isConfigModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Configurar Nómina</h3>
+                <button
+                  onClick={() => setIsConfigModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <PayrollConfigForm
+                employee={employee}
+                onSave={handleConfigurePayroll}
+                onCancel={() => setIsConfigModalOpen(false)}
+                loading={configLoading}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {isPayPeriodModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4">
