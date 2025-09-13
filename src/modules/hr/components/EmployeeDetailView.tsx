@@ -184,29 +184,6 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
     { id: 'history' as TabType, label: 'Historial', icon: History }
   ];
 
-  const formatDate = (date: string | Date) => {
-    try {
-      const dateObj = typeof date === 'string' ? new Date(date) : date;
-      if (isNaN(dateObj.getTime())) {
-        return 'Fecha no válida';
-      }
-      return dateObj.toLocaleDateString('es-MX', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch {
-      return 'Fecha no válida';
-    }
-  };
-
-  const getInitials = (firstName: string, lastName: string) => {
-    try {
-      return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
-    } catch {
-      return 'NN';
-    }
-  };
 
   // Validación básica del empleado
   if (!employee || !employee.id) {
@@ -384,7 +361,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1">Fecha de Nacimiento</label>
-                      <p className="text-gray-900">{employee.personalInfo?.dateOfBirth ? formatDate(employee.personalInfo.dateOfBirth) : 'N/A'}</p>
+                      <p className="text-gray-900">{safeFormatDate(employee.personalInfo?.dateOfBirth)}</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1">Género</label>
@@ -480,11 +457,11 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1">Fecha de Inicio en Puesto</label>
-                      <p className="text-gray-900">{employee.position?.startDate ? formatDate(employee.position.startDate) : 'N/A'}</p>
+                      <p className="text-gray-900">{safeFormatDate(employee.position?.startDate)}</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1">Fecha de Fin en Puesto</label>
-                      <p className="text-gray-900">{employee.position?.endDate ? formatDate(employee.position.endDate) : 'Actualmente en el puesto'}</p>
+                      <p className="text-gray-900">{employee.position?.endDate ? safeFormatDate(employee.position.endDate) : 'Actualmente en el puesto'}</p>
                     </div>
                   </div>
                   
@@ -544,11 +521,11 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1">Fecha de Ingreso</label>
-                      <p className="text-gray-900">{employee.contract?.startDate ? formatDate(employee.contract.startDate) : 'N/A'}</p>
+                      <p className="text-gray-900">{safeFormatDate(employee.contract?.startDate)}</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1">Fecha de Fin de Contrato</label>
-                      <p className="text-gray-900">{employee.contract?.endDate ? formatDate(employee.contract.endDate) : 'Indefinido'}</p>
+                      <p className="text-gray-900">{employee.contract?.endDate ? safeFormatDate(employee.contract.endDate) : 'Indefinido'}</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1">Tipo de Contrato</label>
@@ -656,6 +633,37 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
     }
   };
 
+  // Función helper para formatear fechas de forma segura
+  const safeFormatDate = (date: string | Date | null | undefined) => {
+    try {
+      if (!date) return 'N/A';
+      const dateObj = typeof date === 'string' ? new Date(date) : date;
+      if (isNaN(dateObj.getTime())) {
+        return 'N/A';
+      }
+      return dateObj.toLocaleDateString('es-MX', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error al formatear fecha:', error);
+      return 'N/A';
+    }
+  };
+
+  // Función helper para obtener iniciales de forma segura
+  const safeGetInitials = (firstName: string | undefined, lastName: string | undefined) => {
+    try {
+      const first = firstName?.charAt(0)?.toUpperCase() || '';
+      const last = lastName?.charAt(0)?.toUpperCase() || '';
+      return first + last || 'NN';
+    } catch (error) {
+      console.error('Error al obtener iniciales:', error);
+      return 'NN';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -673,16 +681,16 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
               
               <div className="flex items-center space-x-4">
                 <div className="relative">
-                  {employee.personalInfo?.avatar ? (
+                  {employee?.personalInfo?.avatar ? (
                     <img
                       src={employee.personalInfo.avatar}
-                      alt={`${employee.personalInfo.firstName} ${employee.personalInfo.lastName}`}
+                      alt={`${employee.personalInfo?.firstName || 'Empleado'} ${employee.personalInfo?.lastName || ''}`}
                       className="h-16 w-16 rounded-full object-cover"
                     />
                   ) : (
                     <div className="h-16 w-16 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center">
                       <span className="text-white font-semibold text-lg">
-                        {getInitials(employee.personalInfo?.firstName || '', employee.personalInfo?.lastName || '')}
+                        {safeGetInitials(employee?.personalInfo?.firstName, employee?.personalInfo?.lastName)}
                       </span>
                     </div>
                   )}
@@ -690,22 +698,22 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
                 
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">
-                    {employee.personalInfo?.firstName || 'N/A'} {employee.personalInfo?.lastName || 'N/A'}
+                    {employee?.personalInfo?.firstName || 'N/A'} {employee?.personalInfo?.lastName || 'N/A'}
                   </h1>
-                  <p className="text-lg text-gray-600">{employee.position?.title || 'N/A'}</p>
+                  <p className="text-lg text-gray-600">{employee?.position?.title || 'N/A'}</p>
                   
                   <div className="flex items-center space-x-6 mt-2">
                     <div className="flex items-center space-x-1 text-sm text-gray-600">
                       <Building className="h-4 w-4" />
-                      <span>{employee.position?.department || 'N/A'}</span>
+                      <span>{employee?.position?.department || 'N/A'}</span>
                     </div>
                     <div className="flex items-center space-x-1 text-sm text-gray-600">
                       <MapPin className="h-4 w-4" />
-                      <span>{employee.location?.office || 'N/A'}</span>
+                      <span>{employee?.location?.office || 'N/A'}</span>
                     </div>
                     <div className="flex items-center space-x-1 text-sm text-gray-600">
                       <Calendar className="h-4 w-4" />
-                      <span>Ingreso: {employee.contract?.startDate ? formatDate(employee.contract.startDate) : 'N/A'}</span>
+                      <span>Ingreso: {safeFormatDate(employee?.contract?.startDate)}</span>
                     </div>
                   </div>
                 </div>
