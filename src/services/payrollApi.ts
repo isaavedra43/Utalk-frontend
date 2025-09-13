@@ -1,27 +1,31 @@
-import api from './api';
+// Servicio API para nómina individual - alineado con especificaciones del backend
+const API_BASE_URL = '/api';
 
-// ==========================================
-// INTERFACES PARA NÓMINA - ALINEADAS CON BACKEND
-// ==========================================
+interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data: T;
+  error?: string;
+}
 
+// Tipos alineados con el backend
 export interface PayrollConfig {
   id: string;
   employeeId: string;
-  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'hourly';
+  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
   baseSalary: number;
-  sbc: number; // Salario Base de Cotización
+  sbc: number;
   workingDaysPerWeek: number;
   workingHoursPerDay: number;
   overtimeRate: number;
-  currency: string;
   paymentMethod: 'transfer' | 'cash' | 'check';
   bankAccount?: string;
-  taxRegime: string;
+  taxRegime?: string;
   notes?: string;
-  startDate: string;
   isActive: boolean;
+  startDate: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface PayrollPeriod {
@@ -29,7 +33,7 @@ export interface PayrollPeriod {
   employeeId: string;
   periodStart: string;
   periodEnd: string;
-  frequency: string;
+  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
   baseSalary: number;
   calculatedSalary: number;
   grossSalary: number;
@@ -37,547 +41,232 @@ export interface PayrollPeriod {
   totalDeductions: number;
   netSalary: number;
   status: 'calculated' | 'approved' | 'paid' | 'cancelled';
+  weekNumber?: number;
   year: number;
   month: number;
-  weekNumber?: number;
+  approvedBy?: string;
+  approvedAt?: string;
   paymentDate?: string;
   paidBy?: string;
   paidAt?: string;
-  approvedBy?: string;
-  approvedAt?: string;
-  cancelledBy?: string;
-  cancelledAt?: string;
-  cancelReason?: string;
-  pdfUrl?: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface PayrollDetail {
   id: string;
-  payrollPeriodId: string;
+  payrollId: string;
   type: 'perception' | 'deduction';
   concept: string;
   amount: number;
   description: string;
-  category: string;
+  category: 'salary' | 'overtime' | 'absence' | 'loan' | 'advance' | 'bonus' | 'allowance';
   isFixed: boolean;
   isTaxable: boolean;
-  extraId?: string; // Referencia al extra si aplica
-  createdAt: string;
+  extraId?: string;
 }
 
-export interface PayrollSummary {
-  totalPeriods: number;
-  totalGross: number;
-  totalDeductions: number;
-  totalNet: number;
-  averageNet: number;
-  byStatus: {
-    calculated: number;
-    approved: number;
-    paid: number;
-    cancelled?: number;
+export interface PendingExtra {
+  id: string;
+  type: 'overtime' | 'absence' | 'loan' | 'advance' | 'bonus';
+  date: string;
+  amount: number;
+  calculatedAmount: number;
+  description: string;
+  status: 'pending' | 'approved' | 'rejected';
+  appliedToPayroll: boolean;
+  impactType: 'add' | 'subtract';
+}
+
+export interface PendingExtrasResponse {
+  period: {
+    startDate: string;
+    endDate: string;
   };
-  byFrequency?: {
-    daily?: number;
-    weekly?: number;
-    biweekly?: number;
-    monthly?: number;
-    hourly?: number;
-  };
-}
-
-export interface PayrollStats {
-  totalPeriods: number;
-  totalGross: number;
-  totalDeductions: number;
-  totalNet: number;
-  averageGross: number;
-  averageNet: number;
-  byFrequency: Record<string, number>;
-  byStatus: Record<string, number>;
-  byMonth: Record<string, number>;
-}
-
-// ==========================================
-// REQUESTS Y RESPONSES
-// ==========================================
-
-export interface CreatePayrollConfigRequest {
-  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'hourly';
-  baseSalary: number;
-  sbc: number;
-  workingDaysPerWeek?: number;
-  workingHoursPerDay?: number;
-  overtimeRate?: number;
-  currency?: string;
-  paymentMethod?: 'transfer' | 'cash' | 'check';
-  bankAccount?: string;
-  taxRegime?: string;
-  notes?: string;
-}
-
-export interface GeneratePayrollRequest {
-  periodDate?: string; // Fecha base para calcular período
-  forceRegenerate?: boolean; // Forzar regeneración si ya existe
-}
-
-export interface AutoGeneratePayrollRequest {
-  frequency?: string; // Generar por frecuencia
-  employeeIds?: string[]; // Generar por empleados específicos
-}
-
-export interface PayrollConfigResponse {
-  success: boolean;
-  message: string;
-  data: {
-    config: PayrollConfig;
-    employee: {
-      id: string;
-      name: string;
-      email: string;
-    };
+  extras: PendingExtra[];
+  perceptions: PendingExtra[];
+  deductions: PendingExtra[];
+  summary: {
+    totalExtras: number;
+    totalPerceptions: number;
+    totalDeductions: number;
+    totalToAdd: number;
+    totalToSubtract: number;
+    netImpact: number;
   };
 }
 
 export interface PayrollGenerationResponse {
-  success: boolean;
-  message: string;
-  data: {
-    payroll: PayrollPeriod;
-    details: {
-      perceptions: PayrollDetail[];
-      deductions: PayrollDetail[];
-      all: PayrollDetail[];
-    };
-    summary: {
-      totalPerceptions: number;
-      totalDeductions: number;
-      perceptionsCount: number;
-      deductionsCount: number;
-    };
+  payroll: PayrollPeriod;
+  details: {
+    perceptions: PayrollDetail[];
+    deductions: PayrollDetail[];
+  };
+  summary: {
+    totalPerceptions: number;
+    totalDeductions: number;
+    netSalary: number;
+    extrasApplied: number;
+    perceptionsCount: number;
+    deductionsCount: number;
   };
 }
 
 export interface PayrollPeriodsResponse {
-  success: boolean;
-  data: {
-    periods: PayrollPeriod[];
-    summary: PayrollSummary;
-    filters: Record<string, any>;
+  periods: PayrollPeriod[];
+  summary: {
+    totalPeriods: number;
+    totalGross: number;
+    totalDeductions: number;
+    totalNet: number;
+    averageGross: number;
+    averageNet: number;
   };
-}
-
-export interface PayrollDetailsResponse {
-  success: boolean;
-  data: {
-    payroll: PayrollPeriod;
-    perceptions: PayrollDetail[];
-    deductions: PayrollDetail[];
-    summary: {
-      totalPerceptions: number;
-      totalDeductions: number;
-      perceptionsCount: number;
-      deductionsCount: number;
-    };
-  };
-}
-
-export interface PayrollStatsResponse {
-  success: boolean;
-  data: {
-    stats: PayrollStats;
-    filters: Record<string, any>;
-  };
-}
-
-export interface AutoGenerationResult {
-  employeeId: string;
-  success: boolean;
-  payrollId?: string;
-  netSalary?: number;
-  error?: string;
-}
-
-export interface AutoGenerationResponse {
-  success: boolean;
-  message: string;
-  data: {
-    results: AutoGenerationResult[];
-    summary: {
-      total: number;
-      successful: number;
-      failed: number;
-      successRate: number;
-    };
-  };
-}
-
-// ==========================================
-// SERVICIO API PARA NÓMINA
-// ==========================================
-
-class PayrollApiService {
-  
-  // ==========================================
-  // CONFIGURACIÓN DE NÓMINA
-  // ==========================================
-
-  /**
-   * Configurar nómina de empleado
-   */
-  async createPayrollConfig(employeeId: string, configData: CreatePayrollConfigRequest): Promise<PayrollConfigResponse> {
-    try {
-      console.log('🔧 Configurando nómina para empleado:', employeeId, configData);
-      
-      const response = await api.post(`/api/payroll/config/${employeeId}`, configData);
-      
-      console.log('✅ Configuración creada exitosamente:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error configurando nómina:', error);
-      throw new Error(error.response?.data?.message || 'Error configurando nómina');
-    }
-  }
-
-  /**
-   * Obtener configuración de nómina
-   */
-  async getPayrollConfig(employeeId: string): Promise<PayrollConfig | null> {
-    try {
-      console.log('📋 Obteniendo configuración de nómina para:', employeeId);
-      
-      const response = await api.get(`/api/payroll/config/${employeeId}`);
-      
-      if (response.data && response.data.success && response.data.data) {
-        console.log('✅ Configuración obtenida:', response.data.data.config);
-        return response.data.data.config;
-      }
-      
-      return null;
-    } catch (error: any) {
-      console.log('⚠️ No hay configuración de nómina para este empleado');
-      if (error.response?.status === 404) {
-        return null; // No existe configuración
-      }
-      throw new Error(error.response?.data?.message || 'Error obteniendo configuración');
-    }
-  }
-
-  /**
-   * Actualizar configuración de nómina
-   */
-  async updatePayrollConfig(employeeId: string, updates: Partial<CreatePayrollConfigRequest>): Promise<PayrollConfigResponse> {
-    try {
-      console.log('🔄 Actualizando configuración de nómina:', employeeId, updates);
-      
-      const response = await api.put(`/api/payroll/config/${employeeId}`, updates);
-      
-      console.log('✅ Configuración actualizada exitosamente:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error actualizando configuración:', error);
-      throw new Error(error.response?.data?.message || 'Error actualizando configuración');
-    }
-  }
-
-  // ==========================================
-  // GENERACIÓN DE NÓMINA
-  // ==========================================
-
-  /**
-   * Generar nómina individual
-   */
-  async generatePayroll(employeeId: string, requestData: GeneratePayrollRequest = {}): Promise<PayrollGenerationResponse> {
-    try {
-      console.log('💰 Generando nómina para empleado:', employeeId, requestData);
-      
-      const response = await api.post(`/api/payroll/generate/${employeeId}`, requestData);
-      
-      console.log('✅ Nómina generada exitosamente:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error generando nómina:', error);
-      throw new Error(error.response?.data?.message || 'Error generando nómina');
-    }
-  }
-
-  /**
-   * Generación automática masiva
-   */
-  async autoGeneratePayroll(requestData: AutoGeneratePayrollRequest): Promise<AutoGenerationResponse> {
-    try {
-      console.log('🤖 Iniciando generación automática:', requestData);
-      
-      const response = await api.post('/api/payroll/auto-generate', requestData);
-      
-      console.log('✅ Generación automática completada:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error en generación automática:', error);
-      throw new Error(error.response?.data?.message || 'Error en generación automática');
-    }
-  }
-
-  // ==========================================
-  // CONSULTAS DE NÓMINA
-  // ==========================================
-
-  /**
-   * Obtener períodos de nómina de empleado
-   */
-  async getPayrollPeriods(employeeId: string, params: {
+  filters: {
     limit?: number;
     year?: number;
     month?: number;
     status?: string;
-  } = {}): Promise<PayrollPeriodsResponse> {
-    try {
-      console.log('📊 Obteniendo períodos de nómina:', employeeId, params);
-      
-      const searchParams = new URLSearchParams();
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined) {
-          searchParams.append(key, value.toString());
-        }
-      });
+  };
+}
 
-      const response = await api.get(`/api/payroll/periods/${employeeId}?${searchParams.toString()}`);
-      
-      console.log('✅ Períodos obtenidos:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error obteniendo períodos:', error);
-      throw new Error(error.response?.data?.message || 'Error obteniendo períodos de nómina');
+export interface PayrollDetailsResponse {
+  payroll: PayrollPeriod;
+  perceptions: PayrollDetail[];
+  deductions: PayrollDetail[];
+  summary: {
+    totalPerceptions: number;
+    totalDeductions: number;
+    netSalary: number;
+  };
+}
+
+class PayrollApiService {
+  private async request<T>(
+    endpoint: string, 
+    options: RequestInit = {}
+  ): Promise<T> {
+    const token = localStorage.getItem('token');
+    
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...options.headers,
+      },
+      ...options,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || data.message || 'Error en la respuesta del servidor');
+    }
+
+    return data.data;
+  }
+
+  // CONFIGURACIÓN DE NÓMINA
+  async configurePayroll(employeeId: string, configData: Partial<PayrollConfig>): Promise<{ config: PayrollConfig; employee: any }> {
+    return this.request(`/payroll/config/${employeeId}`, {
+      method: 'POST',
+      body: JSON.stringify(configData),
+    });
+  }
+
+  async getPayrollConfig(employeeId: string): Promise<PayrollConfig | null> {
+    try {
+      const response = await this.request<{ config: PayrollConfig }>(`/payroll/config/${employeeId}`);
+      return response.config;
+    } catch (error) {
+      // Si no hay configuración, devolver null en lugar de error
+      if (error instanceof Error && error.message.includes('404')) {
+        return null;
+      }
+      throw error;
     }
   }
 
-  /**
-   * Obtener detalles de período específico
-   */
+  async updatePayrollConfig(employeeId: string, configData: Partial<PayrollConfig>): Promise<{ config: PayrollConfig; previousConfig: PayrollConfig }> {
+    return this.request(`/payroll/config/${employeeId}`, {
+      method: 'PUT',
+      body: JSON.stringify(configData),
+    });
+  }
+
+  // GENERACIÓN DE NÓMINA
+  async generatePayroll(employeeId: string, options: { periodDate?: string; forceRegenerate?: boolean } = {}): Promise<PayrollGenerationResponse> {
+    return this.request(`/payroll/generate/${employeeId}`, {
+      method: 'POST',
+      body: JSON.stringify(options),
+    });
+  }
+
+  async getPendingExtras(employeeId: string, periodStart?: string, periodEnd?: string): Promise<PendingExtrasResponse> {
+    const params = new URLSearchParams();
+    if (periodStart) params.append('periodStart', periodStart);
+    if (periodEnd) params.append('periodEnd', periodEnd);
+    
+    const queryString = params.toString();
+    const endpoint = `/payroll/extras-pending/${employeeId}${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request(endpoint);
+  }
+
+  // CONSULTA DE PERÍODOS
+  async getPayrollPeriods(employeeId: string, filters: { limit?: number; year?: number; month?: number; status?: string } = {}): Promise<PayrollPeriodsResponse> {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, value.toString());
+      }
+    });
+    
+    const queryString = params.toString();
+    const endpoint = `/payroll/periods/${employeeId}${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request(endpoint);
+  }
+
   async getPayrollDetails(payrollId: string): Promise<PayrollDetailsResponse> {
-    try {
-      console.log('📋 Obteniendo detalles del período:', payrollId);
-      
-      const response = await api.get(`/api/payroll/period/${payrollId}/details`);
-      
-      console.log('✅ Detalles obtenidos:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error obteniendo detalles:', error);
-      throw new Error(error.response?.data?.message || 'Error obteniendo detalles del período');
-    }
+    return this.request(`/payroll/period/${payrollId}/details`);
   }
 
-  /**
-   * Obtener períodos pendientes de pago
-   */
-  async getPendingPayrolls(params: { limit?: number } = {}): Promise<{
-    success: boolean;
-    data: {
-      periods: Array<PayrollPeriod & { employee: { id: string; name: string; email: string; department: string } }>;
-      summary: {
-        totalPending: number;
-        totalAmount: number;
-        byStatus: Record<string, number>;
-      };
-      pagination: {
-        total: number;
-        shown: number;
-        limit: number;
-      };
-    };
-  }> {
-    try {
-      console.log('⏳ Obteniendo períodos pendientes:', params);
-      
-      const searchParams = new URLSearchParams();
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined) {
-          searchParams.append(key, value.toString());
-        }
-      });
-
-      const response = await api.get(`/api/payroll/pending?${searchParams.toString()}`);
-      
-      console.log('✅ Períodos pendientes obtenidos:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error obteniendo períodos pendientes:', error);
-      throw new Error(error.response?.data?.message || 'Error obteniendo períodos pendientes');
-    }
-  }
-
-  // ==========================================
   // GESTIÓN DE ESTADOS
-  // ==========================================
-
-  /**
-   * Aprobar período de nómina
-   */
-  async approvePayroll(payrollId: string): Promise<{
-    success: boolean;
-    message: string;
-    data: {
-      payroll: Partial<PayrollPeriod>;
-    };
-  }> {
-    try {
-      console.log('✅ Aprobando período:', payrollId);
-      
-      const response = await api.put(`/api/payroll/approve/${payrollId}`);
-      
-      console.log('✅ Período aprobado exitosamente:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error aprobando período:', error);
-      throw new Error(error.response?.data?.message || 'Error aprobando período');
-    }
+  async approvePayroll(payrollId: string): Promise<{ payroll: PayrollPeriod }> {
+    return this.request(`/payroll/approve/${payrollId}`, {
+      method: 'PUT',
+    });
   }
 
-  /**
-   * Marcar período como pagado
-   */
-  async markAsPaid(payrollId: string, paymentDate?: string): Promise<{
-    success: boolean;
-    message: string;
-    data: {
-      payroll: Partial<PayrollPeriod>;
-    };
-  }> {
-    try {
-      console.log('💰 Marcando como pagado:', payrollId, paymentDate);
-      
-      const requestBody = paymentDate ? { paymentDate } : {};
-      const response = await api.put(`/api/payroll/pay/${payrollId}`, requestBody);
-      
-      console.log('✅ Período marcado como pagado:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error marcando como pagado:', error);
-      throw new Error(error.response?.data?.message || 'Error marcando como pagado');
-    }
+  async markAsPaid(payrollId: string, paymentDate?: string): Promise<{ payroll: PayrollPeriod }> {
+    return this.request(`/payroll/pay/${payrollId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ paymentDate }),
+    });
   }
 
-  /**
-   * Cancelar período de nómina
-   */
-  async cancelPayroll(payrollId: string, reason: string): Promise<{
-    success: boolean;
-    message: string;
-    data: {
-      payroll: Partial<PayrollPeriod>;
-    };
-  }> {
-    try {
-      console.log('❌ Cancelando período:', payrollId, reason);
-      
-      const response = await api.put(`/api/payroll/cancel/${payrollId}`, { reason });
-      
-      console.log('✅ Período cancelado exitosamente:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error cancelando período:', error);
-      throw new Error(error.response?.data?.message || 'Error cancelando período');
-    }
+  async cancelPayroll(payrollId: string, reason?: string): Promise<{ payroll: PayrollPeriod }> {
+    return this.request(`/payroll/cancel/${payrollId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason }),
+    });
   }
 
-  /**
-   * Eliminar período de nómina
-   */
-  async deletePayroll(payrollId: string): Promise<{
-    success: boolean;
-    message: string;
-  }> {
-    try {
-      console.log('🗑️ Eliminando período:', payrollId);
-      
-      const response = await api.delete(`/api/payroll/period/${payrollId}`);
-      
-      console.log('✅ Período eliminado exitosamente:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error eliminando período:', error);
-      throw new Error(error.response?.data?.message || 'Error eliminando período');
-    }
+  async deletePayroll(payrollId: string): Promise<void> {
+    return this.request(`/payroll/period/${payrollId}`, {
+      method: 'DELETE',
+    });
   }
 
-  // ==========================================
-  // ESTADÍSTICAS Y REPORTES
-  // ==========================================
-
-  /**
-   * Obtener estadísticas de nómina
-   */
-  async getPayrollStats(params: {
-    year?: number;
-    month?: number;
-    employeeId?: string;
-  } = {}): Promise<PayrollStatsResponse> {
-    try {
-      console.log('📈 Obteniendo estadísticas de nómina:', params);
-      
-      const searchParams = new URLSearchParams();
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined) {
-          searchParams.append(key, value.toString());
-        }
-      });
-
-      const response = await api.get(`/api/payroll/stats?${searchParams.toString()}`);
-      
-      console.log('✅ Estadísticas obtenidas:', response.data);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Error obteniendo estadísticas:', error);
-      throw new Error(error.response?.data?.message || 'Error obteniendo estadísticas');
-    }
-  }
-
-  // ==========================================
   // UTILIDADES
-  // ==========================================
-
-  /**
-   * Calcular salario por frecuencia
-   */
-  calculateSalaryByFrequency(baseSalary: number, frequency: string): number {
-    switch (frequency) {
-      case 'daily':
-        return baseSalary / 30; // 30 días por mes
-      case 'weekly':
-        return baseSalary / 4; // 4 semanas por mes
-      case 'biweekly':
-        return baseSalary / 2; // 2 quincenas por mes
-      case 'monthly':
-        return baseSalary;
-      case 'hourly':
-        return baseSalary / 160; // 160 horas por mes (8h x 20 días)
-      default:
-        return baseSalary;
-    }
-  }
-
-  /**
-   * Obtener etiqueta de frecuencia
-   */
-  getFrequencyLabel(frequency: string): string {
-    switch (frequency) {
-      case 'daily': return 'Diario';
-      case 'weekly': return 'Semanal';
-      case 'biweekly': return 'Quincenal';
-      case 'monthly': return 'Mensual';
-      case 'hourly': return 'Por Hora';
-      default: return 'Mensual';
-    }
-  }
-
-  /**
-   * Calcular fechas por frecuencia
-   */
-  calculateDatesByFrequency(frequency: string, baseDate?: Date): { startDate: string; endDate: string } {
-    const today = baseDate || new Date();
+  calculateDatesByFrequency(frequency: string): { startDate: string; endDate: string } {
+    const today = new Date();
     let startDate: Date;
     let endDate: Date;
 
@@ -587,15 +276,16 @@ class PayrollApiService {
         endDate = new Date(today);
         break;
       case 'weekly':
+        // Semana actual (lunes a domingo)
         const dayOfWeek = today.getDay();
-        startDate = new Date(today);
-        startDate.setDate(today.getDate() - dayOfWeek + 1); // Lunes
+        const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Ajustar si es domingo
+        startDate = new Date(today.setDate(diff));
         endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + 6); // Domingo
+        endDate.setDate(startDate.getDate() + 6);
         break;
       case 'biweekly':
-        const dayOfMonth = today.getDate();
-        if (dayOfMonth <= 15) {
+        // Quincena actual
+        if (today.getDate() <= 15) {
           startDate = new Date(today.getFullYear(), today.getMonth(), 1);
           endDate = new Date(today.getFullYear(), today.getMonth(), 15);
         } else {
@@ -604,23 +294,78 @@ class PayrollApiService {
         }
         break;
       case 'monthly':
-        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-        endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        break;
-      case 'hourly':
-        startDate = new Date(today);
-        endDate = new Date(today);
-        break;
       default:
+        // Mes actual
         startDate = new Date(today.getFullYear(), today.getMonth(), 1);
         endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        break;
     }
 
     return {
       startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0]
+      endDate: endDate.toISOString().split('T')[0],
     };
+  }
+
+  calculateSalaryByFrequency(baseSalary: number, frequency: string): number {
+    switch (frequency) {
+      case 'daily':
+        return baseSalary / 30; // Salario diario
+      case 'weekly':
+        return baseSalary / 4.33; // Salario semanal (52 semanas / 12 meses)
+      case 'biweekly':
+        return baseSalary / 2; // Salario quincenal
+      case 'monthly':
+      default:
+        return baseSalary; // Salario mensual completo
+    }
+  }
+
+  getFrequencyLabel(frequency: string): string {
+    switch (frequency) {
+      case 'daily': return 'Diario';
+      case 'weekly': return 'Semanal';
+      case 'biweekly': return 'Quincenal';
+      case 'monthly': return 'Mensual';
+      default: return frequency;
+    }
+  }
+
+  formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN'
+    }).format(amount);
+  }
+
+  formatDate(dateString: string): string {
+    return new Date(dateString).toLocaleDateString('es-MX', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  }
+
+  getStatusLabel(status: string): string {
+    switch (status) {
+      case 'calculated': return 'Calculado';
+      case 'approved': return 'Aprobado';
+      case 'paid': return 'Pagado';
+      case 'cancelled': return 'Cancelado';
+      default: return status;
+    }
+  }
+
+  getStatusColor(status: string): string {
+    switch (status) {
+      case 'calculated': return 'warning';
+      case 'approved': return 'success';
+      case 'paid': return 'info';
+      case 'cancelled': return 'danger';
+      default: return 'light';
+    }
   }
 }
 
 export const payrollApi = new PayrollApiService();
+export default payrollApi;
