@@ -14,7 +14,10 @@ import {
   Eye,
   Share2,
   MoreHorizontal,
-  Plus
+  Plus,
+  Settings,
+  Calendar,
+  X
 } from 'lucide-react';
 import PayrollChart from './PayrollChart';
 import { employeesApi, type PayrollPeriod } from '../../../services/employeesApi';
@@ -62,6 +65,124 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [filterPeriod, setFilterPeriod] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isPayPeriodModalOpen, setIsPayPeriodModalOpen] = useState(false);
+  const [payPeriodConfig, setPayPeriodConfig] = useState<{
+    frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'hourly';
+    startDate: string;
+    endDate: string;
+    label: string;
+    calculatedSalary: number;
+    totalDeductions: number;
+    totalToPay: number;
+  }>({
+    frequency: 'monthly',
+    startDate: '',
+    endDate: '',
+    label: 'Mensual',
+    calculatedSalary: 0,
+    totalDeductions: 0,
+    totalToPay: 0
+  });
+
+  // Función para calcular salario según frecuencia
+  const calculateSalaryByFrequency = (baseSalary: number, frequency: string): number => {
+    switch (frequency) {
+      case 'daily':
+        return baseSalary / 30; // Asumiendo 30 días por mes
+      case 'weekly':
+        return baseSalary / 4; // 4 semanas por mes
+      case 'biweekly':
+        return baseSalary / 2; // 2 quincenas por mes
+      case 'monthly':
+        return baseSalary;
+      case 'hourly':
+        return baseSalary / 160; // Asumiendo 160 horas por mes (8h x 20 días)
+      default:
+        return baseSalary;
+    }
+  };
+
+  // Función para obtener etiquetas de frecuencia
+  const getFrequencyLabel = (frequency: string): string => {
+    switch (frequency) {
+      case 'daily': return 'Diario';
+      case 'weekly': return 'Semanal';
+      case 'biweekly': return 'Quincenal';
+      case 'monthly': return 'Mensual';
+      case 'hourly': return 'Por Hora';
+      default: return 'Mensual';
+    }
+  };
+
+  // Función para calcular fechas según frecuencia
+  const calculateDatesByFrequency = (frequency: string, baseDate?: Date) => {
+    const today = baseDate || new Date();
+    let startDate: Date;
+    let endDate: Date;
+
+    switch (frequency) {
+      case 'daily':
+        startDate = new Date(today);
+        endDate = new Date(today);
+        break;
+      case 'weekly':
+        const dayOfWeek = today.getDay();
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - dayOfWeek + 1); // Lunes
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6); // Domingo
+        break;
+      case 'biweekly':
+        const dayOfMonth = today.getDate();
+        if (dayOfMonth <= 15) {
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+          endDate = new Date(today.getFullYear(), today.getMonth(), 15);
+        } else {
+          startDate = new Date(today.getFullYear(), today.getMonth(), 16);
+          endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        }
+        break;
+      case 'monthly':
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        break;
+      case 'hourly':
+        startDate = new Date(today);
+        endDate = new Date(today);
+        break;
+      default:
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    }
+
+    return {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0]
+    };
+  };
+
+  // Función para manejar cambio de frecuencia de pago
+  const handleFrequencyChange = async (frequency: string) => {
+    if (!employee?.contract?.salary) return;
+
+    const dates = calculateDatesByFrequency(frequency);
+    const calculatedSalary = calculateSalaryByFrequency(employee.contract.salary, frequency);
+    
+    // Aquí deberías llamar a la API para obtener las deducciones del período
+    // Por ahora usamos datos mock
+    const totalDeductions = 1750; // Esto vendría de los extras del período
+    const totalToPay = calculatedSalary - totalDeductions;
+
+    setPayPeriodConfig({
+      frequency: frequency as any,
+      startDate: dates.startDate,
+      endDate: dates.endDate,
+      label: getFrequencyLabel(frequency),
+      calculatedSalary,
+      totalDeductions,
+      totalToPay
+    });
+  };
 
   // Cargar datos de nómina desde la API
   useEffect(() => {
@@ -291,6 +412,13 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
                 <Share2 className="h-4 w-4" />
                 <span>Compartir</span>
               </button>
+              <button 
+                onClick={() => setIsPayPeriodModalOpen(true)}
+                className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Settings className="h-4 w-4" />
+                <span>Configurar Período</span>
+              </button>
               <button className="flex items-center space-x-2 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors">
                 <Plus className="h-4 w-4" />
                 <span>Agregar Nómina</span>
@@ -310,8 +438,13 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
           <div className="bg-white p-6 rounded-xl shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Salario Base</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(payrollData.baseSalary)}</p>
+                <p className="text-sm font-medium text-gray-600">Salario {payPeriodConfig.label}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {payPeriodConfig.calculatedSalary > 0 
+                    ? formatCurrency(payPeriodConfig.calculatedSalary) 
+                    : formatCurrency(payrollData.baseSalary)
+                  }
+                </p>
               </div>
               <div className="p-3 bg-blue-100 rounded-lg">
                 <DollarSign className="h-6 w-6 text-blue-600" />
@@ -322,8 +455,13 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
           <div className="bg-white p-6 rounded-xl shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Promedio Neto</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(payrollData.summary.averageNet)}</p>
+                <p className="text-sm font-medium text-gray-600">Total por Pagar</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {payPeriodConfig.totalToPay !== 0 
+                    ? formatCurrency(payPeriodConfig.totalToPay) 
+                    : formatCurrency(payrollData.summary.averageNet)
+                  }
+                </p>
               </div>
               <div className="p-3 bg-green-100 rounded-lg">
                 <TrendingUp className="h-6 w-6 text-green-600" />
@@ -334,8 +472,13 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
           <div className="bg-white p-6 rounded-xl shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Deducciones</p>
-                <p className="text-2xl font-bold text-red-600">{formatCurrency(payrollData.summary.totalDeductions)}</p>
+                <p className="text-sm font-medium text-gray-600">Deducciones del Período</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {payPeriodConfig.totalDeductions > 0 
+                    ? formatCurrency(payPeriodConfig.totalDeductions) 
+                    : formatCurrency(payrollData.summary.totalDeductions)
+                  }
+                </p>
               </div>
               <div className="p-3 bg-red-100 rounded-lg">
                 <TrendingDown className="h-6 w-6 text-red-600" />
@@ -346,8 +489,14 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
           <div className="bg-white p-6 rounded-xl shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Períodos</p>
-                <p className="text-2xl font-bold text-gray-900">{payrollData.summary.periodsCount}</p>
+                <p className="text-sm font-medium text-gray-600">Período Actual</p>
+                <p className="text-lg font-bold text-gray-900">
+                  {payPeriodConfig.startDate && payPeriodConfig.endDate 
+                    ? `${new Date(payPeriodConfig.startDate).toLocaleDateString('es-ES')} - ${new Date(payPeriodConfig.endDate).toLocaleDateString('es-ES')}`
+                    : 'No configurado'
+                  }
+                </p>
+                <p className="text-sm text-gray-500 mt-1">{payPeriodConfig.label}</p>
               </div>
               <div className="p-3 bg-purple-100 rounded-lg">
                 <CalendarDays className="h-6 w-6 text-purple-600" />
@@ -559,6 +708,104 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Modal de Configuración de Período de Pago */}
+      {isPayPeriodModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Configurar Período de Pago</h3>
+              <button
+                onClick={() => setIsPayPeriodModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600 mb-4">
+                  Selecciona la frecuencia de pago para calcular automáticamente el salario y deducciones del período.
+                </p>
+                
+                {[
+                  { value: 'daily', label: 'Diario', desc: 'Pago por día trabajado' },
+                  { value: 'weekly', label: 'Semanal', desc: 'Pago semanal (Lunes a Domingo)' },
+                  { value: 'biweekly', label: 'Quincenal', desc: 'Pago cada 15 días' },
+                  { value: 'monthly', label: 'Mensual', desc: 'Pago mensual completo' },
+                  { value: 'hourly', label: 'Por Hora', desc: 'Pago por hora trabajada' }
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => handleFrequencyChange(option.value)}
+                    className={`w-full text-left p-4 rounded-lg border transition-colors ${
+                      payPeriodConfig.frequency === option.value
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="font-medium">{option.label}</div>
+                    <div className="text-sm text-gray-500 mt-1">{option.desc}</div>
+                  </button>
+                ))}
+                
+                {payPeriodConfig.frequency && (
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-medium text-gray-900 mb-3">Resumen del Período</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Período:</span>
+                        <span className="font-medium">
+                          {new Date(payPeriodConfig.startDate).toLocaleDateString('es-ES')} - {new Date(payPeriodConfig.endDate).toLocaleDateString('es-ES')}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Salario {payPeriodConfig.label}:</span>
+                        <span className="font-medium text-blue-600">
+                          {formatCurrency(payPeriodConfig.calculatedSalary)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Deducciones:</span>
+                        <span className="font-medium text-red-600">
+                          -{formatCurrency(payPeriodConfig.totalDeductions)}
+                        </span>
+                      </div>
+                      <hr className="my-2" />
+                      <div className="flex justify-between font-semibold">
+                        <span className="text-gray-900">Total a Pagar:</span>
+                        <span className="text-green-600">
+                          {formatCurrency(payPeriodConfig.totalToPay)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+              <button
+                onClick={() => setIsPayPeriodModalOpen(false)}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  // Aquí podrías guardar la configuración
+                  console.log('Configuración aplicada:', payPeriodConfig);
+                  setIsPayPeriodModalOpen(false);
+                }}
+                className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Aplicar Configuración
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
