@@ -1,5 +1,5 @@
 // Servicio API para nómina individual - alineado con especificaciones del backend
-const API_BASE_URL = '/api';
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || 'https://utalk-backend-production.up.railway.app';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -146,7 +146,7 @@ class PayrollApiService {
     endpoint: string, 
     options: RequestInit = {}
   ): Promise<T> {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('access_token');
     
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       headers: {
@@ -173,7 +173,7 @@ class PayrollApiService {
 
   // CONFIGURACIÓN DE NÓMINA
   async configurePayroll(employeeId: string, configData: Partial<PayrollConfig>): Promise<{ config: PayrollConfig; employee: any }> {
-    return this.request(`/payroll/config/${employeeId}`, {
+    return this.request(`/api/payroll/config/${employeeId}`, {
       method: 'POST',
       body: JSON.stringify(configData),
     });
@@ -181,19 +181,21 @@ class PayrollApiService {
 
   async getPayrollConfig(employeeId: string): Promise<PayrollConfig | null> {
     try {
-      const response = await this.request<{ config: PayrollConfig }>(`/payroll/config/${employeeId}`);
+      const response = await this.request<{ config: PayrollConfig }>(`/api/payroll/config/${employeeId}`);
       return response.config;
     } catch (error) {
       // Si no hay configuración, devolver null en lugar de error
-      if (error instanceof Error && error.message.includes('404')) {
+      if (error instanceof Error && (error.message.includes('404') || error.message.includes('not found'))) {
+        console.log('📋 No hay configuración de nómina para el empleado:', employeeId);
         return null;
       }
+      console.error('❌ Error obteniendo configuración de nómina:', error);
       throw error;
     }
   }
 
   async updatePayrollConfig(employeeId: string, configData: Partial<PayrollConfig>): Promise<{ config: PayrollConfig; previousConfig: PayrollConfig }> {
-    return this.request(`/payroll/config/${employeeId}`, {
+    return this.request(`/api/payroll/config/${employeeId}`, {
       method: 'PUT',
       body: JSON.stringify(configData),
     });
@@ -201,7 +203,7 @@ class PayrollApiService {
 
   // GENERACIÓN DE NÓMINA
   async generatePayroll(employeeId: string, options: { periodDate?: string; forceRegenerate?: boolean } = {}): Promise<PayrollGenerationResponse> {
-    return this.request(`/payroll/generate/${employeeId}`, {
+    return this.request(`/api/payroll/generate/${employeeId}`, {
       method: 'POST',
       body: JSON.stringify(options),
     });
@@ -213,7 +215,7 @@ class PayrollApiService {
     if (periodEnd) params.append('periodEnd', periodEnd);
     
     const queryString = params.toString();
-    const endpoint = `/payroll/extras-pending/${employeeId}${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/api/payroll/extras-pending/${employeeId}${queryString ? `?${queryString}` : ''}`;
     
     return this.request(endpoint);
   }
@@ -228,45 +230,65 @@ class PayrollApiService {
     });
     
     const queryString = params.toString();
-    const endpoint = `/payroll/periods/${employeeId}${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/api/payroll/periods/${employeeId}${queryString ? `?${queryString}` : ''}`;
     
-    return this.request(endpoint);
+    try {
+      return await this.request(endpoint);
+    } catch (error) {
+      // Si no hay períodos, devolver respuesta vacía
+      if (error instanceof Error && (error.message.includes('404') || error.message.includes('not found'))) {
+        console.log('📋 No hay períodos de nómina para el empleado:', employeeId);
+        return {
+          periods: [],
+          summary: {
+            totalPeriods: 0,
+            totalGross: 0,
+            totalDeductions: 0,
+            totalNet: 0,
+            averageGross: 0,
+            averageNet: 0
+          },
+          filters
+        };
+      }
+      throw error;
+    }
   }
 
   async getPayrollDetails(payrollId: string): Promise<PayrollDetailsResponse> {
-    return this.request(`/payroll/period/${payrollId}/details`);
+    return this.request(`/api/payroll/period/${payrollId}/details`);
   }
 
   // GESTIÓN DE ESTADOS
   async approvePayroll(payrollId: string): Promise<{ payroll: PayrollPeriod }> {
-    return this.request(`/payroll/approve/${payrollId}`, {
+    return this.request(`/api/payroll/approve/${payrollId}`, {
       method: 'PUT',
     });
   }
 
   async markAsPaid(payrollId: string, paymentDate?: string): Promise<{ payroll: PayrollPeriod }> {
-    return this.request(`/payroll/pay/${payrollId}`, {
+    return this.request(`/api/payroll/pay/${payrollId}`, {
       method: 'PUT',
       body: JSON.stringify({ paymentDate }),
     });
   }
 
   async cancelPayroll(payrollId: string, reason?: string): Promise<{ payroll: PayrollPeriod }> {
-    return this.request(`/payroll/cancel/${payrollId}`, {
+    return this.request(`/api/payroll/cancel/${payrollId}`, {
       method: 'PUT',
       body: JSON.stringify({ reason }),
     });
   }
 
   async deletePayroll(payrollId: string): Promise<void> {
-    return this.request(`/payroll/period/${payrollId}`, {
+    return this.request(`/api/payroll/period/${payrollId}`, {
       method: 'DELETE',
     });
   }
 
   // GENERACIÓN DE PDF
   async generatePayrollPDF(payrollId: string): Promise<{ pdfUrl: string; fileName: string; size: number; payrollId: string; employeeId: string; employeeName: string }> {
-    return this.request(`/payroll/pdf/${payrollId}`);
+    return this.request(`/api/payroll/pdf/${payrollId}`);
   }
 
   // UTILIDADES

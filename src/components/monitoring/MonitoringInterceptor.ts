@@ -85,7 +85,8 @@ export class MonitoringInterceptor {
       const startTime = performance.now();
       
       try {
-        const response = await self.originalFetch(input, init);
+        // Call original fetch with proper context binding
+        const response = await self.originalFetch.call(window, input, init);
         const endTime = performance.now();
         const duration = Math.round(endTime - startTime);
         
