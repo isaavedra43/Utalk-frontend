@@ -539,10 +539,23 @@ class ExtrasService {
           'Content-Type': 'multipart/form-data',
         },
       });
-      return response.data.filePaths;
+      
+      // Manejar diferentes formatos de respuesta del backend
+      if (response.data?.success && response.data?.data?.files) {
+        return response.data.data.files.map((file: { id?: string; path?: string; url?: string }) => file.id || file.path || file.url || '');
+      } else if (response.data?.filePaths) {
+        return response.data.filePaths;
+      } else if (response.data?.files) {
+        return response.data.files.map((file: { id?: string; path?: string; url?: string }) => file.id || file.path || file.url || '');
+      } else if (Array.isArray(response.data)) {
+        return response.data.map((file: { id?: string; path?: string; url?: string }) => file.id || file.path || file.url || '');
+      }
+      
+      console.warn('Formato de respuesta inesperado:', response.data);
+      return [];
     } catch (error) {
       console.error('Error uploading files:', error);
-      throw error;
+      this.handleError(error, 'uploadFiles');
     }
   }
 

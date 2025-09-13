@@ -12,13 +12,28 @@ import {
   Wrench,
   Trash2
 } from 'lucide-react';
-import { extrasService, MovementRecord } from '../../../services/extrasService';
+import { extrasService } from '../../../services/extrasService';
 import { useNotifications } from '../../../contexts/NotificationContext';
+
+interface ExtrasFormData {
+  id?: string;
+  type: string;
+  date: string;
+  amount: number;
+  hours?: number;
+  reason?: string;
+  description?: string;
+  justification?: string;
+  attachments?: File[];
+  status?: string;
+  autoCalculated?: boolean;
+  metadata?: Record<string, unknown>;
+}
 
 interface EmployeeExtrasModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: MovementRecord) => void;
+  onSubmit: (data: ExtrasFormData) => void;
   employeeId: string;
   employeeSalary: number;
   employeeName: string;
@@ -118,40 +133,27 @@ const EmployeeExtrasModal: React.FC<EmployeeExtrasModalProps> = ({
     setErrors({});
   }, [employeeSalary]);
 
-  // Subir archivos al servidor
+  // Subir archivos al servidor usando el servicio de extras
   const uploadFiles = async (files: File[]): Promise<string[]> => {
     if (!files || files.length === 0) return [];
     
     try {
-      setUploadProgress(0);
+      setUploadProgress(25);
+      console.log('Subiendo archivos usando extrasService...');
       
-      const formDataObj = new FormData();
-      files.forEach(file => formDataObj.append('files', file));
-      formDataObj.append('employeeId', employeeId);
-      formDataObj.append('movementType', formData.type);
+      // Usar el método del servicio de extras que ya está implementado
+      const fileUrls = await extrasService.uploadFiles(files, employeeId, formData.type);
       
-      const response = await fetch('/api/attachments', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        },
-        body: formDataObj
-      });
-      
-      if (!response.ok) {
-        throw new Error('Error subiendo archivos');
-      }
-      
-      const result = await response.json();
       setUploadProgress(100);
+      console.log('Archivos subidos exitosamente:', fileUrls);
       
-      if (result.success && result.data?.files) {
-        return result.data.files.map((file: { id: string }) => file.id);
-      }
+      // El servicio devuelve URLs, pero necesitamos extraer los IDs si es posible
+      // Por ahora devolvemos las URLs como están
+      return fileUrls;
       
-      return [];
     } catch (error) {
       console.error('Error uploading files:', error);
+      setUploadProgress(0);
       throw error;
     }
   };
@@ -298,8 +300,13 @@ const EmployeeExtrasModal: React.FC<EmployeeExtrasModalProps> = ({
       let attachmentIds: string[] = [];
       if (formData.attachments && formData.attachments.length > 0) {
         console.log('Subiendo archivos...');
-        attachmentIds = await uploadFiles(formData.attachments);
-        console.log('Archivos subidos:', attachmentIds);
+        try {
+          attachmentIds = await uploadFiles(formData.attachments);
+          console.log('Archivos subidos exitosamente:', attachmentIds);
+        } catch (uploadError) {
+          console.error('Error en la subida de archivos:', uploadError);
+          throw new Error(`Error subiendo archivos: ${uploadError instanceof Error ? uploadError.message : 'Error desconocido'}`);
+        }
       }
 
       // PASO 2: Preparar datos del movimiento
@@ -328,7 +335,23 @@ const EmployeeExtrasModal: React.FC<EmployeeExtrasModalProps> = ({
           `${getTypeLabel(formData.type)} registrado para ${employeeName}`
         );
         
-        onSubmit(result);
+        // Enviar los datos del formulario en lugar del resultado del backend
+        const formDataToSubmit: ExtrasFormData = {
+          id: result.id,
+          type: formData.type,
+          date: formData.date,
+          amount: formData.amount || formData.totalAmount || 0,
+          hours: formData.hours,
+          reason: formData.reason,
+          description: formData.description,
+          justification: formData.justification,
+          attachments: formData.attachments, // Mantener los archivos originales
+          status: 'pending',
+          autoCalculated: false,
+          metadata: getTypeSpecificFields(formData)
+        };
+        
+        onSubmit(formDataToSubmit);
         onClose();
       } else {
         throw new Error('No se recibió respuesta del servidor');
