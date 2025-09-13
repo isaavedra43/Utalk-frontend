@@ -22,7 +22,9 @@ import {
   BarChart3,
   Building,
   Plus,
-  CreditCard
+  CreditCard,
+  Calendar,
+  X
 } from 'lucide-react';
 import AttendanceChart from './AttendanceChart';
 import EmployeeExtrasModal from './EmployeeExtrasModal';
@@ -126,9 +128,144 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
   const [filterType, setFilterType] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'attendance' | 'overtime' | 'absences' | 'extras' | 'loans'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'extras' | 'attendance' | 'overtime' | 'absences' | 'loans'>('overview');
   const [isExtrasModalOpen, setIsExtrasModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isDateRangeModalOpen, setIsDateRangeModalOpen] = useState(false);
+  const [selectedDateRange, setSelectedDateRange] = useState<{
+    startDate: string;
+    endDate: string;
+    label: string;
+    type: 'current_week' | 'last_week' | 'this_month' | 'last_month' | 'this_year' | 'last_year' | 'custom';
+  }>({
+    startDate: '',
+    endDate: '',
+    label: 'Esta semana',
+    type: 'current_week'
+  });
+
+  // Función para obtener el lunes de una semana
+  const getMondayOfWeek = (date: Date): Date => {
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Ajustar cuando es domingo
+    return new Date(date.setDate(diff));
+  };
+
+  // Función para obtener el domingo de una semana
+  const getSundayOfWeek = (monday: Date): Date => {
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    return sunday;
+  };
+
+  // Función para formatear fecha a YYYY-MM-DD
+  const formatDateToISO = (date: Date): string => {
+    return date.toISOString().split('T')[0];
+  };
+
+  // Función para obtener rangos de fecha predefinidos
+  const getDateRanges = useCallback(() => {
+    const today = new Date();
+    const currentMonday = getMondayOfWeek(new Date(today));
+    const currentSunday = getSundayOfWeek(new Date(currentMonday));
+    
+    const lastMonday = new Date(currentMonday);
+    lastMonday.setDate(currentMonday.getDate() - 7);
+    const lastSunday = getSundayOfWeek(new Date(lastMonday));
+
+    const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const thisMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+    
+    const thisYearStart = new Date(today.getFullYear(), 0, 1);
+    const thisYearEnd = new Date(today.getFullYear(), 11, 31);
+    
+    const lastYearStart = new Date(today.getFullYear() - 1, 0, 1);
+    const lastYearEnd = new Date(today.getFullYear() - 1, 11, 31);
+
+    return {
+      current_week: {
+        startDate: formatDateToISO(currentMonday),
+        endDate: formatDateToISO(currentSunday),
+        label: 'Esta semana (Lun-Dom)'
+      },
+      last_week: {
+        startDate: formatDateToISO(lastMonday),
+        endDate: formatDateToISO(lastSunday),
+        label: 'Semana pasada (Lun-Dom)'
+      },
+      this_month: {
+        startDate: formatDateToISO(thisMonthStart),
+        endDate: formatDateToISO(thisMonthEnd),
+        label: 'Este mes'
+      },
+      last_month: {
+        startDate: formatDateToISO(lastMonthStart),
+        endDate: formatDateToISO(lastMonthEnd),
+        label: 'Mes pasado'
+      },
+      this_year: {
+        startDate: formatDateToISO(thisYearStart),
+        endDate: formatDateToISO(thisYearEnd),
+        label: 'Este año'
+      },
+      last_year: {
+        startDate: formatDateToISO(lastYearStart),
+        endDate: formatDateToISO(lastYearEnd),
+        label: 'Año pasado'
+      }
+    };
+  }, []);
+
+  // Función para manejar el cambio de rango de fecha
+  const handleDateRangeChange = (type: string, customStartDate?: string, customEndDate?: string) => {
+    const dateRanges = getDateRanges();
+    
+    if (type === 'custom' && customStartDate && customEndDate) {
+      // Para fechas personalizadas, asegurar que sean de lunes a domingo
+      const startDate = new Date(customStartDate);
+      const monday = getMondayOfWeek(new Date(startDate));
+      const sunday = getSundayOfWeek(new Date(monday));
+      
+      setSelectedDateRange({
+        startDate: formatDateToISO(monday),
+        endDate: formatDateToISO(sunday),
+        label: `Personalizado (${formatDateToISO(monday)} - ${formatDateToISO(sunday)})`,
+        type: 'custom'
+      });
+    } else if (dateRanges[type as keyof typeof dateRanges]) {
+      const range = dateRanges[type as keyof typeof dateRanges];
+      setSelectedDateRange({
+        startDate: range.startDate,
+        endDate: range.endDate,
+        label: range.label,
+        type: type as 'current_week' | 'last_week' | 'this_month' | 'last_month' | 'this_year' | 'last_year' | 'custom'
+      });
+    }
+    
+    setIsDateRangeModalOpen(false);
+  };
+
+  // Función para verificar si necesitamos actualizar a la semana actual
+  const checkAndUpdateToCurrentWeek = useCallback(() => {
+    if (selectedDateRange.type === 'current_week') {
+      const dateRanges = getDateRanges();
+      const currentWeek = dateRanges.current_week;
+      
+      if (selectedDateRange.startDate !== currentWeek.startDate || 
+          selectedDateRange.endDate !== currentWeek.endDate) {
+        setSelectedDateRange({
+          startDate: currentWeek.startDate,
+          endDate: currentWeek.endDate,
+          label: currentWeek.label,
+          type: 'current_week'
+        });
+        console.log('📅 Actualizando a la semana actual:', currentWeek);
+      }
+    }
+  }, [selectedDateRange, getDateRanges]);
 
   // Función para manejar el registro de extras
   const handleExtrasSubmit = async (data: {
@@ -165,13 +302,24 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
     try {
       setLoading(true);
 
-      // Calcular fechas por defecto (últimos 30 días)
-      const today = new Date();
-      const thirtyDaysAgo = new Date(today);
-      thirtyDaysAgo.setDate(today.getDate() - 30);
+      // Usar las fechas seleccionadas o calcular por defecto
+      let startDate: string;
+      let endDate: string;
       
-      const endDate = today.toISOString().split('T')[0];
-      const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+      if (selectedDateRange.startDate && selectedDateRange.endDate) {
+        startDate = selectedDateRange.startDate;
+        endDate = selectedDateRange.endDate;
+        console.log(`📅 Cargando datos para: ${selectedDateRange.label} (${startDate} - ${endDate})`);
+      } else {
+        // Fallback: últimos 30 días
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        
+        endDate = today.toISOString().split('T')[0];
+        startDate = thirtyDaysAgo.toISOString().split('T')[0];
+        console.log(`📅 Cargando datos por defecto: últimos 30 días (${startDate} - ${endDate})`);
+      }
 
       // Cargar métricas de asistencia
       const metrics = await extrasService.getAttendanceMetrics(employeeId);
@@ -280,14 +428,34 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [employeeId, employee]);
+  }, [employeeId, employee, selectedDateRange.startDate, selectedDateRange.endDate, selectedDateRange.label]);
 
-  // Cargar datos al montar el componente
+  // Inicializar fechas al montar el componente
   useEffect(() => {
-    if (employeeId) {
+    const dateRanges = getDateRanges();
+    setSelectedDateRange({
+      startDate: dateRanges.current_week.startDate,
+      endDate: dateRanges.current_week.endDate,
+      label: dateRanges.current_week.label,
+      type: 'current_week'
+    });
+  }, [getDateRanges]);
+
+  // Verificar actualizaciones automáticas cada minuto
+  useEffect(() => {
+    const interval = setInterval(() => {
+      checkAndUpdateToCurrentWeek();
+    }, 60000); // Cada minuto
+
+    return () => clearInterval(interval);
+  }, [selectedDateRange, checkAndUpdateToCurrentWeek]);
+
+  // Cargar datos cuando cambien las fechas o el empleado
+  useEffect(() => {
+    if (employeeId && selectedDateRange.startDate && selectedDateRange.endDate) {
       loadAllData();
     }
-  }, [employeeId, loadAllData]);
+  }, [employeeId, selectedDateRange.startDate, selectedDateRange.endDate, selectedDateRange.label, loadAllData]);
 
   // Función para exportar datos
   const handleExport = async () => {
@@ -452,6 +620,14 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                 <span>Compartir</span>
               </button>
               <button 
+                onClick={() => setIsDateRangeModalOpen(true)}
+                className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Calendar className="h-4 w-4" />
+                <span>{selectedDateRange.label}</span>
+                <ChevronDown className="h-3 w-3" />
+              </button>
+              <button 
                 onClick={() => setIsExtrasModalOpen(true)}
                 className="flex items-center space-x-2 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
               >
@@ -532,17 +708,17 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
             <nav className="-mb-px flex space-x-8 px-6">
               {[
                 { id: 'overview', label: 'Resumen', icon: BarChart3 },
+                { id: 'extras', label: 'Extras', icon: Plus },
                 { id: 'attendance', label: 'Asistencia', icon: CalendarDays },
                 { id: 'overtime', label: 'Horas Extra', icon: Zap },
                 { id: 'absences', label: 'Ausencias', icon: UserX },
-                { id: 'loans', label: 'Préstamos', icon: CreditCard },
-                { id: 'extras', label: 'Extras', icon: Plus }
+                { id: 'loans', label: 'Préstamos', icon: CreditCard }
               ].map((tab) => {
                 const Icon = tab.icon;
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as 'overview' | 'attendance' | 'overtime' | 'absences' | 'extras' | 'loans')}
+                    onClick={() => setActiveTab(tab.id as 'overview' | 'extras' | 'attendance' | 'overtime' | 'absences' | 'loans')}
                     className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                       activeTab === tab.id
                         ? 'border-blue-500 text-blue-600'
@@ -885,6 +1061,102 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
           }
         })()}
       />
+
+      {/* Modal de Selección de Rango de Fechas */}
+      {isDateRangeModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Seleccionar Período</h3>
+              <button
+                onClick={() => setIsDateRangeModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600 mb-4">
+                  Selecciona el período que deseas visualizar. Los datos siempre se mostrarán por semanas completas (lunes a domingo).
+                </p>
+                
+                {Object.entries(getDateRanges()).map(([key, range]) => (
+                  <button
+                    key={key}
+                    onClick={() => handleDateRangeChange(key)}
+                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                      selectedDateRange.type === key
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="font-medium">{range.label}</div>
+                    <div className="text-sm text-gray-500">
+                      {new Date(range.startDate).toLocaleDateString('es-ES')} - {new Date(range.endDate).toLocaleDateString('es-ES')}
+                    </div>
+                  </button>
+                ))}
+                
+                <div className="pt-4 border-t border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fecha personalizada (se ajustará a semana completa)
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Desde</label>
+                      <input
+                        type="date"
+                        id="customStartDate"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Hasta</label>
+                      <input
+                        type="date"
+                        id="customEndDate"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const startInput = document.getElementById('customStartDate') as HTMLInputElement;
+                      const endInput = document.getElementById('customEndDate') as HTMLInputElement;
+                      if (startInput.value && endInput.value) {
+                        handleDateRangeChange('custom', startInput.value, endInput.value);
+                      }
+                    }}
+                    className="mt-3 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  >
+                    Aplicar Fecha Personalizada
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+              <button
+                onClick={() => setIsDateRangeModalOpen(false)}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  // Aplicar la selección actual
+                  setIsDateRangeModalOpen(false);
+                }}
+                className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Aplicar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

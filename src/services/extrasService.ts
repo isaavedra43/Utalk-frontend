@@ -164,18 +164,46 @@ class ExtrasService {
 
   // MOVIMIENTOS DE EXTRAS
   async registerMovement(employeeId: string, movementData: MovementRequest): Promise<MovementRecord> {
-    try {
-      // Validar datos antes de enviar
-      if (!employeeId) {
-        throw new Error('ID de empleado es requerido');
+    const maxRetries = 3;
+    const baseDelay = 2000; // 2 segundos
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Validar datos antes de enviar
+        if (!employeeId) {
+          throw new Error('ID de empleado es requerido');
+        }
+        
+        console.log(`🔄 Intento ${attempt}/${maxRetries} - Registrando movimiento:`, movementData.type);
+        
+        const response = await api.post(`/api/employees/${employeeId}/extras`, movementData);
+        
+        console.log(`✅ Movimiento registrado exitosamente en intento ${attempt}`);
+        return response.data;
+        
+      } catch (error) {
+        const isRateLimitError = error instanceof Error && 
+          (error.message.includes('Rate limit exceeded') || 
+           error.message.includes('rate limit') ||
+           error.message.includes('429'));
+        
+        if (isRateLimitError && attempt < maxRetries) {
+          const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+          console.warn(`⚠️ Rate limit excedido. Reintentando en ${delay/1000} segundos... (Intento ${attempt}/${maxRetries})`);
+          
+          // Esperar antes del siguiente intento
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        // Si no es rate limit o es el último intento, manejar el error
+        this.handleError(error, 'registerMovement');
+        throw error;
       }
-      
-      const response = await api.post(`/api/employees/${employeeId}/extras`, movementData);
-      return response.data;
-    } catch (error) {
-      this.handleError(error, 'registerMovement');
-      throw error; // Re-lanzar para que el caller pueda manejar el error
     }
+    
+    // Esto no debería ejecutarse nunca, pero por seguridad
+    throw new Error('Error registrando movimiento después de múltiples intentos');
   }
 
   async getMovements(employeeId: string, filters: Record<string, string | number> = {}): Promise<MovementRecord[]> {
@@ -571,36 +599,70 @@ class ExtrasService {
 
   // ARCHIVOS ADJUNTOS
   async uploadFiles(files: File[], employeeId: string, movementType: string, movementId?: string): Promise<string[]> {
-    try {
-      const formData = new FormData();
-      files.forEach(file => formData.append('files', file));
-      formData.append('employeeId', employeeId);
-      formData.append('movementType', movementType);
-      if (movementId) formData.append('movementId', movementId);
-      
-      const response = await api.post('/api/attachments', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      
-      // Manejar diferentes formatos de respuesta del backend
-      if (response.data?.success && response.data?.data?.files) {
-        return response.data.data.files.map((file: { id?: string; path?: string; url?: string }) => file.id || file.path || file.url || '');
-      } else if (response.data?.filePaths) {
-        return response.data.filePaths;
-      } else if (response.data?.files) {
-        return response.data.files.map((file: { id?: string; path?: string; url?: string }) => file.id || file.path || file.url || '');
-      } else if (Array.isArray(response.data)) {
-        return response.data.map((file: { id?: string; path?: string; url?: string }) => file.id || file.path || file.url || '');
+    const maxRetries = 3;
+    const baseDelay = 1500; // 1.5 segundos
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const formData = new FormData();
+        files.forEach(file => formData.append('files', file));
+        formData.append('employeeId', employeeId);
+        formData.append('movementType', movementType);
+        if (movementId) formData.append('movementId', movementId);
+        
+        console.log(`📤 Intento ${attempt}/${maxRetries} - Subiendo ${files.length} archivo(s)...`);
+        
+        const response = await api.post('/api/attachments', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        
+        // Manejar diferentes formatos de respuesta del backend
+        if (response.data?.success && response.data?.data?.files) {
+          const fileIds = response.data.data.files.map((file: { id?: string; path?: string; url?: string }) => file.id || file.path || file.url || '');
+          console.log(`✅ Archivos subidos exitosamente en intento ${attempt}:`, fileIds);
+          return fileIds;
+        } else if (response.data?.filePaths) {
+          console.log(`✅ Archivos subidos exitosamente en intento ${attempt}:`, response.data.filePaths);
+          return response.data.filePaths;
+        } else if (response.data?.files) {
+          const fileIds = response.data.files.map((file: { id?: string; path?: string; url?: string }) => file.id || file.path || file.url || '');
+          console.log(`✅ Archivos subidos exitosamente en intento ${attempt}:`, fileIds);
+          return fileIds;
+        } else if (Array.isArray(response.data)) {
+          const fileIds = response.data.map((file: { id?: string; path?: string; url?: string }) => file.id || file.path || file.url || '');
+          console.log(`✅ Archivos subidos exitosamente en intento ${attempt}:`, fileIds);
+          return fileIds;
+        }
+        
+        console.warn('Formato de respuesta inesperado:', response.data);
+        return [];
+        
+      } catch (error) {
+        const isRateLimitError = error instanceof Error && 
+          (error.message.includes('Rate limit exceeded') || 
+           error.message.includes('rate limit') ||
+           error.message.includes('429'));
+        
+        if (isRateLimitError && attempt < maxRetries) {
+          const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+          console.warn(`⚠️ Rate limit excedido en subida de archivos. Reintentando en ${delay/1000} segundos... (Intento ${attempt}/${maxRetries})`);
+          
+          // Esperar antes del siguiente intento
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        // Si no es rate limit o es el último intento, manejar el error
+        console.error(`❌ Error uploading files en intento ${attempt}:`, error);
+        this.handleError(error, 'uploadFiles');
+        throw error;
       }
-      
-      console.warn('Formato de respuesta inesperado:', response.data);
-      return [];
-    } catch (error) {
-      console.error('Error uploading files:', error);
-      this.handleError(error, 'uploadFiles');
     }
+    
+    // Esto no debería ejecutarse nunca, pero por seguridad
+    throw new Error('Error subiendo archivos después de múltiples intentos');
   }
 
   async validateFiles(files: File[]): Promise<{ valid: boolean; errors: string[] }> {

@@ -359,10 +359,30 @@ const EmployeeExtrasModal: React.FC<EmployeeExtrasModalProps> = ({
 
     } catch (error) {
       console.error('Error registrando movimiento:', error);
-      showError(
-        'Error al registrar movimiento',
-        error instanceof Error ? error.message : 'Error desconocido'
-      );
+      
+      // Manejar errores específicos
+      let errorTitle = 'Error al registrar movimiento';
+      let errorMessage = 'Error desconocido';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Rate limit exceeded') || error.message.includes('rate limit')) {
+          errorTitle = 'Límite de peticiones excedido';
+          errorMessage = 'Has realizado muchas peticiones muy rápido. Por favor, espera unos segundos e intenta de nuevo.';
+        } else if (error.message.includes('Network Error') || error.message.includes('timeout')) {
+          errorTitle = 'Error de conexión';
+          errorMessage = 'No se pudo conectar con el servidor. Verifica tu conexión a internet e intenta de nuevo.';
+        } else if (error.message.includes('400')) {
+          errorTitle = 'Datos inválidos';
+          errorMessage = 'Los datos enviados no son válidos. Verifica la información e intenta de nuevo.';
+        } else if (error.message.includes('500')) {
+          errorTitle = 'Error del servidor';
+          errorMessage = 'Error interno del servidor. Por favor, intenta de nuevo más tarde.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      showError(errorTitle, errorMessage);
     } finally {
       setIsLoading(false);
       setUploadProgress(0);
