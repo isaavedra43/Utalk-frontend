@@ -102,48 +102,57 @@ export const conversationsService = {
     }
     
     // Transformar las conversaciones del backend al formato esperado
-    const conversations = backendData.data.map((conv: BackendConversation) => {
-      // Usar la nueva estructura del backend
-      const contactName = conv.contact?.name || conv.customerPhone;
-      const contactPhone = conv.contact?.phoneNumber || conv.customerPhone;
+    const conversations = backendData.data
+      .filter((conv: BackendConversation) => {
+        // Validar que la conversación tenga datos mínimos requeridos
+        if (!conv.id || !conv.customerPhone) {
+          console.warn('⚠️ Conversación inválida filtrada:', conv);
+          return false;
+        }
+        return true;
+      })
+      .map((conv: BackendConversation) => {
+        // Usar la nueva estructura del backend
+        const contactName = conv.contact?.name || conv.customerPhone;
+        const contactPhone = conv.contact?.phoneNumber || conv.customerPhone;
 
-      return {
-        id: conv.id,
-        customerPhone: contactPhone,
-        contact: {
-          name: contactName,
-          phoneNumber: contactPhone
-        } as ConversationContact,
-        lastMessage: conv.lastMessage
-          ? {
-              id: conv.lastMessage.messageId,
-              content: conv.lastMessage.content,
-              direction: conv.lastMessage.direction as 'inbound' | 'outbound',
-              timestamp: conv.lastMessage.timestampISO || new Date().toISOString(),
-              type: 'text' as const,
-              status: 'sent' as const
-            }
-          : undefined,
-        lastMessageAt: conv.lastMessageAt,
-        unreadCount: conv.unreadCount || 0,
-        status: conv.status as 'open' | 'closed' | 'pending' | 'resolved',
-        assignedTo: conv.assignedTo,
-        participants: conv.participants || [],
-        createdAt: conv.createdAt,
-        updatedAt: conv.updatedAt,
-        priority: conv.priority as 'low' | 'medium' | 'high' | 'urgent' | undefined,
-        tags: conv.tags || [],
-        
-        // Campos legacy para compatibilidad
-        customerName: contactName,
-        messageCount: conv.messageCount || 0,
-        tenantId: conv.tenantId || 'default_tenant',
-        workspaceId: conv.workspaceId || 'default_workspace',
-        assignedToName: conv.assignedToName,
-        createdBy: conv.createdBy,
-        metadata: {}
-      } as Conversation;
-    });
+        return {
+          id: conv.id,
+          customerPhone: contactPhone,
+          contact: {
+            name: contactName,
+            phoneNumber: contactPhone
+          } as ConversationContact,
+          lastMessage: conv.lastMessage
+            ? {
+                id: conv.lastMessage.messageId,
+                content: conv.lastMessage.content,
+                direction: conv.lastMessage.direction as 'inbound' | 'outbound',
+                timestamp: conv.lastMessage.timestampISO || new Date().toISOString(),
+                type: 'text' as const,
+                status: 'sent' as const
+              }
+            : undefined,
+          lastMessageAt: conv.lastMessageAt,
+          unreadCount: conv.unreadCount || 0,
+          status: conv.status as 'open' | 'closed' | 'pending' | 'resolved',
+          assignedTo: conv.assignedTo,
+          participants: conv.participants || [],
+          createdAt: conv.createdAt,
+          updatedAt: conv.updatedAt,
+          priority: conv.priority as 'low' | 'medium' | 'high' | 'urgent' | undefined,
+          tags: conv.tags || [],
+          
+          // Campos legacy para compatibilidad
+          customerName: contactName,
+          messageCount: conv.messageCount || 0,
+          tenantId: conv.tenantId || 'default_tenant',
+          workspaceId: conv.workspaceId || 'default_workspace',
+          assignedToName: conv.assignedToName,
+          createdBy: conv.createdBy,
+          metadata: {}
+        } as Conversation;
+      });
 
     return {
       conversations,

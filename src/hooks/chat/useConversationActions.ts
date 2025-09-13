@@ -98,6 +98,23 @@ export const useConversationActions = () => {
     }
   }, [navigate, location.pathname, location.search]);
 
+  // Función para remover conversación inválida del store
+  const removeInvalidConversation = useCallback((conversationId: string) => {
+    const sanitizedId = sanitizeConversationId(conversationId);
+    if (!sanitizedId) return;
+
+    // Remover de la lista de conversaciones
+    const updatedConversations = conversations.filter(c => c.id !== sanitizedId);
+    setConversations(updatedConversations);
+
+    // Si era la conversación activa, limpiarla
+    if (activeConversation?.id === sanitizedId) {
+      setActiveConversation(null);
+    }
+
+    infoLog('✅ useConversationActions - Conversación inválida removida:', sanitizedId);
+  }, [conversations, setConversations, activeConversation?.id, setActiveConversation]);
+
   // Función para actualizar una conversación
   const updateConversationData = useCallback(async (conversationId: string, updates: {
     customerName?: string;
@@ -151,6 +168,7 @@ export const useConversationActions = () => {
     selectConversation,
     deselectConversation,
     clearConversationFromUrl,
+    removeInvalidConversation,
     
     // Acciones de datos
     updateConversationData,

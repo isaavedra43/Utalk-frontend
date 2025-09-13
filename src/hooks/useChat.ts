@@ -164,7 +164,27 @@ export const useChat = (conversationId: string) => {
       }, 100);
     } catch (err: unknown) {
       console.error('Error cargando mensajes:', err);
-      setError(err instanceof Error ? err.message : 'Error cargando mensajes');
+      
+      // Manejar específicamente errores 404 (conversación no encontrada)
+      if (err && typeof err === 'object' && 'response' in err) {
+        const apiError = err as { response?: { status?: number; data?: any } };
+        if (apiError.response?.status === 404) {
+          setError('Conversación no encontrada. Es posible que haya sido eliminada o no exista.');
+          // Limpiar la conversación activa si no existe
+          setConversation(null);
+          setMessages([]);
+          
+          // Remover la conversación inválida del store
+          const { removeInvalidConversation } = useChatStore.getState();
+          if (removeInvalidConversation) {
+            removeInvalidConversation(conversationId);
+          }
+        } else {
+          setError(err instanceof Error ? err.message : 'Error cargando mensajes');
+        }
+      } else {
+        setError(err instanceof Error ? err.message : 'Error cargando mensajes');
+      }
     } finally {
       setLoading(false);
     }
@@ -224,7 +244,27 @@ export const useChat = (conversationId: string) => {
       
     } catch (err: unknown) {
       infoLog('Error cargando conversación:', err);
-      setError(err instanceof Error ? err.message : 'Error cargando conversación');
+      
+      // Manejar específicamente errores 404 (conversación no encontrada)
+      if (err && typeof err === 'object' && 'response' in err) {
+        const apiError = err as { response?: { status?: number; data?: any } };
+        if (apiError.response?.status === 404) {
+          setError('Conversación no encontrada. Es posible que haya sido eliminada o no exista.');
+          // Limpiar la conversación activa si no existe
+          setConversation(null);
+          setMessages([]);
+          
+          // Remover la conversación inválida del store
+          const { removeInvalidConversation } = useChatStore.getState();
+          if (removeInvalidConversation) {
+            removeInvalidConversation(conversationId);
+          }
+        } else {
+          setError(err instanceof Error ? err.message : 'Error cargando conversación');
+        }
+      } else {
+        setError(err instanceof Error ? err.message : 'Error cargando conversación');
+      }
     }
   }, [conversationId]);
 

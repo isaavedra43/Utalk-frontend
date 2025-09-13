@@ -47,6 +47,7 @@ export const useConversations = (filters?: ConversationFilters) => {
     selectConversation: actionsHook.selectConversation,
     deselectConversation: actionsHook.deselectConversation,
     clearConversationFromUrl: actionsHook.clearConversationFromUrl,
+    removeInvalidConversation: actionsHook.removeInvalidConversation,
     updateConversationData: actionsHook.updateConversationData,
     refreshConversations: actionsHook.refreshConversations,
     markConversationAsRead: actionsHook.markConversationAsRead,
