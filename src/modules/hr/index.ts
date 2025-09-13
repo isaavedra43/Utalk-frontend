@@ -24,3 +24,11 @@ export { RecruitmentModule } from './components/RecruitmentModule';
 export { AnalyticsModule } from './components/AnalyticsModule';
 export { ComplianceModule } from './components/ComplianceModule';
 export { HRCopilot } from './components/HRCopilot';
+
+// Módulo de Extras y Asistencia
+export { default as EmployeeExtrasModal } from './components/EmployeeExtrasModal';
+export { default as EmployeeMovementsTable } from './components/EmployeeMovementsTable';
+export { default as OvertimeTable } from './components/OvertimeTable';
+export { default as AbsencesTable } from './components/AbsencesTable';
+export { default as LoansTable } from './components/LoansTable';
+export { default as ErrorBoundary } from './components/ErrorBoundary';

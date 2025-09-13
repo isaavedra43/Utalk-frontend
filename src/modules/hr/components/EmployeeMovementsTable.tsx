@@ -19,8 +19,9 @@ import {
   Filter,
   Download
 } from 'lucide-react';
+import { extrasService, MovementRecord } from '../../../services/extrasService';
 
-interface MovementRecord {
+interface LocalMovementRecord {
   id: string;
   type: 'attendance' | 'absence' | 'overtime' | 'loan' | 'discount' | 'bonus' | 'deduction' | 'damage';
   date: string;
@@ -52,21 +53,84 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
   employee,
   onAddMovement
 }) => {
-  const [movements, setMovements] = useState<MovementRecord[]>([]);
+  const [movements, setMovements] = useState<LocalMovementRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [selectedMovement, setSelectedMovement] = useState<MovementRecord | null>(null);
+  const [selectedMovement, setSelectedMovement] = useState<LocalMovementRecord | null>(null);
+  const [realMovements, setRealMovements] = useState<MovementRecord[]>([]);
 
   // Calcular salario por día y por hora
-  const baseSalary = employee?.contract?.salary || employee?.salary?.baseSalary || 0;
-  const dailySalary = baseSalary / 30; // Salario diario aproximado
-  const hourlyRate = dailySalary / 8; // Salario por hora (8 horas/día)
+  // Calcular salarios basados en el empleado real con manejo de errores
+  const baseSalary = (() => {
+    try {
+      return employee?.contract?.salary || employee?.salary?.baseSalary || 25000;
+    } catch (error) {
+      console.error('Error obteniendo salario base:', error);
+      return 25000;
+    }
+  })();
+  
+  const dailySalary = (() => {
+    try {
+      return baseSalary / 30; // Salario diario aproximado
+    } catch (error) {
+      console.error('Error calculando salario diario:', error);
+      return 833.33; // Salario diario por defecto
+    }
+  })();
+  
+  const hourlyRate = (() => {
+    try {
+      return dailySalary / 8; // Salario por hora (8 horas/día)
+    } catch (error) {
+      console.error('Error calculando tarifa por hora:', error);
+      return 104.17; // Tarifa por defecto
+    }
+  })();
 
-  // Generar datos de ejemplo con cálculos reales
+  // Cargar datos reales de movimientos
   useEffect(() => {
+    const loadMovementsData = async () => {
+      try {
+        setLoading(true);
+        const records = await extrasService.getMovements(employeeId);
+        setRealMovements(records);
+        
+        // Convertir MovementRecord a LocalMovementRecord
+        const localMovements: LocalMovementRecord[] = records.map(record => ({
+          id: record.id,
+          type: record.type === 'deduction' ? 'deduction' : record.type as any,
+          date: record.date,
+          description: record.description,
+          amount: record.impactType === 'add' ? record.calculatedAmount : -record.calculatedAmount,
+          status: record.status as 'pending' | 'approved' | 'rejected',
+          createdBy: record.registeredBy,
+          createdAt: record.createdAt,
+          attachments: record.attachments,
+          metadata: {
+            hours: record.hours,
+            hourlyRate: hourlyRate,
+            overtimeMultiplier: record.type === 'overtime' ? 1.5 : undefined,
+            loanTerms: record.type === 'loan' ? {
+              installments: record.totalAmount ? Math.ceil(record.totalAmount / (record.monthlyPayment || 1)) : 12,
+              monthlyPayment: record.monthlyPayment || 0
+            } : undefined
+          }
+        }));
+        
+        setMovements(localMovements);
+      } catch (error) {
+        console.error('Error cargando movimientos:', error);
+        // Generar datos de ejemplo como fallback
+        generateMockMovements();
+      } finally {
+        setLoading(false);
+      }
+    };
+
     const generateMockMovements = () => {
-      const mockMovements: MovementRecord[] = [
+      const mockMovements: LocalMovementRecord[] = [
         // Asistencias (positivas)
         {
           id: 'MOV001',
@@ -167,11 +231,12 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
       ];
 
       setMovements(mockMovements);
-      setLoading(false);
     };
 
-    generateMockMovements();
-  }, [baseSalary, dailySalary, hourlyRate]);
+    if (employeeId) {
+      loadMovementsData();
+    }
+  }, [employeeId, baseSalary, dailySalary, hourlyRate]);
 
   const getTypeIcon = (type: string) => {
     switch (type) {

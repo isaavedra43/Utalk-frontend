@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Clock, 
   Search, 
@@ -9,10 +9,9 @@ import {
   CheckCircle, 
   AlertTriangle, 
   XCircle,
-  Calendar,
-  User,
   DollarSign
 } from 'lucide-react';
+import { extrasService } from '../../../services/extrasService';
 
 interface OvertimeRecord {
   id: string;
@@ -31,7 +30,10 @@ interface OvertimeRecord {
 
 interface OvertimeTableProps {
   employeeId: string;
-  employee: any;
+  employee: {
+    contract?: { salary?: number };
+    salary?: { baseSalary?: number };
+  };
   onAddOvertime: () => void;
 }
 
@@ -43,13 +45,67 @@ const OvertimeTable: React.FC<OvertimeTableProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedRecord, setSelectedRecord] = useState<OvertimeRecord | null>(null);
+  const [overtimeRecords, setOvertimeRecords] = useState<OvertimeRecord[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Calcular tarifa por hora basada en el salario real
-  const baseSalary = employee?.contract?.salary || employee?.salary?.baseSalary || 0;
-  const hourlyRate = (baseSalary / 30) / 8; // Salario por hora
+  // Calcular tarifa por hora basada en el salario real con manejo de errores
+  const baseSalary = (() => {
+    try {
+      return employee?.contract?.salary || employee?.salary?.baseSalary || 25000;
+    } catch (error) {
+      console.error('Error obteniendo salario base:', error);
+      return 25000;
+    }
+  })();
+  
+  const hourlyRate = (() => {
+    try {
+      return (baseSalary / 30) / 8; // Salario por hora
+    } catch (error) {
+      console.error('Error calculando tarifa por hora:', error);
+      return 104.17; // Tarifa por defecto
+    }
+  })();
 
-  // Datos de ejemplo
-  const overtimeRecords: OvertimeRecord[] = [
+  // Cargar datos de horas extra
+  useEffect(() => {
+    const loadOvertimeData = async () => {
+      try {
+        setLoading(true);
+        const records = await extrasService.getOvertimeRecords(employeeId);
+        
+        // Convertir MovementRecord a OvertimeRecord
+        const overtimeData: OvertimeRecord[] = records.map(record => ({
+          id: record.id,
+          date: record.date,
+          description: record.description,
+          hours: record.hours || 0,
+          hourlyRate: hourlyRate,
+          totalAmount: record.calculatedAmount || record.amount,
+          status: record.status as 'pending' | 'approved' | 'rejected',
+          approvedBy: record.approvedBy,
+          approvedAt: record.approvedAt,
+          type: 'regular', // Se puede mapear desde metadata
+          location: record.location || 'office',
+          attachments: record.attachments
+        }));
+        
+        setOvertimeRecords(overtimeData);
+      } catch (error) {
+        console.error('Error cargando horas extra:', error);
+        setOvertimeRecords([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (employeeId) {
+      loadOvertimeData();
+    }
+  }, [employeeId, hourlyRate]);
+
+  // Datos de ejemplo (fallback)
+  const fallbackOvertimeRecords: OvertimeRecord[] = [
     {
       id: 'OT001',
       date: '2024-01-14',
@@ -166,7 +222,7 @@ const OvertimeTable: React.FC<OvertimeTableProps> = ({
     });
   };
 
-  const filteredRecords = overtimeRecords.filter(record => {
+  const filteredRecords = (overtimeRecords.length > 0 ? overtimeRecords : fallbackOvertimeRecords).filter(record => {
     const matchesSearch = record.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          record.date.includes(searchTerm);
     const matchesFilter = filterStatus === 'all' || record.status === filterStatus;
@@ -180,6 +236,17 @@ const OvertimeTable: React.FC<OvertimeTableProps> = ({
   const totalAmount = overtimeRecords
     .filter(r => r.status === 'approved')
     .reduce((sum, r) => sum + r.totalAmount, 0);
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border">
+        <div className="p-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando horas extra...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-sm border">

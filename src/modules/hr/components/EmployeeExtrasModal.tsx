@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   X, 
   Clock, 
@@ -6,22 +6,18 @@ import {
   DollarSign, 
   Minus, 
   Plus, 
-  Calendar, 
   FileText, 
   Upload, 
   AlertTriangle,
   CheckCircle,
   Calculator,
-  Camera,
   CreditCard,
   TrendingDown,
   TrendingUp,
-  Coffee,
-  Car,
-  Home,
-  Heart,
   Wrench
 } from 'lucide-react';
+import { extrasService, MovementRequest } from '../../../services/extrasService';
+import { useNotifications } from '../../../contexts/NotificationContext';
 
 interface EmployeeExtrasModalProps {
   isOpen: boolean;
@@ -33,6 +29,7 @@ interface EmployeeExtrasModalProps {
 }
 
 interface ExtrasRecordData {
+  id?: string;
   type: 'absence' | 'overtime' | 'loan' | 'discount' | 'bonus' | 'deduction' | 'damage';
   date: string;
   amount: number;
@@ -64,6 +61,7 @@ const EmployeeExtrasModal: React.FC<EmployeeExtrasModalProps> = ({
   employeeSalary,
   employeeName
 }) => {
+  const { showSuccess, showError } = useNotifications();
   const [formData, setFormData] = useState<ExtrasRecordData>({
     type: 'absence',
     date: new Date().toISOString().split('T')[0],
@@ -80,46 +78,38 @@ const EmployeeExtrasModal: React.FC<EmployeeExtrasModalProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [calculatedAmount, setCalculatedAmount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Calcular monto automáticamente según el tipo
-  const calculateAmount = () => {
-    const dailySalary = employeeSalary / 30; // Salario diario aproximado
-    const hourlyRate = dailySalary / 8; // Salario por hora (8 horas/día)
+  const calculateAmount = useCallback(() => {
+    try {
+      // Usar el servicio de cálculo local como fallback
+      const amount = extrasService.calculateLocalAmount(employeeSalary, {
+        type: formData.type === 'absence' ? 'absence' : 
+              formData.type === 'overtime' ? 'overtime' :
+              formData.type === 'loan' ? 'loan' :
+              formData.type === 'discount' ? 'deduction' :
+              formData.type === 'bonus' ? 'bonus' :
+              formData.type === 'deduction' ? 'deduction' : 'damage',
+        hours: formData.hours,
+        duration: 1, // Por defecto 1 día para ausencias
+        overtimeType: 'regular',
+        absenceType: 'other',
+        totalAmount: formData.amount,
+        amount: formData.amount
+      });
 
-    switch (formData.type) {
-      case 'absence':
-        // Descuento por día de falta
-        return -dailySalary;
-      
-      case 'overtime':
-        // Horas extra (1.5x por hora normal, 2x los domingos)
-        const overtimeMultiplier = 1.5; // Puede ser 2x para domingos/festivos
-        return (formData.hours || 0) * hourlyRate * overtimeMultiplier;
-      
-      case 'loan':
-        // El monto del préstamo (negativo porque se descuenta)
-        return -(formData.amount || 0);
-      
-      case 'discount':
-        // Descuento directo
-        return -(formData.amount || 0);
-      
-      case 'bonus':
-        // Bono adicional
-        return formData.amount || 0;
-      
-      case 'deduction':
-        // Deducción directa
-        return -(formData.amount || 0);
-      
-      case 'damage':
-        // Descuento por daños
-        return -(formData.amount || 0);
-      
-      default:
-        return 0;
+      // Aplicar signo según el tipo (positivo = suma, negativo = resta)
+      if (['absence', 'loan', 'discount', 'deduction', 'damage'].includes(formData.type)) {
+        return -Math.abs(amount);
+      } else {
+        return Math.abs(amount);
+      }
+    } catch (error) {
+      console.error('Error calculando monto:', error);
+      return 0;
     }
-  };
+  }, [employeeSalary, formData.type, formData.hours, formData.amount]);
 
   useEffect(() => {
     if (formData.autoCalculated) {
@@ -135,9 +125,9 @@ const EmployeeExtrasModal: React.FC<EmployeeExtrasModalProps> = ({
         }
       }));
     }
-  }, [formData.type, formData.hours, formData.autoCalculated, employeeSalary]);
+  }, [formData.type, formData.hours, formData.autoCalculated, employeeSalary, calculateAmount]);
 
-  const handleInputChange = (field: keyof ExtrasRecordData, value: any) => {
+  const handleInputChange = (field: keyof ExtrasRecordData, value: string | number | File[] | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
     // Limpiar error del campo
@@ -184,18 +174,84 @@ const EmployeeExtrasModal: React.FC<EmployeeExtrasModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (validateForm()) {
+    if (!validateForm()) return;
+
+    try {
+      setIsLoading(true);
+
+      // Subir archivos primero si los hay
+      let attachmentUrls: string[] = [];
+      if (formData.attachments && formData.attachments.length > 0) {
+        attachmentUrls = await extrasService.uploadFiles(
+          formData.attachments, 
+          employeeId, 
+          formData.type
+        );
+      }
+
+      // Preparar datos para la API
+      const movementData: MovementRequest = {
+        type: formData.type === 'absence' ? 'absence' : 
+              formData.type === 'overtime' ? 'overtime' :
+              formData.type === 'loan' ? 'loan' :
+              formData.type === 'discount' ? 'deduction' :
+              formData.type === 'bonus' ? 'bonus' :
+              formData.type === 'deduction' ? 'deduction' : 'damage',
+        date: formData.date,
+        description: formData.description,
+        reason: formData.reason,
+        location: 'office',
+        justification: formData.justification,
+        attachments: attachmentUrls
+      };
+
+      // Agregar campos específicos según el tipo
+      if (formData.type === 'overtime') {
+        movementData.hours = formData.hours;
+        movementData.overtimeType = 'regular';
+      } else if (formData.type === 'absence') {
+        movementData.duration = 1;
+        movementData.absenceType = 'other';
+      } else if (formData.type === 'loan') {
+        movementData.totalAmount = Math.abs(calculatedAmount);
+        movementData.totalInstallments = 12;
+      } else if (['bonus', 'discount', 'deduction', 'damage'].includes(formData.type)) {
+        movementData.amount = Math.abs(calculatedAmount);
+      }
+
+      // Registrar el movimiento
+      const result = await extrasService.registerMovement(employeeId, movementData);
+      
+      console.log('✅ Extra registrado exitosamente:', result);
+      
+      // Mostrar notificación de éxito
+      showSuccess(
+        'Extra registrado exitosamente',
+        `${getTypeLabel(formData.type)} registrado para ${employeeName}`
+      );
+      
+      // Enviar datos al componente padre
       const finalAmount = formData.autoCalculated ? calculatedAmount : 
         (formData.type === 'absence' || formData.type === 'loan' || formData.type === 'discount' || formData.type === 'deduction' || formData.type === 'damage' ? -formData.amount : formData.amount);
       
       onSubmit({
         ...formData,
-        amount: finalAmount
+        amount: finalAmount,
+        id: result.id
       });
       onClose();
+    } catch (error) {
+      console.error('Error registrando extra:', error);
+      showError(
+        'Error al registrar extra',
+        'No se pudo registrar el extra. Por favor intenta de nuevo.'
+      );
+      setErrors({ submit: 'Error al registrar el extra. Por favor intenta de nuevo.' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -563,10 +619,24 @@ const EmployeeExtrasModal: React.FC<EmployeeExtrasModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-6 py-2 text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors flex items-center space-x-2"
+              disabled={isLoading}
+              className={`px-6 py-2 text-white rounded-lg transition-colors flex items-center space-x-2 ${
+                isLoading 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-orange-600 hover:bg-orange-700'
+              }`}
             >
-              <CheckCircle className="h-4 w-4" />
-              <span>Registrar {getTypeLabel(formData.type)}</span>
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Registrando...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4" />
+                  <span>Registrar {getTypeLabel(formData.type)}</span>
+                </>
+              )}
             </button>
           </div>
         </form>

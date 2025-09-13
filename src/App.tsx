@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext'
 import { WebSocketProvider } from './contexts/WebSocketContext'
 import { MobileMenuProvider } from './contexts/MobileMenuContext'
+import { NotificationProvider } from './contexts/NotificationContext'
 import { AuthModule } from './modules/auth'
 import { ForgotPasswordForm } from './modules/auth/components/ForgotPasswordForm'
 import { MainLayout } from './components/layout/MainLayout'
@@ -433,7 +434,8 @@ function App() {
         <AuthProvider>
           <WebSocketProvider>
             <MobileMenuProvider>
-              <div className="app">
+              <NotificationProvider>
+                <div className="app">
               <Routes>
                 <Route path="/login" element={<AuthModule />} />
                 <Route path="/forgot-password" element={<ForgotPasswordForm />} />
@@ -603,7 +605,8 @@ function App() {
               
               {/* Módulo de Monitoreo - Solo en desarrollo o con flag habilitado */}
               {showMonitoring && <MonitoringBubble enabled={true} />}
-              </div>
+                </div>
+              </NotificationProvider>
             </MobileMenuProvider>
           </WebSocketProvider>
         </AuthProvider>

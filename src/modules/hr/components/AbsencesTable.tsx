@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   UserX, 
   Search, 
@@ -17,6 +17,7 @@ import {
   Car,
   Home
 } from 'lucide-react';
+import { extrasService, MovementRecord } from '../../../services/extrasService';
 
 interface AbsenceRecord {
   id: string;
@@ -47,13 +48,66 @@ const AbsencesTable: React.FC<AbsencesTableProps> = ({
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [selectedRecord, setSelectedRecord] = useState<AbsenceRecord | null>(null);
+  const [absenceRecords, setAbsenceRecords] = useState<AbsenceRecord[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Calcular salario diario basado en el salario real
-  const baseSalary = employee?.contract?.salary || employee?.salary?.baseSalary || 0;
-  const dailySalary = baseSalary / 30; // Salario diario
+  // Calcular salario diario basado en el salario real con manejo de errores
+  const baseSalary = (() => {
+    try {
+      return employee?.contract?.salary || employee?.salary?.baseSalary || 25000;
+    } catch (error) {
+      console.error('Error obteniendo salario base:', error);
+      return 25000;
+    }
+  })();
+  
+  const dailySalary = (() => {
+    try {
+      return baseSalary / 30; // Salario diario
+    } catch (error) {
+      console.error('Error calculando salario diario:', error);
+      return 833.33; // Salario diario por defecto
+    }
+  })();
 
-  // Datos de ejemplo
-  const absenceRecords: AbsenceRecord[] = [
+  // Cargar datos de ausencias
+  useEffect(() => {
+    const loadAbsenceData = async () => {
+      try {
+        setLoading(true);
+        const records = await extrasService.getAbsenceRecords(employeeId);
+        
+        // Convertir MovementRecord a AbsenceRecord
+        const absenceData: AbsenceRecord[] = records.map(record => ({
+          id: record.id,
+          date: record.date,
+          reason: record.reason,
+          type: 'other', // Se puede mapear desde metadata
+          status: record.status as 'pending' | 'approved' | 'rejected',
+          duration: record.duration || 1,
+          approvedBy: record.approvedBy,
+          approvedAt: record.approvedAt,
+          justification: record.description,
+          attachments: record.attachments,
+          salaryDeduction: Math.abs(record.calculatedAmount || record.amount)
+        }));
+        
+        setAbsenceRecords(absenceData);
+      } catch (error) {
+        console.error('Error cargando ausencias:', error);
+        setAbsenceRecords([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (employeeId) {
+      loadAbsenceData();
+    }
+  }, [employeeId, dailySalary]);
+
+  // Datos de ejemplo (fallback)
+  const fallbackAbsenceRecords: AbsenceRecord[] = [
     {
       id: 'ABS001',
       date: '2024-01-19',
@@ -184,7 +238,7 @@ const AbsencesTable: React.FC<AbsencesTableProps> = ({
     });
   };
 
-  const filteredRecords = absenceRecords.filter(record => {
+  const filteredRecords = (absenceRecords.length > 0 ? absenceRecords : fallbackAbsenceRecords).filter(record => {
     const matchesSearch = record.reason.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          record.date.includes(searchTerm) ||
                          getTypeLabel(record.type).toLowerCase().includes(searchTerm.toLowerCase());
@@ -200,6 +254,17 @@ const AbsencesTable: React.FC<AbsencesTableProps> = ({
   const totalDeduction = absenceRecords
     .filter(r => r.status === 'approved')
     .reduce((sum, r) => sum + r.salaryDeduction, 0);
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border">
+        <div className="p-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando ausencias...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-sm border">

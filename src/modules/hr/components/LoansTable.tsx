@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   CreditCard, 
   Search, 
@@ -9,20 +9,17 @@ import {
   CheckCircle, 
   AlertTriangle, 
   XCircle,
-  Calendar,
   DollarSign,
-  FileText,
   TrendingDown,
   Clock,
-  User,
   Receipt,
   Edit,
   Save,
   X,
   Upload,
-  Trash2,
-  Minus
+  Trash2
 } from 'lucide-react';
+import { extrasService } from '../../../services/extrasService';
 
 interface LoanPayment {
   id: string;
@@ -54,13 +51,15 @@ interface LoanRecord {
 
 interface LoansTableProps {
   employeeId: string;
-  employee: any;
+  employee: {
+    contract?: { salary?: number };
+    salary?: { baseSalary?: number };
+  };
   onAddLoan: () => void;
 }
 
 const LoansTable: React.FC<LoansTableProps> = ({
   employeeId,
-  employee,
   onAddLoan
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -70,11 +69,52 @@ const LoansTable: React.FC<LoansTableProps> = ({
   const [editingLoan, setEditingLoan] = useState<LoanRecord | null>(null);
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [newPayment, setNewPayment] = useState<Partial<LoanPayment>>({});
-  const [showAddInstallment, setShowAddInstallment] = useState(false);
-  const [newInstallment, setNewInstallment] = useState<Partial<LoanPayment>>({});
+  const [loanRecords, setLoanRecords] = useState<LoanRecord[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Datos de ejemplo con préstamos reales
-  const loanRecords: LoanRecord[] = [
+  // Cargar datos de préstamos
+  useEffect(() => {
+    const loadLoansData = async () => {
+      try {
+        setLoading(true);
+        const records = await extrasService.getLoanRecords(employeeId);
+        
+        // Convertir MovementRecord a LoanRecord
+        const loansData: LoanRecord[] = records.map(record => ({
+          id: record.id,
+          date: record.date,
+          startDate: record.date,
+          endDate: new Date(new Date(record.date).getTime() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          description: record.description,
+          totalAmount: record.totalAmount || record.amount,
+          monthlyPayment: record.monthlyPayment || 0,
+          totalInstallments: Math.ceil((record.totalAmount || record.amount) / (record.monthlyPayment || 1)),
+          paidInstallments: 0, // Se calculará desde payments
+          remainingAmount: record.totalAmount || record.amount,
+          status: record.status as 'active' | 'completed' | 'overdue' | 'cancelled',
+          approvedBy: record.approvedBy || 'Sistema',
+          approvedAt: record.approvedAt || record.createdAt,
+          attachments: record.attachments,
+          payments: [], // Se cargarán por separado
+          interestRate: 0
+        }));
+        
+        setLoanRecords(loansData);
+      } catch (error) {
+        console.error('Error cargando préstamos:', error);
+        setLoanRecords([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (employeeId) {
+      loadLoansData();
+    }
+  }, [employeeId]);
+
+// Datos de ejemplo (fallback) - Definidos como constante
+const FALLBACK_LOAN_RECORDS: LoanRecord[] = [
     {
       id: 'LOAN001',
       date: '2024-01-10',
@@ -325,7 +365,7 @@ const LoansTable: React.FC<LoansTableProps> = ({
     });
   };
 
-  const filteredLoans = loanRecords.filter(loan => {
+  const filteredLoans = (loanRecords.length > 0 ? loanRecords : FALLBACK_LOAN_RECORDS).filter(loan => {
     const matchesSearch = loan.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          loan.date.includes(searchTerm);
     const matchesFilter = filterStatus === 'all' || loan.status === filterStatus;
@@ -342,13 +382,25 @@ const LoansTable: React.FC<LoansTableProps> = ({
     setIsEditing(true);
   };
 
-  const handleSaveLoan = () => {
+  const handleSaveLoan = async () => {
     if (editingLoan) {
-      // Aquí harías la llamada al API para guardar
-      console.log('💾 Guardando préstamo:', editingLoan);
-      setSelectedLoan(editingLoan);
-      setIsEditing(false);
-      setEditingLoan(null);
+      try {
+        console.log('💾 Guardando préstamo:', editingLoan);
+        
+        // Llamar al API para actualizar el préstamo
+        await extrasService.updateLoan(editingLoan.id, {
+          description: editingLoan.description,
+          totalAmount: editingLoan.totalAmount,
+          totalInstallments: editingLoan.totalInstallments
+        });
+
+        setSelectedLoan(editingLoan);
+        setIsEditing(false);
+        setEditingLoan(null);
+      } catch (error) {
+        console.error('Error guardando préstamo:', error);
+        alert('Error al guardar el préstamo. Por favor intenta de nuevo.');
+      }
     }
   };
 
@@ -357,18 +409,26 @@ const LoansTable: React.FC<LoansTableProps> = ({
     setEditingLoan(null);
   };
 
-  const handleAddPayment = () => {
-    if (newPayment.payrollPeriod && newPayment.amount) {
-      const payment: LoanPayment = {
-        id: `PAY_${Date.now()}`,
-        payrollPeriod: newPayment.payrollPeriod,
-        paymentDate: newPayment.paymentDate || new Date().toISOString().split('T')[0],
-        amount: newPayment.amount,
-        status: newPayment.status || 'pending',
-        payrollId: newPayment.payrollId
-      };
+  const handleAddPayment = async () => {
+    if (newPayment.payrollPeriod && newPayment.amount && editingLoan) {
+      try {
+        const paymentData = {
+          payrollPeriod: newPayment.payrollPeriod,
+          paymentDate: newPayment.paymentDate || new Date().toISOString().split('T')[0],
+          amount: newPayment.amount,
+          status: newPayment.status || 'pending',
+          payrollId: newPayment.payrollId
+        };
 
-      if (editingLoan) {
+        // Llamar al API para agregar el pago
+        await extrasService.addLoanPayment(editingLoan.id, paymentData);
+
+        // Actualizar localmente para UI inmediata
+        const payment: LoanPayment = {
+          id: `PAY_${Date.now()}`,
+          ...paymentData
+        };
+
         const updatedLoan = {
           ...editingLoan,
           payments: [...editingLoan.payments, payment],
@@ -376,24 +436,35 @@ const LoansTable: React.FC<LoansTableProps> = ({
           remainingAmount: Math.max(0, editingLoan.remainingAmount - payment.amount)
         };
         setEditingLoan(updatedLoan);
+        setNewPayment({});
+        setShowAddPayment(false);
+      } catch (error) {
+        console.error('Error agregando pago:', error);
+        alert('Error al agregar el pago. Por favor intenta de nuevo.');
       }
-
-      setNewPayment({});
-      setShowAddPayment(false);
     }
   };
 
-  const handleDeletePayment = (paymentId: string) => {
+  const handleDeletePayment = async (paymentId: string) => {
     if (editingLoan) {
-      const payment = editingLoan.payments.find(p => p.id === paymentId);
-      if (payment) {
-        const updatedLoan = {
-          ...editingLoan,
-          payments: editingLoan.payments.filter(p => p.id !== paymentId),
-          paidInstallments: Math.max(0, editingLoan.paidInstallments - 1),
-          remainingAmount: editingLoan.remainingAmount + payment.amount
-        };
-        setEditingLoan(updatedLoan);
+      try {
+        // Llamar al API para eliminar el pago
+        await extrasService.deleteLoanPayment(editingLoan.id, paymentId);
+
+        // Actualizar localmente para UI inmediata
+        const payment = editingLoan.payments.find(p => p.id === paymentId);
+        if (payment) {
+          const updatedLoan = {
+            ...editingLoan,
+            payments: editingLoan.payments.filter(p => p.id !== paymentId),
+            paidInstallments: Math.max(0, editingLoan.paidInstallments - 1),
+            remainingAmount: editingLoan.remainingAmount + payment.amount
+          };
+          setEditingLoan(updatedLoan);
+        }
+      } catch (error) {
+        console.error('Error eliminando pago:', error);
+        alert('Error al eliminar el pago. Por favor intenta de nuevo.');
       }
     }
   };
@@ -418,6 +489,17 @@ const LoansTable: React.FC<LoansTableProps> = ({
       });
     }
   };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border">
+        <div className="p-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando préstamos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-sm border">
@@ -644,7 +726,7 @@ const LoansTable: React.FC<LoansTableProps> = ({
                     {isEditing && editingLoan ? (
                       <select
                         value={editingLoan.status}
-                        onChange={(e) => setEditingLoan({ ...editingLoan, status: e.target.value as any })}
+                        onChange={(e) => setEditingLoan({ ...editingLoan, status: e.target.value as 'active' | 'completed' | 'overdue' | 'cancelled' })}
                         className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                       >
                         <option value="active">Activo</option>
@@ -944,7 +1026,7 @@ const LoansTable: React.FC<LoansTableProps> = ({
                   <label className="block text-sm font-medium text-gray-600 mb-1">Estado</label>
                   <select
                     value={newPayment.status || 'pending'}
-                    onChange={(e) => setNewPayment({ ...newPayment, status: e.target.value as any })}
+                    onChange={(e) => setNewPayment({ ...newPayment, status: e.target.value as 'paid' | 'pending' | 'overdue' })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   >
                     <option value="pending">Pendiente</option>

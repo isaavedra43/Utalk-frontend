@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   CalendarDays, 
   Clock, 
-  TrendingUp, 
-  TrendingDown,
   CheckCircle,
   XCircle,
   AlertTriangle,
@@ -11,13 +9,10 @@ import {
   Filter,
   Search,
   ChevronDown,
-  Eye,
   Share2,
-  MoreHorizontal,
   Timer,
   UserCheck,
   UserX,
-  Coffee,
   Home,
   Car,
   Plane,
@@ -25,8 +20,6 @@ import {
   Zap,
   Target,
   BarChart3,
-  PieChart,
-  Activity,
   Building,
   Plus,
   CreditCard
@@ -37,6 +30,8 @@ import EmployeeMovementsTable from './EmployeeMovementsTable';
 import OvertimeTable from './OvertimeTable';
 import AbsencesTable from './AbsencesTable';
 import LoansTable from './LoansTable';
+import ErrorBoundary from './ErrorBoundary';
+import { extrasService } from '../../../services/extrasService';
 
 interface AttendanceRecord {
   id: string;
@@ -103,7 +98,22 @@ interface EmployeeAttendanceData {
 
 interface EmployeeAttendanceViewProps {
   employeeId: string;
-  employee: any; // Agregamos el empleado como prop
+  employee: {
+    personalInfo?: {
+      firstName?: string;
+      lastName?: string;
+    };
+    position?: {
+      title?: string;
+      department?: string;
+    };
+    contract?: {
+      salary?: number;
+    };
+    salary?: {
+      baseSalary?: number;
+    };
+  };
   onBack: () => void;
 }
 
@@ -113,156 +123,188 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
   onBack 
 }) => {
   const [attendanceData, setAttendanceData] = useState<EmployeeAttendanceData | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState('current');
   const [filterType, setFilterType] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'attendance' | 'overtime' | 'absences' | 'extras' | 'loans'>('overview');
   const [isExtrasModalOpen, setIsExtrasModalOpen] = useState(false);
-  const [extrasData, setExtrasData] = useState<any[]>([]);
 
   // Función para manejar el registro de extras
-  const handleExtrasSubmit = (data: any) => {
+  const handleExtrasSubmit = async (data: {
+    id?: string;
+    type: string;
+    date: string;
+    amount: number;
+    hours?: number;
+    reason?: string;
+    description?: string;
+    justification?: string;
+    attachments?: File[];
+    status?: string;
+    autoCalculated?: boolean;
+    metadata?: Record<string, unknown>;
+  }) => {
     console.log('📝 Registrando extra:', data);
     
-    // Generar ID único
-    const newExtra = {
-      ...data,
-      id: `EXT-${Date.now()}`,
-      employeeId: employeeId,
-      createdAt: new Date().toISOString(),
-      createdBy: 'current-user' // Aquí iría el usuario actual
-    };
-    
-    // Agregar a la lista de extras
-    setExtrasData(prev => [newExtra, ...prev]);
-    
-    // Aquí harías la llamada al API para guardar
-    // await saveEmployeeExtra(employeeId, newExtra);
-    
-    console.log('✅ Extra registrado exitosamente');
+    try {
+      // Recargar datos para obtener información actualizada
+      await loadAllData();
+      
+      console.log('✅ Extra registrado exitosamente');
+    } catch (error) {
+      console.error('Error procesando extra:', error);
+    }
   };
 
-  // Simular datos de asistencia
-  useEffect(() => {
-    const mockAttendanceData: EmployeeAttendanceData = {
-      employeeId: 'EMP241001',
-      employeeName: 'Ana García',
-      position: 'Gerente de Marketing',
-      department: 'Marketing',
-      currentPeriod: {
-        totalDays: 22,
-        presentDays: 20,
-        absentDays: 1,
-        lateDays: 1,
-        totalHours: 160,
-        overtimeHours: 12,
-        averageHours: 8.0
-      },
-      attendance: [
-        {
-          id: '1',
-          date: '2024-01-15',
-          checkIn: '09:00',
-          checkOut: '18:30',
-          totalHours: 8.5,
-          overtimeHours: 0.5,
-          status: 'present',
-          location: 'office'
-        },
-        {
-          id: '2',
-          date: '2024-01-16',
-          checkIn: '09:15',
-          checkOut: '18:00',
-          totalHours: 8.0,
-          overtimeHours: 0,
-          status: 'late',
-          notes: 'Tráfico pesado',
-          location: 'office'
-        },
-        {
-          id: '3',
-          date: '2024-01-17',
-          checkIn: '08:45',
-          checkOut: '19:00',
-          totalHours: 9.25,
-          overtimeHours: 1.25,
-          status: 'present',
-          location: 'office'
-        },
-        {
-          id: '4',
-          date: '2024-01-18',
-          checkIn: '09:00',
-          checkOut: '18:00',
-          totalHours: 8.0,
-          overtimeHours: 0,
-          status: 'present',
-          location: 'remote'
-        },
-        {
-          id: '5',
-          date: '2024-01-19',
-          checkIn: '09:00',
-          checkOut: '18:00',
-          totalHours: 8.0,
-          overtimeHours: 0,
-          status: 'present',
-          location: 'office'
-        }
-      ],
-      overtime: [
-        {
-          id: '1',
-          date: '2024-01-15',
-          hours: 0.5,
-          type: 'regular',
-          reason: 'Reunión con cliente',
-          approved: true,
-          approvedBy: 'Juan Pérez',
-          approvedDate: '2024-01-16'
-        },
-        {
-          id: '2',
-          date: '2024-01-17',
-          hours: 1.25,
-          type: 'regular',
-          reason: 'Finalización de proyecto',
-          approved: true,
-          approvedBy: 'Juan Pérez',
-          approvedDate: '2024-01-18'
-        }
-      ],
-      absences: [
-        {
-          id: '1',
-          date: '2024-01-20',
-          type: 'sick_leave',
-          reason: 'Gripe',
-          days: 1,
-          status: 'approved',
-          requestedDate: '2024-01-19',
-          approvedBy: 'Juan Pérez'
-        }
-      ],
-      summary: {
-        totalPresent: 20,
-        totalAbsent: 1,
-        totalLate: 1,
-        totalOvertime: 12,
-        totalVacationDays: 0,
-        totalSickDays: 1,
-        punctualityScore: 95,
-        attendanceScore: 91
-      }
-    };
+  // Función para cargar todos los datos
+  const loadAllData = useCallback(async () => {
+    try {
+      setLoading(true);
 
-    setTimeout(() => {
-      setAttendanceData(mockAttendanceData);
+      // Cargar métricas de asistencia
+      const metrics = await extrasService.getAttendanceMetrics(employeeId);
+
+      // Cargar datos para gráficas
+      const charts = await extrasService.getChartData(employeeId);
+
+      // Cargar resumen de movimientos
+      const summary = await extrasService.getMovementsSummary(employeeId);
+
+      // Crear datos de asistencia combinados
+      const combinedAttendanceData: EmployeeAttendanceData = {
+        employeeId: employeeId || 'EMP001',
+        employeeName: employee?.personalInfo?.firstName && employee?.personalInfo?.lastName 
+          ? `${employee.personalInfo.firstName} ${employee.personalInfo.lastName}`.trim()
+          : 'Empleado',
+        position: employee?.position?.title || 'Sin Puesto',
+        department: employee?.position?.department || 'Sin Departamento',
+        currentPeriod: {
+          totalDays: metrics.totalDays,
+          presentDays: metrics.presentDays,
+          absentDays: metrics.absentDays,
+          lateDays: metrics.lateDays,
+          totalHours: metrics.totalHours,
+          overtimeHours: metrics.overtimeHours,
+          averageHours: metrics.totalDays > 0 ? metrics.totalHours / metrics.totalDays : 0
+        },
+        attendance: charts.map(chart => ({
+          id: `att-${chart.date}`,
+          date: chart.date,
+          checkIn: '09:00',
+          checkOut: '18:00',
+          totalHours: chart.hours,
+          overtimeHours: chart.overtimeHours,
+          status: chart.present ? 'present' : chart.late ? 'late' : 'absent',
+          location: 'office'
+        })),
+        overtime: summary.byType.overtime ? [{
+          id: 'ot-summary',
+          date: new Date().toISOString().split('T')[0],
+          hours: summary.byType.overtime.hours,
+          type: 'regular',
+          reason: 'Horas extra del período',
+          approved: true,
+          approvedBy: 'Sistema',
+          approvedDate: new Date().toISOString().split('T')[0]
+        }] : [],
+        absences: summary.byType.absence ? [{
+          id: 'abs-summary',
+          date: new Date().toISOString().split('T')[0],
+          type: 'sick_leave',
+          reason: 'Ausencias del período',
+          days: summary.byType.absence.days,
+          status: 'approved',
+          requestedDate: new Date().toISOString().split('T')[0],
+          approvedBy: 'Sistema'
+        }] : [],
+        summary: {
+          totalPresent: metrics.presentDays,
+          totalAbsent: metrics.absentDays,
+          totalLate: metrics.lateDays,
+          totalOvertime: metrics.overtimeHours,
+          totalVacationDays: 0,
+          totalSickDays: summary.byType.absence?.days || 0,
+          punctualityScore: metrics.punctualityScore,
+          attendanceScore: metrics.attendanceScore
+        }
+      };
+
+      setAttendanceData(combinedAttendanceData);
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+      
+      // Datos por defecto en caso de error
+      const defaultData: EmployeeAttendanceData = {
+        employeeId: employeeId || 'EMP001',
+        employeeName: employee?.personalInfo?.firstName && employee?.personalInfo?.lastName 
+          ? `${employee.personalInfo.firstName} ${employee.personalInfo.lastName}`.trim()
+          : 'Empleado',
+        position: employee?.position?.title || 'Sin Puesto',
+        department: employee?.position?.department || 'Sin Departamento',
+        currentPeriod: {
+          totalDays: 0,
+          presentDays: 0,
+          absentDays: 0,
+          lateDays: 0,
+          totalHours: 0,
+          overtimeHours: 0,
+          averageHours: 0
+        },
+        attendance: [],
+        overtime: [],
+        absences: [],
+        summary: {
+          totalPresent: 0,
+          totalAbsent: 0,
+          totalLate: 0,
+          totalOvertime: 0,
+          totalVacationDays: 0,
+          totalSickDays: 0,
+          punctualityScore: 0,
+          attendanceScore: 0
+        }
+      };
+      setAttendanceData(defaultData);
+    } finally {
       setLoading(false);
-    }, 1000);
-  }, [employeeId]);
+    }
+  }, [employeeId, employee]);
+
+  // Cargar datos al montar el componente
+  useEffect(() => {
+    if (employeeId) {
+      loadAllData();
+    }
+  }, [employeeId, loadAllData]);
+
+  // Función para exportar datos
+  const handleExport = async () => {
+    try {
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 3); // Últimos 3 meses
+      const endDate = new Date();
+
+      const blob = await extrasService.exportMovements(
+        employeeId,
+        startDate.toISOString().split('T')[0],
+        endDate.toISOString().split('T')[0],
+        'excel'
+      );
+
+      // Crear enlace de descarga
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `extras-asistencia-${employeeId}-${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exportando datos:', error);
+      alert('Error al exportar los datos. Por favor intenta de nuevo.');
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -310,23 +352,45 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    try {
+      if (!dateString) return 'Sin fecha';
+      return new Date(dateString).toLocaleDateString('es-MX', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formateando fecha:', error);
+      return 'Fecha inválida';
+    }
   };
 
   const formatTime = (timeString: string) => {
-    return timeString;
+    try {
+      return timeString || 'Sin hora';
+    } catch (error) {
+      console.error('Error formateando hora:', error);
+      return 'Hora inválida';
+    }
   };
 
-  const filteredAttendance = attendanceData?.attendance.filter(record => {
-    const matchesSearch = record.date.includes(searchTerm) || 
-                         record.status.includes(searchTerm.toLowerCase());
-    const matchesFilter = filterType === 'all' || record.status === filterType;
-    return matchesSearch && matchesFilter;
-  }) || [];
+  const filteredAttendance = (() => {
+    try {
+      if (!attendanceData?.attendance || !Array.isArray(attendanceData.attendance)) {
+        return [];
+      }
+      return attendanceData.attendance.filter(record => {
+        if (!record) return false;
+        const matchesSearch = record.date?.includes(searchTerm) || 
+                             record.status?.includes(searchTerm.toLowerCase());
+        const matchesFilter = filterType === 'all' || record.status === filterType;
+        return matchesSearch && matchesFilter;
+      });
+    } catch (error) {
+      console.error('Error filtrando asistencia:', error);
+      return [];
+    }
+  })();
 
   if (loading) {
     return (
@@ -382,7 +446,10 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                 <Plus className="h-4 w-4" />
                 <span>Registrar Extra</span>
               </button>
-              <button className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+              <button 
+                onClick={handleExport}
+                className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
                 <Download className="h-4 w-4" />
                 <span>Exportar</span>
               </button>
@@ -463,7 +530,7 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
+                    onClick={() => setActiveTab(tab.id as 'overview' | 'attendance' | 'overtime' | 'absences' | 'extras' | 'loans')}
                     className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                       activeTab === tab.id
                         ? 'border-blue-500 text-blue-600'
@@ -488,13 +555,23 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                 <div className="p-6">
                   <h4 className="font-medium text-gray-900 mb-4">Tendencia de Asistencia</h4>
                   <AttendanceChart 
-                    data={attendanceData.attendance.map(record => ({
-                      date: record.date,
-                      present: record.status === 'present' ? 1 : 0,
-                      late: record.status === 'late' ? 1 : 0,
-                      absent: record.status === 'absent' ? 1 : 0,
-                      hours: record.totalHours
-                    }))}
+                    data={(() => {
+                      try {
+                        if (!attendanceData?.attendance || !Array.isArray(attendanceData.attendance)) {
+                          return [];
+                        }
+                        return attendanceData.attendance.map(record => ({
+                          date: record?.date || '',
+                          present: record?.status === 'present' ? 1 : 0,
+                          late: record?.status === 'late' ? 1 : 0,
+                          absent: record?.status === 'absent' ? 1 : 0,
+                          hours: record?.totalHours || 0
+                        }));
+                      } catch (error) {
+                        console.error('Error preparando datos del gráfico:', error);
+                        return [];
+                      }
+                    })()}
                     type="attendance"
                     height={200}
                   />
@@ -505,11 +582,21 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                 <div className="p-6">
                   <h4 className="font-medium text-gray-900 mb-4">Distribución de Horas</h4>
                   <AttendanceChart 
-                    data={attendanceData.attendance.map(record => ({
-                      date: record.date,
-                      regular: record.totalHours - record.overtimeHours,
-                      overtime: record.overtimeHours
-                    }))}
+                    data={(() => {
+                      try {
+                        if (!attendanceData?.attendance || !Array.isArray(attendanceData.attendance)) {
+                          return [];
+                        }
+                        return attendanceData.attendance.map(record => ({
+                          date: record?.date || '',
+                          regular: (record?.totalHours || 0) - (record?.overtimeHours || 0),
+                          overtime: record?.overtimeHours || 0
+                        }));
+                      } catch (error) {
+                        console.error('Error preparando datos del gráfico de horas:', error);
+                        return [];
+                      }
+                    })()}
                     type="hours"
                     height={200}
                   />
@@ -553,11 +640,29 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Promedio por Día</span>
-                      <span className="font-medium text-orange-600">{(attendanceData.summary.totalOvertime / attendanceData.currentPeriod.totalDays).toFixed(1)}h</span>
+                      <span className="font-medium text-orange-600">
+                        {(() => {
+                          try {
+                            const totalDays = attendanceData?.currentPeriod?.totalDays || 1;
+                            const totalOvertime = attendanceData?.summary?.totalOvertime || 0;
+                            return (totalOvertime / totalDays).toFixed(1);
+                          } catch {
+                            return '0.0';
+                          }
+                        })()}h
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Días con Extra</span>
-                      <span className="font-medium text-orange-600">{attendanceData.overtime.length}</span>
+                      <span className="font-medium text-orange-600">
+                        {(() => {
+                          try {
+                            return attendanceData?.overtime?.length || 0;
+                          } catch {
+                            return 0;
+                          }
+                        })()}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -639,46 +744,54 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredAttendance.map((record) => (
-                      <tr key={record.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatDate(record.date)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center space-x-2">
-                            {getStatusIcon(record.status)}
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(record.status)}`}>
-                              {getStatusText(record.status)}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {record.checkIn}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {record.checkOut}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {record.totalHours}h
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {record.overtimeHours > 0 ? (
-                            <span className="text-orange-600 font-medium">+{record.overtimeHours}h</span>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center space-x-1">
-                            {getLocationIcon(record.location)}
-                            <span className="text-sm text-gray-600 capitalize">{record.location}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
-                          {record.notes || '-'}
+                    {filteredAttendance.length > 0 ? (
+                      filteredAttendance.map((record) => (
+                        <tr key={record?.id || Math.random()} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {formatDate(record?.date || '')}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center space-x-2">
+                              {getStatusIcon(record?.status || '')}
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(record?.status || '')}`}>
+                                {getStatusText(record?.status || '')}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {formatTime(record?.checkIn || '')}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {formatTime(record?.checkOut || '')}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {record?.totalHours || 0}h
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {(record?.overtimeHours || 0) > 0 ? (
+                              <span className="text-orange-600 font-medium">+{record.overtimeHours}h</span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center space-x-1">
+                              {getLocationIcon(record?.location || '')}
+                              <span className="text-sm text-gray-600 capitalize">{record?.location || 'Sin ubicación'}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-500">
+                            {record?.notes || '-'}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
+                          No hay registros de asistencia disponibles.
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -688,38 +801,46 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
 
         {/* Pestaña de Horas Extra - Nueva Tabla */}
         {activeTab === 'overtime' && (
-          <OvertimeTable
-            employeeId={employeeId}
-            employee={employee}
-            onAddOvertime={() => setIsExtrasModalOpen(true)}
-          />
+          <ErrorBoundary>
+            <OvertimeTable
+              employeeId={employeeId}
+              employee={employee}
+              onAddOvertime={() => setIsExtrasModalOpen(true)}
+            />
+          </ErrorBoundary>
         )}
 
         {/* Pestaña de Ausencias - Nueva Tabla */}
         {activeTab === 'absences' && (
-          <AbsencesTable
-            employeeId={employeeId}
-            employee={employee}
-            onAddAbsence={() => setIsExtrasModalOpen(true)}
-          />
+          <ErrorBoundary>
+            <AbsencesTable
+              employeeId={employeeId}
+              employee={employee}
+              onAddAbsence={() => setIsExtrasModalOpen(true)}
+            />
+          </ErrorBoundary>
         )}
 
         {/* Pestaña de Préstamos - Nueva Tabla */}
         {activeTab === 'loans' && (
-          <LoansTable
-            employeeId={employeeId}
-            employee={employee}
-            onAddLoan={() => setIsExtrasModalOpen(true)}
-          />
+          <ErrorBoundary>
+            <LoansTable
+              employeeId={employeeId}
+              employee={employee}
+              onAddLoan={() => setIsExtrasModalOpen(true)}
+            />
+          </ErrorBoundary>
         )}
 
         {/* Pestaña de Extras - Tabla General de Movimientos */}
         {activeTab === 'extras' && (
-          <EmployeeMovementsTable
-            employeeId={employeeId}
-            employee={employee}
-            onAddMovement={() => setIsExtrasModalOpen(true)}
-          />
+          <ErrorBoundary>
+            <EmployeeMovementsTable
+              employeeId={employeeId}
+              employee={employee}
+              onAddMovement={() => setIsExtrasModalOpen(true)}
+            />
+          </ErrorBoundary>
         )}
       </div>
 
@@ -729,8 +850,24 @@ const EmployeeAttendanceView: React.FC<EmployeeAttendanceViewProps> = ({
         onClose={() => setIsExtrasModalOpen(false)}
         onSubmit={handleExtrasSubmit}
         employeeId={employeeId}
-        employeeSalary={25000} // Aquí iría el salario real del empleado
-        employeeName={attendanceData?.employeeName || 'Empleado'}
+        employeeSalary={(() => {
+          try {
+            return employee?.contract?.salary || employee?.salary?.baseSalary || 25000;
+          } catch {
+            return 25000;
+          }
+        })()}
+        employeeName={(() => {
+          try {
+            if (attendanceData?.employeeName) return attendanceData.employeeName;
+            if (employee?.personalInfo?.firstName && employee?.personalInfo?.lastName) {
+              return `${employee.personalInfo.firstName} ${employee.personalInfo.lastName}`.trim();
+            }
+            return 'Empleado';
+          } catch {
+            return 'Empleado';
+          }
+        })()}
       />
     </div>
   );
