@@ -1,6 +1,7 @@
 // Tipos para el módulo de Recursos Humanos
 
 export type EmployeeStatus = 'active' | 'inactive' | 'terminated' | 'on_leave';
+export type PayrollStatus = 'draft' | 'calculated' | 'approved' | 'closed';
 export type DocumentStatus = 'pending' | 'verified' | 'expired' | 'rejected';
 export type IncidentSeverity = 'low' | 'medium' | 'high' | 'critical';
 export type EvaluationType = '360' | 'okr' | 'performance' | 'skills';
@@ -29,7 +30,7 @@ export interface Employee {
   location: Location;
   contract: Contract;
   
-  // Información salarial
+  // Nómina
   salary: SalaryInfo;
   sbc: number; // Salario Base de Cotización
   
@@ -144,7 +145,7 @@ export interface Deduction {
 }
 
 export interface EmployeeMetrics {
-  // Información salarial
+  // Nómina
   totalEarnings: number;
   totalDeductions: number;
   netPay: number;
@@ -175,6 +176,72 @@ export interface EmployeeMetrics {
   lastEvaluationDate?: Date;
 }
 
+// Nómina
+export interface PayrollPeriod {
+  id: string;
+  name: string;
+  type: 'weekly' | 'biweekly' | 'monthly';
+  startDate: Date;
+  endDate: Date;
+  payDate: Date;
+  status: PayrollStatus;
+  employeeCount: number;
+  totalCost: number;
+  totalNet: number;
+  createdAt: Date;
+  createdBy: string;
+  approvedAt?: Date;
+  approvedBy?: string;
+  closedAt?: Date;
+  closedBy?: string;
+}
+
+export interface PayrollItem {
+  id: string;
+  employeeId: string;
+  periodId: string;
+  earnings: PayrollEarning[];
+  deductions: PayrollDeduction[];
+  totals: PayrollTotals;
+  status: 'calculated' | 'approved' | 'paid';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PayrollEarning {
+  id: string;
+  type: string;
+  description: string;
+  amount: number;
+  hours?: number;
+  rate?: number;
+  isTaxable: boolean;
+  isImss: boolean;
+  isInfonavit: boolean;
+}
+
+export interface PayrollDeduction {
+  id: string;
+  type: string;
+  description: string;
+  amount: number;
+  isPercentage: boolean;
+  isVoluntary: boolean;
+  isImss: boolean;
+  isInfonavit: boolean;
+}
+
+export interface PayrollTotals {
+  grossPay: number;
+  taxableIncome: number;
+  imssBase: number;
+  infonavitBase: number;
+  isr: number;
+  imss: number;
+  infonavit: number;
+  otherDeductions: number;
+  netPay: number;
+}
 
 // Catálogos fiscales
 export interface TaxCatalog {
@@ -533,10 +600,10 @@ export interface HRMetrics {
   terminations: number;
   turnoverRate: number;
   
-  // Información salarial
-  totalSalaryCost: number;
+  // Nómina
+  totalPayrollCost: number;
   averageSalary: number;
-  salaryGrowth: number;
+  payrollGrowth: number;
   
   // Asistencia
   attendanceRate: number;
@@ -635,7 +702,7 @@ export interface ComplianceFinding {
 // Copiloto RH
 export interface CopilotSuggestion {
   id: string;
-  type: 'promotion_recommendation' | 'retention_risk' | 'succession_planning' | 'document_expiry' | 'training_gap';
+  type: 'payroll_anomaly' | 'promotion_recommendation' | 'retention_risk' | 'succession_planning' | 'document_expiry' | 'training_gap';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   title: string;
   description: string;
@@ -651,7 +718,7 @@ export interface CopilotSuggestion {
 
 export interface CopilotAnalysis {
   id: string;
-  type: 'performance_analysis' | 'retention_analysis' | 'succession_analysis';
+  type: 'payroll_explanation' | 'performance_analysis' | 'retention_analysis' | 'succession_analysis';
   employeeId?: string;
   periodId?: string;
   query: string;
@@ -667,7 +734,7 @@ export interface AuditLog {
   userId: string;
   userName: string;
   action: string;
-  resourceType: 'employee' | 'document' | 'evaluation' | 'vacancy';
+  resourceType: 'employee' | 'payroll' | 'document' | 'evaluation' | 'vacancy';
   resourceId: string;
   changes: {
     before?: Record<string, any>;
@@ -696,6 +763,7 @@ export interface Notification {
 export interface HRSettings {
   id: string;
   organizationId: string;
+  payroll: PayrollSettings;
   attendance: AttendanceSettings;
   compliance: ComplianceSettings;
   notifications: NotificationSettings;
@@ -704,6 +772,14 @@ export interface HRSettings {
   updatedBy: string;
 }
 
+export interface PayrollSettings {
+  currency: string;
+  frequency: 'weekly' | 'biweekly' | 'monthly';
+  payDay: number; // day of month/week
+  overtimeRules: OvertimeRule[];
+  holidayRules: HolidayRule[];
+  taxSettings: TaxSettings;
+}
 
 export interface OvertimeRule {
   type: OvertimeType;
@@ -720,6 +796,16 @@ export interface HolidayRule {
   multiplier: number;
 }
 
+export interface TaxSettings {
+  country: string;
+  state: string;
+  taxYear: number;
+  uma: number;
+  smg: number;
+  isrTable: string;
+  imssRates: Record<string, number>;
+  infonavitConfig: Record<string, any>;
+}
 
 export interface AttendanceSettings {
   workingHours: number;
@@ -765,6 +851,7 @@ export interface NotificationChannel {
 
 export interface IntegrationSettings {
   sso: SSOConfig;
+  payroll: PayrollIntegration;
   attendance: AttendanceIntegration;
   storage: StorageConfig;
   webhooks: WebhookConfig[];
@@ -776,6 +863,11 @@ export interface SSOConfig {
   config: Record<string, any>;
 }
 
+export interface PayrollIntegration {
+  provider: string;
+  enabled: boolean;
+  config: Record<string, any>;
+}
 
 export interface AttendanceIntegration {
   provider: string;
@@ -816,6 +908,14 @@ export interface EmployeeFilter {
   complianceTo?: number;
 }
 
+export interface PayrollFilter {
+  period?: string[];
+  status?: PayrollStatus[];
+  employeeId?: string[];
+  department?: string[];
+  dateFrom?: Date;
+  dateTo?: Date;
+}
 
 export interface AttendanceFilter {
   employeeId?: string[];
