@@ -37,13 +37,14 @@ export const useConversationActions = () => {
         return;
       }
 
-      // Actualizar URL con el ID de la conversación
-      const encodedId = encodeConversationIdForUrl(sanitizedId);
-      const newSearchParams = new URLSearchParams(location.search);
-      newSearchParams.set('conversation', encodedId);
-      
-      const newUrl = `${location.pathname}?${newSearchParams.toString()}`;
-      navigate(newUrl, { replace: true });
+      // ELIMINADO: Actualización automática de URL que causaba persistencia de conversación
+      // Ahora el agente debe seleccionar manualmente las conversaciones sin modificar la URL
+      // const encodedId = encodeConversationIdForUrl(sanitizedId);
+      // const newSearchParams = new URLSearchParams(location.search);
+      // newSearchParams.set('conversation', encodedId);
+      // 
+      // const newUrl = `${location.pathname}?${newSearchParams.toString()}`;
+      // navigate(newUrl, { replace: true });
 
       // Actualizar estado local con la conversación existente si está en el store
       const existing = conversations.find(c => c.id === sanitizedId) || null;
@@ -85,6 +86,17 @@ export const useConversationActions = () => {
     
     infoLog('✅ useConversationActions - Conversación deseleccionada');
   }, [navigate, location.pathname, location.search, setActiveConversation]);
+
+  // Función para limpiar URL de conversaciones al entrar al módulo de chat
+  const clearConversationFromUrl = useCallback(() => {
+    const newSearchParams = new URLSearchParams(location.search);
+    if (newSearchParams.has('conversation')) {
+      newSearchParams.delete('conversation');
+      const newUrl = `${location.pathname}?${newSearchParams.toString()}`;
+      navigate(newUrl, { replace: true });
+      infoLog('🧹 useConversationActions - URL limpiada de conversación persistente');
+    }
+  }, [navigate, location.pathname, location.search]);
 
   // Función para actualizar una conversación
   const updateConversationData = useCallback(async (conversationId: string, updates: {
@@ -138,6 +150,7 @@ export const useConversationActions = () => {
     // Acciones básicas
     selectConversation,
     deselectConversation,
+    clearConversationFromUrl,
     
     // Acciones de datos
     updateConversationData,

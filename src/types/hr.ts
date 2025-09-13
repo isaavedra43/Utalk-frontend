@@ -248,7 +248,7 @@ export interface TaxCatalog {
   id: string;
   name: string;
   year: number;
-  values: Record<string, any>;
+  values: Record<string, string | number | boolean>;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -381,7 +381,7 @@ export interface Document {
   verified: boolean;
   verifiedBy?: string;
   verifiedAt?: Date;
-  ocrData?: Record<string, any>;
+  ocrData?: Record<string, string | number | boolean>;
   version: number;
   createdAt: Date;
   createdBy: string;
@@ -587,7 +587,7 @@ export interface Assessment {
   score: number;
   maxScore: number;
   completedDate: Date;
-  results: Record<string, any>;
+  results: Record<string, string | number | boolean | string[]>;
   notes: string;
 }
 
@@ -707,7 +707,7 @@ export interface CopilotSuggestion {
   title: string;
   description: string;
   employeeId?: string;
-  data: Record<string, any>;
+  data: Record<string, string | number | boolean | Date>;
   confidence: number; // 0-100
   action: string;
   impact: 'positive' | 'negative' | 'neutral';
@@ -723,7 +723,7 @@ export interface CopilotAnalysis {
   periodId?: string;
   query: string;
   response: string;
-  data: Record<string, any>;
+  data: Record<string, string | number | boolean | Date>;
   confidence: number;
   createdAt: Date;
 }
@@ -737,13 +737,13 @@ export interface AuditLog {
   resourceType: 'employee' | 'payroll' | 'document' | 'evaluation' | 'vacancy';
   resourceId: string;
   changes: {
-    before?: Record<string, any>;
-    after?: Record<string, any>;
+    before?: Record<string, string | number | boolean | Date | null>;
+    after?: Record<string, string | number | boolean | Date | null>;
   };
   ipAddress: string;
   userAgent: string;
   timestamp: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean>;
 }
 
 // Notificaciones
@@ -753,7 +753,7 @@ export interface Notification {
   type: 'info' | 'warning' | 'error' | 'success';
   title: string;
   message: string;
-  data?: Record<string, any>;
+  data?: Record<string, string | number | boolean>;
   read: boolean;
   createdAt: Date;
   readAt?: Date;
@@ -804,7 +804,7 @@ export interface TaxSettings {
   smg: number;
   isrTable: string;
   imssRates: Record<string, number>;
-  infonavitConfig: Record<string, any>;
+  infonavitConfig: Record<string, string | number | boolean>;
 }
 
 export interface AttendanceSettings {
@@ -860,26 +860,26 @@ export interface IntegrationSettings {
 export interface SSOConfig {
   provider: 'google' | 'microsoft' | 'okta' | 'custom';
   enabled: boolean;
-  config: Record<string, any>;
+  config: Record<string, string | number | boolean>;
 }
 
 export interface PayrollIntegration {
   provider: string;
   enabled: boolean;
-  config: Record<string, any>;
+  config: Record<string, string | number | boolean>;
 }
 
 export interface AttendanceIntegration {
   provider: string;
   enabled: boolean;
-  config: Record<string, any>;
+  config: Record<string, string | number | boolean>;
 }
 
 export interface StorageConfig {
   provider: 's3' | 'gcs' | 'azure' | 'local';
   bucket: string;
   region: string;
-  config: Record<string, any>;
+  config: Record<string, string | number | boolean>;
 }
 
 export interface WebhookConfig {
@@ -963,7 +963,7 @@ export interface TableState {
   limit: number;
   sortBy: string;
   sortOrder: 'asc' | 'desc';
-  filters: Record<string, any>;
+  filters: Record<string, string | string[] | number | Date | boolean>;
   selectedRows: string[];
 }
 

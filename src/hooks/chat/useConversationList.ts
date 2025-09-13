@@ -98,17 +98,18 @@ export const useConversationList = (filters: ConversationFilters = {}) => {
     return uniqueConversations;
   }, [conversationsData?.pages, storeConversations]);
 
-  // Sincronizar conversación activa cuando cambie la URL (sin crear bucle)
-  useEffect(() => {
-    if (urlConversationId && urlConversationId !== activeConversation?.id) {
-      // Buscar la conversación en la lista actual
-      const conversation = allConversations.find(c => c.id === urlConversationId);
-      if (conversation) {
-        infoLog('🔄 useConversationList - Sincronizando conversación desde URL:', urlConversationId);
-        setActiveConversation(conversation);
-      }
-    }
-  }, [urlConversationId, activeConversation?.id, allConversations, setActiveConversation]);
+  // ELIMINADO: Sincronización automática con URL que causaba apertura automática de conversaciones
+  // Ahora el agente debe seleccionar manualmente las conversaciones
+  // useEffect(() => {
+  //   if (urlConversationId && urlConversationId !== activeConversation?.id) {
+  //     // Buscar la conversación en la lista actual
+  //     const conversation = allConversations.find(c => c.id === urlConversationId);
+  //     if (conversation) {
+  //       infoLog('🔄 useConversationList - Sincronizando conversación desde URL:', urlConversationId);
+  //       setActiveConversation(conversation);
+  //     }
+  //   }
+  // }, [urlConversationId, activeConversation?.id, allConversations, setActiveConversation]);
 
   // Sincronizar datos de React Query al store solo para carga inicial
   useEffect(() => {

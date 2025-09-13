@@ -46,6 +46,7 @@ export const useConversations = (filters?: ConversationFilters) => {
     // Acciones CRUD (de useConversationActions)
     selectConversation: actionsHook.selectConversation,
     deselectConversation: actionsHook.deselectConversation,
+    clearConversationFromUrl: actionsHook.clearConversationFromUrl,
     updateConversationData: actionsHook.updateConversationData,
     refreshConversations: actionsHook.refreshConversations,
     markConversationAsRead: actionsHook.markConversationAsRead,

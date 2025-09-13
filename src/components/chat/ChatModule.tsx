@@ -44,6 +44,11 @@ const AuthenticatedChatContent: React.FC = () => {
   // Hook para crear conversaciones
   const { createConversation } = useCreateConversation();
 
+  // Limpiar URL de conversaciones persistentes al montar el componente
+  useEffect(() => {
+    conversationsData.clearConversationFromUrl();
+  }, [conversationsData.clearConversationFromUrl]);
+
   // Función para manejar creación de conversación
   const handleCreateConversation = useCallback(async (data: {
     customerName: string;
