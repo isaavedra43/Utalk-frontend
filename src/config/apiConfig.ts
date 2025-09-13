@@ -12,23 +12,6 @@ export const API_CONFIG = {
     EMPLOYEE_PAYROLL: (id: string) => `/api/employees/${id}/payroll`,
     WEEKLY_PAYROLL: '/api/payroll/weekly',
     
-    // Nómina Avanzada - NUEVOS ENDPOINTS
-    PAYROLL_GENERATE_ADVANCED: (id: string) => `/api/payroll/generate-advanced/${id}`,
-    PAYROLL_PREVIEW: (id: string) => `/api/payroll/preview/${id}`,
-    PAYROLL_SUMMARY_WITH_EXTRAS: (payrollId: string) => `/api/payroll/${payrollId}/summary-with-extras`,
-    PAYROLL_EXTRAS_IMPACT: (id: string) => `/api/payroll/extras-impact/${id}`,
-    PAYROLL_CHECK_DUPLICATES: (id: string) => `/api/payroll/check-duplicates/${id}`,
-    PAYROLL_MARK_MOVEMENTS_APPLIED: '/api/payroll/mark-movements-applied',
-    
-    // Configuración de Impuestos - NUEVOS ENDPOINTS
-    TAX_CONFIG_GLOBAL: '/api/tax-config/global',
-    TAX_CONFIG_EMPLOYEE: (id: string) => `/api/tax-config/employee/${id}`,
-    TAX_CONFIG_EMPLOYEE_SETTINGS: (id: string) => `/api/tax-config/employee/${id}/settings`,
-    TAX_CONFIG_EFFECTIVE: (id: string) => `/api/tax-config/effective/${id}`,
-    TAX_CONFIG_CREATE_DEFAULTS: '/api/tax-config/create-defaults',
-    TAX_CONFIG_PREVIEW: (id: string) => `/api/tax-config/preview/${id}`,
-    TAX_CONFIG_BY_ID: (id: string) => `/api/tax-config/${id}`,
-    
     // Asistencia
     EMPLOYEE_ATTENDANCE: (id: string) => `/api/employees/${id}/attendance`,
     ATTENDANCE_RECORD: (employeeId: string, recordId: string) => `/api/employees/${employeeId}/attendance/${recordId}`,
