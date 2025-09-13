@@ -41,8 +41,8 @@ export const PayrollVoucherModal: React.FC<PayrollVoucherModalProps> = ({
       total: employee.totalPerceptions
     },
     deductions: {
-      taxes: employee.taxes,
-      socialSecurity: employee.socialSecurity,
+      taxes: 0, // Sin impuestos
+      socialSecurity: 0, // Sin IMSS
       loans: employee.loans,
       advances: employee.advances,
       absences: employee.absenceDeductions,
@@ -440,16 +440,10 @@ export const PayrollVoucherModal: React.FC<PayrollVoucherModalProps> = ({
                 DEDUCCIONES
               </div>
               <div className="space-y-3">
-                {voucher.deductions.taxes > 0 && (
+                {voucher.deductions.absences > 0 && (
                   <div className="amount-row flex justify-between py-2">
-                    <span className="amount-label text-gray-600">Impuestos</span>
-                    <span className="amount-value font-medium text-gray-900">{formatCurrency(voucher.deductions.taxes)}</span>
-                  </div>
-                )}
-                {voucher.deductions.socialSecurity > 0 && (
-                  <div className="amount-row flex justify-between py-2">
-                    <span className="amount-label text-gray-600">Seguro Social</span>
-                    <span className="amount-value font-medium text-gray-900">{formatCurrency(voucher.deductions.socialSecurity)}</span>
+                    <span className="amount-label text-gray-600">Faltas</span>
+                    <span className="amount-value font-medium text-gray-900">{formatCurrency(voucher.deductions.absences)}</span>
                   </div>
                 )}
                 {voucher.deductions.loans > 0 && (
@@ -462,12 +456,6 @@ export const PayrollVoucherModal: React.FC<PayrollVoucherModalProps> = ({
                   <div className="amount-row flex justify-between py-2">
                     <span className="amount-label text-gray-600">Adelantos</span>
                     <span className="amount-value font-medium text-gray-900">{formatCurrency(voucher.deductions.advances)}</span>
-                  </div>
-                )}
-                {voucher.deductions.absences > 0 && (
-                  <div className="amount-row flex justify-between py-2">
-                    <span className="amount-label text-gray-600">Faltas</span>
-                    <span className="amount-value font-medium text-gray-900">{formatCurrency(voucher.deductions.absences)}</span>
                   </div>
                 )}
                 {voucher.deductions.other > 0 && (

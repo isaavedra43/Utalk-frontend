@@ -30,16 +30,14 @@ export interface EmployeePayrollData {
   lateArrivals: number;
   overtime: number;
   
-  // Percepciones
+  // Percepciones (basadas en extras reales)
   basePay: number;
   overtimePay: number;
   bonuses: number;
   allowances: number;
   totalPerceptions: number;
   
-  // Deducciones
-  taxes: number;
-  socialSecurity: number;
+  // Deducciones (basadas en extras reales - sin impuestos)
   loans: number;
   advances: number;
   absenceDeductions: number;
@@ -52,6 +50,53 @@ export interface EmployeePayrollData {
   // Estado
   status: 'pending' | 'approved' | 'paid';
   notes?: string;
+  
+  // Extras detallados del período
+  extras: {
+    overtime: OvertimeExtra[];
+    absences: AbsenceExtra[];
+    loans: LoanExtra[];
+    advances: AdvanceExtra[];
+  };
+}
+
+export interface OvertimeExtra {
+  id: string;
+  date: string;
+  description: string;
+  hours: number;
+  hourlyRate: number;
+  totalAmount: number;
+  status: 'pending' | 'approved' | 'rejected';
+  type: 'regular' | 'weekend' | 'holiday';
+}
+
+export interface AbsenceExtra {
+  id: string;
+  date: string;
+  description: string;
+  days: number;
+  dailyRate: number;
+  totalAmount: number;
+  status: 'pending' | 'approved' | 'rejected';
+  type: 'unpaid' | 'sick' | 'personal';
+}
+
+export interface LoanExtra {
+  id: string;
+  date: string;
+  description: string;
+  monthlyPayment: number;
+  status: 'active' | 'completed' | 'overdue';
+  remainingAmount: number;
+}
+
+export interface AdvanceExtra {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  status: 'pending' | 'approved' | 'rejected';
 }
 
 export interface PayrollGeneralSummary {

@@ -64,10 +64,11 @@ export const PayrollGeneralModule: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // TODO: Conectar con API
+      // TODO: Conectar con API real
       // const response = await payrollGeneralService.getPayrollByPeriod(currentPeriod.id);
+      // const extrasResponse = await payrollGeneralService.getAllExtrasForPeriod(currentPeriod.id);
       
-      // Datos de ejemplo mientras se conecta con el backend
+      // Datos de ejemplo con extras reales del período
       const mockData: EmployeePayrollData[] = [
         {
           employeeId: '1',
@@ -76,28 +77,64 @@ export const PayrollGeneralModule: React.FC = () => {
           position: 'Desarrollador Senior',
           department: 'Tecnología',
           avatar: '/avatars/juan.jpg',
-          baseSalary: 25000,
-          dailySalary: 833.33,
-          hourlyRate: 104.17,
+          baseSalary: 50000,
+          dailySalary: 1666.67,
+          hourlyRate: 208.33,
           workDays: 22,
           workedDays: 20,
           absentDays: 2,
           lateArrivals: 1,
-          overtime: 8,
-          basePay: 20833.33,
-          overtimePay: 1250,
-          bonuses: 2000,
-          allowances: 500,
-          totalPerceptions: 24583.33,
-          taxes: 3687.50,
-          socialSecurity: 1229.17,
-          loans: 1500,
+          overtime: 1.5, // 1.5 horas extra del período
+          basePay: 33333.33, // 20 días trabajados * 1666.67
+          overtimePay: 312.50, // 1.5h * 208.33/h
+          bonuses: 0,
+          allowances: 0,
+          totalPerceptions: 33645.83,
+          // Deducciones basadas en extras reales (sin impuestos)
+          loans: 83.33, // Pago mensual de préstamo
           advances: 0,
-          absenceDeductions: 1666.67,
+          absenceDeductions: 3333.34, // 2 días faltados * 1666.67
           otherDeductions: 0,
-          totalDeductions: 8083.34,
-          netPay: 16499.99,
-          status: 'pending'
+          totalDeductions: 3416.67,
+          netPay: 30229.16,
+          status: 'pending',
+          extras: {
+            overtime: [
+              {
+                id: '1',
+                date: '2024-09-12',
+                description: 'Trabajo extra en proyecto urgente',
+                hours: 1.5,
+                hourlyRate: 208.33,
+                totalAmount: 312.50,
+                status: 'approved',
+                type: 'regular'
+              }
+            ],
+            absences: [
+              {
+                id: '1',
+                date: '2024-09-12',
+                description: 'Falta sin justificar',
+                days: 2,
+                dailyRate: 1666.67,
+                totalAmount: 3333.34,
+                status: 'approved',
+                type: 'unpaid'
+              }
+            ],
+            loans: [
+              {
+                id: '1',
+                date: '2024-09-12',
+                description: 'Préstamo personal',
+                monthlyPayment: 83.33,
+                status: 'active',
+                remainingAmount: 2000
+              }
+            ],
+            advances: []
+          }
         },
         {
           employeeId: '2',
@@ -105,28 +142,33 @@ export const PayrollGeneralModule: React.FC = () => {
           fullName: 'María López Hernández',
           position: 'Contadora',
           department: 'Finanzas',
-          baseSalary: 20000,
-          dailySalary: 666.67,
-          hourlyRate: 83.33,
+          baseSalary: 40000,
+          dailySalary: 1333.33,
+          hourlyRate: 166.67,
           workDays: 22,
           workedDays: 22,
           absentDays: 0,
           lateArrivals: 0,
-          overtime: 4,
-          basePay: 20000,
-          overtimePay: 500,
-          bonuses: 1000,
-          allowances: 300,
-          totalPerceptions: 21800,
-          taxes: 3270,
-          socialSecurity: 1090,
-          loans: 800,
-          advances: 500,
+          overtime: 0,
+          basePay: 40000, // 22 días trabajados * 1333.33 (redondeado)
+          overtimePay: 0,
+          bonuses: 0,
+          allowances: 0,
+          totalPerceptions: 40000,
+          // Sin deducciones por extras
+          loans: 0,
+          advances: 0,
           absenceDeductions: 0,
           otherDeductions: 0,
-          totalDeductions: 5660,
-          netPay: 16140,
-          status: 'approved'
+          totalDeductions: 0,
+          netPay: 40000,
+          status: 'approved',
+          extras: {
+            overtime: [],
+            absences: [],
+            loans: [],
+            advances: []
+          }
         }
       ];
       
@@ -142,8 +184,8 @@ export const PayrollGeneralModule: React.FC = () => {
         totalLoans: mockData.reduce((sum, emp) => sum + emp.loans, 0),
         averageSalary: mockData.reduce((sum, emp) => sum + emp.netPay, 0) / mockData.length,
         departmentBreakdown: [
-          { department: 'Tecnología', employees: 1, totalPay: 16499.99 },
-          { department: 'Finanzas', employees: 1, totalPay: 16140 }
+          { department: 'Tecnología', employees: 1, totalPay: 30229.16 },
+          { department: 'Finanzas', employees: 1, totalPay: 40000 }
         ],
         statusBreakdown: {
           pending: mockData.filter(emp => emp.status === 'pending').length,
@@ -602,6 +644,11 @@ export const PayrollGeneralModule: React.FC = () => {
                         <div className="text-xs text-gray-500">
                           Base: {formatCurrency(employee.basePay)}
                         </div>
+                        {employee.overtimePay > 0 && (
+                          <div className="text-xs text-green-600">
+                            +Extras: {formatCurrency(employee.overtimePay)}
+                          </div>
+                        )}
                         {employee.bonuses > 0 && (
                           <div className="text-xs text-green-600">
                             +Bonos: {formatCurrency(employee.bonuses)}
@@ -612,12 +659,19 @@ export const PayrollGeneralModule: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
                         <div className="font-medium text-red-600">{formatCurrency(employee.totalDeductions)}</div>
-                        <div className="text-xs text-gray-500">
-                          Impuestos: {formatCurrency(employee.taxes)}
-                        </div>
+                        {employee.absenceDeductions > 0 && (
+                          <div className="text-xs text-red-600">
+                            Faltas: {formatCurrency(employee.absenceDeductions)}
+                          </div>
+                        )}
                         {employee.loans > 0 && (
                           <div className="text-xs text-orange-600">
                             Préstamos: {formatCurrency(employee.loans)}
+                          </div>
+                        )}
+                        {employee.advances > 0 && (
+                          <div className="text-xs text-orange-600">
+                            Adelantos: {formatCurrency(employee.advances)}
                           </div>
                         )}
                       </div>

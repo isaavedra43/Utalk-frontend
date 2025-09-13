@@ -500,6 +500,11 @@ export const PayrollGeneralReport: React.FC<PayrollGeneralReportProps> = ({
                           <div className="text-xs text-gray-500">
                             Base: {formatCurrency(employee.basePay)}
                           </div>
+                          {employee.overtimePay > 0 && (
+                            <div className="text-xs text-green-600">
+                              Extras: {formatCurrency(employee.overtimePay)}
+                            </div>
+                          )}
                           {employee.bonuses > 0 && (
                             <div className="text-xs text-green-600">
                               Bonos: {formatCurrency(employee.bonuses)}
@@ -510,12 +515,19 @@ export const PayrollGeneralReport: React.FC<PayrollGeneralReportProps> = ({
                           <div className="text-sm font-medium text-red-600">
                             {formatCurrency(employee.totalDeductions)}
                           </div>
-                          <div className="text-xs text-gray-500">
-                            Imp: {formatCurrency(employee.taxes)}
-                          </div>
+                          {employee.absenceDeductions > 0 && (
+                            <div className="text-xs text-red-600">
+                              Faltas: {formatCurrency(employee.absenceDeductions)}
+                            </div>
+                          )}
                           {employee.loans > 0 && (
                             <div className="text-xs text-orange-600">
                               Préstamos: {formatCurrency(employee.loans)}
+                            </div>
+                          )}
+                          {employee.advances > 0 && (
+                            <div className="text-xs text-orange-600">
+                              Adelantos: {formatCurrency(employee.advances)}
                             </div>
                           )}
                         </td>

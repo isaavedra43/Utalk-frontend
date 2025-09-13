@@ -122,6 +122,56 @@ class PayrollGeneralService {
     }
   }
 
+  // Obtener extras de empleados para un período específico
+  async getEmployeeExtrasForPeriod(employeeId: string, periodId: string): Promise<{ success: boolean; data: { overtime: any[]; absences: any[]; loans: any[]; advances: any[] }; error?: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/periods/${periodId}/employees/${employeeId}/extras`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al obtener extras del empleado');
+      }
+
+      return { success: true, data: result.data };
+    } catch (error: any) {
+      return { 
+        success: false, 
+        data: { overtime: [], absences: [], loans: [], advances: [] }, 
+        error: error.message 
+      };
+    }
+  }
+
+  // Obtener todos los extras para un período (todos los empleados)
+  async getAllExtrasForPeriod(periodId: string): Promise<{ success: boolean; data: { [employeeId: string]: { overtime: any[]; absences: any[]; loans: any[]; advances: any[] } }; error?: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/periods/${periodId}/extras`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al obtener extras del período');
+      }
+
+      return { success: true, data: result.data };
+    } catch (error: any) {
+      return { 
+        success: false, 
+        data: {}, 
+        error: error.message 
+      };
+    }
+  }
+
   async processPayroll(periodId: string, config?: PayrollGeneralConfig): Promise<{ success: boolean; data: { processId: string }; error?: string }> {
     try {
       const response = await fetch(`${this.baseUrl}/periods/${periodId}/process`, {
