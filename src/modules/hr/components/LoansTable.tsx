@@ -15,7 +15,13 @@ import {
   TrendingDown,
   Clock,
   User,
-  Receipt
+  Receipt,
+  Edit,
+  Save,
+  X,
+  Upload,
+  Trash2,
+  Minus
 } from 'lucide-react';
 
 interface LoanPayment {
@@ -60,6 +66,12 @@ const LoansTable: React.FC<LoansTableProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedLoan, setSelectedLoan] = useState<LoanRecord | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingLoan, setEditingLoan] = useState<LoanRecord | null>(null);
+  const [showAddPayment, setShowAddPayment] = useState(false);
+  const [newPayment, setNewPayment] = useState<Partial<LoanPayment>>({});
+  const [showAddInstallment, setShowAddInstallment] = useState(false);
+  const [newInstallment, setNewInstallment] = useState<Partial<LoanPayment>>({});
 
   // Datos de ejemplo con préstamos reales
   const loanRecords: LoanRecord[] = [
@@ -324,6 +336,89 @@ const LoansTable: React.FC<LoansTableProps> = ({
   const totalActiveAmount = loanRecords.filter(l => l.status === 'active').reduce((sum, l) => sum + l.remainingAmount, 0);
   const totalMonthlyPayments = loanRecords.filter(l => l.status === 'active').reduce((sum, l) => sum + l.monthlyPayment, 0);
 
+  // Funciones para manejar edición
+  const handleEditLoan = (loan: LoanRecord) => {
+    setEditingLoan({ ...loan });
+    setIsEditing(true);
+  };
+
+  const handleSaveLoan = () => {
+    if (editingLoan) {
+      // Aquí harías la llamada al API para guardar
+      console.log('💾 Guardando préstamo:', editingLoan);
+      setSelectedLoan(editingLoan);
+      setIsEditing(false);
+      setEditingLoan(null);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditingLoan(null);
+  };
+
+  const handleAddPayment = () => {
+    if (newPayment.payrollPeriod && newPayment.amount) {
+      const payment: LoanPayment = {
+        id: `PAY_${Date.now()}`,
+        payrollPeriod: newPayment.payrollPeriod,
+        paymentDate: newPayment.paymentDate || new Date().toISOString().split('T')[0],
+        amount: newPayment.amount,
+        status: newPayment.status || 'pending',
+        payrollId: newPayment.payrollId
+      };
+
+      if (editingLoan) {
+        const updatedLoan = {
+          ...editingLoan,
+          payments: [...editingLoan.payments, payment],
+          paidInstallments: editingLoan.paidInstallments + 1,
+          remainingAmount: Math.max(0, editingLoan.remainingAmount - payment.amount)
+        };
+        setEditingLoan(updatedLoan);
+      }
+
+      setNewPayment({});
+      setShowAddPayment(false);
+    }
+  };
+
+  const handleDeletePayment = (paymentId: string) => {
+    if (editingLoan) {
+      const payment = editingLoan.payments.find(p => p.id === paymentId);
+      if (payment) {
+        const updatedLoan = {
+          ...editingLoan,
+          payments: editingLoan.payments.filter(p => p.id !== paymentId),
+          paidInstallments: Math.max(0, editingLoan.paidInstallments - 1),
+          remainingAmount: editingLoan.remainingAmount + payment.amount
+        };
+        setEditingLoan(updatedLoan);
+      }
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (editingLoan && files.length > 0) {
+      const newAttachments = files.map(file => file.name);
+      setEditingLoan({
+        ...editingLoan,
+        attachments: [...editingLoan.attachments, ...newAttachments]
+      });
+    }
+  };
+
+  const handleRemoveAttachment = (index: number) => {
+    if (editingLoan) {
+      const updatedAttachments = editingLoan.attachments.filter((_, i) => i !== index);
+      setEditingLoan({
+        ...editingLoan,
+        attachments: updatedAttachments
+      });
+    }
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm border">
       {/* Header */}
@@ -499,16 +594,33 @@ const LoansTable: React.FC<LoansTableProps> = ({
       {/* Modal de Detalles */}
       {selectedLoan && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[95vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Detalles del Préstamo</h3>
-                <button
-                  onClick={() => setSelectedLoan(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {isEditing ? 'Editar Préstamo' : 'Detalles del Préstamo'}
+                </h3>
+                <div className="flex items-center space-x-2">
+                  {!isEditing && (
+                    <button
+                      onClick={() => handleEditLoan(selectedLoan)}
+                      className="flex items-center space-x-1 px-3 py-1 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                    >
+                      <Edit className="h-4 w-4" />
+                      <span>Editar</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setSelectedLoan(null);
+                      setIsEditing(false);
+                      setEditingLoan(null);
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
               
               <div className="space-y-6">
@@ -516,20 +628,51 @@ const LoansTable: React.FC<LoansTableProps> = ({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-600">Fecha del préstamo</label>
-                    <p className="text-gray-900 mt-1">{formatDate(selectedLoan.date)}</p>
+                    {isEditing && editingLoan ? (
+                      <input
+                        type="date"
+                        value={editingLoan.date}
+                        onChange={(e) => setEditingLoan({ ...editingLoan, date: e.target.value })}
+                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    ) : (
+                      <p className="text-gray-900 mt-1">{formatDate(selectedLoan.date)}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-600">Estado</label>
-                    <div className="flex items-center space-x-2 mt-1">
-                      {getStatusIcon(selectedLoan.status)}
-                      <span className="text-gray-900">{getStatusLabel(selectedLoan.status)}</span>
-                    </div>
+                    {isEditing && editingLoan ? (
+                      <select
+                        value={editingLoan.status}
+                        onChange={(e) => setEditingLoan({ ...editingLoan, status: e.target.value as any })}
+                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      >
+                        <option value="active">Activo</option>
+                        <option value="completed">Completado</option>
+                        <option value="overdue">Vencido</option>
+                        <option value="cancelled">Cancelado</option>
+                      </select>
+                    ) : (
+                      <div className="flex items-center space-x-2 mt-1">
+                        {getStatusIcon(selectedLoan.status)}
+                        <span className="text-gray-900">{getStatusLabel(selectedLoan.status)}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-600">Descripción</label>
-                  <p className="text-gray-900 mt-1">{selectedLoan.description}</p>
+                  {isEditing && editingLoan ? (
+                    <textarea
+                      value={editingLoan.description}
+                      onChange={(e) => setEditingLoan({ ...editingLoan, description: e.target.value })}
+                      rows={3}
+                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                  ) : (
+                    <p className="text-gray-900 mt-1">{selectedLoan.description}</p>
+                  )}
                 </div>
                 
                 {/* Resumen Financiero */}
@@ -538,22 +681,49 @@ const LoansTable: React.FC<LoansTableProps> = ({
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
                       <p className="text-purple-700">Monto Total</p>
-                      <p className="font-semibold text-purple-900">{formatCurrency(selectedLoan.totalAmount)}</p>
+                      {isEditing && editingLoan ? (
+                        <input
+                          type="number"
+                          value={editingLoan.totalAmount}
+                          onChange={(e) => setEditingLoan({ ...editingLoan, totalAmount: parseFloat(e.target.value) || 0 })}
+                          className="mt-1 w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        />
+                      ) : (
+                        <p className="font-semibold text-purple-900">{formatCurrency(selectedLoan.totalAmount)}</p>
+                      )}
                     </div>
                     <div>
                       <p className="text-purple-700">Pago Mensual</p>
-                      <p className="font-semibold text-purple-900">{formatCurrency(selectedLoan.monthlyPayment)}</p>
+                      {isEditing && editingLoan ? (
+                        <input
+                          type="number"
+                          value={editingLoan.monthlyPayment}
+                          onChange={(e) => setEditingLoan({ ...editingLoan, monthlyPayment: parseFloat(e.target.value) || 0 })}
+                          className="mt-1 w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        />
+                      ) : (
+                        <p className="font-semibold text-purple-900">{formatCurrency(selectedLoan.monthlyPayment)}</p>
+                      )}
                     </div>
                     <div>
-                      <p className="text-purple-700">Cuotas Pagadas</p>
-                      <p className="font-semibold text-purple-900">{selectedLoan.paidInstallments}/{selectedLoan.totalInstallments}</p>
+                      <p className="text-purple-700">Cuotas Totales</p>
+                      {isEditing && editingLoan ? (
+                        <input
+                          type="number"
+                          value={editingLoan.totalInstallments}
+                          onChange={(e) => setEditingLoan({ ...editingLoan, totalInstallments: parseInt(e.target.value) || 0 })}
+                          className="mt-1 w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        />
+                      ) : (
+                        <p className="font-semibold text-purple-900">{selectedLoan.paidInstallments}/{selectedLoan.totalInstallments}</p>
+                      )}
                     </div>
                     <div>
                       <p className="text-purple-700">Saldo Pendiente</p>
                       <p className={`font-semibold ${
-                        selectedLoan.remainingAmount === 0 ? 'text-green-600' : 'text-purple-900'
+                        (isEditing ? editingLoan?.remainingAmount : selectedLoan.remainingAmount) === 0 ? 'text-green-600' : 'text-purple-900'
                       }`}>
-                        {formatCurrency(selectedLoan.remainingAmount)}
+                        {formatCurrency(isEditing && editingLoan ? editingLoan.remainingAmount : selectedLoan.remainingAmount)}
                       </p>
                     </div>
                   </div>
@@ -561,7 +731,18 @@ const LoansTable: React.FC<LoansTableProps> = ({
 
                 {/* Historial de Pagos */}
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-3">Historial de Pagos</h4>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium text-gray-900">Historial de Pagos</h4>
+                    {isEditing && editingLoan && (
+                      <button
+                        onClick={() => setShowAddPayment(true)}
+                        className="flex items-center space-x-1 px-3 py-1 text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>Agregar Pago</span>
+                      </button>
+                    )}
+                  </div>
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
@@ -571,10 +752,13 @@ const LoansTable: React.FC<LoansTableProps> = ({
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Monto</th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nómina</th>
+                          {isEditing && editingLoan && (
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                          )}
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {selectedLoan.payments.map((payment) => (
+                        {(isEditing && editingLoan ? editingLoan.payments : selectedLoan.payments).map((payment) => (
                           <tr key={payment.id}>
                             <td className="px-4 py-2 text-sm text-gray-900">{payment.payrollPeriod}</td>
                             <td className="px-4 py-2 text-sm text-gray-500">{formatDate(payment.paymentDate)}</td>
@@ -596,6 +780,17 @@ const LoansTable: React.FC<LoansTableProps> = ({
                                 </button>
                               ) : '-'}
                             </td>
+                            {isEditing && editingLoan && (
+                              <td className="px-4 py-2 text-sm">
+                                <button
+                                  onClick={() => handleDeletePayment(payment.id)}
+                                  className="text-red-600 hover:text-red-900 flex items-center space-x-1"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                  <span>Eliminar</span>
+                                </button>
+                              </td>
+                            )}
                           </tr>
                         ))}
                       </tbody>
@@ -618,27 +813,174 @@ const LoansTable: React.FC<LoansTableProps> = ({
                 </div>
                 
                 {/* Archivos adjuntos */}
-                {selectedLoan.attachments && selectedLoan.attachments.length > 0 && (
-                  <div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
                     <label className="block text-sm font-medium text-gray-600">Archivos adjuntos</label>
-                    <div className="mt-1 space-y-1">
-                      {selectedLoan.attachments.map((file, index) => (
-                        <div key={index} className="flex items-center space-x-2 text-sm text-gray-600">
+                    {isEditing && editingLoan && (
+                      <label className="flex items-center space-x-1 px-3 py-1 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer">
+                        <Upload className="h-4 w-4" />
+                        <span>Subir Archivos</span>
+                        <input
+                          type="file"
+                          multiple
+                          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+                  <div className="mt-1 space-y-1">
+                    {(isEditing && editingLoan ? editingLoan.attachments : selectedLoan.attachments).map((file, index) => (
+                      <div key={index} className="flex items-center justify-between text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                        <div className="flex items-center space-x-2">
                           <span>📎</span>
                           <span>{file}</span>
                         </div>
-                      ))}
-                    </div>
+                        {isEditing && editingLoan && (
+                          <button
+                            onClick={() => handleRemoveAttachment(index)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {(!selectedLoan.attachments || selectedLoan.attachments.length === 0) && (
+                      <p className="text-sm text-gray-500 italic">No hay archivos adjuntos</p>
+                    )}
                   </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-end space-x-3 mt-6 pt-4 border-t">
+                {isEditing ? (
+                  <>
+                    <button
+                      onClick={handleCancelEdit}
+                      className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleSaveLoan}
+                      className="px-4 py-2 text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-1"
+                    >
+                      <Save className="h-4 w-4" />
+                      <span>Guardar</span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setSelectedLoan(null);
+                      setIsEditing(false);
+                      setEditingLoan(null);
+                    }}
+                    className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cerrar
+                  </button>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Agregar Pago */}
+      {showAddPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Agregar Pago</h3>
+                <button
+                  onClick={() => {
+                    setShowAddPayment(false);
+                    setNewPayment({});
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Período de Nómina</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Mayo 2024"
+                    value={newPayment.payrollPeriod || ''}
+                    onChange={(e) => setNewPayment({ ...newPayment, payrollPeriod: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Fecha de Pago</label>
+                  <input
+                    type="date"
+                    value={newPayment.paymentDate || ''}
+                    onChange={(e) => setNewPayment({ ...newPayment, paymentDate: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Monto</label>
+                  <input
+                    type="number"
+                    placeholder="0.00"
+                    value={newPayment.amount || ''}
+                    onChange={(e) => setNewPayment({ ...newPayment, amount: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Estado</label>
+                  <select
+                    value={newPayment.status || 'pending'}
+                    onChange={(e) => setNewPayment({ ...newPayment, status: e.target.value as any })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  >
+                    <option value="pending">Pendiente</option>
+                    <option value="paid">Pagado</option>
+                    <option value="overdue">Vencido</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">ID de Nómina (opcional)</label>
+                  <input
+                    type="text"
+                    placeholder="PAYROLL_MAY_2024"
+                    value={newPayment.payrollId || ''}
+                    onChange={(e) => setNewPayment({ ...newPayment, payrollId: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
               </div>
               
               <div className="flex items-center justify-end space-x-3 mt-6 pt-4 border-t">
                 <button
-                  onClick={() => setSelectedLoan(null)}
+                  onClick={() => {
+                    setShowAddPayment(false);
+                    setNewPayment({});
+                  }}
                   className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  Cerrar
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleAddPayment}
+                  className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-1"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Agregar Pago</span>
                 </button>
               </div>
             </div>
