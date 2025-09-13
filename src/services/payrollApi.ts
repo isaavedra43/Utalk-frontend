@@ -141,6 +141,23 @@ export interface PayrollDetailsResponse {
   };
 }
 
+export interface PayrollAttachment {
+  id: string;
+  fileName: string;
+  originalName: string;
+  fileSize: number;
+  mimeType: string;
+  fileUrl: string;
+  uploadedAt: string;
+  category?: string;
+  description?: string;
+}
+
+export interface PayrollAttachmentResponse {
+  attachments: PayrollAttachment[];
+  total: number;
+}
+
 class PayrollApiService {
   private async request<T>(
     endpoint: string, 
@@ -289,6 +306,64 @@ class PayrollApiService {
   // GENERACIÓN DE PDF
   async generatePayrollPDF(payrollId: string): Promise<{ pdfUrl: string; fileName: string; size: number; payrollId: string; employeeId: string; employeeName: string }> {
     return this.request(`/api/payroll/pdf/${payrollId}`);
+  }
+
+  // ARCHIVOS ADJUNTOS
+  async uploadAttachment(payrollId: string, file: File, employeeId: string, category?: string, description?: string): Promise<PayrollAttachment> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('employeeId', employeeId);
+    if (category) formData.append('category', category);
+    if (description) formData.append('description', description);
+
+    const token = localStorage.getItem('access_token');
+    
+    const response = await fetch(`${API_BASE_URL}/api/payroll/${payrollId}/attachments`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error || data.message || 'Error subiendo archivo');
+    }
+
+    return data.data;
+  }
+
+  async getAttachments(payrollId: string): Promise<PayrollAttachmentResponse> {
+    return this.request(`/api/payroll/${payrollId}/attachments`);
+  }
+
+  async deleteAttachment(payrollId: string, attachmentId: string): Promise<void> {
+    return this.request(`/api/payroll/${payrollId}/attachments/${attachmentId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // EDITAR NÓMINA
+  async editPayroll(payrollId: string, configData: Partial<PayrollConfig>): Promise<{ payroll: PayrollPeriod; config: PayrollConfig }> {
+    return this.request(`/api/payroll/${payrollId}`, {
+      method: 'PUT',
+      body: JSON.stringify(configData),
+    });
+  }
+
+  // REGENERAR NÓMINA
+  async regeneratePayroll(payrollId: string, recalculateExtras: boolean = true): Promise<PayrollGenerationResponse> {
+    return this.request(`/api/payroll/${payrollId}/regenerate`, {
+      method: 'POST',
+      body: JSON.stringify({ recalculateExtras }),
+    });
   }
 
   // UTILIDADES

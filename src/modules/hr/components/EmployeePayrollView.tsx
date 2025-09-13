@@ -202,10 +202,41 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
           },
           hasData: false
         });
-      } finally {
-        setLoading(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [employeeId]);
+
+  // Función para cargar archivos adjuntos
+  const loadAttachments = useCallback(async (payrollId: string) => {
+    try {
+      console.log('📎 Cargando archivos adjuntos para nómina:', payrollId);
+      
+      const attachmentsData = await payrollApi.getAttachments(payrollId);
+      console.log('📎 Archivos adjuntos obtenidos:', attachmentsData);
+      
+      // Convertir a formato local
+      const localAttachments = attachmentsData.attachments.map(attachment => ({
+        id: attachment.id,
+        name: attachment.originalName,
+        type: attachment.mimeType,
+        size: attachment.fileSize,
+        url: attachment.fileUrl,
+        uploadedAt: attachment.uploadedAt
+      }));
+      
+      setAttachments(localAttachments);
+      console.log('✅ Archivos adjuntos cargados exitosamente');
+      
+    } catch (error: unknown) {
+      console.error('❌ Error cargando archivos adjuntos:', error);
+      // No mostrar error si no hay archivos, solo log
+      if (error instanceof Error && !error.message.includes('404')) {
+        const errorMessage = error.message;
+        setError(errorMessage);
       }
-    }, [employeeId]);
+    }
+  }, []);
 
   // Cargar datos cuando cambie el employeeId
   useEffect(() => {
@@ -213,6 +244,13 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       loadPayrollData();
     }
   }, [employeeId, loadPayrollData]);
+
+  // Cargar archivos adjuntos cuando se selecciona un período
+  useEffect(() => {
+    if (selectedPeriod) {
+      loadAttachments(selectedPeriod.id);
+    }
+  }, [selectedPeriod, loadAttachments]);
 
   // Función para cargar detalles de un período específico
   const loadPeriodDetails = async (payrollId: string) => {
@@ -281,6 +319,32 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
     } catch (error: unknown) {
       console.error('❌ Error configurando nómina:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error configurando nómina';
+      setError(errorMessage);
+    } finally {
+      setConfigLoading(false);
+    }
+  };
+
+  // Función para editar nómina existente
+  const handleEditPayroll = async (configData: Partial<PayrollConfig>) => {
+    if (!selectedPeriod) return;
+
+    try {
+      setConfigLoading(true);
+      setError(null);
+      
+      console.log('✏️ Editando nómina:', configData);
+      
+      // Usar el nuevo endpoint de editar nómina
+      const result = await payrollApi.editPayroll(selectedPeriod.id, configData);
+      console.log('✅ Nómina editada:', result);
+      
+      // Recargar datos después de editar
+      await loadPayrollData();
+      
+    } catch (error: unknown) {
+      console.error('❌ Error editando nómina:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error editando nómina';
       setError(errorMessage);
     } finally {
       setConfigLoading(false);
@@ -359,11 +423,8 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       
       console.log('🔄 Regenerando nómina:', payrollId);
       
-      // Llamar a la API para regenerar la nómina
-      const response = await payrollApi.generatePayroll(employeeId, {
-        periodDate: payrollId,
-        forceRegenerate: true
-      });
+      // Usar el nuevo endpoint de regenerar nómina
+      const response = await payrollApi.regeneratePayroll(payrollId, true);
       
       console.log('✅ Nómina regenerada:', response);
       
@@ -371,7 +432,7 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       await loadPayrollData();
       
       // Mostrar notificación de éxito
-      console.log('🎉 Nómina regenerada sin impuestos automáticos');
+      console.log('🎉 Nómina regenerada exitosamente');
       
     } catch (error: unknown) {
       console.error('❌ Error regenerando nómina:', error);
@@ -445,29 +506,27 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
 
       console.log('📎 Subiendo archivo:', file.name);
 
-      // Crear FormData para subir el archivo
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('payrollId', selectedPeriod.id);
-      formData.append('employeeId', employeeId);
+      // Subir archivo usando el API real
+      const uploadedAttachment = await payrollApi.uploadAttachment(
+        selectedPeriod.id,
+        file,
+        employeeId,
+        'comprobante', // Categoría por defecto
+        `Archivo adjunto para nómina del período ${formatDate(selectedPeriod.periodStart)} - ${formatDate(selectedPeriod.periodEnd)}`
+      );
 
-      // TODO: Conectar con API real para subir archivos
-      // const response = await payrollApi.uploadAttachment(formData);
-      
-      // Mock de subida exitosa
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      // Actualizar la lista de archivos adjuntos
       const newAttachment = {
-        id: Date.now().toString(),
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        url: URL.createObjectURL(file), // URL temporal para preview
-        uploadedAt: new Date().toISOString()
+        id: uploadedAttachment.id,
+        name: uploadedAttachment.originalName,
+        type: uploadedAttachment.mimeType,
+        size: uploadedAttachment.fileSize,
+        url: uploadedAttachment.fileUrl,
+        uploadedAt: uploadedAttachment.uploadedAt
       };
 
       setAttachments(prev => [...prev, newAttachment]);
-      console.log('✅ Archivo subido exitosamente');
+      console.log('✅ Archivo subido exitosamente:', uploadedAttachment);
 
     } catch (error: unknown) {
       console.error('❌ Error subiendo archivo:', error);
@@ -481,9 +540,25 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
   };
 
   // Función para eliminar archivo adjunto
-  const handleRemoveAttachment = (attachmentId: string) => {
-    setAttachments(prev => prev.filter(att => att.id !== attachmentId));
-    console.log('🗑️ Archivo eliminado:', attachmentId);
+  const handleRemoveAttachment = async (attachmentId: string) => {
+    if (!selectedPeriod) return;
+
+    try {
+      setError(null);
+      console.log('🗑️ Eliminando archivo:', attachmentId);
+
+      // Eliminar archivo usando el API real
+      await payrollApi.deleteAttachment(selectedPeriod.id, attachmentId);
+
+      // Actualizar la lista local
+      setAttachments(prev => prev.filter(att => att.id !== attachmentId));
+      console.log('✅ Archivo eliminado exitosamente');
+
+    } catch (error: unknown) {
+      console.error('❌ Error eliminando archivo:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error eliminando archivo';
+      setError(errorMessage);
+    }
   };
 
   // Función para formatear tamaño de archivo
@@ -907,18 +982,71 @@ Generado desde Utalk HR`;
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedPeriod.status)}`}>
                       {payrollApi.getStatusLabel(selectedPeriod.status)}
                     </span>
-                    <button 
-                      onClick={() => handleDownloadPDF(selectedPeriod.id)}
-                      disabled={downloadingPDF === selectedPeriod.id}
-                      className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Descargar PDF"
-                    >
-                      {downloadingPDF === selectedPeriod.id ? (
-                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Download className="w-4 h-4" />
-                      )}
-                    </button>
+                    
+                    {/* Botones de acción minimalistas */}
+                    <div className="flex items-center gap-1 ml-2">
+                      {/* Botón Editar */}
+                      <button
+                        onClick={() => setIsConfigModalOpen(true)}
+                        className="text-gray-600 hover:text-gray-800 p-1.5 rounded hover:bg-gray-100 transition-colors"
+                        title="Editar nómina"
+                      >
+                        <Settings className="w-4 h-4" />
+                      </button>
+                      
+                      {/* Botón Regenerar */}
+                      <button
+                        onClick={() => regeneratePayroll(selectedPeriod.id)}
+                        disabled={generatingPayroll}
+                        className="text-yellow-600 hover:text-yellow-800 p-1.5 rounded hover:bg-yellow-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Regenerar nómina"
+                      >
+                        {generatingPayroll ? (
+                          <div className="w-4 h-4 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Plus className="w-4 h-4" />
+                        )}
+                      </button>
+                      
+                      {/* Botón Subir Archivo */}
+                      <div className="relative">
+                        <input
+                          type="file"
+                          id="file-upload-minimal"
+                          onChange={handleFileUpload}
+                          disabled={uploadingFile}
+                          className="hidden"
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                        />
+                        <label
+                          htmlFor="file-upload-minimal"
+                          className={`text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-50 transition-colors cursor-pointer ${
+                            uploadingFile ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                          title="Subir archivo"
+                        >
+                          {uploadingFile ? (
+                            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Upload className="w-4 h-4" />
+                          )}
+                        </label>
+                      </div>
+                      
+                      {/* Botón Descargar PDF */}
+                      <button 
+                        onClick={() => handleDownloadPDF(selectedPeriod.id)}
+                        disabled={downloadingPDF === selectedPeriod.id}
+                        className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        title="Descargar PDF"
+                      >
+                        {downloadingPDF === selectedPeriod.id ? (
+                          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Download className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1006,83 +1134,27 @@ Generado desde Utalk HR`;
                         <Paperclip className="w-5 h-5" />
                         Archivos Adjuntos
                       </h4>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         {/* Botones de Acción de Nómina */}
-                        <div className="flex items-center gap-2">
-                          {selectedPeriod.status === 'calculated' && (
-                            <button
-                              onClick={() => handleApprovePayroll(selectedPeriod.id)}
-                              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              Aprobar
-                            </button>
-                          )}
-                          
-                          {selectedPeriod.status === 'approved' && (
-                            <button
-                              onClick={() => handleMarkAsPaid(selectedPeriod.id)}
-                              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                            >
-                              <DollarSign className="w-4 h-4" />
-                              Marcar como Pagado
-                            </button>
-                          )}
-                          
+                        {selectedPeriod.status === 'calculated' && (
                           <button
-                            onClick={() => setIsConfigModalOpen(true)}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gray-600 text-white hover:bg-gray-700 transition-colors"
+                            onClick={() => handleApprovePayroll(selectedPeriod.id)}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors"
                           >
-                            <Settings className="w-4 h-4" />
-                            Editar
+                            <CheckCircle className="w-4 h-4" />
+                            Aprobar
                           </button>
-                          
-                          <button
-                            onClick={() => regeneratePayroll(selectedPeriod.id)}
-                            disabled={generatingPayroll}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-yellow-600 text-white hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Regenerar nómina"
-                          >
-                            {generatingPayroll ? (
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                              <Plus className="w-4 h-4" />
-                            )}
-                            Regenerar
-                          </button>
-                        </div>
+                        )}
                         
-                        {/* Botón de Subir Archivo */}
-                        <div className="relative">
-                          <input
-                            type="file"
-                            id="file-upload"
-                            onChange={handleFileUpload}
-                            disabled={uploadingFile}
-                            className="hidden"
-                            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-                          />
-                          <label
-                            htmlFor="file-upload"
-                            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                              uploadingFile
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                : 'bg-blue-600 text-white hover:bg-blue-700'
-                            }`}
+                        {selectedPeriod.status === 'approved' && (
+                          <button
+                            onClick={() => handleMarkAsPaid(selectedPeriod.id)}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
                           >
-                            {uploadingFile ? (
-                              <>
-                                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                                Subiendo...
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="w-4 h-4" />
-                                Subir Archivo
-                              </>
-                            )}
-                          </label>
-                        </div>
+                            <DollarSign className="w-4 h-4" />
+                            Marcar como Pagado
+                          </button>
+                        )}
                       </div>
                     </div>
                     
@@ -1264,7 +1336,7 @@ Generado desde Utalk HR`;
           currentConfig={payrollData.config}
           employee={employee}
           onClose={() => setIsConfigModalOpen(false)}
-          onSave={handleConfigurePayroll}
+          onSave={selectedPeriod ? handleEditPayroll : handleConfigurePayroll}
           loading={configLoading}
         />
       )}
