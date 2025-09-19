@@ -6,7 +6,7 @@ import { logger, LogCategory } from '../utils/logger';
 import { infoLog } from '../config/logger';
 
 // Usar URL del backend real
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || 'https://tu-backend.railway.app';
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || 'https://utalk-backend-production.up.railway.app';
 
 logger.apiInfo('Configurando API con URL', { apiBaseUrl: API_BASE_URL });
 

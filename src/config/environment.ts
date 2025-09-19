@@ -6,8 +6,8 @@ export const environment = {
   PROD: import.meta.env.PROD || false,
   
   // URLs de la API
-  API_BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://utalk-backend.onrender.com',
-  WS_BASE_URL: import.meta.env.VITE_WS_BASE_URL || 'wss://utalk-backend.onrender.com',
+  API_BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://utalk-backend-production.up.railway.app',
+  WS_BASE_URL: import.meta.env.VITE_WS_URL || 'wss://utalk-backend-production.up.railway.app',
   
   // Configuración de Firebase
   FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY || '',
@@ -52,7 +52,7 @@ export const ENV_CONFIG = {
 export const validateEnvironment = () => {
   const requiredVars = [
     'VITE_API_BASE_URL',
-    'VITE_WS_BASE_URL',
+    'VITE_WS_URL',
     'VITE_FIREBASE_API_KEY',
     'VITE_FIREBASE_AUTH_DOMAIN',
     'VITE_FIREBASE_PROJECT_ID'

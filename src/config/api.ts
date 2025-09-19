@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Configuración del backend
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://tu-backend.railway.app';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://utalk-backend-production.up.railway.app';
 const SOCKET_URL = BACKEND_URL; // Mismo dominio para WebSocket
 
 // Configuración de autenticación
