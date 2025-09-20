@@ -115,7 +115,7 @@ interface EmployeePayrollApproval {
   status: 'pending' | 'approved' | 'rejected' | 'needs_review';
   paymentStatus: 'pending' | 'paid' | 'failed';
   paymentMethod: 'cash' | 'deposit' | 'check' | 'transfer' | 'other';
-  receiptStatus: 'not_required' | 'pending' | 'uploaded' | 'verified';
+  receiptStatus: 'pending' | 'uploaded';
   receiptUrl?: string;
   receiptUploadedAt?: string;
   notes?: string;
@@ -206,6 +206,11 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
     reason: ''
   });
   const [isSavingExtra, setIsSavingExtra] = useState(false);
+  
+  // Estados para preview de recibo
+  const [showReceiptPreviewModal, setShowReceiptPreviewModal] = useState(false);
+  const [selectedEmployeeForReceiptPreview, setSelectedEmployeeForReceiptPreview] = useState<EmployeePayrollApproval | null>(null);
+  const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
 
   // Datos mock para contactos del chat interno
   const mockContacts = [
@@ -339,7 +344,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
       status: 'pending',
       paymentStatus: 'pending',
       paymentMethod: 'cash',
-      receiptStatus: 'not_required',
+      receiptStatus: 'pending',
       notes: 'Pendiente aprobación de bono de ventas',
       lastUpdated: '2024-01-30T11:00:00Z'
     },
@@ -612,17 +617,15 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
   const handleSelectEmployee = (employeeId: string) => {
     setSelectedEmployees(prev => 
       prev.includes(employeeId) 
-        ? prev.filter(id => id !== employeeId)
-        : [...prev, employeeId]
+        ? [] // Deseleccionar si ya está seleccionado
+        : [employeeId] // Seleccionar solo este empleado
     );
   };
 
   const handleSelectAll = () => {
-    if (selectedEmployees.length === filteredEmployees.length) {
-      setSelectedEmployees([]);
-    } else {
-      setSelectedEmployees(filteredEmployees.map(emp => emp.id));
-    }
+    // Con selección única, "Seleccionar todo" no tiene sentido
+    // Se mantiene la función pero no hace nada para evitar errores
+    setSelectedEmployees([]);
   };
 
   // Funciones para acciones de empleados individuales
@@ -936,20 +939,16 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
   const getReceiptStatusColor = (status: string) => {
     switch (status) {
       case 'uploaded': return 'bg-green-100 text-green-800';
-      case 'verified': return 'bg-blue-100 text-blue-800';
       case 'pending': return 'bg-orange-100 text-orange-800';
-      case 'not_required': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      default: return 'bg-orange-100 text-orange-800';
     }
   };
 
   const getReceiptStatusText = (status: string) => {
     switch (status) {
       case 'uploaded': return 'Subido';
-      case 'verified': return 'Verificado';
       case 'pending': return 'Pendiente';
-      case 'not_required': return 'No requerido';
-      default: return status;
+      default: return 'Pendiente';
     }
   };
 
@@ -1242,6 +1241,89 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
     });
   };
 
+  // Funciones para preview de recibo
+  const handleViewReceiptPreview = (employee: EmployeePayrollApproval) => {
+    setSelectedEmployeeForReceiptPreview(employee);
+    setShowReceiptPreviewModal(true);
+    console.log('📄 Abriendo preview de recibo para:', employee.personalInfo.name);
+  };
+
+  const handleCloseReceiptPreviewModal = () => {
+    setShowReceiptPreviewModal(false);
+    setSelectedEmployeeForReceiptPreview(null);
+  };
+
+  const handleDownloadReceipt = async (format: 'pdf' | 'excel' | 'image') => {
+    if (!selectedEmployeeForReceiptPreview) return;
+
+    setIsGeneratingReceipt(true);
+    try {
+      console.log(`📥 Descargando recibo en formato ${format} para:`, selectedEmployeeForReceiptPreview.personalInfo.name);
+      
+      // Simular generación de archivo
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Simular descarga
+      const fileName = `recibo_${selectedEmployeeForReceiptPreview.personalInfo.employeeId}_${new Date().toISOString().split('T')[0]}.${format}`;
+      const blob = new Blob(['Contenido del recibo'], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      console.log('✅ Recibo descargado exitosamente');
+      alert(`Recibo descargado como ${fileName}`);
+      
+    } catch (error) {
+      console.error('❌ Error descargando recibo:', error);
+      alert('Error al descargar el recibo');
+    } finally {
+      setIsGeneratingReceipt(false);
+    }
+  };
+
+  const handleShareReceipt = async (channel: 'whatsapp' | 'email' | 'link') => {
+    if (!selectedEmployeeForReceiptPreview) return;
+
+    setIsGeneratingReceipt(true);
+    try {
+      console.log(`📤 Compartiendo recibo por ${channel} para:`, selectedEmployeeForReceiptPreview.personalInfo.name);
+      
+      // Simular generación y envío
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      switch (channel) {
+        case 'whatsapp':
+          const whatsappMessage = `Recibo de nómina de ${selectedEmployeeForReceiptPreview.personalInfo.name}`;
+          const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappMessage)}`;
+          window.open(whatsappUrl, '_blank');
+          break;
+        case 'email':
+          const emailSubject = `Recibo de nómina - ${selectedEmployeeForReceiptPreview.personalInfo.name}`;
+          const emailBody = `Adjunto encontrará el recibo de nómina correspondiente.`;
+          const emailUrl = `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+          window.open(emailUrl);
+          break;
+        case 'link':
+          navigator.clipboard.writeText(`${window.location.origin}/receipt/${selectedEmployeeForReceiptPreview.id}`);
+          alert('Enlace copiado al portapapeles');
+          break;
+      }
+      
+      console.log('✅ Recibo compartido exitosamente');
+      
+    } catch (error) {
+      console.error('❌ Error compartiendo recibo:', error);
+      alert('Error al compartir el recibo');
+    } finally {
+      setIsGeneratingReceipt(false);
+    }
+  };
+
   // Funciones para método de pago
   const handleChangePaymentMethod = (employeeId: string, newMethod: 'cash' | 'deposit' | 'check' | 'transfer' | 'other') => {
     setEmployees(prev => prev.map(emp => 
@@ -1492,6 +1574,19 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                 <Plus className="h-4 w-4 mr-2" />
                 Gestionar Extras
               </button>
+              <button
+                onClick={() => {
+                  const selectedEmployee = employees.find(emp => emp.id === selectedEmployees[0]);
+                  if (selectedEmployee) {
+                    handleAddNote(selectedEmployee.id);
+                  }
+                }}
+                className="flex items-center px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700"
+                title="Agregar nota de nómina"
+              >
+                <StickyNote className="h-4 w-4 mr-2" />
+                Agregar Nota
+              </button>
             </div>
           </div>
         </div>
@@ -1626,21 +1721,18 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                     </div>
                   </td>
                   <td className="px-3 py-4 whitespace-nowrap text-center">
-                    <div className="flex flex-col space-y-1 items-center">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getPaymentMethodColor(employee.paymentMethod)}`}>
-                        {getPaymentMethodText(employee.paymentMethod)}
-                      </span>
+                    <div className="flex flex-col space-y-2 items-center">
                       <select
                         value={employee.paymentMethod}
                         onChange={(e) => handleChangePaymentMethod(employee.id, e.target.value as any)}
-                        className="text-xs border border-gray-300 rounded px-1 py-0.5 bg-white"
+                        className="text-sm font-medium text-gray-700 bg-white border-2 border-gray-200 rounded-lg px-3 py-2 shadow-sm hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all duration-200 min-w-[120px]"
                         title="Cambiar método de pago"
                       >
-                        <option value="cash">Efectivo</option>
-                        <option value="deposit">Depósito</option>
-                        <option value="check">Cheque</option>
-                        <option value="transfer">Transferencia</option>
-                        <option value="other">Otro</option>
+                        <option value="cash">💵 Efectivo</option>
+                        <option value="deposit">🏦 Depósito</option>
+                        <option value="check">📄 Cheque</option>
+                        <option value="transfer">💳 Transferencia</option>
+                        <option value="other">📋 Otro</option>
                       </select>
                     </div>
                   </td>
@@ -1690,22 +1782,14 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                       )}
                       
                       
-                      {/* Botón para agregar notas */}
-                      <button
-                        onClick={() => handleAddNote(employee.id)}
-                        className="text-indigo-600 hover:text-indigo-900"
-                        title="Agregar nota de nómina"
-                      >
-                        <StickyNote className="h-4 w-4" />
-                      </button>
                       
-                      {/* Botón para ver ajustes */}
+                      {/* Botón para ver preview de recibo */}
                       <button
-                        onClick={() => setShowAdjustments(showAdjustments === employee.id ? null : employee.id)}
+                        onClick={() => handleViewReceiptPreview(employee)}
                         className="text-blue-600 hover:text-blue-900"
-                        title="Ver ajustes"
+                        title="Ver preview de recibo"
                       >
-                        <Eye className="h-4 w-4" />
+                        <FileText className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
@@ -2850,6 +2934,202 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                 >
                   {isSavingExtra ? 'Guardando...' : 'Guardar Extra'}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para preview de recibo */}
+      {showReceiptPreviewModal && selectedEmployeeForReceiptPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">Preview de Recibo de Nómina</h3>
+              <button
+                onClick={handleCloseReceiptPreviewModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              {/* Información del empleado */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="flex items-center space-x-2 mb-2">
+                  <User className="h-5 w-5 text-blue-600" />
+                  <span className="font-semibold text-blue-800">Empleado</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-blue-700">
+                      <strong>Nombre:</strong> {selectedEmployeeForReceiptPreview.personalInfo.name}
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      <strong>Puesto:</strong> {selectedEmployeeForReceiptPreview.personalInfo.position}
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      <strong>ID:</strong> {selectedEmployeeForReceiptPreview.personalInfo.employeeId}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-700">
+                      <strong>Departamento:</strong> {selectedEmployeeForReceiptPreview.personalInfo.department}
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      <strong>Ubicación:</strong> {selectedEmployeeForReceiptPreview.personalInfo.location}
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      <strong>Período:</strong> Enero 2024
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Preview del recibo */}
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">Recibo de Nómina</h4>
+                
+                {/* Simulación del recibo */}
+                <div className="bg-white p-6 rounded border shadow-sm">
+                  <div className="text-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900">RECIBO DE NÓMINA</h2>
+                    <p className="text-gray-600">Período: Enero 2024</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-2">Información del Empleado</h3>
+                      <div className="space-y-1 text-sm">
+                        <p><strong>Nombre:</strong> {selectedEmployeeForReceiptPreview.personalInfo.name}</p>
+                        <p><strong>Puesto:</strong> {selectedEmployeeForReceiptPreview.personalInfo.position}</p>
+                        <p><strong>ID:</strong> {selectedEmployeeForReceiptPreview.personalInfo.employeeId}</p>
+                        <p><strong>Departamento:</strong> {selectedEmployeeForReceiptPreview.personalInfo.department}</p>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-2">Detalles de Pago</h3>
+                      <div className="space-y-1 text-sm">
+                        <p><strong>Método de Pago:</strong> {getPaymentMethodText(selectedEmployeeForReceiptPreview.paymentMethod)}</p>
+                        <p><strong>Estado:</strong> {getPaymentStatusText(selectedEmployeeForReceiptPreview.paymentStatus)}</p>
+                        <p><strong>Fecha de Pago:</strong> {new Date().toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6">
+                    <h3 className="font-semibold text-gray-900 mb-2">Desglose de Nómina</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Salario Base:</span>
+                        <span>{formatCurrency(selectedEmployeeForReceiptPreview.originalPayroll.baseSalary)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Horas Extra:</span>
+                        <span>{formatCurrency(selectedEmployeeForReceiptPreview.originalPayroll.overtime)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Bonos:</span>
+                        <span>{formatCurrency(selectedEmployeeForReceiptPreview.originalPayroll.bonuses)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Prestaciones:</span>
+                        <span>{formatCurrency(selectedEmployeeForReceiptPreview.originalPayroll.allowances)}</span>
+                      </div>
+                      <div className="flex justify-between border-t pt-2">
+                        <span><strong>Total Bruto:</strong></span>
+                        <span><strong>{formatCurrency(selectedEmployeeForReceiptPreview.originalPayroll.totalEarnings)}</strong></span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Impuestos:</span>
+                        <span>-{formatCurrency(selectedEmployeeForReceiptPreview.originalPayroll.taxes)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Beneficios:</span>
+                        <span>-{formatCurrency(selectedEmployeeForReceiptPreview.originalPayroll.benefits)}</span>
+                      </div>
+                      <div className="flex justify-between border-t pt-2">
+                        <span><strong>Total Neto:</strong></span>
+                        <span><strong>{formatCurrency(selectedEmployeeForReceiptPreview.finalPayroll.netPay)}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {selectedEmployeeForReceiptPreview.adjustments.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="font-semibold text-gray-900 mb-2">Ajustes</h3>
+                      <div className="space-y-2 text-sm">
+                        {selectedEmployeeForReceiptPreview.adjustments.map((adj) => (
+                          <div key={adj.id} className="flex justify-between">
+                            <span>{adj.name}:</span>
+                            <span className={adj.amount > 0 ? 'text-green-600' : 'text-red-600'}>
+                              {adj.amount > 0 ? '+' : ''}{formatCurrency(adj.amount)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex flex-col space-y-4">
+                <div className="flex justify-center space-x-4">
+                  <button
+                    onClick={() => handleDownloadReceipt('pdf')}
+                    disabled={isGeneratingReceipt}
+                    className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    {isGeneratingReceipt ? 'Generando...' : 'Descargar PDF'}
+                  </button>
+                  <button
+                    onClick={() => handleDownloadReceipt('excel')}
+                    disabled={isGeneratingReceipt}
+                    className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    {isGeneratingReceipt ? 'Generando...' : 'Descargar Excel'}
+                  </button>
+                  <button
+                    onClick={() => handleDownloadReceipt('image')}
+                    disabled={isGeneratingReceipt}
+                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    <Image className="h-4 w-4 mr-2" />
+                    {isGeneratingReceipt ? 'Generando...' : 'Descargar Imagen'}
+                  </button>
+                </div>
+                
+                <div className="flex justify-center space-x-4">
+                  <button
+                    onClick={() => handleShareReceipt('whatsapp')}
+                    disabled={isGeneratingReceipt}
+                    className="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    {isGeneratingReceipt ? 'Compartiendo...' : 'Compartir WhatsApp'}
+                  </button>
+                  <button
+                    onClick={() => handleShareReceipt('email')}
+                    disabled={isGeneratingReceipt}
+                    className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    {isGeneratingReceipt ? 'Compartiendo...' : 'Compartir Email'}
+                  </button>
+                  <button
+                    onClick={() => handleShareReceipt('link')}
+                    disabled={isGeneratingReceipt}
+                    className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    <Share2 className="h-4 w-4 mr-2" />
+                    {isGeneratingReceipt ? 'Copiando...' : 'Copiar Enlace'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

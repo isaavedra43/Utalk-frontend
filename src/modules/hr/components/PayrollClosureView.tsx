@@ -5,73 +5,32 @@ import {
   AlertTriangle, 
   Lock, 
   Unlock,
-  Download, 
-  Send, 
-  FileText,
   ArrowLeft, 
   ArrowRight,
   Users, 
   DollarSign, 
-  TrendingUp, 
-  TrendingDown,
   Clock,
   Eye,
   Search,
   Filter,
-  RefreshCw,
-  BarChart3,
-  PieChart,
-  Target,
-  Award,
-  Calendar,
-  Building,
   User,
   Mail,
-  Phone,
-  MapPin,
-  Star,
-  Zap,
-  Shield,
-  Heart,
-  Car,
-  Home,
-  GraduationCap,
-  Briefcase,
-  CreditCard,
-  Receipt,
-  Plus,
-  Minus,
-  Trash2,
-  Copy,
-  Check,
-  X,
-  Archive,
-  BookOpen,
-  Clipboard,
-  Database,
-  HardDrive,
-  Save,
-  Upload,
-  Printer,
-  Share2,
-  Bell,
-  Mail as MailIcon,
-  MessageSquare,
+  FileText,
   AlertCircle,
   Info,
-  ExternalLink,
-  Link,
-  Key,
-  Settings,
-  Wrench,
-  Tool,
-  Hammer,
-  Cog,
-  Gear
+  Shield,
+  Calendar,
+  Building,
+  CreditCard,
+  Receipt,
+  Check,
+  X,
+  Save,
+  AlertTriangle as WarningIcon
 } from 'lucide-react';
 
-// Interfaces para tipos de datos
-interface PayrollClosureData {
+// Interfaces actualizadas para coincidir con PayrollApprovalView
+interface EmployeePayrollApproval {
   id: string;
   personalInfo: {
     name: string;
@@ -82,57 +41,68 @@ interface PayrollClosureData {
     location: string;
     employeeId: string;
   };
+  originalPayroll: {
+    baseSalary: number;
+    overtime: number;
+    bonuses: number;
+    allowances: number;
+    totalEarnings: number;
+    taxes: number;
+    benefits: number;
+    otherDeductions: number;
+    totalDeductions: number;
+    netPay: number;
+  };
+  adjustments: Array<{
+    id: string;
+    employeeId: string;
+    type: 'bonus' | 'deduction' | 'overtime' | 'allowance' | 'tax' | 'other';
+    name: string;
+    amount: number;
+    description: string;
+    reason: string;
+    approved: boolean;
+    createdBy: string;
+    createdAt: string;
+    approvedBy?: string;
+    approvedAt?: string;
+  }>;
   finalPayroll: {
     totalEarnings: number;
     totalDeductions: number;
     netPay: number;
-    paymentMethod: 'bank_transfer' | 'check' | 'cash';
-    bankAccount?: string;
-    routingNumber?: string;
   };
-  period: {
-    startDate: string;
-    endDate: string;
-    payDate: string;
-    type: 'monthly' | 'biweekly' | 'weekly';
-  };
-  status: 'ready_to_pay' | 'paid' | 'failed' | 'cancelled';
-  paymentStatus: 'pending' | 'processing' | 'completed' | 'failed';
-  documents: Array<{
-    id: string;
-    name: string;
-    type: 'payslip' | 'tax_document' | 'receipt' | 'report';
-    url: string;
-    generatedAt: string;
-  }>;
-  notifications: Array<{
-    id: string;
-    type: 'email' | 'sms' | 'push';
-    status: 'sent' | 'delivered' | 'failed';
-    sentAt: string;
-  }>;
+  status: 'pending' | 'approved' | 'rejected' | 'needs_review';
+  paymentStatus: 'pending' | 'paid' | 'failed';
+  paymentMethod: 'cash' | 'deposit' | 'check' | 'transfer' | 'other';
+  receiptStatus: 'pending' | 'uploaded';
+  receiptUrl?: string;
+  receiptUploadedAt?: string;
+  notes?: string;
   lastUpdated: string;
 }
 
 interface PayrollClosureSummary {
   totalEmployees: number;
-  readyToPay: number;
+  pendingApprovals: number;
+  approved: number;
+  pendingPayments: number;
   paid: number;
-  failed: number;
   totalAmount: number;
-  totalPaid: number;
-  totalFailed: number;
   period: {
     startDate: string;
     endDate: string;
     type: string;
   };
-  closureDate: string;
-  closedBy: string;
+  createdBy: string;
+  createdAt: string;
+  lastUpdated: string;
+  canClose: boolean;
+  blockingIssues: string[];
 }
 
 interface PayrollClosureViewProps {
-  approvedData: PayrollClosureData[];
+  approvedData: EmployeePayrollApproval[];
   onComplete: () => void;
   onBack: () => void;
 }
@@ -143,26 +113,22 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
   onBack 
 }) => {
   // Estados principales
-  const [employees, setEmployees] = useState<PayrollClosureData[]>([]);
+  const [employees, setEmployees] = useState<EmployeePayrollApproval[]>([]);
   const [summary, setSummary] = useState<PayrollClosureSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   
   // Estados de UI
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
-  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
-  const [showDocuments, setShowDocuments] = useState<string | null>(null);
-  const [showNotifications, setShowNotifications] = useState<string | null>(null);
   const [closureNotes, setClosureNotes] = useState('');
   const [sendNotifications, setSendNotifications] = useState(true);
   const [generateReports, setGenerateReports] = useState(true);
 
-  // Datos mock para cierre
-  const mockEmployees: PayrollClosureData[] = [
+  // Datos mock actualizados para coincidir con la ventana de aprobación
+  const mockEmployees: EmployeePayrollApproval[] = [
     {
       id: '1',
       personalInfo: {
@@ -174,47 +140,61 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
         location: 'Ciudad de México',
         employeeId: 'EMP001'
       },
+      originalPayroll: {
+        baseSalary: 45000,
+        overtime: 4500,
+        bonuses: 4000,
+        allowances: 3500,
+        totalEarnings: 55500,
+        taxes: 9700,
+        benefits: 1600,
+        otherDeductions: 0,
+        totalDeductions: 11300,
+        netPay: 44200
+      },
+      adjustments: [
+        {
+          id: 'adj1',
+          employeeId: '1',
+          type: 'bonus',
+          name: 'Bono de Proyecto Especial',
+          amount: 2000,
+          description: 'Bono por completar proyecto crítico',
+          reason: 'Proyecto completado antes del plazo',
+          approved: true,
+          createdBy: 'Gerente de Proyecto',
+          createdAt: '2024-01-30T10:00:00Z',
+          approvedBy: 'RH Manager',
+          approvedAt: '2024-01-30T14:00:00Z'
+        },
+        {
+          id: 'adj2',
+          employeeId: '1',
+          type: 'deduction',
+          name: 'Préstamo Personal',
+          amount: 1500,
+          description: 'Deducción por préstamo personal',
+          reason: 'Préstamo autorizado por RH',
+          approved: true,
+          createdBy: 'RH Manager',
+          createdAt: '2024-01-29T09:00:00Z',
+          approvedBy: 'RH Manager',
+          approvedAt: '2024-01-29T09:00:00Z'
+        }
+      ],
       finalPayroll: {
         totalEarnings: 57500,
         totalDeductions: 12800,
-        netPay: 44700,
-        paymentMethod: 'bank_transfer',
-        bankAccount: '****1234',
-        routingNumber: '0123456789'
+        netPay: 44700
       },
-      period: {
-        startDate: '2024-01-01',
-        endDate: '2024-01-31',
-        payDate: '2024-02-05',
-        type: 'monthly'
-      },
-      status: 'ready_to_pay',
-      paymentStatus: 'pending',
-      documents: [
-        {
-          id: 'doc1',
-          name: 'Recibo de Nómina - Enero 2024',
-          type: 'payslip',
-          url: '/documents/payslip-EMP001-2024-01.pdf',
-          generatedAt: '2024-01-31T10:00:00Z'
-        },
-        {
-          id: 'doc2',
-          name: 'Comprobante de Retenciones',
-          type: 'tax_document',
-          url: '/documents/tax-EMP001-2024-01.pdf',
-          generatedAt: '2024-01-31T10:05:00Z'
-        }
-      ],
-      notifications: [
-        {
-          id: 'notif1',
-          type: 'email',
-          status: 'sent',
-          sentAt: '2024-01-31T10:10:00Z'
-        }
-      ],
-      lastUpdated: '2024-01-31T10:10:00Z'
+      status: 'approved',
+      paymentStatus: 'paid',
+      paymentMethod: 'cash',
+      receiptStatus: 'uploaded',
+      receiptUrl: '/receipts/ana-garcia-2024-01.pdf',
+      receiptUploadedAt: '2024-01-30T15:00:00Z',
+      notes: 'Todos los ajustes aprobados correctamente',
+      lastUpdated: '2024-01-30T14:00:00Z'
     },
     {
       id: '2',
@@ -227,40 +207,43 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
         location: 'Guadalajara',
         employeeId: 'EMP002'
       },
+      originalPayroll: {
+        baseSalary: 55000,
+        overtime: 3600,
+        bonuses: 8000,
+        allowances: 5000,
+        totalEarnings: 71600,
+        taxes: 13500,
+        benefits: 1400,
+        otherDeductions: 0,
+        totalDeductions: 14900,
+        netPay: 56700
+      },
+      adjustments: [
+        {
+          id: 'adj3',
+          employeeId: '2',
+          type: 'bonus',
+          name: 'Bono de Ventas Excepcionales',
+          amount: 5000,
+          description: 'Bono por superar metas de ventas en 150%',
+          reason: 'Excelente desempeño en ventas del mes',
+          approved: false,
+          createdBy: 'Director de Ventas',
+          createdAt: '2024-01-30T11:00:00Z'
+        }
+      ],
       finalPayroll: {
         totalEarnings: 76600,
         totalDeductions: 14900,
-        netPay: 61700,
-        paymentMethod: 'bank_transfer',
-        bankAccount: '****5678',
-        routingNumber: '0123456789'
+        netPay: 61700
       },
-      period: {
-        startDate: '2024-01-01',
-        endDate: '2024-01-31',
-        payDate: '2024-02-05',
-        type: 'monthly'
-      },
-      status: 'ready_to_pay',
+      status: 'pending',
       paymentStatus: 'pending',
-      documents: [
-        {
-          id: 'doc3',
-          name: 'Recibo de Nómina - Enero 2024',
-          type: 'payslip',
-          url: '/documents/payslip-EMP002-2024-01.pdf',
-          generatedAt: '2024-01-31T10:00:00Z'
-        }
-      ],
-      notifications: [
-        {
-          id: 'notif2',
-          type: 'email',
-          status: 'sent',
-          sentAt: '2024-01-31T10:10:00Z'
-        }
-      ],
-      lastUpdated: '2024-01-31T10:10:00Z'
+      paymentMethod: 'cash',
+      receiptStatus: 'pending',
+      notes: 'Pendiente aprobación de bono de ventas',
+      lastUpdated: '2024-01-30T11:00:00Z'
     },
     {
       id: '3',
@@ -273,40 +256,30 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
         location: 'Monterrey',
         employeeId: 'EMP003'
       },
+      originalPayroll: {
+        baseSalary: 35000,
+        overtime: 1500,
+        bonuses: 2000,
+        allowances: 1500,
+        totalEarnings: 40000,
+        taxes: 6900,
+        benefits: 800,
+        otherDeductions: 0,
+        totalDeductions: 7700,
+        netPay: 32300
+      },
+      adjustments: [],
       finalPayroll: {
         totalEarnings: 40000,
         totalDeductions: 7700,
-        netPay: 32300,
-        paymentMethod: 'bank_transfer',
-        bankAccount: '****9012',
-        routingNumber: '0123456789'
+        netPay: 32300
       },
-      period: {
-        startDate: '2024-01-01',
-        endDate: '2024-01-31',
-        payDate: '2024-02-05',
-        type: 'monthly'
-      },
-      status: 'ready_to_pay',
-      paymentStatus: 'pending',
-      documents: [
-        {
-          id: 'doc4',
-          name: 'Recibo de Nómina - Enero 2024',
-          type: 'payslip',
-          url: '/documents/payslip-EMP003-2024-01.pdf',
-          generatedAt: '2024-01-31T10:00:00Z'
-        }
-      ],
-      notifications: [
-        {
-          id: 'notif3',
-          type: 'email',
-          status: 'sent',
-          sentAt: '2024-01-31T10:10:00Z'
-        }
-      ],
-      lastUpdated: '2024-01-31T10:10:00Z'
+      status: 'approved',
+      paymentStatus: 'paid',
+      paymentMethod: 'cash',
+      receiptStatus: 'pending',
+      notes: 'Sin ajustes requeridos',
+      lastUpdated: '2024-01-30T12:00:00Z'
     }
   ];
 
@@ -322,22 +295,40 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
         
         setEmployees(mockEmployees);
         
-        // Calcular resumen
+        // Calcular resumen y validaciones
+        const pendingApprovals = mockEmployees.filter(emp => emp.status === 'pending').length;
+        const approved = mockEmployees.filter(emp => emp.status === 'approved').length;
+        const pendingPayments = mockEmployees.filter(emp => emp.paymentStatus === 'pending').length;
+        const paid = mockEmployees.filter(emp => emp.paymentStatus === 'paid').length;
+        
+        // Verificar si se puede cerrar la nómina
+        const blockingIssues: string[] = [];
+        if (pendingApprovals > 0) {
+          blockingIssues.push(`${pendingApprovals} empleado(s) pendiente(s) de aprobación`);
+        }
+        if (pendingPayments > 0) {
+          blockingIssues.push(`${pendingPayments} empleado(s) pendiente(s) de pago`);
+        }
+        
+        const canClose = blockingIssues.length === 0;
+        
         const summaryData: PayrollClosureSummary = {
           totalEmployees: mockEmployees.length,
-          readyToPay: mockEmployees.filter(emp => emp.status === 'ready_to_pay').length,
-          paid: mockEmployees.filter(emp => emp.status === 'paid').length,
-          failed: mockEmployees.filter(emp => emp.status === 'failed').length,
+          pendingApprovals,
+          approved,
+          pendingPayments,
+          paid,
           totalAmount: mockEmployees.reduce((sum, emp) => sum + emp.finalPayroll.netPay, 0),
-          totalPaid: mockEmployees.filter(emp => emp.status === 'paid').reduce((sum, emp) => sum + emp.finalPayroll.netPay, 0),
-          totalFailed: mockEmployees.filter(emp => emp.status === 'failed').reduce((sum, emp) => sum + emp.finalPayroll.netPay, 0),
           period: {
             startDate: '2024-01-01',
             endDate: '2024-01-31',
             type: 'Mensual'
           },
-          closureDate: new Date().toISOString(),
-          closedBy: 'Current User'
+          createdBy: 'Juan Pérez - Gerente de RH',
+          createdAt: '2024-01-30T08:00:00Z',
+          lastUpdated: new Date().toISOString(),
+          canClose,
+          blockingIssues
         };
         
         setSummary(summaryData);
@@ -370,29 +361,28 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'ready_to_pay': return 'bg-blue-100 text-blue-800';
-      case 'paid': return 'bg-green-100 text-green-800';
-      case 'failed': return 'bg-red-100 text-red-800';
-      case 'cancelled': return 'bg-gray-100 text-gray-800';
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      case 'needs_review': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'ready_to_pay': return 'Listo para Pagar';
-      case 'paid': return 'Pagado';
-      case 'failed': return 'Falló';
-      case 'cancelled': return 'Cancelado';
+      case 'approved': return 'Aprobado';
+      case 'pending': return 'Pendiente';
+      case 'rejected': return 'Rechazado';
+      case 'needs_review': return 'Requiere Revisión';
       default: return status;
     }
   };
 
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
+      case 'paid': return 'bg-green-100 text-green-800';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'processing': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-green-100 text-green-800';
       case 'failed': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -400,11 +390,37 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
 
   const getPaymentStatusText = (status: string) => {
     switch (status) {
+      case 'paid': return 'Pagado';
       case 'pending': return 'Pendiente';
-      case 'processing': return 'Procesando';
-      case 'completed': return 'Completado';
       case 'failed': return 'Falló';
       default: return status;
+    }
+  };
+
+  const getPaymentMethodText = (method: string) => {
+    switch (method) {
+      case 'cash': return 'Efectivo';
+      case 'deposit': return 'Depósito';
+      case 'check': return 'Cheque';
+      case 'transfer': return 'Transferencia';
+      case 'other': return 'Otro';
+      default: return 'Efectivo';
+    }
+  };
+
+  const getReceiptStatusColor = (status: string) => {
+    switch (status) {
+      case 'uploaded': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-orange-100 text-orange-800';
+    }
+  };
+
+  const getReceiptStatusText = (status: string) => {
+    switch (status) {
+      case 'uploaded': return 'Subido';
+      case 'pending': return 'Pendiente';
+      default: return 'Pendiente';
     }
   };
 
@@ -421,96 +437,30 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
     return matchesSearch && matchesStatus && matchesDepartment;
   });
 
-  // Funciones de acción
-  const handleProcessPayments = async () => {
-    setIsProcessing(true);
-    try {
-      console.log('💳 Procesando pagos...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setEmployees(prev => prev.map(emp => ({
-        ...emp,
-        status: 'paid' as const,
-        paymentStatus: 'completed' as const,
-        lastUpdated: new Date().toISOString()
-      })));
-      
-      console.log('✅ Pagos procesados exitosamente');
-    } catch (error) {
-      console.error('❌ Error procesando pagos:', error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
+  // Función para cerrar nómina
   const handleClosePayroll = async () => {
+    if (!summary?.canClose) {
+      alert('No se puede cerrar la nómina. Hay empleados pendientes de aprobación o pago.');
+      return;
+    }
+
     setIsClosing(true);
     try {
       console.log('🔒 Cerrando nómina...');
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Simular cierre
+      // Simular cierre exitoso
       console.log('✅ Nómina cerrada exitosamente');
+      alert('Nómina cerrada exitosamente');
       
       // Llamar callback de completado
       onComplete();
       
     } catch (error) {
       console.error('❌ Error cerrando nómina:', error);
+      alert('Error al cerrar la nómina');
     } finally {
       setIsClosing(false);
-    }
-  };
-
-  const handleDownloadDocument = async (documentId: string, documentName: string) => {
-    try {
-      console.log('📥 Descargando documento:', documentName);
-      // Simular descarga
-      await new Promise(resolve => setTimeout(resolve, 500));
-      console.log('✅ Documento descargado');
-    } catch (error) {
-      console.error('❌ Error descargando documento:', error);
-    }
-  };
-
-  const handleSendNotification = async (employeeId: string, type: 'email' | 'sms') => {
-    try {
-      console.log(`📧 Enviando notificación ${type} a empleado:`, employeeId);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setEmployees(prev => prev.map(emp => 
-        emp.id === employeeId 
-          ? {
-              ...emp,
-              notifications: [...emp.notifications, {
-                id: `notif_${Date.now()}`,
-                type,
-                status: 'sent',
-                sentAt: new Date().toISOString()
-              }]
-            }
-          : emp
-      ));
-      
-      console.log('✅ Notificación enviada');
-    } catch (error) {
-      console.error('❌ Error enviando notificación:', error);
-    }
-  };
-
-  const handleSelectEmployee = (employeeId: string) => {
-    setSelectedEmployees(prev => 
-      prev.includes(employeeId) 
-        ? prev.filter(id => id !== employeeId)
-        : [...prev, employeeId]
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedEmployees.length === filteredEmployees.length) {
-      setSelectedEmployees([]);
-    } else {
-      setSelectedEmployees(filteredEmployees.map(emp => emp.id));
     }
   };
 
@@ -520,7 +470,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Cargando datos de cierre...</p>
+            <p className="text-gray-600">Cargando resumen de cierre...</p>
           </div>
         </div>
       </div>
@@ -532,9 +482,9 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Cierre de Nómina</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Resumen de Cierre de Nómina</h1>
           <p className="text-gray-600 mt-1">
-            Finaliza el proceso de nómina y procesa los pagos
+            Revisa el estado final antes de cerrar la nómina
           </p>
         </div>
         
@@ -544,28 +494,62 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
             className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver
-          </button>
-          
-          <button
-            onClick={handleProcessPayments}
-            disabled={isProcessing || employees.filter(emp => emp.status === 'ready_to_pay').length === 0}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-          >
-            <CreditCard className="h-4 w-4 mr-2" />
-            {isProcessing ? 'Procesando...' : 'Procesar Pagos'}
+            Volver a Aprobación
           </button>
           
           <button
             onClick={handleClosePayroll}
-            disabled={isClosing || employees.filter(emp => emp.status === 'paid').length === 0}
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            disabled={isClosing || !summary?.canClose}
+            className={`flex items-center px-4 py-2 rounded-lg ${
+              summary?.canClose 
+                ? 'bg-green-600 text-white hover:bg-green-700' 
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
           >
             <Lock className="h-4 w-4 mr-2" />
             {isClosing ? 'Cerrando...' : 'Cerrar Nómina'}
           </button>
         </div>
       </div>
+
+      {/* Información del agente */}
+      {summary && (
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <div className="flex items-center space-x-2 mb-2">
+            <User className="h-5 w-5 text-blue-600" />
+            <span className="font-semibold text-blue-800">Información del Agente</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-700">
+            <div>
+              <strong>Agente:</strong> {summary.createdBy}
+            </div>
+            <div>
+              <strong>Creado:</strong> {formatDate(summary.createdAt)}
+            </div>
+            <div>
+              <strong>Última actualización:</strong> {formatDate(summary.lastUpdated)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alertas de validación */}
+      {summary && !summary.canClose && (
+        <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+          <div className="flex items-center space-x-2 mb-2">
+            <AlertCircle className="h-5 w-5 text-red-600" />
+            <span className="font-semibold text-red-800">No se puede cerrar la nómina</span>
+          </div>
+          <div className="text-sm text-red-700">
+            <p className="mb-2">Los siguientes problemas deben resolverse antes de cerrar:</p>
+            <ul className="list-disc list-inside space-y-1">
+              {summary.blockingIssues.map((issue, index) => (
+                <li key={index}>{issue}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* Resumen de cierre */}
       {summary && (
@@ -585,11 +569,11 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
           <div className="bg-white p-6 rounded-lg shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Listos para Pagar</p>
-                <p className="text-2xl font-bold text-blue-600">{summary.readyToPay}</p>
+                <p className="text-sm font-medium text-gray-600">Aprobados</p>
+                <p className="text-2xl font-bold text-green-600">{summary.approved}</p>
               </div>
-              <div className="p-3 bg-blue-100 rounded-full">
-                <Clock className="h-6 w-6 text-blue-600" />
+              <div className="p-3 bg-green-100 rounded-full">
+                <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
             </div>
           </div>
@@ -601,7 +585,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
                 <p className="text-2xl font-bold text-green-600">{summary.paid}</p>
               </div>
               <div className="p-3 bg-green-100 rounded-full">
-                <CheckCircle className="h-6 w-6 text-green-600" />
+                <CreditCard className="h-6 w-6 text-green-600" />
               </div>
             </div>
           </div>
@@ -690,10 +674,10 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">Todos los estados</option>
-              <option value="ready_to_pay">Listo para Pagar</option>
-              <option value="paid">Pagado</option>
-              <option value="failed">Falló</option>
-              <option value="cancelled">Cancelado</option>
+              <option value="approved">Aprobado</option>
+              <option value="pending">Pendiente</option>
+              <option value="rejected">Rechazado</option>
+              <option value="needs_review">Requiere Revisión</option>
             </select>
           </div>
           
@@ -719,40 +703,29 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
           <h3 className="text-lg font-semibold text-gray-900">
             Empleados ({filteredEmployees.length})
           </h3>
-          
-          {selectedEmployees.length > 0 && (
-            <div className="text-sm text-gray-600">
-              {selectedEmployees.length} empleados seleccionados
-            </div>
-          )}
         </div>
 
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    checked={selectedEmployees.length === filteredEmployees.length && filteredEmployees.length > 0}
-                    onChange={handleSelectAll}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Empleado
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Monto a Pagar
+                  Nómina Final
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Método de Pago
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                   Estado
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Documentos
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                  Estado de Pago
+                </th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
+                  Método de Pago
+                </th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                  Comprobante
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
@@ -762,14 +735,6 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredEmployees.map((employee) => (
                 <tr key={employee.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <input
-                      type="checkbox"
-                      checked={selectedEmployees.includes(employee.id)}
-                      onChange={() => handleSelectEmployee(employee.id)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
@@ -790,51 +755,33 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
                       Bruto: {formatCurrency(employee.finalPayroll.totalEarnings)}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {employee.finalPayroll.paymentMethod === 'bank_transfer' ? 'Transferencia Bancaria' : 
-                       employee.finalPayroll.paymentMethod === 'check' ? 'Cheque' : 'Efectivo'}
-                    </div>
-                    {employee.finalPayroll.bankAccount && (
-                      <div className="text-xs text-gray-500">{employee.finalPayroll.bankAccount}</div>
-                    )}
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(employee.status)}`}>
+                      {getStatusText(employee.status)}
+                    </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="space-y-1">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(employee.status)}`}>
-                        {getStatusText(employee.status)}
-                      </span>
-                      <div>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPaymentStatusColor(employee.paymentStatus)}`}>
-                          {getPaymentStatusText(employee.paymentStatus)}
-                        </span>
-                      </div>
-                    </div>
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getPaymentStatusColor(employee.paymentStatus)}`}>
+                      {getPaymentStatusText(employee.paymentStatus)}
+                    </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{employee.documents.length}</div>
-                    <button
-                      onClick={() => setShowDocuments(showDocuments === employee.id ? null : employee.id)}
-                      className="text-xs text-blue-600 hover:text-blue-800"
-                    >
-                      Ver documentos
-                    </button>
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                    <span className="text-sm text-gray-900">
+                      {getPaymentMethodText(employee.paymentMethod)}
+                    </span>
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getReceiptStatusColor(employee.receiptStatus)}`}>
+                      {getReceiptStatusText(employee.receiptStatus)}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
                       <button
-                        onClick={() => handleSendNotification(employee.id, 'email')}
                         className="text-blue-600 hover:text-blue-900"
-                        title="Enviar email"
+                        title="Ver detalles"
                       >
-                        <MailIcon className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => setShowDocuments(showDocuments === employee.id ? null : employee.id)}
-                        className="text-green-600 hover:text-green-900"
-                        title="Ver documentos"
-                      >
-                        <FileText className="h-4 w-4" />
+                        <Eye className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
@@ -845,57 +792,15 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
         </div>
       </div>
 
-      {/* Detalles de documentos expandibles */}
-      {showDocuments && (
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h4 className="text-lg font-semibold text-gray-900 mb-4">Documentos</h4>
-          {(() => {
-            const employee = employees.find(emp => emp.id === showDocuments);
-            if (!employee) return null;
-            
-            return (
-              <div className="space-y-4">
-                {employee.documents.map((document) => (
-                  <div key={document.id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <FileText className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <h5 className="text-md font-medium text-gray-900">{document.name}</h5>
-                          <p className="text-sm text-gray-500">
-                            Generado: {formatDate(document.generatedAt)}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleDownloadDocument(document.id, document.name)}
-                        className="flex items-center px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Descargar
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                
-                {employee.documents.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>No hay documentos disponibles</p>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-        </div>
-      )}
-
       {/* Acciones finales */}
       <div className="flex justify-between items-center pt-6 border-t">
         <div className="text-sm text-gray-600">
-          {employees.filter(emp => emp.status === 'paid').length} de {employees.length} empleados pagados
+          {summary && (
+            <>
+              {summary.approved} de {summary.totalEmployees} empleados aprobados • 
+              {summary.paid} de {summary.totalEmployees} empleados pagados
+            </>
+          )}
         </div>
         
         <div className="flex items-center space-x-3">
@@ -903,19 +808,16 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
             onClick={onBack}
             className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
           >
-            Volver
-          </button>
-          <button
-            onClick={handleProcessPayments}
-            disabled={isProcessing || employees.filter(emp => emp.status === 'ready_to_pay').length === 0}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-          >
-            {isProcessing ? 'Procesando...' : 'Procesar Pagos'}
+            Volver a Aprobación
           </button>
           <button
             onClick={handleClosePayroll}
-            disabled={isClosing || employees.filter(emp => emp.status === 'paid').length === 0}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            disabled={isClosing || !summary?.canClose}
+            className={`px-6 py-2 rounded-lg ${
+              summary?.canClose 
+                ? 'bg-green-600 text-white hover:bg-green-700' 
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
           >
             {isClosing ? 'Cerrando...' : 'Cerrar Nómina'}
           </button>
