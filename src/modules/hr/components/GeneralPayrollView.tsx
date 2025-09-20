@@ -274,35 +274,45 @@ const GeneralPayrollView: React.FC = () => {
           </p>
         </div>
 
-        {/* Pasos del proceso */}
-        <div className="flex items-center justify-between mb-6">
-          {payrollSteps.map((step, index) => (
-            <div key={step.id} className="flex items-center">
-              <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                step.status === 'current' 
-                  ? 'bg-blue-600 border-blue-600 text-white' 
-                  : step.status === 'completed'
-                  ? 'bg-green-600 border-green-600 text-white'
-                  : 'bg-gray-100 border-gray-300 text-gray-500'
-              }`}>
-                {step.status === 'completed' ? (
-                  <CheckCircle className="h-5 w-5" />
-                ) : (
-                  <span className="text-sm font-medium">{step.id}</span>
+        {/* Pasos del proceso - Diseño mejorado en secuencia */}
+        <div className="mb-8">
+          <div className="flex items-center justify-center space-x-8">
+            {payrollSteps.map((step, index) => (
+              <div key={step.id} className="flex flex-col items-center relative">
+                {/* Círculo del paso */}
+                <div className={`flex items-center justify-center w-14 h-14 rounded-full border-3 ${
+                  step.status === 'current' 
+                    ? 'bg-blue-600 border-blue-600 text-white shadow-lg ring-4 ring-blue-100' 
+                    : step.status === 'completed'
+                    ? 'bg-green-600 border-green-600 text-white shadow-lg ring-4 ring-green-100'
+                    : 'bg-white border-gray-300 text-gray-500 shadow-sm'
+                }`}>
+                  {step.status === 'completed' ? (
+                    <CheckCircle className="h-7 w-7" />
+                  ) : (
+                    <span className="text-xl font-bold">{step.id}</span>
+                  )}
+                </div>
+                
+                {/* Etiqueta del paso */}
+                <div className="mt-3">
+                  <p className={`text-sm font-semibold whitespace-nowrap ${
+                    step.status === 'current' ? 'text-blue-600' : 
+                    step.status === 'completed' ? 'text-green-600' : 'text-gray-500'
+                  }`}>
+                    {step.name}
+                  </p>
+                </div>
+                
+                {/* Línea conectora */}
+                {index < payrollSteps.length - 1 && (
+                  <div className={`absolute top-7 left-full w-16 h-0.5 ${
+                    step.status === 'completed' ? 'bg-green-600' : 'bg-gray-300'
+                  }`}></div>
                 )}
               </div>
-              <div className="ml-3">
-                <p className={`text-sm font-medium ${
-                  step.status === 'current' ? 'text-blue-600' : 'text-gray-500'
-                }`}>
-                  {step.name}
-                </p>
-              </div>
-              {index < payrollSteps.length - 1 && (
-                <div className="w-16 h-0.5 bg-gray-300 mx-4"></div>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         <div className="mb-6">
