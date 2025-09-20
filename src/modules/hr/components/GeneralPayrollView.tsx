@@ -10,9 +10,12 @@ import {
   TrendingUp,
   CheckCircle,
   XCircle,
-  Pause
+  Pause,
+  Eye,
+  List
 } from 'lucide-react';
 import { generalPayrollApi, type PayrollPeriod, type PayrollMetrics } from '../../../services/generalPayrollApi';
+import EmployeePayrollDetailView from './EmployeePayrollDetailView';
 
 // Interfaces para tipos de datos (ya importadas desde el servicio)
 
@@ -38,6 +41,7 @@ const GeneralPayrollView: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [selectedPeriod, setSelectedPeriod] = useState<PayrollPeriod | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showDetailView, setShowDetailView] = useState(false);
 
   // Pasos del proceso de payroll run
   const payrollSteps: PayrollRunStep[] = [
@@ -210,6 +214,29 @@ const GeneralPayrollView: React.FC = () => {
     loadPayrollData();
   }, []);
 
+  // Mostrar vista detalle si está activada
+  if (showDetailView) {
+    return (
+      <div>
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowDetailView(false)}
+                className="flex items-center text-gray-600 hover:text-gray-900"
+              >
+                <XCircle className="h-5 w-5 mr-2" />
+                Volver a Vista General
+              </button>
+              <h1 className="text-2xl font-bold text-gray-900">Detalle de Nómina General</h1>
+            </div>
+          </div>
+        </div>
+        <EmployeePayrollDetailView />
+      </div>
+    );
+  }
+
   // Mostrar estado de carga
   if (loading) {
     return (
@@ -319,23 +346,33 @@ const GeneralPayrollView: React.FC = () => {
           <p className="text-gray-600 mb-4">
             Selecciona un periodo de la tabla de abajo para iniciar la simulación.
           </p>
-          <button
-            onClick={handleStartPayrollRun}
-            disabled={!selectedPeriod || isGenerating}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-          >
-            {isGenerating ? (
-              <>
-                <Pause className="h-4 w-4 mr-2" />
-                Procesando...
-              </>
-            ) : (
-              <>
-                <Play className="h-4 w-4 mr-2" />
-                Iniciar Nuevo Payroll Run
-              </>
-            )}
-          </button>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={handleStartPayrollRun}
+              disabled={!selectedPeriod || isGenerating}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              {isGenerating ? (
+                <>
+                  <Pause className="h-4 w-4 mr-2" />
+                  Procesando...
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 mr-2" />
+                  Iniciar Nuevo Payroll Run
+                </>
+              )}
+            </button>
+            
+            <button
+              onClick={() => setShowDetailView(true)}
+              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              <List className="h-4 w-4 mr-2" />
+              Ver Detalle de Empleados
+            </button>
+          </div>
         </div>
       </div>
 
