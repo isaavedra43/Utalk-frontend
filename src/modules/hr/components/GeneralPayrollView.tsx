@@ -461,21 +461,22 @@ const GeneralPayrollView: React.FC = () => {
               )}
             </button>
             
-            <button
-              onClick={() => setShowDetailView(true)}
-              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              <List className="h-4 w-4 mr-2" />
-              Ver Detalle de Empleados
-            </button>
           </div>
         </div>
       </div>
 
       {/* Tabla de Períodos de Nómina */}
       <div className="bg-white rounded-lg border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-900">Periodos de Nómina</h2>
+          
+          <button
+            onClick={() => setShowDetailView(true)}
+            className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
+            <List className="h-4 w-4 mr-2" />
+            Ver Detalle de Empleados
+          </button>
         </div>
         
         <div className="overflow-x-auto">
