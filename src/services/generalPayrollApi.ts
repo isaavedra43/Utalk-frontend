@@ -52,26 +52,11 @@ class GeneralPayrollApi {
   // Obtener métricas generales de nómina
   async getGeneralMetrics(): Promise<PayrollMetrics> {
     try {
-      console.log('🔄 Obteniendo métricas generales (MOCK)...');
-      
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Retornar datos mock directamente
-      const mockMetrics: PayrollMetrics = {
-        pendingOvertimeHours: 125,
-        periodIncidents: 18
-      };
-      
-      console.log('✅ Métricas generales obtenidas (MOCK):', mockMetrics);
-      return mockMetrics;
+      const response = await api.get(`${this.baseUrl}/metrics`);
+      return response.data.data;
     } catch (error) {
-      console.error('❌ Error obteniendo métricas generales:', error);
-      // Fallback a datos mock
-      return {
-        pendingOvertimeHours: 125,
-        periodIncidents: 18
-      };
+      console.error('Error obteniendo métricas generales:', error);
+      throw error;
     }
   }
 
@@ -93,104 +78,11 @@ class GeneralPayrollApi {
     };
   }> {
     try {
-      console.log('🔄 Obteniendo períodos de nómina (MOCK)...');
-      
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Retornar datos mock directamente
-      const mockPeriods: PayrollPeriod[] = [
-        {
-          id: '1',
-          period: 'Enero 2024',
-          type: 'Mensual',
-          status: 'pendiente',
-          employees: 5,
-          estimatedCost: 250000.00,
-          realCost: 0,
-          startDate: '2024-01-01',
-          endDate: '2024-01-31',
-          createdAt: '2024-01-01T00:00:00Z',
-          updatedAt: '2024-01-01T00:00:00Z'
-        },
-        {
-          id: '2',
-          period: 'Diciembre 2023',
-          type: 'Mensual',
-          status: 'cerrado',
-          employees: 5,
-          estimatedCost: 240000.00,
-          realCost: 245000.50,
-          startDate: '2023-12-01',
-          endDate: '2023-12-31',
-          createdAt: '2023-12-01T00:00:00Z',
-          updatedAt: '2023-12-31T00:00:00Z'
-        },
-        {
-          id: '3',
-          period: 'Noviembre 2023',
-          type: 'Mensual',
-          status: 'aprobado',
-          employees: 5,
-          estimatedCost: 235000.00,
-          realCost: 238000.00,
-          startDate: '2023-11-01',
-          endDate: '2023-11-30',
-          createdAt: '2023-11-01T00:00:00Z',
-          updatedAt: '2023-11-30T00:00:00Z'
-        },
-        {
-          id: '4',
-          period: 'Octubre 2023',
-          type: 'Mensual',
-          status: 'cerrado',
-          employees: 5,
-          estimatedCost: 230000.00,
-          realCost: 232000.00,
-          startDate: '2023-10-01',
-          endDate: '2023-10-31',
-          createdAt: '2023-10-01T00:00:00Z',
-          updatedAt: '2023-10-31T00:00:00Z'
-        },
-        {
-          id: '5',
-          period: 'Septiembre 2023',
-          type: 'Mensual',
-          status: 'cerrado',
-          employees: 5,
-          estimatedCost: 225000.00,
-          realCost: 228000.00,
-          startDate: '2023-09-01',
-          endDate: '2023-09-30',
-          createdAt: '2023-09-01T00:00:00Z',
-          updatedAt: '2023-09-30T00:00:00Z'
-        }
-      ];
-      
-      const mockResponse = {
-        periods: mockPeriods,
-        pagination: {
-          page: 1,
-          limit: 10,
-          total: mockPeriods.length,
-          totalPages: 1
-        }
-      };
-      
-      console.log('✅ Períodos de nómina obtenidos (MOCK):', mockResponse);
-      return mockResponse;
+      const response = await api.get(`${this.baseUrl}/periods`, { params });
+      return response.data.data;
     } catch (error) {
-      console.error('❌ Error obteniendo períodos de nómina:', error);
-      // Fallback a datos mock
-      return {
-        periods: [],
-        pagination: {
-          page: 1,
-          limit: 10,
-          total: 0,
-          totalPages: 0
-        }
-      };
+      console.error('Error obteniendo períodos de nómina:', error);
+      throw error;
     }
   }
 
@@ -213,23 +105,10 @@ class GeneralPayrollApi {
   // Iniciar proceso de payroll run
   async startPayrollRun(data: PayrollRunRequest): Promise<PayrollRunResponse> {
     try {
-      console.log('🔄 Iniciando payroll run (MOCK)...', data);
-      
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Retornar datos mock directamente
-      const mockResponse: PayrollRunResponse = {
-        id: `run_${Date.now()}`,
-        status: 'processing',
-        message: 'Payroll run iniciado exitosamente',
-        estimatedTime: 30
-      };
-      
-      console.log('✅ Payroll run iniciado (MOCK):', mockResponse);
-      return mockResponse;
+      const response = await api.post(`${this.baseUrl}/run`, data);
+      return response.data.data;
     } catch (error) {
-      console.error('❌ Error iniciando payroll run:', error);
+      console.error('Error iniciando payroll run:', error);
       throw error;
     }
   }
@@ -280,25 +159,10 @@ class GeneralPayrollApi {
     employeeIds?: string[];
   }): Promise<PayrollReport> {
     try {
-      console.log('🔄 Generando reporte de nómina (MOCK)...', { periodId, options });
-      
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Retornar datos mock directamente
-      const mockReport: PayrollReport = {
-        id: `report_${Date.now()}`,
-        periodId: periodId,
-        type: options.type,
-        format: options.format,
-        url: `/reports/mock-report-${periodId}.${options.format}`,
-        generatedAt: new Date().toISOString()
-      };
-      
-      console.log('✅ Reporte generado (MOCK):', mockReport);
-      return mockReport;
+      const response = await api.post(`${this.baseUrl}/periods/${periodId}/reports`, options);
+      return response.data.data;
     } catch (error) {
-      console.error('❌ Error generando reporte de nómina:', error);
+      console.error('Error generando reporte de nómina:', error);
       throw error;
     }
   }
@@ -306,19 +170,12 @@ class GeneralPayrollApi {
   // Descargar reporte
   async downloadPayrollReport(reportId: string): Promise<Blob> {
     try {
-      console.log('🔄 Descargando reporte (MOCK)...', reportId);
-      
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Crear un blob mock
-      const mockContent = `Reporte de Nómina Mock - ID: ${reportId}\nGenerado: ${new Date().toISOString()}\n\nEste es un reporte de prueba.`;
-      const mockBlob = new Blob([mockContent], { type: 'text/plain' });
-      
-      console.log('✅ Reporte descargado (MOCK)');
-      return mockBlob;
+      const response = await api.get(`${this.baseUrl}/reports/${reportId}/download`, {
+        responseType: 'blob'
+      });
+      return response.data;
     } catch (error) {
-      console.error('❌ Error descargando reporte:', error);
+      console.error('Error descargando reporte:', error);
       throw error;
     }
   }

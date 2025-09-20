@@ -36,9 +36,6 @@ const GeneralPayrollView: React.FC = () => {
     periodIncidents: 18
   });
 
-  // Error boundary interno
-  const [hasError, setHasError] = useState(false);
-
   // Estados para períodos de nómina
   const [payrollPeriods, setPayrollPeriods] = useState<PayrollPeriod[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +52,7 @@ const GeneralPayrollView: React.FC = () => {
   const [simulationData, setSimulationData] = useState<any[]>([]);
   const [approvedData, setApprovedData] = useState<any[]>([]);
 
-  // Pasos del proceso de payroll run
+  // Pasos del proceso de payroll run - dinámicos
   const getPayrollSteps = (): PayrollRunStep[] => {
     const steps = [
       { id: 1, name: 'Selección', status: 'pending' as const },
@@ -324,42 +321,9 @@ const GeneralPayrollView: React.FC = () => {
         setLoading(false);
       }
     };
-    
-    try {
-      loadPayrollData();
-    } catch (error) {
-      console.error('❌ Error crítico en useEffect:', error);
-      setError('Error crítico al inicializar el componente');
-      setLoading(false);
-    }
-  }, []);
 
-  // Error boundary - mostrar error si hay problema crítico
-  if (hasError) {
-    return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <div className="flex items-center">
-            <XCircle className="h-8 w-8 text-red-600 mr-3" />
-            <div>
-              <h3 className="text-lg font-medium text-red-800">Error en el módulo de nómina</h3>
-              <p className="text-red-600 mt-1">Ha ocurrido un error al cargar el módulo de nómina general.</p>
-              <button
-                onClick={() => {
-                  setHasError(false);
-                  setError(null);
-                  window.location.reload();
-                }}
-                className="mt-3 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
-              >
-                Recargar módulo
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+    loadPayrollData();
+  }, []);
 
   // Mostrar vistas específicas del proceso
   if (showDetailView) {
@@ -436,11 +400,8 @@ const GeneralPayrollView: React.FC = () => {
     );
   }
 
-  // Función de renderizado segura
-  const renderContent = () => {
-    try {
-      return (
-        <div className="p-6 space-y-8">
+  return (
+    <div className="p-6 space-y-8">
       {/* Mostrar error si existe */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
@@ -467,6 +428,7 @@ const GeneralPayrollView: React.FC = () => {
           </div>
         </div>
       )}
+
       {/* Métricas principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Horas Extra Pendientes */}
@@ -574,19 +536,19 @@ const GeneralPayrollView: React.FC = () => {
             </button>
             
             <button
-              onClick={handleDemoComplete}
-              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              Ver Demo Completo
-            </button>
-            
-            <button
               onClick={() => setShowDetailView(true)}
               className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
               <List className="h-4 w-4 mr-2" />
               Ver Detalle de Empleados
+            </button>
+            
+            <button
+              onClick={handleDemoComplete}
+              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Ver Demo Completo
             </button>
             
             <button
@@ -689,27 +651,7 @@ const GeneralPayrollView: React.FC = () => {
         </div>
       </div>
     </div>
-      );
-    } catch (error) {
-      console.error('❌ Error crítico en renderizado:', error);
-      setHasError(true);
-      return (
-        <div className="p-6">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <div className="flex items-center">
-              <XCircle className="h-8 w-8 text-red-600 mr-3" />
-              <div>
-                <h3 className="text-lg font-medium text-red-800">Error de renderizado</h3>
-                <p className="text-red-600 mt-1">Error al renderizar el componente de nómina.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-  };
-
-  return renderContent();
+  );
 };
 
 export default GeneralPayrollView;
