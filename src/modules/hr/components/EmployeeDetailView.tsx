@@ -132,13 +132,38 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   }
 
   // Función helper para formatear fechas de forma segura
-  const safeFormatDate = (date: string | Date | null | undefined) => {
+  const safeFormatDate = (date: string | Date | null | undefined | { _seconds: number; _nanoseconds?: number }) => {
     try {
       if (!date) return 'N/A';
-      const dateObj = typeof date === 'string' ? new Date(date) : date;
+      
+      let dateObj: Date;
+      
+      // Type guard para Timestamp de Firestore
+      const isFirestoreTimestamp = (obj: unknown): obj is { _seconds: number; _nanoseconds?: number } => {
+        return !!(obj && typeof obj === 'object' && typeof (obj as { _seconds?: number })._seconds === 'number');
+      };
+      
+      // Manejar Timestamp de Firestore
+      if (isFirestoreTimestamp(date)) {
+        dateObj = new Date(date._seconds * 1000);
+      }
+      // Manejar string de fecha
+      else if (typeof date === 'string') {
+        dateObj = new Date(date);
+      }
+      // Manejar objeto Date
+      else if (date instanceof Date) {
+        dateObj = date;
+      }
+      // Otros casos - intentar convertir
+      else {
+        dateObj = new Date(date as string);
+      }
+      
       if (isNaN(dateObj.getTime())) {
         return 'N/A';
       }
+      
       return dateObj.toLocaleDateString('es-MX', {
         year: 'numeric',
         month: 'long',

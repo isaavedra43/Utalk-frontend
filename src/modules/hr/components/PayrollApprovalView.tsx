@@ -638,7 +638,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
   const handleSelectAll = () => {
     // Con selección única, "Seleccionar todo" no tiene sentido
     // Se mantiene la función pero no hace nada para evitar errores
-    setSelectedEmployees([]);
+      setSelectedEmployees([]);
   };
 
   // Funciones para acciones de empleados individuales
