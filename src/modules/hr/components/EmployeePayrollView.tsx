@@ -287,6 +287,13 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
     }
   }, [selectedPeriod, loadAttachments]);
 
+  // Recargar detalles del período cuando cambien los extras pendientes
+  useEffect(() => {
+    if (selectedPeriod) {
+      loadPeriodDetails(selectedPeriod.id);
+    }
+  }, [selectedPeriod, pendingExtras]);
+
   // Función para cargar detalles de un período específico
   const loadPeriodDetails = async (payrollId: string) => {
     try {
@@ -296,10 +303,35 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       console.log('📋 Detalles obtenidos:', details);
       
       // Convertir los detalles al formato esperado por el componente
-      const formattedDetails: PayrollDetail[] = [
+      let formattedDetails: PayrollDetail[] = [
         ...details.perceptions.map(p => ({ ...p, type: 'perception' as const })),
         ...details.deductions.map(d => ({ ...d, type: 'deduction' as const }))
       ];
+      
+      // Agregar extras pendientes como percepciones/deducciones
+      if (pendingExtras && pendingExtras.extras.length > 0) {
+        console.log('📋 Agregando extras pendientes a los detalles:', pendingExtras.extras);
+        
+        const extrasAsDetails: PayrollDetail[] = pendingExtras.extras.map(extra => ({
+          id: extra.id,
+          payrollId: payrollId,
+          employeeId: employeeId,
+          type: extra.impactType === 'add' ? 'perception' as const : 'deduction' as const,
+          concept: extra.type === 'overtime' ? 'Horas Extra' : 
+                  extra.type === 'bonus' ? 'Bonificación' :
+                  extra.type === 'absence' ? 'Ausencia' :
+                  extra.type === 'loan' ? 'Préstamo' : 'Extra',
+          amount: extra.calculatedAmount || extra.amount,
+          description: extra.description || `Extra ${extra.type} - ${extra.date}`,
+          category: extra.type as any,
+          isFixed: false,
+          isTaxable: true,
+          extraId: extra.id
+        }));
+        
+        formattedDetails = [...formattedDetails, ...extrasAsDetails];
+        console.log('✅ Extras agregados a los detalles del período');
+      }
       
       setPeriodDetails(formattedDetails);
       
@@ -472,6 +504,53 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
     } catch (error: unknown) {
       console.error('❌ Error regenerando nómina:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error regenerando nómina';
+      setError(errorMessage);
+    } finally {
+      setGeneratingPayroll(false);
+    }
+  };
+
+  // Función para actualizar nómina con extras pendientes
+  const handleRegeneratePayroll = async (payrollId: string) => {
+    try {
+      setGeneratingPayroll(true);
+      setError(null);
+      
+      console.log('🔄 Actualizando nómina con extras pendientes:', payrollId);
+      
+      // 1. Regenerar la nómina
+      const response = await payrollApi.regeneratePayroll(payrollId, true);
+      console.log('✅ Nómina actualizada:', response);
+      
+      // 2. Recargar extras pendientes
+      if (payrollData?.config) {
+        const extras = await payrollApi.getPendingExtras(employeeId);
+        console.log('📋 Extras pendientes actualizados:', extras);
+        
+        // Calcular totales correctos
+        const summary = {
+          totalExtras: extras.extras?.length || 0,
+          totalToAdd: extras.extras?.filter((e: { type: string; amount: number }) => e.type === 'overtime' || e.type === 'bonus').reduce((sum: number, e: { amount: number }) => sum + (e.amount || 0), 0) || 0,
+          totalToSubtract: extras.extras?.filter((e: { type: string; amount: number }) => e.type === 'absence' || e.type === 'loan').reduce((sum: number, e: { amount: number }) => sum + (e.amount || 0), 0) || 0,
+          netImpact: 0
+        };
+        
+        summary.netImpact = summary.totalToAdd - summary.totalToSubtract;
+        
+        setPendingExtras({
+          extras: extras.extras || [],
+          summary
+        });
+      }
+      
+      // 3. Recargar todos los datos
+      await loadPayrollData();
+      
+      console.log('🎉 Nómina y extras actualizados exitosamente');
+      
+    } catch (error: unknown) {
+      console.error('❌ Error actualizando nómina:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error actualizando nómina';
       setError(errorMessage);
     } finally {
       setGeneratingPayroll(false);
@@ -1020,6 +1099,15 @@ Generado desde Utalk HR`;
                     
                     {/* Botones de acción minimalistas */}
                     <div className="flex items-center gap-1 ml-2">
+                      {/* Botón Actualizar Nómina */}
+                      <button
+                        onClick={() => handleRegeneratePayroll(selectedPeriod.id)}
+                        className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-50 transition-colors"
+                        title="Actualizar nómina con extras pendientes"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                      
                       {/* Botón Editar */}
                       <button
                         onClick={() => setIsConfigModalOpen(true)}
