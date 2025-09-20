@@ -123,10 +123,7 @@ const HRModule: React.FC = () => {
             employeeName={`${selectedEmployee.firstName} ${selectedEmployee.lastName}`} 
           />
         ) : (
-          <div className="text-center py-12">
-            <DollarSign className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">Selecciona un empleado para ver su nómina</p>
-          </div>
+          <PayrollModule />
         );
       case 'attendance':
         return selectedEmployee ? (
