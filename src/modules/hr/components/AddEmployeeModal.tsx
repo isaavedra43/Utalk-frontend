@@ -173,10 +173,119 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Funciones para manejo de moneda
+  const formatCurrency = (value: number, currency: string = 'MXN'): string => {
+    if (isNaN(value) || value === 0) return '';
+    
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }).format(value);
+  };
+
+  const parseCurrencyInput = (value: string): number => {
+    // Remover símbolos de moneda y espacios
+    const cleanValue = value.replace(/[$,\s]/g, '').replace(/[^\d.-]/g, '');
+    const parsed = parseFloat(cleanValue);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  const handleCurrencyInputChange = (field: string, value: string) => {
+    const numericValue = parseCurrencyInput(value);
+    handleInputChange(field, numericValue);
+  };
+
+  // Componente de input de moneda
+  const CurrencyInput: React.FC<{
+    value: number;
+    onChange: (value: string) => void;
+    placeholder?: string;
+    className?: string;
+    currency?: string;
+    error?: string;
+  }> = ({ value, onChange, placeholder = "0", className = "", currency = "MXN", error }) => {
+    const [displayValue, setDisplayValue] = useState('');
+    const [isFocused, setIsFocused] = useState(false);
+
+    useEffect(() => {
+      if (!isFocused) {
+        setDisplayValue(formatCurrency(value, currency));
+      }
+    }, [value, currency, isFocused]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const inputValue = e.target.value;
+      setDisplayValue(inputValue);
+      onChange(inputValue);
+    };
+
+    const handleFocus = () => {
+      setIsFocused(true);
+      // Mostrar solo números cuando se enfoca
+      setDisplayValue(value > 0 ? value.toString() : '');
+    };
+
+    const handleBlur = () => {
+      setIsFocused(false);
+      // Formatear cuando pierde el foco
+      setDisplayValue(formatCurrency(value, currency));
+    };
+
+    return (
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <span className="text-gray-500 text-sm">
+            {currency === 'MXN' ? '$' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency}
+          </span>
+        </div>
+        <input
+          type="text"
+          value={displayValue}
+          onChange={handleChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          placeholder={placeholder}
+          className={`w-full pl-8 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${error ? 'border-red-500' : 'border-gray-300'} ${className}`}
+        />
+      </div>
+    );
+  };
+
+  // Función para validar horario personalizado
+  const validateCustomSchedule = (days: any) => {
+    const enabledDays = Object.entries(days).filter(([_, day]: [string, any]) => day && day.enabled);
+    
+    if (enabledDays.length === 0) {
+      return 'Debe seleccionar al menos un día de trabajo';
+    }
+    
+    // Validar que las horas sean válidas
+    for (const [dayName, day] of enabledDays) {
+      const dayData = day as any;
+      if (!dayData.startTime || !dayData.endTime) {
+        return `Debe configurar horario completo para ${dayName}`;
+      }
+      
+      // Validar que la hora de inicio sea anterior a la de fin
+      const startTime = new Date(`2000-01-01T${dayData.startTime}:00`);
+      const endTime = new Date(`2000-01-01T${dayData.endTime}:00`);
+      
+      if (startTime >= endTime) {
+        return `La hora de inicio debe ser anterior a la de fin en ${dayName}`;
+      }
+    }
+    
+    return null; // Sin errores
+  };
+
   // Función para generar horario personalizado
   const generateCustomSchedule = (days: any) => {
+    if (!days) return '';
+    
     const enabledDays = Object.entries(days)
-      .filter(([_, day]: [string, any]) => day.enabled)
+      .filter(([_, day]: [string, any]) => day && day.enabled && day.startTime && day.endTime)
       .map(([dayName, day]: [string, any]) => {
         const dayNames: Record<string, string> = {
           lunes: 'Lunes',
@@ -187,10 +296,15 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
           sabado: 'Sábado',
           domingo: 'Domingo'
         };
-        return `${dayNames[dayName]} ${day.startTime}-${day.endTime}`;
+        
+        // Validar que las horas sean válidas
+        const startTime = day.startTime || '09:00';
+        const endTime = day.endTime || '18:00';
+        
+        return `${dayNames[dayName]} ${startTime}-${endTime}`;
       });
     
-    return enabledDays.join(', ');
+    return enabledDays.length > 0 ? enabledDays.join(', ') : 'Sin días configurados';
   };
 
   // Generar número de empleado automáticamente cuando se abre el modal
@@ -237,6 +351,39 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
             }
           }
         };
+      } else if (keys.length === 4) {
+        // Para campos como contract.customSchedule.days.lunes.enabled
+        return {
+          ...prev,
+          [keys[0]]: {
+            ...prev[keys[0] as keyof typeof prev],
+            [keys[1]]: {
+              ...(prev[keys[0] as keyof typeof prev] as any)[keys[1]],
+              [keys[2]]: {
+                ...(prev[keys[0] as keyof typeof prev] as any)[keys[1]][keys[2]],
+                [keys[3]]: value
+              }
+            }
+          }
+        };
+      } else if (keys.length === 5) {
+        // Para campos como contract.customSchedule.days.lunes.startTime
+        return {
+          ...prev,
+          [keys[0]]: {
+            ...prev[keys[0] as keyof typeof prev],
+            [keys[1]]: {
+              ...(prev[keys[0] as keyof typeof prev] as any)[keys[1]],
+              [keys[2]]: {
+                ...(prev[keys[0] as keyof typeof prev] as any)[keys[1]][keys[2]],
+                [keys[3]]: {
+                  ...(prev[keys[0] as keyof typeof prev] as any)[keys[1]][keys[2]][keys[3]],
+                  [keys[4]]: value
+                }
+              }
+            }
+          }
+        };
       }
       return prev;
     });
@@ -244,6 +391,11 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
     // Limpiar error del campo
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+    
+    // Limpiar error de horario personalizado si se está modificando
+    if (field.includes('customSchedule') && errors.customSchedule) {
+      setErrors(prev => ({ ...prev, customSchedule: '' }));
     }
   };
 
@@ -281,6 +433,14 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
       case 4:
         if (formData.salary.baseSalary <= 0) newErrors.baseSalary = 'El sueldo base debe ser mayor a 0';
         if (formData.sbc <= 0) newErrors.sbc = 'El SBC debe ser mayor a 0';
+        
+        // Validar horario personalizado si está habilitado
+        if (formData.contract.customSchedule.enabled) {
+          const scheduleError = validateCustomSchedule(formData.contract.customSchedule.days);
+          if (scheduleError) {
+            newErrors.customSchedule = scheduleError;
+          }
+        }
         break;
     }
 
@@ -913,20 +1073,95 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Nómina y Contrato</h3>
             
+            {/* Selector de Divisa */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Divisa de Pago
+              </label>
+              <div className="flex items-center space-x-4">
+                <select
+                  value={formData.salary.currency}
+                  onChange={(e) => handleInputChange('salary.currency', e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="MXN">🇲🇽 Peso Mexicano (MXN)</option>
+                  <option value="USD">🇺🇸 Dólar Americano (USD)</option>
+                  <option value="EUR">🇪🇺 Euro (EUR)</option>
+                  <option value="CAD">🇨🇦 Dólar Canadiense (CAD)</option>
+                </select>
+                <div className="text-sm text-gray-600">
+                  <span className="font-medium">Formato:</span> {formatCurrency(12345, formData.salary.currency)}
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Sueldo Base *
                 </label>
-                <input
-                  type="number"
+                <CurrencyInput
                   value={formData.salary.baseSalary}
-                  onChange={(e) => handleInputChange('salary.baseSalary', Number(e.target.value))}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.baseSalary ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  onChange={(value) => handleCurrencyInputChange('salary.baseSalary', value)}
                   placeholder="30000"
+                  currency={formData.salary.currency}
+                  error={errors.baseSalary}
                 />
+                
+                {/* Botones de sugerencias rápidas */}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <span className="text-xs text-gray-500 mr-2">Sugerencias:</span>
+                  {formData.salary.currency === 'MXN' ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange('salary.baseSalary', 15000)}
+                        className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-gray-700"
+                      >
+                        $15,000
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange('salary.baseSalary', 25000)}
+                        className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-gray-700"
+                      >
+                        $25,000
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange('salary.baseSalary', 35000)}
+                        className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-gray-700"
+                      >
+                        $35,000
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange('salary.baseSalary', 1000)}
+                        className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-gray-700"
+                      >
+                        $1,000
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange('salary.baseSalary', 2000)}
+                        className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-gray-700"
+                      >
+                        $2,000
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange('salary.baseSalary', 3000)}
+                        className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-gray-700"
+                      >
+                        $3,000
+                      </button>
+                    </>
+                  )}
+                </div>
+                
                 {errors.baseSalary && (
                   <p className="text-red-500 text-xs mt-1">{errors.baseSalary}</p>
                 )}
@@ -936,15 +1171,25 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   SBC *
                 </label>
-                <input
-                  type="number"
+                <CurrencyInput
                   value={formData.sbc}
-                  onChange={(e) => handleInputChange('sbc', Number(e.target.value))}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.sbc ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  onChange={(value) => handleCurrencyInputChange('sbc', value)}
                   placeholder="32000"
+                  currency={formData.salary.currency}
+                  error={errors.sbc}
                 />
+                
+                {/* Botón para copiar sueldo base a SBC */}
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange('sbc', formData.salary.baseSalary)}
+                    className="text-xs px-3 py-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-700"
+                  >
+                    Copiar Sueldo Base
+                  </button>
+                </div>
+                
                 {errors.sbc && (
                   <p className="text-red-500 text-xs mt-1">{errors.sbc}</p>
                 )}
@@ -952,28 +1197,42 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Saldo de Vacaciones
+                  Saldo de Vacaciones (días)
                 </label>
-                <input
-                  type="number"
-                  value={formData.vacationBalance}
-                  onChange={(e) => handleInputChange('vacationBalance', Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="15"
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={formData.vacationBalance}
+                    onChange={(e) => handleInputChange('vacationBalance', Number(e.target.value))}
+                    className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="15"
+                    min="0"
+                    max="30"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span className="text-gray-500 text-sm">días</span>
+                  </div>
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Saldo de Enfermedad
+                  Saldo de Enfermedad (días)
                 </label>
-                <input
-                  type="number"
-                  value={formData.sickLeaveBalance}
-                  onChange={(e) => handleInputChange('sickLeaveBalance', Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="5"
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={formData.sickLeaveBalance}
+                    onChange={(e) => handleInputChange('sickLeaveBalance', Number(e.target.value))}
+                    className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="5"
+                    min="0"
+                    max="15"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span className="text-gray-500 text-sm">días</span>
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -1068,7 +1327,53 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                 </>
               ) : (
                 <div className="md:col-span-2">
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">Horario por Día</h4>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-medium text-gray-700">Horario por Día</h4>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Habilitar todos los días de lunes a viernes
+                          const updatedDays = { ...formData.contract.customSchedule.days };
+                          ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'].forEach(day => {
+                            updatedDays[day] = { ...updatedDays[day], enabled: true };
+                          });
+                          handleInputChange('contract.customSchedule.days', updatedDays);
+                        }}
+                        className="text-xs text-blue-600 hover:text-blue-800 underline"
+                      >
+                        L-V
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Habilitar todos los días
+                          const updatedDays = { ...formData.contract.customSchedule.days };
+                          Object.keys(updatedDays).forEach(day => {
+                            updatedDays[day] = { ...updatedDays[day], enabled: true };
+                          });
+                          handleInputChange('contract.customSchedule.days', updatedDays);
+                        }}
+                        className="text-xs text-blue-600 hover:text-blue-800 underline"
+                      >
+                        Todos
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Deshabilitar todos los días
+                          const updatedDays = { ...formData.contract.customSchedule.days };
+                          Object.keys(updatedDays).forEach(day => {
+                            updatedDays[day] = { ...updatedDays[day], enabled: false };
+                          });
+                          handleInputChange('contract.customSchedule.days', updatedDays);
+                        }}
+                        className="text-xs text-gray-600 hover:text-gray-800 underline"
+                      >
+                        Ninguno
+                      </button>
+                    </div>
+                  </div>
                   <div className="space-y-3">
                     {Object.entries(formData.contract.customSchedule.days).map(([dayKey, day]: [string, any]) => {
                       const dayNames: Record<string, string> = {
@@ -1115,6 +1420,27 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                                   className="px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                                 />
                               </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  // Copiar horario a todos los días habilitados
+                                  const updatedDays = { ...formData.contract.customSchedule.days };
+                                  Object.keys(updatedDays).forEach(otherDayKey => {
+                                    if (updatedDays[otherDayKey].enabled && otherDayKey !== dayKey) {
+                                      updatedDays[otherDayKey] = {
+                                        ...updatedDays[otherDayKey],
+                                        startTime: day.startTime,
+                                        endTime: day.endTime
+                                      };
+                                    }
+                                  });
+                                  handleInputChange('contract.customSchedule.days', updatedDays);
+                                }}
+                                className="text-xs text-green-600 hover:text-green-800 underline ml-2"
+                                title="Copiar horario a todos los días"
+                              >
+                                Copiar
+                              </button>
                             </>
                           )}
                         </div>
@@ -1127,6 +1453,14 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                       <strong>Vista previa del horario:</strong> {generateCustomSchedule(formData.contract.customSchedule.days)}
                     </p>
                   </div>
+                  
+                  {errors.customSchedule && (
+                    <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-sm text-red-800">
+                        <strong>Error en horario:</strong> {errors.customSchedule}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

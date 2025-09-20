@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   CreditCard, 
   Search, 
@@ -17,9 +17,14 @@ import {
   Save,
   X,
   Upload,
-  Trash2
+  Trash2,
+  FileSpreadsheet,
+  FileText,
+  File
 } from 'lucide-react';
 import { extrasService } from '../../../services/extrasService';
+import { ExportService } from '../../../services/exportService';
+import { useNotifications } from '../../../contexts/NotificationContext';
 
 interface LoanPayment {
   id: string;
@@ -62,6 +67,7 @@ const LoansTable: React.FC<LoansTableProps> = ({
   employeeId,
   onAddLoan
 }) => {
+  const { showSuccess, showError } = useNotifications();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedLoan, setSelectedLoan] = useState<LoanRecord | null>(null);
@@ -69,6 +75,9 @@ const LoansTable: React.FC<LoansTableProps> = ({
   const [editingLoan, setEditingLoan] = useState<LoanRecord | null>(null);
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [newPayment, setNewPayment] = useState<Partial<LoanPayment>>({});
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
   const [loanRecords, setLoanRecords] = useState<LoanRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -137,6 +146,23 @@ const LoansTable: React.FC<LoansTableProps> = ({
       loadLoansData();
     }
   }, [employeeId, retryCount]);
+
+  // Efecto para cerrar el menú de exportación al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+
+    if (showExportMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showExportMenu]);
 
   // Función para reintentar la carga de datos
   const handleRetry = () => {
@@ -211,6 +237,59 @@ const LoansTable: React.FC<LoansTableProps> = ({
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  // Función para exportar datos
+  const handleExport = async (format: 'excel' | 'pdf' | 'csv') => {
+    try {
+      setIsExporting(true);
+      setShowExportMenu(false);
+
+      // Preparar datos para exportación
+      const exportData = filteredLoans.map(loan => [
+        ExportService.formatDate(loan.date),
+        ExportService.cleanText(loan.description),
+        ExportService.formatCurrency(loan.totalAmount),
+        ExportService.formatCurrency(loan.monthlyPayment),
+        `${loan.paidInstallments}/${loan.totalInstallments}`,
+        `${Math.round((loan.paidInstallments / loan.totalInstallments) * 100)}%`,
+        ExportService.formatCurrency(loan.remainingAmount),
+        getStatusLabel(loan.status)
+      ]);
+
+      const exportOptions = {
+        filename: `prestamos-${new Date().toISOString().split('T')[0]}`,
+        title: 'Registro de Préstamos',
+        headers: [
+          'Fecha',
+          'Descripción',
+          'Monto Total',
+          'Pago Mensual',
+          'Progreso',
+          'Porcentaje',
+          'Saldo Pendiente',
+          'Estado'
+        ],
+        data: exportData,
+        format: format
+      };
+
+      await ExportService.export(exportOptions);
+      
+      showSuccess(
+        'Exportación exitosa',
+        `Registro de préstamos exportado en formato ${format.toUpperCase()}`
+      );
+
+    } catch (error) {
+      console.error('Error exportando préstamos:', error);
+      showError(
+        'Error en exportación',
+        'No se pudo exportar el registro de préstamos. Inténtalo de nuevo.'
+      );
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const filteredLoans = loanRecords.filter(loan => {
@@ -429,10 +508,43 @@ const LoansTable: React.FC<LoansTableProps> = ({
               <option value="cancelled">Cancelado</option>
             </select>
           </div>
-          <button className="flex items-center space-x-2 px-4 py-2 text-purple-600 border border-purple-600 rounded-lg hover:bg-purple-50 transition-colors">
-            <Download className="h-4 w-4" />
-            <span>Exportar</span>
-          </button>
+          <div className="relative" ref={exportMenuRef}>
+            <button 
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              disabled={isExporting || filteredLoans.length === 0}
+              className="flex items-center space-x-2 px-4 py-2 text-purple-600 border border-purple-600 rounded-lg hover:bg-purple-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download className="h-4 w-4" />
+              <span>{isExporting ? 'Exportando...' : 'Exportar'}</span>
+            </button>
+            
+            {/* Menú desplegable de exportación */}
+            {showExportMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                <button
+                  onClick={() => handleExport('excel')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-2"
+                >
+                  <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                  <span>Exportar Excel</span>
+                </button>
+                <button
+                  onClick={() => handleExport('pdf')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-2"
+                >
+                  <FileText className="h-4 w-4 text-red-600" />
+                  <span>Exportar PDF</span>
+                </button>
+                <button
+                  onClick={() => handleExport('csv')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-2"
+                >
+                  <File className="h-4 w-4 text-blue-600" />
+                  <span>Exportar CSV</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

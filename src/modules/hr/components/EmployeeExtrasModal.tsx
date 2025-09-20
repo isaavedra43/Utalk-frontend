@@ -104,7 +104,7 @@ const EmployeeExtrasModal: React.FC<EmployeeExtrasModalProps> = ({
       attachments: [],
       // Campos específicos por defecto
       ...(type === 'overtime' && {
-        hours: 1,
+        hours: 1.0,
         hourlyRate: (employeeSalary / 30) / 8,
         overtimeType: 'regular' as const
       }),
@@ -447,6 +447,25 @@ const EmployeeExtrasModal: React.FC<EmployeeExtrasModalProps> = ({
     }
   };
 
+  // Calcular multiplicador según el tipo de horas extra
+  const getOvertimeMultiplier = (type: string) => {
+    switch (type) {
+      case 'regular': return 1.5;
+      case 'weekend': return 2.0;
+      case 'holiday': return 3.0;
+      default: return 1.0;
+    }
+  };
+
+  // Calcular horas efectivas totales
+  const getEffectiveHours = () => {
+    if (formData.type === 'overtime' && formData.hours) {
+      const multiplier = getOvertimeMultiplier(formData.overtimeType || 'regular');
+      return formData.hours * multiplier;
+    }
+    return formData.hours || 0;
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -549,16 +568,57 @@ const EmployeeExtrasModal: React.FC<EmployeeExtrasModalProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Horas trabajadas *
                 </label>
-                <input
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  value={formData.hours || ''}
-                  onChange={(e) => handleFieldChange('hours', parseFloat(e.target.value) || 0)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.hours ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="24"
+                    value={formData.hours || ''}
+                    onChange={(e) => handleFieldChange('hours', parseFloat(e.target.value) || 0)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      errors.hours ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="1.0"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span className="text-gray-500 text-sm">hrs</span>
+                  </div>
+                </div>
+                
+                {/* Botones de sugerencias rápidas */}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <span className="text-xs text-gray-500 mr-2">Sugerencias:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleFieldChange('hours', 1.0)}
+                    className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-700"
+                  >
+                    1.0 hrs
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFieldChange('hours', 2.0)}
+                    className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-gray-700"
+                  >
+                    2.0 hrs
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFieldChange('hours', 4.0)}
+                    className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-gray-700"
+                  >
+                    4.0 hrs
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFieldChange('hours', 8.0)}
+                    className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-gray-700"
+                  >
+                    8.0 hrs
+                  </button>
+                </div>
+                
                 {errors.hours && (
                   <p className="mt-1 text-sm text-red-600">{errors.hours}</p>
                 )}
@@ -573,10 +633,21 @@ const EmployeeExtrasModal: React.FC<EmployeeExtrasModalProps> = ({
                   onChange={(e) => handleFieldChange('overtimeType', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="regular">Regular (1.5x)</option>
-                  <option value="weekend">Fin de semana (2x)</option>
-                  <option value="holiday">Festivo (3x)</option>
+                  <option value="regular">Regular (1.5x las horas)</option>
+                  <option value="weekend">Fin de semana (2x las horas)</option>
+                  <option value="holiday">Festivo (3x las horas)</option>
                 </select>
+                
+                {/* Información adicional sobre el cálculo */}
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Cálculo:</strong> {formData.hours || '0'} horas trabajadas × {getOvertimeMultiplier(formData.overtimeType || 'regular')} = 
+                    <span className="font-bold text-blue-900 ml-1">{getEffectiveHours().toFixed(1)} horas efectivas</span>
+                  </p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    Las horas efectivas son las que se pagarán en la nómina
+                  </p>
+                </div>
               </div>
             </div>
           )}

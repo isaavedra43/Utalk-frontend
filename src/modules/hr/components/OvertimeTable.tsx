@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Clock, 
   Search, 
@@ -9,9 +9,14 @@ import {
   CheckCircle, 
   AlertTriangle, 
   XCircle,
-  DollarSign
+  DollarSign,
+  FileSpreadsheet,
+  FileText,
+  File
 } from 'lucide-react';
 import { extrasService } from '../../../services/extrasService';
+import { ExportService } from '../../../services/exportService';
+import { useNotifications } from '../../../contexts/NotificationContext';
 
 interface OvertimeRecord {
   id: string;
@@ -42,6 +47,7 @@ const OvertimeTable: React.FC<OvertimeTableProps> = ({
   employee,
   onAddOvertime
 }) => {
+  const { showSuccess, showError } = useNotifications();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedRecord, setSelectedRecord] = useState<OvertimeRecord | null>(null);
@@ -49,6 +55,9 @@ const OvertimeTable: React.FC<OvertimeTableProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
 
   // Calcular tarifa por hora basada en el salario real con manejo de errores
   const baseSalary = (() => {
@@ -123,6 +132,23 @@ const OvertimeTable: React.FC<OvertimeTableProps> = ({
     }
   }, [employeeId, hourlyRate, retryCount]);
 
+  // Efecto para cerrar el menú de exportación al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+
+    if (showExportMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showExportMenu]);
+
   // Función para reintentar la carga de datos
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
@@ -193,6 +219,59 @@ const OvertimeTable: React.FC<OvertimeTableProps> = ({
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  // Función para exportar datos
+  const handleExport = async (format: 'excel' | 'pdf' | 'csv') => {
+    try {
+      setIsExporting(true);
+      setShowExportMenu(false);
+
+      // Preparar datos para exportación
+      const exportData = filteredRecords.map(record => [
+        ExportService.formatDate(record.date),
+        ExportService.cleanText(record.description),
+        `${record.hours}h`,
+        getTypeLabel(record.type),
+        ExportService.formatCurrency(record.totalAmount),
+        record.location.charAt(0).toUpperCase() + record.location.slice(1),
+        getStatusLabel(record.status),
+        record.approvedBy || '-'
+      ]);
+
+      const exportOptions = {
+        filename: `horas-extra-${new Date().toISOString().split('T')[0]}`,
+        title: 'Registro de Horas Extra',
+        headers: [
+          'Fecha',
+          'Descripción', 
+          'Horas',
+          'Tipo',
+          'Monto',
+          'Ubicación',
+          'Estado',
+          'Aprobado Por'
+        ],
+        data: exportData,
+        format: format
+      };
+
+      await ExportService.export(exportOptions);
+      
+      showSuccess(
+        'Exportación exitosa',
+        `Registro de horas extra exportado en formato ${format.toUpperCase()}`
+      );
+
+    } catch (error) {
+      console.error('Error exportando horas extra:', error);
+      showError(
+        'Error en exportación',
+        'No se pudo exportar el registro de horas extra. Inténtalo de nuevo.'
+      );
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const filteredRecords = overtimeRecords.filter(record => {
@@ -299,10 +378,43 @@ const OvertimeTable: React.FC<OvertimeTableProps> = ({
               <option value="rejected">Rechazado</option>
             </select>
           </div>
-          <button className="flex items-center space-x-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
-            <Download className="h-4 w-4" />
-            <span>Exportar</span>
-          </button>
+          <div className="relative" ref={exportMenuRef}>
+            <button 
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              disabled={isExporting || filteredRecords.length === 0}
+              className="flex items-center space-x-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download className="h-4 w-4" />
+              <span>{isExporting ? 'Exportando...' : 'Exportar'}</span>
+            </button>
+            
+            {/* Menú desplegable de exportación */}
+            {showExportMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                <button
+                  onClick={() => handleExport('excel')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-2"
+                >
+                  <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                  <span>Exportar Excel</span>
+                </button>
+                <button
+                  onClick={() => handleExport('pdf')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-2"
+                >
+                  <FileText className="h-4 w-4 text-red-600" />
+                  <span>Exportar PDF</span>
+                </button>
+                <button
+                  onClick={() => handleExport('csv')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-2"
+                >
+                  <File className="h-4 w-4 text-blue-600" />
+                  <span>Exportar CSV</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

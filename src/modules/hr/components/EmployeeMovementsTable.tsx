@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, 
   Minus, 
@@ -17,9 +17,12 @@ import {
   XCircle,
   Search,
   Filter,
-  Download
+  Download,
+  FileSpreadsheet
 } from 'lucide-react';
 import { extrasService, MovementRecord } from '../../../services/extrasService';
+import { ExportService } from '../../../services/exportService';
+import { useNotifications } from '../../../contexts/NotificationContext';
 
 interface LocalMovementRecord {
   id: string;
@@ -53,12 +56,16 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
   employee,
   onAddMovement
 }) => {
+  const { showSuccess, showError } = useNotifications();
   const [movements, setMovements] = useState<LocalMovementRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [selectedMovement, setSelectedMovement] = useState<LocalMovementRecord | null>(null);
   const [realMovements, setRealMovements] = useState<MovementRecord[]>([]);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
 
   // Calcular salario por día y por hora
   // Calcular salarios basados en el empleado real con manejo de errores
@@ -238,6 +245,23 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
     }
   }, [employeeId, baseSalary, dailySalary, hourlyRate]);
 
+  // Efecto para cerrar el menú de exportación al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+
+    if (showExportMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showExportMenu]);
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'attendance': return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -297,6 +321,55 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  // Función para exportar datos
+  const handleExport = async (format: 'excel' | 'pdf' | 'csv') => {
+    try {
+      setIsExporting(true);
+      setShowExportMenu(false);
+
+      // Preparar datos para exportación
+      const exportData = filteredMovements.map(movement => [
+        getTypeLabel(movement.type),
+        ExportService.formatDate(movement.date),
+        ExportService.cleanText(movement.description),
+        ExportService.formatCurrency(Math.abs(movement.amount)),
+        getStatusLabel(movement.status),
+        movement.registeredBy || '-'
+      ]);
+
+      const exportOptions = {
+        filename: `movimientos-${new Date().toISOString().split('T')[0]}`,
+        title: 'Registro de Movimientos',
+        headers: [
+          'Tipo',
+          'Fecha',
+          'Descripción',
+          'Monto',
+          'Estado',
+          'Registrado Por'
+        ],
+        data: exportData,
+        format: format
+      };
+
+      await ExportService.export(exportOptions);
+      
+      showSuccess(
+        'Exportación exitosa',
+        `Registro de movimientos exportado en formato ${format.toUpperCase()}`
+      );
+
+    } catch (error) {
+      console.error('Error exportando movimientos:', error);
+      showError(
+        'Error en exportación',
+        'No se pudo exportar el registro de movimientos. Inténtalo de nuevo.'
+      );
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const filteredMovements = movements.filter(movement => {
@@ -409,10 +482,43 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
               <option value="damage">Daño</option>
             </select>
           </div>
-          <button className="flex items-center space-x-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
-            <Download className="h-4 w-4" />
-            <span>Exportar</span>
-          </button>
+          <div className="relative" ref={exportMenuRef}>
+            <button 
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              disabled={isExporting || filteredMovements.length === 0}
+              className="flex items-center space-x-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download className="h-4 w-4" />
+              <span>{isExporting ? 'Exportando...' : 'Exportar'}</span>
+            </button>
+            
+            {/* Menú desplegable de exportación */}
+            {showExportMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                <button
+                  onClick={() => handleExport('excel')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-2"
+                >
+                  <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                  <span>Exportar Excel</span>
+                </button>
+                <button
+                  onClick={() => handleExport('pdf')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-2"
+                >
+                  <FileText className="h-4 w-4 text-red-600" />
+                  <span>Exportar PDF</span>
+                </button>
+                <button
+                  onClick={() => handleExport('csv')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center space-x-2"
+                >
+                  <File className="h-4 w-4 text-blue-600" />
+                  <span>Exportar CSV</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
