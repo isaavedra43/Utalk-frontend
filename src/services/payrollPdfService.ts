@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 // Extender jsPDF para incluir tipos de autoTable
 declare module 'jspdf' {
@@ -83,262 +83,249 @@ class PayrollPdfService {
   }
 
   generatePayrollPdf(data: PayrollPdfData): void {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    let yPosition = 20;
+    try {
+      console.log('🔄 Iniciando generación de PDF...');
+      
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      let yPosition = 20;
 
-    // Configurar colores
-    const primaryColor = [31, 81, 255]; // Azul
-    const secondaryColor = [107, 114, 128]; // Gris
-    const successColor = [34, 197, 94]; // Verde
-    const dangerColor = [239, 68, 68]; // Rojo
+      // Configurar colores
+      const primaryColor = [31, 81, 255]; // Azul
+      const secondaryColor = [107, 114, 128]; // Gris
+      const successColor = [34, 197, 94]; // Verde
+      const dangerColor = [239, 68, 68]; // Rojo
 
-    // === HEADER ===
-    // Logo/Company Name
-    doc.setFontSize(24);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text(data.company.name || 'UTALK', 20, yPosition);
-    
-    // Company Info
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-    doc.text(data.company.address || 'Dirección de la empresa', 20, yPosition + 8);
-    doc.text(`Tel: ${data.company.phone || 'N/A'} | Email: ${data.company.email || 'N/A'}`, 20, yPosition + 13);
-
-    // Title
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
-    doc.text('RECIBO DE NÓMINA', pageWidth - 20, yPosition, { align: 'right' });
-    
-    yPosition += 30;
-
-    // === EMPLOYEE INFO ===
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('INFORMACIÓN DEL EMPLEADO', 20, yPosition);
-    yPosition += 10;
-
-    // Employee details table
-    const employeeData = [
-      ['Nombre:', data.employee.name],
-      ['Puesto:', data.employee.position],
-      ['Departamento:', data.employee.department],
-      ['ID Empleado:', data.employee.id]
-    ];
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    employeeData.forEach(([label, value]) => {
-      doc.text(label, 20, yPosition);
+      // === HEADER ===
+      // Logo/Company Name
+      doc.setFontSize(24);
       doc.setFont('helvetica', 'bold');
-      doc.text(value, 80, yPosition);
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text(data.company.name || 'UTALK', 20, yPosition);
+      
+      // Company Info
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      yPosition += 6;
-    });
+      doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+      doc.text(data.company.address || 'Dirección de la empresa', 20, yPosition + 8);
+      doc.text(`Tel: ${data.company.phone || 'N/A'} | Email: ${data.company.email || 'N/A'}`, 20, yPosition + 13);
 
-    yPosition += 10;
-
-    // === PERIOD INFO ===
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('PERÍODO DE PAGO', 20, yPosition);
-    yPosition += 10;
-
-    const periodData = [
-      ['Período:', `${this.formatDate(data.period.startDate)} - ${this.formatDate(data.period.endDate)}`],
-      ['Frecuencia:', this.getFrequencyLabel(data.period.frequency)],
-      ['Estado:', this.getStatusLabel(data.period.status)],
-      ['Fecha de Emisión:', new Date().toLocaleDateString('es-MX')]
-    ];
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    periodData.forEach(([label, value]) => {
-      doc.text(label, 20, yPosition);
+      // Title
+      doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
-      doc.text(value, 80, yPosition);
-      doc.setFont('helvetica', 'normal');
-      yPosition += 6;
-    });
-
-    yPosition += 15;
-
-    // === PERCEPTIONS ===
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(successColor[0], successColor[1], successColor[2]);
-    doc.text('📈 PERCEPCIONES', 20, yPosition);
-    yPosition += 10;
-
-    if (data.perceptions.length > 0) {
-      const perceptionHeaders = ['Concepto', 'Descripción', 'Importe'];
-      const perceptionRows = data.perceptions.map(p => [
-        p.concept,
-        p.description,
-        this.formatCurrency(p.amount)
-      ]);
-
-      doc.autoTable({
-        startY: yPosition,
-        head: [perceptionHeaders],
-        body: perceptionRows,
-        theme: 'grid',
-        headStyles: {
-          fillColor: [34, 197, 94],
-          textColor: [255, 255, 255],
-          fontStyle: 'bold'
-        },
-        bodyStyles: {
-          fontSize: 9
-        },
-        columnStyles: {
-          2: { halign: 'right' }
-        },
-        margin: { left: 20, right: 20 }
-      });
-
-      yPosition = (doc as any).lastAutoTable.finalY + 10;
-    } else {
-      doc.setFontSize(10);
-      doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-      doc.text('No hay percepciones registradas', 20, yPosition);
-      yPosition += 15;
-    }
-
-    // === DEDUCTIONS ===
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(dangerColor[0], dangerColor[1], dangerColor[2]);
-    doc.text('📉 DEDUCCIONES', 20, yPosition);
-    yPosition += 10;
-
-    if (data.deductions.length > 0) {
-      const deductionHeaders = ['Concepto', 'Descripción', 'Importe'];
-      const deductionRows = data.deductions.map(d => [
-        d.concept,
-        d.description,
-        this.formatCurrency(d.amount)
-      ]);
-
-      doc.autoTable({
-        startY: yPosition,
-        head: [deductionHeaders],
-        body: deductionRows,
-        theme: 'grid',
-        headStyles: {
-          fillColor: [239, 68, 68],
-          textColor: [255, 255, 255],
-          fontStyle: 'bold'
-        },
-        bodyStyles: {
-          fontSize: 9
-        },
-        columnStyles: {
-          2: { halign: 'right' }
-        },
-        margin: { left: 20, right: 20 }
-      });
-
-      yPosition = (doc as any).lastAutoTable.finalY + 10;
-    } else {
-      doc.setFontSize(10);
-      doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-      doc.text('No hay deducciones registradas', 20, yPosition);
-      yPosition += 15;
-    }
-
-    // === SUMMARY ===
-    yPosition += 10;
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
-    doc.text('RESUMEN DE NÓMINA', 20, yPosition);
-    yPosition += 15;
-
-    // Summary boxes
-    const summaryData = [
-      { label: 'Salario Bruto', amount: data.payroll.totalPerceptions, color: [107, 114, 128] },
-      { label: 'Deducciones', amount: data.payroll.totalDeductions, color: [239, 68, 68] },
-      { label: 'Salario Neto', amount: data.payroll.netSalary, color: [34, 197, 94] }
-    ];
-
-    const boxWidth = 50;
-    const boxHeight = 25;
-    const boxSpacing = 60;
-
-    summaryData.forEach((item, index) => {
-      const x = 20 + (index * boxSpacing);
+      doc.setTextColor(0, 0, 0);
+      doc.text('RECIBO DE NÓMINA', pageWidth - 20, yPosition, { align: 'right' });
       
-      // Box background
-      doc.setFillColor(item.color[0], item.color[1], item.color[2]);
-      doc.roundedRect(x, yPosition, boxWidth, boxHeight, 3, 3, 'F');
-      
-      // Box border
-      doc.setDrawColor(item.color[0], item.color[1], item.color[2]);
-      doc.setLineWidth(0.5);
-      doc.roundedRect(x, yPosition, boxWidth, boxHeight, 3, 3, 'S');
-      
-      // Label
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(255, 255, 255);
-      doc.text(item.label, x + 5, yPosition + 8);
-      
-      // Amount
+      yPosition += 30;
+
+      // === EMPLOYEE INFO ===
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(this.formatCurrency(item.amount), x + 5, yPosition + 18);
-    });
+      doc.text('INFORMACIÓN DEL EMPLEADO', 20, yPosition);
+      yPosition += 10;
 
-    yPosition += boxHeight + 20;
+      // Employee details
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Nombre: ${data.employee.name}`, 20, yPosition);
+      yPosition += 6;
+      doc.text(`Puesto: ${data.employee.position}`, 20, yPosition);
+      yPosition += 6;
+      doc.text(`Departamento: ${data.employee.department}`, 20, yPosition);
+      yPosition += 6;
+      doc.text(`ID Empleado: ${data.employee.id}`, 20, yPosition);
+      yPosition += 15;
 
-    // === SIGNATURE SECTION ===
-    if (yPosition > pageHeight - 60) {
-      doc.addPage();
-      yPosition = 20;
+      // === PERIOD INFO ===
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PERÍODO DE PAGO', 20, yPosition);
+      yPosition += 10;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Período: ${this.formatDate(data.period.startDate)} - ${this.formatDate(data.period.endDate)}`, 20, yPosition);
+      yPosition += 6;
+      doc.text(`Frecuencia: ${this.getFrequencyLabel(data.period.frequency)}`, 20, yPosition);
+      yPosition += 6;
+      doc.text(`Estado: ${this.getStatusLabel(data.period.status)}`, 20, yPosition);
+      yPosition += 6;
+      doc.text(`Fecha de Emisión: ${new Date().toLocaleDateString('es-MX')}`, 20, yPosition);
+      yPosition += 20;
+
+      // === PERCEPTIONS ===
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(successColor[0], successColor[1], successColor[2]);
+      doc.text('PERCEPCIONES', 20, yPosition);
+      yPosition += 10;
+
+      if (data.perceptions.length > 0) {
+        // Crear tabla de percepciones manualmente
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        
+        // Headers
+        doc.setFont('helvetica', 'bold');
+        doc.text('Concepto', 20, yPosition);
+        doc.text('Descripción', 70, yPosition);
+        doc.text('Importe', 160, yPosition);
+        
+        // Línea separadora
+        doc.line(20, yPosition + 2, 190, yPosition + 2);
+        yPosition += 8;
+        
+        // Filas de percepciones
+        doc.setFont('helvetica', 'normal');
+        data.perceptions.forEach(perception => {
+          doc.text(perception.concept, 20, yPosition);
+          doc.text(perception.description.length > 40 ? perception.description.substring(0, 40) + '...' : perception.description, 70, yPosition);
+          doc.text(this.formatCurrency(perception.amount), 160, yPosition);
+          yPosition += 6;
+        });
+        yPosition += 10;
+      } else {
+        doc.setFontSize(10);
+        doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+        doc.text('No hay percepciones registradas', 20, yPosition);
+        yPosition += 15;
+      }
+
+      // === DEDUCTIONS ===
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(dangerColor[0], dangerColor[1], dangerColor[2]);
+      doc.text('DEDUCCIONES', 20, yPosition);
+      yPosition += 10;
+
+      if (data.deductions.length > 0) {
+        // Crear tabla de deducciones manualmente
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        
+        // Headers
+        doc.setFont('helvetica', 'bold');
+        doc.text('Concepto', 20, yPosition);
+        doc.text('Descripción', 70, yPosition);
+        doc.text('Importe', 160, yPosition);
+        
+        // Línea separadora
+        doc.line(20, yPosition + 2, 190, yPosition + 2);
+        yPosition += 8;
+        
+        // Filas de deducciones
+        doc.setFont('helvetica', 'normal');
+        data.deductions.forEach(deduction => {
+          doc.text(deduction.concept, 20, yPosition);
+          doc.text(deduction.description.length > 40 ? deduction.description.substring(0, 40) + '...' : deduction.description, 70, yPosition);
+          doc.text(this.formatCurrency(deduction.amount), 160, yPosition);
+          yPosition += 6;
+        });
+        yPosition += 10;
+      } else {
+        doc.setFontSize(10);
+        doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+        doc.text('No hay deducciones registradas', 20, yPosition);
+        yPosition += 15;
+      }
+
+      // === SUMMARY ===
+      yPosition += 10;
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text('RESUMEN DE NÓMINA', 20, yPosition);
+      yPosition += 15;
+
+      // Summary boxes
+      const summaryData = [
+        { label: 'Salario Bruto', amount: data.payroll.totalPerceptions, color: [107, 114, 128] },
+        { label: 'Deducciones', amount: data.payroll.totalDeductions, color: [239, 68, 68] },
+        { label: 'Salario Neto', amount: data.payroll.netSalary, color: [34, 197, 94] }
+      ];
+
+      const boxWidth = 50;
+      const boxHeight = 25;
+      const boxSpacing = 60;
+
+      summaryData.forEach((item, index) => {
+        const x = 20 + (index * boxSpacing);
+        
+        // Box background
+        doc.setFillColor(item.color[0], item.color[1], item.color[2]);
+        doc.rect(x, yPosition, boxWidth, boxHeight, 'F');
+        
+        // Box border
+        doc.setDrawColor(item.color[0], item.color[1], item.color[2]);
+        doc.setLineWidth(0.5);
+        doc.rect(x, yPosition, boxWidth, boxHeight, 'S');
+        
+        // Label
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(255, 255, 255);
+        doc.text(item.label, x + 5, yPosition + 8);
+        
+        // Amount
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(this.formatCurrency(item.amount), x + 5, yPosition + 18);
+      });
+
+      yPosition += boxHeight + 20;
+
+      // === SIGNATURE SECTION ===
+      if (yPosition > pageHeight - 60) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text('CONSTANCIA DE RECIBO', 20, yPosition);
+      yPosition += 15;
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text('El empleado declara haber recibido la cantidad neta especificada en este recibo,', 20, yPosition);
+      yPosition += 6;
+      doc.text('correspondiente al período de trabajo indicado. Este documento es válido como', 20, yPosition);
+      yPosition += 6;
+      doc.text('constancia de pago y aceptación de la nómina.', 20, yPosition);
+      yPosition += 20;
+
+      // Signature lines
+      doc.setFontSize(10);
+      doc.text('Firma del Empleado:', 20, yPosition);
+      doc.line(70, yPosition - 2, 120, yPosition - 2);
+      doc.text('Fecha:', 140, yPosition);
+      doc.line(160, yPosition - 2, 200, yPosition - 2);
+      yPosition += 20;
+
+      doc.text('Firma del Representante:', 20, yPosition);
+      doc.line(70, yPosition - 2, 120, yPosition - 2);
+      doc.text('Fecha:', 140, yPosition);
+      doc.line(160, yPosition - 2, 200, yPosition - 2);
+
+      // === FOOTER ===
+      const footerY = pageHeight - 15;
+      doc.setFontSize(8);
+      doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+      doc.text('Este documento fue generado automáticamente por el sistema UTALK', pageWidth / 2, footerY, { align: 'center' });
+      doc.text(`Página 1 de 1 - Generado el ${new Date().toLocaleString('es-MX')}`, pageWidth / 2, footerY + 5, { align: 'center' });
+
+      // Descargar el PDF
+      const fileName = `Nomina_${data.employee.name.replace(/\s+/g, '_')}_${data.period.startDate}_${data.period.endDate}.pdf`;
+      doc.save(fileName);
+      
+      console.log('✅ PDF generado exitosamente:', fileName);
+      
+    } catch (error) {
+      console.error('❌ Error generando PDF:', error);
+      throw error;
     }
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
-    doc.text('CONSTANCIA DE RECIBO', 20, yPosition);
-    yPosition += 15;
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('El empleado declara haber recibido la cantidad neta especificada en este recibo,', 20, yPosition);
-    yPosition += 6;
-    doc.text('correspondiente al período de trabajo indicado. Este documento es válido como', 20, yPosition);
-    yPosition += 6;
-    doc.text('constancia de pago y aceptación de la nómina.', 20, yPosition);
-    yPosition += 15;
-
-    // Signature lines
-    doc.text('Firma del Empleado:', 20, yPosition);
-    doc.line(70, yPosition - 2, 120, yPosition - 2);
-    doc.text('Fecha:', 140, yPosition);
-    doc.line(160, yPosition - 2, 200, yPosition - 2);
-    yPosition += 20;
-
-    doc.text('Firma del Representante:', 20, yPosition);
-    doc.line(70, yPosition - 2, 120, yPosition - 2);
-    doc.text('Fecha:', 140, yPosition);
-    doc.line(160, yPosition - 2, 200, yPosition - 2);
-
-    // === FOOTER ===
-    const footerY = pageHeight - 15;
-    doc.setFontSize(8);
-    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-    doc.text('Este documento fue generado automáticamente por el sistema UTALK', pageWidth / 2, footerY, { align: 'center' });
-    doc.text(`Página 1 de 1 - Generado el ${new Date().toLocaleString('es-MX')}`, pageWidth / 2, footerY + 5, { align: 'center' });
-
-    // Descargar el PDF
-    const fileName = `Nomina_${data.employee.name.replace(/\s+/g, '_')}_${data.period.startDate}_${data.period.endDate}.pdf`;
-    doc.save(fileName);
   }
 
   // Función helper para crear datos de prueba
