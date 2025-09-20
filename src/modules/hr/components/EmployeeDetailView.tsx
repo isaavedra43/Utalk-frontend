@@ -23,7 +23,7 @@ import { useNotifications } from '../../../contexts/NotificationContext';
 
 // Importar todos los componentes que ya tienes desarrollados
 import EmployeePayrollView from './EmployeePayrollView';
-import EmployeeAttendanceView from './EmployeeAttendanceView';
+import EmployeeExtrasView from './EmployeeExtrasView';
 import EmployeeVacationsView from './EmployeeVacationsView';
 import EmployeeDocumentsView from './EmployeeDocumentsView';
 import EmployeeIncidentsView from './EmployeeIncidentsView';
@@ -226,15 +226,15 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
         
         case 'attendance':
           try {
-            return <EmployeeAttendanceView employeeId={employee.id} employee={employee} onBack={onBack} />;
+            return <EmployeeExtrasView employeeId={employee.id} employee={employee} onBack={onBack} />;
           } catch (error) {
-            console.error('Error en EmployeeAttendanceView:', error);
+            console.error('Error en EmployeeExtrasView:', error);
             return (
               <div className="p-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
                   <Plus className="h-8 w-8 text-blue-400 mx-auto mb-2" />
                   <h3 className="text-lg font-medium text-blue-800 mb-1">Extras</h3>
-                  <p className="text-blue-600 text-sm">No hay información de asistencia disponible para este empleado.</p>
+                  <p className="text-blue-600 text-sm">No hay información de extras disponible para este empleado.</p>
                 </div>
               </div>
             );
