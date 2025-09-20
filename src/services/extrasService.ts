@@ -33,6 +33,13 @@ export interface MovementRecord {
   approvedBy?: string;
   approvedAt?: string;
   
+  // Estado de pago
+  paymentStatus: 'unpaid' | 'paid';
+  payrollId?: string; // ID de la nómina donde se pagó
+  payrollPeriod?: string; // Período de la nómina (ej: "2025-09-14 - 2025-09-20")
+  paidAt?: string; // Fecha cuando se pagó
+  paidBy?: string; // Quién procesó el pago
+  
   // Metadatos
   location: 'office' | 'remote' | 'field';
   attachments: string[];

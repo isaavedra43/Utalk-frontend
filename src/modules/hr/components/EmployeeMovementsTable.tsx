@@ -34,6 +34,12 @@ interface LocalMovementRecord {
   createdBy: string;
   createdAt: string;
   attachments?: string[];
+  // Estado de pago
+  paymentStatus?: 'unpaid' | 'paid';
+  payrollId?: string; // ID de la nómina donde se pagó
+  payrollPeriod?: string; // Período de la nómina (ej: "2025-09-14 - 2025-09-20")
+  paidAt?: string; // Fecha cuando se pagó
+  paidBy?: string; // Quién procesó el pago
   metadata?: {
     hours?: number;
     hourlyRate?: number;
@@ -115,6 +121,12 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
           createdBy: record.registeredBy,
           createdAt: record.createdAt,
           attachments: record.attachments,
+          // Estado de pago
+          paymentStatus: record.paymentStatus || 'unpaid',
+          payrollId: record.payrollId,
+          payrollPeriod: record.payrollPeriod,
+          paidAt: record.paidAt,
+          paidBy: record.paidBy,
           metadata: {
             hours: record.hours,
             hourlyRate: hourlyRate,
@@ -171,6 +183,11 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
           status: 'approved',
           createdBy: 'Juan Pérez',
           createdAt: '2024-01-15T18:30:00Z',
+          paymentStatus: 'paid',
+          payrollId: 'PAY001',
+          payrollPeriod: '2024-01-15 - 2024-01-21',
+          paidAt: '2024-01-22T10:00:00Z',
+          paidBy: 'admin@company.com',
           metadata: { hours: 2, hourlyRate, overtimeMultiplier: 1.5 }
         },
         // Faltas (negativas)
@@ -184,9 +201,25 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
           createdBy: 'Ana García',
           createdAt: '2024-01-17T08:00:00Z'
         },
-        // Préstamo (negativo)
+        // Bono (positivo)
         {
           id: 'MOV005',
+          type: 'bonus',
+          date: '2024-01-20',
+          description: 'Bono por rendimiento - Q1 2024',
+          amount: 3000, // Se suma el bono
+          status: 'approved',
+          createdBy: 'María López',
+          createdAt: '2024-01-20T14:00:00Z',
+          paymentStatus: 'paid',
+          payrollId: 'PAY002',
+          payrollPeriod: '2024-01-22 - 2024-01-28',
+          paidAt: '2024-01-29T09:30:00Z',
+          paidBy: 'admin@company.com'
+        },
+        // Préstamo (negativo)
+        {
+          id: 'MOV006',
           type: 'loan',
           date: '2024-01-10',
           description: 'Préstamo personal - $5,000',
@@ -308,6 +341,26 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
     }
   };
 
+  const getPaymentStatusIcon = (movement: LocalMovementRecord) => {
+    // Simular estado de pago basado en si tiene payrollId
+    const paymentStatus = movement.payrollId ? 'paid' : 'unpaid';
+    switch (paymentStatus) {
+      case 'paid': return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'unpaid': return <Clock className="h-4 w-4 text-orange-500" />;
+      default: return <Clock className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const getPaymentStatusLabel = (movement: LocalMovementRecord) => {
+    // Simular estado de pago basado en si tiene payrollId
+    const paymentStatus = movement.payrollId ? 'paid' : 'unpaid';
+    switch (paymentStatus) {
+      case 'paid': return movement.payrollPeriod || 'Pagado';
+      case 'unpaid': return 'No Pagado';
+      default: return 'Desconocido';
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
@@ -336,7 +389,8 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
         ExportService.cleanText(movement.description),
         ExportService.formatCurrency(Math.abs(movement.amount)),
         getStatusLabel(movement.status),
-        movement.registeredBy || '-'
+        getPaymentStatusLabel(movement),
+        movement.createdBy || '-'
       ]);
 
       const exportOptions = {
@@ -348,6 +402,7 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
           'Descripción',
           'Monto',
           'Estado',
+          'Estado de Pago',
           'Registrado Por'
         ],
         data: exportData,
@@ -543,6 +598,9 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
                 Estado
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Estado de Pago
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Registrado por
               </th>
               <th scope="col" className="relative px-6 py-3">
@@ -600,6 +658,16 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
                       </span>
                     </div>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center space-x-2">
+                      {getPaymentStatusIcon(movement)}
+                      <span className={`text-sm font-medium ${
+                        movement.paymentStatus === 'paid' ? 'text-green-600' : 'text-orange-600'
+                      }`}>
+                        {getPaymentStatusLabel(movement)}
+                      </span>
+                    </div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {movement.createdBy}
                   </td>
@@ -616,7 +684,7 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
+                <td colSpan={8} className="px-6 py-4 text-center text-sm text-gray-500">
                   No se encontraron movimientos.
                 </td>
               </tr>

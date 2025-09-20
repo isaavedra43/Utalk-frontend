@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   CalendarDays, 
-  Download, 
   TrendingUp, 
   TrendingDown,
   DollarSign,
@@ -17,11 +16,7 @@ import {
   Upload,
   FileText,
   Image,
-  Paperclip,
-  Mail,
-  MessageSquare,
-  Copy,
-  ExternalLink
+  Paperclip
 } from 'lucide-react';
 import { payrollApi, type PayrollPeriod, type PayrollConfig, type PayrollDetail } from '../../../services/payrollApi';
 import { Employee } from '../../../services/employeesApi';
@@ -91,7 +86,6 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
     uploadedAt: string;
   }>>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Función para cargar datos de nómina
   const loadPayrollData = useCallback(async () => {
@@ -442,6 +436,23 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       console.log('💰 Marcando como pagado:', payrollId);
       
       await payrollApi.markAsPaid(payrollId, new Date().toISOString().split('T')[0]);
+      
+      // Marcar extras como pagados si hay extras pendientes
+      if (pendingExtras && pendingExtras.extras.length > 0) {
+        console.log('📋 Marcando extras como pagados en nómina:', payrollId);
+        
+        // Aquí se podría llamar a una función del backend para marcar los extras como pagados
+        // Por ahora, solo registramos en consola
+        const extrasToMark = pendingExtras.extras.map(extra => ({
+          id: extra.id,
+          payrollId: payrollId,
+          payrollPeriod: selectedPeriod ? `${selectedPeriod.startDate} - ${selectedPeriod.endDate}` : undefined,
+          paidAt: new Date().toISOString(),
+          paidBy: 'admin@company.com' // Esto debería venir del contexto de autenticación
+        }));
+        
+        console.log('✅ Extras marcados como pagados:', extrasToMark);
+      }
       
       // Recargar datos
       await loadPayrollData();
@@ -794,73 +805,6 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
     }
   };
 
-  // Funciones para compartir
-  const generateShareContent = () => {
-    if (!selectedPeriod || !employee) return '';
-    
-    const periodInfo = `${formatDate(selectedPeriod.periodStart)} - ${formatDate(selectedPeriod.periodEnd)}`;
-    const content = `📊 Nómina de ${employee.personalInfo.firstName} ${employee.personalInfo.lastName}
-    
-📅 Período: ${periodInfo}
-💰 Salario Bruto: ${formatCurrency(selectedPeriod.grossSalary)}
-💸 Deducciones: ${formatCurrency(selectedPeriod.totalDeductions)}
-💵 Salario Neto: ${formatCurrency(selectedPeriod.netSalary)}
-📋 Estado: ${payrollApi.getStatusLabel(selectedPeriod.status)}
-
-Generado desde Utalk HR`;
-    
-    return content;
-  };
-
-  const handleShareWhatsApp = () => {
-    const content = generateShareContent();
-    const url = `https://wa.me/?text=${encodeURIComponent(content)}`;
-    window.open(url, '_blank');
-  };
-
-  const handleShareEmail = () => {
-    const content = generateShareContent();
-    const subject = `Nómina - ${employee?.personalInfo.firstName} ${employee?.personalInfo.lastName} - ${formatDate(selectedPeriod?.periodStart || '')}`;
-    const body = content;
-    const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(url);
-  };
-
-  const handleShareTelegram = () => {
-    const content = generateShareContent();
-    const url = `https://t.me/share/url?url=&text=${encodeURIComponent(content)}`;
-    window.open(url, '_blank');
-  };
-
-  const handleShareTwitter = () => {
-    const content = generateShareContent();
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(content)}`;
-    window.open(url, '_blank');
-  };
-
-  const handleShareLinkedIn = () => {
-    const content = generateShareContent();
-    const url = `https://www.linkedin.com/sharing/share-offsite/?url=&summary=${encodeURIComponent(content)}`;
-    window.open(url, '_blank');
-  };
-
-  const handleCopyToClipboard = async () => {
-    try {
-      const content = generateShareContent();
-      await navigator.clipboard.writeText(content);
-      console.log('✅ Contenido copiado al portapapeles');
-      // Aquí podrías agregar una notificación de éxito
-    } catch (error) {
-      console.error('❌ Error copiando al portapapeles:', error);
-    }
-  };
-
-  const handleShareFacebook = () => {
-    const content = generateShareContent();
-    const url = `https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent(content)}`;
-    window.open(url, '_blank');
-  };
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
@@ -945,12 +889,12 @@ Generado desde Utalk HR`;
           </button>
           
           <button
-            onClick={() => setIsShareModalOpen(true)}
+            onClick={handleGenerateLocalPDF}
             disabled={!selectedPeriod}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Share2 className="w-4 h-4" />
-            Compartir
+            Compartir Recibo
           </button>
           
           <button
@@ -994,32 +938,6 @@ Generado desde Utalk HR`;
         </div>
       )}
 
-      {/* Pending Extras Summary */}
-      {pendingExtras && pendingExtras.summary.totalExtras > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <h4 className="text-lg font-semibold text-blue-900 mb-3">Extras Pendientes de Aplicar</h4>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-900">{pendingExtras.summary.totalExtras}</div>
-              <div className="text-sm text-blue-700">Total Extras</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">+{formatCurrency(pendingExtras.summary.totalToAdd)}</div>
-              <div className="text-sm text-green-600">A Sumar</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">-{formatCurrency(pendingExtras.summary.totalToSubtract)}</div>
-              <div className="text-sm text-red-600">A Restar</div>
-            </div>
-            <div className="text-center">
-              <div className={`text-2xl font-bold ${pendingExtras.summary.netImpact >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {pendingExtras.summary.netImpact >= 0 ? '+' : ''}{formatCurrency(pendingExtras.summary.netImpact)}
-              </div>
-              <div className="text-sm text-gray-600">Impacto Neto</div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Summary Cards */}
       {payrollData.hasData && (
@@ -1255,25 +1173,11 @@ Generado desde Utalk HR`;
                         </label>
                       </div>
                       
-                      {/* Botón Descargar PDF (Backend) */}
-                      <button 
-                        onClick={() => handleDownloadPDF(selectedPeriod.id)}
-                        disabled={downloadingPDF === selectedPeriod.id}
-                        className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        title="Descargar PDF (Backend)"
-                      >
-                        {downloadingPDF === selectedPeriod.id ? (
-                          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <Download className="w-4 h-4" />
-                        )}
-                      </button>
-
-                      {/* Botón Generar PDF Local */}
+                      {/* Botón Generar PDF */}
                       <button 
                         onClick={handleGenerateLocalPDF}
                         className="text-green-600 hover:text-green-800 p-1.5 rounded hover:bg-green-50 transition-colors"
-                        title="Generar PDF Local (Con horas extra)"
+                        title="Generar PDF de Nómina"
                       >
                         <FileText className="w-4 h-4" />
                       </button>
@@ -1450,116 +1354,6 @@ Generado desde Utalk HR`;
         </div>
       </div>
 
-      {/* Modal de Compartir */}
-      {isShareModalOpen && selectedPeriod && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <Share2 className="w-5 h-5" />
-                  Compartir Nómina
-                </h3>
-                <button
-                  onClick={() => setIsShareModalOpen(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-6">
-              <div className="mb-6">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Información a compartir:</h4>
-                <div className="bg-gray-50 p-3 rounded-lg text-sm text-gray-600">
-                  <p><strong>Empleado:</strong> {employee?.personalInfo.firstName} {employee?.personalInfo.lastName}</p>
-                  <p><strong>Período:</strong> {formatDate(selectedPeriod.periodStart)} - {formatDate(selectedPeriod.periodEnd)}</p>
-                  <p><strong>Salario Bruto:</strong> {formatCurrency(calculatePayrollTotals().totalPerceptions)}</p>
-                  <p><strong>Deducciones:</strong> {formatCurrency(calculatePayrollTotals().totalDeductions)}</p>
-                  <p><strong>Salario Neto:</strong> {formatCurrency(calculatePayrollTotals().netSalary)}</p>
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                <h4 className="text-sm font-medium text-gray-700">Compartir en:</h4>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={handleShareWhatsApp}
-                    className="flex items-center gap-3 p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
-                  >
-                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                      <MessageSquare className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-sm font-medium text-green-700">WhatsApp</span>
-                  </button>
-                  
-                  <button
-                    onClick={handleShareEmail}
-                    className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-                  >
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                      <Mail className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-sm font-medium text-blue-700">Email</span>
-                  </button>
-                  
-                  <button
-                    onClick={handleShareTelegram}
-                    className="flex items-center gap-3 p-3 bg-sky-50 hover:bg-sky-100 rounded-lg transition-colors"
-                  >
-                    <div className="w-8 h-8 bg-sky-500 rounded-full flex items-center justify-center">
-                      <MessageSquare className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-sm font-medium text-sky-700">Telegram</span>
-                  </button>
-                  
-                  <button
-                    onClick={handleShareTwitter}
-                    className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-                  >
-                    <div className="w-8 h-8 bg-blue-400 rounded-full flex items-center justify-center">
-                      <ExternalLink className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-sm font-medium text-blue-700">Twitter</span>
-                  </button>
-                  
-                  <button
-                    onClick={handleShareLinkedIn}
-                    className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-                  >
-                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                      <ExternalLink className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-sm font-medium text-blue-700">LinkedIn</span>
-                  </button>
-                  
-                  <button
-                    onClick={handleShareFacebook}
-                    className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-                  >
-                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                      <ExternalLink className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="text-sm font-medium text-blue-700">Facebook</span>
-                  </button>
-                </div>
-                
-                <div className="pt-3 border-t border-gray-200">
-                  <button
-                    onClick={handleCopyToClipboard}
-                    className="w-full flex items-center justify-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <Copy className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm font-medium text-gray-700">Copiar al Portapapeles</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal de Configuración */}
       {isConfigModalOpen && (
