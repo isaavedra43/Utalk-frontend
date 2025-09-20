@@ -502,7 +502,7 @@ const GeneralPayrollView: React.FC = () => {
                 </div>
                 
                 {/* Línea conectora */}
-                {index < payrollSteps.length - 1 && (
+                {index < getPayrollSteps().length - 1 && (
                   <div className={`absolute top-7 left-full w-16 h-0.5 ${
                     step.status === 'completed' ? 'bg-green-600' : 'bg-gray-300'
                   }`}></div>
@@ -555,7 +555,7 @@ const GeneralPayrollView: React.FC = () => {
               onClick={handleResetProcess}
               className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
             >
-              <RefreshCw className="h-4 w-4 mr-2" />
+              <XCircle className="h-4 w-4 mr-2" />
               Resetear Proceso
             </button>
           </div>

@@ -52,8 +52,19 @@ class GeneralPayrollApi {
   // Obtener métricas generales de nómina
   async getGeneralMetrics(): Promise<PayrollMetrics> {
     try {
-      const response = await api.get(`${this.baseUrl}/metrics`);
-      return response.data.data;
+      // Usar datos mock para desarrollo
+      console.log('📊 Usando datos mock para métricas generales');
+      
+      // Simular delay de API
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      return {
+        pendingOvertimeHours: 125,
+        periodIncidents: 18,
+        totalEmployees: 25,
+        activePeriods: 3,
+        totalCost: 750000
+      };
     } catch (error) {
       console.error('Error obteniendo métricas generales:', error);
       throw error;
@@ -78,8 +89,76 @@ class GeneralPayrollApi {
     };
   }> {
     try {
-      const response = await api.get(`${this.baseUrl}/periods`, { params });
-      return response.data.data;
+      // Usar datos mock para desarrollo
+      console.log('📅 Usando datos mock para períodos de nómina');
+      
+      // Simular delay de API
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      const mockPeriods: PayrollPeriod[] = [
+        {
+          id: '1',
+          period: 'Enero 2024',
+          type: 'Mensual',
+          status: 'pendiente',
+          employees: 25,
+          estimatedCost: 250000.00,
+          realCost: 0,
+          startDate: '2024-01-01',
+          endDate: '2024-01-31',
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z'
+        },
+        {
+          id: '2',
+          period: 'Diciembre 2023',
+          type: 'Mensual',
+          status: 'cerrado',
+          employees: 25,
+          estimatedCost: 240000.00,
+          realCost: 245000.50,
+          startDate: '2023-12-01',
+          endDate: '2023-12-31',
+          createdAt: '2023-12-01T00:00:00Z',
+          updatedAt: '2023-12-31T00:00:00Z'
+        },
+        {
+          id: '3',
+          period: 'Noviembre 2023',
+          type: 'Mensual',
+          status: 'aprobado',
+          employees: 25,
+          estimatedCost: 235000.00,
+          realCost: 238000.00,
+          startDate: '2023-11-01',
+          endDate: '2023-11-30',
+          createdAt: '2023-11-01T00:00:00Z',
+          updatedAt: '2023-11-30T00:00:00Z'
+        },
+        {
+          id: '4',
+          period: 'Octubre 2023',
+          type: 'Mensual',
+          status: 'calculado',
+          employees: 24,
+          estimatedCost: 230000.00,
+          realCost: 232500.00,
+          startDate: '2023-10-01',
+          endDate: '2023-10-31',
+          createdAt: '2023-10-01T00:00:00Z',
+          updatedAt: '2023-10-31T00:00:00Z'
+        }
+      ];
+      
+      return {
+        periods: mockPeriods,
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: mockPeriods.length,
+          totalPages: 1
+        }
+      };
     } catch (error) {
       console.error('Error obteniendo períodos de nómina:', error);
       throw error;
