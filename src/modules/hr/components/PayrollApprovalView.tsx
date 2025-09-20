@@ -45,6 +45,13 @@ interface ApprovalRequest {
     reason: string;
   }>;
   status: 'pending' | 'approved' | 'rejected' | 'needs_review';
+  paymentStatus: 'pending_payment' | 'paid' | 'receipt_uploaded' | 'completed';
+  receiptFile?: {
+    name: string;
+    url: string;
+    uploadedAt: string;
+    uploadedBy: string;
+  };
   requestedBy: string;
   requestedAt: string;
   reviewedBy?: string;
@@ -83,6 +90,8 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [approvalComments, setApprovalComments] = useState<{[key: string]: string}>({});
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [selectedRequestForReceipt, setSelectedRequestForReceipt] = useState<string | null>(null);
 
   // Datos mock para aprobaciones
   const mockApprovalRequests: ApprovalRequest[] = [
@@ -102,6 +111,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
         }
       ],
       status: 'pending',
+      paymentStatus: 'pending_payment',
       requestedBy: 'Juan Pérez',
       requestedAt: '2024-01-31T11:00:00Z'
     },
@@ -115,6 +125,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
       difference: 0,
       adjustments: [],
       status: 'approved',
+      paymentStatus: 'paid',
       requestedBy: 'María González',
       requestedAt: '2024-01-31T10:30:00Z',
       reviewedBy: 'Ana López',
@@ -131,6 +142,13 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
       difference: 0,
       adjustments: [],
       status: 'approved',
+      paymentStatus: 'receipt_uploaded',
+      receiptFile: {
+        name: 'recibo-nomina-EMP003-enero2024.pdf',
+        url: '/receipts/recibo-nomina-EMP003-enero2024.pdf',
+        uploadedAt: '2024-01-31T14:30:00Z',
+        uploadedBy: 'María Elena Torres'
+      },
       requestedBy: 'Carlos Ruiz',
       requestedAt: '2024-01-31T10:30:00Z',
       reviewedBy: 'Ana López',
@@ -212,6 +230,36 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
       case 'approved': return <CheckCircle className="h-4 w-4" />;
       case 'rejected': return <XCircle className="h-4 w-4" />;
       case 'needs_review': return <AlertTriangle className="h-4 w-4" />;
+      default: return <Clock className="h-4 w-4" />;
+    }
+  };
+
+  const getPaymentStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending_payment': return 'bg-yellow-100 text-yellow-800';
+      case 'paid': return 'bg-blue-100 text-blue-800';
+      case 'receipt_uploaded': return 'bg-green-100 text-green-800';
+      case 'completed': return 'bg-purple-100 text-purple-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getPaymentStatusText = (status: string) => {
+    switch (status) {
+      case 'pending_payment': return 'Pendiente Pago';
+      case 'paid': return 'Pagado';
+      case 'receipt_uploaded': return 'Recibo Subido';
+      case 'completed': return 'Completado';
+      default: return status;
+    }
+  };
+
+  const getPaymentStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending_payment': return <Clock className="h-4 w-4" />;
+      case 'paid': return <DollarSign className="h-4 w-4" />;
+      case 'receipt_uploaded': return <FileText className="h-4 w-4" />;
+      case 'completed': return <CheckCircle className="h-4 w-4" />;
       default: return <Clock className="h-4 w-4" />;
     }
   };
@@ -313,6 +361,47 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
   const handleNext = () => {
     const approvedData = approvalRequests.filter(req => req.status === 'approved');
     onNext(approvedData);
+  };
+
+  const handleMarkAsPaid = (requestId: string) => {
+    setApprovalRequests(prev => 
+      prev.map(req => 
+        req.id === requestId 
+          ? { ...req, paymentStatus: 'paid' as const }
+          : req
+      )
+    );
+  };
+
+  const handleUploadReceipt = (requestId: string) => {
+    setSelectedRequestForReceipt(requestId);
+    setShowReceiptModal(true);
+  };
+
+  const handleReceiptUpload = (file: File) => {
+    if (!selectedRequestForReceipt) return;
+
+    const receiptData = {
+      name: file.name,
+      url: URL.createObjectURL(file),
+      uploadedAt: new Date().toISOString(),
+      uploadedBy: 'Usuario Actual'
+    };
+
+    setApprovalRequests(prev => 
+      prev.map(req => 
+        req.id === selectedRequestForReceipt 
+          ? { 
+              ...req, 
+              paymentStatus: 'receipt_uploaded' as const,
+              receiptFile: receiptData
+            }
+          : req
+      )
+    );
+
+    setShowReceiptModal(false);
+    setSelectedRequestForReceipt(null);
   };
 
   const canProceed = approvalRequests.every(req => req.status !== 'pending');
@@ -495,6 +584,12 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Solicitado Por
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Estado de Pago
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Recibo Firmado
+                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
                 </th>
@@ -541,6 +636,35 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                     <div className="text-sm text-gray-900">{request.requestedBy}</div>
                     <div className="text-xs text-gray-500">{formatDate(request.requestedAt)}</div>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPaymentStatusColor(request.paymentStatus)}`}>
+                      {getPaymentStatusIcon(request.paymentStatus)}
+                      <span className="ml-1">{getPaymentStatusText(request.paymentStatus)}</span>
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {request.receiptFile ? (
+                      <div className="flex items-center space-x-2">
+                        <FileText className="h-4 w-4 text-green-600" />
+                        <span className="text-sm text-gray-900">{request.receiptFile.name}</span>
+                        <button
+                          onClick={() => window.open(request.receiptFile!.url, '_blank')}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="Ver recibo"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleUploadReceipt(request.id)}
+                        className="flex items-center px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        <FileText className="h-3 w-3 mr-1" />
+                        Subir Recibo
+                      </button>
+                    )}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
                       {request.status === 'pending' && (
@@ -560,6 +684,15 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                             <X className="h-4 w-4" />
                           </button>
                         </>
+                      )}
+                      {request.status === 'approved' && request.paymentStatus === 'pending_payment' && (
+                        <button
+                          onClick={() => handleMarkAsPaid(request.id)}
+                          className="text-green-600 hover:text-green-900"
+                          title="Marcar como pagado"
+                        >
+                          <DollarSign className="h-4 w-4" />
+                        </button>
                       )}
                       <button className="text-blue-600 hover:text-blue-900" title="Ver detalles">
                         <Eye className="h-4 w-4" />
@@ -615,6 +748,68 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Modal para subir recibo */}
+      {showReceiptModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900">Subir Recibo Firmado</h3>
+              <button
+                onClick={() => setShowReceiptModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Seleccionar archivo
+                  </label>
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleReceiptUpload(file);
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Formatos permitidos: PDF, JPG, PNG (máx. 10MB)
+                  </p>
+                </div>
+                
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <Info className="h-5 w-5 text-blue-600 mr-3" />
+                    <div>
+                      <h4 className="text-sm font-medium text-blue-800">Información importante</h4>
+                      <p className="text-sm text-blue-700 mt-1">
+                        El recibo debe estar firmado por el empleado y contener todos los detalles de la nómina.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => setShowReceiptModal(false)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
