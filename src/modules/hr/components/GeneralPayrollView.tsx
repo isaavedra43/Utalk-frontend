@@ -13,7 +13,13 @@ import {
   Pause,
   Eye,
   List,
-  FileText
+  FileText,
+  CalendarDays,
+  CalendarRange,
+  CalendarCheck,
+  Hammer,
+  X,
+  Plus
 } from 'lucide-react';
 import { generalPayrollApi, type PayrollPeriod, type PayrollMetrics } from '../../../services/generalPayrollApi';
 import EmployeePayrollDetailView from './EmployeePayrollDetailView';
@@ -28,6 +34,21 @@ interface PayrollRunStep {
   id: number;
   name: string;
   status: 'current' | 'completed' | 'pending';
+}
+
+interface PayrollPeriodType {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+  color: string;
+}
+
+interface CustomPeriodData {
+  startDate: string;
+  endDate: string;
+  name: string;
+  description?: string;
 }
 
 const GeneralPayrollView: React.FC = () => {
@@ -54,8 +75,48 @@ const GeneralPayrollView: React.FC = () => {
   const [approvedData, setApprovedData] = useState<any[]>([]);
   
   // Estados para el modal de detalle de nómina
-  const [showPayrollDetailModal, setShowPayrollDetailModal] = useState(false);
-  const [selectedPeriodForDetail, setSelectedPeriodForDetail] = useState<PayrollPeriod | null>(null);
+  
+  // Estados para el selector de período
+  const [showPeriodSelector, setShowPeriodSelector] = useState(false);
+  const [selectedPeriodType, setSelectedPeriodType] = useState<string>('');
+  const [customPeriodData, setCustomPeriodData] = useState<CustomPeriodData>({
+    startDate: '',
+    endDate: '',
+    name: '',
+    description: ''
+  });
+
+  // Opciones de período de nómina
+  const periodTypes: PayrollPeriodType[] = [
+    {
+      id: 'custom',
+      name: 'Día Personalizado',
+      description: 'Selecciona fechas específicas para el período de nómina',
+      icon: <CalendarDays className="h-6 w-6" />,
+      color: 'blue'
+    },
+    {
+      id: 'week',
+      name: 'Semana Actual',
+      description: 'Nómina para la semana actual (lunes a domingo)',
+      icon: <CalendarRange className="h-6 w-6" />,
+      color: 'green'
+    },
+    {
+      id: 'month',
+      name: 'Mes',
+      description: 'Nómina mensual completa',
+      icon: <CalendarCheck className="h-6 w-6" />,
+      color: 'purple'
+    },
+    {
+      id: 'piecework',
+      name: 'Destajo',
+      description: 'Nómina por trabajo realizado o proyectos específicos',
+      icon: <Hammer className="h-6 w-6" />,
+      color: 'orange'
+    }
+  ];
 
   // Pasos del proceso de payroll run - dinámicos
   const getPayrollSteps = (): PayrollRunStep[] => {
@@ -128,19 +189,114 @@ const GeneralPayrollView: React.FC = () => {
     console.log('📅 Período seleccionado:', period);
   };
 
+  // Función para abrir el selector de período
+  const handleOpenPeriodSelector = () => {
+    setShowPeriodSelector(true);
+    setSelectedPeriodType('');
+    setCustomPeriodData({
+      startDate: '',
+      endDate: '',
+      name: '',
+      description: ''
+    });
+  };
+
+  // Función para cerrar el selector de período
+  const handleClosePeriodSelector = () => {
+    setShowPeriodSelector(false);
+    setSelectedPeriodType('');
+    setCustomPeriodData({
+      startDate: '',
+      endDate: '',
+      name: '',
+      description: ''
+    });
+  };
+
+  // Función para seleccionar tipo de período
+  const handleSelectPeriodType = (typeId: string) => {
+    setSelectedPeriodType(typeId);
+    
+    // Auto-llenar datos según el tipo
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    const dayOfWeek = today.getDay();
+    const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Ajustar para lunes
+    startOfWeek.setDate(diff);
+    
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    switch (typeId) {
+      case 'week':
+        setCustomPeriodData({
+          startDate: startOfWeek.toISOString().split('T')[0],
+          endDate: new Date(startOfWeek.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          name: `Semana del ${startOfWeek.toLocaleDateString('es-MX')}`,
+          description: 'Nómina semanal'
+        });
+        break;
+      case 'month':
+        setCustomPeriodData({
+          startDate: startOfMonth.toISOString().split('T')[0],
+          endDate: endOfMonth.toISOString().split('T')[0],
+          name: `${today.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}`,
+          description: 'Nómina mensual'
+        });
+        break;
+      case 'piecework':
+        setCustomPeriodData({
+          startDate: today.toISOString().split('T')[0],
+          endDate: today.toISOString().split('T')[0],
+          name: `Destajo - ${today.toLocaleDateString('es-MX')}`,
+          description: 'Nómina por destajo'
+        });
+        break;
+      default:
+        setCustomPeriodData({
+          startDate: '',
+          endDate: '',
+          name: '',
+          description: ''
+        });
+    }
+  };
+
+  // Función para crear período personalizado
+  const handleCreateCustomPeriod = () => {
+    if (!selectedPeriodType || !customPeriodData.startDate || !customPeriodData.endDate || !customPeriodData.name) {
+      alert('Por favor completa todos los campos requeridos');
+      return;
+    }
+
+    const newPeriod: PayrollPeriod = {
+      id: `custom_${Date.now()}`,
+      period: customPeriodData.name,
+      type: periodTypes.find(t => t.id === selectedPeriodType)?.name || 'Personalizado',
+      startDate: customPeriodData.startDate,
+      endDate: customPeriodData.endDate,
+      status: 'pendiente',
+      totalEmployees: 0,
+      totalAmount: 0,
+      createdAt: new Date().toISOString(),
+      createdBy: 'Usuario Actual'
+    };
+
+    setSelectedPeriod(newPeriod);
+    setShowPeriodSelector(false);
+    console.log('📅 Nuevo período creado:', newPeriod);
+  };
+
   // Función para iniciar nuevo payroll run
   const handleStartPayrollRun = async () => {
-    // Para demo, usar el primer período disponible si no hay uno seleccionado
-    const periodToUse = selectedPeriod || payrollPeriods[0];
-    
-    if (!periodToUse) {
-      alert('No hay períodos disponibles para iniciar el payroll run');
+    if (!selectedPeriod) {
+      alert('Por favor selecciona un período antes de iniciar el payroll run');
       return;
     }
 
     setIsGenerating(true);
     try {
-      console.log('🚀 Iniciando payroll run para período:', periodToUse);
+      console.log('🚀 Iniciando payroll run para período:', selectedPeriod);
       
       // Simular conexión con el backend
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -148,7 +304,6 @@ const GeneralPayrollView: React.FC = () => {
       console.log('✅ Payroll run iniciado exitosamente');
       
       // Ir a la vista de simulación
-      setSelectedPeriod(periodToUse);
       setShowSimulationView(true);
       setCurrentStep(2);
       
@@ -257,17 +412,12 @@ const GeneralPayrollView: React.FC = () => {
     }
   };
 
-  // Función para ver detalle de nómina
+  // Función para ver detalle de nómina - redirige a la vista correcta
   const handleViewPayrollDetail = (period: PayrollPeriod) => {
-    setSelectedPeriodForDetail(period);
-    setShowPayrollDetailModal(true);
-    console.log('📊 Abriendo detalle de nómina para período:', period.period);
-  };
-
-  // Función para cerrar modal de detalle
-  const handleClosePayrollDetailModal = () => {
-    setShowPayrollDetailModal(false);
-    setSelectedPeriodForDetail(null);
+    console.log('📊 Redirigiendo a detalle de nómina para período:', period.period);
+    // Aquí se redirigiría a la vista correcta de EmployeePayrollDetailView
+    // Por ahora simulamos la redirección
+    alert(`Redirigiendo a la vista detallada de nómina para el período: ${period.period}`);
   };
 
   // Cargar datos al montar el componente
@@ -532,9 +682,20 @@ const GeneralPayrollView: React.FC = () => {
 
         <div className="mb-6">
           <p className="text-gray-600 mb-4">
-            Selecciona un periodo de la tabla de abajo para iniciar la simulación.
+            {selectedPeriod 
+              ? `Período seleccionado: ${selectedPeriod.period} (${selectedPeriod.type})`
+              : 'Selecciona un período para iniciar la simulación.'
+            }
           </p>
           <div className="flex items-center space-x-4">
+            <button
+              onClick={handleOpenPeriodSelector}
+              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Seleccionar Período
+            </button>
+            
             <button
               onClick={handleStartPayrollRun}
               disabled={!selectedPeriod || isGenerating}
@@ -685,192 +846,166 @@ const GeneralPayrollView: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal para ver detalle de nómina */}
-      {showPayrollDetailModal && selectedPeriodForDetail && (
+
+      {/* Modal para seleccionar período */}
+      {showPeriodSelector && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h3 className="text-2xl font-bold text-gray-900">
-                  Detalle de Nómina - {selectedPeriodForDetail.period}
-                </h3>
+                <h3 className="text-2xl font-bold text-gray-900">Seleccionar Período de Nómina</h3>
                 <p className="text-gray-600 mt-1">
-                  Información detallada del período de nómina seleccionado
+                  Elige el tipo de período para generar la nómina
                 </p>
               </div>
               <button
-                onClick={handleClosePayrollDetailModal}
+                onClick={handleClosePeriodSelector}
                 className="text-gray-400 hover:text-gray-600"
               >
-                <XCircle className="h-6 w-6" />
+                <X className="h-6 w-6" />
               </button>
             </div>
             
             <div className="space-y-6">
-              {/* Información general del período */}
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <h4 className="text-lg font-semibold text-gray-900 mb-4">Información del Período</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Período</label>
-                    <p className="text-lg font-semibold text-gray-900">{selectedPeriodForDetail.period}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
-                    <p className="text-lg font-semibold text-gray-900">{selectedPeriodForDetail.type}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedPeriodForDetail.status)}`}>
-                      {getStatusText(selectedPeriodForDetail.status)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Métricas financieras */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Empleados</p>
-                      <p className="text-3xl font-bold text-gray-900">{selectedPeriodForDetail.employees}</p>
-                    </div>
-                    <div className="p-3 bg-blue-100 rounded-full">
-                      <Users className="h-6 w-6 text-blue-600" />
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Costo Estimado</p>
-                      <p className="text-3xl font-bold text-gray-900">{formatCurrency(selectedPeriodForDetail.estimatedCost)}</p>
-                    </div>
-                    <div className="p-3 bg-yellow-100 rounded-full">
-                      <DollarSign className="h-6 w-6 text-yellow-600" />
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-white border border-gray-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Costo Real</p>
-                      <p className="text-3xl font-bold text-gray-900">
-                        {selectedPeriodForDetail.realCost ? formatCurrency(selectedPeriodForDetail.realCost) : 'N/A'}
-                      </p>
-                    </div>
-                    <div className="p-3 bg-green-100 rounded-full">
-                      <TrendingUp className="h-6 w-6 text-green-600" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Fechas del período */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h4 className="text-lg font-semibold text-gray-900 mb-4">Fechas del Período</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Fecha de Inicio</label>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {new Date(selectedPeriodForDetail.startDate).toLocaleDateString('es-MX')}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Fecha de Fin</label>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {new Date(selectedPeriodForDetail.endDate).toLocaleDateString('es-MX')}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tabla de empleados del período */}
-              <div className="bg-white border border-gray-200 rounded-lg">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h4 className="text-lg font-semibold text-gray-900">Empleados del Período</h4>
-                </div>
-                <div className="p-6">
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <p className="text-sm text-blue-800">
-                      <strong>Funcionalidad en desarrollo:</strong> Aquí se mostrará la lista detallada de todos los empleados 
-                      incluidos en este período de nómina, con sus salarios, ajustes, y estado de pago.
-                    </p>
-                  </div>
-                  
-                  {/* Datos mock para demostración */}
-                  <div className="mt-4 space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              {/* Opciones de tipo de período */}
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">Tipo de Período</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {periodTypes.map((type) => (
+                    <button
+                      key={type.id}
+                      onClick={() => handleSelectPeriodType(type.id)}
+                      className={`p-4 border-2 rounded-lg text-left transition-all ${
+                        selectedPeriodType === type.id
+                          ? `border-${type.color}-500 bg-${type.color}-50`
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
                       <div className="flex items-center space-x-3">
-                        <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <Users className="h-4 w-4 text-blue-600" />
+                        <div className={`p-2 rounded-lg ${
+                          selectedPeriodType === type.id
+                            ? `bg-${type.color}-100 text-${type.color}-600`
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {type.icon}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">Ana García López</p>
-                          <p className="text-sm text-gray-600">Desarrolladora Senior</p>
+                          <h5 className="font-semibold text-gray-900">{type.name}</h5>
+                          <p className="text-sm text-gray-600">{type.description}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-900">{formatCurrency(44700)}</p>
-                        <p className="text-sm text-green-600">Aprobado</p>
-                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Formulario de período personalizado */}
+              {selectedPeriodType && (
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Configuración del Período</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Fecha de Inicio
+                      </label>
+                      <input
+                        type="date"
+                        value={customPeriodData.startDate}
+                        onChange={(e) => setCustomPeriodData({
+                          ...customPeriodData,
+                          startDate: e.target.value
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
                     </div>
                     
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <Users className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">Carlos Mendoza Ruiz</p>
-                          <p className="text-sm text-gray-600">Gerente de Ventas</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-900">{formatCurrency(61700)}</p>
-                        <p className="text-sm text-yellow-600">Pendiente</p>
-                      </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Fecha de Fin
+                      </label>
+                      <input
+                        type="date"
+                        value={customPeriodData.endDate}
+                        onChange={(e) => setCustomPeriodData({
+                          ...customPeriodData,
+                          endDate: e.target.value
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
                     </div>
                     
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <Users className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">María Elena Torres</p>
-                          <p className="text-sm text-gray-600">Analista de RH</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-900">{formatCurrency(32300)}</p>
-                        <p className="text-sm text-green-600">Aprobado</p>
-                      </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nombre del Período
+                      </label>
+                      <input
+                        type="text"
+                        value={customPeriodData.name}
+                        onChange={(e) => setCustomPeriodData({
+                          ...customPeriodData,
+                          name: e.target.value
+                        })}
+                        placeholder="Ej: Enero 2024, Semana 1, Proyecto Alpha..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Descripción (Opcional)
+                      </label>
+                      <textarea
+                        value={customPeriodData.description}
+                        onChange={(e) => setCustomPeriodData({
+                          ...customPeriodData,
+                          description: e.target.value
+                        })}
+                        placeholder="Descripción adicional del período..."
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* Resumen del período */}
+              {selectedPeriodType && customPeriodData.startDate && customPeriodData.endDate && (
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h5 className="font-semibold text-blue-800 mb-2">Resumen del Período</h5>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="text-blue-700"><strong>Tipo:</strong> {periodTypes.find(t => t.id === selectedPeriodType)?.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-blue-700"><strong>Inicio:</strong> {new Date(customPeriodData.startDate).toLocaleDateString('es-MX')}</p>
+                    </div>
+                    <div>
+                      <p className="text-blue-700"><strong>Fin:</strong> {new Date(customPeriodData.endDate).toLocaleDateString('es-MX')}</p>
+                    </div>
+                  </div>
+                  {customPeriodData.name && (
+                    <div className="mt-2">
+                      <p className="text-blue-700"><strong>Nombre:</strong> {customPeriodData.name}</p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Acciones del modal */}
               <div className="flex justify-end space-x-3 pt-6 border-t">
                 <button
-                  onClick={handleClosePayrollDetailModal}
+                  onClick={handleClosePeriodSelector}
                   className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
-                  Cerrar
+                  Cancelar
                 </button>
                 <button
-                  onClick={() => {
-                    handleClosePayrollDetailModal();
-                    handleDownloadReport(selectedPeriodForDetail);
-                  }}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  onClick={handleCreateCustomPeriod}
+                  disabled={!selectedPeriodType || !customPeriodData.startDate || !customPeriodData.endDate || !customPeriodData.name}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
-                  <Download className="h-4 w-4 inline mr-2" />
-                  Descargar Reporte
+                  Crear Período
                 </button>
               </div>
             </div>

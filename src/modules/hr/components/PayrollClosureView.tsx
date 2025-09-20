@@ -26,7 +26,8 @@ import {
   Check,
   X,
   Save,
-  AlertTriangle as WarningIcon
+  AlertTriangle as WarningIcon,
+  Download
 } from 'lucide-react';
 
 // Interfaces actualizadas para coincidir con PayrollApprovalView
@@ -79,6 +80,7 @@ interface EmployeePayrollApproval {
   receiptUrl?: string;
   receiptUploadedAt?: string;
   notes?: string;
+  faltas: number;
   lastUpdated: string;
 }
 
@@ -99,6 +101,7 @@ interface PayrollClosureSummary {
   lastUpdated: string;
   canClose: boolean;
   blockingIssues: string[];
+  payrollFolio: string;
 }
 
 interface PayrollClosureViewProps {
@@ -194,6 +197,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
       receiptUrl: '/receipts/ana-garcia-2024-01.pdf',
       receiptUploadedAt: '2024-01-30T15:00:00Z',
       notes: 'Todos los ajustes aprobados correctamente',
+      faltas: 0,
       lastUpdated: '2024-01-30T14:00:00Z'
     },
     {
@@ -243,6 +247,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
       paymentMethod: 'cash',
       receiptStatus: 'pending',
       notes: 'Pendiente aprobación de bono de ventas',
+      faltas: 2,
       lastUpdated: '2024-01-30T11:00:00Z'
     },
     {
@@ -279,6 +284,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
       paymentMethod: 'cash',
       receiptStatus: 'pending',
       notes: 'Sin ajustes requeridos',
+      faltas: 1,
       lastUpdated: '2024-01-30T12:00:00Z'
     }
   ];
@@ -312,6 +318,16 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
         
         const canClose = blockingIssues.length === 0;
         
+        // Generar folio único de la nómina
+        const generatePayrollFolio = () => {
+          const now = new Date();
+          const year = now.getFullYear();
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          const day = String(now.getDate()).padStart(2, '0');
+          const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+          return `NOM-${year}${month}${day}-${random}`;
+        };
+
         const summaryData: PayrollClosureSummary = {
           totalEmployees: mockEmployees.length,
           pendingApprovals,
@@ -328,7 +344,8 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
           createdAt: '2024-01-30T08:00:00Z',
           lastUpdated: new Date().toISOString(),
           canClose,
-          blockingIssues
+          blockingIssues,
+          payrollFolio: generatePayrollFolio()
         };
         
         setSummary(summaryData);
@@ -464,6 +481,22 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
     }
   };
 
+  // Función para ver el recibo del empleado
+  const handleViewReceipt = (employee: EmployeePayrollApproval) => {
+    if (employee.receiptStatus === 'uploaded' && employee.receiptUrl) {
+      try {
+        console.log('Ver recibo de:', employee.personalInfo.name);
+        // Abrir el recibo en una nueva pestaña
+        window.open(employee.receiptUrl, '_blank');
+      } catch (error) {
+        console.error('Error al abrir recibo:', error);
+        alert('No se pudo abrir el recibo del empleado');
+      }
+    } else {
+      alert('No hay recibo disponible para este empleado');
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -486,6 +519,14 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
           <p className="text-gray-600 mt-1">
             Revisa el estado final antes de cerrar la nómina
           </p>
+          {summary?.payrollFolio && (
+            <div className="mt-2 flex items-center space-x-2">
+              <span className="text-sm font-medium text-gray-700">Folio:</span>
+              <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                {summary.payrollFolio}
+              </span>
+            </div>
+          )}
         </div>
         
         <div className="flex items-center space-x-3">
@@ -727,6 +768,9 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                   Comprobante
                 </th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                  Faltas
+                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
                 </th>
@@ -775,13 +819,30 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
                       {getReceiptStatusText(employee.receiptStatus)}
                     </span>
                   </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                    <div className="flex flex-col items-center">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-sm font-medium ${
+                        employee.faltas === 0 
+                          ? 'bg-green-100 text-green-800' 
+                          : employee.faltas <= 2 
+                            ? 'bg-yellow-100 text-yellow-800' 
+                            : 'bg-red-100 text-red-800'
+                      }`}>
+                        {employee.faltas}
+                      </span>
+                      <span className="text-xs text-gray-500 mt-1">
+                        {employee.faltas === 0 ? 'Sin faltas' : employee.faltas === 1 ? '1 falta' : `${employee.faltas} faltas`}
+                      </span>
+                    </div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
                       <button
+                        onClick={() => handleViewReceipt(employee)}
                         className="text-blue-600 hover:text-blue-900"
-                        title="Ver detalles"
+                        title="Ver recibo de nómina"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Receipt className="h-4 w-4" />
                       </button>
                     </div>
                   </td>

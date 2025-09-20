@@ -119,6 +119,7 @@ interface EmployeePayrollApproval {
   receiptUrl?: string;
   receiptUploadedAt?: string;
   notes?: string;
+  faltas: number;
   lastUpdated: string;
 }
 
@@ -189,12 +190,6 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
   const [showReceiptManagementModal, setShowReceiptManagementModal] = useState(false);
   const [isProcessingReceipts, setIsProcessingReceipts] = useState(false);
   
-  // Estados para mensaje de WhatsApp
-  const [whatsappMessage, setWhatsappMessage] = useState('');
-  const [selectedContact, setSelectedContact] = useState<string>('');
-  const [selectedAgent, setSelectedAgent] = useState<string>('');
-  const [showWhatsappModal, setShowWhatsappModal] = useState(false);
-  const [isSendingWhatsapp, setIsSendingWhatsapp] = useState(false);
   
   // Estados para formulario de extras
   const [showAddExtraModal, setShowAddExtraModal] = useState(false);
@@ -297,6 +292,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
       receiptUrl: '/receipts/ana-garcia-2024-01.pdf',
       receiptUploadedAt: '2024-01-30T15:00:00Z',
       notes: 'Todos los ajustes aprobados correctamente',
+      faltas: 0,
       lastUpdated: '2024-01-30T14:00:00Z'
     },
     {
@@ -346,6 +342,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
       paymentMethod: 'cash',
       receiptStatus: 'pending',
       notes: 'Pendiente aprobación de bono de ventas',
+      faltas: 2,
       lastUpdated: '2024-01-30T11:00:00Z'
     },
     {
@@ -382,6 +379,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
       paymentMethod: 'cash',
       receiptStatus: 'pending',
       notes: 'Sin ajustes requeridos',
+      faltas: 1,
       lastUpdated: '2024-01-30T12:00:00Z'
     }
   ];
@@ -610,8 +608,23 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
 
   const handleNext = () => {
     const approvedEmployees = employees.filter(emp => emp.status === 'approved');
+    
+    // Generar folio único de la nómina
+    const generatePayrollFolio = () => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      return `NOM-${year}${month}${day}-${random}`;
+    };
+    
+    const payrollFolio = generatePayrollFolio();
+    console.log('📋 Folio de nómina generado:', payrollFolio);
     console.log('➡️ Continuando a cierre con empleados aprobados:', approvedEmployees.length);
-    onNext(approvedEmployees);
+    
+    // Pasar el folio junto con los empleados aprobados
+    onNext(approvedEmployees, payrollFolio);
   };
 
   const handleSelectEmployee = (employeeId: string) => {
@@ -696,6 +709,12 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
   const handleDownloadPayroll = () => {
     setShowDownloadModal(true);
     console.log('📥 Abriendo opciones de descarga de nómina');
+  };
+
+  // Función para descargar nómina general
+  const handleDownloadGeneralPayroll = () => {
+    setShowDownloadModal(true);
+    console.log('📥 Abriendo opciones de descarga de nómina general');
   };
 
   const handleShareViaChannel = async (channel: string, format: string) => {
@@ -1115,57 +1134,6 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
     setShowReceiptManagementModal(false);
   };
 
-  // Funciones para mensaje de WhatsApp
-  const handleOpenWhatsappModal = () => {
-    setShowWhatsappModal(true);
-    console.log('📱 Abriendo modal de WhatsApp');
-  };
-
-  const handleSendWhatsappMessage = async () => {
-    if (!whatsappMessage.trim() || !selectedContact || !selectedAgent) {
-      alert('Por favor completa todos los campos');
-      return;
-    }
-
-    setIsSendingWhatsapp(true);
-    try {
-      console.log('📱 Enviando mensaje por WhatsApp...');
-      
-      // Simular envío de mensaje
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const contact = mockContacts.find(c => c.id === selectedContact);
-      const agent = mockAgents.find(a => a.id === selectedAgent);
-      
-      if (contact && agent) {
-        // Simular envío a WhatsApp
-        const whatsappUrl = `https://wa.me/${contact.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(whatsappMessage)}`;
-        window.open(whatsappUrl, '_blank');
-        
-        console.log(`✅ Mensaje enviado a ${contact.name} por ${agent.name}`);
-        alert(`Mensaje enviado exitosamente a ${contact.name} por el agente ${agent.name}`);
-      }
-      
-      // Limpiar formulario
-      setWhatsappMessage('');
-      setSelectedContact('');
-      setSelectedAgent('');
-      setShowWhatsappModal(false);
-      
-    } catch (error) {
-      console.error('❌ Error enviando mensaje por WhatsApp:', error);
-      alert('Error al enviar el mensaje');
-    } finally {
-      setIsSendingWhatsapp(false);
-    }
-  };
-
-  const handleCloseWhatsappModal = () => {
-    setShowWhatsappModal(false);
-    setWhatsappMessage('');
-    setSelectedContact('');
-    setSelectedAgent('');
-  };
 
   // Funciones para formulario de extras
   const handleOpenAddExtraModal = () => {
@@ -1407,13 +1375,13 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
             Comprobantes
           </button>
           
-          {/* Botón para mensaje de WhatsApp */}
+          {/* Botón para descargar nómina general */}
           <button
-            onClick={handleOpenWhatsappModal}
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            onClick={handleDownloadGeneralPayroll}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            <MessageSquare className="h-4 w-4 mr-2" />
-            WhatsApp
+            <Download className="h-4 w-4 mr-2" />
+            Descargar Nómina
           </button>
           
           <button
@@ -1642,6 +1610,9 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                   Comprobante
                 </th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+                  Faltas
+                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
                 </th>
@@ -1756,6 +1727,22 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                           <span className="text-xs text-green-600">Subido</span>
                         </div>
                       )}
+                    </div>
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                    <div className="flex flex-col items-center">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-sm font-medium ${
+                        employee.faltas === 0 
+                          ? 'bg-green-100 text-green-800' 
+                          : employee.faltas <= 2 
+                            ? 'bg-yellow-100 text-yellow-800' 
+                            : 'bg-red-100 text-red-800'
+                      }`}>
+                        {employee.faltas}
+                      </span>
+                      <span className="text-xs text-gray-500 mt-1">
+                        {employee.faltas === 0 ? 'Sin faltas' : employee.faltas === 1 ? '1 falta' : `${employee.faltas} faltas`}
+                      </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -2136,18 +2123,6 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
               <div>
                 <h4 className="text-lg font-semibold text-gray-900 mb-4">Canal de Compartir</h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <button
-                    onClick={() => handleShareViaChannel('whatsapp', 'pdf')}
-                    disabled={isGeneratingFile}
-                    className="p-4 border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-300 transition-colors disabled:opacity-50"
-                  >
-                    <div className="flex flex-col items-center space-y-2">
-                      <MessageCircle className="h-8 w-8 text-green-600" />
-                      <span className="font-medium text-gray-900">WhatsApp</span>
-                      <span className="text-xs text-gray-600">Compartir por mensaje</span>
-                    </div>
-                  </button>
-                  
                   <button
                     onClick={() => handleShareViaChannel('email', 'pdf')}
                     disabled={isGeneratingFile}
@@ -2611,170 +2586,6 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
         </div>
       )}
 
-      {/* Modal para mensaje de WhatsApp */}
-      {showWhatsappModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">Enviar Mensaje por WhatsApp</h3>
-              <button
-                onClick={handleCloseWhatsappModal}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-            
-            <div className="space-y-6">
-              {/* Información del mensaje */}
-              <div className="bg-green-50 p-4 rounded-lg">
-                <div className="flex items-center space-x-2 mb-2">
-                  <MessageSquare className="h-5 w-5 text-green-600" />
-                  <span className="font-semibold text-green-800">Mensaje de Nómina</span>
-                </div>
-                <p className="text-sm text-green-700">
-                  Envía un mensaje personalizado por WhatsApp a un contacto del chat interno a través de un agente específico.
-                </p>
-              </div>
-
-              {/* Formulario de mensaje */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Selección de contacto */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Users className="h-4 w-4 inline mr-2" />
-                    Seleccionar Contacto
-                  </label>
-                  <select
-                    value={selectedContact}
-                    onChange={(e) => setSelectedContact(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  >
-                    <option value="">Selecciona un contacto</option>
-                    {mockContacts.map((contact) => (
-                      <option key={contact.id} value={contact.id}>
-                        {contact.name} - {contact.company}
-                      </option>
-                    ))}
-                  </select>
-                  {selectedContact && (
-                    <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                      {(() => {
-                        const contact = mockContacts.find(c => c.id === selectedContact);
-                        return contact ? (
-                          <div className="text-sm">
-                            <p className="font-medium text-gray-900">{contact.name}</p>
-                            <p className="text-gray-600">{contact.company}</p>
-                            <p className="text-gray-500">{contact.phone}</p>
-                          </div>
-                        ) : null;
-                      })()}
-                    </div>
-                  )}
-                </div>
-
-                {/* Selección de agente */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Phone className="h-4 w-4 inline mr-2" />
-                    Seleccionar Agente
-                  </label>
-                  <select
-                    value={selectedAgent}
-                    onChange={(e) => setSelectedAgent(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  >
-                    <option value="">Selecciona un agente</option>
-                    {mockAgents.map((agent) => (
-                      <option key={agent.id} value={agent.id}>
-                        {agent.name} - {agent.role}
-                      </option>
-                    ))}
-                  </select>
-                  {selectedAgent && (
-                    <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                      {(() => {
-                        const agent = mockAgents.find(a => a.id === selectedAgent);
-                        return agent ? (
-                          <div className="text-sm">
-                            <p className="font-medium text-gray-900">{agent.name}</p>
-                            <p className="text-gray-600">{agent.role}</p>
-                            <p className={`text-xs ${
-                              agent.status === 'online' ? 'text-green-600' :
-                              agent.status === 'busy' ? 'text-yellow-600' :
-                              'text-gray-500'
-                            }`}>
-                              {agent.status === 'online' ? '🟢 En línea' :
-                               agent.status === 'busy' ? '🟡 Ocupado' :
-                               '⚫ Desconectado'}
-                            </p>
-                          </div>
-                        ) : null;
-                      })()}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Área de mensaje */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <MessageSquare className="h-4 w-4 inline mr-2" />
-                  Mensaje de WhatsApp
-                </label>
-                <textarea
-                  value={whatsappMessage}
-                  onChange={(e) => setWhatsappMessage(e.target.value)}
-                  rows={6}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="Escribe tu mensaje aquí... Ejemplo: Hola, te informo que tu nómina del período actual ha sido procesada y está lista para revisión. Por favor contacta al departamento de RRHH para más detalles."
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  El mensaje se enviará directamente a WhatsApp del contacto seleccionado.
-                </p>
-              </div>
-
-              {/* Vista previa del mensaje */}
-              {whatsappMessage && selectedContact && selectedAgent && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-gray-900 mb-2">Vista Previa del Mensaje</h4>
-                  <div className="bg-white p-3 rounded border">
-                    <p className="text-sm text-gray-800">{whatsappMessage}</p>
-                  </div>
-                  <div className="mt-2 text-xs text-gray-500">
-                    Se enviará a: {mockContacts.find(c => c.id === selectedContact)?.name} 
-                    {' '}por: {mockAgents.find(a => a.id === selectedAgent)?.name}
-                  </div>
-                </div>
-              )}
-
-              {isSendingWhatsapp && (
-                <div className="flex items-center justify-center py-4">
-                  <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin mr-3"></div>
-                  <span className="text-gray-600">Enviando mensaje por WhatsApp...</span>
-                </div>
-              )}
-
-              {/* Botones de acción */}
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  onClick={handleCloseWhatsappModal}
-                  className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleSendWhatsappMessage}
-                  disabled={isSendingWhatsapp || !whatsappMessage.trim() || !selectedContact || !selectedAgent}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                >
-                  {isSendingWhatsapp ? 'Enviando...' : 'Enviar por WhatsApp'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal para agregar extra */}
       {showAddExtraModal && (
@@ -3072,6 +2883,39 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                       </div>
                     </div>
                   )}
+
+                  {/* Sección de Firma */}
+                  <div className="mt-8 pt-6 border-t border-gray-300">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {/* Firma del Empleado */}
+                      <div className="text-center">
+                        <div className="h-20 border-b-2 border-gray-400 mb-2"></div>
+                        <p className="text-sm font-medium text-gray-700">Firma del Empleado</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {selectedEmployeeForReceiptPreview.personalInfo.name}
+                        </p>
+                      </div>
+                      
+                      {/* Firma del Representante de RH */}
+                      <div className="text-center">
+                        <div className="h-20 border-b-2 border-gray-400 mb-2"></div>
+                        <p className="text-sm font-medium text-gray-700">Firma del Representante de RH</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Recibí conforme
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Información adicional para impresión */}
+                    <div className="mt-6 text-center">
+                      <p className="text-xs text-gray-500">
+                        Este recibo es válido únicamente con las firmas correspondientes
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Fecha de impresión: {new Date().toLocaleDateString('es-MX')}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 

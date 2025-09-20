@@ -32,10 +32,28 @@ import {
   RefreshCw,
   Plus,
   Minus,
-  X
+  X,
+  Receipt,
+  FileSpreadsheet,
+  ArrowUp,
+  ArrowDown,
+  Info
 } from 'lucide-react';
 
 // Interfaces para tipos de datos
+interface PayrollAdjustment {
+  id: string;
+  type: 'increment' | 'decrement';
+  name: string;
+  amount: number;
+  description: string;
+  reason: string;
+  approved: boolean;
+  approvedBy?: string;
+  approvedAt?: string;
+  createdAt: string;
+}
+
 interface EmployeePayrollDetail {
   id: string;
   personalInfo: {
@@ -58,6 +76,10 @@ interface EmployeePayrollDetail {
     taxes: number;
     benefits: number;
     currency: string;
+  };
+  adjustments: {
+    increments: PayrollAdjustment[];
+    decrements: PayrollAdjustment[];
   };
   period: {
     startDate: string;
@@ -104,6 +126,11 @@ const EmployeePayrollDetailView: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Estados para modales de incrementos y decrementos
+  const [showIncrementsModal, setShowIncrementsModal] = useState(false);
+  const [showDecrementsModal, setShowDecrementsModal] = useState(false);
+  const [selectedEmployeeForAdjustments, setSelectedEmployeeForAdjustments] = useState<EmployeePayrollDetail | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
   // Datos mock para desarrollo
@@ -129,6 +156,48 @@ const EmployeePayrollDetailView: React.FC = () => {
         taxes: 2000,
         benefits: 5000,
         currency: 'MXN'
+      },
+      adjustments: {
+        increments: [
+          {
+            id: 'inc1',
+            type: 'increment',
+            name: 'Bono de Proyecto Especial',
+            amount: 2000,
+            description: 'Bono por completar proyecto crítico antes del plazo',
+            reason: 'Proyecto completado exitosamente',
+            approved: true,
+            approvedBy: 'Gerente de Proyecto',
+            approvedAt: '2024-01-25T14:00:00Z',
+            createdAt: '2024-01-25T10:00:00Z'
+          },
+          {
+            id: 'inc2',
+            type: 'increment',
+            name: 'Horas Extra',
+            amount: 3000,
+            description: 'Horas extra trabajadas en el proyecto',
+            reason: 'Trabajo adicional requerido',
+            approved: true,
+            approvedBy: 'Supervisor',
+            approvedAt: '2024-01-28T16:00:00Z',
+            createdAt: '2024-01-28T12:00:00Z'
+          }
+        ],
+        decrements: [
+          {
+            id: 'dec1',
+            type: 'decrement',
+            name: 'Préstamo Personal',
+            amount: 1500,
+            description: 'Deducción por préstamo personal autorizado',
+            reason: 'Préstamo autorizado por RH',
+            approved: true,
+            approvedBy: 'RH Manager',
+            approvedAt: '2024-01-20T09:00:00Z',
+            createdAt: '2024-01-20T09:00:00Z'
+          }
+        ]
       },
       period: {
         startDate: '2024-01-01',
@@ -165,6 +234,36 @@ const EmployeePayrollDetailView: React.FC = () => {
         benefits: 6000,
         currency: 'MXN'
       },
+      adjustments: {
+        increments: [
+          {
+            id: 'inc3',
+            type: 'increment',
+            name: 'Bono de Ventas Excepcionales',
+            amount: 5000,
+            description: 'Bono por superar metas de ventas en 150%',
+            reason: 'Excelente desempeño en ventas del mes',
+            approved: true,
+            approvedBy: 'Director de Ventas',
+            approvedAt: '2024-01-30T15:00:00Z',
+            createdAt: '2024-01-30T11:00:00Z'
+          }
+        ],
+        decrements: [
+          {
+            id: 'dec2',
+            type: 'decrement',
+            name: 'Falta de Asistencia',
+            amount: 800,
+            description: 'Deducción por falta de asistencia',
+            reason: 'Falta justificada pero con deducción',
+            approved: true,
+            approvedBy: 'Supervisor',
+            approvedAt: '2024-01-15T10:00:00Z',
+            createdAt: '2024-01-15T10:00:00Z'
+          }
+        ]
+      },
       period: {
         startDate: '2024-01-01',
         endDate: '2024-01-31',
@@ -199,6 +298,10 @@ const EmployeePayrollDetailView: React.FC = () => {
         taxes: 0,
         benefits: 3000,
         currency: 'MXN'
+      },
+      adjustments: {
+        increments: [],
+        decrements: []
       },
       period: {
         startDate: '2024-01-01',
@@ -363,6 +466,50 @@ const EmployeePayrollDetailView: React.FC = () => {
     } catch (error) {
       console.error('Error al compartir:', error);
     }
+  };
+
+  // Función para ver el recibo del empleado
+  const handleViewReceipt = (employee: EmployeePayrollDetail) => {
+    try {
+      console.log('Ver recibo de:', employee.personalInfo.name);
+      // Simular apertura del recibo
+      const receiptUrl = `/receipts/${employee.id}_${employee.period.startDate}.pdf`;
+      window.open(receiptUrl, '_blank');
+    } catch (error) {
+      console.error('Error al abrir recibo:', error);
+      alert('No se pudo abrir el recibo del empleado');
+    }
+  };
+
+  // Función para ver el detalle de nómina del empleado
+  const handleViewPayrollDetail = (employee: EmployeePayrollDetail) => {
+    try {
+      console.log('Ver detalle de nómina de:', employee.personalInfo.name);
+      // Aquí se abriría un modal o navegaría a la vista de detalle
+      alert(`Abriendo detalle de nómina para ${employee.personalInfo.name}`);
+    } catch (error) {
+      console.error('Error al abrir detalle:', error);
+      alert('No se pudo abrir el detalle de nómina');
+    }
+  };
+
+  // Función para ver incrementos del empleado
+  const handleViewIncrements = (employee: EmployeePayrollDetail) => {
+    setSelectedEmployeeForAdjustments(employee);
+    setShowIncrementsModal(true);
+  };
+
+  // Función para ver decrementos del empleado
+  const handleViewDecrements = (employee: EmployeePayrollDetail) => {
+    setSelectedEmployeeForAdjustments(employee);
+    setShowDecrementsModal(true);
+  };
+
+  // Función para cerrar modales
+  const handleCloseModals = () => {
+    setShowIncrementsModal(false);
+    setShowDecrementsModal(false);
+    setSelectedEmployeeForAdjustments(null);
   };
 
   if (loading) {
@@ -633,6 +780,12 @@ const EmployeePayrollDetailView: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Rendimiento
                 </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Incrementos
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Decrementos
+                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
                 </th>
@@ -695,16 +848,55 @@ const EmployeePayrollDetailView: React.FC = () => {
                       </div>
                     </div>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <div className="flex flex-col items-center space-y-1">
+                      <div className="flex items-center space-x-1">
+                        <ArrowUp className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium text-green-600">
+                          {employee.adjustments.increments.length}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleViewIncrements(employee)}
+                        className="text-xs text-blue-600 hover:text-blue-800 underline"
+                        title="Ver detalles de incrementos"
+                      >
+                        Ver detalles
+                      </button>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <div className="flex flex-col items-center space-y-1">
+                      <div className="flex items-center space-x-1">
+                        <ArrowDown className="h-4 w-4 text-red-600" />
+                        <span className="text-sm font-medium text-red-600">
+                          {employee.adjustments.decrements.length}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleViewDecrements(employee)}
+                        className="text-xs text-blue-600 hover:text-blue-800 underline"
+                        title="Ver detalles de decrementos"
+                      >
+                        Ver detalles
+                      </button>
+                    </div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900">
-                        <Eye className="h-4 w-4" />
+                      <button 
+                        onClick={() => handleViewReceipt(employee)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Ver recibo de nómina"
+                      >
+                        <Receipt className="h-4 w-4" />
                       </button>
-                      <button className="text-green-600 hover:text-green-900">
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button className="text-gray-600 hover:text-gray-900">
-                        <MoreVertical className="h-4 w-4" />
+                      <button 
+                        onClick={() => handleViewPayrollDetail(employee)}
+                        className="text-green-600 hover:text-green-900"
+                        title="Ver detalle de nómina"
+                      >
+                        <FileSpreadsheet className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
@@ -755,6 +947,157 @@ const EmployeePayrollDetailView: React.FC = () => {
           </div>
         )}
       </div>
+      {/* Modal para ver incrementos */}
+      {showIncrementsModal && selectedEmployeeForAdjustments && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">Incrementos de Nómina</h3>
+                <p className="text-gray-600 mt-1">
+                  {selectedEmployeeForAdjustments.personalInfo.name} - {selectedEmployeeForAdjustments.personalInfo.position}
+                </p>
+              </div>
+              <button
+                onClick={handleCloseModals}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {selectedEmployeeForAdjustments.adjustments.increments.length > 0 ? (
+                selectedEmployeeForAdjustments.adjustments.increments.map((increment) => (
+                  <div key={increment.id} className="bg-green-50 p-4 rounded-lg border border-green-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-semibold text-green-800">{increment.name}</h4>
+                        <p className="text-sm text-green-700">{increment.description}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-lg font-bold text-green-600">
+                          +{formatCurrency(increment.amount)}
+                        </span>
+                        <div className="flex items-center mt-1">
+                          {increment.approved ? (
+                            <CheckCircle className="h-4 w-4 text-green-600 mr-1" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4 text-yellow-600 mr-1" />
+                          )}
+                          <span className={`text-xs ${increment.approved ? 'text-green-600' : 'text-yellow-600'}`}>
+                            {increment.approved ? 'Aprobado' : 'Pendiente'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-xs text-green-600 space-y-1">
+                      <p><strong>Razón:</strong> {increment.reason}</p>
+                      {increment.approvedBy && (
+                        <p><strong>Aprobado por:</strong> {increment.approvedBy}</p>
+                      )}
+                      {increment.approvedAt && (
+                        <p><strong>Fecha de aprobación:</strong> {formatDate(increment.approvedAt)}</p>
+                      )}
+                      <p><strong>Creado:</strong> {formatDate(increment.createdAt)}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <ArrowUp className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No hay incrementos registrados para este empleado</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end mt-6 pt-6 border-t">
+              <button
+                onClick={handleCloseModals}
+                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para ver decrementos */}
+      {showDecrementsModal && selectedEmployeeForAdjustments && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">Decrementos de Nómina</h3>
+                <p className="text-gray-600 mt-1">
+                  {selectedEmployeeForAdjustments.personalInfo.name} - {selectedEmployeeForAdjustments.personalInfo.position}
+                </p>
+              </div>
+              <button
+                onClick={handleCloseModals}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {selectedEmployeeForAdjustments.adjustments.decrements.length > 0 ? (
+                selectedEmployeeForAdjustments.adjustments.decrements.map((decrement) => (
+                  <div key={decrement.id} className="bg-red-50 p-4 rounded-lg border border-red-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-semibold text-red-800">{decrement.name}</h4>
+                        <p className="text-sm text-red-700">{decrement.description}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-lg font-bold text-red-600">
+                          -{formatCurrency(decrement.amount)}
+                        </span>
+                        <div className="flex items-center mt-1">
+                          {decrement.approved ? (
+                            <CheckCircle className="h-4 w-4 text-green-600 mr-1" />
+                          ) : (
+                            <AlertCircle className="h-4 w-4 text-yellow-600 mr-1" />
+                          )}
+                          <span className={`text-xs ${decrement.approved ? 'text-green-600' : 'text-yellow-600'}`}>
+                            {decrement.approved ? 'Aprobado' : 'Pendiente'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-xs text-red-600 space-y-1">
+                      <p><strong>Razón:</strong> {decrement.reason}</p>
+                      {decrement.approvedBy && (
+                        <p><strong>Aprobado por:</strong> {decrement.approvedBy}</p>
+                      )}
+                      {decrement.approvedAt && (
+                        <p><strong>Fecha de aprobación:</strong> {formatDate(decrement.approvedAt)}</p>
+                      )}
+                      <p><strong>Creado:</strong> {formatDate(decrement.createdAt)}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <ArrowDown className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No hay decrementos registrados para este empleado</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end mt-6 pt-6 border-t">
+              <button
+                onClick={handleCloseModals}
+                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
