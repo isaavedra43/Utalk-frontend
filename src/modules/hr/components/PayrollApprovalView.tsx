@@ -61,7 +61,10 @@ import {
   AlertCircle,
   Archive,
   Printer,
-  FolderOpen
+  FolderOpen,
+  MessageSquare,
+  Users,
+  Phone
 } from 'lucide-react';
 
 // Interfaces para tipos de datos
@@ -111,6 +114,7 @@ interface EmployeePayrollApproval {
   };
   status: 'pending' | 'approved' | 'rejected' | 'needs_review';
   paymentStatus: 'pending' | 'paid' | 'failed';
+  paymentMethod: 'cash' | 'deposit' | 'check' | 'transfer' | 'other';
   receiptStatus: 'not_required' | 'pending' | 'uploaded' | 'verified';
   receiptUrl?: string;
   receiptUploadedAt?: string;
@@ -184,6 +188,42 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
   // Estados para gestión masiva de comprobantes
   const [showReceiptManagementModal, setShowReceiptManagementModal] = useState(false);
   const [isProcessingReceipts, setIsProcessingReceipts] = useState(false);
+  
+  // Estados para mensaje de WhatsApp
+  const [whatsappMessage, setWhatsappMessage] = useState('');
+  const [selectedContact, setSelectedContact] = useState<string>('');
+  const [selectedAgent, setSelectedAgent] = useState<string>('');
+  const [showWhatsappModal, setShowWhatsappModal] = useState(false);
+  const [isSendingWhatsapp, setIsSendingWhatsapp] = useState(false);
+  
+  // Estados para formulario de extras
+  const [showAddExtraModal, setShowAddExtraModal] = useState(false);
+  const [newExtra, setNewExtra] = useState({
+    name: '',
+    type: 'bonus' as 'bonus' | 'deduction' | 'overtime' | 'allowance' | 'tax' | 'other',
+    amount: 0,
+    description: '',
+    reason: ''
+  });
+  const [isSavingExtra, setIsSavingExtra] = useState(false);
+
+  // Datos mock para contactos del chat interno
+  const mockContacts = [
+    { id: '1', name: 'Juan Pérez', phone: '+52 55 1234 5678', company: 'Empresa ABC' },
+    { id: '2', name: 'María González', phone: '+52 55 2345 6789', company: 'Corporación XYZ' },
+    { id: '3', name: 'Carlos Rodríguez', phone: '+52 55 3456 7890', company: 'Grupo 123' },
+    { id: '4', name: 'Ana Martínez', phone: '+52 55 4567 8901', company: 'Industrias DEF' },
+    { id: '5', name: 'Luis Hernández', phone: '+52 55 5678 9012', company: 'Servicios GHI' }
+  ];
+
+  // Datos mock para agentes
+  const mockAgents = [
+    { id: '1', name: 'Sofia García', role: 'Agente Senior', status: 'online' },
+    { id: '2', name: 'Diego López', role: 'Agente Junior', status: 'online' },
+    { id: '3', name: 'Valentina Ruiz', role: 'Supervisor', status: 'busy' },
+    { id: '4', name: 'Andrés Morales', role: 'Agente Senior', status: 'offline' },
+    { id: '5', name: 'Camila Torres', role: 'Agente Junior', status: 'online' }
+  ];
 
   // Datos mock para ajustes y aprobación
   const mockEmployees: EmployeePayrollApproval[] = [
@@ -247,6 +287,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
       },
       status: 'approved',
       paymentStatus: 'paid',
+      paymentMethod: 'cash',
       receiptStatus: 'uploaded',
       receiptUrl: '/receipts/ana-garcia-2024-01.pdf',
       receiptUploadedAt: '2024-01-30T15:00:00Z',
@@ -297,6 +338,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
       },
       status: 'pending',
       paymentStatus: 'pending',
+      paymentMethod: 'cash',
       receiptStatus: 'not_required',
       notes: 'Pendiente aprobación de bono de ventas',
       lastUpdated: '2024-01-30T11:00:00Z'
@@ -332,6 +374,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
       },
       status: 'approved',
       paymentStatus: 'paid',
+      paymentMethod: 'cash',
       receiptStatus: 'pending',
       notes: 'Sin ajustes requeridos',
       lastUpdated: '2024-01-30T12:00:00Z'
@@ -1073,6 +1116,164 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
     setShowReceiptManagementModal(false);
   };
 
+  // Funciones para mensaje de WhatsApp
+  const handleOpenWhatsappModal = () => {
+    setShowWhatsappModal(true);
+    console.log('📱 Abriendo modal de WhatsApp');
+  };
+
+  const handleSendWhatsappMessage = async () => {
+    if (!whatsappMessage.trim() || !selectedContact || !selectedAgent) {
+      alert('Por favor completa todos los campos');
+      return;
+    }
+
+    setIsSendingWhatsapp(true);
+    try {
+      console.log('📱 Enviando mensaje por WhatsApp...');
+      
+      // Simular envío de mensaje
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const contact = mockContacts.find(c => c.id === selectedContact);
+      const agent = mockAgents.find(a => a.id === selectedAgent);
+      
+      if (contact && agent) {
+        // Simular envío a WhatsApp
+        const whatsappUrl = `https://wa.me/${contact.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(whatsappMessage)}`;
+        window.open(whatsappUrl, '_blank');
+        
+        console.log(`✅ Mensaje enviado a ${contact.name} por ${agent.name}`);
+        alert(`Mensaje enviado exitosamente a ${contact.name} por el agente ${agent.name}`);
+      }
+      
+      // Limpiar formulario
+      setWhatsappMessage('');
+      setSelectedContact('');
+      setSelectedAgent('');
+      setShowWhatsappModal(false);
+      
+    } catch (error) {
+      console.error('❌ Error enviando mensaje por WhatsApp:', error);
+      alert('Error al enviar el mensaje');
+    } finally {
+      setIsSendingWhatsapp(false);
+    }
+  };
+
+  const handleCloseWhatsappModal = () => {
+    setShowWhatsappModal(false);
+    setWhatsappMessage('');
+    setSelectedContact('');
+    setSelectedAgent('');
+  };
+
+  // Funciones para formulario de extras
+  const handleOpenAddExtraModal = () => {
+    setShowAddExtraModal(true);
+    console.log('➕ Abriendo formulario para agregar extra');
+  };
+
+  const handleSaveExtra = async () => {
+    if (!newExtra.name.trim() || !newExtra.description.trim() || !newExtra.reason.trim()) {
+      alert('Por favor completa todos los campos requeridos');
+      return;
+    }
+
+    setIsSavingExtra(true);
+    try {
+      console.log('💾 Guardando nuevo extra...');
+      
+      // Simular guardado
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Crear el nuevo ajuste
+      const newAdjustment: PayrollAdjustment = {
+        id: `adj_${Date.now()}`,
+        employeeId: editingEmployee?.id || '',
+        type: newExtra.type,
+        name: newExtra.name,
+        amount: newExtra.amount,
+        description: newExtra.description,
+        reason: newExtra.reason,
+        createdBy: 'Usuario Actual',
+        createdAt: new Date().toISOString(),
+        approved: false
+      };
+
+      // Agregar el ajuste al empleado
+      if (editingEmployee) {
+        setEmployees(prev => prev.map(emp => 
+          emp.id === editingEmployee.id 
+            ? { ...emp, adjustments: [...emp.adjustments, newAdjustment] }
+            : emp
+        ));
+      }
+      
+      console.log('✅ Extra agregado exitosamente');
+      alert('Extra agregado exitosamente');
+      
+      // Limpiar formulario y cerrar modal
+      setNewExtra({
+        name: '',
+        type: 'bonus',
+        amount: 0,
+        description: '',
+        reason: ''
+      });
+      setShowAddExtraModal(false);
+      
+    } catch (error) {
+      console.error('❌ Error guardando extra:', error);
+      alert('Error al guardar el extra');
+    } finally {
+      setIsSavingExtra(false);
+    }
+  };
+
+  const handleCloseAddExtraModal = () => {
+    setShowAddExtraModal(false);
+    setNewExtra({
+      name: '',
+      type: 'bonus',
+      amount: 0,
+      description: '',
+      reason: ''
+    });
+  };
+
+  // Funciones para método de pago
+  const handleChangePaymentMethod = (employeeId: string, newMethod: 'cash' | 'deposit' | 'check' | 'transfer' | 'other') => {
+    setEmployees(prev => prev.map(emp => 
+      emp.id === employeeId 
+        ? { ...emp, paymentMethod: newMethod, lastUpdated: new Date().toISOString() }
+        : emp
+    ));
+    console.log(`💳 Método de pago cambiado para empleado ${employeeId}: ${newMethod}`);
+  };
+
+  const getPaymentMethodText = (method: string) => {
+    switch (method) {
+      case 'cash': return 'Efectivo';
+      case 'deposit': return 'Depósito';
+      case 'check': return 'Cheque';
+      case 'transfer': return 'Transferencia';
+      case 'other': return 'Otro';
+      default: return 'Efectivo';
+    }
+  };
+
+  const getPaymentMethodColor = (method: string) => {
+    switch (method) {
+      case 'cash': return 'bg-green-100 text-green-800';
+      case 'deposit': return 'bg-blue-100 text-blue-800';
+      case 'check': return 'bg-purple-100 text-purple-800';
+      case 'transfer': return 'bg-indigo-100 text-indigo-800';
+      case 'other': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-green-100 text-green-800';
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -1115,15 +1316,6 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
             Compartir
           </button>
           
-          {/* Botón para descargar nómina */}
-          <button
-            onClick={handleDownloadPayroll}
-            className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Descargar
-          </button>
-          
           {/* Botón para gestionar comprobantes */}
           <button
             onClick={handleManageReceipts}
@@ -1131,6 +1323,15 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
           >
             <Archive className="h-4 w-4 mr-2" />
             Comprobantes
+          </button>
+          
+          {/* Botón para mensaje de WhatsApp */}
+          <button
+            onClick={handleOpenWhatsappModal}
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
+            <MessageSquare className="h-4 w-4 mr-2" />
+            WhatsApp
           </button>
           
           <button
@@ -1254,6 +1455,48 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
         </div>
       </div>
 
+      {/* Botones para empleado seleccionado individual */}
+      {selectedEmployees.length === 1 && (
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <User className="h-5 w-5 text-blue-600" />
+              <span className="text-sm font-medium text-gray-900">
+                Empleado seleccionado: {employees.find(emp => emp.id === selectedEmployees[0])?.personalInfo.name}
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => {
+                  const selectedEmployee = employees.find(emp => emp.id === selectedEmployees[0]);
+                  if (selectedEmployee) {
+                    handleEditPayroll(selectedEmployee.id);
+                  }
+                }}
+                className="flex items-center px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700"
+                title="Editar nómina individual"
+              >
+                <Calculator className="h-4 w-4 mr-2" />
+                Editar Nómina
+              </button>
+              <button
+                onClick={() => {
+                  const selectedEmployee = employees.find(emp => emp.id === selectedEmployees[0]);
+                  if (selectedEmployee) {
+                    handleManageExtras(selectedEmployee.id);
+                  }
+                }}
+                className="flex items-center px-4 py-2 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700"
+                title="Gestionar extras"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Gestionar Extras
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tabla de empleados */}
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
@@ -1287,18 +1530,21 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                   Nómina Original
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ajustes
+                  Ajustes/Extras
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Nómina Final
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                   Estado
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                   Estado de Pago
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
+                  Método de Pago
+                </th>
+                <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                   Comprobante
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1357,17 +1603,17 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                       Diferencia: {formatCurrency(employee.finalPayroll.netPay - employee.originalPayroll.netPay)}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(employee.status)}`}>
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(employee.status)}`}>
                       {getStatusText(employee.status)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-col space-y-1">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPaymentStatusColor(employee.paymentStatus)}`}>
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                    <div className="flex flex-col space-y-1 items-center">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getPaymentStatusColor(employee.paymentStatus)}`}>
                         {getPaymentStatusText(employee.paymentStatus)}
                       </span>
-                      {employee.paymentStatus === 'pending' && employee.status === 'approved' && (
+                      {employee.paymentStatus === 'pending' && (
                         <button
                           onClick={() => handleChangePaymentStatus(employee.id, 'paid')}
                           disabled={isProcessing}
@@ -1379,9 +1625,28 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-col space-y-1">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getReceiptStatusColor(employee.receiptStatus)}`}>
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                    <div className="flex flex-col space-y-1 items-center">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getPaymentMethodColor(employee.paymentMethod)}`}>
+                        {getPaymentMethodText(employee.paymentMethod)}
+                      </span>
+                      <select
+                        value={employee.paymentMethod}
+                        onChange={(e) => handleChangePaymentMethod(employee.id, e.target.value as any)}
+                        className="text-xs border border-gray-300 rounded px-1 py-0.5 bg-white"
+                        title="Cambiar método de pago"
+                      >
+                        <option value="cash">Efectivo</option>
+                        <option value="deposit">Depósito</option>
+                        <option value="check">Cheque</option>
+                        <option value="transfer">Transferencia</option>
+                        <option value="other">Otro</option>
+                      </select>
+                    </div>
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                    <div className="flex flex-col space-y-1 items-center">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getReceiptStatusColor(employee.receiptStatus)}`}>
                         {getReceiptStatusText(employee.receiptStatus)}
                       </span>
                       {employee.paymentStatus === 'paid' && employee.receiptStatus === 'pending' && (
@@ -1396,7 +1661,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                       {employee.receiptStatus === 'uploaded' && (
                         <div className="flex items-center space-x-1">
                           <FileCheck className="h-3 w-3 text-green-600" />
-                          <span className="text-xs text-green-600">Comprobante subido</span>
+                          <span className="text-xs text-green-600">Subido</span>
                         </div>
                       )}
                     </div>
@@ -1424,23 +1689,6 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                         </>
                       )}
                       
-                      {/* Botón para editar nómina individual */}
-                      <button
-                        onClick={() => handleEditPayroll(employee.id)}
-                        className="text-purple-600 hover:text-purple-900"
-                        title="Editar nómina individual"
-                      >
-                        <Calculator className="h-4 w-4" />
-                      </button>
-                      
-                      {/* Botón para gestionar extras (incrementos/decrementos) */}
-                      <button
-                        onClick={() => handleManageExtras(employee.id)}
-                        className="text-orange-600 hover:text-orange-900"
-                        title="Gestionar extras e incrementos"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
                       
                       {/* Botón para agregar notas */}
                       <button
@@ -1656,6 +1904,17 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                   <strong>Integración con módulo de empleados:</strong> Este modal se conectará con la funcionalidad 
                   existente del módulo de empleados individual en la pestaña "+ Extras" para agregar incrementos y decrementos.
                 </p>
+              </div>
+
+              {/* Botón para agregar nuevo extra */}
+              <div className="flex justify-end">
+                <button
+                  onClick={handleOpenAddExtraModal}
+                  className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar Extra
+                </button>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2261,6 +2520,335 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                   className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para mensaje de WhatsApp */}
+      {showWhatsappModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">Enviar Mensaje por WhatsApp</h3>
+              <button
+                onClick={handleCloseWhatsappModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              {/* Información del mensaje */}
+              <div className="bg-green-50 p-4 rounded-lg">
+                <div className="flex items-center space-x-2 mb-2">
+                  <MessageSquare className="h-5 w-5 text-green-600" />
+                  <span className="font-semibold text-green-800">Mensaje de Nómina</span>
+                </div>
+                <p className="text-sm text-green-700">
+                  Envía un mensaje personalizado por WhatsApp a un contacto del chat interno a través de un agente específico.
+                </p>
+              </div>
+
+              {/* Formulario de mensaje */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Selección de contacto */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Users className="h-4 w-4 inline mr-2" />
+                    Seleccionar Contacto
+                  </label>
+                  <select
+                    value={selectedContact}
+                    onChange={(e) => setSelectedContact(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  >
+                    <option value="">Selecciona un contacto</option>
+                    {mockContacts.map((contact) => (
+                      <option key={contact.id} value={contact.id}>
+                        {contact.name} - {contact.company}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedContact && (
+                    <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                      {(() => {
+                        const contact = mockContacts.find(c => c.id === selectedContact);
+                        return contact ? (
+                          <div className="text-sm">
+                            <p className="font-medium text-gray-900">{contact.name}</p>
+                            <p className="text-gray-600">{contact.company}</p>
+                            <p className="text-gray-500">{contact.phone}</p>
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                  )}
+                </div>
+
+                {/* Selección de agente */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Phone className="h-4 w-4 inline mr-2" />
+                    Seleccionar Agente
+                  </label>
+                  <select
+                    value={selectedAgent}
+                    onChange={(e) => setSelectedAgent(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  >
+                    <option value="">Selecciona un agente</option>
+                    {mockAgents.map((agent) => (
+                      <option key={agent.id} value={agent.id}>
+                        {agent.name} - {agent.role}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedAgent && (
+                    <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                      {(() => {
+                        const agent = mockAgents.find(a => a.id === selectedAgent);
+                        return agent ? (
+                          <div className="text-sm">
+                            <p className="font-medium text-gray-900">{agent.name}</p>
+                            <p className="text-gray-600">{agent.role}</p>
+                            <p className={`text-xs ${
+                              agent.status === 'online' ? 'text-green-600' :
+                              agent.status === 'busy' ? 'text-yellow-600' :
+                              'text-gray-500'
+                            }`}>
+                              {agent.status === 'online' ? '🟢 En línea' :
+                               agent.status === 'busy' ? '🟡 Ocupado' :
+                               '⚫ Desconectado'}
+                            </p>
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Área de mensaje */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <MessageSquare className="h-4 w-4 inline mr-2" />
+                  Mensaje de WhatsApp
+                </label>
+                <textarea
+                  value={whatsappMessage}
+                  onChange={(e) => setWhatsappMessage(e.target.value)}
+                  rows={6}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="Escribe tu mensaje aquí... Ejemplo: Hola, te informo que tu nómina del período actual ha sido procesada y está lista para revisión. Por favor contacta al departamento de RRHH para más detalles."
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  El mensaje se enviará directamente a WhatsApp del contacto seleccionado.
+                </p>
+              </div>
+
+              {/* Vista previa del mensaje */}
+              {whatsappMessage && selectedContact && selectedAgent && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-2">Vista Previa del Mensaje</h4>
+                  <div className="bg-white p-3 rounded border">
+                    <p className="text-sm text-gray-800">{whatsappMessage}</p>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-500">
+                    Se enviará a: {mockContacts.find(c => c.id === selectedContact)?.name} 
+                    {' '}por: {mockAgents.find(a => a.id === selectedAgent)?.name}
+                  </div>
+                </div>
+              )}
+
+              {isSendingWhatsapp && (
+                <div className="flex items-center justify-center py-4">
+                  <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin mr-3"></div>
+                  <span className="text-gray-600">Enviando mensaje por WhatsApp...</span>
+                </div>
+              )}
+
+              {/* Botones de acción */}
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  onClick={handleCloseWhatsappModal}
+                  className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSendWhatsappMessage}
+                  disabled={isSendingWhatsapp || !whatsappMessage.trim() || !selectedContact || !selectedAgent}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  {isSendingWhatsapp ? 'Enviando...' : 'Enviar por WhatsApp'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para agregar extra */}
+      {showAddExtraModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">Agregar Extra</h3>
+              <button
+                onClick={handleCloseAddExtraModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              {/* Información del empleado */}
+              {editingEmployee && (
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <User className="h-5 w-5 text-blue-600" />
+                    <span className="font-semibold text-blue-800">Empleado</span>
+                  </div>
+                  <p className="text-sm text-blue-700">
+                    {editingEmployee.personalInfo.name} - {editingEmployee.personalInfo.position}
+                  </p>
+                </div>
+              )}
+
+              {/* Formulario de extra */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nombre del Extra *
+                    </label>
+                    <input
+                      type="text"
+                      value={newExtra.name}
+                      onChange={(e) => setNewExtra(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      placeholder="Ej: Bono por Desempeño"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tipo *
+                    </label>
+                    <select
+                      value={newExtra.type}
+                      onChange={(e) => setNewExtra(prev => ({ ...prev, type: e.target.value as any }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    >
+                      <option value="bonus">Bono</option>
+                      <option value="deduction">Deducción</option>
+                      <option value="overtime">Horas Extra</option>
+                      <option value="allowance">Prestación</option>
+                      <option value="tax">Impuesto</option>
+                      <option value="other">Otro</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Monto *
+                  </label>
+                  <input
+                    type="number"
+                    value={newExtra.amount}
+                    onChange={(e) => setNewExtra(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="0.00"
+                    step="0.01"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {newExtra.amount > 0 ? `+${formatCurrency(newExtra.amount)}` : 
+                     newExtra.amount < 0 ? `${formatCurrency(newExtra.amount)}` : 
+                     'Ingresa el monto (positivo para incrementos, negativo para decrementos)'}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Descripción *
+                  </label>
+                  <textarea
+                    value={newExtra.description}
+                    onChange={(e) => setNewExtra(prev => ({ ...prev, description: e.target.value }))}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="Describe el extra que se está agregando..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Razón *
+                  </label>
+                  <textarea
+                    value={newExtra.reason}
+                    onChange={(e) => setNewExtra(prev => ({ ...prev, reason: e.target.value }))}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="Explica por qué se está agregando este extra..."
+                  />
+                </div>
+              </div>
+
+              {/* Vista previa del extra */}
+              {newExtra.name && newExtra.description && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-2">Vista Previa del Extra</h4>
+                  <div className="bg-white p-3 rounded border">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-medium text-gray-900">{newExtra.name}</p>
+                        <p className="text-sm text-gray-600">{newExtra.description}</p>
+                        <p className="text-xs text-gray-500 mt-1">Razón: {newExtra.reason}</p>
+                      </div>
+                      <span className="text-lg font-bold text-gray-900">
+                        {newExtra.amount > 0 ? '+' : ''}{formatCurrency(newExtra.amount)}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getAdjustmentTypeColor(newExtra.type)}`}>
+                        {getAdjustmentTypeText(newExtra.type)}
+                      </span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        Pendiente
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {isSavingExtra && (
+                <div className="flex items-center justify-center py-4">
+                  <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mr-3"></div>
+                  <span className="text-gray-600">Guardando extra...</span>
+                </div>
+              )}
+
+              {/* Botones de acción */}
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  onClick={handleCloseAddExtraModal}
+                  className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveExtra}
+                  disabled={isSavingExtra || !newExtra.name.trim() || !newExtra.description.trim() || !newExtra.reason.trim()}
+                  className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  {isSavingExtra ? 'Guardando...' : 'Guardar Extra'}
                 </button>
               </div>
             </div>
