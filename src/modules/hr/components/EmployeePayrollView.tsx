@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { payrollApi, type PayrollPeriod, type PayrollConfig, type PayrollDetail } from '../../../services/payrollApi';
 import { Employee } from '../../../services/employeesApi';
+import { payrollPdfService } from '../../../services/payrollPdfService';
 
 interface EmployeePayrollData {
   config: PayrollConfig | null;
@@ -557,6 +558,40 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
     }
   };
 
+  // Función para calcular totales de nómina incluyendo extras
+  const calculatePayrollTotals = () => {
+    if (!periodDetails || periodDetails.length === 0) {
+      return {
+        totalPerceptions: selectedPeriod?.grossSalary || 0,
+        totalDeductions: selectedPeriod?.totalDeductions || 0,
+        netSalary: selectedPeriod?.netSalary || 0
+      };
+    }
+
+    const totalPerceptions = periodDetails
+      .filter(detail => detail.type === 'perception')
+      .reduce((sum, detail) => sum + detail.amount, 0);
+
+    const totalDeductions = periodDetails
+      .filter(detail => detail.type === 'deduction')
+      .reduce((sum, detail) => sum + detail.amount, 0);
+
+    const netSalary = totalPerceptions - totalDeductions;
+
+    console.log('💰 Totales calculados:', {
+      totalPerceptions,
+      totalDeductions,
+      netSalary,
+      periodDetails: periodDetails.length
+    });
+
+    return {
+      totalPerceptions,
+      totalDeductions,
+      netSalary
+    };
+  };
+
   // Función para calcular salario semanal
   const calculateWeeklySalary = (config: PayrollConfig | null) => {
     if (!config) return 0;
@@ -606,6 +641,70 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       setError(errorMessage);
     } finally {
       setDownloadingPDF(null);
+    }
+  };
+
+  // Función para generar PDF local con información actual
+  const handleGenerateLocalPDF = () => {
+    try {
+      if (!selectedPeriod || !employee) {
+        console.error('❌ No hay período seleccionado o información de empleado');
+        setError('No se puede generar el PDF. Falta información del empleado o período.');
+        return;
+      }
+
+      console.log('📄 Generando PDF local con información actual...');
+      
+      const totals = calculatePayrollTotals();
+      
+      const pdfData = {
+        employee: {
+          id: employee.id,
+          name: `${employee.personalInfo?.firstName || ''} ${employee.personalInfo?.lastName || ''}`.trim() || 'Empleado',
+          position: employee.position?.title || 'Sin Puesto',
+          department: employee.position?.department || 'Sin Departamento'
+        },
+        period: {
+          startDate: selectedPeriod.periodStart,
+          endDate: selectedPeriod.periodEnd,
+          frequency: selectedPeriod.frequency,
+          status: selectedPeriod.status
+        },
+        payroll: {
+          baseSalary: payrollData?.config?.baseSalary || 0,
+          totalPerceptions: totals.totalPerceptions,
+          totalDeductions: totals.totalDeductions,
+          netSalary: totals.netSalary
+        },
+        perceptions: periodDetails.filter(d => d.type === 'perception').map(d => ({
+          concept: d.concept,
+          description: d.description,
+          amount: d.amount
+        })),
+        deductions: periodDetails.filter(d => d.type === 'deduction').map(d => ({
+          concept: d.concept,
+          description: d.description,
+          amount: d.amount
+        })),
+        company: {
+          name: 'UTALK S.A. de C.V.',
+          address: 'Av. Reforma 123, Col. Centro, CDMX',
+          phone: '+52 55 1234-5678',
+          email: 'contacto@utalk.com'
+        }
+      };
+
+      console.log('📋 Datos del PDF:', pdfData);
+      
+      // Generar y descargar el PDF
+      payrollPdfService.generatePayrollPdf(pdfData);
+      
+      console.log('🎉 PDF generado y descargado exitosamente');
+      
+    } catch (error: unknown) {
+      console.error('❌ Error generando PDF local:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error generando PDF';
+      setError(errorMessage);
     }
   };
 
@@ -1156,18 +1255,27 @@ Generado desde Utalk HR`;
                         </label>
                       </div>
                       
-                      {/* Botón Descargar PDF */}
+                      {/* Botón Descargar PDF (Backend) */}
                       <button 
                         onClick={() => handleDownloadPDF(selectedPeriod.id)}
                         disabled={downloadingPDF === selectedPeriod.id}
                         className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        title="Descargar PDF"
+                        title="Descargar PDF (Backend)"
                       >
                         {downloadingPDF === selectedPeriod.id ? (
                           <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
                         ) : (
                           <Download className="w-4 h-4" />
                         )}
+                      </button>
+
+                      {/* Botón Generar PDF Local */}
+                      <button 
+                        onClick={handleGenerateLocalPDF}
+                        className="text-green-600 hover:text-green-800 p-1.5 rounded hover:bg-green-50 transition-colors"
+                        title="Generar PDF Local (Con horas extra)"
+                      >
+                        <FileText className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -1179,15 +1287,15 @@ Generado desde Utalk HR`;
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
                     <p className="text-sm text-gray-600">Salario Bruto</p>
-                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(selectedPeriod.grossSalary)}</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(calculatePayrollTotals().totalPerceptions)}</p>
                   </div>
                   <div className="text-center p-4 bg-red-50 rounded-lg">
                     <p className="text-sm text-red-600">Deducciones</p>
-                    <p className="text-2xl font-bold text-red-600">{formatCurrency(selectedPeriod.totalDeductions)}</p>
+                    <p className="text-2xl font-bold text-red-600">{formatCurrency(calculatePayrollTotals().totalDeductions)}</p>
                   </div>
                   <div className="text-center p-4 bg-green-50 rounded-lg">
                     <p className="text-sm text-green-600">Salario Neto</p>
-                    <p className="text-2xl font-bold text-green-600">{formatCurrency(selectedPeriod.netSalary)}</p>
+                    <p className="text-2xl font-bold text-green-600">{formatCurrency(calculatePayrollTotals().netSalary)}</p>
                   </div>
                 </div>
 
@@ -1367,9 +1475,9 @@ Generado desde Utalk HR`;
                 <div className="bg-gray-50 p-3 rounded-lg text-sm text-gray-600">
                   <p><strong>Empleado:</strong> {employee?.personalInfo.firstName} {employee?.personalInfo.lastName}</p>
                   <p><strong>Período:</strong> {formatDate(selectedPeriod.periodStart)} - {formatDate(selectedPeriod.periodEnd)}</p>
-                  <p><strong>Salario Bruto:</strong> {formatCurrency(selectedPeriod.grossSalary)}</p>
-                  <p><strong>Deducciones:</strong> {formatCurrency(selectedPeriod.totalDeductions)}</p>
-                  <p><strong>Salario Neto:</strong> {formatCurrency(selectedPeriod.netSalary)}</p>
+                  <p><strong>Salario Bruto:</strong> {formatCurrency(calculatePayrollTotals().totalPerceptions)}</p>
+                  <p><strong>Deducciones:</strong> {formatCurrency(calculatePayrollTotals().totalDeductions)}</p>
+                  <p><strong>Salario Neto:</strong> {formatCurrency(calculatePayrollTotals().netSalary)}</p>
                 </div>
               </div>
               
