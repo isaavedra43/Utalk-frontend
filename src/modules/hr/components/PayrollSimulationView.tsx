@@ -118,6 +118,8 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'table' | 'summary'>('summary');
+  const [showEmployeeDetail, setShowEmployeeDetail] = useState(false);
+  const [selectedEmployeeDetail, setSelectedEmployeeDetail] = useState<EmployeeSimulation | null>(null);
 
   // Datos mock para simulación
   const mockEmployees: EmployeeSimulation[] = [
@@ -441,12 +443,194 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
     }
   };
 
+  const handleViewEmployeeDetail = (employee: EmployeeSimulation) => {
+    setSelectedEmployeeDetail(employee);
+    setShowEmployeeDetail(true);
+  };
+
+  const handleBackToSimulation = () => {
+    setShowEmployeeDetail(false);
+    setSelectedEmployeeDetail(null);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Cargando datos de simulación...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar vista de detalle del empleado
+  if (showEmployeeDetail && selectedEmployeeDetail) {
+    return (
+      <div className="p-6 space-y-6">
+        {/* Header con navegación */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={handleBackToSimulation}
+              className="flex items-center text-gray-600 hover:text-gray-900"
+            >
+              <ArrowRight className="h-5 w-5 mr-2 rotate-180" />
+              Volver a Simulación
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Nómina Detallada - {selectedEmployeeDetail.personalInfo.name}
+              </h1>
+              <p className="text-gray-600 mt-1">
+                {selectedEmployeeDetail.personalInfo.position} • {selectedEmployeeDetail.personalInfo.employeeId}
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => handleViewEmployeeDetail(selectedEmployeeDetail)}
+              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Descargar Detalle
+            </button>
+          </div>
+        </div>
+
+        {/* Información del empleado */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Información personal */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Información Personal</h3>
+            <div className="space-y-3">
+              <div>
+                <span className="text-sm font-medium text-gray-600">Nombre:</span>
+                <p className="text-gray-900">{selectedEmployeeDetail.personalInfo.name}</p>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-600">Posición:</span>
+                <p className="text-gray-900">{selectedEmployeeDetail.personalInfo.position}</p>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-600">Departamento:</span>
+                <p className="text-gray-900">{selectedEmployeeDetail.personalInfo.department}</p>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-600">ID Empleado:</span>
+                <p className="text-gray-900">{selectedEmployeeDetail.personalInfo.employeeId}</p>
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-600">Fecha de Contratación:</span>
+                <p className="text-gray-900">{formatDate(selectedEmployeeDetail.personalInfo.hireDate)}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Desglose de nómina */}
+          <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm border">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Desglose de Nómina</h3>
+            
+            <div className="space-y-4">
+              {/* Ingresos */}
+              <div>
+                <h4 className="text-md font-medium text-gray-900 mb-2">Ingresos</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-gray-600">Salario Base</span>
+                    <span className="font-medium">{formatCurrency(selectedEmployeeDetail.calculatedPayroll.grossSalary)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-gray-600">Horas Extra ({selectedEmployeeDetail.payrollData.overtimeHours}h)</span>
+                    <span className="font-medium text-blue-600">{formatCurrency(selectedEmployeeDetail.calculatedPayroll.overtimePay)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-gray-600">Bonos</span>
+                    <span className="font-medium text-green-600">{formatCurrency(selectedEmployeeDetail.calculatedPayroll.totalBonuses)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-gray-600">Beneficios</span>
+                    <span className="font-medium text-green-600">{formatCurrency(selectedEmployeeDetail.calculatedPayroll.totalBenefits)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Deducciones */}
+              <div>
+                <h4 className="text-md font-medium text-gray-900 mb-2">Deducciones</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-gray-600">Impuestos</span>
+                    <span className="font-medium text-red-600">-{formatCurrency(selectedEmployeeDetail.calculatedPayroll.taxes)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-gray-600">Otras Deducciones</span>
+                    <span className="font-medium text-red-600">-{formatCurrency(selectedEmployeeDetail.calculatedPayroll.totalDeductions - selectedEmployeeDetail.calculatedPayroll.taxes)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Total */}
+              <div className="border-t-2 border-gray-200 pt-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-semibold text-gray-900">Total Neto</span>
+                  <span className="text-lg font-bold text-green-600">{formatCurrency(selectedEmployeeDetail.calculatedPayroll.netSalary)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Detalle de bonos */}
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Detalle de Bonos</h3>
+          <div className="space-y-3">
+            {selectedEmployeeDetail.payrollData.bonuses.map((bonus, index) => (
+              <div key={index} className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-900">{bonus.type}</p>
+                  <p className="text-sm text-gray-600">{bonus.reason}</p>
+                </div>
+                <span className="font-medium text-green-600">{formatCurrency(bonus.amount)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Detalle de deducciones */}
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Detalle de Deducciones</h3>
+          <div className="space-y-3">
+            {selectedEmployeeDetail.payrollData.deductions.map((deduction, index) => (
+              <div key={index} className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-900">{deduction.type}</p>
+                  <p className="text-sm text-gray-600">{deduction.reason}</p>
+                </div>
+                <span className="font-medium text-red-600">-{formatCurrency(deduction.amount)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Rendimiento */}
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Rendimiento</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-gray-600">Asistencia</p>
+              <p className="text-2xl font-bold text-blue-600">{selectedEmployeeDetail.performance.attendance}%</p>
+            </div>
+            <div className="text-center p-4 bg-green-50 rounded-lg">
+              <p className="text-sm text-gray-600">Productividad</p>
+              <p className="text-2xl font-bold text-green-600">{selectedEmployeeDetail.performance.productivity}%</p>
+            </div>
+            <div className="text-center p-4 bg-purple-50 rounded-lg">
+              <p className="text-sm text-gray-600">Calificación</p>
+              <p className="text-2xl font-bold text-purple-600">{selectedEmployeeDetail.performance.rating}/5</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -711,12 +895,21 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{formatCurrency(employee.calculatedPayroll.netSalary)}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center space-x-2">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         <CheckCircle className="h-3 w-3 mr-1" />
                         Calculado
                       </span>
-                    </td>
+                      <button
+                        onClick={() => handleViewEmployeeDetail(employee)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Ver detalle de nómina"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
                   </tr>
                 ))}
               </tbody>
