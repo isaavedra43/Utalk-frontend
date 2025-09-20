@@ -53,12 +53,27 @@ const GeneralPayrollView: React.FC = () => {
   const [approvedData, setApprovedData] = useState<any[]>([]);
 
   // Pasos del proceso de payroll run
-  const payrollSteps: PayrollRunStep[] = [
-    { id: 1, name: 'Selección', status: 'current' },
-    { id: 2, name: 'Simulación', status: 'pending' },
-    { id: 3, name: 'Ajustes y Aprobación', status: 'pending' },
-    { id: 4, name: 'Cierre', status: 'pending' }
-  ];
+  const getPayrollSteps = (): PayrollRunStep[] => {
+    const steps = [
+      { id: 1, name: 'Selección', status: 'pending' as const },
+      { id: 2, name: 'Simulación', status: 'pending' as const },
+      { id: 3, name: 'Ajustes y Aprobación', status: 'pending' as const },
+      { id: 4, name: 'Cierre', status: 'pending' as const }
+    ];
+
+    // Actualizar estado basado en el paso actual
+    for (let i = 0; i < steps.length; i++) {
+      if (i < currentStep - 1) {
+        steps[i].status = 'completed';
+      } else if (i === currentStep - 1) {
+        steps[i].status = 'current';
+      } else {
+        steps[i].status = 'pending';
+      }
+    }
+
+    return steps;
+  };
 
   // Función para formatear moneda
   const formatCurrency = (amount: number) => {
@@ -140,6 +155,30 @@ const GeneralPayrollView: React.FC = () => {
     }
   };
 
+  // Función para demo completa del proceso
+  const handleDemoComplete = () => {
+    console.log('🎬 Iniciando demo completo del proceso...');
+    
+    // Crear período demo si no existe
+    const demoPeriod: PayrollPeriod = {
+      id: 'demo-1',
+      period: 'Enero 2024',
+      startDate: '2024-01-01',
+      endDate: '2024-01-31',
+      type: 'Mensual',
+      status: 'pendiente',
+      employees: 5,
+      estimatedCost: 250000,
+      realCost: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    setSelectedPeriod(demoPeriod);
+    setShowSimulationView(true);
+    setCurrentStep(2);
+  };
+
   // Funciones de navegación entre vistas
   const handleSimulationNext = (data: any[]) => {
     setSimulationData(data);
@@ -168,6 +207,18 @@ const GeneralPayrollView: React.FC = () => {
     setShowApprovalView(false);
     setShowClosureView(false);
     setCurrentStep(1);
+  };
+
+  const handleResetProcess = () => {
+    setShowSimulationView(false);
+    setShowApprovalView(false);
+    setShowClosureView(false);
+    setCurrentStep(1);
+    setSelectedPeriod(null);
+    setSimulationData([]);
+    setApprovedData([]);
+    setError(null);
+    console.log('🔄 Proceso de nómina reseteado');
   };
 
   // Función para descargar reporte
@@ -228,16 +279,42 @@ const GeneralPayrollView: React.FC = () => {
         setPayrollPeriods([
           {
             id: '1',
-            period: '30/4/2024 - 30/5/2024',
+            period: 'Enero 2024',
+            type: 'Mensual',
+            status: 'pendiente',
+            employees: 5,
+            estimatedCost: 250000.00,
+            realCost: 0,
+            startDate: '2024-01-01',
+            endDate: '2024-01-31',
+            createdAt: '2024-01-01T00:00:00Z',
+            updatedAt: '2024-01-01T00:00:00Z'
+          },
+          {
+            id: '2',
+            period: 'Diciembre 2023',
             type: 'Mensual',
             status: 'cerrado',
-            employees: 40,
-            estimatedCost: 1850000.00,
-            realCost: 1852340.50,
-            startDate: '2024-04-30',
-            endDate: '2024-05-30',
-            createdAt: '2024-04-30T00:00:00Z',
-            updatedAt: '2024-05-30T00:00:00Z'
+            employees: 5,
+            estimatedCost: 240000.00,
+            realCost: 245000.50,
+            startDate: '2023-12-01',
+            endDate: '2023-12-31',
+            createdAt: '2023-12-01T00:00:00Z',
+            updatedAt: '2023-12-31T00:00:00Z'
+          },
+          {
+            id: '3',
+            period: 'Noviembre 2023',
+            type: 'Mensual',
+            status: 'aprobado',
+            employees: 5,
+            estimatedCost: 235000.00,
+            realCost: 238000.00,
+            startDate: '2023-11-01',
+            endDate: '2023-11-30',
+            createdAt: '2023-11-01T00:00:00Z',
+            updatedAt: '2023-11-30T00:00:00Z'
           }
         ]);
       } finally {
@@ -331,6 +408,26 @@ const GeneralPayrollView: React.FC = () => {
           {error}
         </div>
       )}
+
+      {/* Indicador de estado del proceso */}
+      {(showSimulationView || showApprovalView || showClosureView) && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-3 h-3 bg-blue-600 rounded-full mr-3 animate-pulse"></div>
+              <span className="font-medium">
+                Proceso de Nómina en Curso - Paso {currentStep} de 4
+              </span>
+            </div>
+            <button
+              onClick={handleResetProcess}
+              className="text-blue-600 hover:text-blue-800 text-sm underline"
+            >
+              Cancelar y Volver al Inicio
+            </button>
+          </div>
+        </div>
+      )}
       {/* Métricas principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Horas Extra Pendientes */}
@@ -376,7 +473,7 @@ const GeneralPayrollView: React.FC = () => {
         {/* Pasos del proceso - Diseño mejorado en secuencia */}
         <div className="mb-8">
           <div className="flex items-center justify-center space-x-8">
-            {payrollSteps.map((step, index) => (
+            {getPayrollSteps().map((step, index) => (
               <div key={step.id} className="flex flex-col items-center relative">
                 {/* Círculo del paso */}
                 <div className={`flex items-center justify-center w-14 h-14 rounded-full border-3 ${
@@ -438,11 +535,27 @@ const GeneralPayrollView: React.FC = () => {
             </button>
             
             <button
+              onClick={handleDemoComplete}
+              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Ver Demo Completo
+            </button>
+            
+            <button
               onClick={() => setShowDetailView(true)}
               className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
               <List className="h-4 w-4 mr-2" />
               Ver Detalle de Empleados
+            </button>
+            
+            <button
+              onClick={handleResetProcess}
+              className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Resetear Proceso
             </button>
           </div>
         </div>
