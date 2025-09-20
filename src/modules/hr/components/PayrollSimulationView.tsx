@@ -27,14 +27,7 @@ import {
 } from 'lucide-react';
 
 // Interfaces para tipos de datos
-interface PayrollPeriod {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  type: 'monthly' | 'biweekly' | 'weekly';
-  status: 'open' | 'processing' | 'simulated' | 'adjusted' | 'approved' | 'closed';
-}
+import { PayrollPeriod } from '../../../services/generalPayrollApi';
 
 interface EmployeeSimulation {
   id: string;
@@ -110,6 +103,25 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
   onNext, 
   onBack 
 }) => {
+  // Validar que selectedPeriod tenga las propiedades necesarias
+  if (!selectedPeriod || !selectedPeriod.period || !selectedPeriod.startDate || !selectedPeriod.endDate) {
+    console.error('PayrollSimulationView: selectedPeriod inválido:', selectedPeriod);
+    return (
+      <div className="p-6 text-center">
+        <div className="text-red-600 mb-4">
+          <AlertCircle className="h-12 w-12 mx-auto mb-2" />
+          <h2 className="text-xl font-bold">Error de Datos</h2>
+          <p className="text-gray-600 mt-2">Los datos del período no son válidos.</p>
+        </div>
+        <button
+          onClick={onBack}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Volver
+        </button>
+      </div>
+    );
+  }
   // Estados principales
   const [employees, setEmployees] = useState<EmployeeSimulation[]>([]);
   const [summary, setSummary] = useState<SimulationSummary | null>(null);
@@ -335,7 +347,7 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
       
       // Crear datos del reporte
       const reportData = {
-        period: selectedPeriod.name,
+        period: selectedPeriod.period,
         date: new Date().toLocaleDateString('es-MX'),
         summary: summary,
         employees: employees,
@@ -347,7 +359,7 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `simulacion-nomina-${selectedPeriod.name.replace(/\s+/g, '-')}.json`;
+      link.download = `simulacion-nomina-${selectedPeriod.period.replace(/\s+/g, '-')}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -643,7 +655,7 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Simulación de Nómina</h1>
           <p className="text-gray-600 mt-1">
-            Período: {selectedPeriod.name} ({formatDate(selectedPeriod.startDate)} - {formatDate(selectedPeriod.endDate)})
+            Período: {selectedPeriod.period} ({formatDate(selectedPeriod.startDate)} - {formatDate(selectedPeriod.endDate)})
           </p>
         </div>
         

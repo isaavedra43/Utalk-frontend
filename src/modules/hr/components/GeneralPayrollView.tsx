@@ -280,13 +280,32 @@ const GeneralPayrollView: React.FC = () => {
   }
 
   if (showSimulationView && selectedPeriod) {
-    return (
-      <PayrollSimulationView
-        selectedPeriod={selectedPeriod}
-        onNext={handleSimulationNext}
-        onBack={handleBackToGeneral}
-      />
-    );
+    try {
+      return (
+        <PayrollSimulationView
+          selectedPeriod={selectedPeriod}
+          onNext={handleSimulationNext}
+          onBack={handleBackToGeneral}
+        />
+      );
+    } catch (error) {
+      console.error('Error en PayrollSimulationView:', error);
+      return (
+        <div className="p-6 text-center">
+          <div className="text-red-600 mb-4">
+            <AlertCircle className="h-12 w-12 mx-auto mb-2" />
+            <h2 className="text-xl font-bold">Error en la Vista de Simulación</h2>
+            <p className="text-gray-600 mt-2">Ha ocurrido un error al cargar la simulación.</p>
+          </div>
+          <button
+            onClick={handleBackToGeneral}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Volver al Inicio
+          </button>
+        </div>
+      );
+    }
   }
 
 
@@ -449,9 +468,29 @@ const GeneralPayrollView: React.FC = () => {
             <button
               onClick={() => {
                 // Demo: ir directamente a simulación
-                setSelectedPeriod(payrollPeriods[0]);
-                setShowSimulationView(true);
-                setCurrentStep(2);
+                if (payrollPeriods.length > 0) {
+                  setSelectedPeriod(payrollPeriods[0]);
+                  setShowSimulationView(true);
+                  setCurrentStep(2);
+                } else {
+                  // Si no hay períodos, crear uno demo
+                  const demoPeriod: PayrollPeriod = {
+                    id: 'demo-1',
+                    period: 'Enero 2024',
+                    startDate: '2024-01-01',
+                    endDate: '2024-01-31',
+                    type: 'Mensual',
+                    status: 'pendiente',
+                    employees: 40,
+                    estimatedCost: 1850000,
+                    realCost: 1852340.50,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                  };
+                  setSelectedPeriod(demoPeriod);
+                  setShowSimulationView(true);
+                  setCurrentStep(2);
+                }
               }}
               className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
