@@ -544,7 +544,19 @@ class ExtrasService {
   async getChartData(employeeId: string, days: number = 30): Promise<ChartData[]> {
     try {
       const response = await api.get(`/api/employees/${employeeId}/chart-data?days=${days}`);
-      return response.data.chartData;
+      console.log('📊 Respuesta completa de getChartData:', response.data);
+      
+      // La API puede devolver datos en diferentes formatos
+      if (response.data && response.data.data && response.data.data.chartData) {
+        return response.data.data.chartData;
+      } else if (response.data && response.data.chartData) {
+        return response.data.chartData;
+      } else if (Array.isArray(response.data)) {
+        return response.data;
+      } else {
+        console.warn('⚠️ Formato de respuesta no reconocido para chart-data:', response.data);
+        return [];
+      }
     } catch (error) {
       console.error('Error fetching chart data:', error);
       throw error;
