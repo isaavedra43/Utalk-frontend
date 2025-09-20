@@ -12,7 +12,8 @@ import {
   XCircle,
   Pause,
   Eye,
-  List
+  List,
+  FileText
 } from 'lucide-react';
 import { generalPayrollApi, type PayrollPeriod, type PayrollMetrics } from '../../../services/generalPayrollApi';
 import EmployeePayrollDetailView from './EmployeePayrollDetailView';
@@ -51,6 +52,10 @@ const GeneralPayrollView: React.FC = () => {
   const [showClosureView, setShowClosureView] = useState(false);
   const [simulationData, setSimulationData] = useState<any[]>([]);
   const [approvedData, setApprovedData] = useState<any[]>([]);
+  
+  // Estados para el modal de detalle de nómina
+  const [showPayrollDetailModal, setShowPayrollDetailModal] = useState(false);
+  const [selectedPeriodForDetail, setSelectedPeriodForDetail] = useState<PayrollPeriod | null>(null);
 
   // Pasos del proceso de payroll run - dinámicos
   const getPayrollSteps = (): PayrollRunStep[] => {
@@ -250,6 +255,19 @@ const GeneralPayrollView: React.FC = () => {
       console.error('❌ Error descargando reporte:', error);
       setError('Error al descargar el reporte');
     }
+  };
+
+  // Función para ver detalle de nómina
+  const handleViewPayrollDetail = (period: PayrollPeriod) => {
+    setSelectedPeriodForDetail(period);
+    setShowPayrollDetailModal(true);
+    console.log('📊 Abriendo detalle de nómina para período:', period.period);
+  };
+
+  // Función para cerrar modal de detalle
+  const handleClosePayrollDetailModal = () => {
+    setShowPayrollDetailModal(false);
+    setSelectedPeriodForDetail(null);
   };
 
   // Cargar datos al montar el componente
@@ -634,15 +652,31 @@ const GeneralPayrollView: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownloadReport(period);
-                      }}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      <Download className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center justify-end space-x-2">
+                      {/* Botón para ver detalle de nómina */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewPayrollDetail(period);
+                        }}
+                        className="text-green-600 hover:text-green-900"
+                        title="Ver detalle de nómina"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </button>
+                      
+                      {/* Botón para descargar reporte */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownloadReport(period);
+                        }}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Descargar reporte"
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -650,6 +684,199 @@ const GeneralPayrollView: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Modal para ver detalle de nómina */}
+      {showPayrollDetailModal && selectedPeriodForDetail && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">
+                  Detalle de Nómina - {selectedPeriodForDetail.period}
+                </h3>
+                <p className="text-gray-600 mt-1">
+                  Información detallada del período de nómina seleccionado
+                </p>
+              </div>
+              <button
+                onClick={handleClosePayrollDetailModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              {/* Información general del período */}
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">Información del Período</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Período</label>
+                    <p className="text-lg font-semibold text-gray-900">{selectedPeriodForDetail.period}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+                    <p className="text-lg font-semibold text-gray-900">{selectedPeriodForDetail.type}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedPeriodForDetail.status)}`}>
+                      {getStatusText(selectedPeriodForDetail.status)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Métricas financieras */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Empleados</p>
+                      <p className="text-3xl font-bold text-gray-900">{selectedPeriodForDetail.employees}</p>
+                    </div>
+                    <div className="p-3 bg-blue-100 rounded-full">
+                      <Users className="h-6 w-6 text-blue-600" />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Costo Estimado</p>
+                      <p className="text-3xl font-bold text-gray-900">{formatCurrency(selectedPeriodForDetail.estimatedCost)}</p>
+                    </div>
+                    <div className="p-3 bg-yellow-100 rounded-full">
+                      <DollarSign className="h-6 w-6 text-yellow-600" />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Costo Real</p>
+                      <p className="text-3xl font-bold text-gray-900">
+                        {selectedPeriodForDetail.realCost ? formatCurrency(selectedPeriodForDetail.realCost) : 'N/A'}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-green-100 rounded-full">
+                      <TrendingUp className="h-6 w-6 text-green-600" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fechas del período */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">Fechas del Período</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Fecha de Inicio</label>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {new Date(selectedPeriodForDetail.startDate).toLocaleDateString('es-MX')}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Fecha de Fin</label>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {new Date(selectedPeriodForDetail.endDate).toLocaleDateString('es-MX')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tabla de empleados del período */}
+              <div className="bg-white border border-gray-200 rounded-lg">
+                <div className="px-6 py-4 border-b border-gray-200">
+                  <h4 className="text-lg font-semibold text-gray-900">Empleados del Período</h4>
+                </div>
+                <div className="p-6">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      <strong>Funcionalidad en desarrollo:</strong> Aquí se mostrará la lista detallada de todos los empleados 
+                      incluidos en este período de nómina, con sus salarios, ajustes, y estado de pago.
+                    </p>
+                  </div>
+                  
+                  {/* Datos mock para demostración */}
+                  <div className="mt-4 space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <Users className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Ana García López</p>
+                          <p className="text-sm text-gray-600">Desarrolladora Senior</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900">{formatCurrency(44700)}</p>
+                        <p className="text-sm text-green-600">Aprobado</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <Users className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Carlos Mendoza Ruiz</p>
+                          <p className="text-sm text-gray-600">Gerente de Ventas</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900">{formatCurrency(61700)}</p>
+                        <p className="text-sm text-yellow-600">Pendiente</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <Users className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">María Elena Torres</p>
+                          <p className="text-sm text-gray-600">Analista de RH</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900">{formatCurrency(32300)}</p>
+                        <p className="text-sm text-green-600">Aprobado</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Acciones del modal */}
+              <div className="flex justify-end space-x-3 pt-6 border-t">
+                <button
+                  onClick={handleClosePayrollDetailModal}
+                  className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cerrar
+                </button>
+                <button
+                  onClick={() => {
+                    handleClosePayrollDetailModal();
+                    handleDownloadReport(selectedPeriodForDetail);
+                  }}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <Download className="h-4 w-4 inline mr-2" />
+                  Descargar Reporte
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
