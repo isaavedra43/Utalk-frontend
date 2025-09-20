@@ -321,24 +321,10 @@ const HRModule: React.FC = () => {
                 </div>
               )}
 
-              {/* Búsqueda global */}
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Buscar empleados, nómina, documentos..."
-                  className="w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              </div>
-
               {/* Acciones rápidas */}
               <div className="flex items-center space-x-2">
                 <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                   <Bell className="h-5 w-5" />
-                </button>
-                <button className="flex items-center space-x-2 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-                  <Download className="h-4 w-4" />
-                  <span>Exportar</span>
                 </button>
                 <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                   <Settings className="h-5 w-5" />

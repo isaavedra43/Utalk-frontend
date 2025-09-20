@@ -13,6 +13,12 @@ export interface PayrollPeriod {
   endDate: string;
   createdAt: string;
   updatedAt: string;
+  createdBy: {
+    id: string;
+    name: string;
+    role: string;
+    avatar?: string;
+  };
 }
 
 export interface PayrollMetrics {
@@ -95,68 +101,83 @@ class GeneralPayrollApi {
       // Simular delay de API
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      const mockPeriods: PayrollPeriod[] = [
-        {
-          id: '1',
-          period: 'Enero 2024',
-          type: 'Mensual',
-          status: 'pendiente',
-          employees: 25,
-          estimatedCost: 250000.00,
-          realCost: 0,
-          startDate: '2024-01-01',
-          endDate: '2024-01-31',
-          createdAt: '2024-01-01T00:00:00Z',
-          updatedAt: '2024-01-01T00:00:00Z'
-        },
-        {
-          id: '2',
-          period: 'Diciembre 2023',
-          type: 'Mensual',
-          status: 'cerrado',
-          employees: 25,
-          estimatedCost: 240000.00,
-          realCost: 245000.50,
-          startDate: '2023-12-01',
-          endDate: '2023-12-31',
-          createdAt: '2023-12-01T00:00:00Z',
-          updatedAt: '2023-12-31T00:00:00Z'
-        },
-        {
-          id: '3',
-          period: 'Noviembre 2023',
-          type: 'Mensual',
-          status: 'aprobado',
-          employees: 25,
-          estimatedCost: 235000.00,
-          realCost: 238000.00,
-          startDate: '2023-11-01',
-          endDate: '2023-11-30',
-          createdAt: '2023-11-01T00:00:00Z',
-          updatedAt: '2023-11-30T00:00:00Z'
-        },
-        {
-          id: '4',
-          period: 'Octubre 2023',
-          type: 'Mensual',
-          status: 'calculado',
-          employees: 24,
-          estimatedCost: 230000.00,
-          realCost: 232500.00,
-          startDate: '2023-10-01',
-          endDate: '2023-10-31',
-          createdAt: '2023-10-01T00:00:00Z',
-          updatedAt: '2023-10-31T00:00:00Z'
-        }
+      // Generar más períodos para demostrar paginación
+      const mockPeriods: PayrollPeriod[] = [];
+      const agents = [
+        { id: '1', name: 'Ana García López', role: 'Gerente de RH', avatar: '👩‍💼' },
+        { id: '2', name: 'Carlos Mendoza Ruiz', role: 'Analista de Nómina', avatar: '👨‍💻' },
+        { id: '3', name: 'María Elena Torres', role: 'Especialista en RH', avatar: '👩‍💼' },
+        { id: '4', name: 'Roberto Silva', role: 'Coordinador de Nómina', avatar: '👨‍💼' },
+        { id: '5', name: 'Laura Jiménez', role: 'Supervisora de RH', avatar: '👩‍💼' }
       ];
       
+      const months = [
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+      ];
+      
+      const statuses: Array<'cerrado' | 'aprobado' | 'calculado' | 'pendiente'> = ['cerrado', 'aprobado', 'calculado', 'pendiente'];
+      
+      // Generar períodos para los últimos 2 años
+      for (let year = 2022; year <= 2024; year++) {
+        for (let month = 0; month < 12; month++) {
+          const periodId = `${year}-${month + 1}`;
+          const isCurrentYear = year === 2024;
+          const isCurrentMonth = month === 0 && year === 2024; // Enero 2024
+          
+          mockPeriods.push({
+            id: periodId,
+            period: `${months[month]} ${year}`,
+            type: 'Mensual',
+            status: isCurrentMonth ? 'pendiente' : statuses[Math.floor(Math.random() * statuses.length)],
+            employees: 20 + Math.floor(Math.random() * 10),
+            estimatedCost: 200000 + Math.floor(Math.random() * 100000),
+            realCost: isCurrentMonth ? undefined : 200000 + Math.floor(Math.random() * 100000),
+            startDate: `${year}-${String(month + 1).padStart(2, '0')}-01`,
+            endDate: `${year}-${String(month + 1).padStart(2, '0')}-${new Date(year, month + 1, 0).getDate()}`,
+            createdAt: `${year}-${String(month + 1).padStart(2, '0')}-01T00:00:00Z`,
+            updatedAt: `${year}-${String(month + 1).padStart(2, '0')}-${new Date(year, month + 1, 0).getDate()}T00:00:00Z`,
+            createdBy: agents[Math.floor(Math.random() * agents.length)]
+          });
+        }
+      }
+      
+      // Ordenar por fecha más reciente primero
+      mockPeriods.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+      
+      // Aplicar filtros si se proporcionan
+      let filteredPeriods = [...mockPeriods];
+      
+      if (params?.status) {
+        filteredPeriods = filteredPeriods.filter(p => p.status === params.status);
+      }
+      
+      if (params?.type) {
+        filteredPeriods = filteredPeriods.filter(p => p.type === params.type);
+      }
+      
+      if (params?.year) {
+        filteredPeriods = filteredPeriods.filter(p => new Date(p.startDate).getFullYear() === params.year);
+      }
+      
+      if (params?.month) {
+        filteredPeriods = filteredPeriods.filter(p => new Date(p.startDate).getMonth() + 1 === params.month);
+      }
+      
+      // Aplicar paginación
+      const page = params?.page || 1;
+      const limit = params?.limit || 10;
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedPeriods = filteredPeriods.slice(startIndex, endIndex);
+      
       return {
-        periods: mockPeriods,
+        periods: paginatedPeriods,
         pagination: {
-          page: 1,
-          limit: 10,
-          total: mockPeriods.length,
-          totalPages: 1
+          page,
+          limit,
+          total: filteredPeriods.length,
+          totalPages: Math.ceil(filteredPeriods.length / limit)
         }
       };
     } catch (error) {

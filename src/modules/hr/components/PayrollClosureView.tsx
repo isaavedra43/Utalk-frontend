@@ -821,13 +821,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
                   </td>
                   <td className="px-3 py-4 whitespace-nowrap text-center">
                     <div className="flex flex-col items-center">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-sm font-medium ${
-                        employee.faltas === 0 
-                          ? 'bg-green-100 text-green-800' 
-                          : employee.faltas <= 2 
-                            ? 'bg-yellow-100 text-yellow-800' 
-                            : 'bg-red-100 text-red-800'
-                      }`}>
+                      <span className="text-sm font-medium text-gray-900">
                         {employee.faltas}
                       </span>
                       <span className="text-xs text-gray-500 mt-1">

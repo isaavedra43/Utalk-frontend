@@ -62,6 +62,16 @@ const GeneralPayrollView: React.FC = () => {
   const [payrollPeriods, setPayrollPeriods] = useState<PayrollPeriod[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Estados para paginación y filtros
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [yearFilter, setYearFilter] = useState<string>('all');
 
   // Estados para el proceso de payroll run
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -429,14 +439,34 @@ const GeneralPayrollView: React.FC = () => {
         
         console.log('🔄 Cargando datos de nómina general...');
         
+        // Preparar parámetros de filtro
+        const filterParams: any = {
+          page: currentPage,
+          limit: itemsPerPage
+        };
+        
+        if (statusFilter !== 'all') {
+          filterParams.status = statusFilter;
+        }
+        
+        if (typeFilter !== 'all') {
+          filterParams.type = typeFilter;
+        }
+        
+        if (yearFilter !== 'all') {
+          filterParams.year = parseInt(yearFilter);
+        }
+        
         // Cargar métricas y períodos en paralelo
         const [metricsData, periodsData] = await Promise.all([
           generalPayrollApi.getGeneralMetrics(),
-          generalPayrollApi.getPayrollPeriods()
+          generalPayrollApi.getPayrollPeriods(filterParams)
         ]);
         
         setMetrics(metricsData);
         setPayrollPeriods(periodsData.periods);
+        setTotalPages(periodsData.pagination.totalPages);
+        setTotalItems(periodsData.pagination.total);
         
         console.log('✅ Datos de nómina general cargados');
       } catch (error) {
@@ -491,7 +521,45 @@ const GeneralPayrollView: React.FC = () => {
     };
 
     loadPayrollData();
-  }, []);
+  }, [currentPage, itemsPerPage, statusFilter, typeFilter, yearFilter]);
+
+  // Funciones para manejar paginación y filtros
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+  
+  const handleItemsPerPageChange = (items: number) => {
+    setItemsPerPage(items);
+    setCurrentPage(1); // Reset a la primera página
+  };
+  
+  const handleSearchChange = (term: string) => {
+    setSearchTerm(term);
+    setCurrentPage(1); // Reset a la primera página
+  };
+  
+  const handleFilterChange = (filterType: string, value: string) => {
+    switch (filterType) {
+      case 'status':
+        setStatusFilter(value);
+        break;
+      case 'type':
+        setTypeFilter(value);
+        break;
+      case 'year':
+        setYearFilter(value);
+        break;
+    }
+    setCurrentPage(1); // Reset a la primera página
+  };
+  
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setTypeFilter('all');
+    setYearFilter('all');
+    setCurrentPage(1);
+  };
 
   // Mostrar vistas específicas del proceso
   if (showDetailView) {
@@ -744,7 +812,92 @@ const GeneralPayrollView: React.FC = () => {
       {/* Tabla de Períodos de Nómina */}
       <div className="bg-white rounded-lg border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900">Periodos de Nómina</h2>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+            <h2 className="text-2xl font-bold text-gray-900">Periodos de Nómina</h2>
+            
+            {/* Controles de búsqueda y filtros */}
+            <div className="flex flex-col lg:flex-row space-y-2 lg:space-y-0 lg:space-x-4">
+              {/* Buscador */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Buscar período..."
+                  value={searchTerm}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full lg:w-64"
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </div>
+              
+              {/* Filtros */}
+              <div className="flex space-x-2">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">Todos los estados</option>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="calculado">Calculado</option>
+                  <option value="aprobado">Aprobado</option>
+                  <option value="cerrado">Cerrado</option>
+                </select>
+                
+                <select
+                  value={typeFilter}
+                  onChange={(e) => handleFilterChange('type', e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">Todos los tipos</option>
+                  <option value="Mensual">Mensual</option>
+                  <option value="Semanal">Semanal</option>
+                  <option value="Quincenal">Quincenal</option>
+                </select>
+                
+                <select
+                  value={yearFilter}
+                  onChange={(e) => handleFilterChange('year', e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">Todos los años</option>
+                  <option value="2024">2024</option>
+                  <option value="2023">2023</option>
+                  <option value="2022">2022</option>
+                </select>
+                
+                <button
+                  onClick={clearFilters}
+                  className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Limpiar
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Información de paginación */}
+          <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
+            <div>
+              Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, totalItems)} de {totalItems} períodos
+            </div>
+            <div className="flex items-center space-x-2">
+              <span>Elementos por página:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => handleItemsPerPageChange(parseInt(e.target.value))}
+                className="px-2 py-1 border border-gray-300 rounded text-sm"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+          </div>
         </div>
         
         <div className="overflow-x-auto">
@@ -768,6 +921,9 @@ const GeneralPayrollView: React.FC = () => {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Costo Real
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Creado por
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
@@ -812,6 +968,25 @@ const GeneralPayrollView: React.FC = () => {
                       {period.realCost ? formatCurrency(period.realCost) : '-'}
                     </div>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 h-8 w-8">
+                        <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                          <span className="text-sm font-medium text-blue-600">
+                            {period.createdBy.avatar || period.createdBy.name.charAt(0)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="ml-3">
+                        <div className="text-sm font-medium text-gray-900">
+                          {period.createdBy.name}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {period.createdBy.role}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
                       {/* Botón para ver detalle de nómina */}
@@ -844,6 +1019,65 @@ const GeneralPayrollView: React.FC = () => {
             </tbody>
           </table>
         </div>
+        
+        {/* Controles de paginación */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Anterior
+                </button>
+                
+                {/* Números de página */}
+                <div className="flex space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`px-3 py-2 text-sm font-medium rounded-md ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Siguiente
+                </button>
+              </div>
+              
+              <div className="text-sm text-gray-500">
+                Página {currentPage} de {totalPages}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
 
