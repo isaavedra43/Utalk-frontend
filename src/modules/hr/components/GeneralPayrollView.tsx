@@ -16,6 +16,10 @@ import {
 } from 'lucide-react';
 import { generalPayrollApi, type PayrollPeriod, type PayrollMetrics } from '../../../services/generalPayrollApi';
 import EmployeePayrollDetailView from './EmployeePayrollDetailView';
+import PayrollSimulationView from './PayrollSimulationView';
+import PayrollAdjustmentsView from './PayrollAdjustmentsView';
+import PayrollApprovalView from './PayrollApprovalView';
+import PayrollClosureView from './PayrollClosureView';
 
 // Interfaces para tipos de datos (ya importadas desde el servicio)
 
@@ -42,6 +46,13 @@ const GeneralPayrollView: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<PayrollPeriod | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showDetailView, setShowDetailView] = useState(false);
+  const [showSimulationView, setShowSimulationView] = useState(false);
+  const [showAdjustmentsView, setShowAdjustmentsView] = useState(false);
+  const [showApprovalView, setShowApprovalView] = useState(false);
+  const [showClosureView, setShowClosureView] = useState(false);
+  const [simulationData, setSimulationData] = useState<any[]>([]);
+  const [adjustedData, setAdjustedData] = useState<any[]>([]);
+  const [approvedData, setApprovedData] = useState<any[]>([]);
 
   // Pasos del proceso de payroll run
   const payrollSteps: PayrollRunStep[] = [
@@ -119,14 +130,9 @@ const GeneralPayrollView: React.FC = () => {
       
       console.log('✅ Payroll run iniciado exitosamente:', response);
       
-      // Actualizar el estado del período
-      setPayrollPeriods(prev => 
-        prev.map(period => 
-          period.id === selectedPeriod.id 
-            ? { ...period, status: 'calculado' as const }
-            : period
-        )
-      );
+      // Ir a la vista de simulación
+      setShowSimulationView(true);
+      setCurrentStep(2);
       
     } catch (error) {
       console.error('❌ Error iniciando payroll run:', error);
@@ -134,6 +140,44 @@ const GeneralPayrollView: React.FC = () => {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // Funciones de navegación entre vistas
+  const handleSimulationNext = (data: any[]) => {
+    setSimulationData(data);
+    setShowSimulationView(false);
+    setShowAdjustmentsView(true);
+    setCurrentStep(3);
+  };
+
+  const handleAdjustmentsNext = (data: any[]) => {
+    setAdjustedData(data);
+    setShowAdjustmentsView(false);
+    setShowApprovalView(true);
+    setCurrentStep(4);
+  };
+
+  const handleApprovalNext = (data: any[]) => {
+    setApprovedData(data);
+    setShowApprovalView(false);
+    setShowClosureView(true);
+  };
+
+  const handleClosureComplete = () => {
+    setShowClosureView(false);
+    setCurrentStep(1);
+    setSelectedPeriod(null);
+    setSimulationData([]);
+    setAdjustedData([]);
+    setApprovedData([]);
+  };
+
+  const handleBackToGeneral = () => {
+    setShowSimulationView(false);
+    setShowAdjustmentsView(false);
+    setShowApprovalView(false);
+    setShowClosureView(false);
+    setCurrentStep(1);
   };
 
   // Función para descargar reporte
@@ -214,7 +258,7 @@ const GeneralPayrollView: React.FC = () => {
     loadPayrollData();
   }, []);
 
-  // Mostrar vista detalle si está activada
+  // Mostrar vistas específicas del proceso
   if (showDetailView) {
     return (
       <div>
@@ -234,6 +278,58 @@ const GeneralPayrollView: React.FC = () => {
         </div>
         <EmployeePayrollDetailView />
       </div>
+    );
+  }
+
+  if (showSimulationView && selectedPeriod) {
+    return (
+      <PayrollSimulationView
+        selectedPeriod={selectedPeriod}
+        onNext={handleSimulationNext}
+        onBack={handleBackToGeneral}
+      />
+    );
+  }
+
+  if (showAdjustmentsView) {
+    return (
+      <PayrollAdjustmentsView
+        simulationData={simulationData}
+        onNext={handleAdjustmentsNext}
+        onBack={() => {
+          setShowAdjustmentsView(false);
+          setShowSimulationView(true);
+          setCurrentStep(2);
+        }}
+      />
+    );
+  }
+
+  if (showApprovalView) {
+    return (
+      <PayrollApprovalView
+        adjustedData={adjustedData}
+        onNext={handleApprovalNext}
+        onBack={() => {
+          setShowApprovalView(false);
+          setShowAdjustmentsView(true);
+          setCurrentStep(3);
+        }}
+      />
+    );
+  }
+
+  if (showClosureView) {
+    return (
+      <PayrollClosureView
+        approvedData={approvedData}
+        onComplete={handleClosureComplete}
+        onBack={() => {
+          setShowClosureView(false);
+          setShowApprovalView(true);
+          setCurrentStep(4);
+        }}
+      />
     );
   }
 
