@@ -40,9 +40,13 @@ interface ApprovalRequest {
   adjustedAmount: number;
   difference: number;
   adjustments: Array<{
+    id: string;
     type: string;
     amount: number;
     reason: string;
+    appliedBy: string;
+    appliedAt: string;
+    status: 'pending' | 'applied' | 'rejected';
   }>;
   status: 'pending' | 'approved' | 'rejected' | 'needs_review';
   paymentStatus: 'pending_payment' | 'paid' | 'receipt_uploaded' | 'completed';
@@ -57,6 +61,8 @@ interface ApprovalRequest {
   reviewedBy?: string;
   reviewedAt?: string;
   comments?: string;
+  hasChanges: boolean;
+  lastModified: string;
 }
 
 interface ApprovalSummary {
@@ -92,8 +98,11 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
   const [approvalComments, setApprovalComments] = useState<{[key: string]: string}>({});
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedRequestForReceipt, setSelectedRequestForReceipt] = useState<string | null>(null);
+  const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
+  const [selectedRequestForAdjustment, setSelectedRequestForAdjustment] = useState<string | null>(null);
+  const [adjustmentType, setAdjustmentType] = useState<string>('bonus');
 
-  // Datos mock para aprobaciones
+  // Datos mock para aprobaciones con ajustes
   const mockApprovalRequests: ApprovalRequest[] = [
     {
       id: '1',
@@ -105,15 +114,21 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
       difference: 1000,
       adjustments: [
         {
+          id: 'adj1',
           type: 'bonus',
           amount: 1000,
-          reason: 'Desempeño excepcional en el proyecto Beta'
+          reason: 'Desempeño excepcional en el proyecto Beta',
+          appliedBy: 'Juan Pérez',
+          appliedAt: '2024-01-31T11:00:00Z',
+          status: 'applied'
         }
       ],
       status: 'pending',
       paymentStatus: 'pending_payment',
       requestedBy: 'Juan Pérez',
-      requestedAt: '2024-01-31T11:00:00Z'
+      requestedAt: '2024-01-31T11:00:00Z',
+      hasChanges: true,
+      lastModified: '2024-01-31T11:00:00Z'
     },
     {
       id: '2',
@@ -130,7 +145,9 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
       requestedAt: '2024-01-31T10:30:00Z',
       reviewedBy: 'Ana López',
       reviewedAt: '2024-01-31T12:00:00Z',
-      comments: 'Sin cambios requeridos'
+      comments: 'Sin cambios requeridos',
+      hasChanges: false,
+      lastModified: '2024-01-31T10:30:00Z'
     },
     {
       id: '3',
@@ -153,7 +170,9 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
       requestedAt: '2024-01-31T10:30:00Z',
       reviewedBy: 'Ana López',
       reviewedAt: '2024-01-31T12:00:00Z',
-      comments: 'Aprobado sin modificaciones'
+      comments: 'Aprobado sin modificaciones',
+      hasChanges: false,
+      lastModified: '2024-01-31T10:30:00Z'
     }
   ];
 
@@ -404,6 +423,41 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
     setSelectedRequestForReceipt(null);
   };
 
+  const handleAddAdjustment = (requestId: string) => {
+    setSelectedRequestForAdjustment(requestId);
+    setShowAdjustmentModal(true);
+  };
+
+  const handleSaveAdjustment = (adjustment: Omit<ApprovalRequest['adjustments'][0], 'id' | 'appliedBy' | 'appliedAt' | 'status'>) => {
+    if (!selectedRequestForAdjustment) return;
+
+    const newAdjustment = {
+      id: `adj_${Date.now()}`,
+      ...adjustment,
+      appliedBy: 'Usuario Actual',
+      appliedAt: new Date().toISOString(),
+      status: 'applied' as const
+    };
+
+    setApprovalRequests(prev => 
+      prev.map(req => 
+        req.id === selectedRequestForAdjustment 
+          ? { 
+              ...req, 
+              adjustments: [...req.adjustments, newAdjustment],
+              adjustedAmount: req.adjustedAmount + adjustment.amount,
+              difference: req.difference + adjustment.amount,
+              hasChanges: true,
+              lastModified: new Date().toISOString()
+            }
+          : req
+      )
+    );
+
+    setShowAdjustmentModal(false);
+    setSelectedRequestForAdjustment(null);
+  };
+
   const canProceed = approvalRequests.every(req => req.status !== 'pending');
 
   if (loading) {
@@ -422,8 +476,8 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Aprobación de Nómina</h1>
-          <p className="text-gray-600 mt-1">Revisa y aprueba los ajustes de nómina</p>
+          <h1 className="text-3xl font-bold text-gray-900">Ajustes y Aprobación de Nómina</h1>
+          <p className="text-gray-600 mt-1">Realiza ajustes finales y aprueba la nómina</p>
         </div>
         
         <div className="flex items-center space-x-3">
@@ -685,6 +739,13 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                           </button>
                         </>
                       )}
+                      <button
+                        onClick={() => handleAddAdjustment(request.id)}
+                        className="text-purple-600 hover:text-purple-900"
+                        title="Agregar ajuste"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
                       {request.status === 'approved' && request.paymentStatus === 'pending_payment' && (
                         <button
                           onClick={() => handleMarkAsPaid(request.id)}
@@ -804,6 +865,89 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
                   className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
                 >
                   Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para agregar ajuste */}
+      {showAdjustmentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900">Agregar Ajuste</h3>
+              <button
+                onClick={() => setShowAdjustmentModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Ajuste</label>
+                  <select
+                    value={adjustmentType}
+                    onChange={(e) => setAdjustmentType(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="bonus">Bono</option>
+                    <option value="deduction">Deducción</option>
+                    <option value="salary">Ajuste de Salario</option>
+                    <option value="overtime">Horas Extra</option>
+                    <option value="benefit">Beneficio</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Rendimiento, Proyecto, etc."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Monto</label>
+                  <input
+                    type="number"
+                    placeholder="0.00"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Razón</label>
+                  <textarea
+                    placeholder="Describe la razón del ajuste..."
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => setShowAdjustmentModal(false)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => handleSaveAdjustment({
+                    type: adjustmentType as any,
+                    amount: 0,
+                    reason: ''
+                  })}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <Check className="h-4 w-4 mr-2 inline" />
+                  Agregar Ajuste
                 </button>
               </div>
             </div>

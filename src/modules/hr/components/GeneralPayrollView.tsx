@@ -17,7 +17,6 @@ import {
 import { generalPayrollApi, type PayrollPeriod, type PayrollMetrics } from '../../../services/generalPayrollApi';
 import EmployeePayrollDetailView from './EmployeePayrollDetailView';
 import PayrollSimulationView from './PayrollSimulationView';
-import PayrollAdjustmentsView from './PayrollAdjustmentsView';
 import PayrollApprovalView from './PayrollApprovalView';
 import PayrollClosureView from './PayrollClosureView';
 
@@ -58,8 +57,8 @@ const GeneralPayrollView: React.FC = () => {
   const payrollSteps: PayrollRunStep[] = [
     { id: 1, name: 'Selección', status: 'current' },
     { id: 2, name: 'Simulación', status: 'pending' },
-    { id: 3, name: 'Ajustes', status: 'pending' },
-    { id: 4, name: 'Aprobar y Cerrar', status: 'pending' }
+    { id: 3, name: 'Ajustes y Aprobación', status: 'pending' },
+    { id: 4, name: 'Cierre', status: 'pending' }
   ];
 
   // Función para formatear moneda
@@ -146,15 +145,8 @@ const GeneralPayrollView: React.FC = () => {
   const handleSimulationNext = (data: any[]) => {
     setSimulationData(data);
     setShowSimulationView(false);
-    setShowAdjustmentsView(true);
-    setCurrentStep(3);
-  };
-
-  const handleAdjustmentsNext = (data: any[]) => {
-    setAdjustedData(data);
-    setShowAdjustmentsView(false);
     setShowApprovalView(true);
-    setCurrentStep(4);
+    setCurrentStep(3);
   };
 
   const handleApprovalNext = (data: any[]) => {
@@ -174,7 +166,6 @@ const GeneralPayrollView: React.FC = () => {
 
   const handleBackToGeneral = () => {
     setShowSimulationView(false);
-    setShowAdjustmentsView(false);
     setShowApprovalView(false);
     setShowClosureView(false);
     setCurrentStep(1);
@@ -298,19 +289,6 @@ const GeneralPayrollView: React.FC = () => {
     );
   }
 
-  if (showAdjustmentsView) {
-    return (
-      <PayrollAdjustmentsView
-        simulationData={simulationData}
-        onNext={handleAdjustmentsNext}
-        onBack={() => {
-          setShowAdjustmentsView(false);
-          setShowSimulationView(true);
-          setCurrentStep(2);
-        }}
-      />
-    );
-  }
 
   if (showApprovalView) {
     return (
@@ -319,8 +297,8 @@ const GeneralPayrollView: React.FC = () => {
         onNext={handleApprovalNext}
         onBack={() => {
           setShowApprovalView(false);
-          setShowAdjustmentsView(true);
-          setCurrentStep(3);
+          setShowSimulationView(true);
+          setCurrentStep(2);
         }}
       />
     );
@@ -334,7 +312,7 @@ const GeneralPayrollView: React.FC = () => {
         onBack={() => {
           setShowClosureView(false);
           setShowApprovalView(true);
-          setCurrentStep(4);
+          setCurrentStep(3);
         }}
       />
     );
