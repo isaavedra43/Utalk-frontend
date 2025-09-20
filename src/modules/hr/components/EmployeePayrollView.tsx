@@ -101,8 +101,19 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
         console.log('🔄 Cargando datos de nómina para empleado:', employeeId);
         
         // 1. Obtener configuración de nómina
-        const config = await payrollApi.getPayrollConfig(employeeId);
-        console.log('📋 Configuración obtenida:', config);
+        let config = null;
+        try {
+          config = await payrollApi.getPayrollConfig(employeeId);
+          console.log('📋 Configuración obtenida:', config);
+        } catch (error: any) {
+          if (error.status === 404 || error.message?.includes('No se encontró configuración')) {
+            console.log('ℹ️ No hay configuración de nómina para este empleado');
+            config = null;
+          } else {
+            console.error('❌ Error obteniendo configuración de nómina:', error);
+            throw error;
+          }
+        }
         
         // 2. Obtener períodos de nómina
         const periodsResponse = await payrollApi.getEmployeePayrollPeriods(employeeId, {
@@ -180,7 +191,17 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
         
       } catch (error: unknown) {
         console.error('❌ Error cargando datos de nómina:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Error cargando datos de nómina';
+        
+        // Manejar diferentes tipos de errores
+        let errorMessage = 'Error cargando datos de nómina';
+        if (error instanceof Error) {
+          if (error.message.includes('No se encontró configuración')) {
+            errorMessage = 'Este empleado no tiene configuración de nómina activa';
+          } else {
+            errorMessage = error.message;
+          }
+        }
+        
         setError(errorMessage);
         
         // Si no hay configuración, mostrar datos vacíos pero permitir configurar

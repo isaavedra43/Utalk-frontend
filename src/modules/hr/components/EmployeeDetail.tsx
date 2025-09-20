@@ -202,6 +202,40 @@ const ResumenTab: React.FC<{ employee: Employee }> = ({ employee }) => {
     }).format(amount);
   };
 
+  const formatEmployeeDate = (dateValue: any) => {
+    if (!dateValue) return 'No especificada';
+    
+    try {
+      let date: Date;
+      
+      // Manejar diferentes formatos de fecha
+      if (typeof dateValue === 'string') {
+        date = new Date(dateValue);
+      } else if (dateValue._seconds) {
+        // Formato Firestore
+        date = new Date(dateValue._seconds * 1000);
+      } else if (dateValue instanceof Date) {
+        date = dateValue;
+      } else {
+        return 'Formato inválido';
+      }
+      
+      // Verificar si la fecha es válida
+      if (isNaN(date.getTime())) {
+        return 'Fecha inválida';
+      }
+      
+      return date.toLocaleDateString('es-MX', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error al formatear fecha:', error);
+      return 'Error al formatear';
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* KPIs principales */}
@@ -267,7 +301,7 @@ const ResumenTab: React.FC<{ employee: Employee }> = ({ employee }) => {
             <div className="flex justify-between">
               <span className="text-sm text-gray-600">Fecha de nacimiento:</span>
               <span className="text-sm font-medium text-gray-900">
-                {employee.personalInfo.birthDate.toLocaleDateString('es-MX')}
+                {formatEmployeeDate(employee.personalInfo.dateOfBirth)}
               </span>
             </div>
             <div className="flex justify-between">
