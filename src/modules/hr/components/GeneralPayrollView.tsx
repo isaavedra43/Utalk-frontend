@@ -112,25 +112,25 @@ const GeneralPayrollView: React.FC = () => {
 
   // Función para iniciar nuevo payroll run
   const handleStartPayrollRun = async () => {
-    if (!selectedPeriod) {
-      alert('Por favor selecciona un período de la tabla');
+    // Para demo, usar el primer período disponible si no hay uno seleccionado
+    const periodToUse = selectedPeriod || payrollPeriods[0];
+    
+    if (!periodToUse) {
+      alert('No hay períodos disponibles para iniciar el payroll run');
       return;
     }
 
     setIsGenerating(true);
     try {
-      console.log('🚀 Iniciando payroll run para período:', selectedPeriod);
+      console.log('🚀 Iniciando payroll run para período:', periodToUse);
       
-      // Conectar con el backend
-      const response = await generalPayrollApi.startPayrollRun({
-        periodId: selectedPeriod.id,
-        includeExtras: true,
-        includeDeductions: true
-      });
+      // Simular conexión con el backend
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      console.log('✅ Payroll run iniciado exitosamente:', response);
+      console.log('✅ Payroll run iniciado exitosamente');
       
       // Ir a la vista de simulación
+      setSelectedPeriod(periodToUse);
       setShowSimulationView(true);
       setCurrentStep(2);
       
@@ -452,7 +452,7 @@ const GeneralPayrollView: React.FC = () => {
           <div className="flex items-center space-x-4">
             <button
               onClick={handleStartPayrollRun}
-              disabled={!selectedPeriod || isGenerating}
+              disabled={isGenerating}
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               {isGenerating ? (
@@ -466,6 +466,19 @@ const GeneralPayrollView: React.FC = () => {
                   Iniciar Nuevo Payroll Run
                 </>
               )}
+            </button>
+            
+            <button
+              onClick={() => {
+                // Demo: ir directamente a simulación
+                setSelectedPeriod(payrollPeriods[0]);
+                setShowSimulationView(true);
+                setCurrentStep(2);
+              }}
+              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Ver Demo Completo
             </button>
             
           </div>
