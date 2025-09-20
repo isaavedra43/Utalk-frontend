@@ -236,8 +236,20 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       const attachmentsData = await payrollApi.getAttachments(payrollId);
       console.log('📎 Archivos adjuntos obtenidos:', attachmentsData);
       
+      // Verificar si la respuesta es un array directamente o tiene propiedad attachments
+      let attachmentsArray = [];
+      if (Array.isArray(attachmentsData)) {
+        attachmentsArray = attachmentsData;
+      } else if (attachmentsData && attachmentsData.attachments && Array.isArray(attachmentsData.attachments)) {
+        attachmentsArray = attachmentsData.attachments;
+      } else {
+        console.log('📎 No hay archivos adjuntos disponibles');
+        setAttachments([]);
+        return;
+      }
+      
       // Convertir a formato local
-      const localAttachments = attachmentsData.attachments.map(attachment => ({
+      const localAttachments = attachmentsArray.map(attachment => ({
         id: attachment.id,
         name: attachment.originalName,
         type: attachment.mimeType,
@@ -247,7 +259,7 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
       }));
       
       setAttachments(localAttachments);
-      console.log('✅ Archivos adjuntos cargados exitosamente');
+      console.log('✅ Archivos adjuntos cargados exitosamente:', localAttachments.length);
       
     } catch (error: unknown) {
       console.error('❌ Error cargando archivos adjuntos:', error);
@@ -256,6 +268,8 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
         const errorMessage = error.message;
         setError(errorMessage);
       }
+      // En caso de error, establecer array vacío
+      setAttachments([]);
     }
   }, []);
 
