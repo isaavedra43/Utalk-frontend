@@ -17,6 +17,7 @@ import {
 import { generalPayrollApi, type PayrollPeriod, type PayrollMetrics } from '../../../services/generalPayrollApi';
 import EmployeePayrollDetailView from './EmployeePayrollDetailView';
 import PayrollSimulationView from './PayrollSimulationView';
+import SimplePayrollSimulationView from './SimplePayrollSimulationView';
 import PayrollApprovalView from './PayrollApprovalView';
 import PayrollClosureView from './PayrollClosureView';
 
@@ -280,22 +281,24 @@ const GeneralPayrollView: React.FC = () => {
   }
 
   if (showSimulationView && selectedPeriod) {
+    console.log('🎯 Renderizando SimplePayrollSimulationView con período:', selectedPeriod);
     try {
       return (
-        <PayrollSimulationView
+        <SimplePayrollSimulationView
           selectedPeriod={selectedPeriod}
           onNext={handleSimulationNext}
           onBack={handleBackToGeneral}
         />
       );
     } catch (error) {
-      console.error('Error en PayrollSimulationView:', error);
+      console.error('❌ Error en SimplePayrollSimulationView:', error);
       return (
         <div className="p-6 text-center">
           <div className="text-red-600 mb-4">
             <AlertCircle className="h-12 w-12 mx-auto mb-2" />
             <h2 className="text-xl font-bold">Error en la Vista de Simulación</h2>
             <p className="text-gray-600 mt-2">Ha ocurrido un error al cargar la simulación.</p>
+            <p className="text-sm text-gray-500 mt-2">Error: {error instanceof Error ? error.message : 'Error desconocido'}</p>
           </div>
           <button
             onClick={handleBackToGeneral}

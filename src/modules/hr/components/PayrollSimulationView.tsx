@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Component, ErrorInfo } from 'react';
 import { 
   Calculator, 
   Users, 
@@ -103,15 +103,18 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
   onNext, 
   onBack 
 }) => {
+  console.log('🎯 PayrollSimulationView iniciando con período:', selectedPeriod);
+  
   // Validar que selectedPeriod tenga las propiedades necesarias
   if (!selectedPeriod || !selectedPeriod.period || !selectedPeriod.startDate || !selectedPeriod.endDate) {
-    console.error('PayrollSimulationView: selectedPeriod inválido:', selectedPeriod);
+    console.error('❌ PayrollSimulationView: selectedPeriod inválido:', selectedPeriod);
     return (
       <div className="p-6 text-center">
         <div className="text-red-600 mb-4">
           <AlertCircle className="h-12 w-12 mx-auto mb-2" />
           <h2 className="text-xl font-bold">Error de Datos</h2>
           <p className="text-gray-600 mt-2">Los datos del período no son válidos.</p>
+          <p className="text-sm text-gray-500 mt-2">Período recibido: {JSON.stringify(selectedPeriod)}</p>
         </div>
         <button
           onClick={onBack}
@@ -273,34 +276,65 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
 
   // Cargar datos mock
   useEffect(() => {
+    console.log('🔄 PayrollSimulationView useEffect iniciando...');
+    
     const loadSimulationData = async () => {
       setLoading(true);
       try {
+        console.log('📊 Cargando datos de simulación...');
+        
         // Simular carga de datos
         await new Promise(resolve => setTimeout(resolve, 1500));
         
+        console.log('✅ Datos mock cargados:', mockEmployees.length, 'empleados');
         setEmployees(mockEmployees);
         
-        // Calcular resumen
+        // Calcular resumen con validaciones
         const summaryData: SimulationSummary = {
           totalEmployees: mockEmployees.length,
-          totalGrossPayroll: mockEmployees.reduce((sum, emp) => sum + emp.calculatedPayroll.grossSalary, 0),
-          totalNetPayroll: mockEmployees.reduce((sum, emp) => sum + emp.calculatedPayroll.netSalary, 0),
-          totalOvertime: mockEmployees.reduce((sum, emp) => sum + emp.calculatedPayroll.overtimePay, 0),
-          totalBonuses: mockEmployees.reduce((sum, emp) => sum + emp.calculatedPayroll.totalBonuses, 0),
-          totalDeductions: mockEmployees.reduce((sum, emp) => sum + emp.calculatedPayroll.totalDeductions, 0),
-          totalTaxes: mockEmployees.reduce((sum, emp) => sum + emp.calculatedPayroll.taxes, 0),
-          averageSalary: mockEmployees.reduce((sum, emp) => sum + emp.calculatedPayroll.grossSalary, 0) / mockEmployees.length,
+          totalGrossPayroll: mockEmployees.reduce((sum, emp) => {
+            const gross = emp.calculatedPayroll?.grossSalary || 0;
+            return sum + gross;
+          }, 0),
+          totalNetPayroll: mockEmployees.reduce((sum, emp) => {
+            const net = emp.calculatedPayroll?.netSalary || 0;
+            return sum + net;
+          }, 0),
+          totalOvertime: mockEmployees.reduce((sum, emp) => {
+            const overtime = emp.calculatedPayroll?.overtimePay || 0;
+            return sum + overtime;
+          }, 0),
+          totalBonuses: mockEmployees.reduce((sum, emp) => {
+            const bonuses = emp.calculatedPayroll?.totalBonuses || 0;
+            return sum + bonuses;
+          }, 0),
+          totalDeductions: mockEmployees.reduce((sum, emp) => {
+            const deductions = emp.calculatedPayroll?.totalDeductions || 0;
+            return sum + deductions;
+          }, 0),
+          totalTaxes: mockEmployees.reduce((sum, emp) => {
+            const taxes = emp.calculatedPayroll?.taxes || 0;
+            return sum + taxes;
+          }, 0),
+          averageSalary: mockEmployees.length > 0 
+            ? mockEmployees.reduce((sum, emp) => {
+                const gross = emp.calculatedPayroll?.grossSalary || 0;
+                return sum + gross;
+              }, 0) / mockEmployees.length
+            : 0,
           processingTime: 2.3,
           errors: 0,
           warnings: 1
         };
         
+        console.log('📈 Resumen calculado:', summaryData);
         setSummary(summaryData);
       } catch (error) {
+        console.error('❌ Error cargando simulación:', error);
         setError('Error al cargar los datos de simulación');
       } finally {
         setLoading(false);
+        console.log('✅ Carga de simulación completada');
       }
     };
 
@@ -959,4 +993,60 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
   );
 };
 
-export default PayrollSimulationView;
+// ErrorBoundary específico para PayrollSimulationView
+class PayrollSimulationErrorBoundary extends Component<
+  { children: React.ReactNode; onBack: () => void },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode; onBack: () => void }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    console.error('🚨 PayrollSimulationErrorBoundary - Error capturado:', error);
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('🚨 PayrollSimulationErrorBoundary - Error details:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 text-center">
+          <div className="text-red-600 mb-4">
+            <AlertCircle className="h-12 w-12 mx-auto mb-2" />
+            <h2 className="text-xl font-bold">Error en Simulación de Nómina</h2>
+            <p className="text-gray-600 mt-2">Ha ocurrido un error inesperado en la simulación.</p>
+            {this.state.error && (
+              <p className="text-sm text-gray-500 mt-2">
+                Error: {this.state.error.message}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={this.props.onBack}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Volver al Inicio
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Componente wrapper con ErrorBoundary
+const PayrollSimulationViewWithErrorBoundary: React.FC<PayrollSimulationViewProps> = (props) => {
+  return (
+    <PayrollSimulationErrorBoundary onBack={props.onBack}>
+      <PayrollSimulationView {...props} />
+    </PayrollSimulationErrorBoundary>
+  );
+};
+
+export default PayrollSimulationViewWithErrorBoundary;
