@@ -211,6 +211,13 @@ const GeneralPayrollView: React.FC = () => {
     }
   };
 
+  // Función para ver detalle de período específico
+  const handleViewPeriodDetail = (period: PayrollPeriod) => {
+    console.log('👁️ Viendo detalle del período:', period);
+    setSelectedPeriod(period);
+    setShowDetailView(true);
+  };
+
   // Cargar datos al montar el componente
   useEffect(() => {
     const loadPayrollData = async () => {
@@ -467,16 +474,8 @@ const GeneralPayrollView: React.FC = () => {
 
       {/* Tabla de Períodos de Nómina */}
       <div className="bg-white rounded-lg border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900">Periodos de Nómina</h2>
-          
-          <button
-            onClick={() => setShowDetailView(true)}
-            className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-          >
-            <List className="h-4 w-4 mr-2" />
-            Ver Detalle de Empleados
-          </button>
         </div>
         
         <div className="overflow-x-auto">
@@ -545,15 +544,29 @@ const GeneralPayrollView: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownloadReport(period);
-                      }}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      <Download className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center justify-end space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownloadReport(period);
+                        }}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Descargar reporte"
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewPeriodDetail(period);
+                        }}
+                        className="text-green-600 hover:text-green-900"
+                        title="Ver detalle de nómina"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
