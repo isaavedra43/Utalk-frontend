@@ -47,11 +47,9 @@ const GeneralPayrollView: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showDetailView, setShowDetailView] = useState(false);
   const [showSimulationView, setShowSimulationView] = useState(false);
-  const [showAdjustmentsView, setShowAdjustmentsView] = useState(false);
   const [showApprovalView, setShowApprovalView] = useState(false);
   const [showClosureView, setShowClosureView] = useState(false);
   const [simulationData, setSimulationData] = useState<any[]>([]);
-  const [adjustedData, setAdjustedData] = useState<any[]>([]);
   const [approvedData, setApprovedData] = useState<any[]>([]);
 
   // Pasos del proceso de payroll run
@@ -154,6 +152,7 @@ const GeneralPayrollView: React.FC = () => {
     setApprovedData(data);
     setShowApprovalView(false);
     setShowClosureView(true);
+    setCurrentStep(4);
   };
 
   const handleClosureComplete = () => {
@@ -161,7 +160,6 @@ const GeneralPayrollView: React.FC = () => {
     setCurrentStep(1);
     setSelectedPeriod(null);
     setSimulationData([]);
-    setAdjustedData([]);
     setApprovedData([]);
   };
 
@@ -201,13 +199,6 @@ const GeneralPayrollView: React.FC = () => {
       console.error('❌ Error descargando reporte:', error);
       setError('Error al descargar el reporte');
     }
-  };
-
-  // Función para ver detalle de período específico
-  const handleViewPeriodDetail = (period: PayrollPeriod) => {
-    console.log('👁️ Viendo detalle del período:', period);
-    setSelectedPeriod(period);
-    setShowDetailView(true);
   };
 
   // Cargar datos al montar el componente
@@ -281,41 +272,19 @@ const GeneralPayrollView: React.FC = () => {
   }
 
   if (showSimulationView && selectedPeriod) {
-    console.log('🎯 Renderizando SimplePayrollSimulationView con período:', selectedPeriod);
-    try {
-      return (
-        <SimplePayrollSimulationView
-          selectedPeriod={selectedPeriod}
-          onNext={handleSimulationNext}
-          onBack={handleBackToGeneral}
-        />
-      );
-    } catch (error) {
-      console.error('❌ Error en SimplePayrollSimulationView:', error);
-      return (
-        <div className="p-6 text-center">
-          <div className="text-red-600 mb-4">
-            <AlertCircle className="h-12 w-12 mx-auto mb-2" />
-            <h2 className="text-xl font-bold">Error en la Vista de Simulación</h2>
-            <p className="text-gray-600 mt-2">Ha ocurrido un error al cargar la simulación.</p>
-            <p className="text-sm text-gray-500 mt-2">Error: {error instanceof Error ? error.message : 'Error desconocido'}</p>
-          </div>
-          <button
-            onClick={handleBackToGeneral}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Volver al Inicio
-          </button>
-        </div>
-      );
-    }
+    return (
+      <SimplePayrollSimulationView
+        selectedPeriod={selectedPeriod}
+        onNext={handleSimulationNext}
+        onBack={handleBackToGeneral}
+      />
+    );
   }
-
 
   if (showApprovalView) {
     return (
       <PayrollApprovalView
-        adjustedData={adjustedData}
+        adjustedData={simulationData}
         onNext={handleApprovalNext}
         onBack={() => {
           setShowApprovalView(false);
@@ -452,7 +421,7 @@ const GeneralPayrollView: React.FC = () => {
           <div className="flex items-center space-x-4">
             <button
               onClick={handleStartPayrollRun}
-              disabled={isGenerating}
+              disabled={!selectedPeriod || isGenerating}
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               {isGenerating ? (
@@ -469,38 +438,12 @@ const GeneralPayrollView: React.FC = () => {
             </button>
             
             <button
-              onClick={() => {
-                // Demo: ir directamente a simulación
-                if (payrollPeriods.length > 0) {
-                  setSelectedPeriod(payrollPeriods[0]);
-                  setShowSimulationView(true);
-                  setCurrentStep(2);
-                } else {
-                  // Si no hay períodos, crear uno demo
-                  const demoPeriod: PayrollPeriod = {
-                    id: 'demo-1',
-                    period: 'Enero 2024',
-                    startDate: '2024-01-01',
-                    endDate: '2024-01-31',
-                    type: 'Mensual',
-                    status: 'pendiente',
-                    employees: 40,
-                    estimatedCost: 1850000,
-                    realCost: 1852340.50,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                  };
-                  setSelectedPeriod(demoPeriod);
-                  setShowSimulationView(true);
-                  setCurrentStep(2);
-                }
-              }}
+              onClick={() => setShowDetailView(true)}
               className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
-              <Eye className="h-4 w-4 mr-2" />
-              Ver Demo Completo
+              <List className="h-4 w-4 mr-2" />
+              Ver Detalle de Empleados
             </button>
-            
           </div>
         </div>
       </div>
@@ -577,29 +520,15 @@ const GeneralPayrollView: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end space-x-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDownloadReport(period);
-                        }}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="Descargar reporte"
-                      >
-                        <Download className="h-4 w-4" />
-                      </button>
-                      
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewPeriodDetail(period);
-                        }}
-                        className="text-green-600 hover:text-green-900"
-                        title="Ver detalle de nómina"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownloadReport(period);
+                      }}
+                      className="text-blue-600 hover:text-blue-900"
+                    >
+                      <Download className="h-4 w-4" />
+                    </button>
                   </td>
                 </tr>
               ))}

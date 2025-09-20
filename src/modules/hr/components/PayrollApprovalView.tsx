@@ -2,83 +2,121 @@ import React, { useState, useEffect } from 'react';
 import { 
   CheckCircle, 
   XCircle, 
-  Clock, 
-  AlertTriangle,
-  User,
-  Calendar,
-  DollarSign,
+  AlertTriangle, 
+  Edit, 
+  Save, 
+  ArrowLeft, 
+  ArrowRight,
+  Users, 
+  DollarSign, 
+  TrendingUp, 
+  TrendingDown,
+  Clock,
   FileText,
   Download,
-  Send,
   Eye,
-  Edit,
-  Lock,
-  Unlock,
-  Shield,
-  Award,
-  TrendingUp,
-  Users,
+  Search,
+  Filter,
+  RefreshCw,
   BarChart3,
   PieChart,
-  ArrowRight,
-  ArrowLeft,
-  Info,
-  Check,
-  X,
+  Target,
+  Award,
+  Calendar,
+  Building,
+  User,
   Mail,
-  Bell,
-  Settings
+  Phone,
+  MapPin,
+  Star,
+  Zap,
+  Shield,
+  Heart,
+  Car,
+  Home,
+  GraduationCap,
+  Briefcase,
+  CreditCard,
+  Receipt,
+  Plus,
+  Minus,
+  Trash2,
+  Copy,
+  Send,
+  Lock,
+  Unlock,
+  Check,
+  X
 } from 'lucide-react';
 
 // Interfaces para tipos de datos
-interface ApprovalRequest {
+interface PayrollAdjustment {
   id: string;
   employeeId: string;
-  employeeName: string;
-  department: string;
-  originalAmount: number;
-  adjustedAmount: number;
-  difference: number;
-  adjustments: Array<{
-    id: string;
-    type: string;
-    amount: number;
-    reason: string;
-    appliedBy: string;
-    appliedAt: string;
-    status: 'pending' | 'applied' | 'rejected';
-  }>;
-  status: 'pending' | 'approved' | 'rejected' | 'needs_review';
-  paymentStatus: 'pending_payment' | 'paid' | 'receipt_uploaded' | 'completed';
-  receiptFile?: {
-    name: string;
-    url: string;
-    uploadedAt: string;
-    uploadedBy: string;
-  };
-  requestedBy: string;
-  requestedAt: string;
-  reviewedBy?: string;
-  reviewedAt?: string;
-  comments?: string;
-  hasChanges: boolean;
-  lastModified: string;
+  type: 'bonus' | 'deduction' | 'overtime' | 'allowance' | 'tax' | 'other';
+  name: string;
+  amount: number;
+  description: string;
+  reason: string;
+  approved: boolean;
+  createdBy: string;
+  createdAt: string;
+  approvedBy?: string;
+  approvedAt?: string;
 }
 
-interface ApprovalSummary {
-  totalRequests: number;
+interface EmployeePayrollApproval {
+  id: string;
+  personalInfo: {
+    name: string;
+    email: string;
+    phone: string;
+    position: string;
+    department: string;
+    location: string;
+    employeeId: string;
+  };
+  originalPayroll: {
+    baseSalary: number;
+    overtime: number;
+    bonuses: number;
+    allowances: number;
+    totalEarnings: number;
+    taxes: number;
+    benefits: number;
+    otherDeductions: number;
+    totalDeductions: number;
+    netPay: number;
+  };
+  adjustments: PayrollAdjustment[];
+  finalPayroll: {
+    totalEarnings: number;
+    totalDeductions: number;
+    netPay: number;
+  };
+  status: 'pending' | 'approved' | 'rejected' | 'needs_review';
+  notes?: string;
+  lastUpdated: string;
+}
+
+interface PayrollApprovalSummary {
+  totalEmployees: number;
   pendingApprovals: number;
-  approvedRequests: number;
-  rejectedRequests: number;
-  totalAmount: number;
-  totalDifference: number;
-  averageProcessingTime: number;
-  requiresAttention: number;
+  approved: number;
+  rejected: number;
+  totalOriginalPayroll: number;
+  totalAdjustedPayroll: number;
+  totalAdjustments: number;
+  period: {
+    startDate: string;
+    endDate: string;
+    type: string;
+  };
 }
 
 interface PayrollApprovalViewProps {
-  adjustedData: any[];
-  onNext: (approvedData: any[]) => void;
+  adjustedData: EmployeePayrollApproval[];
+  onNext: (data: EmployeePayrollApproval[]) => void;
   onBack: () => void;
 }
 
@@ -88,119 +126,201 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
   onBack 
 }) => {
   // Estados principales
-  const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>([]);
-  const [summary, setSummary] = useState<ApprovalSummary | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [selectedRequests, setSelectedRequests] = useState<string[]>([]);
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [employees, setEmployees] = useState<EmployeePayrollApproval[]>([]);
+  const [summary, setSummary] = useState<PayrollApprovalSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Estados de UI
   const [searchTerm, setSearchTerm] = useState('');
-  const [showBulkActions, setShowBulkActions] = useState(false);
-  const [approvalComments, setApprovalComments] = useState<{[key: string]: string}>({});
-  const [showReceiptModal, setShowReceiptModal] = useState(false);
-  const [selectedRequestForReceipt, setSelectedRequestForReceipt] = useState<string | null>(null);
-  const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
-  const [selectedRequestForAdjustment, setSelectedRequestForAdjustment] = useState<string | null>(null);
-  const [adjustmentType, setAdjustmentType] = useState<string>('bonus');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
+  const [showAdjustments, setShowAdjustments] = useState<string | null>(null);
+  const [editingAdjustment, setEditingAdjustment] = useState<string | null>(null);
+  const [newAdjustment, setNewAdjustment] = useState<Partial<PayrollAdjustment>>({});
+  const [bulkAction, setBulkAction] = useState<string>('');
 
-  // Datos mock para aprobaciones con ajustes
-  const mockApprovalRequests: ApprovalRequest[] = [
+  // Datos mock para ajustes y aprobación
+  const mockEmployees: EmployeePayrollApproval[] = [
     {
       id: '1',
-      employeeId: 'EMP001',
-      employeeName: 'Ana García López',
-      department: 'Tecnología',
-      originalAmount: 45837.5,
-      adjustedAmount: 46837.5,
-      difference: 1000,
+      personalInfo: {
+        name: 'Ana García López',
+        email: 'ana.garcia@empresa.com',
+        phone: '+52 55 1234 5678',
+        position: 'Desarrolladora Senior',
+        department: 'Tecnología',
+        location: 'Ciudad de México',
+        employeeId: 'EMP001'
+      },
+      originalPayroll: {
+        baseSalary: 45000,
+        overtime: 4500,
+        bonuses: 4000,
+        allowances: 3500,
+        totalEarnings: 55500,
+        taxes: 9700,
+        benefits: 1600,
+        otherDeductions: 0,
+        totalDeductions: 11300,
+        netPay: 44200
+      },
       adjustments: [
         {
           id: 'adj1',
+          employeeId: '1',
           type: 'bonus',
-          amount: 1000,
-          reason: 'Desempeño excepcional en el proyecto Beta',
-          appliedBy: 'Juan Pérez',
-          appliedAt: '2024-01-31T11:00:00Z',
-          status: 'applied'
+          name: 'Bono de Proyecto Especial',
+          amount: 2000,
+          description: 'Bono por completar proyecto crítico',
+          reason: 'Proyecto completado antes del plazo',
+          approved: true,
+          createdBy: 'Gerente de Proyecto',
+          createdAt: '2024-01-30T10:00:00Z',
+          approvedBy: 'RH Manager',
+          approvedAt: '2024-01-30T14:00:00Z'
+        },
+        {
+          id: 'adj2',
+          employeeId: '1',
+          type: 'deduction',
+          name: 'Préstamo Personal',
+          amount: 1500,
+          description: 'Deducción por préstamo personal',
+          reason: 'Préstamo autorizado por RH',
+          approved: true,
+          createdBy: 'RH Manager',
+          createdAt: '2024-01-29T09:00:00Z',
+          approvedBy: 'RH Manager',
+          approvedAt: '2024-01-29T09:00:00Z'
         }
       ],
-      status: 'pending',
-      paymentStatus: 'pending_payment',
-      requestedBy: 'Juan Pérez',
-      requestedAt: '2024-01-31T11:00:00Z',
-      hasChanges: true,
-      lastModified: '2024-01-31T11:00:00Z'
+      finalPayroll: {
+        totalEarnings: 57500,
+        totalDeductions: 12800,
+        netPay: 44700
+      },
+      status: 'approved',
+      notes: 'Todos los ajustes aprobados correctamente',
+      lastUpdated: '2024-01-30T14:00:00Z'
     },
     {
       id: '2',
-      employeeId: 'EMP002',
-      employeeName: 'Carlos Mendoza Ruiz',
-      department: 'Ventas',
-      originalAmount: 61256.25,
-      adjustedAmount: 61256.25,
-      difference: 0,
-      adjustments: [],
-      status: 'approved',
-      paymentStatus: 'paid',
-      requestedBy: 'María González',
-      requestedAt: '2024-01-31T10:30:00Z',
-      reviewedBy: 'Ana López',
-      reviewedAt: '2024-01-31T12:00:00Z',
-      comments: 'Sin cambios requeridos',
-      hasChanges: false,
-      lastModified: '2024-01-31T10:30:00Z'
+      personalInfo: {
+        name: 'Carlos Mendoza Ruiz',
+        email: 'carlos.mendoza@empresa.com',
+        phone: '+52 55 2345 6789',
+        position: 'Gerente de Ventas',
+        department: 'Ventas',
+        location: 'Guadalajara',
+        employeeId: 'EMP002'
+      },
+      originalPayroll: {
+        baseSalary: 55000,
+        overtime: 3600,
+        bonuses: 8000,
+        allowances: 5000,
+        totalEarnings: 71600,
+        taxes: 13500,
+        benefits: 1400,
+        otherDeductions: 0,
+        totalDeductions: 14900,
+        netPay: 56700
+      },
+      adjustments: [
+        {
+          id: 'adj3',
+          employeeId: '2',
+          type: 'bonus',
+          name: 'Bono de Ventas Excepcionales',
+          amount: 5000,
+          description: 'Bono por superar metas de ventas en 150%',
+          reason: 'Excelente desempeño en ventas del mes',
+          approved: false,
+          createdBy: 'Director de Ventas',
+          createdAt: '2024-01-30T11:00:00Z'
+        }
+      ],
+      finalPayroll: {
+        totalEarnings: 76600,
+        totalDeductions: 14900,
+        netPay: 61700
+      },
+      status: 'pending',
+      notes: 'Pendiente aprobación de bono de ventas',
+      lastUpdated: '2024-01-30T11:00:00Z'
     },
     {
       id: '3',
-      employeeId: 'EMP003',
-      employeeName: 'María Elena Torres',
-      department: 'Recursos Humanos',
-      originalAmount: 33440.62,
-      adjustedAmount: 33440.62,
-      difference: 0,
-      adjustments: [],
-      status: 'approved',
-      paymentStatus: 'receipt_uploaded',
-      receiptFile: {
-        name: 'recibo-nomina-EMP003-enero2024.pdf',
-        url: '/receipts/recibo-nomina-EMP003-enero2024.pdf',
-        uploadedAt: '2024-01-31T14:30:00Z',
-        uploadedBy: 'María Elena Torres'
+      personalInfo: {
+        name: 'María Elena Torres',
+        email: 'maria.torres@empresa.com',
+        phone: '+52 55 3456 7890',
+        position: 'Analista de Recursos Humanos',
+        department: 'Recursos Humanos',
+        location: 'Monterrey',
+        employeeId: 'EMP003'
       },
-      requestedBy: 'Carlos Ruiz',
-      requestedAt: '2024-01-31T10:30:00Z',
-      reviewedBy: 'Ana López',
-      reviewedAt: '2024-01-31T12:00:00Z',
-      comments: 'Aprobado sin modificaciones',
-      hasChanges: false,
-      lastModified: '2024-01-31T10:30:00Z'
+      originalPayroll: {
+        baseSalary: 35000,
+        overtime: 1500,
+        bonuses: 2000,
+        allowances: 1500,
+        totalEarnings: 40000,
+        taxes: 6900,
+        benefits: 800,
+        otherDeductions: 0,
+        totalDeductions: 7700,
+        netPay: 32300
+      },
+      adjustments: [],
+      finalPayroll: {
+        totalEarnings: 40000,
+        totalDeductions: 7700,
+        netPay: 32300
+      },
+      status: 'approved',
+      notes: 'Sin ajustes requeridos',
+      lastUpdated: '2024-01-30T12:00:00Z'
     }
   ];
 
-  // Cargar datos mock
+  // Cargar datos de ajustes y aprobación
   useEffect(() => {
     const loadApprovalData = async () => {
       setLoading(true);
       try {
+        console.log('🔄 Cargando datos de ajustes y aprobación...');
+        
         // Simular carga de datos
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        setApprovalRequests(mockApprovalRequests);
+        setEmployees(mockEmployees);
         
         // Calcular resumen
-        const summaryData: ApprovalSummary = {
-          totalRequests: mockApprovalRequests.length,
-          pendingApprovals: mockApprovalRequests.filter(req => req.status === 'pending').length,
-          approvedRequests: mockApprovalRequests.filter(req => req.status === 'approved').length,
-          rejectedRequests: mockApprovalRequests.filter(req => req.status === 'rejected').length,
-          totalAmount: mockApprovalRequests.reduce((sum, req) => sum + req.adjustedAmount, 0),
-          totalDifference: mockApprovalRequests.reduce((sum, req) => sum + req.difference, 0),
-          averageProcessingTime: 2.5,
-          requiresAttention: mockApprovalRequests.filter(req => req.status === 'needs_review').length
+        const summaryData: PayrollApprovalSummary = {
+          totalEmployees: mockEmployees.length,
+          pendingApprovals: mockEmployees.filter(emp => emp.status === 'pending').length,
+          approved: mockEmployees.filter(emp => emp.status === 'approved').length,
+          rejected: mockEmployees.filter(emp => emp.status === 'rejected').length,
+          totalOriginalPayroll: mockEmployees.reduce((sum, emp) => sum + emp.originalPayroll.netPay, 0),
+          totalAdjustedPayroll: mockEmployees.reduce((sum, emp) => sum + emp.finalPayroll.netPay, 0),
+          totalAdjustments: mockEmployees.reduce((sum, emp) => sum + emp.adjustments.length, 0),
+          period: {
+            startDate: '2024-01-01',
+            endDate: '2024-01-31',
+            type: 'Mensual'
+          }
         };
         
         setSummary(summaryData);
+        console.log('✅ Datos de ajustes y aprobación cargados');
+        
       } catch (error) {
-        console.error('Error al cargar datos de aprobación:', error);
+        console.error('❌ Error cargando datos de aprobación:', error);
+        setError('Error al cargar los datos de aprobación');
       } finally {
         setLoading(false);
       }
@@ -225,8 +345,8 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'approved': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'rejected': return 'bg-red-100 text-red-800';
       case 'needs_review': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -235,237 +355,190 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'pending': return 'Pendiente';
       case 'approved': return 'Aprobado';
+      case 'pending': return 'Pendiente';
       case 'rejected': return 'Rechazado';
       case 'needs_review': return 'Requiere Revisión';
       default: return status;
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending': return <Clock className="h-4 w-4" />;
-      case 'approved': return <CheckCircle className="h-4 w-4" />;
-      case 'rejected': return <XCircle className="h-4 w-4" />;
-      case 'needs_review': return <AlertTriangle className="h-4 w-4" />;
-      default: return <Clock className="h-4 w-4" />;
-    }
-  };
-
-  const getPaymentStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending_payment': return 'bg-yellow-100 text-yellow-800';
-      case 'paid': return 'bg-blue-100 text-blue-800';
-      case 'receipt_uploaded': return 'bg-green-100 text-green-800';
-      case 'completed': return 'bg-purple-100 text-purple-800';
+  const getAdjustmentTypeColor = (type: string) => {
+    switch (type) {
+      case 'bonus': return 'bg-green-100 text-green-800';
+      case 'deduction': return 'bg-red-100 text-red-800';
+      case 'overtime': return 'bg-blue-100 text-blue-800';
+      case 'allowance': return 'bg-purple-100 text-purple-800';
+      case 'tax': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getPaymentStatusText = (status: string) => {
-    switch (status) {
-      case 'pending_payment': return 'Pendiente Pago';
-      case 'paid': return 'Pagado';
-      case 'receipt_uploaded': return 'Recibo Subido';
-      case 'completed': return 'Completado';
-      default: return status;
-    }
-  };
-
-  const getPaymentStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending_payment': return <Clock className="h-4 w-4" />;
-      case 'paid': return <DollarSign className="h-4 w-4" />;
-      case 'receipt_uploaded': return <FileText className="h-4 w-4" />;
-      case 'completed': return <CheckCircle className="h-4 w-4" />;
-      default: return <Clock className="h-4 w-4" />;
+  const getAdjustmentTypeText = (type: string) => {
+    switch (type) {
+      case 'bonus': return 'Bono';
+      case 'deduction': return 'Deducción';
+      case 'overtime': return 'Horas Extra';
+      case 'allowance': return 'Prestación';
+      case 'tax': return 'Impuesto';
+      default: return type;
     }
   };
 
   // Filtros
-  const filteredRequests = approvalRequests.filter(request => {
+  const filteredEmployees = employees.filter(employee => {
     const matchesSearch = searchTerm === '' || 
-      request.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.employeeId.toLowerCase().includes(searchTerm.toLowerCase());
+      employee.personalInfo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.personalInfo.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.personalInfo.employeeId.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = filterStatus === 'all' || request.status === filterStatus;
+    const matchesStatus = statusFilter === 'all' || employee.status === statusFilter;
+    const matchesDepartment = departmentFilter === 'all' || employee.personalInfo.department === departmentFilter;
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesDepartment;
   });
 
   // Funciones de acción
-  const handleSelectRequest = (requestId: string) => {
-    setSelectedRequests(prev => 
-      prev.includes(requestId) 
-        ? prev.filter(id => id !== requestId)
-        : [...prev, requestId]
+  const handleApproveEmployee = async (employeeId: string) => {
+    setIsProcessing(true);
+    try {
+      console.log('✅ Aprobando empleado:', employeeId);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setEmployees(prev => prev.map(emp => 
+        emp.id === employeeId 
+          ? { ...emp, status: 'approved' as const, lastUpdated: new Date().toISOString() }
+          : emp
+      ));
+      
+      console.log('✅ Empleado aprobado exitosamente');
+    } catch (error) {
+      console.error('❌ Error aprobando empleado:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRejectEmployee = async (employeeId: string) => {
+    setIsProcessing(true);
+    try {
+      console.log('❌ Rechazando empleado:', employeeId);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setEmployees(prev => prev.map(emp => 
+        emp.id === employeeId 
+          ? { ...emp, status: 'rejected' as const, lastUpdated: new Date().toISOString() }
+          : emp
+      ));
+      
+      console.log('✅ Empleado rechazado');
+    } catch (error) {
+      console.error('❌ Error rechazando empleado:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleApproveAdjustment = async (adjustmentId: string) => {
+    setIsProcessing(true);
+    try {
+      console.log('✅ Aprobando ajuste:', adjustmentId);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      setEmployees(prev => prev.map(emp => ({
+        ...emp,
+        adjustments: emp.adjustments.map(adj => 
+          adj.id === adjustmentId 
+            ? { ...adj, approved: true, approvedBy: 'Current User', approvedAt: new Date().toISOString() }
+            : adj
+        )
+      })));
+      
+      console.log('✅ Ajuste aprobado exitosamente');
+    } catch (error) {
+      console.error('❌ Error aprobando ajuste:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRejectAdjustment = async (adjustmentId: string) => {
+    setIsProcessing(true);
+    try {
+      console.log('❌ Rechazando ajuste:', adjustmentId);
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      setEmployees(prev => prev.map(emp => ({
+        ...emp,
+        adjustments: emp.adjustments.map(adj => 
+          adj.id === adjustmentId 
+            ? { ...adj, approved: false, approvedBy: 'Current User', approvedAt: new Date().toISOString() }
+            : adj
+        )
+      })));
+      
+      console.log('✅ Ajuste rechazado');
+    } catch (error) {
+      console.error('❌ Error rechazando ajuste:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleBulkAction = async () => {
+    if (!bulkAction || selectedEmployees.length === 0) return;
+    
+    setIsProcessing(true);
+    try {
+      console.log(`🔄 Ejecutando acción masiva: ${bulkAction} para ${selectedEmployees.length} empleados`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setEmployees(prev => prev.map(emp => 
+        selectedEmployees.includes(emp.id) 
+          ? { ...emp, status: bulkAction as any, lastUpdated: new Date().toISOString() }
+          : emp
+      ));
+      
+      setSelectedEmployees([]);
+      setBulkAction('');
+      console.log('✅ Acción masiva completada');
+    } catch (error) {
+      console.error('❌ Error en acción masiva:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleNext = () => {
+    const approvedEmployees = employees.filter(emp => emp.status === 'approved');
+    console.log('➡️ Continuando a cierre con empleados aprobados:', approvedEmployees.length);
+    onNext(approvedEmployees);
+  };
+
+  const handleSelectEmployee = (employeeId: string) => {
+    setSelectedEmployees(prev => 
+      prev.includes(employeeId) 
+        ? prev.filter(id => id !== employeeId)
+        : [...prev, employeeId]
     );
   };
 
   const handleSelectAll = () => {
-    if (selectedRequests.length === filteredRequests.length) {
-      setSelectedRequests([]);
+    if (selectedEmployees.length === filteredEmployees.length) {
+      setSelectedEmployees([]);
     } else {
-      setSelectedRequests(filteredRequests.map(req => req.id));
+      setSelectedEmployees(filteredEmployees.map(emp => emp.id));
     }
   };
 
-  const handleApproveRequest = (requestId: string) => {
-    setApprovalRequests(prev => 
-      prev.map(req => 
-        req.id === requestId 
-          ? { 
-              ...req, 
-              status: 'approved' as const,
-              reviewedBy: 'Usuario Actual',
-              reviewedAt: new Date().toISOString(),
-              comments: approvalComments[requestId] || 'Aprobado'
-            }
-          : req
-      )
-    );
-  };
-
-  const handleRejectRequest = (requestId: string) => {
-    setApprovalRequests(prev => 
-      prev.map(req => 
-        req.id === requestId 
-          ? { 
-              ...req, 
-              status: 'rejected' as const,
-              reviewedBy: 'Usuario Actual',
-              reviewedAt: new Date().toISOString(),
-              comments: approvalComments[requestId] || 'Rechazado'
-            }
-          : req
-      )
-    );
-  };
-
-  const handleBulkApprove = () => {
-    setApprovalRequests(prev => 
-      prev.map(req => 
-        selectedRequests.includes(req.id) && req.status === 'pending'
-          ? { 
-              ...req, 
-              status: 'approved' as const,
-              reviewedBy: 'Usuario Actual',
-              reviewedAt: new Date().toISOString(),
-              comments: 'Aprobado en lote'
-            }
-          : req
-      )
-    );
-    setSelectedRequests([]);
-  };
-
-  const handleBulkReject = () => {
-    setApprovalRequests(prev => 
-      prev.map(req => 
-        selectedRequests.includes(req.id) && req.status === 'pending'
-          ? { 
-              ...req, 
-              status: 'rejected' as const,
-              reviewedBy: 'Usuario Actual',
-              reviewedAt: new Date().toISOString(),
-              comments: 'Rechazado en lote'
-            }
-          : req
-      )
-    );
-    setSelectedRequests([]);
-  };
-
-  const handleNext = () => {
-    const approvedData = approvalRequests.filter(req => req.status === 'approved');
-    onNext(approvedData);
-  };
-
-  const handleMarkAsPaid = (requestId: string) => {
-    setApprovalRequests(prev => 
-      prev.map(req => 
-        req.id === requestId 
-          ? { ...req, paymentStatus: 'paid' as const }
-          : req
-      )
-    );
-  };
-
-  const handleUploadReceipt = (requestId: string) => {
-    setSelectedRequestForReceipt(requestId);
-    setShowReceiptModal(true);
-  };
-
-  const handleReceiptUpload = (file: File) => {
-    if (!selectedRequestForReceipt) return;
-
-    const receiptData = {
-      name: file.name,
-      url: URL.createObjectURL(file),
-      uploadedAt: new Date().toISOString(),
-      uploadedBy: 'Usuario Actual'
-    };
-
-    setApprovalRequests(prev => 
-      prev.map(req => 
-        req.id === selectedRequestForReceipt 
-          ? { 
-              ...req, 
-              paymentStatus: 'receipt_uploaded' as const,
-              receiptFile: receiptData
-            }
-          : req
-      )
-    );
-
-    setShowReceiptModal(false);
-    setSelectedRequestForReceipt(null);
-  };
-
-  const handleAddAdjustment = (requestId: string) => {
-    setSelectedRequestForAdjustment(requestId);
-    setShowAdjustmentModal(true);
-  };
-
-  const handleSaveAdjustment = (adjustment: Omit<ApprovalRequest['adjustments'][0], 'id' | 'appliedBy' | 'appliedAt' | 'status'>) => {
-    if (!selectedRequestForAdjustment) return;
-
-    const newAdjustment = {
-      id: `adj_${Date.now()}`,
-      ...adjustment,
-      appliedBy: 'Usuario Actual',
-      appliedAt: new Date().toISOString(),
-      status: 'applied' as const
-    };
-
-    setApprovalRequests(prev => 
-      prev.map(req => 
-        req.id === selectedRequestForAdjustment 
-          ? { 
-              ...req, 
-              adjustments: [...req.adjustments, newAdjustment],
-              adjustedAmount: req.adjustedAmount + adjustment.amount,
-              difference: req.difference + adjustment.amount,
-              hasChanges: true,
-              lastModified: new Date().toISOString()
-            }
-          : req
-      )
-    );
-
-    setShowAdjustmentModal(false);
-    setSelectedRequestForAdjustment(null);
-  };
-
-  const canProceed = approvalRequests.every(req => req.status !== 'pending');
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando datos de aprobación...</p>
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando datos de ajustes y aprobación...</p>
+          </div>
         </div>
       </div>
     );
@@ -476,34 +549,43 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Ajustes y Aprobación de Nómina</h1>
-          <p className="text-gray-600 mt-1">Realiza ajustes finales y aprueba la nómina</p>
+          <h1 className="text-3xl font-bold text-gray-900">Ajustes y Aprobación</h1>
+          <p className="text-gray-600 mt-1">
+            Revisa y aprueba los ajustes de nómina para el período
+          </p>
         </div>
         
         <div className="flex items-center space-x-3">
-          <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar Reporte
+          <button
+            onClick={onBack}
+            className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver
           </button>
           
-          <button className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-            <Send className="h-4 w-4 mr-2" />
-            Enviar Notificaciones
+          <button
+            onClick={handleNext}
+            disabled={employees.filter(emp => emp.status === 'approved').length === 0}
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+          >
+            Continuar a Cierre
+            <ArrowRight className="h-4 w-4 ml-2" />
           </button>
         </div>
       </div>
 
-      {/* Resumen de aprobaciones */}
+      {/* Resumen de aprobación */}
       {summary && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white p-6 rounded-lg shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Solicitudes</p>
-                <p className="text-2xl font-bold text-gray-900">{summary.totalRequests}</p>
+                <p className="text-sm font-medium text-gray-600">Total Empleados</p>
+                <p className="text-2xl font-bold text-gray-900">{summary.totalEmployees}</p>
               </div>
               <div className="p-3 bg-blue-100 rounded-full">
-                <FileText className="h-6 w-6 text-blue-600" />
+                <Users className="h-6 w-6 text-blue-600" />
               </div>
             </div>
           </div>
@@ -523,8 +605,8 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
           <div className="bg-white p-6 rounded-lg shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Aprobadas</p>
-                <p className="text-2xl font-bold text-green-600">{summary.approvedRequests}</p>
+                <p className="text-sm font-medium text-gray-600">Aprobados</p>
+                <p className="text-2xl font-bold text-green-600">{summary.approved}</p>
               </div>
               <div className="p-3 bg-green-100 rounded-full">
                 <CheckCircle className="h-6 w-6 text-green-600" />
@@ -535,114 +617,128 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
           <div className="bg-white p-6 rounded-lg shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Monto Total</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.totalAmount)}</p>
+                <p className="text-sm font-medium text-gray-600">Total Ajustes</p>
+                <p className="text-2xl font-bold text-gray-900">{summary.totalAdjustments}</p>
               </div>
               <div className="p-3 bg-purple-100 rounded-full">
-                <DollarSign className="h-6 w-6 text-purple-600" />
+                <Edit className="h-6 w-6 text-purple-600" />
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Filtros */}
+      {/* Filtros y acciones masivas */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
-            <input
-              type="text"
-              placeholder="Nombre o ID de empleado..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            <div className="relative">
+              <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Nombre, puesto, ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
           </div>
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
             <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">Todos los estados</option>
-              <option value="pending">Pendientes</option>
-              <option value="approved">Aprobadas</option>
-              <option value="rejected">Rechazadas</option>
-              <option value="needs_review">Requieren Revisión</option>
+              <option value="pending">Pendiente</option>
+              <option value="approved">Aprobado</option>
+              <option value="rejected">Rechazado</option>
+              <option value="needs_review">Requiere Revisión</option>
             </select>
           </div>
           
-          <div className="flex items-end">
-            {selectedRequests.length > 0 && (
-              <div className="flex space-x-2">
-                <button
-                  onClick={handleBulkApprove}
-                  className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  Aprobar ({selectedRequests.length})
-                </button>
-                <button
-                  onClick={handleBulkReject}
-                  className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Rechazar ({selectedRequests.length})
-                </button>
-              </div>
-            )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Departamento</label>
+            <select
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">Todos los departamentos</option>
+              <option value="Tecnología">Tecnología</option>
+              <option value="Ventas">Ventas</option>
+              <option value="Recursos Humanos">Recursos Humanos</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Acción Masiva</label>
+            <div className="flex space-x-2">
+              <select
+                value={bulkAction}
+                onChange={(e) => setBulkAction(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Seleccionar acción</option>
+                <option value="approved">Aprobar</option>
+                <option value="rejected">Rechazar</option>
+                <option value="needs_review">Requiere Revisión</option>
+              </select>
+              <button
+                onClick={handleBulkAction}
+                disabled={!bulkAction || selectedEmployees.length === 0 || isProcessing}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                {isProcessing ? 'Procesando...' : 'Aplicar'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Tabla de solicitudes de aprobación */}
+      {/* Tabla de empleados */}
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
           <h3 className="text-lg font-semibold text-gray-900">
-            Solicitudes de Aprobación ({filteredRequests.length})
+            Empleados ({filteredEmployees.length})
           </h3>
           
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={selectedRequests.length === filteredRequests.length && filteredRequests.length > 0}
-              onChange={handleSelectAll}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span className="text-sm text-gray-600">Seleccionar todos</span>
-          </div>
+          {selectedEmployees.length > 0 && (
+            <div className="text-sm text-gray-600">
+              {selectedEmployees.length} empleados seleccionados
+            </div>
+          )}
         </div>
 
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={selectedEmployees.length === filteredEmployees.length && filteredEmployees.length > 0}
+                    onChange={handleSelectAll}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Empleado
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Monto Original
+                  Nómina Original
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Monto Ajustado
+                  Ajustes
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Diferencia
+                  Nómina Final
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Estado
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Solicitado Por
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Estado de Pago
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Recibo Firmado
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
@@ -650,112 +746,88 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredRequests.map((request) => (
-                <tr key={request.id} className="hover:bg-gray-50">
+              {filteredEmployees.map((employee) => (
+                <tr key={employee.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={selectedEmployees.includes(employee.id)}
+                      onChange={() => handleSelectEmployee(employee.id)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedRequests.includes(request.id)}
-                        onChange={() => handleSelectRequest(request.id)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-3"
-                      />
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{request.employeeName}</div>
-                        <div className="text-sm text-gray-500">{request.employeeId}</div>
-                        <div className="text-xs text-gray-400">{request.department}</div>
+                      <div className="flex-shrink-0 h-10 w-10">
+                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                          <User className="h-5 w-5 text-blue-600" />
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900">{employee.personalInfo.name}</div>
+                        <div className="text-sm text-gray-500">{employee.personalInfo.position}</div>
+                        <div className="text-xs text-gray-400">{employee.personalInfo.employeeId}</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{formatCurrency(request.originalAmount)}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{formatCurrency(request.adjustedAmount)}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className={`text-sm font-medium ${
-                      request.difference >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {request.difference >= 0 ? '+' : ''}{formatCurrency(request.difference)}
+                    <div className="text-sm font-medium text-gray-900">{formatCurrency(employee.originalPayroll.netPay)}</div>
+                    <div className="text-xs text-gray-500">
+                      Bruto: {formatCurrency(employee.originalPayroll.totalEarnings)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
-                      {getStatusIcon(request.status)}
-                      <span className="ml-1">{getStatusText(request.status)}</span>
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{request.requestedBy}</div>
-                    <div className="text-xs text-gray-500">{formatDate(request.requestedAt)}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPaymentStatusColor(request.paymentStatus)}`}>
-                      {getPaymentStatusIcon(request.paymentStatus)}
-                      <span className="ml-1">{getPaymentStatusText(request.paymentStatus)}</span>
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {request.receiptFile ? (
-                      <div className="flex items-center space-x-2">
-                        <FileText className="h-4 w-4 text-green-600" />
-                        <span className="text-sm text-gray-900">{request.receiptFile.name}</span>
-                        <button
-                          onClick={() => window.open(request.receiptFile!.url, '_blank')}
-                          className="text-blue-600 hover:text-blue-900"
-                          title="Ver recibo"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ) : (
+                    <div className="text-sm font-medium text-gray-900">{employee.adjustments.length}</div>
+                    <div className="text-xs text-gray-500">
+                      {employee.adjustments.filter(adj => adj.approved).length} aprobados
+                    </div>
+                    {employee.adjustments.length > 0 && (
                       <button
-                        onClick={() => handleUploadReceipt(request.id)}
-                        className="flex items-center px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                        onClick={() => setShowAdjustments(showAdjustments === employee.id ? null : employee.id)}
+                        className="text-xs text-blue-600 hover:text-blue-800"
                       >
-                        <FileText className="h-3 w-3 mr-1" />
-                        Subir Recibo
+                        Ver detalles
                       </button>
                     )}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-bold text-gray-900">{formatCurrency(employee.finalPayroll.netPay)}</div>
+                    <div className="text-xs text-gray-500">
+                      Diferencia: {formatCurrency(employee.finalPayroll.netPay - employee.originalPayroll.netPay)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(employee.status)}`}>
+                      {getStatusText(employee.status)}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
-                      {request.status === 'pending' && (
+                      {employee.status === 'pending' && (
                         <>
                           <button
-                            onClick={() => handleApproveRequest(request.id)}
-                            className="text-green-600 hover:text-green-900"
+                            onClick={() => handleApproveEmployee(employee.id)}
+                            disabled={isProcessing}
+                            className="text-green-600 hover:text-green-900 disabled:opacity-50"
                             title="Aprobar"
                           >
-                            <Check className="h-4 w-4" />
+                            <CheckCircle className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => handleRejectRequest(request.id)}
-                            className="text-red-600 hover:text-red-900"
+                            onClick={() => handleRejectEmployee(employee.id)}
+                            disabled={isProcessing}
+                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
                             title="Rechazar"
                           >
-                            <X className="h-4 w-4" />
+                            <XCircle className="h-4 w-4" />
                           </button>
                         </>
                       )}
                       <button
-                        onClick={() => handleAddAdjustment(request.id)}
-                        className="text-purple-600 hover:text-purple-900"
-                        title="Agregar ajuste"
+                        onClick={() => setShowAdjustments(showAdjustments === employee.id ? null : employee.id)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Ver ajustes"
                       >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                      {request.status === 'approved' && request.paymentStatus === 'pending_payment' && (
-                        <button
-                          onClick={() => handleMarkAsPaid(request.id)}
-                          className="text-green-600 hover:text-green-900"
-                          title="Marcar como pagado"
-                        >
-                          <DollarSign className="h-4 w-4" />
-                        </button>
-                      )}
-                      <button className="text-blue-600 hover:text-blue-900" title="Ver detalles">
                         <Eye className="h-4 w-4" />
                       </button>
                     </div>
@@ -767,193 +839,107 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
         </div>
       </div>
 
-      {/* Información de estado */}
-      {!canProceed && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <AlertTriangle className="h-5 w-5 text-yellow-600 mr-3" />
-            <div>
-              <h3 className="text-sm font-medium text-yellow-800">Aprobaciones Pendientes</h3>
-              <p className="text-sm text-yellow-700 mt-1">
-                Hay solicitudes pendientes de aprobación. Debes revisar y aprobar todas las solicitudes antes de continuar.
-              </p>
-            </div>
-          </div>
+      {/* Detalles de ajustes expandibles */}
+      {showAdjustments && (
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h4 className="text-lg font-semibold text-gray-900 mb-4">Detalles de Ajustes</h4>
+          {(() => {
+            const employee = employees.find(emp => emp.id === showAdjustments);
+            if (!employee) return null;
+            
+            return (
+              <div className="space-y-4">
+                {employee.adjustments.map((adjustment) => (
+                  <div key={adjustment.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getAdjustmentTypeColor(adjustment.type)}`}>
+                            {getAdjustmentTypeText(adjustment.type)}
+                          </span>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            adjustment.approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {adjustment.approved ? 'Aprobado' : 'Pendiente'}
+                          </span>
+                        </div>
+                        <h5 className="text-md font-medium text-gray-900">{adjustment.name}</h5>
+                        <p className="text-sm text-gray-600 mb-2">{adjustment.description}</p>
+                        <p className="text-sm text-gray-500">Razón: {adjustment.reason}</p>
+                        <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                          <span>Creado por: {adjustment.createdBy}</span>
+                          <span>Fecha: {formatDate(adjustment.createdAt)}</span>
+                          {adjustment.approvedBy && (
+                            <>
+                              <span>Aprobado por: {adjustment.approvedBy}</span>
+                              <span>Fecha: {formatDate(adjustment.approvedAt!)}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2 ml-4">
+                        <span className="text-lg font-bold text-gray-900">
+                          {adjustment.amount > 0 ? '+' : ''}{formatCurrency(adjustment.amount)}
+                        </span>
+                        {!adjustment.approved && (
+                          <div className="flex space-x-1">
+                            <button
+                              onClick={() => handleApproveAdjustment(adjustment.id)}
+                              disabled={isProcessing}
+                              className="p-1 text-green-600 hover:text-green-900 disabled:opacity-50"
+                              title="Aprobar ajuste"
+                            >
+                              <Check className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleRejectAdjustment(adjustment.id)}
+                              disabled={isProcessing}
+                              className="p-1 text-red-600 hover:text-red-900 disabled:opacity-50"
+                              title="Rechazar ajuste"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {employee.adjustments.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <Edit className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>No hay ajustes para este empleado</p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
 
-      {/* Botones de navegación */}
-      <div className="flex justify-between items-center pt-6 border-t border-gray-200">
-        <button
-          onClick={onBack}
-          className="flex items-center px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Volver a Ajustes
-        </button>
+      {/* Acciones finales */}
+      <div className="flex justify-between items-center pt-6 border-t">
+        <div className="text-sm text-gray-600">
+          {employees.filter(emp => emp.status === 'approved').length} de {employees.length} empleados aprobados
+        </div>
         
-        <div className="flex items-center space-x-4">
-          <button className="flex items-center px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50">
-            <Mail className="h-4 w-4 mr-2" />
-            Enviar Recordatorios
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={onBack}
+            className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            Volver
           </button>
-          
           <button
             onClick={handleNext}
-            disabled={!canProceed}
-            className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            disabled={employees.filter(emp => emp.status === 'approved').length === 0}
+            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
-            <Shield className="h-4 w-4 mr-2" />
-            Finalizar Aprobación
-            <ArrowRight className="h-4 w-4 ml-2" />
+            Continuar a Cierre
           </button>
         </div>
       </div>
-
-      {/* Modal para subir recibo */}
-      {showReceiptModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-900">Subir Recibo Firmado</h3>
-              <button
-                onClick={() => setShowReceiptModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            
-            <div className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Seleccionar archivo
-                  </label>
-                  <input
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        handleReceiptUpload(file);
-                      }
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Formatos permitidos: PDF, JPG, PNG (máx. 10MB)
-                  </p>
-                </div>
-                
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-center">
-                    <Info className="h-5 w-5 text-blue-600 mr-3" />
-                    <div>
-                      <h4 className="text-sm font-medium text-blue-800">Información importante</h4>
-                      <p className="text-sm text-blue-700 mt-1">
-                        El recibo debe estar firmado por el empleado y contener todos los detalles de la nómina.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => setShowReceiptModal(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal para agregar ajuste */}
-      {showAdjustmentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-900">Agregar Ajuste</h3>
-              <button
-                onClick={() => setShowAdjustmentModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            
-            <div className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Ajuste</label>
-                  <select
-                    value={adjustmentType}
-                    onChange={(e) => setAdjustmentType(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="bonus">Bono</option>
-                    <option value="deduction">Deducción</option>
-                    <option value="salary">Ajuste de Salario</option>
-                    <option value="overtime">Horas Extra</option>
-                    <option value="benefit">Beneficio</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
-                  <input
-                    type="text"
-                    placeholder="Ej: Rendimiento, Proyecto, etc."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Monto</label>
-                  <input
-                    type="number"
-                    placeholder="0.00"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Razón</label>
-                  <textarea
-                    placeholder="Describe la razón del ajuste..."
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => setShowAdjustmentModal(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={() => handleSaveAdjustment({
-                    type: adjustmentType as any,
-                    amount: 0,
-                    reason: ''
-                  })}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  <Check className="h-4 w-4 mr-2 inline" />
-                  Agregar Ajuste
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
