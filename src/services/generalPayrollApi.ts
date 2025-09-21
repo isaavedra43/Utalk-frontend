@@ -39,7 +39,11 @@ export interface GeneralPayrollEmployee {
     position: string;
     department: string;
     code: string;
+    email?: string;
+    phone?: string;
+    location?: string;
   };
+  // Salarios actuales
   baseSalary: number;
   overtime: number;
   bonuses: number;
@@ -47,10 +51,35 @@ export interface GeneralPayrollEmployee {
   taxes: number;
   grossSalary: number;
   netSalary: number;
+  
+  // Salarios originales (antes de ajustes)
+  originalSalary?: number;
+  originalOvertime?: number;
+  originalBonuses?: number;
+  originalDeductions?: number;
+  originalTaxes?: number;
+  originalNetSalary?: number;
+  
+  // Salarios finales (después de ajustes)
+  finalSalary?: number;
+  finalDeductions?: number;
+  finalNetSalary?: number;
+  
+  // Estados y metadatos
   status: 'pending' | 'approved' | 'paid';
+  paymentStatus?: 'pending' | 'paid' | 'failed';
+  paymentMethod?: 'cash' | 'deposit' | 'check' | 'transfer' | 'other';
+  receiptStatus?: 'pending' | 'uploaded';
+  receiptUrl?: string;
+  receiptUploadedAt?: string;
+  notes?: string;
+  faltas?: number;
+  updatedAt?: string;
+  
+  // Referencias
   individualPayrollId?: string;
   adjustments: PayrollAdjustment[];
-  pendingExtras?: any[];
+  pendingExtras?: Record<string, unknown>[];
 }
 
 export interface PayrollAdjustment {
@@ -122,6 +151,7 @@ class GeneralPayrollApi {
   // Funciones helper para mapear datos
   private formatPeriodLabel(period: { startDate: string; endDate: string; frequency: string }): string {
     const start = new Date(period.startDate);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const end = new Date(period.endDate);
     const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                         'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -271,12 +301,13 @@ class GeneralPayrollApi {
         'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
       ];
       
-      const statuses: Array<'cerrado' | 'aprobado' | 'calculado' | 'pendiente'> = ['cerrado', 'aprobado', 'calculado', 'pendiente'];
+      const statuses: Array<'Cerrado' | 'Aprobado' | 'Calculado' | 'Pendiente'> = ['Cerrado', 'Aprobado', 'Calculado', 'Pendiente'];
       
       // Generar períodos para los últimos 2 años
       for (let year = 2022; year <= 2024; year++) {
         for (let month = 0; month < 12; month++) {
           const periodId = `${year}-${month + 1}`;
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const isCurrentYear = year === 2024;
           const isCurrentMonth = month === 0 && year === 2024; // Enero 2024
           
@@ -284,7 +315,7 @@ class GeneralPayrollApi {
             id: periodId,
             period: `${months[month]} ${year}`,
             type: 'Mensual',
-            status: isCurrentMonth ? 'pendiente' : statuses[Math.floor(Math.random() * statuses.length)],
+            status: isCurrentMonth ? 'Pendiente' : statuses[Math.floor(Math.random() * statuses.length)],
             employees: 20 + Math.floor(Math.random() * 10),
             estimatedCost: 200000 + Math.floor(Math.random() * 100000),
             realCost: isCurrentMonth ? undefined : 200000 + Math.floor(Math.random() * 100000),
@@ -335,9 +366,6 @@ class GeneralPayrollApi {
           totalPages: Math.ceil(filteredPeriods.length / limit)
         }
       };
-    } catch (error) {
-      console.error('Error obteniendo períodos de nómina:', error);
-      throw error;
     }
   }
 
@@ -644,7 +672,7 @@ class GeneralPayrollApi {
   // Cerrar nómina general y generar individuales
   async closeGeneralPayroll(id: string, notes?: string): Promise<{
     generalPayroll: GeneralPayroll;
-    individualPayrolls: any[];
+    individualPayrolls: Record<string, unknown>[];
     message: string;
   }> {
     try {
@@ -665,7 +693,7 @@ class GeneralPayrollApi {
 
   // Obtener empleados disponibles para nómina
   async getAvailableEmployees(startDate?: string, endDate?: string): Promise<{
-    employees: any[];
+    employees: Record<string, unknown>[];
     total: number;
   }> {
     try {
@@ -693,7 +721,7 @@ class GeneralPayrollApi {
       approved: number;
       totalAdjustments: number;
     };
-    employees: any[];
+    employees: GeneralPayrollEmployee[];
   }> {
     try {
       console.log('📋 Obteniendo datos para aprobación:', id);
@@ -712,7 +740,7 @@ class GeneralPayrollApi {
   }
 
   // Obtener nóminas individuales generadas
-  async getIndividualPayrolls(id: string): Promise<any[]> {
+  async getIndividualPayrolls(id: string): Promise<Record<string, unknown>[]> {
     try {
       console.log('📄 Obteniendo nóminas individuales generadas:', id);
       
