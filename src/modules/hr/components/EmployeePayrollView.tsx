@@ -522,52 +522,6 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
     }
   };
 
-  // Función para actualizar nómina con extras pendientes
-  const handleRegeneratePayroll = async (payrollId: string) => {
-    try {
-      setGeneratingPayroll(true);
-      setError(null);
-      
-      console.log('🔄 Actualizando nómina con extras pendientes:', payrollId);
-      
-      // 1. Regenerar la nómina
-      const response = await payrollApi.regeneratePayroll(payrollId, true);
-      console.log('✅ Nómina actualizada:', response);
-      
-      // 2. Recargar extras pendientes
-      if (payrollData?.config) {
-        const extras = await payrollApi.getPendingExtras(employeeId);
-        console.log('📋 Extras pendientes actualizados:', extras);
-        
-        // Calcular totales correctos
-        const summary = {
-          totalExtras: extras.extras?.length || 0,
-          totalToAdd: extras.extras?.filter((e: { type: string; amount: number }) => e.type === 'overtime' || e.type === 'bonus').reduce((sum: number, e: { amount: number }) => sum + (e.amount || 0), 0) || 0,
-          totalToSubtract: extras.extras?.filter((e: { type: string; amount: number }) => e.type === 'absence' || e.type === 'loan').reduce((sum: number, e: { amount: number }) => sum + (e.amount || 0), 0) || 0,
-          netImpact: 0
-        };
-        
-        summary.netImpact = summary.totalToAdd - summary.totalToSubtract;
-        
-        setPendingExtras({
-          extras: extras.extras || [],
-          summary
-        });
-      }
-      
-      // 3. Recargar todos los datos
-      await loadPayrollData();
-      
-      console.log('🎉 Nómina y extras actualizados exitosamente');
-      
-    } catch (error: unknown) {
-      console.error('❌ Error actualizando nómina:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Error actualizando nómina';
-      setError(errorMessage);
-    } finally {
-      setGeneratingPayroll(false);
-    }
-  };
 
   // Función para calcular totales de nómina incluyendo extras
   const calculatePayrollTotals = () => {
@@ -1116,14 +1070,6 @@ const EmployeePayrollView: React.FC<EmployeePayrollViewProps> = ({
                     
                     {/* Botones de acción minimalistas */}
                     <div className="flex items-center gap-1 ml-2">
-                      {/* Botón Actualizar Nómina */}
-                      <button
-                        onClick={() => handleRegeneratePayroll(selectedPeriod.id)}
-                        className="text-blue-600 hover:text-blue-800 p-1.5 rounded hover:bg-blue-50 transition-colors"
-                        title="Actualizar nómina con extras pendientes"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
                       
                       {/* Botón Editar */}
                       <button

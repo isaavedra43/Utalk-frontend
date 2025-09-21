@@ -38,6 +38,7 @@ import {
   CreditCard,
   Receipt
 } from 'lucide-react';
+import { generalPayrollApi } from '../../../services/generalPayrollApi';
 
 // Interfaces para tipos de datos
 interface EmployeePayrollSimulation {
@@ -454,10 +455,108 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
       try {
         console.log('🔄 Generando simulación de nómina para período:', selectedPeriod);
         
-        // Simular cálculo de nómina
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        setEmployees(mockEmployees);
+        // Intentar obtener datos reales del backend
+        try {
+          // Primero crear la nómina general si no existe
+          const generalPayroll = await generalPayrollApi.createGeneralPayroll({
+            startDate: selectedPeriod.startDate,
+            endDate: selectedPeriod.endDate,
+            frequency: selectedPeriod.type === 'Mensual' ? 'monthly' : 
+                      selectedPeriod.type === 'Semanal' ? 'weekly' : 'biweekly',
+            includeEmployees: [] // El backend determinará empleados disponibles
+          });
+          
+          // Luego simular los cálculos
+          const simulatedPayroll = await generalPayrollApi.simulateGeneralPayroll(generalPayroll.id);
+          
+          // Convertir datos del backend al formato del frontend
+          const backendEmployees = simulatedPayroll.employees.map(emp => ({
+            id: emp.employeeId,
+            personalInfo: {
+              name: emp.employee.name,
+              email: `${emp.employee.name.toLowerCase().replace(/\s+/g, '.')}@company.com`,
+              phone: '+52 55 1234-5678',
+              position: emp.employee.position,
+              department: emp.employee.department,
+              location: 'Ciudad de México',
+              employeeId: emp.employee.code || emp.employeeId,
+              hireDate: '2023-01-15',
+              status: 'active' as const
+            },
+            salaryInfo: {
+              baseSalary: emp.baseSalary,
+              hourlyRate: emp.baseSalary / 160, // Aproximado
+              workHours: 160,
+              overtimeHours: emp.overtime / (emp.baseSalary / 160 * 1.5),
+              overtimeRate: 1.5
+            },
+            earnings: {
+              baseSalary: emp.baseSalary,
+              overtime: emp.overtime,
+              bonuses: [{
+                id: 'bonus1',
+                name: 'Bonos del período',
+                amount: emp.bonuses,
+                type: 'performance' as const,
+                description: 'Bonos acumulados del período'
+              }],
+              commissions: 0,
+              allowances: [],
+              totalEarnings: emp.grossSalary
+            },
+            deductions: {
+              taxes: [{
+                id: 'tax1',
+                name: 'Impuestos',
+                amount: emp.taxes,
+                type: 'income_tax' as const,
+                description: 'Impuestos calculados'
+              }],
+              benefits: [],
+              other: [{
+                id: 'other1',
+                name: 'Otras deducciones',
+                amount: emp.deductions - emp.taxes,
+                type: 'other' as const,
+                description: 'Deducciones varias'
+              }],
+              totalDeductions: emp.deductions
+            },
+            grossPay: emp.grossSalary,
+            netPay: emp.netSalary,
+            status: emp.status,
+            lastUpdated: new Date().toISOString()
+          }));
+          
+          setEmployees(backendEmployees);
+          
+          // Usar totales del backend
+          const summaryData: PayrollSimulationSummary = {
+            totalEmployees: simulatedPayroll.totals.totalEmployees,
+            totalGrossPayroll: simulatedPayroll.totals.totalGrossSalary,
+            totalNetPayroll: simulatedPayroll.totals.totalNetSalary,
+            totalEarnings: simulatedPayroll.totals.totalGrossSalary,
+            totalDeductions: simulatedPayroll.totals.totalDeductions,
+            averageSalary: simulatedPayroll.totals.averageSalary,
+            totalOvertime: simulatedPayroll.totals.totalOvertime,
+            totalBonuses: simulatedPayroll.totals.totalBonuses,
+            totalTaxes: simulatedPayroll.totals.totalTaxes,
+            totalBenefits: 0,
+            period: {
+              startDate: selectedPeriod.startDate,
+              endDate: selectedPeriod.endDate,
+              type: selectedPeriod.type
+            }
+          };
+          
+          setSummary(summaryData);
+          console.log('✅ Simulación de nómina generada con datos reales del backend');
+          
+        } catch (backendError) {
+          console.warn('⚠️ Error con backend, usando datos mock:', backendError);
+          
+          // Fallback a datos mock si el backend falla
+          setEmployees(mockEmployees);
         
         // Calcular resumen
         const summaryData: PayrollSimulationSummary = {

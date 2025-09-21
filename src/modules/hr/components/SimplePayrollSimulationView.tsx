@@ -64,6 +64,7 @@ import {
   Check,
   XCircle
 } from 'lucide-react';
+import { generalPayrollApi } from '../../../services/generalPayrollApi';
 
 // Interfaces para tipos de datos
 interface SimpleEmployeePayroll {

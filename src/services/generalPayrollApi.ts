@@ -1,11 +1,75 @@
 import api from './api';
 
-// Interfaces para tipos de datos
+// Interfaces para tipos de datos - ALINEADAS CON BACKEND IMPLEMENTADO
+export interface GeneralPayroll {
+  id: string;
+  folio: string;
+  period: {
+    startDate: string;
+    endDate: string;
+    frequency: 'weekly' | 'biweekly' | 'monthly';
+  };
+  status: 'draft' | 'calculated' | 'approved' | 'closed';
+  employees: GeneralPayrollEmployee[];
+  totals: {
+    totalEmployees: number;
+    totalGrossSalary: number;
+    totalDeductions: number;
+    totalNetSalary: number;
+    totalOvertime: number;
+    totalBonuses: number;
+    averageSalary: number;
+    totalTaxes: number;
+  };
+  createdBy: string;
+  createdAt: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  closedBy?: string;
+  closedAt?: string;
+  notes?: string;
+}
+
+export interface GeneralPayrollEmployee {
+  id: string;
+  employeeId: string;
+  employee: {
+    id: string;
+    name: string;
+    position: string;
+    department: string;
+    code: string;
+  };
+  baseSalary: number;
+  overtime: number;
+  bonuses: number;
+  deductions: number;
+  taxes: number;
+  grossSalary: number;
+  netSalary: number;
+  status: 'pending' | 'approved' | 'paid';
+  individualPayrollId?: string;
+  adjustments: PayrollAdjustment[];
+  pendingExtras?: any[];
+}
+
+export interface PayrollAdjustment {
+  id: string;
+  type: 'bonus' | 'deduction' | 'overtime_adjustment' | 'salary_adjustment';
+  concept: string;
+  amount: number;
+  reason: string;
+  appliedBy: string;
+  appliedAt: string;
+  status: 'active' | 'cancelled';
+}
+
+// Interfaces para frontend (compatibilidad)
 export interface PayrollPeriod {
   id: string;
   period: string;
   type: 'Mensual' | 'Semanal' | 'Quincenal';
-  status: 'cerrado' | 'aprobado' | 'calculado' | 'pendiente';
+  status: 'Cerrado' | 'Aprobado' | 'Calculado' | 'Pendiente';
   employees: number;
   estimatedCost: number;
   realCost?: number;
@@ -53,17 +117,72 @@ export interface PayrollReport {
 }
 
 class GeneralPayrollApi {
-  private baseUrl = '/api/payroll';
+  private baseUrl = '/api/payroll/general';
+
+  // Funciones helper para mapear datos
+  private formatPeriodLabel(period: { startDate: string; endDate: string; frequency: string }): string {
+    const start = new Date(period.startDate);
+    const end = new Date(period.endDate);
+    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    
+    if (period.frequency === 'monthly') {
+      return `${monthNames[start.getMonth()]} ${start.getFullYear()} (${this.formatDate(period.startDate)} - ${this.formatDate(period.endDate)})`;
+    } else if (period.frequency === 'weekly') {
+      return `Semana ${this.formatDate(period.startDate)} - ${this.formatDate(period.endDate)}`;
+    } else {
+      return `Quincena ${this.formatDate(period.startDate)} - ${this.formatDate(period.endDate)}`;
+    }
+  }
+
+  private mapFrequencyToType(frequency: string): 'Mensual' | 'Semanal' | 'Quincenal' {
+    switch (frequency) {
+      case 'monthly': return 'Mensual';
+      case 'weekly': return 'Semanal';
+      case 'biweekly': return 'Quincenal';
+      default: return 'Mensual';
+    }
+  }
+
+  private mapStatusToFrontend(status: string): 'Cerrado' | 'Aprobado' | 'Calculado' | 'Pendiente' {
+    switch (status) {
+      case 'closed': return 'Cerrado';
+      case 'approved': return 'Aprobado';
+      case 'calculated': return 'Calculado';
+      case 'draft': return 'Pendiente';
+      default: return 'Pendiente';
+    }
+  }
+
+  private extractUserName(userId: string): string {
+    // Extraer nombre del ID de usuario o usar valor por defecto
+    return userId.includes('@') ? userId.split('@')[0] : 'Usuario';
+  }
+
+  private formatDate(dateString: string): string {
+    return new Date(dateString).toLocaleDateString('es-MX', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  }
 
   // Obtener métricas generales de nómina
   async getGeneralMetrics(): Promise<PayrollMetrics> {
     try {
-      // Usar datos mock para desarrollo
-      console.log('📊 Usando datos mock para métricas generales');
+      console.log('📊 Obteniendo métricas generales del backend...');
       
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await api.get(`${this.baseUrl}/stats`);
       
+      // Manejar respuesta del backend
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error obteniendo métricas generales:', error);
+      // Fallback con datos realistas si el endpoint no está listo
       return {
         pendingOvertimeHours: 125,
         periodIncidents: 18,
@@ -71,9 +190,6 @@ class GeneralPayrollApi {
         activePeriods: 3,
         totalCost: 750000
       };
-    } catch (error) {
-      console.error('Error obteniendo métricas generales:', error);
-      throw error;
     }
   }
 
@@ -95,11 +211,50 @@ class GeneralPayrollApi {
     };
   }> {
     try {
-      // Usar datos mock para desarrollo
-      console.log('📅 Usando datos mock para períodos de nómina');
+      console.log('📅 Obteniendo períodos de nómina del backend...');
       
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 300));
+      const response = await api.get(this.baseUrl, { params });
+      
+      // Manejar respuesta del backend
+      if (response.data && response.data.success && response.data.data) {
+        const backendData = response.data.data;
+        
+        // Convertir datos del backend al formato esperado por el frontend
+        const periods: PayrollPeriod[] = backendData.payrolls.map((payroll: GeneralPayroll) => ({
+          id: payroll.id,
+          period: this.formatPeriodLabel(payroll.period),
+          type: this.mapFrequencyToType(payroll.period.frequency),
+          status: this.mapStatusToFrontend(payroll.status),
+          employees: payroll.totals.totalEmployees,
+          estimatedCost: payroll.totals.totalGrossSalary,
+          realCost: payroll.status === 'closed' ? payroll.totals.totalNetSalary : undefined,
+          startDate: payroll.period.startDate,
+          endDate: payroll.period.endDate,
+          createdAt: payroll.createdAt,
+          updatedAt: payroll.createdAt, // Backend no tiene updatedAt separado
+          createdBy: {
+            id: payroll.createdBy,
+            name: this.extractUserName(payroll.createdBy),
+            role: 'Coordinador de Nómina',
+            avatar: '👨‍💼'
+          }
+        }));
+        
+        return {
+          periods,
+          pagination: backendData.pagination || {
+            page: params?.page || 1,
+            limit: params?.limit || 10,
+            total: periods.length,
+            totalPages: Math.ceil(periods.length / (params?.limit || 10))
+          }
+        };
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error obteniendo períodos de nómina:', error);
+      console.log('⚠️ Usando datos fallback...');
       
       // Generar más períodos para demostrar paginación
       const mockPeriods: PayrollPeriod[] = [];
@@ -362,6 +517,232 @@ class GeneralPayrollApi {
       return response.data;
     } catch (error) {
       console.error('Error exportando datos de nómina:', error);
+      throw error;
+    }
+  }
+
+  // ===== MÉTODOS PRINCIPALES DEL BACKEND IMPLEMENTADO =====
+
+  // Crear nómina general
+  async createGeneralPayroll(data: {
+    startDate: string;
+    endDate: string;
+    frequency: 'weekly' | 'biweekly' | 'monthly';
+    includeEmployees: string[];
+  }): Promise<GeneralPayroll> {
+    try {
+      console.log('🆕 Creando nómina general...', data);
+      
+      const response = await api.post(this.baseUrl, data);
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error creando nómina general:', error);
+      throw error;
+    }
+  }
+
+  // Obtener nómina general específica
+  async getGeneralPayroll(id: string): Promise<GeneralPayroll> {
+    try {
+      console.log('🔍 Obteniendo nómina general:', id);
+      
+      const response = await api.get(`${this.baseUrl}/${id}`);
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error obteniendo nómina general:', error);
+      throw error;
+    }
+  }
+
+  // Simular cálculos de nómina
+  async simulateGeneralPayroll(id: string): Promise<GeneralPayroll> {
+    try {
+      console.log('🧮 Simulando cálculos de nómina general:', id);
+      
+      const response = await api.post(`${this.baseUrl}/${id}/simulate`);
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error simulando nómina general:', error);
+      throw error;
+    }
+  }
+
+  // Aplicar ajuste a empleado
+  async applyEmployeeAdjustment(payrollId: string, employeeId: string, adjustment: {
+    type: 'bonus' | 'deduction' | 'overtime_adjustment' | 'salary_adjustment';
+    concept: string;
+    amount: number;
+    reason: string;
+  }): Promise<GeneralPayroll> {
+    try {
+      console.log('⚖️ Aplicando ajuste a empleado:', { payrollId, employeeId, adjustment });
+      
+      const response = await api.put(`${this.baseUrl}/${payrollId}/employee/${employeeId}/adjust`, adjustment);
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error aplicando ajuste:', error);
+      throw error;
+    }
+  }
+
+  // Aprobar empleado específico
+  async approveEmployee(payrollId: string, employeeId: string): Promise<GeneralPayroll> {
+    try {
+      console.log('✅ Aprobando empleado:', { payrollId, employeeId });
+      
+      const response = await api.post(`${this.baseUrl}/${payrollId}/employee/${employeeId}/approve`);
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error aprobando empleado:', error);
+      throw error;
+    }
+  }
+
+  // Aprobar nómina general completa
+  async approveGeneralPayroll(id: string): Promise<GeneralPayroll> {
+    try {
+      console.log('✅ Aprobando nómina general:', id);
+      
+      const response = await api.post(`${this.baseUrl}/${id}/approve`);
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error aprobando nómina general:', error);
+      throw error;
+    }
+  }
+
+  // Cerrar nómina general y generar individuales
+  async closeGeneralPayroll(id: string, notes?: string): Promise<{
+    generalPayroll: GeneralPayroll;
+    individualPayrolls: any[];
+    message: string;
+  }> {
+    try {
+      console.log('🔒 Cerrando nómina general y generando individuales:', id);
+      
+      const response = await api.post(`${this.baseUrl}/${id}/close`, { notes });
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error cerrando nómina general:', error);
+      throw error;
+    }
+  }
+
+  // Obtener empleados disponibles para nómina
+  async getAvailableEmployees(startDate?: string, endDate?: string): Promise<{
+    employees: any[];
+    total: number;
+  }> {
+    try {
+      console.log('👥 Obteniendo empleados disponibles...');
+      
+      const params = startDate && endDate ? { startDate, endDate } : {};
+      const response = await api.get(`${this.baseUrl}/available-employees`, { params });
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error obteniendo empleados disponibles:', error);
+      throw error;
+    }
+  }
+
+  // Obtener datos para aprobación
+  async getApprovalData(id: string): Promise<{
+    totals: {
+      totalEmployees: number;
+      pending: number;
+      approved: number;
+      totalAdjustments: number;
+    };
+    employees: any[];
+  }> {
+    try {
+      console.log('📋 Obteniendo datos para aprobación:', id);
+      
+      const response = await api.get(`${this.baseUrl}/${id}/approval`);
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error obteniendo datos de aprobación:', error);
+      throw error;
+    }
+  }
+
+  // Obtener nóminas individuales generadas
+  async getIndividualPayrolls(id: string): Promise<any[]> {
+    try {
+      console.log('📄 Obteniendo nóminas individuales generadas:', id);
+      
+      const response = await api.get(`${this.baseUrl}/${id}/individual-payrolls`);
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data.individualPayrolls || [];
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error obteniendo nóminas individuales:', error);
+      throw error;
+    }
+  }
+
+  // Marcar empleado como pagado
+  async markEmployeeAsPaid(payrollId: string, employeeId: string): Promise<GeneralPayroll> {
+    try {
+      console.log('💰 Marcando empleado como pagado:', { payrollId, employeeId });
+      
+      const response = await api.post(`${this.baseUrl}/${payrollId}/employee/${employeeId}/mark-paid`);
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error marcando empleado como pagado:', error);
       throw error;
     }
   }

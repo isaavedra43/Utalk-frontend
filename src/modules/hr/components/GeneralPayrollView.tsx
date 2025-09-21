@@ -598,6 +598,7 @@ const GeneralPayrollView: React.FC = () => {
     return (
       <PayrollApprovalView
         adjustedData={simulationData}
+        selectedPeriod={selectedPeriod}
         onNext={handleApprovalNext}
         onBack={() => {
           setShowApprovalView(false);

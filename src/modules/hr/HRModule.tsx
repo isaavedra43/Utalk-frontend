@@ -8,7 +8,6 @@ import {
   TrendingUp, 
   Shield, 
   Bot,
-  Search,
   Calendar,
   Download,
   Settings,
@@ -27,7 +26,6 @@ import { PayrollModule } from './components/PayrollModule';
 import { AttendanceModule } from './components/AttendanceModule';
 import { VacationModule } from './components/VacationModule';
 import { DocumentModule } from './components/DocumentModule';
-import { EmployeeSearchModule } from './components/EmployeeSearchModule';
 import { OrgChartModule } from './components/OrgChartModule';
 import { TalentModule } from './components/TalentModule';
 import { RecruitmentModule } from './components/RecruitmentModule';
@@ -58,7 +56,6 @@ const HRModule: React.FC = () => {
   const tabs = [
     { id: 'dashboard', name: 'Panorama', icon: BarChart3 },
     { id: 'employees', name: 'Empleados', icon: Users },
-    { id: 'search', name: 'Búsqueda', icon: Search },
     { id: 'orgchart', name: 'Organigrama', icon: BarChart3 },
     { id: 'payroll', name: 'Nómina', icon: DollarSign },
     { id: 'attendance', name: 'Asistencia', icon: Calendar },
@@ -106,11 +103,6 @@ const HRModule: React.FC = () => {
         ) : (
           <EmployeeList onSelectEmployee={handleEmployeeSelect} />
         );
-      case 'search':
-        return <EmployeeSearchModule onEmployeeSelect={(employeeId) => {
-          // Cargar empleado y mostrar detalles
-          console.log('Empleado seleccionado:', employeeId);
-        }} />;
       case 'orgchart':
         return <OrgChartModule onEmployeeSelect={(employeeId) => {
           // Cargar empleado y mostrar detalles
