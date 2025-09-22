@@ -167,286 +167,13 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
   const [showDetails, setShowDetails] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
-  // Datos mock para simulación
-  const mockEmployees: EmployeePayrollSimulation[] = [
-    {
-      id: '1',
-      personalInfo: {
-        name: 'Ana García López',
-        email: 'ana.garcia@empresa.com',
-        phone: '+52 55 1234 5678',
-        position: 'Desarrolladora Senior',
-        department: 'Tecnología',
-        location: 'Ciudad de México',
-        employeeId: 'EMP001',
-        hireDate: '2022-03-15',
-        status: 'active'
-      },
-      salaryInfo: {
-        baseSalary: 45000,
-        hourlyRate: 250,
-        workHours: 160,
-        overtimeHours: 12,
-        overtimeRate: 375
-      },
-      earnings: {
-        baseSalary: 45000,
-        overtime: 4500,
-        bonuses: [
-          {
-            id: 'bonus1',
-            name: 'Bono de Rendimiento',
-            amount: 3000,
-            type: 'performance',
-            description: 'Bono por excelente rendimiento en el proyecto Q1'
-          },
-          {
-            id: 'bonus2',
-            name: 'Bono de Asistencia',
-            amount: 1000,
-            type: 'attendance',
-            description: 'Bono por asistencia perfecta'
-          }
-        ],
-        commissions: 0,
-        allowances: [
-          {
-            id: 'allowance1',
-            name: 'Vale de Despensa',
-            amount: 2000,
-            type: 'food',
-            description: 'Vale de despensa mensual'
-          },
-          {
-            id: 'allowance2',
-            name: 'Transporte',
-            amount: 1500,
-            type: 'transport',
-            description: 'Apoyo para transporte'
-          }
-        ],
-        totalEarnings: 55500
-      },
-      deductions: {
-        taxes: [
-          {
-            id: 'tax1',
-            name: 'ISR',
-            amount: 8500,
-            type: 'income_tax',
-            description: 'Impuesto Sobre la Renta'
-          },
-          {
-            id: 'tax2',
-            name: 'IMSS',
-            amount: 1200,
-            type: 'social_security',
-            description: 'Cuota obrero-patronal IMSS'
-          }
-        ],
-        benefits: [
-          {
-            id: 'benefit1',
-            name: 'Afore',
-            amount: 1100,
-            type: 'retirement',
-            description: 'Aportación voluntaria Afore'
-          },
-          {
-            id: 'benefit2',
-            name: 'Seguro de Vida',
-            amount: 500,
-            type: 'life_insurance',
-            description: 'Seguro de vida empresarial'
-          }
-        ],
-        other: [],
-        totalDeductions: 11300
-      },
-      netPay: 44200,
-      period: {
-        startDate: selectedPeriod.startDate,
-        endDate: selectedPeriod.endDate,
-        payDate: '2024-02-05',
-        type: selectedPeriod.type.toLowerCase() as 'monthly' | 'biweekly' | 'weekly'
-      },
-      status: 'calculated',
-      lastUpdated: new Date().toISOString()
-    },
-    {
-      id: '2',
-      personalInfo: {
-        name: 'Carlos Mendoza Ruiz',
-        email: 'carlos.mendoza@empresa.com',
-        phone: '+52 55 2345 6789',
-        position: 'Gerente de Ventas',
-        department: 'Ventas',
-        location: 'Guadalajara',
-        employeeId: 'EMP002',
-        hireDate: '2021-08-20',
-        status: 'active'
-      },
-      salaryInfo: {
-        baseSalary: 55000,
-        hourlyRate: 300,
-        workHours: 160,
-        overtimeHours: 8,
-        overtimeRate: 450
-      },
-      earnings: {
-        baseSalary: 55000,
-        overtime: 3600,
-        bonuses: [
-          {
-            id: 'bonus3',
-            name: 'Bono de Ventas',
-            amount: 8000,
-            type: 'commission',
-            description: 'Bono por superar metas de ventas'
-          }
-        ],
-        commissions: 5000,
-        allowances: [
-          {
-            id: 'allowance3',
-            name: 'Vale de Despensa',
-            amount: 2000,
-            type: 'food',
-            description: 'Vale de despensa mensual'
-          },
-          {
-            id: 'allowance4',
-            name: 'Gasolina',
-            amount: 3000,
-            type: 'transport',
-            description: 'Apoyo para gasolina'
-          }
-        ],
-        totalEarnings: 73600
-      },
-      deductions: {
-        taxes: [
-          {
-            id: 'tax3',
-            name: 'ISR',
-            amount: 12000,
-            type: 'income_tax',
-            description: 'Impuesto Sobre la Renta'
-          },
-          {
-            id: 'tax4',
-            name: 'IMSS',
-            amount: 1500,
-            type: 'social_security',
-            description: 'Cuota obrero-patronal IMSS'
-          }
-        ],
-        benefits: [
-          {
-            id: 'benefit3',
-            name: 'Afore',
-            amount: 1400,
-            type: 'retirement',
-            description: 'Aportación voluntaria Afore'
-          }
-        ],
-        other: [],
-        totalDeductions: 14900
-      },
-      netPay: 58700,
-      period: {
-        startDate: selectedPeriod.startDate,
-        endDate: selectedPeriod.endDate,
-        payDate: '2024-02-05',
-        type: selectedPeriod.type.toLowerCase() as 'monthly' | 'biweekly' | 'weekly'
-      },
-      status: 'calculated',
-      lastUpdated: new Date().toISOString()
-    },
-    {
-      id: '3',
-      personalInfo: {
-        name: 'María Elena Torres',
-        email: 'maria.torres@empresa.com',
-        phone: '+52 55 3456 7890',
-        position: 'Analista de Recursos Humanos',
-        department: 'Recursos Humanos',
-        location: 'Monterrey',
-        employeeId: 'EMP003',
-        hireDate: '2023-01-10',
-        status: 'active'
-      },
-      salaryInfo: {
-        baseSalary: 35000,
-        hourlyRate: 200,
-        workHours: 160,
-        overtimeHours: 5,
-        overtimeRate: 300
-      },
-      earnings: {
-        baseSalary: 35000,
-        overtime: 1500,
-        bonuses: [
-          {
-            id: 'bonus4',
-            name: 'Bono de Proyecto',
-            amount: 2000,
-            type: 'special',
-            description: 'Bono por proyecto de implementación'
-          }
-        ],
-        commissions: 0,
-        allowances: [
-          {
-            id: 'allowance5',
-            name: 'Vale de Despensa',
-            amount: 1500,
-            type: 'food',
-            description: 'Vale de despensa mensual'
-          }
-        ],
-        totalEarnings: 40000
-      },
-      deductions: {
-        taxes: [
-          {
-            id: 'tax5',
-            name: 'ISR',
-            amount: 6000,
-            type: 'income_tax',
-            description: 'Impuesto Sobre la Renta'
-          },
-          {
-            id: 'tax6',
-            name: 'IMSS',
-            amount: 900,
-            type: 'social_security',
-            description: 'Cuota obrero-patronal IMSS'
-          }
-        ],
-        benefits: [
-          {
-            id: 'benefit4',
-            name: 'Afore',
-            amount: 800,
-            type: 'retirement',
-            description: 'Aportación voluntaria Afore'
-          }
-        ],
-        other: [],
-        totalDeductions: 7700
-      },
-      netPay: 32300,
-      period: {
-        startDate: selectedPeriod.startDate,
-        endDate: selectedPeriod.endDate,
-        payDate: '2024-02-05',
-        type: selectedPeriod.type.toLowerCase() as 'monthly' | 'biweekly' | 'weekly'
-      },
-      status: 'calculated',
-      lastUpdated: new Date().toISOString()
-    }
-  ];
+  // Estados para datos reales del backend
+  const [employees, setEmployees] = useState<EmployeePayrollSimulation[]>([]);
+  const [summary, setSummary] = useState<PayrollSimulationSummary | null>(null);
+  const [loading, setLoading] = useState(true); // Iniciar en true para mostrar loading
+  const [error, setError] = useState<string | null>(null);
+
+  // Cargar datos de simulación real del backend
 
   // Cargar datos de simulación
   useEffect(() => {
@@ -652,6 +379,50 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-gray-600">Generando simulación de nómina...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="h-8 w-8 text-red-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Error al cargar simulación</h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (employees.length === 0) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Users className="h-8 w-8 text-gray-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No hay empleados para simular</h3>
+            <p className="text-gray-600 mb-4">No se encontraron empleados activos para el período seleccionado.</p>
+            <button
+              onClick={onBack}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Volver
+            </button>
           </div>
         </div>
       </div>
