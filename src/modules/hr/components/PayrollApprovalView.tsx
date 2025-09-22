@@ -27,7 +27,7 @@ import {
   MessageCircle,
   StickyNote
 } from 'lucide-react';
-import { generalPayrollApi, type PayrollAdjustment as ServicePayrollAdjustment } from '../../../services/generalPayrollApi';
+import { generalPayrollApi } from '../../../services/generalPayrollApi';
 
 // Interfaces para tipos de datos
 interface PayrollAdjustment {
@@ -203,73 +203,75 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
           }
           
           console.log('📋 Obteniendo datos para aprobación con ID real:', createdPayrollId);
-          const approvalData = await generalPayrollApi.getApprovalData(createdPayrollId);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const approvalData: any = await generalPayrollApi.getApprovalData(createdPayrollId);
           
           // Convertir datos del backend al formato del frontend
-          const backendEmployees: EmployeePayrollApproval[] = approvalData.employees.map((emp) => ({
-            id: emp.id || emp.employeeId,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const backendEmployees: EmployeePayrollApproval[] = approvalData.data.employees.map((emp: any) => ({
+            id: emp.employeeId,
             personalInfo: {
-              name: emp.employee.name,
-              email: emp.employee.email || `${emp.employee.name.toLowerCase().replace(/\s+/g, '.')}@company.com`,
-              phone: emp.employee.phone || '+52 55 1234-5678',
-              position: emp.employee.position,
-              department: emp.employee.department,
-              location: emp.employee.location || 'Ciudad de México',
-              employeeId: emp.employee.code
+              name: emp.name,
+              email: `${emp.name.toLowerCase().replace(/\s+/g, '.')}@company.com`,
+              phone: '+52 55 1234-5678',
+              position: emp.position,
+              department: 'General',
+              location: 'Ciudad de México',
+              employeeId: emp.employeeId
             },
             originalPayroll: {
-              baseSalary: emp.originalSalary || emp.baseSalary || 25000,
-              overtime: emp.originalOvertime || emp.overtime || 0,
-              bonuses: emp.originalBonuses || emp.bonuses || 0,
+              baseSalary: emp.originalPayroll?.gross || 0,
+              overtime: 0,
+              bonuses: 0,
               allowances: 0,
-              totalEarnings: emp.originalSalary || emp.grossSalary || 25000,
-              taxes: emp.originalTaxes || emp.taxes || 2000,
+              totalEarnings: emp.originalPayroll?.gross || 0,
+              taxes: 0,
               benefits: 0,
-              otherDeductions: (emp.originalDeductions || emp.deductions || 0) - (emp.originalTaxes || emp.taxes || 2000),
-              totalDeductions: emp.originalDeductions || emp.deductions || 0,
-              netPay: emp.originalNetSalary || emp.netSalary || 22000
+              otherDeductions: 0,
+              totalDeductions: 0,
+              netPay: emp.originalPayroll?.net || 0
             },
-            adjustments: (emp.adjustments || []).map((adj: ServicePayrollAdjustment) => ({
-              id: adj.id,
+            adjustments: (emp.adjustments || []).map((adj: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
+              id: adj.id || `adj_${Date.now()}`,
               employeeId: emp.employeeId,
-              type: adj.type,
-              name: adj.concept,
-              amount: adj.amount,
-              description: adj.reason,
-              reason: adj.reason,
-              approved: adj.status === 'active',
-              createdBy: adj.appliedBy,
-              createdAt: adj.appliedAt,
-              approvedBy: adj.appliedBy,
-              approvedAt: adj.appliedAt
+              type: adj.type || 'adjustment',
+              name: adj.name || 'Ajuste',
+              amount: adj.amount || 0,
+              description: adj.description || 'Ajuste de nómina',
+              reason: adj.reason || 'Ajuste aplicado',
+              approved: adj.approved || false,
+              createdBy: adj.createdBy || 'admin@company.com',
+              createdAt: adj.createdAt || new Date().toISOString(),
+              approvedBy: adj.approvedBy,
+              approvedAt: adj.approvedAt
             })),
             finalPayroll: {
-              totalEarnings: emp.finalSalary || emp.grossSalary || 25000,
-              totalDeductions: emp.finalDeductions || emp.deductions || 0,
-              netPay: emp.finalSalary || emp.netSalary || 22000
+              totalEarnings: emp.finalPayroll?.gross || 0,
+              totalDeductions: 0,
+              netPay: emp.finalPayroll?.net || 0
             },
             status: emp.status || 'pending',
-            paymentStatus: emp.paymentStatus || 'pending',
-            paymentMethod: emp.paymentMethod || 'transfer',
-            receiptStatus: emp.receiptStatus || 'pending',
-            receiptUrl: emp.receiptUrl,
-            receiptUploadedAt: emp.receiptUploadedAt,
-            notes: emp.notes,
-            faltas: emp.faltas || 0,
-            lastUpdated: emp.updatedAt || new Date().toISOString()
+            paymentStatus: emp.paymentStatus === 'unpaid' ? 'pending' : emp.paymentStatus || 'pending',
+            paymentMethod: emp.paymentMethod || 'bank_transfer',
+            receiptStatus: 'pending',
+            receiptUrl: null,
+            receiptUploadedAt: null,
+            notes: '',
+            faltas: 0,
+            lastUpdated: new Date().toISOString()
           }));
           
           setEmployees(backendEmployees);
           
           // Usar totales del backend
           const summaryData: PayrollApprovalSummary = {
-            totalEmployees: approvalData.totals.totalEmployees,
-            pendingApprovals: approvalData.totals.pending,
-            approved: approvalData.totals.approved,
+            totalEmployees: approvalData.data.summary.totalEmployees,
+            pendingApprovals: approvalData.data.summary.pending,
+            approved: approvalData.data.summary.approved,
             rejected: 0, // El backend no maneja rejected en este contexto
             totalOriginalPayroll: backendEmployees.reduce((sum, emp) => sum + emp.originalPayroll.netPay, 0),
             totalAdjustedPayroll: backendEmployees.reduce((sum, emp) => sum + emp.finalPayroll.netPay, 0),
-            totalAdjustments: approvalData.totals.totalAdjustments,
+            totalAdjustments: approvalData.data.summary.totalAdjustments,
             period: {
               startDate: selectedPeriod?.startDate || '2024-01-01',
               endDate: selectedPeriod?.endDate || '2024-01-31',
