@@ -473,7 +473,21 @@ class GeneralPayrollApi {
     try {
       console.log('🆕 Creando nómina general...', data);
       
-      const response = await api.post(this.baseUrl, data);
+      // Convertir frequency a type según lo que espera el backend
+      const typeMapping = {
+        'weekly': 'weekly',
+        'biweekly': 'biweekly', 
+        'monthly': 'monthly'
+      };
+      
+      const requestData = {
+        startDate: data.startDate,
+        endDate: data.endDate,
+        type: typeMapping[data.frequency], // El backend espera 'type' no 'frequency'
+        includeEmployees: data.includeEmployees
+      };
+      
+      const response = await api.post(this.baseUrl, requestData);
       
       if (response.data && response.data.success && response.data.data) {
         return response.data.data;
@@ -505,11 +519,36 @@ class GeneralPayrollApi {
   }
 
   // Simular cálculos de nómina
-  async simulateGeneralPayroll(id: string): Promise<GeneralPayroll> {
+  async simulateGeneralPayroll(periodData: {
+    startDate: string;
+    endDate: string;
+    type: string;
+    label: string;
+  }): Promise<PayrollSimulation> {
     try {
-      console.log('🧮 Simulando cálculos de nómina general:', id);
+      console.log('🔄 Simulando nómina general...', periodData);
       
-      const response = await api.post(`${this.baseUrl}/${id}/simulate`);
+      const requestData = {
+        period: {
+          type: periodData.type,
+          startDate: periodData.startDate,
+          endDate: periodData.endDate,
+          label: periodData.label
+        },
+        scope: {
+          allEmployees: true,
+          employeeIds: []
+        },
+        options: {
+          includeExtras: true,
+          includeBonuses: true,
+          includeAbsencesAndLates: true,
+          currency: "MXN",
+          roundingMode: "HALF_UP"
+        }
+      };
+      
+      const response = await api.post('/api/payroll/simulate', requestData);
       
       if (response.data && response.data.success && response.data.data) {
         return response.data.data;

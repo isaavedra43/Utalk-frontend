@@ -177,18 +177,14 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
       try {
         console.log('🔄 Generando simulación de nómina para período:', selectedPeriod);
         
-        // Obtener datos reales del backend
-        // Primero crear la nómina general si no existe
-        const generalPayroll = await generalPayrollApi.createGeneralPayroll({
+        // Obtener datos reales del backend usando el endpoint de simulación directo
+        const simulatedPayroll = await generalPayrollApi.simulateGeneralPayroll({
           startDate: selectedPeriod.startDate,
           endDate: selectedPeriod.endDate,
-          frequency: selectedPeriod.type === 'Mensual' ? 'monthly' : 
-                    selectedPeriod.type === 'Semanal' ? 'weekly' : 'biweekly',
-          includeEmployees: [] // El backend determinará empleados disponibles
+          type: selectedPeriod.type === 'Mensual' ? 'monthly' : 
+                selectedPeriod.type === 'Semanal' ? 'weekly' : 'biweekly',
+          label: selectedPeriod.period
         });
-        
-        // Luego simular los cálculos
-        const simulatedPayroll = await generalPayrollApi.simulateGeneralPayroll(generalPayroll.id);
         
         // Convertir datos del backend al formato del frontend
         const backendEmployees = simulatedPayroll.employees.map(emp => ({
