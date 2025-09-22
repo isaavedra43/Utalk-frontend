@@ -179,11 +179,6 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
   const [selectedEmployeeForReceiptPreview, setSelectedEmployeeForReceiptPreview] = useState<EmployeePayrollApproval | null>(null);
   const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
 
-  // Estados para datos reales del backend
-  const [employees, setEmployees] = useState<EmployeePayrollApproval[]>([]);
-  const [summary, setSummary] = useState<PayrollApprovalSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   // Datos mock para ajustes y aprobación (memoizados para rendimiento)
   const mockEmployees: EmployeePayrollApproval[] = useMemo(() => [

@@ -167,11 +167,6 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
   const [showDetails, setShowDetails] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
-  // Estados para datos reales del backend
-  const [employees, setEmployees] = useState<EmployeePayrollSimulation[]>([]);
-  const [summary, setSummary] = useState<PayrollSimulationSummary | null>(null);
-  const [loading, setLoading] = useState(true); // Iniciar en true para mostrar loading
-  const [error, setError] = useState<string | null>(null);
 
   // Cargar datos de simulación real del backend
 
