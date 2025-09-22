@@ -206,9 +206,34 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const approvalData: any = await generalPayrollApi.getApprovalData(createdPayrollId);
           
+          console.log('🔍 Respuesta completa del backend:', JSON.stringify(approvalData, null, 2));
+          
+          // Validar estructura de respuesta del backend
+          if (!approvalData || !approvalData.data) {
+            throw new Error('Respuesta inválida del backend: falta objeto data');
+          }
+          
+          if (!approvalData.data.employees || !Array.isArray(approvalData.data.employees)) {
+            throw new Error('Respuesta inválida del backend: falta array de employees');
+          }
+          
+          if (!approvalData.data.summary) {
+            throw new Error('Respuesta inválida del backend: falta objeto summary');
+          }
+          
+          console.log('✅ Estructura de datos validada correctamente');
+          
           // Convertir datos del backend al formato del frontend
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const backendEmployees: EmployeePayrollApproval[] = approvalData.data.employees.map((emp: any) => ({
+          const backendEmployees: EmployeePayrollApproval[] = approvalData.data.employees.map((emp: any, index: number) => {
+            // Validar estructura de cada empleado
+            if (!emp.employeeId || !emp.name) {
+              throw new Error(`Empleado ${index + 1} tiene estructura inválida: falta employeeId o name`);
+            }
+            
+            console.log(`📋 Procesando empleado ${index + 1}:`, emp.name);
+            
+            return {
             id: emp.employeeId,
             personalInfo: {
               name: emp.name,
@@ -259,7 +284,8 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
             notes: '',
             faltas: 0,
             lastUpdated: new Date().toISOString()
-          }));
+          };
+          });
           
           setEmployees(backendEmployees);
           
@@ -281,15 +307,25 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
           
           setSummary(summaryData);
           console.log('✅ Datos de aprobación cargados con datos reales del backend');
+          console.log('📊 Resumen final:', summaryData);
+          console.log('👥 Empleados procesados:', backendEmployees.length);
           
         } catch (backendError) {
           console.error('❌ Error obteniendo datos de aprobación:', backendError);
-          throw backendError; // No usar fallback, dejar que el error se propague
+          console.error('❌ Error details:', JSON.stringify(backendError, null, 2));
+          const errorMessage = backendError instanceof Error ? backendError.message : 
+                              typeof backendError === 'string' ? backendError : 
+                              'Error al obtener datos de aprobación del backend';
+          throw new Error(errorMessage);
         }
         
       } catch (error) {
         console.error('❌ Error cargando datos de aprobación:', error);
-        setError('Error al cargar los datos de aprobación');
+        console.error('❌ Error details:', JSON.stringify(error, null, 2));
+        const errorMessage = error instanceof Error ? error.message : 
+                            typeof error === 'string' ? error : 
+                            'Error al cargar los datos de aprobación';
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
