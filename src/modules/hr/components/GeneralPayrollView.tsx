@@ -24,7 +24,6 @@ import {
 import { generalPayrollApi, type PayrollPeriod, type PayrollMetrics } from '../../../services/generalPayrollApi';
 import EmployeePayrollDetailView from './EmployeePayrollDetailView';
 import PayrollSimulationView from './PayrollSimulationView';
-import SimplePayrollSimulationView from './SimplePayrollSimulationView';
 import PayrollApprovalView from './PayrollApprovalView';
 import PayrollClosureView from './PayrollClosureView';
 
