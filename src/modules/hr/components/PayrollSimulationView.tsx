@@ -190,58 +190,58 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
         const backendEmployees = simulatedPayroll.employees.map(emp => ({
             id: emp.employeeId,
             personalInfo: {
-              name: emp.employee.name,
-              email: `${emp.employee.name.toLowerCase().replace(/\s+/g, '.')}@company.com`,
+              name: emp.name,
+              email: `${emp.name.toLowerCase().replace(/\s+/g, '.')}@company.com`,
               phone: '+52 55 1234-5678',
-              position: emp.employee.position,
-              department: emp.employee.department,
+              position: emp.position,
+              department: emp.contract?.type || 'General',
               location: 'Ciudad de México',
-              employeeId: emp.employee.code || emp.employeeId,
+              employeeId: emp.employeeId,
               hireDate: '2023-01-15',
               status: 'active' as const
             },
             salaryInfo: {
-              baseSalary: emp.baseSalary,
-              hourlyRate: emp.baseSalary / 160, // Aproximado
+              baseSalary: emp.components.base,
+              hourlyRate: emp.components.base / 160, // Aproximado
               workHours: 160,
-              overtimeHours: emp.overtime / (emp.baseSalary / 160 * 1.5),
+              overtimeHours: emp.components.overtime / (emp.components.base / 160 * 1.5),
               overtimeRate: 1.5
             },
             earnings: {
-              baseSalary: emp.baseSalary,
-              overtime: emp.overtime,
-              bonuses: [{
+              baseSalary: emp.components.base,
+              overtime: emp.components.overtime,
+              bonuses: emp.components.bonuses > 0 ? [{
                 id: 'bonus1',
                 name: 'Bonos del período',
-                amount: emp.bonuses,
+                amount: emp.components.bonuses,
                 type: 'performance' as const,
                 description: 'Bonos acumulados del período'
-              }],
+              }] : [],
               commissions: 0,
               allowances: [],
-              totalEarnings: emp.grossSalary
+              totalEarnings: emp.components.gross
             },
             deductions: {
-              taxes: [{
-                id: 'tax1',
-                name: 'Impuestos',
-                amount: emp.taxes,
+              taxes: emp.breakdown.taxes.map((tax: any) => ({
+                id: tax.name.toLowerCase(),
+                name: tax.name,
+                amount: tax.amount,
                 type: 'income_tax' as const,
-                description: 'Impuestos calculados'
-              }],
+                description: `${tax.name} calculado`
+              })),
               benefits: [],
-              other: [{
+              other: emp.components.deductions.internal > 0 ? [{
                 id: 'other1',
                 name: 'Otras deducciones',
-                amount: emp.deductions - emp.taxes,
+                amount: emp.components.deductions.internal,
                 type: 'other' as const,
-                description: 'Deducciones varias'
-              }],
-              totalDeductions: emp.deductions
+                description: 'Deducciones internas'
+              }] : [],
+              totalDeductions: emp.components.deductions.total
             },
-            grossPay: emp.grossSalary,
-            netPay: emp.netSalary,
-            status: emp.status,
+            grossPay: emp.components.gross,
+            netPay: emp.components.net,
+            status: 'calculated' as const,
             lastUpdated: new Date().toISOString()
           }));
           
@@ -249,15 +249,15 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
           
           // Usar totales del backend
           const summaryData: PayrollSimulationSummary = {
-            totalEmployees: simulatedPayroll.totals.totalEmployees,
-            totalGrossPayroll: simulatedPayroll.totals.totalGrossSalary,
-            totalNetPayroll: simulatedPayroll.totals.totalNetSalary,
-            totalEarnings: simulatedPayroll.totals.totalGrossSalary,
-            totalDeductions: simulatedPayroll.totals.totalDeductions,
-            averageSalary: simulatedPayroll.totals.averageSalary,
-            totalOvertime: simulatedPayroll.totals.totalOvertime,
-            totalBonuses: simulatedPayroll.totals.totalBonuses,
-            totalTaxes: simulatedPayroll.totals.totalTaxes,
+            totalEmployees: simulatedPayroll.summary.totalEmployees,
+            totalGrossPayroll: simulatedPayroll.summary.grossTotal,
+            totalNetPayroll: simulatedPayroll.summary.netTotal,
+            totalEarnings: simulatedPayroll.summary.grossTotal,
+            totalDeductions: simulatedPayroll.summary.deductionsTotal,
+            averageSalary: simulatedPayroll.summary.avgSalary,
+            totalOvertime: simulatedPayroll.summary.overtimeTotal,
+            totalBonuses: simulatedPayroll.summary.bonusesTotal,
+            totalTaxes: simulatedPayroll.summary.taxesTotal,
             totalBenefits: 0,
             period: {
               startDate: selectedPeriod.startDate,
