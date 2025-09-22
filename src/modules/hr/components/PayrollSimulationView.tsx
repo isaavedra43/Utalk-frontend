@@ -187,7 +187,7 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
         });
         
         // Convertir datos del backend al formato del frontend
-        const backendEmployees = simulatedPayroll.employees.map(emp => ({
+        const backendEmployees = simulatedPayroll.simulation.employees.map(emp => ({
             id: emp.employeeId,
             personalInfo: {
               name: emp.name,
@@ -249,15 +249,15 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
           
           // Usar totales del backend
           const summaryData: PayrollSimulationSummary = {
-            totalEmployees: simulatedPayroll.summary.totalEmployees,
-            totalGrossPayroll: simulatedPayroll.summary.grossTotal,
-            totalNetPayroll: simulatedPayroll.summary.netTotal,
-            totalEarnings: simulatedPayroll.summary.grossTotal,
-            totalDeductions: simulatedPayroll.summary.deductionsTotal,
-            averageSalary: simulatedPayroll.summary.avgSalary,
-            totalOvertime: simulatedPayroll.summary.overtimeTotal,
-            totalBonuses: simulatedPayroll.summary.bonusesTotal,
-            totalTaxes: simulatedPayroll.summary.taxesTotal,
+            totalEmployees: simulatedPayroll.simulation.summary.totalEmployees,
+            totalGrossPayroll: simulatedPayroll.simulation.summary.grossTotal,
+            totalNetPayroll: simulatedPayroll.simulation.summary.netTotal,
+            totalEarnings: simulatedPayroll.simulation.summary.grossTotal,
+            totalDeductions: simulatedPayroll.simulation.summary.deductionsTotal,
+            averageSalary: simulatedPayroll.simulation.summary.avgSalary,
+            totalOvertime: simulatedPayroll.simulation.summary.overtimeTotal,
+            totalBonuses: simulatedPayroll.simulation.summary.bonusesTotal,
+            totalTaxes: simulatedPayroll.simulation.summary.taxesTotal,
             totalBenefits: 0,
             period: {
               startDate: selectedPeriod.startDate,
