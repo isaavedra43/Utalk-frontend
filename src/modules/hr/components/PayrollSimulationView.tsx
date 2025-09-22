@@ -186,14 +186,42 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
           label: selectedPeriod.period
         });
         
+        // Validar estructura de respuesta del backend
+        if (!simulatedPayroll || !simulatedPayroll.simulation) {
+          throw new Error('Respuesta inválida del backend: falta objeto simulation');
+        }
+        
+        if (!simulatedPayroll.simulation.employees || !Array.isArray(simulatedPayroll.simulation.employees)) {
+          throw new Error('Respuesta inválida del backend: falta array de employees');
+        }
+        
+        if (!simulatedPayroll.simulation.summary) {
+          throw new Error('Respuesta inválida del backend: falta objeto summary');
+        }
+        
+        console.log('📊 Datos del backend validados correctamente:', {
+          employeesCount: simulatedPayroll.simulation.employees.length,
+          summary: simulatedPayroll.simulation.summary
+        });
+        
         // Convertir datos del backend al formato del frontend
-        const backendEmployees = simulatedPayroll.simulation.employees.map(emp => ({
+        const backendEmployees = simulatedPayroll.simulation.employees.map((emp, index) => {
+          // Validar estructura de cada empleado
+          if (!emp.employeeId || !emp.name || !emp.components) {
+            throw new Error(`Empleado ${index + 1} tiene estructura inválida: falta employeeId, name o components`);
+          }
+          
+          if (!emp.components.base && emp.components.base !== 0) {
+            throw new Error(`Empleado ${index + 1} (${emp.name}) no tiene salario base definido`);
+          }
+          
+          return {
             id: emp.employeeId,
             personalInfo: {
               name: emp.name,
               email: `${emp.name.toLowerCase().replace(/\s+/g, '.')}@company.com`,
               phone: '+52 55 1234-5678',
-              position: emp.position,
+              position: emp.position || 'Sin puesto',
               department: emp.contract?.type || 'General',
               location: 'Ciudad de México',
               employeeId: emp.employeeId,
@@ -201,10 +229,10 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
               status: 'active' as const
             },
             salaryInfo: {
-              baseSalary: emp.components.base,
-              hourlyRate: emp.components.base / 160, // Aproximado
+              baseSalary: emp.components.base || 0,
+              hourlyRate: (emp.components.base || 0) / 160, // Aproximado
               workHours: 160,
-              overtimeHours: emp.components.overtime / (emp.components.base / 160 * 1.5),
+              overtimeHours: (emp.components.overtime || 0) / ((emp.components.base || 1) / 160 * 1.5),
               overtimeRate: 1.5
             },
             earnings: {
@@ -243,7 +271,8 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
             netPay: emp.components.net,
             status: 'calculated' as const,
             lastUpdated: new Date().toISOString()
-          }));
+          };
+        });
           
           setEmployees(backendEmployees);
           
@@ -271,7 +300,10 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
           
         } catch (error) {
           console.error('❌ Error generando simulación de nómina:', error);
-          const errorMessage = error instanceof Error ? error.message : 'Error al generar la simulación de nómina';
+          console.error('❌ Error details:', JSON.stringify(error, null, 2));
+          const errorMessage = error instanceof Error ? error.message : 
+                              typeof error === 'string' ? error : 
+                              'Error al generar la simulación de nómina';
           setError(errorMessage);
         } finally {
           setLoading(false);

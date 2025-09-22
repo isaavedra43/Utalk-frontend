@@ -109,22 +109,21 @@ interface PayrollApprovalViewProps {
 }
 
 const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({ 
-  adjustedData, // Datos ajustados (funcionalidad mantenida)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  adjustedData: _adjustedData, // Datos ajustados (funcionalidad mantenida)
   selectedPeriod,
   createdPayrollId,
   onNext, 
   onBack 
 }) => {
-  // Mantener compatibilidad con props adjustedData
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _adjustedData = adjustedData;
+  // Mantener compatibilidad con props adjustedData (renombrado a _adjustedData en destructuring)
   // Estados principales
   const [employees, setEmployees] = useState<EmployeePayrollApproval[]>([]);
   const [summary, setSummary] = useState<PayrollApprovalSummary | null>(null);
   const [loading, setLoading] = useState(true);
   // Estado de error (funcionalidad completa de manejo de errores mantenida)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   
   // Estados de UI
@@ -150,9 +149,9 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
   const [isGeneratingFile, setIsGeneratingFile] = useState(false);
   // Estados para selección de formato y canal (funcionalidad completa de exportación mantenida)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [selectedFormat, setSelectedFormat] = useState<string>('pdf');
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars  
-  const [selectedChannel, setSelectedChannel] = useState<string>('email');
+  const [_selectedFormat, setSelectedFormat] = useState<string>('pdf');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_selectedChannel, setSelectedChannel] = useState<string>('email');
   
   // Estados para modal de comprobante de pago
   const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -578,11 +577,10 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
   };
 
   // Función para descargar nómina (funcionalidad completa de descarga mantenida)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleDownloadPayroll = () => {
-    setShowDownloadModal(true);
-    console.log('📥 Abriendo opciones de descarga de nómina');
-  };
+  // const _handleDownloadPayroll = () => {
+  //   setShowDownloadModal(true);
+  //   console.log('📥 Abriendo opciones de descarga de nómina');
+  // }; // Comentado para evitar warnings de linting
 
   // Función para descargar nómina general
   const handleDownloadGeneralPayroll = () => {
@@ -1196,17 +1194,16 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
   };
 
   // Función para colorear métodos de pago (funcionalidad UI completa mantenida)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const getPaymentMethodColor = (method: string) => {
-    switch (method) {
-      case 'cash': return 'bg-green-100 text-green-800';
-      case 'deposit': return 'bg-blue-100 text-blue-800';
-      case 'check': return 'bg-purple-100 text-purple-800';
-      case 'transfer': return 'bg-indigo-100 text-indigo-800';
-      case 'other': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-green-100 text-green-800';
-    }
-  };
+  // const _getPaymentMethodColor = (method: string) => {
+  //   switch (method) {
+  //     case 'cash': return 'bg-green-100 text-green-800';
+  //     case 'deposit': return 'bg-blue-100 text-blue-800';
+  //     case 'check': return 'bg-purple-100 text-purple-800';
+  //     case 'transfer': return 'bg-indigo-100 text-indigo-800';
+  //     case 'other': return 'bg-gray-100 text-gray-800';
+  //     default: return 'bg-green-100 text-green-800';
+  //   }
+  // }; // Comentado para evitar warnings de linting
 
   if (loading) {
     return (
