@@ -325,28 +325,10 @@ const GeneralPayrollView: React.FC = () => {
     }
   };
 
-  // Función para demo completa del proceso
-  const handleDemoComplete = () => {
-    console.log('🎬 Iniciando demo completo del proceso...');
-    
-    // Crear período demo si no existe
-    const demoPeriod: PayrollPeriod = {
-      id: 'demo-1',
-      period: 'Enero 2024',
-      startDate: '2024-01-01',
-      endDate: '2024-01-31',
-      type: 'Mensual',
-      status: 'pendiente',
-      employees: 5,
-      estimatedCost: 250000,
-      realCost: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    setSelectedPeriod(demoPeriod);
-    setShowSimulationView(true);
-    setCurrentStep(2);
+  // Función para iniciar proceso real de nómina
+  const handleStartPayrollProcess = () => {
+    console.log('🚀 Iniciando proceso real de nómina...');
+    setShowPeriodSelector(true);
   };
 
   // Funciones de navegación entre vistas
@@ -544,7 +526,7 @@ const GeneralPayrollView: React.FC = () => {
 
   if (showSimulationView && selectedPeriod) {
     return (
-      <SimplePayrollSimulationView
+      <PayrollSimulationView
         selectedPeriod={selectedPeriod}
         onNext={handleSimulationNext}
         onBack={handleBackToGeneral}
@@ -750,11 +732,11 @@ const GeneralPayrollView: React.FC = () => {
             </button>
             
             <button
-              onClick={handleDemoComplete}
+              onClick={handleStartPayrollProcess}
               className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
             >
               <Eye className="h-4 w-4 mr-2" />
-              Ver Demo Completo
+              Iniciar Nómina
             </button>
             
             <button

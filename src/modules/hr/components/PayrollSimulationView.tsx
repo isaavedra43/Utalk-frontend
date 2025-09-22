@@ -282,9 +282,9 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
           console.error('❌ Error generando simulación de nómina:', error);
           const errorMessage = error instanceof Error ? error.message : 'Error al generar la simulación de nómina';
           setError(errorMessage);
-      } finally {
-        setLoading(false);
-      }
+        } finally {
+          setLoading(false);
+        }
     };
 
     loadSimulationData();
