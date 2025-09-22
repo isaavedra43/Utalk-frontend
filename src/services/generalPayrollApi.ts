@@ -463,30 +463,28 @@ class GeneralPayrollApi {
 
   // ===== MÉTODOS PRINCIPALES DEL BACKEND IMPLEMENTADO =====
 
-  // Crear nómina general con formato correcto del backend
+  // Crear nómina general
   async createGeneralPayroll(data: {
     startDate: string;
     endDate: string;
     frequency: 'weekly' | 'biweekly' | 'monthly';
-    label: string;
-    includeEmployees?: string[];
+    includeEmployees: string[];
   }): Promise<GeneralPayroll> {
     try {
       console.log('🆕 Creando nómina general...', data);
       
+      // Convertir frequency a type según lo que espera el backend
+      const typeMapping = {
+        'weekly': 'weekly',
+        'biweekly': 'biweekly', 
+        'monthly': 'monthly'
+      };
+      
       const requestData = {
-        period: {
-          type: data.frequency,
-          startDate: data.startDate,
-          endDate: data.endDate,
-          label: data.label
-        },
-        includeEmployees: data.includeEmployees || [],
-        options: {
-          autoCalculate: true,
-          includeExtras: true,
-          includeBonuses: true
-        }
+        startDate: data.startDate,
+        endDate: data.endDate,
+        type: typeMapping[data.frequency], // El backend espera 'type' no 'frequency'
+        includeEmployees: data.includeEmployees
       };
       
       const response = await api.post(this.baseUrl, requestData);
@@ -521,33 +519,14 @@ class GeneralPayrollApi {
   }
 
   // Simular cálculos de nómina
-  // Simular nómina general existente
-  async simulateGeneralPayroll(payrollId: string): Promise<PayrollSimulation> {
-    try {
-      console.log('🧮 Simulando cálculos de nómina general:', payrollId);
-      
-      const response = await api.post(`${this.baseUrl}/${payrollId}/simulate`);
-      
-      if (response.data && response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      
-      return response.data;
-    } catch (error) {
-      console.error('Error simulando nómina general:', error);
-      throw error;
-    }
-  }
-
-  // Simulación directa (sin crear período)
-  async simulatePayrollDirect(periodData: {
+  async simulateGeneralPayroll(periodData: {
     startDate: string;
     endDate: string;
     type: string;
     label: string;
   }): Promise<PayrollSimulation> {
     try {
-      console.log('🔄 Simulando nómina directa...', periodData);
+      console.log('🔄 Simulando nómina general...', periodData);
       
       const requestData = {
         period: {
@@ -571,13 +550,13 @@ class GeneralPayrollApi {
       
       const response = await api.post('/api/payroll/simulate', requestData);
       
-      if (response.data && response.data.success && response.data.simulation) {
-        return response.data.simulation;
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
       }
       
       return response.data;
     } catch (error) {
-      console.error('Error simulando nómina directa:', error);
+      console.error('Error simulando nómina general:', error);
       throw error;
     }
   }
@@ -642,8 +621,48 @@ class GeneralPayrollApi {
   }
 
   // Cerrar nómina general y generar individuales
+  async closeGeneralPayroll(id: string, notes?: string): Promise<{
+    generalPayroll: GeneralPayroll;
+    individualPayrolls: Record<string, unknown>[];
+    message: string;
+  }> {
+    try {
+      console.log('🔒 Cerrando nómina general y generando individuales:', id);
+      
+      const response = await api.post(`${this.baseUrl}/${id}/close`, { notes });
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error cerrando nómina general:', error);
+      throw error;
+    }
+  }
 
   // Obtener empleados disponibles para nómina
+  async getAvailableEmployees(startDate?: string, endDate?: string): Promise<{
+    employees: Record<string, unknown>[];
+    total: number;
+  }> {
+    try {
+      console.log('👥 Obteniendo empleados disponibles...');
+      
+      const params = startDate && endDate ? { startDate, endDate } : {};
+      const response = await api.get(`${this.baseUrl}/available-employees`, { params });
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error obteniendo empleados disponibles:', error);
+      throw error;
+    }
+  }
 
   // Obtener datos para aprobación
   async getApprovalData(id: string): Promise<{
@@ -689,16 +708,12 @@ class GeneralPayrollApi {
     }
   }
 
-  // Marcar empleado como pagado con datos de pago
-  async markEmployeeAsPaid(payrollId: string, employeeId: string, paymentData?: {
-    paymentMethod?: 'cash' | 'bank_transfer' | 'check';
-    paymentDate?: string;
-    reference?: string;
-  }): Promise<GeneralPayroll> {
+  // Marcar empleado como pagado
+  async markEmployeeAsPaid(payrollId: string, employeeId: string): Promise<GeneralPayroll> {
     try {
-      console.log('💰 Marcando empleado como pagado:', { payrollId, employeeId, paymentData });
+      console.log('💰 Marcando empleado como pagado:', { payrollId, employeeId });
       
-      const response = await api.post(`${this.baseUrl}/${payrollId}/employee/${employeeId}/mark-paid`, paymentData || {});
+      const response = await api.post(`${this.baseUrl}/${payrollId}/employee/${employeeId}/mark-paid`);
       
       if (response.data && response.data.success && response.data.data) {
         return response.data.data;
@@ -707,65 +722,6 @@ class GeneralPayrollApi {
       return response.data;
     } catch (error) {
       console.error('Error marcando empleado como pagado:', error);
-      throw error;
-    }
-  }
-
-  // ===== ENDPOINTS ADICIONALES FALTANTES =====
-
-  // Obtener empleados disponibles para un período
-  async getAvailableEmployees(params: {
-    startDate: string;
-    endDate: string;
-  }): Promise<any[]> {
-    try {
-      console.log('👥 Obteniendo empleados disponibles...', params);
-      
-      const response = await api.get(`${this.baseUrl}/available-employees`, { params });
-      
-      if (response.data && response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      
-      return response.data;
-    } catch (error) {
-      console.error('Error obteniendo empleados disponibles:', error);
-      throw error;
-    }
-  }
-
-  // Cerrar nómina general y generar nóminas individuales
-  async closeGeneralPayroll(payrollId: string): Promise<GeneralPayroll> {
-    try {
-      console.log('🔒 Cerrando nómina general:', payrollId);
-      
-      const response = await api.post(`${this.baseUrl}/${payrollId}/close`);
-      
-      if (response.data && response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      
-      return response.data;
-    } catch (error) {
-      console.error('Error cerrando nómina general:', error);
-      throw error;
-    }
-  }
-
-  // Obtener estadísticas de período específico
-  async getPayrollStats(payrollId: string): Promise<Record<string, unknown>> {
-    try {
-      console.log('📊 Obteniendo estadísticas del período:', payrollId);
-      
-      const response = await api.get(`${this.baseUrl}/${payrollId}/stats`);
-      
-      if (response.data && response.data.success && response.data.data) {
-        return response.data.data;
-      }
-      
-      return response.data;
-    } catch (error) {
-      console.error('Error obteniendo estadísticas del período:', error);
       throw error;
     }
   }
