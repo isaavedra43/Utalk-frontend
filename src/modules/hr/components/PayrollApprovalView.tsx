@@ -209,15 +209,15 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
           console.log('🔍 Respuesta completa del backend:', JSON.stringify(approvalData, null, 2));
           
           // Validar estructura de respuesta del backend
-          if (!approvalData || !approvalData.data) {
-            throw new Error('Respuesta inválida del backend: falta objeto data');
+          if (!approvalData) {
+            throw new Error('Respuesta inválida del backend: respuesta vacía');
           }
           
-          if (!approvalData.data.employees || !Array.isArray(approvalData.data.employees)) {
+          if (!approvalData.employees || !Array.isArray(approvalData.employees)) {
             throw new Error('Respuesta inválida del backend: falta array de employees');
           }
           
-          if (!approvalData.data.summary) {
+          if (!approvalData.summary) {
             throw new Error('Respuesta inválida del backend: falta objeto summary');
           }
           
@@ -225,7 +225,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
           
           // Convertir datos del backend al formato del frontend
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const backendEmployees: EmployeePayrollApproval[] = approvalData.data.employees.map((emp: any, index: number) => {
+          const backendEmployees: EmployeePayrollApproval[] = approvalData.employees.map((emp: any, index: number) => {
             // Validar estructura de cada empleado
             if (!emp.employeeId || !emp.name) {
               throw new Error(`Empleado ${index + 1} tiene estructura inválida: falta employeeId o name`);
@@ -291,13 +291,13 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
           
           // Usar totales del backend
           const summaryData: PayrollApprovalSummary = {
-            totalEmployees: approvalData.data.summary.totalEmployees,
-            pendingApprovals: approvalData.data.summary.pending,
-            approved: approvalData.data.summary.approved,
+            totalEmployees: approvalData.summary.totalEmployees,
+            pendingApprovals: approvalData.summary.pending,
+            approved: approvalData.summary.approved,
             rejected: 0, // El backend no maneja rejected en este contexto
             totalOriginalPayroll: backendEmployees.reduce((sum, emp) => sum + emp.originalPayroll.netPay, 0),
             totalAdjustedPayroll: backendEmployees.reduce((sum, emp) => sum + emp.finalPayroll.netPay, 0),
-            totalAdjustments: approvalData.data.summary.totalAdjustments,
+            totalAdjustments: approvalData.summary.totalAdjustments,
             period: {
               startDate: selectedPeriod?.startDate || '2024-01-01',
               endDate: selectedPeriod?.endDate || '2024-01-31',
