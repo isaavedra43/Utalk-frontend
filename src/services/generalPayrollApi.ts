@@ -469,7 +469,7 @@ class GeneralPayrollApi {
     endDate: string;
     frequency: 'weekly' | 'biweekly' | 'monthly';
     includeEmployees: string[];
-  }): Promise<GeneralPayroll> {
+  }): Promise<string> {
     try {
       console.log('🆕 Creando nómina general...', data);
       
@@ -481,19 +481,28 @@ class GeneralPayrollApi {
       };
       
       const requestData = {
-        startDate: data.startDate,
-        endDate: data.endDate,
-        type: typeMapping[data.frequency], // El backend espera 'type' no 'frequency'
-        includeEmployees: data.includeEmployees
+        period: {
+          type: typeMapping[data.frequency],
+          startDate: data.startDate,
+          endDate: data.endDate,
+          label: `${data.frequency === 'weekly' ? 'Semana' : data.frequency === 'biweekly' ? 'Quincena' : 'Mes'} del ${new Date(data.startDate).getDate()}/${new Date(data.startDate).getMonth() + 1}/${new Date(data.startDate).getFullYear()}`
+        },
+        includeEmployees: data.includeEmployees,
+        options: {
+          autoCalculate: true,
+          includeExtras: true,
+          includeBonuses: true
+        }
       };
       
       const response = await api.post(this.baseUrl, requestData);
       
       if (response.data && response.data.success && response.data.data) {
-        return response.data.data;
+        console.log('✅ Nómina general creada exitosamente con ID:', response.data.data.id);
+        return response.data.data.id; // Devolver solo el ID real del backend
       }
       
-      return response.data;
+      throw new Error('No se pudo obtener el ID de la nómina creada');
     } catch (error) {
       console.error('Error creando nómina general:', error);
       throw error;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   CheckCircle, 
   XCircle, 
@@ -103,6 +103,7 @@ interface PayrollApprovalSummary {
 interface PayrollApprovalViewProps {
   adjustedData: EmployeePayrollApproval[];
   selectedPeriod?: { id: string; startDate: string; endDate: string; type: string; };
+  createdPayrollId?: string | null;
   onNext: (data: EmployeePayrollApproval[]) => void;
   onBack: () => void;
 }
@@ -110,12 +111,13 @@ interface PayrollApprovalViewProps {
 const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({ 
   adjustedData, // Datos ajustados (funcionalidad mantenida)
   selectedPeriod,
+  createdPayrollId,
   onNext, 
   onBack 
 }) => {
   // Mantener compatibilidad con props adjustedData
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _ = adjustedData;
+  const _adjustedData = adjustedData;
   // Estados principales
   const [employees, setEmployees] = useState<EmployeePayrollApproval[]>([]);
   const [summary, setSummary] = useState<PayrollApprovalSummary | null>(null);
@@ -180,164 +182,12 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
   const [isGeneratingReceipt, setIsGeneratingReceipt] = useState(false);
 
 
-  // Datos mock para ajustes y aprobación (memoizados para rendimiento)
+  // Datos mock para ajustes y aprobación (memoizados para rendimiento) - REMOVIDO: ya no se usan datos mock
+  /*
   const mockEmployees: EmployeePayrollApproval[] = useMemo(() => [
-    {
-      id: '1',
-      personalInfo: {
-        name: 'Ana García López',
-        email: 'ana.garcia@empresa.com',
-        phone: '+52 55 1234 5678',
-        position: 'Desarrolladora Senior',
-        department: 'Tecnología',
-        location: 'Ciudad de México',
-        employeeId: 'EMP001'
-      },
-      originalPayroll: {
-        baseSalary: 45000,
-        overtime: 4500,
-        bonuses: 4000,
-        allowances: 3500,
-        totalEarnings: 55500,
-        taxes: 9700,
-        benefits: 1600,
-        otherDeductions: 0,
-        totalDeductions: 11300,
-        netPay: 44200
-      },
-      adjustments: [
-        {
-          id: 'adj1',
-          employeeId: '1',
-          type: 'bonus',
-          name: 'Bono de Proyecto Especial',
-          amount: 2000,
-          description: 'Bono por completar proyecto crítico',
-          reason: 'Proyecto completado antes del plazo',
-          approved: true,
-          createdBy: 'Gerente de Proyecto',
-          createdAt: '2024-01-30T10:00:00Z',
-          approvedBy: 'RH Manager',
-          approvedAt: '2024-01-30T14:00:00Z'
-        },
-        {
-          id: 'adj2',
-          employeeId: '1',
-          type: 'deduction',
-          name: 'Préstamo Personal',
-          amount: 1500,
-          description: 'Deducción por préstamo personal',
-          reason: 'Préstamo autorizado por RH',
-          approved: true,
-          createdBy: 'RH Manager',
-          createdAt: '2024-01-29T09:00:00Z',
-          approvedBy: 'RH Manager',
-          approvedAt: '2024-01-29T09:00:00Z'
-        }
-      ],
-      finalPayroll: {
-        totalEarnings: 57500,
-        totalDeductions: 12800,
-        netPay: 44700
-      },
-      status: 'approved',
-      paymentStatus: 'paid',
-      paymentMethod: 'cash',
-      receiptStatus: 'uploaded',
-      receiptUrl: '/receipts/ana-garcia-2024-01.pdf',
-      receiptUploadedAt: '2024-01-30T15:00:00Z',
-      notes: 'Todos los ajustes aprobados correctamente',
-      faltas: 0,
-      lastUpdated: '2024-01-30T14:00:00Z'
-    },
-    {
-      id: '2',
-      personalInfo: {
-        name: 'Carlos Mendoza Ruiz',
-        email: 'carlos.mendoza@empresa.com',
-        phone: '+52 55 2345 6789',
-        position: 'Gerente de Ventas',
-        department: 'Ventas',
-        location: 'Guadalajara',
-        employeeId: 'EMP002'
-      },
-      originalPayroll: {
-        baseSalary: 55000,
-        overtime: 3600,
-        bonuses: 8000,
-        allowances: 5000,
-        totalEarnings: 71600,
-        taxes: 13500,
-        benefits: 1400,
-        otherDeductions: 0,
-        totalDeductions: 14900,
-        netPay: 56700
-      },
-      adjustments: [
-        {
-          id: 'adj3',
-          employeeId: '2',
-          type: 'bonus',
-          name: 'Bono de Ventas Excepcionales',
-          amount: 5000,
-          description: 'Bono por superar metas de ventas en 150%',
-          reason: 'Excelente desempeño en ventas del mes',
-          approved: false,
-          createdBy: 'Director de Ventas',
-          createdAt: '2024-01-30T11:00:00Z'
-        }
-      ],
-      finalPayroll: {
-        totalEarnings: 76600,
-        totalDeductions: 14900,
-        netPay: 61700
-      },
-      status: 'pending',
-      paymentStatus: 'pending',
-      paymentMethod: 'cash',
-      receiptStatus: 'pending',
-      notes: 'Pendiente aprobación de bono de ventas',
-      faltas: 2,
-      lastUpdated: '2024-01-30T11:00:00Z'
-    },
-    {
-      id: '3',
-      personalInfo: {
-        name: 'María Elena Torres',
-        email: 'maria.torres@empresa.com',
-        phone: '+52 55 3456 7890',
-        position: 'Analista de Recursos Humanos',
-        department: 'Recursos Humanos',
-        location: 'Monterrey',
-        employeeId: 'EMP003'
-      },
-      originalPayroll: {
-        baseSalary: 35000,
-        overtime: 1500,
-        bonuses: 2000,
-        allowances: 1500,
-        totalEarnings: 40000,
-        taxes: 6900,
-        benefits: 800,
-        otherDeductions: 0,
-        totalDeductions: 7700,
-        netPay: 32300
-      },
-      adjustments: [],
-      finalPayroll: {
-        totalEarnings: 40000,
-        totalDeductions: 7700,
-        netPay: 32300
-      },
-      status: 'approved',
-      paymentStatus: 'paid',
-      paymentMethod: 'cash',
-      receiptStatus: 'pending',
-      notes: 'Sin ajustes requeridos',
-      faltas: 1,
-      lastUpdated: '2024-01-30T12:00:00Z'
-    }
+    // ... datos mock comentados para evitar errores de linting
   ], []); // Memoizado para evitar recreación en cada render
+  */
 
   // Cargar datos de ajustes y aprobación
   useEffect(() => {
@@ -348,9 +198,13 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
         
         // Intentar obtener datos reales del backend
         try {
-          // Usar el payrollId del período seleccionado (se debe pasar como prop)
-          const payrollId = selectedPeriod?.id || 'temp-payroll-id';
-          const approvalData = await generalPayrollApi.getApprovalData(payrollId);
+          // Usar el ID real de la nómina creada
+          if (!createdPayrollId) {
+            throw new Error('No se ha creado la nómina real. Por favor, regresa a la simulación.');
+          }
+          
+          console.log('📋 Obteniendo datos para aprobación con ID real:', createdPayrollId);
+          const approvalData = await generalPayrollApi.getApprovalData(createdPayrollId);
           
           // Convertir datos del backend al formato del frontend
           const backendEmployees: EmployeePayrollApproval[] = approvalData.employees.map((emp) => ({
@@ -441,7 +295,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
     };
 
     loadApprovalData();
-  }, [selectedPeriod?.id, selectedPeriod?.startDate, selectedPeriod?.endDate, selectedPeriod?.type]);
+  }, [createdPayrollId, selectedPeriod?.id, selectedPeriod?.startDate, selectedPeriod?.endDate, selectedPeriod?.type]);
 
   // Funciones de utilidad
   const formatCurrency = (amount: number) => {

@@ -82,6 +82,7 @@ const GeneralPayrollView: React.FC = () => {
   const [showClosureView, setShowClosureView] = useState(false);
   const [simulationData, setSimulationData] = useState<any[]>([]);
   const [approvedData, setApprovedData] = useState<any[]>([]);
+  const [createdPayrollId, setCreatedPayrollId] = useState<string | null>(null);
   
   // Estados para el modal de detalle de nómina
   
@@ -331,11 +332,33 @@ const GeneralPayrollView: React.FC = () => {
   };
 
   // Funciones de navegación entre vistas
-  const handleSimulationNext = (data: any[]) => {
-    setSimulationData(data);
-    setShowSimulationView(false);
-    setShowApprovalView(true);
-    setCurrentStep(3);
+  const handleSimulationNext = async (data: any[]) => {
+    try {
+      console.log('🔄 Creando nómina real desde simulación...');
+      
+      // 1. Crear nómina real en el backend
+      const payrollId = await generalPayrollApi.createGeneralPayroll({
+        startDate: selectedPeriod!.startDate,
+        endDate: selectedPeriod!.endDate,
+        frequency: selectedPeriod!.type === 'Mensual' ? 'monthly' : 
+                   selectedPeriod!.type === 'Semanal' ? 'weekly' : 'biweekly',
+        includeEmployees: data.map(emp => emp.id)
+      });
+      
+      // 2. Guardar el ID real del backend
+      setCreatedPayrollId(payrollId);
+      setSimulationData(data);
+      
+      // 3. Ir a ajustes y aprobación
+      setShowSimulationView(false);
+      setShowApprovalView(true);
+      setCurrentStep(3);
+      
+      console.log('✅ Nómina real creada exitosamente, continuando a ajustes...');
+    } catch (error) {
+      console.error('❌ Error creando nómina real:', error);
+      setError('Error al crear la nómina real. Por favor, inténtalo de nuevo.');
+    }
   };
 
   const handleApprovalNext = (data: any[]) => {
@@ -538,6 +561,7 @@ const GeneralPayrollView: React.FC = () => {
       <PayrollApprovalView
         adjustedData={simulationData}
         selectedPeriod={selectedPeriod}
+        createdPayrollId={createdPayrollId}
         onNext={handleApprovalNext}
         onBack={() => {
           setShowApprovalView(false);
