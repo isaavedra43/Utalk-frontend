@@ -212,14 +212,7 @@ class GeneralPayrollApi {
       return response.data;
     } catch (error) {
       console.error('Error obteniendo métricas generales:', error);
-      // Fallback con datos realistas si el endpoint no está listo
-      return {
-        pendingOvertimeHours: 125,
-        periodIncidents: 18,
-        totalEmployees: 25,
-        activePeriods: 3,
-        totalCost: 750000
-      };
+      throw error; // No usar fallback, dejar que el error se propague
     }
   }
 
@@ -284,88 +277,7 @@ class GeneralPayrollApi {
       return response.data;
     } catch (error) {
       console.error('Error obteniendo períodos de nómina:', error);
-      console.log('⚠️ Usando datos fallback...');
-      
-      // Generar más períodos para demostrar paginación
-      const mockPeriods: PayrollPeriod[] = [];
-      const agents = [
-        { id: '1', name: 'Ana García López', role: 'Gerente de RH', avatar: '👩‍💼' },
-        { id: '2', name: 'Carlos Mendoza Ruiz', role: 'Analista de Nómina', avatar: '👨‍💻' },
-        { id: '3', name: 'María Elena Torres', role: 'Especialista en RH', avatar: '👩‍💼' },
-        { id: '4', name: 'Roberto Silva', role: 'Coordinador de Nómina', avatar: '👨‍💼' },
-        { id: '5', name: 'Laura Jiménez', role: 'Supervisora de RH', avatar: '👩‍💼' }
-      ];
-      
-      const months = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-      ];
-      
-      const statuses: Array<'Cerrado' | 'Aprobado' | 'Calculado' | 'Pendiente'> = ['Cerrado', 'Aprobado', 'Calculado', 'Pendiente'];
-      
-      // Generar períodos para los últimos 2 años
-      for (let year = 2022; year <= 2024; year++) {
-        for (let month = 0; month < 12; month++) {
-          const periodId = `${year}-${month + 1}`;
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const isCurrentYear = year === 2024;
-          const isCurrentMonth = month === 0 && year === 2024; // Enero 2024
-          
-          mockPeriods.push({
-            id: periodId,
-            period: `${months[month]} ${year}`,
-            type: 'Mensual',
-            status: isCurrentMonth ? 'Pendiente' : statuses[Math.floor(Math.random() * statuses.length)],
-            employees: 20 + Math.floor(Math.random() * 10),
-            estimatedCost: 200000 + Math.floor(Math.random() * 100000),
-            realCost: isCurrentMonth ? undefined : 200000 + Math.floor(Math.random() * 100000),
-            startDate: `${year}-${String(month + 1).padStart(2, '0')}-01`,
-            endDate: `${year}-${String(month + 1).padStart(2, '0')}-${new Date(year, month + 1, 0).getDate()}`,
-            createdAt: `${year}-${String(month + 1).padStart(2, '0')}-01T00:00:00Z`,
-            updatedAt: `${year}-${String(month + 1).padStart(2, '0')}-${new Date(year, month + 1, 0).getDate()}T00:00:00Z`,
-            createdBy: agents[Math.floor(Math.random() * agents.length)]
-          });
-        }
-      }
-      
-      // Ordenar por fecha más reciente primero
-      mockPeriods.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
-      
-      // Aplicar filtros si se proporcionan
-      let filteredPeriods = [...mockPeriods];
-      
-      if (params?.status) {
-        filteredPeriods = filteredPeriods.filter(p => p.status === params.status);
-      }
-      
-      if (params?.type) {
-        filteredPeriods = filteredPeriods.filter(p => p.type === params.type);
-      }
-      
-      if (params?.year) {
-        filteredPeriods = filteredPeriods.filter(p => new Date(p.startDate).getFullYear() === params.year);
-      }
-      
-      if (params?.month) {
-        filteredPeriods = filteredPeriods.filter(p => new Date(p.startDate).getMonth() + 1 === params.month);
-      }
-      
-      // Aplicar paginación
-      const page = params?.page || 1;
-      const limit = params?.limit || 10;
-      const startIndex = (page - 1) * limit;
-      const endIndex = startIndex + limit;
-      const paginatedPeriods = filteredPeriods.slice(startIndex, endIndex);
-      
-      return {
-        periods: paginatedPeriods,
-        pagination: {
-          page,
-          limit,
-          total: filteredPeriods.length,
-          totalPages: Math.ceil(filteredPeriods.length / limit)
-        }
-      };
+      throw error; // No usar fallback, dejar que el error se propague
     }
   }
 

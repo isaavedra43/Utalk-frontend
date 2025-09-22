@@ -447,29 +447,8 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
           console.log('✅ Datos de aprobación cargados con datos reales del backend');
           
         } catch (backendError) {
-          console.warn('⚠️ Error con backend, usando datos mock:', backendError);
-          
-          // Fallback a datos mock si el backend falla
-          setEmployees(mockEmployees);
-          
-          // Calcular resumen con datos mock
-          const summaryData: PayrollApprovalSummary = {
-            totalEmployees: mockEmployees.length,
-            pendingApprovals: mockEmployees.filter(emp => emp.status === 'pending').length,
-            approved: mockEmployees.filter(emp => emp.status === 'approved').length,
-            rejected: mockEmployees.filter(emp => emp.status === 'rejected').length,
-            totalOriginalPayroll: mockEmployees.reduce((sum, emp) => sum + emp.originalPayroll.netPay, 0),
-            totalAdjustedPayroll: mockEmployees.reduce((sum, emp) => sum + emp.finalPayroll.netPay, 0),
-            totalAdjustments: mockEmployees.reduce((sum, emp) => sum + emp.adjustments.length, 0),
-            period: {
-              startDate: '2024-01-01',
-              endDate: '2024-01-31',
-              type: 'Mensual'
-            }
-          };
-          
-          setSummary(summaryData);
-          console.log('✅ Datos de ajustes y aprobación cargados con fallback');
+          console.error('❌ Error obteniendo datos de aprobación:', backendError);
+          throw backendError; // No usar fallback, dejar que el error se propague
         }
         
       } catch (error) {

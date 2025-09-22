@@ -455,22 +455,21 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
       try {
         console.log('🔄 Generando simulación de nómina para período:', selectedPeriod);
         
-        // Intentar obtener datos reales del backend
-        try {
-          // Primero crear la nómina general si no existe
-          const generalPayroll = await generalPayrollApi.createGeneralPayroll({
-            startDate: selectedPeriod.startDate,
-            endDate: selectedPeriod.endDate,
-            frequency: selectedPeriod.type === 'Mensual' ? 'monthly' : 
-                      selectedPeriod.type === 'Semanal' ? 'weekly' : 'biweekly',
-            includeEmployees: [] // El backend determinará empleados disponibles
-          });
-          
-          // Luego simular los cálculos
-          const simulatedPayroll = await generalPayrollApi.simulateGeneralPayroll(generalPayroll.id);
-          
-          // Convertir datos del backend al formato del frontend
-          const backendEmployees = simulatedPayroll.employees.map(emp => ({
+        // Obtener datos reales del backend
+        // Primero crear la nómina general si no existe
+        const generalPayroll = await generalPayrollApi.createGeneralPayroll({
+          startDate: selectedPeriod.startDate,
+          endDate: selectedPeriod.endDate,
+          frequency: selectedPeriod.type === 'Mensual' ? 'monthly' : 
+                    selectedPeriod.type === 'Semanal' ? 'weekly' : 'biweekly',
+          includeEmployees: [] // El backend determinará empleados disponibles
+        });
+        
+        // Luego simular los cálculos
+        const simulatedPayroll = await generalPayrollApi.simulateGeneralPayroll(generalPayroll.id);
+        
+        // Convertir datos del backend al formato del frontend
+        const backendEmployees = simulatedPayroll.employees.map(emp => ({
             id: emp.employeeId,
             personalInfo: {
               name: emp.employee.name,
@@ -552,37 +551,10 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
           setSummary(summaryData);
           console.log('✅ Simulación de nómina generada con datos reales del backend');
           
-        } catch (backendError) {
-          console.warn('⚠️ Error con backend, usando datos mock:', backendError);
-          
-          // Fallback a datos mock si el backend falla
-          setEmployees(mockEmployees);
-        
-        // Calcular resumen
-        const summaryData: PayrollSimulationSummary = {
-          totalEmployees: mockEmployees.length,
-          totalGrossPayroll: mockEmployees.reduce((sum, emp) => sum + emp.earnings.totalEarnings, 0),
-          totalNetPayroll: mockEmployees.reduce((sum, emp) => sum + emp.netPay, 0),
-          totalEarnings: mockEmployees.reduce((sum, emp) => sum + emp.earnings.totalEarnings, 0),
-          totalDeductions: mockEmployees.reduce((sum, emp) => sum + emp.deductions.totalDeductions, 0),
-          averageSalary: mockEmployees.reduce((sum, emp) => sum + emp.earnings.totalEarnings, 0) / mockEmployees.length,
-          totalOvertime: mockEmployees.reduce((sum, emp) => sum + emp.earnings.overtime, 0),
-          totalBonuses: mockEmployees.reduce((sum, emp) => sum + emp.earnings.bonuses.reduce((bSum, bonus) => bSum + bonus.amount, 0), 0),
-          totalTaxes: mockEmployees.reduce((sum, emp) => sum + emp.deductions.taxes.reduce((tSum, tax) => tSum + tax.amount, 0), 0),
-          totalBenefits: mockEmployees.reduce((sum, emp) => sum + emp.deductions.benefits.reduce((bSum, benefit) => bSum + benefit.amount, 0), 0),
-          period: {
-            startDate: selectedPeriod.startDate,
-            endDate: selectedPeriod.endDate,
-            type: selectedPeriod.type
-          }
-        };
-        
-        setSummary(summaryData);
-        console.log('✅ Simulación de nómina generada exitosamente');
-        
-      } catch (error) {
-        console.error('❌ Error generando simulación:', error);
-        setError('Error al generar la simulación de nómina');
+        } catch (error) {
+          console.error('❌ Error generando simulación de nómina:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Error al generar la simulación de nómina';
+          setError(errorMessage);
       } finally {
         setLoading(false);
       }

@@ -471,50 +471,8 @@ const GeneralPayrollView: React.FC = () => {
         console.log('✅ Datos de nómina general cargados');
       } catch (error) {
         console.error('❌ Error cargando datos de nómina general:', error);
-        setError('Error al cargar los datos de nómina');
-        
-        // Datos de ejemplo en caso de error
-        setPayrollPeriods([
-          {
-            id: '1',
-            period: 'Enero 2024',
-            type: 'Mensual',
-            status: 'pendiente',
-            employees: 5,
-            estimatedCost: 250000.00,
-            realCost: 0,
-            startDate: '2024-01-01',
-            endDate: '2024-01-31',
-            createdAt: '2024-01-01T00:00:00Z',
-            updatedAt: '2024-01-01T00:00:00Z'
-          },
-          {
-            id: '2',
-            period: 'Diciembre 2023',
-            type: 'Mensual',
-            status: 'cerrado',
-            employees: 5,
-            estimatedCost: 240000.00,
-            realCost: 245000.50,
-            startDate: '2023-12-01',
-            endDate: '2023-12-31',
-            createdAt: '2023-12-01T00:00:00Z',
-            updatedAt: '2023-12-31T00:00:00Z'
-          },
-          {
-            id: '3',
-            period: 'Noviembre 2023',
-            type: 'Mensual',
-            status: 'aprobado',
-            employees: 5,
-            estimatedCost: 235000.00,
-            realCost: 238000.00,
-            startDate: '2023-11-01',
-            endDate: '2023-11-30',
-            createdAt: '2023-11-01T00:00:00Z',
-            updatedAt: '2023-11-30T00:00:00Z'
-          }
-        ]);
+        const errorMessage = error instanceof Error ? error.message : 'Error al cargar los datos de nómina general';
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
