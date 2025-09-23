@@ -341,7 +341,11 @@ export interface GetEmployeeResponse {
 
 // Servicio API para empleados
 class EmployeesApiService {
-  // Gestión de empleados
+  private requestCache = new Map<string, { data: GetEmployeesResponse; timestamp: number }>();
+  private pendingRequests = new Map<string, Promise<GetEmployeesResponse>>();
+  private readonly CACHE_DURATION = 30000; // 30 segundos
+
+  // Gestión de empleados con cache y deduplicación
   async getEmployees(params: {
     page?: number;
     limit?: number;
@@ -352,23 +356,110 @@ class EmployeesApiService {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   } = {}): Promise<GetEmployeesResponse> {
-    const searchParams = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) {
-        searchParams.append(key, value.toString());
-      }
-    });
+    // Crear clave única para el cache
+    const cacheKey = JSON.stringify(params);
+    const now = Date.now();
 
-    const response = await api.get(`/api/employees?${searchParams.toString()}`);
-    
-    // El backend devuelve { success: true, data: { employees, pagination, summary } }
-    // Necesitamos extraer solo la parte 'data'
-    if (response.data && response.data.success && response.data.data) {
-      return response.data.data;
+    // Verificar cache
+    const cached = this.requestCache.get(cacheKey);
+    if (cached && (now - cached.timestamp) < this.CACHE_DURATION) {
+      console.log('🎯 Usando cache para empleados:', cacheKey);
+      return cached.data;
     }
+
+    // Verificar si ya hay una petición en curso para estos parámetros
+    if (this.pendingRequests.has(cacheKey)) {
+      console.log('⏳ Esperando petición en curso para empleados:', cacheKey);
+      return this.pendingRequests.get(cacheKey)!;
+    }
+
+    // Crear nueva petición
+    const requestPromise = this.performEmployeesRequest(params, cacheKey);
+    this.pendingRequests.set(cacheKey, requestPromise);
+
+    try {
+      const result = await requestPromise;
+      return result;
+    } finally {
+      // Limpiar petición pendiente
+      this.pendingRequests.delete(cacheKey);
+    }
+  }
+
+  private async performEmployeesRequest(params: any, cacheKey: string, retryCount = 0): Promise<GetEmployeesResponse> {
+    const maxRetries = 3;
+    const baseDelay = 1000; // 1 segundo
+
+    try {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          searchParams.append(key, value.toString());
+        }
+      });
+
+      console.log('🌐 Realizando petición real a API de empleados:', params);
+      const response = await api.get(`/api/employees?${searchParams.toString()}`);
+      
+      // El backend devuelve { success: true, data: { employees, pagination, summary } }
+      // Necesitamos extraer solo la parte 'data'
+      let result: GetEmployeesResponse;
+      if (response.data && response.data.success && response.data.data) {
+        result = response.data.data;
+      } else {
+        // Fallback por si la estructura es diferente
+        result = response.data;
+      }
+
+      // Guardar en cache
+      this.requestCache.set(cacheKey, {
+        data: result,
+        timestamp: Date.now()
+      });
+
+      // Limpiar cache viejo (más de 5 minutos)
+      this.cleanOldCache();
+
+      return result;
+    } catch (error: any) {
+      // Verificar si es un error de rate limit
+      const isRateLimitError = error.message?.includes('Rate limit exceeded') || 
+                              error.message?.includes('rate limit') ||
+                              error.response?.status === 429;
+
+      if (isRateLimitError && retryCount < maxRetries) {
+        const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
+        console.warn(`⚠️ Rate limit excedido. Reintentando en ${delay/1000} segundos... (Intento ${retryCount + 1}/${maxRetries})`);
+        
+        // Esperar antes del siguiente intento
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        // Reintentar
+        return this.performEmployeesRequest(params, cacheKey, retryCount + 1);
+      }
+
+      // Si no es rate limit o se agotaron los reintentos, lanzar el error
+      console.error('❌ Error en petición de empleados:', error);
+      throw error;
+    }
+  }
+
+  private cleanOldCache() {
+    const now = Date.now();
+    const maxAge = 5 * 60 * 1000; // 5 minutos
     
-    // Fallback por si la estructura es diferente
-    return response.data;
+    for (const [key, value] of this.requestCache.entries()) {
+      if (now - value.timestamp > maxAge) {
+        this.requestCache.delete(key);
+      }
+    }
+  }
+
+  // Limpiar cache manualmente
+  clearCache() {
+    this.requestCache.clear();
+    this.pendingRequests.clear();
+    console.log('🧹 Cache de empleados limpiado');
   }
 
   async getEmployee(id: string): Promise<GetEmployeeResponse> {
