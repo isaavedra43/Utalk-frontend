@@ -108,6 +108,7 @@ interface PayrollClosureSummary {
 interface PayrollClosureViewProps {
   approvedData: EmployeePayrollApproval[];
   selectedPeriod?: any;
+  createdPayrollId?: string | null;
   onComplete: () => void;
   onBack: () => void;
 }
@@ -115,6 +116,7 @@ interface PayrollClosureViewProps {
 const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({ 
   approvedData, 
   selectedPeriod,
+  createdPayrollId,
   onComplete, 
   onBack 
 }) => {
@@ -471,8 +473,11 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
       
       // Intentar cerrar con backend real
       try {
-        const payrollId = approvedData[0]?.id || 'temp-payroll-id'; // Obtener ID de nómina
-        const closeResult = await generalPayrollApi.closeGeneralPayroll(payrollId, closureNotes);
+        if (!createdPayrollId) {
+          throw new Error('No se encontró el ID de la nómina creada');
+        }
+        console.log('🔒 Cerrando nómina general y generando individuales:', createdPayrollId);
+        const closeResult = await generalPayrollApi.closeGeneralPayroll(createdPayrollId, closureNotes);
         
         console.log('✅ Nómina cerrada exitosamente con backend:', closeResult);
         console.log(`📄 Nóminas individuales generadas: ${closeResult.individualPayrolls.length}`);

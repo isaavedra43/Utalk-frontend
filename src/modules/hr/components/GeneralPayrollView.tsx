@@ -349,7 +349,23 @@ const GeneralPayrollView: React.FC = () => {
       setCreatedPayrollId(payrollId);
       setSimulationData(data);
       
-      // 3. Ir a ajustes y aprobación
+      // 3. Refrescar la lista para mostrar la nómina recién creada
+      try {
+        console.log('🔄 Refrescando lista después de crear nómina...');
+        const filterParams: any = {
+          page: currentPage,
+          limit: itemsPerPage
+        };
+        const periodsData = await generalPayrollApi.getPayrollPeriods(filterParams);
+        setPayrollPeriods(periodsData.periods);
+        setTotalPages(periodsData.pagination.totalPages);
+        setTotalItems(periodsData.pagination.total);
+        console.log('✅ Lista refrescada después de crear');
+      } catch (refreshError) {
+        console.warn('⚠️ Error refrescando lista:', refreshError);
+      }
+      
+      // 4. Ir a ajustes y aprobación
       setShowSimulationView(false);
       setShowApprovalView(true);
       setCurrentStep(3);
@@ -368,12 +384,33 @@ const GeneralPayrollView: React.FC = () => {
     setCurrentStep(4);
   };
 
-  const handleClosureComplete = () => {
+  const handleClosureComplete = async () => {
     setShowClosureView(false);
     setCurrentStep(1);
     setSelectedPeriod(null);
     setSimulationData([]);
     setApprovedData([]);
+    setCreatedPayrollId(null);
+    
+    // Refrescar la lista de nóminas para mostrar la nómina recién cerrada
+    try {
+      console.log('🔄 Refrescando lista de nóminas después del cierre...');
+      
+      const filterParams: any = {
+        page: currentPage,
+        limit: itemsPerPage
+      };
+      
+      // No aplicar filtros restrictivos para mostrar todas las nóminas
+      const periodsData = await generalPayrollApi.getPayrollPeriods(filterParams);
+      setPayrollPeriods(periodsData.periods);
+      setTotalPages(periodsData.pagination.totalPages);
+      setTotalItems(periodsData.pagination.total);
+      
+      console.log('✅ Lista de nóminas refrescada exitosamente');
+    } catch (error) {
+      console.error('❌ Error refrescando lista de nóminas:', error);
+    }
   };
 
   const handleBackToGeneral = () => {
@@ -577,6 +614,7 @@ const GeneralPayrollView: React.FC = () => {
       <PayrollClosureView
         approvedData={approvedData}
         selectedPeriod={selectedPeriod}
+        createdPayrollId={createdPayrollId}
         onComplete={handleClosureComplete}
         onBack={() => {
           setShowClosureView(false);
