@@ -924,7 +924,35 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
                 </div>
               </div>
               
-              <div className="flex items-center justify-end space-x-3 mt-6 pt-4 border-t">
+              <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                <div className="flex items-center space-x-3">
+                  {/* Botones de aprobación/rechazo solo para movimientos pendientes */}
+                  {selectedMovement.status === 'pending' && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setSelectedMovement(null);
+                          openApproveModal(selectedMovement);
+                        }}
+                        className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                      >
+                        <Check className="h-4 w-4" />
+                        <span>Aprobar</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedMovement(null);
+                          openRejectModal(selectedMovement);
+                        }}
+                        className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
+                      >
+                        <X className="h-4 w-4" />
+                        <span>Rechazar</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+                
                 <button
                   onClick={() => setSelectedMovement(null)}
                   className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
