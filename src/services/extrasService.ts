@@ -797,6 +797,43 @@ class ExtrasService {
         return 0;
     }
   }
+
+  // APROBACIÓN Y RECHAZO DE MOVIMIENTOS
+  async approveMovement(movementId: string, employeeId: string, comments?: string): Promise<MovementRecord> {
+    try {
+      console.log(`✅ Aprobando movimiento ${movementId} para empleado ${employeeId}`);
+      
+      const response = await api.put(`/api/employees/extras/${movementId}/approve`, {
+        employeeId,
+        comments: comments || 'Aprobado por supervisor'
+      });
+      
+      console.log(`✅ Movimiento aprobado exitosamente:`, response.data);
+      return response.data;
+      
+    } catch (error) {
+      this.handleError(error, 'approveMovement');
+      throw error;
+    }
+  }
+
+  async rejectMovement(movementId: string, employeeId: string, reason: string): Promise<MovementRecord> {
+    try {
+      console.log(`❌ Rechazando movimiento ${movementId} para empleado ${employeeId}. Razón: ${reason}`);
+      
+      const response = await api.put(`/api/employees/extras/${movementId}/reject`, {
+        employeeId,
+        reason
+      });
+      
+      console.log(`✅ Movimiento rechazado exitosamente:`, response.data);
+      return response.data;
+      
+    } catch (error) {
+      this.handleError(error, 'rejectMovement');
+      throw error;
+    }
+  }
 }
 
 export const extrasService = new ExtrasService();

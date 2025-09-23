@@ -18,7 +18,10 @@ import {
   Search,
   Filter,
   Download,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Check,
+  X,
+  MessageSquare
 } from 'lucide-react';
 import { extrasService, MovementRecord } from '../../../services/extrasService';
 import { ExportService } from '../../../services/exportService';
@@ -72,6 +75,14 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
+  
+  // Estados para aprobación/rechazo
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [movementToApprove, setMovementToApprove] = useState<LocalMovementRecord | null>(null);
+  const [approveComments, setApproveComments] = useState('');
+  const [rejectReason, setRejectReason] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Calcular salario por día y por hora
   // Calcular salarios basados en el empleado real con manejo de errores
@@ -427,6 +438,99 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
     }
   };
 
+  // FUNCIONES DE APROBACIÓN Y RECHAZO
+  const handleApproveMovement = async () => {
+    if (!movementToApprove) return;
+    
+    try {
+      setIsProcessing(true);
+      
+      await extrasService.approveMovement(
+        movementToApprove.id,
+        employeeId,
+        approveComments
+      );
+      
+      // Actualizar el estado local
+      setMovements(prev => prev.map(movement => 
+        movement.id === movementToApprove.id 
+          ? { ...movement, status: 'approved' as const }
+          : movement
+      ));
+      
+      showSuccess(
+        'Movimiento Aprobado',
+        'El movimiento ha sido aprobado exitosamente.'
+      );
+      
+      // Cerrar modal y limpiar estado
+      setShowApproveModal(false);
+      setMovementToApprove(null);
+      setApproveComments('');
+      
+    } catch (error) {
+      console.error('Error aprobando movimiento:', error);
+      showError(
+        'Error al Aprobar',
+        'No se pudo aprobar el movimiento. Inténtalo de nuevo.'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRejectMovement = async () => {
+    if (!movementToApprove || !rejectReason.trim()) return;
+    
+    try {
+      setIsProcessing(true);
+      
+      await extrasService.rejectMovement(
+        movementToApprove.id,
+        employeeId,
+        rejectReason
+      );
+      
+      // Actualizar el estado local
+      setMovements(prev => prev.map(movement => 
+        movement.id === movementToApprove.id 
+          ? { ...movement, status: 'rejected' as const }
+          : movement
+      ));
+      
+      showSuccess(
+        'Movimiento Rechazado',
+        'El movimiento ha sido rechazado exitosamente.'
+      );
+      
+      // Cerrar modal y limpiar estado
+      setShowRejectModal(false);
+      setMovementToApprove(null);
+      setRejectReason('');
+      
+    } catch (error) {
+      console.error('Error rechazando movimiento:', error);
+      showError(
+        'Error al Rechazar',
+        'No se pudo rechazar el movimiento. Inténtalo de nuevo.'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const openApproveModal = (movement: LocalMovementRecord) => {
+    setMovementToApprove(movement);
+    setApproveComments('');
+    setShowApproveModal(true);
+  };
+
+  const openRejectModal = (movement: LocalMovementRecord) => {
+    setMovementToApprove(movement);
+    setRejectReason('');
+    setShowRejectModal(true);
+  };
+
   const filteredMovements = movements.filter(movement => {
     const matchesSearch = movement.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          getTypeLabel(movement.type).toLowerCase().includes(searchTerm.toLowerCase());
@@ -672,13 +776,37 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
                     {movement.createdBy}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => setSelectedMovement(movement)}
-                      className="text-orange-600 hover:text-orange-900 flex items-center space-x-1"
-                    >
-                      <Eye className="h-4 w-4" />
-                      <span>Ver</span>
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setSelectedMovement(movement)}
+                        className="text-orange-600 hover:text-orange-900 flex items-center space-x-1"
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span>Ver</span>
+                      </button>
+                      
+                      {/* Botones de aprobación/rechazo solo para movimientos pendientes */}
+                      {movement.status === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => openApproveModal(movement)}
+                            className="text-green-600 hover:text-green-900 flex items-center space-x-1"
+                            title="Aprobar movimiento"
+                          >
+                            <Check className="h-4 w-4" />
+                            <span>Aprobar</span>
+                          </button>
+                          <button
+                            onClick={() => openRejectModal(movement)}
+                            className="text-red-600 hover:text-red-900 flex items-center space-x-1"
+                            title="Rechazar movimiento"
+                          >
+                            <X className="h-4 w-4" />
+                            <span>Rechazar</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -802,6 +930,178 @@ const EmployeeMovementsTable: React.FC<EmployeeMovementsTableProps> = ({
                   className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Aprobación */}
+      {showApproveModal && movementToApprove && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="flex-shrink-0">
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Aprobar Movimiento</h3>
+                  <p className="text-sm text-gray-600">¿Estás seguro de que deseas aprobar este movimiento?</p>
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium text-gray-600">Tipo:</span>
+                    <p className="text-gray-900">{getTypeLabel(movementToApprove.type)}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Monto:</span>
+                    <p className="text-gray-900">{formatCurrency(Math.abs(movementToApprove.amount))}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Fecha:</span>
+                    <p className="text-gray-900">{formatDate(movementToApprove.date)}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Descripción:</span>
+                    <p className="text-gray-900 truncate">{movementToApprove.description}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Comentarios (opcional)
+                </label>
+                <textarea
+                  value={approveComments}
+                  onChange={(e) => setApproveComments(e.target.value)}
+                  placeholder="Agrega comentarios sobre la aprobación..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                  rows={3}
+                />
+              </div>
+              
+              <div className="flex items-center justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowApproveModal(false);
+                    setMovementToApprove(null);
+                    setApproveComments('');
+                  }}
+                  className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  disabled={isProcessing}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleApproveMovement}
+                  disabled={isProcessing}
+                  className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Procesando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4" />
+                      <span>Aprobar</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Rechazo */}
+      {showRejectModal && movementToApprove && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="flex-shrink-0">
+                  <XCircle className="h-8 w-8 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Rechazar Movimiento</h3>
+                  <p className="text-sm text-gray-600">¿Estás seguro de que deseas rechazar este movimiento?</p>
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium text-gray-600">Tipo:</span>
+                    <p className="text-gray-900">{getTypeLabel(movementToApprove.type)}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Monto:</span>
+                    <p className="text-gray-900">{formatCurrency(Math.abs(movementToApprove.amount))}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Fecha:</span>
+                    <p className="text-gray-900">{formatDate(movementToApprove.date)}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">Descripción:</span>
+                    <p className="text-gray-900 truncate">{movementToApprove.description}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Razón del rechazo <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Explica por qué se rechaza este movimiento..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
+                  rows={3}
+                  required
+                />
+                {!rejectReason.trim() && (
+                  <p className="text-red-500 text-xs mt-1">La razón del rechazo es obligatoria</p>
+                )}
+              </div>
+              
+              <div className="flex items-center justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowRejectModal(false);
+                    setMovementToApprove(null);
+                    setRejectReason('');
+                  }}
+                  className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  disabled={isProcessing}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleRejectMovement}
+                  disabled={isProcessing || !rejectReason.trim()}
+                  className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Procesando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <X className="h-4 w-4" />
+                      <span>Rechazar</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
