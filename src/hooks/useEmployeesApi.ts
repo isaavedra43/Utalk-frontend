@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { employeesApi, type Employee, type GetEmployeesResponse } from '../services/employeesApi';
 
 // Hook para gestión de empleados
@@ -20,7 +20,7 @@ export const useEmployees = () => {
     expired: 0
   });
 
-  const loadEmployees = async (params: {
+  const loadEmployees = useCallback(async (params: {
     page?: number;
     limit?: number;
     search?: string;
@@ -32,6 +32,8 @@ export const useEmployees = () => {
     try {
       setLoading(true);
       setError(null);
+
+      console.log('🔄 Hook useEmployees - Cargando empleados...', params);
 
       const response = await employeesApi.getEmployees({
         page: params.page || pagination.page,
@@ -45,10 +47,12 @@ export const useEmployees = () => {
 
       // Manejar respuesta vacía correctamente
       if (response && response.employees) {
+        console.log('✅ Hook useEmployees - Empleados encontrados:', response.employees.length);
         setEmployees(response.employees);
         setPagination(response.pagination);
         setSummary(response.summary);
       } else {
+        console.log('⚠️ Hook useEmployees - No hay empleados en la respuesta');
         // Si no hay respuesta o employees es null/undefined, establecer arrays vacíos
         setEmployees([]);
         setPagination({
@@ -66,12 +70,12 @@ export const useEmployees = () => {
         });
       }
     } catch (err) {
-      console.error('Error loading employees:', err);
+      console.error('❌ Hook useEmployees - Error loading employees:', err);
       setError('Error al cargar los empleados. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.page, pagination.limit]);
 
   const createEmployee = async (employeeData: Partial<Employee>) => {
     try {
