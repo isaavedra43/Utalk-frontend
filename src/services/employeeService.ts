@@ -283,6 +283,41 @@ class EmployeeService {
   // ===== MÉTODOS DE UTILIDAD =====
 
   /**
+   * Generar clave de cache
+   */
+  private generateCacheKey(method: string, params: any): string {
+    const sortedParams = Object.keys(params)
+      .sort()
+      .reduce((result, key) => {
+        result[key] = params[key];
+        return result;
+      }, {} as any);
+    return `${method}:${JSON.stringify(sortedParams)}`;
+  }
+
+  /**
+   * Limpiar cache viejo
+   */
+  private cleanOldCache(): void {
+    const now = Date.now();
+    const maxAge = 5 * 60 * 1000; // 5 minutos
+    
+    for (const [key, value] of this.cache.entries()) {
+      if (now - value.timestamp > maxAge) {
+        this.cache.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Limpiar todo el cache manualmente
+   */
+  public clearCache(): void {
+    this.cache.clear();
+    console.log('🧹 Cache de employeeService limpiado');
+  }
+
+  /**
    * Validar permisos HR para una acción específica
    */
   validateHRPermission(action: 'create' | 'read' | 'update' | 'delete' | 'viewPayroll' | 'viewAttendance' | 'viewDocuments' | 'approveVacations', userRole?: string): boolean {

@@ -49,7 +49,7 @@ export const useTeam = () => {
   const permissions = usePermissions();
   const coaching = useCoaching();
 
-  // Cargar miembros del equipo (usando el nuevo sistema)
+  // Cargar miembros del equipo (usando el nuevo sistema) - OPTIMIZADO
   const loadMembers = useCallback(async () => {
     try {
       setTeamLoading(true);
@@ -77,7 +77,7 @@ export const useTeam = () => {
       setTeamError(errorMessage);
       logger.systemInfo('Error cargando miembros del equipo', { error: errorMessage });
     }
-  }, [filters, loadEmployees, setTeamLoading, setTeamError, stats, logger]);
+  }, [filters.search, filters.department, filters.status, loadEmployees, setTeamLoading, setTeamError, stats, logger]);
 
   // Seleccionar miembro (compatible con ambos sistemas)
   const selectMember = useCallback((member: TeamMember) => {
@@ -243,10 +243,14 @@ export const useTeam = () => {
     }
   }, [createEmployee, setTeamLoading, setTeamError]);
 
-  // Cargar datos iniciales
+  // Cargar datos iniciales con debounce
   useEffect(() => {
-    loadMembers();
-  }, [loadMembers]);
+    const timeoutId = setTimeout(() => {
+      loadMembers();
+    }, 300); // 300ms de debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [filters.search, filters.department, filters.status]);
 
   return {
     // Estado principal (nuevo)
