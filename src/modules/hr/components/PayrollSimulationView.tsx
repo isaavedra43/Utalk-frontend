@@ -166,6 +166,10 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [showDetails, setShowDetails] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  
+  // Estado para control de impuestos
+  const [taxesEnabled, setTaxesEnabled] = useState(false); // Activo por defecto = false (sin impuestos)
+  const [employeeTaxesOverride, setEmployeeTaxesOverride] = useState<Record<string, boolean>>({});
 
 
   // Cargar datos de simulación real del backend
@@ -347,6 +351,74 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
     }
   };
 
+  // FUNCIONES PARA MANEJO DE IMPUESTOS
+  const handleGlobalTaxesToggle = async () => {
+    try {
+      setIsCalculating(true);
+      
+      // Obtener ID de la nómina actual (necesitarás implementar esto según tu lógica)
+      const currentPayrollId = 'current-payroll-id'; // TODO: Obtener el ID real de la nómina
+      
+      // Llamada al backend para toggle global de impuestos
+      await generalPayrollApi.toggleGlobalTaxes(currentPayrollId, !taxesEnabled);
+      
+      setTaxesEnabled(!taxesEnabled);
+      
+      // Limpiar overrides individuales cuando se cambia el estado global
+      setEmployeeTaxesOverride({});
+      
+      console.log(`🔄 Impuestos globales ${!taxesEnabled ? 'habilitados' : 'deshabilitados'}`);
+      
+    } catch (error) {
+      console.error('❌ Error al cambiar estado de impuestos:', error);
+      // En caso de error, revertir el estado
+      setTaxesEnabled(taxesEnabled);
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
+  const handleEmployeeTaxesToggle = async (employeeId: string) => {
+    try {
+      setIsCalculating(true);
+      
+      const currentOverride = employeeTaxesOverride[employeeId];
+      const newOverride = !currentOverride;
+      
+      // Obtener ID de la nómina actual (necesitarás implementar esto según tu lógica)
+      const currentPayrollId = 'current-payroll-id'; // TODO: Obtener el ID real de la nómina
+      
+      // Llamada al backend para toggle individual de impuestos
+      await generalPayrollApi.toggleEmployeeTaxes(currentPayrollId, employeeId, newOverride);
+      
+      setEmployeeTaxesOverride(prev => ({
+        ...prev,
+        [employeeId]: newOverride
+      }));
+      
+      console.log(`🔄 Impuestos para empleado ${employeeId} ${newOverride ? 'habilitados' : 'deshabilitados'}`);
+      
+    } catch (error) {
+      console.error('❌ Error al cambiar estado de impuestos del empleado:', error);
+      // En caso de error, revertir el estado
+      setEmployeeTaxesOverride(prev => ({
+        ...prev,
+        [employeeId]: !employeeTaxesOverride[employeeId]
+      }));
+    } finally {
+      setIsCalculating(false);
+    }
+  };
+
+  const isEmployeeTaxesEnabled = (employeeId: string) => {
+    // Si hay override individual, usar ese valor
+    if (employeeId in employeeTaxesOverride) {
+      return employeeTaxesOverride[employeeId];
+    }
+    // Si no hay override, usar el estado global
+    return taxesEnabled;
+  };
+
   // Filtros
   const filteredEmployees = employees.filter(employee => {
     const matchesSearch = searchTerm === '' || 
@@ -464,6 +536,21 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
         </div>
         
         <div className="flex items-center space-x-3">
+          {/* Botón de Toggle de Impuestos */}
+          <button
+            onClick={handleGlobalTaxesToggle}
+            disabled={isCalculating}
+            className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
+              taxesEnabled 
+                ? 'bg-red-600 text-white hover:bg-red-700' 
+                : 'bg-green-600 text-white hover:bg-green-700'
+            } disabled:opacity-50`}
+            title={taxesEnabled ? 'Deshabilitar impuestos para todos' : 'Habilitar impuestos para todos'}
+          >
+            <Shield className="h-4 w-4 mr-2" />
+            {taxesEnabled ? 'Con Impuestos' : 'Sin Impuestos'}
+          </button>
+          
           <button
             onClick={handleRecalculate}
             disabled={isCalculating}
@@ -716,6 +803,20 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end space-x-2">
+                      {/* Toggle individual de impuestos */}
+                      <button
+                        onClick={() => handleEmployeeTaxesToggle(employee.id)}
+                        disabled={isCalculating}
+                        className={`p-1 rounded transition-colors ${
+                          isEmployeeTaxesEnabled(employee.id)
+                            ? 'text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100'
+                            : 'text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100'
+                        } disabled:opacity-50`}
+                        title={isEmployeeTaxesEnabled(employee.id) ? 'Deshabilitar impuestos para este empleado' : 'Habilitar impuestos para este empleado'}
+                      >
+                        <Shield className="h-4 w-4" />
+                      </button>
+                      
                       <button
                         onClick={() => setShowDetails(showDetails === employee.id ? null : employee.id)}
                         className="text-blue-600 hover:text-blue-900"
@@ -784,10 +885,27 @@ const PayrollSimulationView: React.FC<PayrollSimulationViewProps> = ({
 
                 {/* Deducciones */}
                 <div>
-                  <h5 className="text-md font-medium text-gray-900 mb-3 flex items-center">
-                    <TrendingDown className="h-4 w-4 mr-2 text-red-600" />
-                    Deducciones
-                  </h5>
+                  <div className="flex items-center justify-between mb-3">
+                    <h5 className="text-md font-medium text-gray-900 flex items-center">
+                      <TrendingDown className="h-4 w-4 mr-2 text-red-600" />
+                      Deducciones
+                    </h5>
+                    
+                    {/* Toggle individual de impuestos en detalles */}
+                    <button
+                      onClick={() => handleEmployeeTaxesToggle(employee.id)}
+                      disabled={isCalculating}
+                      className={`flex items-center px-3 py-1 rounded-lg text-sm transition-colors ${
+                        isEmployeeTaxesEnabled(employee.id)
+                          ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                          : 'bg-green-100 text-green-700 hover:bg-green-200'
+                      } disabled:opacity-50`}
+                      title={isEmployeeTaxesEnabled(employee.id) ? 'Deshabilitar impuestos' : 'Habilitar impuestos'}
+                    >
+                      <Shield className="h-3 w-3 mr-1" />
+                      {isEmployeeTaxesEnabled(employee.id) ? 'Con Impuestos' : 'Sin Impuestos'}
+                    </button>
+                  </div>
                   <div className="space-y-2">
                     {employee.deductions.taxes.map(tax => (
                       <div key={tax.id} className="flex justify-between">

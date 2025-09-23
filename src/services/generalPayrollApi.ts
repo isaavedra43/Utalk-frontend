@@ -734,6 +734,87 @@ class GeneralPayrollApi {
       throw error;
     }
   }
+
+  // ===================================================================
+  // FUNCIONES PARA MANEJO DE IMPUESTOS
+  // ===================================================================
+
+  /**
+   * Toggle global de impuestos para toda la nómina
+   */
+  async toggleGlobalTaxes(payrollId: string, taxesEnabled: boolean): Promise<GeneralPayroll> {
+    try {
+      console.log(`🔄 ${taxesEnabled ? 'Habilitando' : 'Deshabilitando'} impuestos globales para nómina:`, payrollId);
+      
+      const response = await api.put(`${this.baseUrl}/${payrollId}/taxes/global`, {
+        taxesEnabled
+      });
+      
+      if (response.data && response.data.success && response.data.data) {
+        console.log(`✅ Impuestos globales ${taxesEnabled ? 'habilitados' : 'deshabilitados'} exitosamente`);
+        return response.data.data;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error al cambiar estado global de impuestos:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Toggle individual de impuestos para un empleado específico
+   */
+  async toggleEmployeeTaxes(payrollId: string, employeeId: string, taxesEnabled: boolean): Promise<GeneralPayroll> {
+    try {
+      console.log(`🔄 ${taxesEnabled ? 'Habilitando' : 'Deshabilitando'} impuestos para empleado:`, { payrollId, employeeId });
+      
+      const response = await api.put(`${this.baseUrl}/${payrollId}/employee/${employeeId}/taxes`, {
+        taxesEnabled
+      });
+      
+      if (response.data && response.data.success && response.data.data) {
+        console.log(`✅ Impuestos para empleado ${taxesEnabled ? 'habilitados' : 'deshabilitados'} exitosamente`);
+        return response.data.data;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error al cambiar estado de impuestos del empleado:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener configuración actual de impuestos para una nómina
+   */
+  async getTaxesConfiguration(payrollId: string): Promise<{
+    globalTaxesEnabled: boolean;
+    employeeOverrides: Record<string, boolean>;
+  }> {
+    try {
+      console.log('📋 Obteniendo configuración de impuestos para nómina:', payrollId);
+      
+      const response = await api.get(`${this.baseUrl}/${payrollId}/taxes/configuration`);
+      
+      if (response.data && response.data.success && response.data.data) {
+        return response.data.data;
+      }
+      
+      // Fallback si el endpoint no existe aún
+      return {
+        globalTaxesEnabled: false,
+        employeeOverrides: {}
+      };
+    } catch (error) {
+      console.error('Error obteniendo configuración de impuestos:', error);
+      // Fallback en caso de error
+      return {
+        globalTaxesEnabled: false,
+        employeeOverrides: {}
+      };
+    }
+  }
 }
 
 export const generalPayrollApi = new GeneralPayrollApi();
