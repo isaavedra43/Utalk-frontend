@@ -241,7 +241,11 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
                 <div className="space-y-3">
                   <div>
                     <span className="text-sm font-medium text-gray-500">Tiempo de respuesta:</span>
-                    <span className="ml-2 text-sm text-gray-900">{member.performance?.responseTime || 'N/A'}</span>
+                    <span className="ml-2 text-sm text-gray-900">
+                      {member.performance?.responseTime?.average 
+                        ? `${member.performance.responseTime.average}s` 
+                        : member.performance?.averageResponseTime || 'N/A'}
+                    </span>
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-500">Satisfacción:</span>
@@ -271,7 +275,9 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
               <div className="bg-white p-4 lg:p-6 rounded-lg border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Tiempo de Respuesta</h3>
                 <div className="text-2xl lg:text-3xl font-bold text-green-600 mb-2">
-                  {member.performance?.responseTime || 'N/A'}
+                  {member.performance?.responseTime?.average 
+                    ? `${member.performance.responseTime.average}s` 
+                    : member.performance?.averageResponseTime || 'N/A'}
                 </div>
                 <p className="text-sm text-gray-600">Promedio</p>
               </div>
