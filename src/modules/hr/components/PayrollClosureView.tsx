@@ -107,12 +107,14 @@ interface PayrollClosureSummary {
 
 interface PayrollClosureViewProps {
   approvedData: EmployeePayrollApproval[];
+  selectedPeriod?: any;
   onComplete: () => void;
   onBack: () => void;
 }
 
 const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({ 
   approvedData, 
+  selectedPeriod,
   onComplete, 
   onBack 
 }) => {
@@ -297,16 +299,17 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
       try {
         console.log('🔄 Cargando datos de cierre de nómina...');
         
-        // Simular carga de datos
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Usar datos reales del backend que vienen desde la aprobación
+        const realEmployees = approvedData || [];
+        console.log('📋 Datos reales recibidos de aprobación:', realEmployees);
         
-        setEmployees(mockEmployees);
+        setEmployees(realEmployees);
         
-        // Calcular resumen y validaciones
-        const pendingApprovals = mockEmployees.filter(emp => emp.status === 'pending').length;
-        const approved = mockEmployees.filter(emp => emp.status === 'approved').length;
-        const pendingPayments = mockEmployees.filter(emp => emp.paymentStatus === 'pending').length;
-        const paid = mockEmployees.filter(emp => emp.paymentStatus === 'paid').length;
+        // Calcular resumen y validaciones con datos reales
+        const pendingApprovals = realEmployees.filter(emp => emp.status === 'pending').length;
+        const approved = realEmployees.filter(emp => emp.status === 'approved').length;
+        const pendingPayments = realEmployees.filter(emp => emp.paymentStatus === 'pending').length;
+        const paid = realEmployees.filter(emp => emp.paymentStatus === 'paid').length;
         
         // Verificar si se puede cerrar la nómina
         const blockingIssues: string[] = [];
@@ -330,19 +333,19 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
         };
 
         const summaryData: PayrollClosureSummary = {
-          totalEmployees: mockEmployees.length,
+          totalEmployees: realEmployees.length,
           pendingApprovals,
           approved,
           pendingPayments,
           paid,
-          totalAmount: mockEmployees.reduce((sum, emp) => sum + emp.finalPayroll.netPay, 0),
+          totalAmount: realEmployees.reduce((sum, emp) => sum + emp.finalPayroll.netPay, 0),
           period: {
-            startDate: '2024-01-01',
-            endDate: '2024-01-31',
-            type: 'Mensual'
+            startDate: selectedPeriod?.startDate || new Date().toISOString().split('T')[0],
+            endDate: selectedPeriod?.endDate || new Date().toISOString().split('T')[0],
+            type: selectedPeriod?.type || 'Semanal'
           },
-          createdBy: 'Juan Pérez - Gerente de RH',
-          createdAt: '2024-01-30T08:00:00Z',
+          createdBy: 'Administrador del Sistema',
+          createdAt: new Date().toISOString(),
           lastUpdated: new Date().toISOString(),
           canClose,
           blockingIssues,
@@ -361,7 +364,7 @@ const PayrollClosureView: React.FC<PayrollClosureViewProps> = ({
     };
 
     loadClosureData();
-  }, []);
+  }, [approvedData]);
 
   // Funciones de utilidad
   const formatCurrency = (amount: number) => {

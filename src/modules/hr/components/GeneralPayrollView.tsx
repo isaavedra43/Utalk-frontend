@@ -576,6 +576,7 @@ const GeneralPayrollView: React.FC = () => {
     return (
       <PayrollClosureView
         approvedData={approvedData}
+        selectedPeriod={selectedPeriod}
         onComplete={handleClosureComplete}
         onBack={() => {
           setShowClosureView(false);
