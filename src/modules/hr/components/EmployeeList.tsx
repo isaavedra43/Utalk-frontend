@@ -49,7 +49,6 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -66,12 +65,6 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
 
   // Función para cargar empleados desde la API - MEMOIZADA para evitar llamadas duplicadas
   const loadEmployees = useCallback(async () => {
-    // Evitar múltiples llamadas simultáneas
-    if (loading && !isInitialLoad) {
-      console.log('⏸️ Evitando llamada duplicada - ya hay una en curso');
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);
@@ -81,8 +74,7 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
         limit: pagination.limit,
         search: searchQuery,
         department: filters.department,
-        status: filters.status,
-        isInitialLoad
+        status: filters.status
       });
 
       const response = await employeesApi.getEmployees({
@@ -127,9 +119,8 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
       setError('Error al cargar los empleados. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
-      setIsInitialLoad(false);
     }
-  }, [pagination.page, pagination.limit, searchQuery, filters.department, filters.status, loading, isInitialLoad]);
+  }, [pagination.page, pagination.limit, searchQuery, filters.department, filters.status]);
 
   // Debounce para evitar llamadas excesivas
   useEffect(() => {
