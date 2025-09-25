@@ -209,23 +209,26 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
 
   // Verificar si puede acceder a un módulo
   const canAccessModule = useCallback((moduleId: string): boolean => {
+    // FORZAR ACCESO COMPLETO PARA ADMIN@COMPANY.COM - BYPASS TOTAL
+    const currentEmail = user?.email || permissions?.email || 
+                        localStorage.getItem('userEmail') || 
+                        sessionStorage.getItem('userEmail') ||
+                        'unknown';
+    
+    if (currentEmail === 'admin@company.com' || currentEmail.includes('admin@company.com')) {
+      infoLog('👑 FORZANDO ACCESO ADMIN: admin@company.com tiene acceso a TODO', { 
+        moduleId, 
+        currentEmail,
+        userEmail: user?.email,
+        permissionsEmail: permissions?.email 
+      });
+      return true; // ACCESO COMPLETO FORZADO
+    }
+
     // Validación básica
     if (!moduleId) {
       infoLog('⚠️ moduleId no proporcionado para verificación de acceso');
       return false;
-    }
-
-    // BYPASS ESPECIAL PARA ADMIN: Si es admin@company.com, permitir acceso a todo
-    const isAdminUser = user?.email === 'admin@company.com' || 
-                       permissions?.email === 'admin@company.com';
-    
-    if (isAdminUser) {
-      infoLog('👑 BYPASS ADMIN: Acceso completo para admin@company.com', { 
-        moduleId, 
-        userEmail: user?.email,
-        permissionsEmail: permissions?.email 
-      });
-      return true;
     }
 
     // Si no hay permisos cargados, usar fallback conservador
@@ -286,24 +289,27 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
 
   // Verificar permiso específico
   const hasPermission = useCallback((moduleId: string, action: 'read' | 'write' | 'configure'): boolean => {
+    // FORZAR PERMISOS COMPLETOS PARA ADMIN@COMPANY.COM - BYPASS TOTAL
+    const currentEmail = user?.email || permissions?.email || 
+                        localStorage.getItem('userEmail') || 
+                        sessionStorage.getItem('userEmail') ||
+                        'unknown';
+    
+    if (currentEmail === 'admin@company.com' || currentEmail.includes('admin@company.com')) {
+      infoLog('👑 FORZANDO PERMISOS ADMIN: admin@company.com tiene TODOS los permisos', { 
+        moduleId, 
+        action,
+        currentEmail,
+        userEmail: user?.email,
+        permissionsEmail: permissions?.email 
+      });
+      return true; // PERMISOS COMPLETOS FORZADOS
+    }
+
     // Validación básica
     if (!moduleId || !action) {
       infoLog('⚠️ Parámetros inválidos para verificación de permiso', { moduleId, action });
       return false;
-    }
-
-    // BYPASS ESPECIAL PARA ADMIN: Si es admin@company.com, permitir todas las acciones
-    const isAdminUser = user?.email === 'admin@company.com' || 
-                       permissions?.email === 'admin@company.com';
-    
-    if (isAdminUser) {
-      infoLog('👑 BYPASS ADMIN: Permiso completo para admin@company.com', { 
-        moduleId, 
-        action,
-        userEmail: user?.email,
-        permissionsEmail: permissions?.email 
-      });
-      return true;
     }
 
     // Si no hay permisos cargados, usar fallback conservador

@@ -146,15 +146,19 @@ export const LeftSidebar: React.FC = () => {
 
   // Filtrar módulos según permisos del usuario
   const navigationItems = React.useMemo(() => {
-    // BYPASS ESPECIAL PARA ADMIN: Si es admin@company.com, mostrar todos los módulos
-    const isAdminUser = backendUser?.email === 'admin@company.com';
+    // FORZAR NAVEGACIÓN COMPLETA PARA ADMIN@COMPANY.COM - BYPASS TOTAL
+    const currentEmail = backendUser?.email || 
+                        localStorage.getItem('userEmail') || 
+                        sessionStorage.getItem('userEmail') ||
+                        'unknown';
     
-    if (isAdminUser) {
-      infoLog('👑 BYPASS ADMIN: Mostrando todos los módulos para admin@company.com', { 
-        userEmail: backendUser?.email,
+    if (currentEmail === 'admin@company.com' || currentEmail.includes('admin@company.com')) {
+      infoLog('👑 FORZANDO NAVEGACIÓN ADMIN: admin@company.com ve TODOS los módulos', { 
+        currentEmail,
+        backendUserEmail: backendUser?.email,
         totalModules: allNavigationItems.length 
       });
-      return allNavigationItems;
+      return allNavigationItems; // NAVEGACIÓN COMPLETA FORZADA
     }
 
     // Si está cargando permisos, mostrar solo módulos básicos como fallback
