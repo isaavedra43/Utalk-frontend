@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Minimize2, Maximize2, Monitor, Download, Settings, Bug, Wifi, Database, Activity } from 'lucide-react';
+import { X, Minimize2, Maximize2, Monitor, Download, Settings, Bug, Wifi, Database, Activity, Shield, Server, Network, AlertTriangle } from 'lucide-react';
 import { MonitoringProvider, useMonitoring } from './MonitoringContext';
 import { MonitoringTabs } from './MonitoringTabs';
 import { ExportModal } from './ExportModal';
@@ -28,7 +28,7 @@ const MonitoringBubbleContent: React.FC<MonitoringBubbleProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState<Position>({ x: 0, y: 0 });
   const [showExportModal, setShowExportModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'apis' | 'websockets' | 'logs' | 'errors' | 'performance' | 'state'>('apis');
+  const [activeTab, setActiveTab] = useState<'apis' | 'websockets' | 'logs' | 'errors' | 'performance' | 'state' | 'permissions' | 'system' | 'network' | 'alerts'>('apis');
   
   const bubbleRef = useRef<HTMLDivElement>(null);
   const expandedRef = useRef<HTMLDivElement>(null);
@@ -244,7 +244,11 @@ const MonitoringBubbleContent: React.FC<MonitoringBubbleProps> = ({
                 { id: 'logs', label: 'Logs', icon: Settings },
                 { id: 'errors', label: 'Errores', icon: Bug },
                 { id: 'performance', label: 'Rendimiento', icon: Activity },
-                { id: 'state', label: 'Estado', icon: Monitor }
+                { id: 'state', label: 'Estado', icon: Monitor },
+                { id: 'permissions', label: 'Permisos', icon: Shield },
+                { id: 'system', label: 'Sistema', icon: Server },
+                { id: 'network', label: 'Red', icon: Network },
+                { id: 'alerts', label: 'Alertas', icon: AlertTriangle }
               ].map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
