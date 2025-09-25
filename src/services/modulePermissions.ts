@@ -58,19 +58,13 @@ export const modulePermissionsService = {
       return response.data.data.permissions!;
       
     } catch (error) {
-      infoLog('Error obteniendo permisos, usando fallback local', { error });
+      infoLog('❌ Error obteniendo permisos del backend', { 
+        error: error.message || error,
+        endpoint: '/api/module-permissions/my-permissions'
+      });
       
-      // Fallback: crear permisos básicos si el backend no responde
-      const fallbackPermissions: UserModulePermissions = {
-        email: 'current@user.com',
-        role: 'agent',
-        accessibleModules: [],
-        permissions: {
-          modules: {}
-        }
-      };
-      
-      return fallbackPermissions;
+      // Re-lanzar el error para que el hook lo maneje apropiadamente
+      throw new Error(`Error conectando con backend: ${error.message || 'Servicio no disponible'}`);
     }
   },
 
@@ -92,8 +86,11 @@ export const modulePermissionsService = {
       return response.data.data.modules || {};
       
     } catch (error) {
-      infoLog('Error obteniendo módulos', { error });
-      throw new Error('Error al obtener módulos disponibles');
+      infoLog('❌ Error obteniendo módulos del backend', { 
+        error: error.message || error,
+        endpoint: '/api/module-permissions/modules'
+      });
+      throw new Error(`Error obteniendo módulos: ${error.message || 'Servicio no disponible'}`);
     }
   },
 
