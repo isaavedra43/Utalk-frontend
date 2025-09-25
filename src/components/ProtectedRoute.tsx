@@ -63,22 +63,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  // FORZAR ACCESO COMPLETO PARA ADMIN@COMPANY.COM - BYPASS TOTAL
-  const currentEmail = backendUser?.email || 
-                      localStorage.getItem('userEmail') || 
-                      sessionStorage.getItem('userEmail') ||
-                      'unknown';
-  
-  if (currentEmail === 'admin@company.com' || currentEmail.includes('admin@company.com')) {
-    infoLog('👑 FORZANDO ACCESO RUTA ADMIN: admin@company.com accede a TODO', { 
-      moduleId, 
-      requiredAction,
-      currentEmail,
-      backendUserEmail: backendUser?.email 
-    });
-    return <>{children}</>; // ACCESO COMPLETO FORZADO
-  }
-
   // Verificar acceso básico al módulo
   const hasAccess = canAccessModule(moduleId);
   if (!hasAccess) {
