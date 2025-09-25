@@ -21,6 +21,12 @@ interface UseModulePermissionsReturn {
   refreshPermissions: () => Promise<void>;
   updateUserPermissions: (email: string, permissions: UserModulePermissions['permissions']) => Promise<void>;
   resetUserPermissions: (email: string) => Promise<void>;
+  
+  // Funciones adicionales
+  validateModuleAccess: (email: string, moduleId: string, action: 'read' | 'write' | 'configure') => Promise<boolean>;
+  getPermissionsStats: () => Promise<any>;
+  createAgentWithPermissions: (agentData: any) => Promise<UserModulePermissions>;
+  updateAgentWithPermissions: (agentId: string, agentData: any) => Promise<UserModulePermissions>;
 }
 
 export const useModulePermissions = (): UseModulePermissionsReturn => {
@@ -177,6 +183,50 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
     }
   }, []);
 
+  // Validar acceso a módulo
+  const validateModuleAccess = useCallback(async (email: string, moduleId: string, action: 'read' | 'write' | 'configure') => {
+    try {
+      return await modulePermissionsService.validateModuleAccess(email, moduleId, action);
+    } catch (error) {
+      infoLog('Error validando acceso a módulo', { error, email, moduleId, action });
+      return false;
+    }
+  }, []);
+
+  // Obtener estadísticas de permisos
+  const getPermissionsStats = useCallback(async () => {
+    try {
+      return await modulePermissionsService.getPermissionsStats();
+    } catch (error) {
+      infoLog('Error obteniendo estadísticas de permisos', { error });
+      throw error;
+    }
+  }, []);
+
+  // Crear agente con permisos
+  const createAgentWithPermissions = useCallback(async (agentData: any) => {
+    try {
+      const result = await modulePermissionsService.createAgentWithPermissions(agentData);
+      infoLog('Agente creado con permisos', { email: agentData.email });
+      return result;
+    } catch (error) {
+      infoLog('Error creando agente con permisos', { error, email: agentData.email });
+      throw error;
+    }
+  }, []);
+
+  // Actualizar agente con permisos
+  const updateAgentWithPermissions = useCallback(async (agentId: string, agentData: any) => {
+    try {
+      const result = await modulePermissionsService.updateAgentWithPermissions(agentId, agentData);
+      infoLog('Agente actualizado con permisos', { agentId });
+      return result;
+    } catch (error) {
+      infoLog('Error actualizando agente con permisos', { error, agentId });
+      throw error;
+    }
+  }, []);
+
   return {
     // Estado
     loading,
@@ -194,6 +244,12 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
     // Funciones de gestión
     refreshPermissions,
     updateUserPermissions,
-    resetUserPermissions
+    resetUserPermissions,
+    
+    // Funciones adicionales
+    validateModuleAccess,
+    getPermissionsStats,
+    createAgentWithPermissions,
+    updateAgentWithPermissions
   };
 };

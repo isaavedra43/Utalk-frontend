@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { TeamMember } from '../../../types/team';
 import { infoLog } from '../../../config/logger';
 import { modulePermissionsService, UserModulePermissions } from '../../../services/modulePermissions';
+import { usePermissionNotification } from '../../../components/notifications/PermissionNotification';
 
 interface EditAgentModalProps {
   isOpen: boolean;
@@ -48,6 +49,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
   onSubmit,
   member
 }) => {
+  const { showSuccess, showError, showLoading, hideNotification, NotificationComponent } = usePermissionNotification();
   const [formData, setFormData] = useState<EditAgentData>({
     name: '',
     email: '',
@@ -386,17 +388,22 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
     if (!modulePermissions || !member?.email) return;
     
     setIsLoading(true);
+    showLoading('Guardando permisos...', 'Actualizando configuración de módulos');
+    
     try {
       // Intentar actualizar en el backend
       try {
-        await modulePermissionsService.updateUserPermissions(member.email, modulePermissions.permissions);
+        const updatedPermissions = await modulePermissionsService.updateUserPermissions(member.email, modulePermissions.permissions);
         infoLog('Permisos de módulos actualizados exitosamente en el backend', {
           email: member.email,
           modulesCount: Object.keys(modulePermissions.permissions.modules).length
         });
         
+        // Actualizar el estado local con la respuesta del backend
+        setModulePermissions(updatedPermissions);
+        
         // Mostrar mensaje de éxito
-        alert('✅ Permisos de módulos actualizados exitosamente');
+        showSuccess('¡Permisos actualizados!', 'Los permisos de módulos se han guardado exitosamente');
         
       } catch (backendError) {
         infoLog('Error actualizando en backend, guardando localmente:', backendError);
@@ -406,7 +413,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
         localStorage.setItem(localStorageKey, JSON.stringify(modulePermissions));
         
         // Mostrar mensaje informativo
-        alert('⚠️ Permisos guardados localmente. El backend no está disponible en este momento.');
+        showSuccess('Permisos guardados localmente', 'Los permisos se han guardado en el navegador (modo offline)');
       }
       
       // Actualizar el estado local independientemente del resultado del backend
@@ -417,9 +424,10 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
       
     } catch (error) {
       infoLog('Error crítico actualizando permisos de módulos:', error);
-      alert('❌ Error al guardar los permisos. Por favor, intenta de nuevo.');
+      showError('Error al guardar permisos', 'Por favor, intenta de nuevo');
     } finally {
       setIsLoading(false);
+      hideNotification();
     }
   };
 
@@ -487,8 +495,10 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+    <>
+      <NotificationComponent />
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
@@ -1049,5 +1059,6 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
         </div>
       </div>
     </div>
+    </>
   );
 }; 

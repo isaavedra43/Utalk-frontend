@@ -58,8 +58,19 @@ export const modulePermissionsService = {
       return response.data.data.permissions!;
       
     } catch (error) {
-      infoLog('Error obteniendo permisos', { error });
-      throw new Error('Error al obtener permisos de módulos');
+      infoLog('Error obteniendo permisos, usando fallback local', { error });
+      
+      // Fallback: crear permisos básicos si el backend no responde
+      const fallbackPermissions: UserModulePermissions = {
+        email: 'current@user.com',
+        role: 'agent',
+        accessibleModules: [],
+        permissions: {
+          modules: {}
+        }
+      };
+      
+      return fallbackPermissions;
     }
   },
 
@@ -195,6 +206,134 @@ export const modulePermissionsService = {
     } catch (error) {
       infoLog('Error reseteando permisos de usuario', { error, email });
       throw new Error('Error al resetear permisos del usuario');
+    }
+  },
+
+  // Crear agente con permisos de módulos
+  async createAgentWithPermissions(agentData: {
+    name: string;
+    email: string;
+    role: string;
+    phone?: string;
+    permissions: {
+      read: boolean;
+      write: boolean;
+      approve: boolean;
+      configure: boolean;
+    };
+    modulePermissions: {
+      modules: {
+        [moduleId: string]: {
+          read: boolean;
+          write: boolean;
+          configure: boolean;
+        };
+      };
+    };
+  }): Promise<UserModulePermissions> {
+    try {
+      infoLog('Creando agente con permisos de módulos', { email: agentData.email });
+      
+      const response = await api.post<ModulePermissionsResponse>('/api/agents', agentData);
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Error al crear agente');
+      }
+      
+      infoLog('Agente creado exitosamente con permisos', { email: agentData.email });
+      
+      return response.data.data.permissions!;
+      
+    } catch (error) {
+      infoLog('Error creando agente con permisos', { error, email: agentData.email });
+      throw new Error('Error al crear agente con permisos de módulos');
+    }
+  },
+
+  // Actualizar agente con permisos de módulos
+  async updateAgentWithPermissions(agentId: string, agentData: {
+    name?: string;
+    email?: string;
+    role?: string;
+    phone?: string;
+    permissions?: {
+      read: boolean;
+      write: boolean;
+      approve: boolean;
+      configure: boolean;
+    };
+    modulePermissions?: {
+      modules: {
+        [moduleId: string]: {
+          read: boolean;
+          write: boolean;
+          configure: boolean;
+        };
+      };
+    };
+  }): Promise<UserModulePermissions> {
+    try {
+      infoLog('Actualizando agente con permisos de módulos', { agentId });
+      
+      const response = await api.put<ModulePermissionsResponse>(`/api/agents/${agentId}`, agentData);
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Error al actualizar agente');
+      }
+      
+      infoLog('Agente actualizado exitosamente con permisos', { agentId });
+      
+      return response.data.data.permissions!;
+      
+    } catch (error) {
+      infoLog('Error actualizando agente con permisos', { error, agentId });
+      throw new Error('Error al actualizar agente con permisos de módulos');
+    }
+  },
+
+  // Validar permisos de un usuario para un módulo específico
+  async validateModuleAccess(email: string, moduleId: string, action: 'read' | 'write' | 'configure'): Promise<boolean> {
+    try {
+      infoLog('Validando acceso a módulo', { email, moduleId, action });
+      
+      const encodedEmail = encodeURIComponent(email);
+      const response = await api.get<{ success: boolean; data: { hasAccess: boolean } }>(
+        `/api/module-permissions/validate/${encodedEmail}/${moduleId}/${action}`
+      );
+      
+      if (!response.data.success) {
+        return false;
+      }
+      
+      return response.data.data.hasAccess;
+      
+    } catch (error) {
+      infoLog('Error validando acceso a módulo', { error, email, moduleId, action });
+      return false;
+    }
+  },
+
+  // Obtener estadísticas de permisos
+  async getPermissionsStats(): Promise<{
+    totalUsers: number;
+    totalModules: number;
+    permissionsByRole: { [role: string]: number };
+    mostUsedModules: { moduleId: string; count: number }[];
+  }> {
+    try {
+      infoLog('Obteniendo estadísticas de permisos');
+      
+      const response = await api.get<{ success: boolean; data: any }>('/api/module-permissions/stats');
+      
+      if (!response.data.success) {
+        throw new Error('Error al obtener estadísticas');
+      }
+      
+      return response.data.data;
+      
+    } catch (error) {
+      infoLog('Error obteniendo estadísticas de permisos', { error });
+      throw new Error('Error al obtener estadísticas de permisos');
     }
   }
 };
