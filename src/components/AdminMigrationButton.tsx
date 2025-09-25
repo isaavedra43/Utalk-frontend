@@ -20,18 +20,24 @@ export const AdminMigrationButton: React.FC<AdminMigrationButtonProps> = ({
     setMessage('🔄 Migrando permisos de admin...');
 
     try {
-      const response = await fetch('/api/admin-migration/force-migrate', {
+      const response = await fetch('/api/admin-fix', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
       });
 
+      // Verificar que la respuesta sea JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('El servidor devolvió HTML en lugar de JSON');
+      }
+
       const data = await response.json();
 
       if (response.ok && data.success) {
         setStatus('success');
-        setMessage('✅ ¡Migración exitosa! Recargando página...');
+        setMessage(`✅ ¡Permisos arreglados! Módulos: ${data.data?.migration?.modulesCount || 'N/A'}. Recargando...`);
         
         // Llamar callback si existe
         if (onMigrationComplete) {

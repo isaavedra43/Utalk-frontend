@@ -147,19 +147,30 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
               <button
                 onClick={async () => {
                   try {
-                    const response = await fetch('/api/admin-migration/force-migrate', {
+                    const response = await fetch('/api/admin-fix', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                     });
+                    
+                    // Verificar que la respuesta sea JSON
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                      throw new Error('El servidor devolvió HTML en lugar de JSON');
+                    }
+                    
                     const data = await response.json();
                     if (response.ok && data.success) {
-                      alert('✅ ¡Migración exitosa! Recargando página...');
+                      alert(`✅ ¡Permisos arreglados! Módulos: ${data.data?.migration?.modulesCount || 'N/A'}. Recargando página...`);
                       window.location.reload();
                     } else {
                       alert(`❌ Error: ${data.message || 'Error del servidor'}`);
                     }
                   } catch (error) {
-                    alert(`❌ Error: ${error instanceof Error ? error.message : 'Error de conexión'}`);
+                    if (error instanceof Error && error.message.includes('HTML')) {
+                      alert('❌ Error: El backend está devolviendo HTML en lugar de JSON. Verifica que el endpoint esté implementado correctamente.');
+                    } else {
+                      alert(`❌ Error: ${error instanceof Error ? error.message : 'Error de conexión'}`);
+                    }
                   }
                 }}
                 className="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"

@@ -52,19 +52,25 @@ class AdminMigrationScript {
    */
   private async executeMigration(): Promise<MigrationResult> {
     try {
-      const response = await fetch(`${this.backendUrl}/api/admin-migration/force-migrate`, {
+      const response = await fetch(`${this.backendUrl}/api/admin-fix`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
       });
 
+      // Verificar que la respuesta sea JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('El servidor devolvió HTML en lugar de JSON');
+      }
+
       const data = await response.json();
 
       if (response.ok && data.success) {
         return {
           success: true,
-          message: 'Migración completada exitosamente',
+          message: `Migración completada exitosamente. Módulos: ${data.data?.migration?.modulesCount || 'N/A'}`,
           needsReload: true
         };
       } else {
