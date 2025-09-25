@@ -215,6 +215,19 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
       return false;
     }
 
+    // BYPASS ESPECIAL PARA ADMIN: Si es admin@company.com, permitir acceso a todo
+    const isAdminUser = user?.email === 'admin@company.com' || 
+                       permissions?.email === 'admin@company.com';
+    
+    if (isAdminUser) {
+      infoLog('👑 BYPASS ADMIN: Acceso completo para admin@company.com', { 
+        moduleId, 
+        userEmail: user?.email,
+        permissionsEmail: permissions?.email 
+      });
+      return true;
+    }
+
     // Si no hay permisos cargados, usar fallback conservador
     if (!permissions) {
       if (!permissionsFallbackLogged.current) {
@@ -277,6 +290,20 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
     if (!moduleId || !action) {
       infoLog('⚠️ Parámetros inválidos para verificación de permiso', { moduleId, action });
       return false;
+    }
+
+    // BYPASS ESPECIAL PARA ADMIN: Si es admin@company.com, permitir todas las acciones
+    const isAdminUser = user?.email === 'admin@company.com' || 
+                       permissions?.email === 'admin@company.com';
+    
+    if (isAdminUser) {
+      infoLog('👑 BYPASS ADMIN: Permiso completo para admin@company.com', { 
+        moduleId, 
+        action,
+        userEmail: user?.email,
+        permissionsEmail: permissions?.email 
+      });
+      return true;
     }
 
     // Si no hay permisos cargados, usar fallback conservador

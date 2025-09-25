@@ -63,6 +63,18 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
+  // BYPASS ESPECIAL PARA ADMIN: Si es admin@company.com, permitir acceso a todo
+  const isAdminUser = backendUser?.email === 'admin@company.com';
+  
+  if (isAdminUser) {
+    infoLog('👑 BYPASS ADMIN: Acceso completo para admin@company.com', { 
+      moduleId, 
+      requiredAction,
+      userEmail: backendUser?.email 
+    });
+    return <>{children}</>;
+  }
+
   // Verificar acceso básico al módulo
   const hasAccess = canAccessModule(moduleId);
   if (!hasAccess) {
