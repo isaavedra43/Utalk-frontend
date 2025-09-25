@@ -6,6 +6,8 @@ import { LeftSidebar } from './LeftSidebar';
 import { MobileMenu } from './MobileMenu';
 import { useMobileMenuContext } from '../../contexts/MobileMenuContext';
 import { PermissionsDebug } from '../debug/PermissionsDebug';
+import { AdminMigrationAlert } from '../AdminMigrationAlert';
+import '../../utils/adminMigrationScript';
 // Lazy load de módulos
 const ChatModule = lazy(() => import('../chat/ChatModule').then(m => ({ default: m.ChatModule })));
 const DashboardModule = lazy(() => import('../../modules/dashboard').then(m => ({ default: m.DashboardModule })));
@@ -200,6 +202,9 @@ export const MainLayout: React.FC = () => {
       
       {/* Debug de permisos (solo en desarrollo) */}
       {process.env.NODE_ENV === 'development' && <PermissionsDebug />}
+      
+      {/* Alerta de migración para admins */}
+      <AdminMigrationAlert />
     </div>
   );
 }; 

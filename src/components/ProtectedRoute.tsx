@@ -1,5 +1,7 @@
 import React from 'react';
 import { useModulePermissions } from '../hooks/useModulePermissions';
+import { useAuthContext } from '../contexts/useAuthContext';
+import { AdminMigrationButton } from './AdminMigrationButton';
 import { infoLog } from '../config/logger';
 
 interface ProtectedRouteProps {
@@ -16,6 +18,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredAction = 'read'
 }) => {
   const { canAccessModule, hasPermission, loading, error } = useModulePermissions();
+  const { backendUser } = useAuthContext();
   
   // Log de protección de ruta
   React.useEffect(() => {
@@ -64,9 +67,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const hasAccess = canAccessModule(moduleId);
   if (!hasAccess) {
     infoLog('🔒 Acceso denegado a módulo', { moduleId, requiredAction });
+    
+    // Si es admin y no tiene acceso, mostrar botón de migración
+    const isAdmin = backendUser?.role?.toLowerCase().includes('admin') || 
+                   backendUser?.email?.includes('admin') ||
+                   backendUser?.email?.includes('@admin');
+    
     return fallback || (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center max-w-md mx-auto p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div className="text-center max-w-lg mx-auto p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
           <div className="text-red-600 text-xl mb-2">🔒 Acceso Denegado</div>
           <div className="text-sm text-gray-700 mb-3">
             No tienes permisos para acceder a este módulo
@@ -74,9 +83,23 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           <div className="text-xs text-gray-500 mb-4">
             Módulo: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{moduleId}</span>
           </div>
-          <div className="text-xs text-gray-400">
-            Contacta al administrador si necesitas acceso
-          </div>
+          
+          {/* Botón de migración para admins */}
+          {isAdmin && (
+            <div className="mt-6">
+              <AdminMigrationButton 
+                onMigrationComplete={() => {
+                  infoLog('✅ Migración de admin completada, recargando permisos');
+                }}
+              />
+            </div>
+          )}
+          
+          {!isAdmin && (
+            <div className="text-xs text-gray-400">
+              Contacta al administrador si necesitas acceso
+            </div>
+          )}
         </div>
       </div>
     );
