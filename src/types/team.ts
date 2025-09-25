@@ -175,6 +175,15 @@ export interface CreateAgentRequest {
     approve: boolean;
     configure: boolean;
   };
+  modulePermissions?: {
+    modules: {
+      [moduleId: string]: {
+        read: boolean;
+        write: boolean;
+        configure: boolean;
+      };
+    };
+  };
 }
 
 // Tipos de eventos de WebSocket para el equipo
