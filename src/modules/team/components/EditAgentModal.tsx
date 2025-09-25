@@ -254,9 +254,9 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
       
       try {
         const [backendModules, backendUserPermissions] = await Promise.all([
-          modulePermissionsService.getAvailableModules(),
-          modulePermissionsService.getUserPermissions(member.email)
-        ]);
+        modulePermissionsService.getAvailableModules(),
+        modulePermissionsService.getUserPermissions(member.email)
+      ]);
         modules = backendModules;
         userPermissions = backendUserPermissions;
         infoLog('Módulos cargados desde backend:', { modules, userPermissions });
@@ -497,8 +497,8 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
   return (
     <>
       <NotificationComponent />
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
@@ -672,10 +672,10 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                             </>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={handleSaveModulePermissions}
-                          disabled={isLoading}
+                      <button
+                        type="button"
+                        onClick={handleSaveModulePermissions}
+                        disabled={isLoading}
                           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                           {isLoading ? (
@@ -822,7 +822,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                             className="px-3 py-1 text-xs bg-red-100 text-red-800 rounded-full hover:bg-red-200 transition-colors"
                           >
                             👑 Acceso Completo
-                          </button>
+                      </button>
                         </div>
                       </div>
 
@@ -855,53 +855,53 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                                   {categoryModules.length} módulos
                                 </span>
                               </h4>
-                            </div>
-                            
+                    </div>
+                    
                             <div className="p-4 space-y-4">
                               {categoryModules.map(([moduleId, module]) => {
-                                const currentModulePermissions = modulePermissions?.permissions?.modules?.[moduleId];
+                        const currentModulePermissions = modulePermissions?.permissions?.modules?.[moduleId];
                                 const moduleData = module as { name: string; description: string; level: string; icon: string };
-                                
-                                return (
+                        
+                        return (
                                   <div key={moduleId} className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-                                    <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center justify-between mb-3">
                                       <div className="flex items-center gap-3">
                                         <span className="text-2xl">{moduleData.icon}</span>
-                                        <div>
+                              <div>
                                           <h5 className="text-sm font-medium text-gray-900">{moduleData.name}</h5>
-                                          <p className="text-xs text-gray-600">{moduleData.description}</p>
-                                        </div>
+                                <p className="text-xs text-gray-600">{moduleData.description}</p>
+                              </div>
                                       </div>
                                       <div className="flex items-center gap-2">
-                                        <span className={`text-xs px-2 py-1 rounded-full ${
-                                          moduleData.level === 'advanced' ? 'bg-red-100 text-red-800' :
-                                          moduleData.level === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                                          'bg-green-100 text-green-800'
-                                        }`}>
-                                          {moduleData.level}
-                                        </span>
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                moduleData.level === 'advanced' ? 'bg-red-100 text-red-800' :
+                                moduleData.level === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-green-100 text-green-800'
+                              }`}>
+                                {moduleData.level}
+                              </span>
                                       </div>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-3 gap-4">
-                                      {Object.entries({
+                            </div>
+                            
+                            <div className="grid grid-cols-3 gap-4">
+                              {Object.entries({
                                         read: { label: '👁️ Leer', description: 'Ver información', color: 'green' },
                                         write: { label: '✏️ Escribir', description: 'Crear y editar', color: 'blue' },
                                         configure: { label: '⚙️ Configurar', description: 'Administrar', color: 'purple' }
-                                      }).map(([action, actionInfo]) => (
+                              }).map(([action, actionInfo]) => (
                                         <div key={action} className="flex flex-col items-center space-y-2">
                                           <label className="flex items-center space-x-2 cursor-pointer">
-                                            <input
-                                              type="checkbox"
-                                              checked={currentModulePermissions?.[action as keyof typeof currentModulePermissions] || false}
-                                              onChange={(e) => handleModulePermissionChange(moduleId, action as 'read' | 'write' | 'configure', e.target.checked)}
+                                  <input
+                                    type="checkbox"
+                                    checked={currentModulePermissions?.[action as keyof typeof currentModulePermissions] || false}
+                                    onChange={(e) => handleModulePermissionChange(moduleId, action as 'read' | 'write' | 'configure', e.target.checked)}
                                               className={`w-4 h-4 text-${actionInfo.color}-600 border-gray-300 rounded focus:ring-${actionInfo.color}-500`}
-                                            />
+                                  />
                                             <span className="text-sm font-medium text-gray-700">{actionInfo.label}</span>
-                                          </label>
+                                  </label>
                                           <p className="text-xs text-gray-500 text-center">{actionInfo.description}</p>
-                                        </div>
-                                      ))}
+                                </div>
+                              ))}
                                     </div>
                                   </div>
                                 );

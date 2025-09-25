@@ -69,9 +69,52 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     infoLog('🔒 Acceso denegado a módulo', { moduleId, requiredAction });
     
     // Si es admin y no tiene acceso, mostrar botón de migración
-    const isAdmin = backendUser?.role?.toLowerCase().includes('admin') || 
-                   backendUser?.email?.includes('admin') ||
-                   backendUser?.email?.includes('@admin');
+    // Verificar múltiples fuentes para detectar admin
+    let isAdmin = false;
+    
+    // 1. Verificar backendUser
+    if (backendUser) {
+      isAdmin = backendUser.role?.toLowerCase().includes('admin') || 
+                backendUser.email?.includes('admin') ||
+                backendUser.email?.includes('@admin') ||
+                backendUser.email === 'admin@company.com';
+    }
+    
+    // 2. Verificar token JWT como fallback
+    if (!isAdmin) {
+      try {
+        const token = localStorage.getItem('access_token');
+        if (token) {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          isAdmin = payload.email === 'admin@company.com' || 
+                   payload.role === 'admin' ||
+                   payload.email?.includes('admin');
+        }
+      } catch (error) {
+        // Ignorar errores de parsing del token
+      }
+    }
+    
+    // 3. Verificar localStorage como último recurso
+    if (!isAdmin) {
+      const storedEmail = localStorage.getItem('userEmail') || sessionStorage.getItem('userEmail');
+      const storedRole = localStorage.getItem('userRole') || sessionStorage.getItem('userRole');
+      isAdmin = storedEmail === 'admin@company.com' || 
+                storedRole === 'admin' ||
+                storedEmail?.includes('admin');
+    }
+    
+    // Log para debugging
+    infoLog('🔍 Verificando si es admin en ProtectedRoute', {
+      email: backendUser?.email,
+      role: backendUser?.role,
+      isAdmin,
+      moduleId,
+      hasBackendUser: !!backendUser,
+      hasToken: !!localStorage.getItem('access_token'),
+      storedEmail: localStorage.getItem('userEmail'),
+      storedRole: localStorage.getItem('userRole')
+    });
     
     return fallback || (
       <div className="flex items-center justify-center h-64">
@@ -95,9 +138,37 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             </div>
           )}
           
+          {/* Botón de migración forzada (temporal para testing) */}
           {!isAdmin && (
-            <div className="text-xs text-gray-400">
-              Contacta al administrador si necesitas acceso
+            <div className="mt-6">
+              <div className="text-xs text-gray-400 mb-3">
+                Contacta al administrador si necesitas acceso
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/admin-migration/force-migrate', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                      alert('✅ ¡Migración exitosa! Recargando página...');
+                      window.location.reload();
+                    } else {
+                      alert(`❌ Error: ${data.message || 'Error del servidor'}`);
+                    }
+                  } catch (error) {
+                    alert(`❌ Error: ${error instanceof Error ? error.message : 'Error de conexión'}`);
+                  }
+                }}
+                className="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                🔧 Forzar Migración de Admin (Testing)
+              </button>
+              <div className="text-xs text-gray-500 mt-2 text-center">
+                Botón temporal para testing - Admin detectado: {isAdmin ? 'Sí' : 'No'}
+              </div>
             </div>
           )}
         </div>
