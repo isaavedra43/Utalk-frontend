@@ -264,7 +264,7 @@ const PayrollApprovalView: React.FC<PayrollApprovalViewProps> = ({
               amount: adj.amount || 0,
               description: adj.description || 'Ajuste de nómina',
               reason: adj.reason || 'Ajuste aplicado',
-              approved: adj.approved || false,
+              approved: adj.status === 'approved',
               createdBy: adj.createdBy || 'admin@company.com',
               createdAt: adj.createdAt || new Date().toISOString(),
               approvedBy: adj.approvedBy,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Search,
   Filter,
@@ -8,6 +8,7 @@ import {
   Edit,
   FileText,
   Clock,
+  RefreshCw,
   AlertTriangle,
   CheckCircle,
   XCircle,
@@ -63,8 +64,8 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
     expired: 0
   });
 
-  // Función para cargar empleados desde la API
-  const loadEmployees = async () => {
+  // Función para cargar empleados desde la API - MEMOIZADA para evitar llamadas duplicadas
+  const loadEmployees = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -120,12 +121,22 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.page, pagination.limit, searchQuery, filters.department, filters.status]);
 
-  // Cargar empleados al montar el componente y cuando cambien los filtros
+  // Debounce para evitar llamadas excesivas
   useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadEmployees();
+    }, 300); // 300ms de debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [pagination.page, pagination.limit, searchQuery, filters.department, filters.status]);
+
+  // Función para refrescar datos y limpiar cache
+  const handleRefresh = useCallback(() => {
+    employeesApi.clearCache();
     loadEmployees();
-  }, [pagination.page, pagination.limit]);
+  }, [loadEmployees]);
 
   // Función para buscar empleados con debounce
   const handleSearch = useMemo(() => {
@@ -547,6 +558,14 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
           </div>
 
           <div className="flex items-center space-x-3">
+            <button
+              onClick={handleRefresh}
+              className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              title="Refrescar datos"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span>Refrescar</span>
+            </button>
             <button
               onClick={() => handleExportEmployees('excel')}
               className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"

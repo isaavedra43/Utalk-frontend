@@ -14,6 +14,9 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
+  private retryCount = 0;
+  private maxRetries = 3;
+
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false };
@@ -24,10 +27,25 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('🚨 ErrorBoundary capturó un error:', error);
+    console.error('🚨 ErrorInfo:', errorInfo);
+    console.error('🚨 Stack trace:', error.stack);
+    
     infoLog('Error Boundary caught an error:', error, errorInfo);
     
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
+    }
+  }
+
+  private handleRetry = () => {
+    if (this.retryCount < this.maxRetries) {
+      this.retryCount++;
+      console.log(`🔄 Reintentando después del error (intento ${this.retryCount}/${this.maxRetries})`);
+      this.setState({ hasError: false, error: undefined });
+    } else {
+      console.error('❌ Máximo número de reintentos alcanzado, recargando página');
+      window.location.reload();
     }
   }
 
@@ -48,10 +66,10 @@ export class ErrorBoundary extends Component<Props, State> {
               Ha ocurrido un error inesperado. Por favor, intenta recargar la página.
             </p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={this.handleRetry}
               className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
             >
-              Recargar Página
+              Reintentar
             </button>
             {(typeof import.meta !== 'undefined' ? import.meta.env.DEV : false) && this.state.error && (
               <details className="mt-4 text-left">

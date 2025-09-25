@@ -26,13 +26,46 @@ import {
 
 class EmployeeService {
   private baseEndpoint = '/api/employees';
+  private cache = new Map<string, { data: any; timestamp: number; promise?: Promise<any> }>();
+  private readonly CACHE_DURATION = 30000; // 30 segundos
 
   // ===== MÉTODOS PRINCIPALES =====
 
   /**
-   * Listar empleados con filtros y paginación
+   * Listar empleados con filtros y paginación - OPTIMIZADO CON CACHE
    */
   async listEmployees(filters: EmployeeFilters = {}): Promise<EmployeeListResponse> {
+    const cacheKey = this.generateCacheKey('listEmployees', filters);
+    
+    // Verificar cache
+    const cached = this.cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+      console.log('🎯 Cache hit para listEmployees:', cacheKey);
+      return cached.data;
+    }
+
+    // Si hay una petición en curso, esperar a que termine
+    if (cached?.promise) {
+      console.log('⏳ Esperando petición en curso para listEmployees');
+      return await cached.promise;
+    }
+
+    // Realizar petición
+    const promise = this.performListEmployeesRequest(filters);
+    this.cache.set(cacheKey, { data: null, timestamp: Date.now(), promise });
+    
+    try {
+      const result = await promise;
+      this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
+      this.cleanOldCache();
+      return result;
+    } catch (error) {
+      this.cache.delete(cacheKey);
+      throw error;
+    }
+  }
+
+  private async performListEmployeesRequest(filters: EmployeeFilters): Promise<EmployeeListResponse> {
     const params = new URLSearchParams();
     
     if (filters.page) params.append('page', filters.page.toString());
@@ -47,6 +80,7 @@ class EmployeeService {
     const queryString = params.toString();
     const endpoint = queryString ? `${this.baseEndpoint}?${queryString}` : this.baseEndpoint;
     
+    console.log('🌐 Realizando petición real a API de empleados:', filters);
     const response = await api.get(endpoint);
     return response.data;
   }
@@ -247,6 +281,41 @@ class EmployeeService {
   }
 
   // ===== MÉTODOS DE UTILIDAD =====
+
+  /**
+   * Generar clave de cache
+   */
+  private generateCacheKey(method: string, params: any): string {
+    const sortedParams = Object.keys(params)
+      .sort()
+      .reduce((result, key) => {
+        result[key] = params[key];
+        return result;
+      }, {} as any);
+    return `${method}:${JSON.stringify(sortedParams)}`;
+  }
+
+  /**
+   * Limpiar cache viejo
+   */
+  private cleanOldCache(): void {
+    const now = Date.now();
+    const maxAge = 5 * 60 * 1000; // 5 minutos
+    
+    for (const [key, value] of this.cache.entries()) {
+      if (now - value.timestamp > maxAge) {
+        this.cache.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Limpiar todo el cache manualmente
+   */
+  public clearCache(): void {
+    this.cache.clear();
+    console.log('🧹 Cache de employeeService limpiado');
+  }
 
   /**
    * Validar permisos HR para una acción específica
