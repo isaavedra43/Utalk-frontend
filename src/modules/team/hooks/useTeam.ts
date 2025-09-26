@@ -55,29 +55,41 @@ export const useTeam = () => {
       setTeamLoading(true);
       setTeamError(null);
       
-      // Convertir filtros legacy a filtros del backend
-      const employeeFilters = {
+      // ✅ CORRECTO: Usar teamService para cargar agentes, NO empleados
+      const { teamService } = await import('../../team/services/teamService');
+      
+      // Convertir filtros legacy a filtros del backend de agentes
+      const agentFilters = {
         search: filters.search,
-        department: filters.department,
         status: filters.status === 'all' ? undefined : filters.status as any,
+        role: filters.department, // Mapear department a role para agentes
         page: 1,
         limit: 50
       };
       
-      await loadEmployees(employeeFilters);
+      const response = await teamService.getAgents(agentFilters);
       
-      logger.systemInfo('Miembros del equipo cargados exitosamente', {
-        total: stats.total,
-        active: stats.active,
-        inactive: stats.inactive
+      // Actualizar estado con los agentes obtenidos
+      setEmployees(response.agents);
+      setStats({
+        total: response.total,
+        active: response.active,
+        inactive: response.inactive
+      });
+      
+      logger.systemInfo('Agentes del equipo cargados exitosamente', {
+        total: response.total,
+        active: response.active,
+        inactive: response.inactive,
+        agentsCount: response.agents.length
       });
       
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error al cargar miembros del equipo';
+      const errorMessage = error instanceof Error ? error.message : 'Error al cargar agentes del equipo';
       setTeamError(errorMessage);
-      logger.systemInfo('Error cargando miembros del equipo', { error: errorMessage });
+      logger.systemInfo('Error cargando agentes del equipo', { error: errorMessage });
     }
-  }, [filters.search, filters.department, filters.status, loadEmployees, setTeamLoading, setTeamError, stats, logger]);
+  }, [filters.search, filters.department, filters.status, setTeamLoading, setTeamError]);
 
   // Seleccionar miembro (compatible con ambos sistemas)
   const selectMember = useCallback((member: TeamMember) => {
@@ -144,6 +156,9 @@ export const useTeam = () => {
         name: newAgent.name,
         email: newAgent.email 
       });
+      
+      // ✅ ACTUALIZAR LA LISTA DE AGENTES DESPUÉS DE CREAR
+      await loadMembers();
       
       return newAgent;
       

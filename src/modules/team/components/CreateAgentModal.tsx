@@ -235,6 +235,15 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
           });
         }
         
+        // ✅ MOSTRAR MENSAJE DE ÉXITO
+        infoLog('✅ Agente creado exitosamente', { 
+          name: result.agent.name,
+          email: result.agent.email 
+        });
+        
+        // ✅ MOSTRAR NOTIFICACIÓN DE ÉXITO AL USUARIO
+        alert(`✅ Agente creado exitosamente!\n\nNombre: ${result.agent.name}\nEmail: ${result.agent.email}\nRol: ${result.agent.role}`);
+        
         // Notificar al componente padre
         onAgentCreated(result.agent);
         
@@ -254,6 +263,8 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
         setModulePermissions({});
         setActiveTab('basic');
         setErrors({});
+        
+        // ✅ CERRAR MODAL DESPUÉS DE ÉXITO
         onClose();
         
       } catch (error) {
@@ -280,6 +291,9 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
         
         infoLog('Error creando agente:', { error: errorMessage, originalError: error });
         setErrors(prev => ({ ...prev, submit: errorMessage }));
+        
+        // ✅ MOSTRAR NOTIFICACIÓN DE ERROR AL USUARIO
+        alert(`❌ Error al crear agente:\n\n${errorMessage}`);
       } finally {
         setIsSubmitting(false);
       }

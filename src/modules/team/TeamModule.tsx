@@ -55,7 +55,13 @@ const TeamModule: React.FC = () => {
     try {
       await createAgent(agentData);
       logger.systemInfo('Agente creado exitosamente', { name: agentData.name, email: agentData.email });
+      
+      // ✅ ACTUALIZAR LA LISTA DE AGENTES DESPUÉS DE CREAR
+      await refreshTeam();
+      
+      // ✅ CERRAR EL MODAL
       setIsCreateModalOpen(false);
+      
     } catch (error) {
       logger.systemInfo('Error creando agente', { error, agentData });
       // El error se maneja en el hook, aquí solo log
