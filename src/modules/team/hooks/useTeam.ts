@@ -113,6 +113,25 @@ export const useTeam = () => {
           attendance: 100,
           performance: agent.performance?.csat || 0,
           productivity: 0
+        },
+        // ✅ CAMPOS DE CONFIGURACIÓN REQUERIDOS
+        settings: {
+          notifications: true,
+          language: 'es',
+          timezone: 'America/Mexico_City' // ← Campo que faltaba
+        },
+        configuration: {
+          language: 'es',
+          timezone: 'America/Mexico_City',
+          theme: 'light',
+          autoLogout: true,
+          twoFactor: false
+        },
+        notifications: {
+          email: true,
+          push: true,
+          sms: false,
+          desktop: true
         }
       }));
       
