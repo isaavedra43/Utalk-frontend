@@ -12,12 +12,14 @@ import { LoginForm } from './components/LoginForm';
 import { BenefitsCarousel } from './components/BenefitsCarousel';
 import { Brand } from './components/Brand';
 import { useAuthContext } from '../../contexts/useAuthContext';
+import { useInitialModule } from '../../hooks/useInitialModule';
 
 export const AuthModule = () => {
   const [isDark, setIsDark] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const controls = useAnimation();
   const { isAuthenticated } = useAuthContext();
+  const { getInitialModule, loading: permissionsLoading } = useInitialModule();
 
   // Animación flotante
   useEffect(() => {
@@ -42,9 +44,30 @@ export const AuthModule = () => {
 
   const toggleTheme = () => setIsDark(!isDark);
 
-  // Si ya está autenticado, redirigir al dashboard
+  // Si ya está autenticado, redirigir al módulo inicial basado en permisos
   if (isAuthenticated) {
-    return <Navigate to="/chat" replace />;
+    // Si los permisos están cargando, mostrar loading
+    if (permissionsLoading) {
+      return (
+        <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Cargando permisos...
+            </h3>
+            <p className="text-gray-600">
+              Determinando módulos disponibles
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // Obtener el módulo inicial basado en permisos
+    const initialModule = getInitialModule();
+    const modulePath = `/${initialModule}`;
+    
+    return <Navigate to={modulePath} replace />;
   }
 
   return (

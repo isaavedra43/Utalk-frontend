@@ -601,7 +601,7 @@ function App() {
                   } 
                 />
 
-                <Route path="/" element={<Navigate to="/login" replace />} />
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
               </Routes>
               
               {/* Módulo de Monitoreo - Solo en desarrollo o con flag habilitado */}

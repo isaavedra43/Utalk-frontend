@@ -303,7 +303,8 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
         setCreatedAgent(result.agent);
         setShowSuccessNotification(true);
         
-        // Notificar al componente padre
+        // ✅ NO LLAMAR onAgentCreated PARA EVITAR PETICIÓN DUPLICADA
+        // El agente ya se creó exitosamente, solo notificar para refrescar la lista
         onAgentCreated(result.agent);
         
         // Resetear formulario

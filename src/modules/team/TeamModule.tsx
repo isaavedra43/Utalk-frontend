@@ -55,8 +55,8 @@ const TeamModule: React.FC = () => {
 
   const handleCreateAgent = async (agentData: CreateAgentRequest) => {
     try {
-      await createAgent(agentData);
-      logger.systemInfo('Agente creado exitosamente', { name: agentData.name, email: agentData.email });
+      // ✅ EL AGENTE YA SE CREÓ EN EL MODAL, SOLO REFRESCAR LA LISTA
+      logger.systemInfo('Agente creado exitosamente, refrescando lista', { name: agentData.name, email: agentData.email });
       
       // ✅ ACTUALIZAR LA LISTA DE AGENTES DESPUÉS DE CREAR
       await refreshTeam();
@@ -65,7 +65,7 @@ const TeamModule: React.FC = () => {
       setIsCreateModalOpen(false);
       
     } catch (error) {
-      logger.systemInfo('Error creando agente', { error, agentData });
+      logger.systemInfo('Error refrescando lista de agentes', { error, agentData });
       // El error se maneja en el hook, aquí solo log
     }
   };
