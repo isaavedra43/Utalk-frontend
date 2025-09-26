@@ -137,7 +137,7 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
     });
   };
 
-  const validateForm = () => {
+  const validateForm = async () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
@@ -150,6 +150,18 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
       newErrors.email = 'El correo electrónico es requerido';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'El correo electrónico no es válido';
+    } else {
+      // Verificar si el email ya existe
+      try {
+        const { teamService } = await import('../services/teamService');
+        const emailExists = await teamService.checkEmailExists(formData.email.trim());
+        if (emailExists) {
+          newErrors.email = 'Este email ya está registrado';
+        }
+      } catch (error) {
+        // Si hay error en la verificación, continuar sin bloquear
+        infoLog('Error verificando email, continuando con validación', { error });
+      }
     }
 
     if (formData.phone && !/^\+?[\d\s\-()]+$/.test(formData.phone)) {
@@ -163,7 +175,8 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (validateForm() && !isSubmitting) {
+    const isValid = await validateForm();
+    if (isValid && !isSubmitting) {
       setIsSubmitting(true);
       
       try {
@@ -244,9 +257,29 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
         onClose();
         
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Error al crear agente';
-        infoLog('Error creando agente:', errorMessage);
-        setErrors({ submit: errorMessage });
+        let errorMessage = 'Error al crear agente';
+        
+        // Manejar errores específicos del backend
+        if (error instanceof Error) {
+          const errorStr = error.message.toLowerCase();
+          
+          if (errorStr.includes('email') && errorStr.includes('already') || 
+              errorStr.includes('duplicate') || 
+              errorStr.includes('ya existe')) {
+            errorMessage = 'Ya existe un agente con este email. Por favor, usa un email diferente.';
+            setErrors({ email: 'Este email ya está registrado' });
+          } else if (errorStr.includes('invalid') && errorStr.includes('email')) {
+            errorMessage = 'El formato del email no es válido.';
+            setErrors({ email: 'Formato de email inválido' });
+          } else if (errorStr.includes('required') || errorStr.includes('requerido')) {
+            errorMessage = 'Por favor, completa todos los campos obligatorios.';
+          } else {
+            errorMessage = error.message;
+          }
+        }
+        
+        infoLog('Error creando agente:', { error: errorMessage, originalError: error });
+        setErrors(prev => ({ ...prev, submit: errorMessage }));
       } finally {
         setIsSubmitting(false);
       }

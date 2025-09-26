@@ -227,6 +227,23 @@ class TeamService {
     return result.agent;
   }
   
+  // ✅ MÉTODO AUXILIAR: Verificar si un email ya existe
+  async checkEmailExists(email: string): Promise<boolean> {
+    try {
+      logger.systemInfo('Verificando si el email existe', { email });
+      
+      const encodedEmail = encodeURIComponent(email);
+      const response = await api.get<TeamApiResponse<{ exists: boolean }>>(`/api/team/agents/check-email/${encodedEmail}`);
+      
+      return response.data.data?.exists || false;
+      
+    } catch (error) {
+      // Si hay error, asumimos que no existe para permitir el intento de creación
+      logger.systemInfo('Error verificando email, continuando con creación', { email, error });
+      return false;
+    }
+  }
+
   // ✅ ENDPOINT 4: Obtener agente específico
   async getAgent(id: string): Promise<TeamMember> {
     try {
