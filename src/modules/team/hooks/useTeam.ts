@@ -70,8 +70,8 @@ export const useTeam = () => {
       
       const response = await teamService.getAgents(agentFilters);
       
-      // ✅ CORRECTO: Usar las funciones del store para actualizar el estado
-      // Convertir agentes a formato de empleados para compatibilidad
+      // ✅ CORRECTO: Convertir agentes a formato compatible con el store
+      // Los agentes NO tienen salarios, son usuarios del sistema
       const employeesData = response.agents.map(agent => ({
         id: agent.id,
         personalInfo: {
@@ -89,7 +89,31 @@ export const useTeam = () => {
         performance: agent.performance,
         permissions: agent.permissions,
         createdAt: agent.createdAt,
-        updatedAt: agent.updatedAt
+        updatedAt: agent.updatedAt,
+        // ✅ CAMPOS REQUERIDOS PARA EVITAR ERRORES
+        contract: {
+          type: 'agent', // Los agentes no son empleados con contrato
+          startDate: agent.createdAt || new Date().toISOString(),
+          endDate: null,
+          salary: 0, // Los agentes no tienen salario
+          currency: 'MXN',
+          workingDays: 'Lunes a Viernes',
+          workingHoursRange: '09:00-18:00'
+        },
+        salary: {
+          baseSalary: 0, // Los agentes no tienen salario
+          currency: 'MXN',
+          frequency: 'monthly',
+          paymentMethod: 'none'
+        },
+        sbc: 0, // Los agentes no tienen SBC
+        vacationBalance: 0,
+        sickLeaveBalance: 0,
+        metrics: {
+          attendance: 100,
+          performance: agent.performance?.csat || 0,
+          productivity: 0
+        }
       }));
       
       // ✅ CORRECTO: Usar la función específica para actualizar con datos de agentes
