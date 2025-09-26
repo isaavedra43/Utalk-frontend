@@ -414,7 +414,7 @@ export function employeeToTeamMember(employee: Employee): TeamMember {
       utilization: 0
     },
     schedule: {
-      timezone: employee.location.timezone,
+      timezone: employee.location?.timezone || employee.settings?.timezone || 'America/Mexico_City',
       workingHours: parseWorkingHours(employee.contract.workingHoursRange),
       workingDays: employee.contract.workingDays.split(',').map(d => d.trim())
     }
