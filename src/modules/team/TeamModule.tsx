@@ -24,6 +24,8 @@ const TeamModule: React.FC = () => {
   const { setCurrentModule } = useUIStore();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [agentToDelete, setAgentToDelete] = useState<any>(null);
   
   const { 
     members, 
@@ -68,15 +70,37 @@ const TeamModule: React.FC = () => {
     }
   };
 
-  const handleDeleteAgent = async (member: any) => {
+  const handleDeleteAgent = (member: any) => {
+    // Mostrar modal de confirmación personalizado
+    setAgentToDelete(member);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteAgent = async () => {
+    if (!agentToDelete) return;
+    
     try {
-      if (window.confirm(`¿Estás seguro de que quieres eliminar al agente ${member.name}?`)) {
-        await deleteAgent(member.id);
-        logger.systemInfo('Agent deleted successfully', { agentId: member.id });
-      }
+      await deleteAgent(agentToDelete.id);
+      logger.systemInfo('Agent deleted successfully', { agentId: agentToDelete.id });
+      
+      // Cerrar modal y limpiar estado
+      setShowDeleteModal(false);
+      setAgentToDelete(null);
+      
+      // Refrescar la lista
+      await refreshTeam();
+      
     } catch (error) {
       logger.systemInfo('Error deleting agent in TeamModule', { error });
+      // Cerrar modal incluso si hay error
+      setShowDeleteModal(false);
+      setAgentToDelete(null);
     }
+  };
+
+  const cancelDeleteAgent = () => {
+    setShowDeleteModal(false);
+    setAgentToDelete(null);
   };
 
   const handleSearchChange = (term: string) => {
@@ -256,6 +280,86 @@ const TeamModule: React.FC = () => {
           onAgentCreated={handleCreateAgent}
         />
       </Suspense>
+
+      {/* Modal de confirmación de eliminación */}
+      {showDeleteModal && agentToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300 scale-100">
+            {/* Header con gradiente rojo */}
+            <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-t-2xl p-6 text-white">
+              <div className="flex items-center justify-center">
+                <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </div>
+              </div>
+              <h3 className="text-2xl font-bold text-center">Eliminar Agente</h3>
+              <p className="text-red-100 text-center mt-2">Esta acción no se puede deshacer</p>
+            </div>
+
+            {/* Contenido */}
+            <div className="p-6">
+              <div className="space-y-4">
+                {/* Información del agente a eliminar */}
+                <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                      {agentToDelete.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">{agentToDelete.name}</h4>
+                      <p className="text-sm text-gray-600">{agentToDelete.email}</p>
+                      <p className="text-xs text-red-600 font-medium">Rol: {agentToDelete.role}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Advertencia */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <svg className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <div>
+                      <h5 className="font-medium text-yellow-800">Advertencia</h5>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        Al eliminar este agente, se perderá toda su información, historial y configuraciones. 
+                        Esta acción es permanente y no se puede deshacer.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mensaje de confirmación */}
+                <div className="text-center py-4">
+                  <p className="text-gray-700 font-medium">
+                    ¿Estás seguro de que quieres eliminar a <span className="text-red-600 font-bold">{agentToDelete.name}</span>?
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Botones de acción */}
+            <div className="px-6 pb-6">
+              <div className="flex space-x-3">
+                <button
+                  onClick={cancelDeleteAgent}
+                  className="flex-1 bg-gray-100 text-gray-700 py-3 px-6 rounded-xl font-semibold hover:bg-gray-200 transition-all duration-200 border border-gray-300"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDeleteAgent}
+                  className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-200 transform hover:scale-105 shadow-lg"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
