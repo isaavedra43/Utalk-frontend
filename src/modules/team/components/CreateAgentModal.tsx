@@ -19,7 +19,8 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
     name: '',
     email: '',
     role: 'agent' as const,
-    phone: ''
+    phone: '',
+    password: ''
   });
 
   const [permissions, setPermissions] = useState({
@@ -228,6 +229,11 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
       newErrors.phone = 'El formato del teléfono no es válido';
     }
 
+    // Validación de contraseña (opcional)
+    if (formData.password && formData.password.length < 6) {
+      newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -247,6 +253,7 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
           email: formData.email.trim(),
           role: formData.role,
           phone: formData.phone.trim() || undefined,
+          password: formData.password.trim() || undefined,
           
           // Permisos básicos
           permissions: {
@@ -291,7 +298,7 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
         });
         
         // ✅ MOSTRAR NOTIFICACIÓN DE ÉXITO AL USUARIO
-        alert(`✅ Agente creado exitosamente!\n\nNombre: ${result.agent.name}\nEmail: ${result.agent.email}\nRol: ${result.agent.role}`);
+        alert(`✅ ¡Agente creado exitosamente!\n\n👤 Nombre: ${result.agent.name}\n📧 Email: ${result.agent.email}\n🎭 Rol: ${result.agent.role}\n\nEl agente ya está disponible en la lista.`);
         
         // Notificar al componente padre
         onAgentCreated(result.agent);
@@ -301,7 +308,8 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
           name: '',
           email: '',
           role: 'agent',
-          phone: ''
+          phone: '',
+          password: ''
         });
         setPermissions({
           read: true,
@@ -368,7 +376,8 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
         name: '',
         email: '',
         role: 'agent',
-        phone: ''
+        phone: '',
+        password: ''
       });
       setPermissions({
         read: true,
@@ -567,6 +576,29 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
                 <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
               )}
               <p className="mt-1 text-xs text-gray-500">Opcional. Formato internacional recomendado.</p>
+            </div>
+
+            {/* Contraseña */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                🔐 Contraseña
+              </label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                  errors.password ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="Ingresa una contraseña segura"
+                disabled={isSubmitting}
+              />
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+              )}
+              <p className="mt-1 text-xs text-gray-500">Opcional. Si no se proporciona, se generará automáticamente.</p>
             </div>
               </div>
             )}

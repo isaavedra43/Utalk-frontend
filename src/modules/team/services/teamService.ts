@@ -186,19 +186,26 @@ class TeamService {
         role: agentData.role 
       });
       
-      const response = await api.post<TeamApiResponse<{ agent: TeamMember; accessInfo?: any }>>('/api/team/agents', agentData);
+      const response = await api.post<TeamApiResponse<any>>('/api/team/agents', agentData);
       
       if (!response.data.success) {
         throw new Error(response.data.message || 'Error al crear agente');
       }
       
+      // ✅ MANEJAR LA ESTRUCTURA REAL DE LA RESPUESTA DEL BACKEND
+      const createdAgent = response.data.data;
+      
       logger.systemInfo('Agente creado exitosamente', { 
-        id: response.data.data.agent.id,
-        name: response.data.data.agent.name,
-        email: response.data.data.agent.email 
+        id: createdAgent.id,
+        name: createdAgent.name,
+        email: createdAgent.email 
       });
       
-      return response.data.data;
+      // ✅ RETORNAR EN EL FORMATO ESPERADO POR EL FRONTEND
+      return {
+        agent: createdAgent,
+        accessInfo: undefined // El backend no devuelve accessInfo en esta versión
+      };
       
     } catch (error) {
       logger.systemInfo('Error creando agente', { error, agentData });
