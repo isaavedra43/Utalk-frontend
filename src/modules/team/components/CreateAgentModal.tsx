@@ -167,34 +167,63 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
       setIsSubmitting(true);
       
       try {
-        const agentData: CreateAgentRequest = {
+        // ✅ PREPARAR DATOS COMPLETOS PARA EL BACKEND
+        const agentCompleteData = {
+          // Información básica
           name: formData.name.trim(),
           email: formData.email.trim(),
           role: formData.role,
           phone: formData.phone.trim() || undefined,
-          permissions
+          
+          // Permisos básicos
+          permissions: {
+            read: permissions.read,
+            write: permissions.write,
+            approve: permissions.approve,
+            configure: permissions.configure,
+            modules: modulePermissions
+          },
+          
+          // Notificaciones por defecto
+          notifications: {
+            email: true,
+            push: true,
+            sms: false,
+            desktop: true
+          },
+          
+          // Configuración por defecto
+          configuration: {
+            language: 'es',
+            timezone: 'America/Mexico_City',
+            theme: 'light' as const,
+            autoLogout: true,
+            twoFactor: false
+          }
         };
         
-        // Simular creación del agente
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const createdAgent = onAgentCreated(agentData as TeamMember);
+        infoLog('Creando agente con datos completos', { email: agentCompleteData.email });
         
-        // Si se configuraron permisos de módulos, aplicarlos después de crear el agente
-        const hasModulePermissions = Object.values(modulePermissions).some(perms => 
-          perms.read || perms.write || perms.configure
-        );
+        // ✅ USAR TEAMSERVICE PARA CREAR AGENTE REAL
+        const { teamService } = await import('../services/teamService');
+        const result = await teamService.createAgentComplete(agentCompleteData);
         
-        if (hasModulePermissions) {
-          try {
-            await modulePermissionsService.updateUserPermissions(formData.email.trim(), {
-              modules: modulePermissions
-            });
-            infoLog('Permisos de módulos aplicados al nuevo agente', { email: formData.email.trim() });
-          } catch (error) {
-            infoLog('Error aplicando permisos de módulos al nuevo agente:', error);
-            // No fallar la creación del agente por esto
-          }
+        infoLog('Agente creado exitosamente', { 
+          id: result.agent.id,
+          email: result.agent.email,
+          hasAccessInfo: !!result.accessInfo
+        });
+        
+        // Mostrar información de acceso si está disponible
+        if (result.accessInfo) {
+          infoLog('Información de acceso temporal generada', {
+            hasTemporaryPassword: !!result.accessInfo.temporaryPassword,
+            mustChangePassword: result.accessInfo.mustChangePassword
+          });
         }
+        
+        // Notificar al componente padre
+        onAgentCreated(result.agent);
         
         // Resetear formulario
         setFormData({
@@ -213,9 +242,11 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
         setActiveTab('basic');
         setErrors({});
         onClose();
+        
       } catch (error) {
-        // El error se maneja en el componente padre
-        console.error('Error creating agent:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Error al crear agente';
+        infoLog('Error creando agente:', errorMessage);
+        setErrors({ submit: errorMessage });
       } finally {
         setIsSubmitting(false);
       }

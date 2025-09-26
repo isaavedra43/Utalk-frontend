@@ -440,80 +440,9 @@ class EmployeeService {
     };
   }
 
-  /**
-   * Crear agente (compatibilidad con componentes existentes)
-   */
-  async createAgent(agentData: any): Promise<any> {
-    // Convertir datos del formato antiguo al nuevo
-    const employeeData: CreateEmployeeData = {
-      personalInfo: {
-        firstName: agentData.name.split(' ')[0] || agentData.name,
-        lastName: agentData.name.split(' ').slice(1).join(' ') || '',
-        email: agentData.email,
-        phone: agentData.phone || '',
-        dateOfBirth: '1990-01-01', // Valor por defecto
-        gender: 'M', // Valor por defecto
-        maritalStatus: 'soltero', // Valor por defecto
-        nationality: 'Mexicana', // Valor por defecto
-        rfc: '', // Se debe llenar
-        curp: '', // Se debe llenar
-        address: {
-          street: '',
-          city: 'Ciudad de México',
-          state: 'CDMX',
-          country: 'México',
-          postalCode: '01000'
-        }
-      },
-      position: {
-        title: agentData.role || 'Agente',
-        department: 'Atención al Cliente',
-        level: 'Junior',
-        jobDescription: 'Atención al cliente y soporte',
-        startDate: new Date().toISOString().split('T')[0]
-      },
-      location: {
-        office: 'Oficina Central',
-        address: 'Av. Reforma 123',
-        city: 'Ciudad de México',
-        state: 'CDMX',
-        country: 'México',
-        postalCode: '06600',
-        timezone: 'America/Mexico_City'
-      },
-      contract: {
-        type: 'permanent',
-        startDate: new Date().toISOString().split('T')[0],
-        salary: 25000,
-        currency: 'MXN',
-        workingDays: 'Lunes a Viernes',
-        workingHoursRange: '09:00-18:00',
-        benefits: ['seguro médico']
-      }
-    };
-
-    return this.createEmployee(employeeData);
-  }
-
-  /**
-   * Actualizar agente (compatibilidad con componentes existentes)
-   */
-  async updateAgent(id: string, agentData: any): Promise<any> {
-    const updateData: UpdateEmployeeData = {
-      personalInfo: {
-        firstName: agentData.name?.split(' ')[0],
-        lastName: agentData.name?.split(' ').slice(1).join(' '),
-        email: agentData.email,
-        phone: agentData.phone
-      },
-      position: {
-        title: agentData.role
-      },
-      status: agentData.isActive ? 'active' : 'inactive'
-    };
-
-    return this.updateEmployee(id, updateData);
-  }
+  // ❌ MÉTODOS DE AGENTES ELIMINADOS - Los agentes son diferentes a los empleados
+  // Los agentes se manejan en teamService.ts, no aquí
+  // Este servicio es SOLO para empleados (RRHH)
 }
 
 // Crear instancia singleton del servicio

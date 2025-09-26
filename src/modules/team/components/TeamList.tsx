@@ -6,6 +6,7 @@ interface TeamListProps {
   members: TeamMember[];
   selectedMember: TeamMember | null;
   onSelectMember: (member: TeamMember) => void;
+  onDeleteMember?: (member: TeamMember) => void;
   totalMembers: number;
   activeMembers: number;
   inactiveMembers: number;
@@ -16,6 +17,7 @@ const TeamList: React.FC<TeamListProps> = ({
   members,
   selectedMember,
   onSelectMember,
+  onDeleteMember,
   totalMembers,
   activeMembers,
   inactiveMembers,
@@ -101,6 +103,7 @@ const TeamList: React.FC<TeamListProps> = ({
                 member={member}
                 isSelected={selectedMember?.id === member.id}
                 onSelect={() => onSelectMember(member)}
+                onDelete={onDeleteMember}
               />
             ))}
           </div>

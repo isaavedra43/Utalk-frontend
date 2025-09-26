@@ -37,7 +37,8 @@ const TeamModule: React.FC = () => {
     selectMember,
     refreshTeam,
     applyFilters,
-    createAgent
+    createAgent,
+    deleteAgent
   } = useTeam();
 
   useEffect(() => {
@@ -58,6 +59,17 @@ const TeamModule: React.FC = () => {
     } catch (error) {
       logger.systemInfo('Error creando agente', { error, agentData });
       // El error se maneja en el hook, aquí solo log
+    }
+  };
+
+  const handleDeleteAgent = async (member: any) => {
+    try {
+      if (window.confirm(`¿Estás seguro de que quieres eliminar al agente ${member.name}?`)) {
+        await deleteAgent(member.id);
+        logger.systemInfo('Agent deleted successfully', { agentId: member.id });
+      }
+    } catch (error) {
+      logger.systemInfo('Error deleting agent in TeamModule', { error });
     }
   };
 
@@ -133,6 +145,7 @@ const TeamModule: React.FC = () => {
                 members={members}
                 selectedMember={selectedMember}
                 onSelectMember={selectMember}
+                onDeleteMember={handleDeleteAgent}
                 totalMembers={totalMembers}
                 activeMembers={activeMembers}
                 inactiveMembers={inactiveMembers}

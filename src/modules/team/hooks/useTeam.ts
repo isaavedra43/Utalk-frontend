@@ -123,7 +123,7 @@ export const useTeam = () => {
     logger.systemInfo('Filtros de equipo aplicados', { filters: updatedFilters });
   }, [filters, setFilters]);
 
-  // Crear nuevo empleado/agente (usando el nuevo sistema)
+  // ✅ CREAR AGENTE - Usando teamService (NO employeeService)
   const createAgent = useCallback(async (agentData: CreateAgentRequest): Promise<TeamMember | null> => {
     try {
       setTeamLoading(true);
@@ -135,113 +135,54 @@ export const useTeam = () => {
         role: agentData.role 
       });
       
-      // Convertir datos de agente a formato de empleado del backend
-      const employeeData = {
-        personalInfo: {
-          firstName: agentData.name.split(' ')[0] || agentData.name,
-          lastName: agentData.name.split(' ').slice(1).join(' ') || '',
-          email: agentData.email,
-          phone: agentData.phone || '',
-          dateOfBirth: '1990-01-01',
-          gender: 'M' as const,
-          maritalStatus: 'soltero',
-          nationality: 'Mexicana',
-          rfc: '',
-          curp: '',
-          address: {
-            street: '',
-            city: 'Ciudad de México',
-            state: 'CDMX',
-            country: 'México',
-            postalCode: '01000'
-          }
-        },
-        position: {
-          title: agentData.role || 'Agente',
-          department: 'Atención al Cliente',
-          level: 'Junior' as const,
-          jobDescription: 'Atención al cliente y soporte',
-          startDate: new Date().toISOString().split('T')[0]
-        },
-        location: {
-          office: 'Oficina Central',
-          address: 'Av. Reforma 123',
-          city: 'Ciudad de México',
-          state: 'CDMX',
-          country: 'México',
-          postalCode: '06600',
-          timezone: 'America/Mexico_City'
-        },
-        contract: {
-          type: 'permanent' as const,
-          startDate: new Date().toISOString().split('T')[0],
-          salary: 25000,
-          currency: 'MXN',
-          workingDays: 'Lunes a Viernes',
-          workingHoursRange: '09:00-18:00',
-          benefits: ['seguro médico']
-        }
-      };
+      // ✅ CORRECTO: Usar teamService para agentes (NO employeeService)
+      const { teamService } = await import('../../team/services/teamService');
+      const newAgent = await teamService.createAgent(agentData);
       
-      // Crear empleado usando el nuevo servicio
-      const newEmployee = await createEmployee(employeeData);
+      logger.systemInfo('Agente creado exitosamente', { 
+        id: newAgent.id,
+        name: newAgent.name,
+        email: newAgent.email 
+      });
       
-      if (newEmployee) {
-        logger.systemInfo('Agente creado exitosamente', { 
-          id: newEmployee.id,
-          name: `${newEmployee.personalInfo.firstName} ${newEmployee.personalInfo.lastName}`,
-          email: newEmployee.personalInfo.email 
-        });
-        
-        // Convertir a TeamMember para compatibilidad
-        const newTeamMember: TeamMember = {
-          ...newEmployee,
-          name: `${newEmployee.personalInfo.firstName} ${newEmployee.personalInfo.lastName}`,
-          role: newEmployee.position.title,
-          permissions: [],
-          skills: [],
-          experience: 0,
-          hireDate: newEmployee.position.startDate,
-          lastLogin: '',
-          performance: {
-            rating: 0,
-            completedTasks: 0,
-            averageResponseTime: 0,
-            customerSatisfaction: 0,
-            totalConversations: 0,
-            resolvedIssues: 0,
-            escalations: 0,
-            responseTime: { average: 0, median: 0, percentile95: 0 },
-            availability: { online: 0, busy: 0, away: 0, offline: 0 },
-            trends: []
-          },
-          workload: {
-            activeChats: 0,
-            dailyLimit: 0,
-            utilization: 0
-          },
-          schedule: {
-            timezone: newEmployee.location.timezone,
-            workingHours: {
-              start: newEmployee.contract.workingHoursRange.split('-')[0].trim(),
-              end: newEmployee.contract.workingHoursRange.split('-')[1].trim()
-            },
-            workingDays: newEmployee.contract.workingDays.split(',').map(d => d.trim())
-          }
-        };
-        
-        return newTeamMember;
-      }
-      
-      return null;
+      return newAgent;
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error al crear agente';
       setTeamError(errorMessage);
       logger.systemInfo('Error creando agente', { error: errorMessage });
       throw error;
+    } finally {
+      setTeamLoading(false);
     }
-  }, [createEmployee, setTeamLoading, setTeamError]);
+  }, [setTeamLoading, setTeamError]);
+
+  // Eliminar agente
+  const deleteAgent = useCallback(async (agentId: string): Promise<void> => {
+    try {
+      setTeamLoading(true);
+      setTeamError(null);
+      
+      logger.systemInfo('Eliminando agente', { agentId });
+      
+      // ✅ CORRECTO: Usar teamService para eliminar agente
+      const { teamService } = await import('../../team/services/teamService');
+      await teamService.deleteAgent(agentId);
+      
+      logger.systemInfo('Agente eliminado exitosamente', { agentId });
+      
+      // Recargar la lista de agentes
+      await loadMembers();
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al eliminar agente';
+      setTeamError(errorMessage);
+      logger.systemInfo('Error eliminando agente', { error: errorMessage });
+      throw error;
+    } finally {
+      setTeamLoading(false);
+    }
+  }, [setTeamLoading, setTeamError, loadMembers]);
 
   // Cargar datos iniciales con debounce
   useEffect(() => {
@@ -284,6 +225,7 @@ export const useTeam = () => {
     applyFilters,
     loadMembers,
     createAgent,
+    deleteAgent,
     getFilteredMembers,
     
     // Hooks especializados
