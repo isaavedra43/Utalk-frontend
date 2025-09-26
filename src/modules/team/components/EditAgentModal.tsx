@@ -158,16 +158,47 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
     setModulePermissions(prev => {
       if (!prev) return prev;
       
+      const currentModulePerms = prev.permissions.modules[moduleId] || {
+        read: false,
+        write: false,
+        configure: false
+      };
+      
+      let newModulePerms = { ...currentModulePerms };
+      
+      if (action === 'read') {
+        newModulePerms.read = value;
+        // Si se deshabilita lectura, también deshabilitar escritura y configuración
+        if (!value) {
+          newModulePerms.write = false;
+          newModulePerms.configure = false;
+        }
+      } else if (action === 'write') {
+        newModulePerms.write = value;
+        // Si se habilita escritura, también habilitar lectura
+        if (value) {
+          newModulePerms.read = true;
+        }
+        // Si se deshabilita escritura, también deshabilitar configuración
+        if (!value) {
+          newModulePerms.configure = false;
+        }
+      } else if (action === 'configure') {
+        newModulePerms.configure = value;
+        // Si se habilita configuración, también habilitar lectura y escritura
+        if (value) {
+          newModulePerms.read = true;
+          newModulePerms.write = true;
+        }
+      }
+      
       return {
         ...prev,
         permissions: {
           ...prev.permissions,
           modules: {
             ...prev.permissions.modules,
-            [moduleId]: {
-              ...prev.permissions.modules[moduleId],
-              [action]: value
-            }
+            [moduleId]: newModulePerms
           }
         }
       };
@@ -408,31 +439,90 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-4">
                       <h3 className="text-lg font-medium text-gray-900">Permisos de Módulos</h3>
-                      <button
-                        type="button"
-                        onClick={handleSaveModulePermissions}
-                        disabled={isLoading}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isLoading ? 'Guardando...' : 'Guardar Cambios'}
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Habilitar todos los módulos con lectura
+                            if (modulePermissions) {
+                              const newPermissions = { ...modulePermissions };
+                              Object.keys(availableModules).forEach(moduleId => {
+                                newPermissions.permissions.modules[moduleId] = {
+                                  read: true,
+                                  write: false,
+                                  configure: false
+                                };
+                              });
+                              setModulePermissions(newPermissions);
+                            }
+                          }}
+                          className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
+                        >
+                          Habilitar Todos
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Deshabilitar todos los módulos
+                            if (modulePermissions) {
+                              const newPermissions = { ...modulePermissions };
+                              Object.keys(availableModules).forEach(moduleId => {
+                                newPermissions.permissions.modules[moduleId] = {
+                                  read: false,
+                                  write: false,
+                                  configure: false
+                                };
+                              });
+                              setModulePermissions(newPermissions);
+                            }
+                          }}
+                          className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
+                        >
+                          Deshabilitar Todos
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveModulePermissions}
+                          disabled={isLoading}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isLoading ? 'Guardando...' : 'Guardar Cambios'}
+                        </button>
+                      </div>
                     </div>
                     
                     <div className="space-y-4">
                       {Object.entries(availableModules).map(([moduleId, module]) => {
-                        const currentModulePermissions = modulePermissions?.permissions?.modules?.[moduleId];
+                        const currentModulePermissions = modulePermissions?.permissions?.modules?.[moduleId] || {
+                          read: false,
+                          write: false,
+                          configure: false
+                        };
                         
-                        const moduleData = module as { name: string; description: string; level: string };
+                        const moduleData = module as { 
+                          id: string;
+                          name: string; 
+                          description: string; 
+                          level: 'basic' | 'intermediate' | 'advanced';
+                        };
+                        
                         return (
-                          <div key={moduleId} className="border border-gray-200 rounded-lg p-4">
+                          <div key={moduleId} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
                             <div className="flex items-center justify-between mb-3">
-                              <div>
-                                <h4 className="text-sm font-medium text-gray-900">{moduleData.name}</h4>
-                                <p className="text-xs text-gray-600">{moduleData.description}</p>
+                              <div className="flex-1">
+                                <h4 className="text-sm font-medium text-gray-900 flex items-center">
+                                  {moduleData.name}
+                                  {currentModulePermissions.read && (
+                                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                      Activo
+                                    </span>
+                                  )}
+                                </h4>
+                                <p className="text-xs text-gray-600 mt-1">{moduleData.description}</p>
                               </div>
-                              <span className={`text-xs px-2 py-1 rounded-full ${
+                              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                                 moduleData.level === 'advanced' ? 'bg-red-100 text-red-800' :
                                 moduleData.level === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
                                 'bg-green-100 text-green-800'
@@ -442,24 +532,60 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                             </div>
                             
                             <div className="grid grid-cols-3 gap-4">
-                              {Object.entries({
-                                read: { label: 'Leer', description: 'Acceso de lectura' },
-                                write: { label: 'Escribir', description: 'Acceso de escritura' },
-                                configure: { label: 'Configurar', description: 'Acceso de configuración' }
-                              }).map(([action, actionInfo]) => (
-                                <div key={action} className="flex items-center space-x-2">
-                                  <input
-                                    type="checkbox"
-                                    id={`module-${moduleId}-${action}`}
-                                    checked={currentModulePermissions?.[action as keyof typeof currentModulePermissions] || false}
-                                    onChange={(e) => handleModulePermissionChange(moduleId, action as 'read' | 'write' | 'configure', e.target.checked)}
-                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                  />
-                                  <label htmlFor={`module-${moduleId}-${action}`} className="text-sm text-gray-700">
-                                    {actionInfo.label}
-                                  </label>
-                                </div>
-                              ))}
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  id={`module-${moduleId}-read`}
+                                  checked={currentModulePermissions.read}
+                                  onChange={(e) => handleModulePermissionChange(moduleId, 'read', e.target.checked)}
+                                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                                <label htmlFor={`module-${moduleId}-read`} className="text-sm text-gray-700 font-medium">
+                                  📖 Leer
+                                </label>
+                              </div>
+                              
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  id={`module-${moduleId}-write`}
+                                  checked={currentModulePermissions.write}
+                                  onChange={(e) => handleModulePermissionChange(moduleId, 'write', e.target.checked)}
+                                  disabled={!currentModulePermissions.read}
+                                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                />
+                                <label htmlFor={`module-${moduleId}-write`} className={`text-sm font-medium ${
+                                  !currentModulePermissions.read ? 'text-gray-400' : 'text-gray-700'
+                                }`}>
+                                  ✏️ Escribir
+                                </label>
+                              </div>
+                              
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  id={`module-${moduleId}-configure`}
+                                  checked={currentModulePermissions.configure}
+                                  onChange={(e) => handleModulePermissionChange(moduleId, 'configure', e.target.checked)}
+                                  disabled={!currentModulePermissions.write}
+                                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                />
+                                <label htmlFor={`module-${moduleId}-configure`} className={`text-sm font-medium ${
+                                  !currentModulePermissions.write ? 'text-gray-400' : 'text-gray-700'
+                                }`}>
+                                  ⚙️ Configurar
+                                </label>
+                              </div>
+                            </div>
+                            
+                            {/* Información adicional */}
+                            <div className="mt-3 pt-3 border-t border-gray-100">
+                              <div className="flex items-center justify-between text-xs text-gray-500">
+                                <span>ID: {moduleId}</span>
+                                <span>
+                                  {Object.values(currentModulePermissions).filter(Boolean).length}/3 permisos activos
+                                </span>
+                              </div>
                             </div>
                           </div>
                         );
