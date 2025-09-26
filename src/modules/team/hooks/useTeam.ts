@@ -22,6 +22,7 @@ export const useTeam = () => {
     updateEmployee,
     deleteEmployee,
     loadStats,
+    set,
     
     // Estado legacy (compatibilidad)
     teamData, 
@@ -69,18 +70,49 @@ export const useTeam = () => {
       
       const response = await teamService.getAgents(agentFilters);
       
-      // Actualizar estado con los agentes obtenidos
-      setEmployees(response.agents);
-      setStats({
-        total: response.total,
-        active: response.active,
-        inactive: response.inactive
+      // ✅ CORRECTO: Usar las funciones del store para actualizar el estado
+      // Convertir agentes a formato de empleados para compatibilidad
+      const employeesData = response.agents.map(agent => ({
+        id: agent.id,
+        personalInfo: {
+          firstName: agent.name.split(' ')[0] || agent.name,
+          lastName: agent.name.split(' ').slice(1).join(' ') || '',
+          email: agent.email,
+          phone: agent.phone || '',
+          avatar: agent.avatar
+        },
+        position: {
+          title: agent.role,
+          department: 'Equipo'
+        },
+        status: agent.isActive ? 'active' : 'inactive',
+        performance: agent.performance,
+        permissions: agent.permissions,
+        createdAt: agent.createdAt,
+        updatedAt: agent.updatedAt
+      }));
+      
+      // ✅ CORRECTO: Actualizar el estado directamente usando setState
+      // En lugar de usar loadEmployees, actualizamos el estado directamente
+      set({
+        employees: employeesData,
+        pagination: response.pagination,
+        stats: {
+          total: response.summary.total,
+          active: response.summary.active,
+          inactive: response.summary.inactive,
+          onLeave: 0,
+          averagePerformance: 0,
+          totalExperience: 0
+        },
+        loading: false,
+        error: null
       });
       
       logger.systemInfo('Agentes del equipo cargados exitosamente', {
-        total: response.total,
-        active: response.active,
-        inactive: response.inactive,
+        total: response.summary.total,
+        active: response.summary.active,
+        inactive: response.summary.inactive,
         agentsCount: response.agents.length
       });
       

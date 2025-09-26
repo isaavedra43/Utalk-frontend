@@ -33,10 +33,54 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
   const [availableModules, setAvailableModules] = useState<{ [moduleId: string]: unknown }>({});
   const [modulePermissions, setModulePermissions] = useState<{ [moduleId: string]: { read: boolean; write: boolean; configure: boolean } }>({});
   const [loadingModules, setLoadingModules] = useState(false);
-  const [activeTab, setActiveTab] = useState<'basic' | 'permissions' | 'modules'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'permissions' | 'modules' | 'notifications' | 'configuration'>('basic');
+
+  // Estados para notificaciones
+  const [notifications, setNotifications] = useState({
+    email: true,
+    push: true,
+    sms: false,
+    desktop: true
+  });
+
+  // Estados para configuración
+  const [configuration, setConfiguration] = useState({
+    language: 'es',
+    timezone: 'America/Mexico_City',
+    theme: 'light' as const,
+    autoLogout: true,
+    twoFactor: false
+  });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Función para asegurar que todos los módulos estén incluidos
+  const ensureAllModules = (modulePermissions: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } }) => {
+    const allModules = [
+      'dashboard', 'contacts', 'campaigns', 'team', 'analytics', 'ai', 'settings', 'hr',
+      'clients', 'notifications', 'chat', 'internal-chat', 'phone', 'knowledge-base',
+      'supervision', 'copilot', 'providers', 'warehouse', 'shipping', 'services'
+    ];
+    
+    const completeModules: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } } = {};
+    
+    allModules.forEach(moduleId => {
+      if (modulePermissions[moduleId]) {
+        // Usar permisos proporcionados
+        completeModules[moduleId] = modulePermissions[moduleId];
+      } else {
+        // Usar permisos por defecto (sin acceso)
+        completeModules[moduleId] = {
+          read: false,
+          write: false,
+          configure: false
+        };
+      }
+    });
+    
+    return completeModules;
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -57,6 +101,22 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
     setPermissions(prev => ({
       ...prev,
       [permission]: !prev[permission]
+    }));
+  };
+
+  // Manejar cambios en notificaciones
+  const handleNotificationChange = (notification: keyof typeof notifications, value: boolean) => {
+    setNotifications(prev => ({
+      ...prev,
+      [notification]: value
+    }));
+  };
+
+  // Manejar cambios en configuración
+  const handleConfigurationChange = (config: keyof typeof configuration, value: string | boolean) => {
+    setConfiguration(prev => ({
+      ...prev,
+      [config]: value
     }));
   };
 
@@ -194,25 +254,14 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
             write: permissions.write,
             approve: permissions.approve,
             configure: permissions.configure,
-            modules: modulePermissions
+            modules: ensureAllModules(modulePermissions)
           },
           
-          // Notificaciones por defecto
-          notifications: {
-            email: true,
-            push: true,
-            sms: false,
-            desktop: true
-          },
+          // Notificaciones del usuario
+          notifications: notifications,
           
-          // Configuración por defecto
-          configuration: {
-            language: 'es',
-            timezone: 'America/Mexico_City',
-            theme: 'light' as const,
-            autoLogout: true,
-            twoFactor: false
-          }
+          // Configuración del usuario
+          configuration: configuration
         };
         
         infoLog('Creando agente con datos completos', { email: agentCompleteData.email });
@@ -261,6 +310,19 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
           configure: false
         });
         setModulePermissions({});
+        setNotifications({
+          email: true,
+          push: true,
+          sms: false,
+          desktop: true
+        });
+        setConfiguration({
+          language: 'es',
+          timezone: 'America/Mexico_City',
+          theme: 'light',
+          autoLogout: true,
+          twoFactor: false
+        });
         setActiveTab('basic');
         setErrors({});
         
@@ -375,6 +437,26 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
               }`}
             >
               🧩 Permisos de Módulos
+            </button>
+            <button
+              onClick={() => setActiveTab('notifications')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'notifications'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              🔔 Notificaciones
+            </button>
+            <button
+              onClick={() => setActiveTab('configuration')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'configuration'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              ⚙️ Configuración
             </button>
           </nav>
         </div>
