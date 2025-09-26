@@ -3,89 +3,6 @@ import { modulePermissionsService, UserModulePermissions, ModulePermission } fro
 import { useAuthStore } from '../stores/useAuthStore';
 import { infoLog } from '../config/logger';
 
-// Función para crear permisos de fallback inteligentes
-const createFallbackPermissions = (user: any): UserModulePermissions => {
-  const systemModules = [
-    { id: 'dashboard', name: 'Dashboard', level: 'basic', category: 'core' },
-    { id: 'notifications', name: 'Notificaciones', level: 'basic', category: 'core' },
-    { id: 'chat', name: 'Chat', level: 'basic', category: 'communication' },
-    { id: 'phone', name: 'Teléfono', level: 'basic', category: 'communication' },
-    { id: 'internal-chat', name: 'Chat Interno', level: 'basic', category: 'communication' },
-    { id: 'clients', name: 'Clientes', level: 'intermediate', category: 'crm' },
-    { id: 'team', name: 'Equipo', level: 'advanced', category: 'management' },
-    { id: 'hr', name: 'Recursos Humanos', level: 'advanced', category: 'management' },
-    { id: 'supervision', name: 'Supervisión', level: 'advanced', category: 'management' },
-    { id: 'campaigns', name: 'Campañas', level: 'intermediate', category: 'marketing' },
-    { id: 'providers', name: 'Proveedores', level: 'advanced', category: 'operations' },
-    { id: 'warehouse', name: 'Almacén', level: 'intermediate', category: 'operations' },
-    { id: 'shipping', name: 'Envíos', level: 'intermediate', category: 'operations' },
-    { id: 'copilot', name: 'Copiloto IA', level: 'intermediate', category: 'ai' },
-    { id: 'knowledge-base', name: 'Base de Conocimiento', level: 'basic', category: 'support' },
-    { id: 'services', name: 'Servicios', level: 'advanced', category: 'configuration' }
-  ];
-
-  const permissions: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } } = {};
-  const accessibleModules: ModulePermission[] = [];
-
-  systemModules.forEach(module => {
-    let modulePermissions = { read: false, write: false, configure: false };
-    
-    // Lógica de permisos por rol (fallback inteligente)
-    const role = user?.role?.toLowerCase() || 'agent';
-    
-    if (role.includes('admin')) {
-      // Admin: acceso completo
-      modulePermissions = { read: true, write: true, configure: true };
-    } else if (role.includes('supervisor')) {
-      // Supervisor: acceso amplio con configuración limitada
-      modulePermissions = { 
-        read: true, 
-        write: true, 
-        configure: module.level !== 'advanced' 
-      };
-    } else if (role.includes('agent')) {
-      // Agente: acceso básico según categoría
-      const allowedCategories = ['core', 'communication', 'support'];
-      const hasAccess = allowedCategories.includes(module.category);
-      modulePermissions = { 
-        read: hasAccess, 
-        write: hasAccess && module.level === 'basic', 
-        configure: false 
-      };
-    } else {
-      // Viewer o rol desconocido: solo lectura en core
-      const isCore = module.category === 'core';
-      modulePermissions = { 
-        read: isCore, 
-        write: false, 
-        configure: false 
-      };
-    }
-
-    permissions[module.id] = modulePermissions;
-
-    // Si tiene al menos acceso de lectura, agregarlo a módulos accesibles
-    if (modulePermissions.read) {
-      accessibleModules.push({
-        id: module.id,
-        name: module.name,
-        description: `Módulo de ${module.name.toLowerCase()}`,
-        level: module.level as 'basic' | 'intermediate' | 'advanced',
-        actions: modulePermissions
-      });
-    }
-  });
-
-  return {
-    email: user?.email || 'unknown@user.com',
-    role: user?.role || 'agent',
-    accessibleModules,
-    permissions: {
-      modules: permissions
-    }
-  };
-};
-
 interface UseModulePermissionsReturn {
   // Estado
   loading: boolean;
@@ -104,12 +21,6 @@ interface UseModulePermissionsReturn {
   refreshPermissions: () => Promise<void>;
   updateUserPermissions: (email: string, permissions: UserModulePermissions['permissions']) => Promise<void>;
   resetUserPermissions: (email: string) => Promise<void>;
-  
-  // Funciones adicionales
-  validateModuleAccess: (email: string, moduleId: string, action: 'read' | 'write' | 'configure') => Promise<boolean>;
-  getPermissionsStats: () => Promise<any>;
-  createAgentWithPermissions: (agentData: any) => Promise<UserModulePermissions>;
-  updateAgentWithPermissions: (agentId: string, agentData: any) => Promise<UserModulePermissions>;
 }
 
 export const useModulePermissions = (): UseModulePermissionsReturn => {
@@ -136,70 +47,38 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
       setLoading(true);
       setError(null);
       
-      infoLog('🔐 Cargando permisos reales del backend para usuario', { email: user.email });
+      infoLog('Cargando permisos de módulos para usuario', { email: user.email });
       
       const userPermissions = await modulePermissionsService.getMyPermissions();
       
-      // Validar que la respuesta del backend sea válida
-      if (!userPermissions || !userPermissions.permissions) {
-        throw new Error('Respuesta inválida del backend - sin estructura de permisos');
-      }
-      
       // Log detallado de la respuesta del backend
-      infoLog('✅ Permisos reales obtenidos del backend', { 
-        email: userPermissions.email,
-        role: userPermissions.role,
+      infoLog('Respuesta completa del backend', { 
+        userPermissions,
         hasPermissions: !!userPermissions.permissions,
         hasModules: !!userPermissions.permissions?.modules,
         accessibleModulesCount: userPermissions.accessibleModules?.length || 0,
-        modulePermissionsCount: Object.keys(userPermissions.permissions?.modules || {}).length
+        role: userPermissions.role 
       });
       
       setPermissions(userPermissions);
       setAccessibleModules(userPermissions.accessibleModules || []);
       
-      // Log de módulos específicos para debugging
-      if (userPermissions.accessibleModules?.length > 0) {
-        infoLog('📋 Módulos accesibles desde backend', { 
-          modules: userPermissions.accessibleModules.map(m => ({
-            id: m.id,
-            name: m.name,
-            level: m.level,
-            actions: m.actions
-          }))
-        });
-      }
-      
-      infoLog('🚀 Permisos cargados y aplicados exitosamente', { 
+      infoLog('Permisos cargados exitosamente', { 
         accessibleModules: userPermissions.accessibleModules?.length || 0,
-        role: userPermissions.role,
-        email: userPermissions.email
+        role: userPermissions.role 
       });
       
     } catch (error) {
-      infoLog('❌ Error cargando permisos del backend', { 
-        error: error.message || error,
-        email: user.email,
-        fallback: 'usando permisos locales'
-      });
+      infoLog('Error cargando permisos, usando fallback', { error });
+      setError('Error al cargar permisos, usando configuración por defecto');
       
-      setError(`Error al cargar permisos: ${error.message || 'Backend no disponible'}`);
-      
-      // FALLBACK INTELIGENTE: Crear permisos básicos basados en el rol del usuario
-      const fallbackPermissions = createFallbackPermissions(user);
-      setPermissions(fallbackPermissions);
-      setAccessibleModules(fallbackPermissions.accessibleModules || []);
-      
-      infoLog('🔄 Usando permisos de fallback', { 
-        email: user.email,
-        role: user.role,
-        fallbackModules: fallbackPermissions.accessibleModules?.length || 0
-      });
-      
+      // FALLBACK SEGURO: Si hay error, mostrar todos los módulos
+      // Esto mantiene la funcionalidad existente
+      setAccessibleModules([]); // Array vacío significa "todos los módulos"
     } finally {
       setLoading(false);
     }
-  }, [user?.email, user?.role]);
+  }, [user?.email]);
 
   // Cargar permisos al montar el hook (OPTIMIZADO)
   useEffect(() => {
@@ -209,128 +88,61 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
 
   // Verificar si puede acceder a un módulo
   const canAccessModule = useCallback((moduleId: string): boolean => {
-    // Validación básica
-    if (!moduleId) {
-      infoLog('⚠️ moduleId no proporcionado para verificación de acceso');
-      return false;
-    }
-
-    // Si no hay permisos cargados, usar fallback conservador
+    // Si no hay permisos cargados o hay error, permitir acceso (fallback)
     if (!permissions) {
+      // Log solo una vez por hook para evitar spam
       if (!permissionsFallbackLogged.current) {
-        infoLog('🔄 No hay permisos cargados, usando fallback conservador', { moduleId });
+        infoLog('No hay permisos cargados, usando fallback para todos los módulos');
         permissionsFallbackLogged.current = true;
       }
-      // Solo permitir módulos básicos como fallback
-      const basicModules = ['dashboard', 'notifications'];
-      return basicModules.includes(moduleId);
+      return true;
     }
     
-    // Verificar usando la estructura de permisos del backend
-    const modulePermissions = permissions.permissions?.modules?.[moduleId];
-    if (modulePermissions) {
-      const hasReadAccess = modulePermissions.read === true;
-      
-      if (hasReadAccess) {
-        infoLog('✅ Acceso concedido a módulo desde backend', { 
-          moduleId,
-          permissions: modulePermissions
-        });
-      } else {
-        infoLog('❌ Acceso denegado a módulo desde backend', { 
-          moduleId,
-          permissions: modulePermissions
-        });
+    // Si no hay módulos accesibles definidos, permitir acceso (fallback)
+    if (!accessibleModules || accessibleModules.length === 0) {
+      // Log solo una vez por hook para evitar spam
+      if (!noModulesAccessibleLogged.current) {
+        infoLog('No hay módulos accesibles definidos, permitiendo acceso a todos los módulos');
+        noModulesAccessibleLogged.current = true;
       }
-      
-      return hasReadAccess;
+      return true;
     }
     
-    // Fallback: verificar en accessibleModules
-    if (accessibleModules && accessibleModules.length > 0) {
-      const hasAccess = accessibleModules.some(module => module.id === moduleId);
-      
-      if (!hasAccess) {
-        infoLog('❌ Módulo no encontrado en accessibleModules', { 
-          moduleId, 
-          availableModules: accessibleModules.map(m => m.id) 
-        });
-      } else {
-        infoLog('✅ Acceso concedido desde accessibleModules', { moduleId });
-      }
-      
-      return hasAccess;
+    const hasAccess = accessibleModules.some(module => module.id === moduleId);
+    // Log solo para módulos específicos y con menos frecuencia
+    if (!hasAccess) {
+      infoLog('Acceso denegado a módulo', { moduleId, accessibleModules: accessibleModules.map(m => m.id) });
     }
     
-    // Si no hay módulos accesibles definidos, denegar acceso por seguridad
-    if (!noModulesAccessibleLogged.current) {
-      infoLog('🔒 No hay módulos accesibles definidos, denegando acceso por seguridad', { moduleId });
-      noModulesAccessibleLogged.current = true;
-    }
-    
-    return false;
+    return hasAccess;
   }, [permissions, accessibleModules]);
 
   // Verificar permiso específico
   const hasPermission = useCallback((moduleId: string, action: 'read' | 'write' | 'configure'): boolean => {
-    // Validación básica
-    if (!moduleId || !action) {
-      infoLog('⚠️ Parámetros inválidos para verificación de permiso', { moduleId, action });
-      return false;
-    }
-
-    // Si no hay permisos cargados, usar fallback conservador
+    // Si no hay permisos cargados o hay error, permitir acceso (fallback)
     if (!permissions) {
-      infoLog('🔄 No hay permisos cargados para verificar acción específica', { moduleId, action });
-      // Solo permitir lectura en módulos básicos como fallback
-      if (action === 'read') {
-        const basicModules = ['dashboard', 'notifications'];
-        return basicModules.includes(moduleId);
-      }
-      return false;
+      return true;
     }
     
     // Validación robusta de la estructura de permisos
     if (!permissions.permissions || !permissions.permissions.modules) {
+      // Log solo una vez por hook para evitar spam
       if (!invalidPermissionStructureLogged.current) {
-        infoLog('⚠️ Estructura de permisos inválida del backend', { 
+        infoLog('Estructura de permisos inválida, usando fallback', { 
           hasPermissions: !!permissions.permissions,
-          hasModules: !!permissions.permissions?.modules,
-          moduleId,
-          action
+          hasModules: !!permissions.permissions?.modules 
         });
         invalidPermissionStructureLogged.current = true;
       }
-      return false; // Por seguridad, denegar acceso si la estructura es inválida
+      return true; // Fallback: permitir acceso
     }
     
     const modulePermissions = permissions.permissions.modules[moduleId];
     if (!modulePermissions) {
-      infoLog('❌ Módulo no encontrado en permisos del backend', { 
-        moduleId, 
-        action,
-        availableModules: Object.keys(permissions.permissions.modules) 
-      });
       return false;
     }
     
-    const hasAccess = modulePermissions[action] === true;
-    
-    if (hasAccess) {
-      infoLog(`✅ Permiso ${action} concedido para módulo ${moduleId}`, { 
-        moduleId, 
-        action,
-        allPermissions: modulePermissions
-      });
-    } else {
-      infoLog(`❌ Permiso ${action} denegado para módulo ${moduleId}`, { 
-        moduleId, 
-        action,
-        allPermissions: modulePermissions
-      });
-    }
-    
-    return hasAccess;
+    return modulePermissions[action] || false;
   }, [permissions]);
 
   // Funciones de conveniencia
@@ -365,50 +177,6 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
     }
   }, []);
 
-  // Validar acceso a módulo
-  const validateModuleAccess = useCallback(async (email: string, moduleId: string, action: 'read' | 'write' | 'configure') => {
-    try {
-      return await modulePermissionsService.validateModuleAccess(email, moduleId, action);
-    } catch (error) {
-      infoLog('Error validando acceso a módulo', { error, email, moduleId, action });
-      return false;
-    }
-  }, []);
-
-  // Obtener estadísticas de permisos
-  const getPermissionsStats = useCallback(async () => {
-    try {
-      return await modulePermissionsService.getPermissionsStats();
-    } catch (error) {
-      infoLog('Error obteniendo estadísticas de permisos', { error });
-      throw error;
-    }
-  }, []);
-
-  // Crear agente con permisos
-  const createAgentWithPermissions = useCallback(async (agentData: any) => {
-    try {
-      const result = await modulePermissionsService.createAgentWithPermissions(agentData);
-      infoLog('Agente creado con permisos', { email: agentData.email });
-      return result;
-    } catch (error) {
-      infoLog('Error creando agente con permisos', { error, email: agentData.email });
-      throw error;
-    }
-  }, []);
-
-  // Actualizar agente con permisos
-  const updateAgentWithPermissions = useCallback(async (agentId: string, agentData: any) => {
-    try {
-      const result = await modulePermissionsService.updateAgentWithPermissions(agentId, agentData);
-      infoLog('Agente actualizado con permisos', { agentId });
-      return result;
-    } catch (error) {
-      infoLog('Error actualizando agente con permisos', { error, agentId });
-      throw error;
-    }
-  }, []);
-
   return {
     // Estado
     loading,
@@ -426,12 +194,6 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
     // Funciones de gestión
     refreshPermissions,
     updateUserPermissions,
-    resetUserPermissions,
-    
-    // Funciones adicionales
-    validateModuleAccess,
-    getPermissionsStats,
-    createAgentWithPermissions,
-    updateAgentWithPermissions
+    resetUserPermissions
   };
 };

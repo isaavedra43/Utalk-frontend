@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { TeamMember } from '../../../types/team';
 import { infoLog } from '../../../config/logger';
 import { modulePermissionsService, UserModulePermissions } from '../../../services/modulePermissions';
-import { usePermissionNotification } from '../../../components/notifications/PermissionNotification';
 
 interface EditAgentModalProps {
   isOpen: boolean;
@@ -49,7 +48,6 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
   onSubmit,
   member
 }) => {
-  const { showSuccess, showError, showLoading, hideNotification, NotificationComponent } = usePermissionNotification();
   const [formData, setFormData] = useState<EditAgentData>({
     name: '',
     email: '',
@@ -89,122 +87,6 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
   const [modulePermissions, setModulePermissions] = useState<UserModulePermissions | null>(null);
   const [availableModules, setAvailableModules] = useState<{ [moduleId: string]: unknown }>({});
   const [loadingModules, setLoadingModules] = useState(false);
-
-  // Módulos predefinidos del sistema
-  const systemModules = {
-    dashboard: {
-      name: 'Dashboard',
-      description: 'Panel principal con métricas y estadísticas del sistema',
-      level: 'basic',
-      icon: '📊',
-      category: 'core'
-    },
-    chat: {
-      name: 'Chat',
-      description: 'Mensajería y conversaciones con clientes',
-      level: 'basic',
-      icon: '💬',
-      category: 'communication'
-    },
-    clients: {
-      name: 'Clientes',
-      description: 'Gestión de contactos y clientes',
-      level: 'intermediate',
-      icon: '👥',
-      category: 'crm'
-    },
-    team: {
-      name: 'Equipo',
-      description: 'Gestión de agentes y equipos de trabajo',
-      level: 'advanced',
-      icon: '👨‍💼',
-      category: 'management'
-    },
-    hr: {
-      name: 'Recursos Humanos',
-      description: 'Empleados, nóminas y gestión de RRHH',
-      level: 'advanced',
-      icon: '🏢',
-      category: 'management'
-    },
-    campaigns: {
-      name: 'Campañas',
-      description: 'Campañas de marketing y envíos masivos',
-      level: 'intermediate',
-      icon: '📢',
-      category: 'marketing'
-    },
-    phone: {
-      name: 'Teléfono',
-      description: 'Sistema de llamadas VoIP',
-      level: 'basic',
-      icon: '📞',
-      category: 'communication'
-    },
-    'knowledge-base': {
-      name: 'Base de Conocimiento',
-      description: 'Documentación y recursos de ayuda',
-      level: 'basic',
-      icon: '📚',
-      category: 'support'
-    },
-    supervision: {
-      name: 'Supervisión',
-      description: 'Monitoreo y supervisión de agentes',
-      level: 'advanced',
-      icon: '👁️',
-      category: 'management'
-    },
-    copilot: {
-      name: 'Copiloto IA',
-      description: 'Asistente de inteligencia artificial',
-      level: 'intermediate',
-      icon: '🤖',
-      category: 'ai'
-    },
-    providers: {
-      name: 'Proveedores',
-      description: 'Gestión de proveedores y servicios externos',
-      level: 'advanced',
-      icon: '🚚',
-      category: 'operations'
-    },
-    warehouse: {
-      name: 'Almacén',
-      description: 'Gestión de inventario y almacén',
-      level: 'intermediate',
-      icon: '🏪',
-      category: 'operations'
-    },
-    shipping: {
-      name: 'Envíos',
-      description: 'Logística y gestión de envíos',
-      level: 'intermediate',
-      icon: '📦',
-      category: 'operations'
-    },
-    services: {
-      name: 'Servicios',
-      description: 'Configuración de servicios del sistema',
-      level: 'advanced',
-      icon: '⚙️',
-      category: 'configuration'
-    },
-    notifications: {
-      name: 'Notificaciones',
-      description: 'Centro de notificaciones del sistema',
-      level: 'basic',
-      icon: '🔔',
-      category: 'core'
-    },
-    'internal-chat': {
-      name: 'Chat Interno',
-      description: 'Comunicación interna entre agentes',
-      level: 'basic',
-      icon: '💭',
-      category: 'communication'
-    }
-  };
 
   // Cargar datos del miembro cuando se abre el modal
   useEffect(() => {
@@ -248,112 +130,20 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
     
     setLoadingModules(true);
     try {
-      // Intentar cargar módulos disponibles del backend
-      let modules = {};
-      let userPermissions: UserModulePermissions | null = null;
-      
-      try {
-        const [backendModules, backendUserPermissions] = await Promise.all([
+      // Cargar módulos disponibles y permisos del usuario
+      const [modules, userPermissions] = await Promise.all([
         modulePermissionsService.getAvailableModules(),
         modulePermissionsService.getUserPermissions(member.email)
       ]);
-        modules = backendModules;
-        userPermissions = backendUserPermissions;
-        infoLog('Módulos cargados desde backend:', { modules, userPermissions });
-      } catch (backendError) {
-        infoLog('Error cargando desde backend, usando módulos predefinidos:', backendError);
-        // Usar módulos predefinidos como fallback
-        modules = systemModules;
-        
-        // Intentar cargar permisos guardados localmente
-        const localStorageKey = `modulePermissions_${member.email}`;
-        const savedPermissions = localStorage.getItem(localStorageKey);
-        if (savedPermissions) {
-          try {
-            const parsedPermissions = JSON.parse(savedPermissions);
-            userPermissions = parsedPermissions;
-            infoLog('Permisos cargados desde localStorage', { email: member.email });
-          } catch (parseError) {
-            infoLog('Error parseando permisos guardados:', parseError);
-          }
-        }
-        
-        // Crear permisos por defecto basados en el rol
-        const defaultPermissions: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } } = {};
-        
-        Object.keys(systemModules).forEach(moduleId => {
-          // Permisos por defecto basados en el rol del usuario
-          const isBasicRole = member.role?.toLowerCase().includes('junior') || member.role?.toLowerCase().includes('ejecutivo');
-          const isAdvancedRole = member.role?.toLowerCase().includes('admin') || member.role?.toLowerCase().includes('manager');
-          const isSupervisor = member.role?.toLowerCase().includes('supervisor');
-          
-          if (isAdvancedRole) {
-            // Admin/Manager: acceso completo a todos los módulos
-            defaultPermissions[moduleId] = { read: true, write: true, configure: true };
-          } else if (isSupervisor) {
-            // Supervisor: acceso de lectura y escritura, configuración limitada
-            const moduleInfo = systemModules[moduleId as keyof typeof systemModules];
-            defaultPermissions[moduleId] = { 
-              read: true, 
-              write: true, 
-              configure: moduleInfo.level !== 'advanced' 
-            };
-          } else if (isBasicRole) {
-            // Roles básicos: acceso limitado según el tipo de módulo
-            const moduleInfo = systemModules[moduleId as keyof typeof systemModules];
-            const allowedCategories = ['core', 'communication', 'support'];
-            const hasAccess = allowedCategories.includes(moduleInfo.category);
-            
-            defaultPermissions[moduleId] = { 
-              read: hasAccess, 
-              write: hasAccess && moduleInfo.level === 'basic', 
-              configure: false 
-            };
-          } else {
-            // Rol desconocido: acceso básico solo a módulos core
-            const moduleInfo = systemModules[moduleId as keyof typeof systemModules];
-            const isCore = moduleInfo.category === 'core';
-            defaultPermissions[moduleId] = { 
-              read: isCore, 
-              write: false, 
-              configure: false 
-            };
-          }
-        });
-        
-        userPermissions = {
-          email: member.email,
-          role: member.role || 'unknown',
-          accessibleModules: Object.entries(systemModules).map(([id, module]) => ({
-            id,
-            name: module.name,
-            description: module.description,
-            level: module.level as 'basic' | 'intermediate' | 'advanced',
-            actions: defaultPermissions[id]
-          })),
-          permissions: {
-            modules: defaultPermissions
-          }
-        };
-      }
       
       setAvailableModules(modules);
       setModulePermissions(userPermissions);
-      infoLog('Permisos de módulos cargados exitosamente', { 
-        modulesCount: Object.keys(modules).length,
-        userEmail: member.email,
-        role: member.role
-      });
-      
     } catch (error) {
-      infoLog('Error crítico cargando permisos de módulos:', error);
-      // En caso de error crítico, usar módulos del sistema sin permisos
-      setAvailableModules(systemModules);
-      setModulePermissions(null);
+      infoLog('Error cargando permisos de módulos:', error);
     } finally {
       setLoadingModules(false);
     }
-  }, [member?.email, member?.role, systemModules]);
+  }, [member?.email]);
 
   // Cargar permisos de módulos cuando se abre la pestaña
   useEffect(() => {
@@ -388,46 +178,13 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
     if (!modulePermissions || !member?.email) return;
     
     setIsLoading(true);
-    showLoading('Guardando permisos...', 'Actualizando configuración de módulos');
-    
     try {
-      // Intentar actualizar en el backend
-      try {
-        const updatedPermissions = await modulePermissionsService.updateUserPermissions(member.email, modulePermissions.permissions);
-        infoLog('Permisos de módulos actualizados exitosamente en el backend', {
-          email: member.email,
-          modulesCount: Object.keys(modulePermissions.permissions.modules).length
-        });
-        
-        // Actualizar el estado local con la respuesta del backend
-        setModulePermissions(updatedPermissions);
-        
-        // Mostrar mensaje de éxito
-        showSuccess('¡Permisos actualizados!', 'Los permisos de módulos se han guardado exitosamente');
-        
-      } catch (backendError) {
-        infoLog('Error actualizando en backend, guardando localmente:', backendError);
-        
-        // Fallback: guardar en localStorage para demostración
-        const localStorageKey = `modulePermissions_${member.email}`;
-        localStorage.setItem(localStorageKey, JSON.stringify(modulePermissions));
-        
-        // Mostrar mensaje informativo
-        showSuccess('Permisos guardados localmente', 'Los permisos se han guardado en el navegador (modo offline)');
-      }
-      
-      // Actualizar el estado local independientemente del resultado del backend
-      infoLog('Permisos actualizados en el estado local', {
-        email: member.email,
-        permissions: modulePermissions.permissions.modules
-      });
-      
+      await modulePermissionsService.updateUserPermissions(member.email, modulePermissions.permissions);
+      infoLog('Permisos de módulos actualizados exitosamente');
     } catch (error) {
-      infoLog('Error crítico actualizando permisos de módulos:', error);
-      showError('Error al guardar permisos', 'Por favor, intenta de nuevo');
+      infoLog('Error actualizando permisos de módulos:', error);
     } finally {
       setIsLoading(false);
-      hideNotification();
     }
   };
 
@@ -495,8 +252,6 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <>
-      <NotificationComponent />
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         {/* Header */}
@@ -655,224 +410,28 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                   <>
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-medium text-gray-900">Permisos de Módulos</h3>
-                      <div className="flex items-center gap-4">
-                        <div className="text-sm text-gray-600">
-                          <span className="font-medium">Resumen:</span>
-                          {modulePermissions && (
-                            <>
-                              <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
-                                {Object.values(modulePermissions.permissions.modules).filter(p => p.read).length} con lectura
-                              </span>
-                              <span className="ml-1 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-                                {Object.values(modulePermissions.permissions.modules).filter(p => p.write).length} con escritura
-                              </span>
-                              <span className="ml-1 px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">
-                                {Object.values(modulePermissions.permissions.modules).filter(p => p.configure).length} con configuración
-                              </span>
-                            </>
-                          )}
-                        </div>
                       <button
                         type="button"
                         onClick={handleSaveModulePermissions}
                         disabled={isLoading}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        >
-                          {isLoading ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                              Guardando...
-                            </>
-                          ) : (
-                            <>
-                              💾 Guardar Cambios
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-6">
-                      {/* Filtros rápidos por rol */}
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h4 className="text-sm font-medium text-blue-900 mb-3">Configuración Rápida por Rol</h4>
-                        <p className="text-xs text-blue-700 mb-3">Selecciona una plantilla predefinida de permisos según el rol del agente:</p>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!modulePermissions) return;
-                              const newPermissions = { ...modulePermissions };
-                              Object.keys(systemModules).forEach(moduleId => {
-                                const module = systemModules[moduleId as keyof typeof systemModules];
-                                const allowedCategories = ['core', 'communication', 'support'];
-                                const hasAccess = allowedCategories.includes(module.category);
-                                newPermissions.permissions.modules[moduleId] = {
-                                  read: hasAccess,
-                                  write: hasAccess && module.level === 'basic',
-                                  configure: false
-                                };
-                              });
-                              setModulePermissions(newPermissions);
-                            }}
-                            className="px-3 py-1 text-xs bg-green-100 text-green-800 rounded-full hover:bg-green-200 transition-colors"
-                          >
-                            🎯 Agente Básico (Chat + Dashboard)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!modulePermissions) return;
-                              const newPermissions = { ...modulePermissions };
-                              Object.keys(systemModules).forEach(moduleId => {
-                                const module = systemModules[moduleId as keyof typeof systemModules];
-                                const allowedCategories = ['core', 'communication', 'crm', 'marketing', 'support'];
-                                const hasAccess = allowedCategories.includes(module.category);
-                                newPermissions.permissions.modules[moduleId] = {
-                                  read: hasAccess,
-                                  write: hasAccess,
-                                  configure: module.level === 'basic'
-                                };
-                              });
-                              setModulePermissions(newPermissions);
-                            }}
-                            className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 transition-colors"
-                          >
-                            💼 Vendedor (Chat + Clientes + Campañas)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!modulePermissions) return;
-                              const newPermissions = { ...modulePermissions };
-                              Object.keys(systemModules).forEach(moduleId => {
-                                const module = systemModules[moduleId as keyof typeof systemModules];
-                                const allowedCategories = ['core', 'management', 'support'];
-                                const hasAccess = allowedCategories.includes(module.category);
-                                newPermissions.permissions.modules[moduleId] = {
-                                  read: hasAccess,
-                                  write: hasAccess,
-                                  configure: hasAccess && module.level !== 'advanced'
-                                };
-                              });
-                              setModulePermissions(newPermissions);
-                            }}
-                            className="px-3 py-1 text-xs bg-purple-100 text-purple-800 rounded-full hover:bg-purple-200 transition-colors"
-                          >
-                            🏢 RH/Admin (HR + Team + Dashboard)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!modulePermissions) return;
-                              const newPermissions = { ...modulePermissions };
-                              Object.keys(systemModules).forEach(moduleId => {
-                                const module = systemModules[moduleId as keyof typeof systemModules];
-                                // Contadores: acceso a HR, Dashboard, y módulos financieros
-                                const allowedModules = ['hr', 'dashboard', 'team', 'notifications'];
-                                const hasAccess = allowedModules.includes(moduleId);
-                                newPermissions.permissions.modules[moduleId] = {
-                                  read: hasAccess,
-                                  write: hasAccess && (moduleId === 'hr' || moduleId === 'dashboard'),
-                                  configure: hasAccess && moduleId === 'hr'
-                                };
-                              });
-                              setModulePermissions(newPermissions);
-                            }}
-                            className="px-3 py-1 text-xs bg-orange-100 text-orange-800 rounded-full hover:bg-orange-200 transition-colors"
-                          >
-                            🧮 Contador (HR + Finanzas)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!modulePermissions) return;
-                              const newPermissions = { ...modulePermissions };
-                              Object.keys(systemModules).forEach(moduleId => {
-                                const module = systemModules[moduleId as keyof typeof systemModules];
-                                // Supervisores: acceso amplio con configuración limitada
-                                const restrictedModules = ['hr', 'services'];
-                                const hasFullAccess = !restrictedModules.includes(moduleId);
-                                newPermissions.permissions.modules[moduleId] = {
-                                  read: true,
-                                  write: hasFullAccess,
-                                  configure: hasFullAccess && module.level !== 'advanced'
-                                };
-                              });
-                              setModulePermissions(newPermissions);
-                            }}
-                            className="px-3 py-1 text-xs bg-indigo-100 text-indigo-800 rounded-full hover:bg-indigo-200 transition-colors"
-                          >
-                            👁️ Supervisor (Monitoreo + Chat)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!modulePermissions) return;
-                              const newPermissions = { ...modulePermissions };
-                              Object.keys(systemModules).forEach(moduleId => {
-                                newPermissions.permissions.modules[moduleId] = {
-                                  read: true,
-                                  write: true,
-                                  configure: true
-                                };
-                              });
-                              setModulePermissions(newPermissions);
-                            }}
-                            className="px-3 py-1 text-xs bg-red-100 text-red-800 rounded-full hover:bg-red-200 transition-colors"
-                          >
-                            👑 Acceso Completo
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isLoading ? 'Guardando...' : 'Guardar Cambios'}
                       </button>
-                        </div>
-                      </div>
-
-                      {/* Módulos organizados por categorías */}
-                      {Object.entries({
-                        'core': { name: 'Módulos Principales', icon: '🏠', color: 'blue' },
-                        'communication': { name: 'Comunicación', icon: '💬', color: 'green' },
-                        'crm': { name: 'CRM', icon: '👥', color: 'purple' },
-                        'management': { name: 'Gestión', icon: '👨‍💼', color: 'red' },
-                        'marketing': { name: 'Marketing', icon: '📢', color: 'yellow' },
-                        'operations': { name: 'Operaciones', icon: '⚙️', color: 'gray' },
-                        'ai': { name: 'Inteligencia Artificial', icon: '🤖', color: 'indigo' },
-                        'support': { name: 'Soporte', icon: '📚', color: 'teal' },
-                        'configuration': { name: 'Configuración', icon: '⚙️', color: 'orange' }
-                      }).map(([category, categoryInfo]) => {
-                        const categoryModules = Object.entries(availableModules).filter(([, module]) => {
-                          const moduleData = module as { category: string };
-                          return moduleData.category === category;
-                        });
-
-                        if (categoryModules.length === 0) return null;
-
-                        return (
-                          <div key={category} className="border border-gray-200 rounded-lg overflow-hidden">
-                            <div className={`bg-${categoryInfo.color}-50 border-b border-${categoryInfo.color}-200 px-4 py-3`}>
-                              <h4 className={`text-sm font-medium text-${categoryInfo.color}-900 flex items-center gap-2`}>
-                                <span>{categoryInfo.icon}</span>
-                                {categoryInfo.name}
-                                <span className={`text-xs px-2 py-1 bg-${categoryInfo.color}-100 text-${categoryInfo.color}-800 rounded-full`}>
-                                  {categoryModules.length} módulos
-                                </span>
-                              </h4>
                     </div>
                     
-                            <div className="p-4 space-y-4">
-                              {categoryModules.map(([moduleId, module]) => {
+                    <div className="space-y-4">
+                      {Object.entries(availableModules).map(([moduleId, module]) => {
                         const currentModulePermissions = modulePermissions?.permissions?.modules?.[moduleId];
-                                const moduleData = module as { name: string; description: string; level: string; icon: string };
                         
+                        const moduleData = module as { name: string; description: string; level: string };
                         return (
-                                  <div key={moduleId} className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                          <div key={moduleId} className="border border-gray-200 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-3">
-                                      <div className="flex items-center gap-3">
-                                        <span className="text-2xl">{moduleData.icon}</span>
                               <div>
-                                          <h5 className="text-sm font-medium text-gray-900">{moduleData.name}</h5>
+                                <h4 className="text-sm font-medium text-gray-900">{moduleData.name}</h4>
                                 <p className="text-xs text-gray-600">{moduleData.description}</p>
                               </div>
-                                      </div>
-                                      <div className="flex items-center gap-2">
                               <span className={`text-xs px-2 py-1 rounded-full ${
                                 moduleData.level === 'advanced' ? 'bg-red-100 text-red-800' :
                                 moduleData.level === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
@@ -880,32 +439,27 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                               }`}>
                                 {moduleData.level}
                               </span>
-                                      </div>
                             </div>
                             
                             <div className="grid grid-cols-3 gap-4">
                               {Object.entries({
-                                        read: { label: '👁️ Leer', description: 'Ver información', color: 'green' },
-                                        write: { label: '✏️ Escribir', description: 'Crear y editar', color: 'blue' },
-                                        configure: { label: '⚙️ Configurar', description: 'Administrar', color: 'purple' }
+                                read: { label: 'Leer', description: 'Acceso de lectura' },
+                                write: { label: 'Escribir', description: 'Acceso de escritura' },
+                                configure: { label: 'Configurar', description: 'Acceso de configuración' }
                               }).map(([action, actionInfo]) => (
-                                        <div key={action} className="flex flex-col items-center space-y-2">
-                                          <label className="flex items-center space-x-2 cursor-pointer">
+                                <div key={action} className="flex items-center space-x-2">
                                   <input
                                     type="checkbox"
+                                    id={`module-${moduleId}-${action}`}
                                     checked={currentModulePermissions?.[action as keyof typeof currentModulePermissions] || false}
                                     onChange={(e) => handleModulePermissionChange(moduleId, action as 'read' | 'write' | 'configure', e.target.checked)}
-                                              className={`w-4 h-4 text-${actionInfo.color}-600 border-gray-300 rounded focus:ring-${actionInfo.color}-500`}
+                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                   />
-                                            <span className="text-sm font-medium text-gray-700">{actionInfo.label}</span>
+                                  <label htmlFor={`module-${moduleId}-${action}`} className="text-sm text-gray-700">
+                                    {actionInfo.label}
                                   </label>
-                                          <p className="text-xs text-gray-500 text-center">{actionInfo.description}</p>
                                 </div>
                               ))}
-                                    </div>
-                                  </div>
-                                );
-                              })}
                             </div>
                           </div>
                         );
@@ -1059,6 +613,5 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
         </div>
       </div>
     </div>
-    </>
   );
 }; 

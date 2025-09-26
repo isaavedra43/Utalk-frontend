@@ -1,9 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import type { CreateAgentRequest } from '../../../types/team';
 import { TeamMember } from '../../../types/team';
-import { infoLog } from '../../../config/logger';
-import { modulePermissionsService, UserModulePermissions } from '../../../services/modulePermissions';
-import { usePermissionNotification } from '../../../components/notifications/PermissionNotification';
 
 interface CreateAgentModalProps {
   isOpen: boolean;
@@ -16,7 +13,6 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
   onClose,
   onAgentCreated
 }) => {
-  const { showSuccess, showError, showLoading, hideNotification, NotificationComponent } = usePermissionNotification();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -33,128 +29,6 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'permissions' | 'modulePermissions'>('profile');
-  
-  // Estado para permisos de módulos
-  const [modulePermissions, setModulePermissions] = useState<UserModulePermissions | null>(null);
-  const [availableModules, setAvailableModules] = useState<{ [moduleId: string]: unknown }>({});
-  const [loadingModules, setLoadingModules] = useState(false);
-
-  // Módulos predefinidos del sistema
-  const systemModules = {
-    dashboard: {
-      name: 'Dashboard',
-      description: 'Panel principal con métricas y estadísticas del sistema',
-      level: 'basic',
-      icon: '📊',
-      category: 'core'
-    },
-    chat: {
-      name: 'Chat',
-      description: 'Mensajería y conversaciones con clientes',
-      level: 'basic',
-      icon: '💬',
-      category: 'communication'
-    },
-    clients: {
-      name: 'Clientes',
-      description: 'Gestión de contactos y clientes',
-      level: 'intermediate',
-      icon: '👥',
-      category: 'crm'
-    },
-    team: {
-      name: 'Equipo',
-      description: 'Gestión de agentes y equipos de trabajo',
-      level: 'advanced',
-      icon: '👨‍💼',
-      category: 'management'
-    },
-    hr: {
-      name: 'Recursos Humanos',
-      description: 'Empleados, nóminas y gestión de RRHH',
-      level: 'advanced',
-      icon: '🏢',
-      category: 'management'
-    },
-    campaigns: {
-      name: 'Campañas',
-      description: 'Campañas de marketing y envíos masivos',
-      level: 'intermediate',
-      icon: '📢',
-      category: 'marketing'
-    },
-    phone: {
-      name: 'Teléfono',
-      description: 'Sistema de llamadas VoIP',
-      level: 'basic',
-      icon: '📞',
-      category: 'communication'
-    },
-    'knowledge-base': {
-      name: 'Base de Conocimiento',
-      description: 'Documentación y recursos de ayuda',
-      level: 'basic',
-      icon: '📚',
-      category: 'support'
-    },
-    supervision: {
-      name: 'Supervisión',
-      description: 'Monitoreo y supervisión de agentes',
-      level: 'advanced',
-      icon: '👁️',
-      category: 'management'
-    },
-    copilot: {
-      name: 'Copiloto IA',
-      description: 'Asistente de inteligencia artificial',
-      level: 'intermediate',
-      icon: '🤖',
-      category: 'ai'
-    },
-    providers: {
-      name: 'Proveedores',
-      description: 'Gestión de proveedores y servicios externos',
-      level: 'advanced',
-      icon: '🚚',
-      category: 'operations'
-    },
-    warehouse: {
-      name: 'Almacén',
-      description: 'Gestión de inventario y almacén',
-      level: 'intermediate',
-      icon: '🏪',
-      category: 'operations'
-    },
-    shipping: {
-      name: 'Envíos',
-      description: 'Logística y gestión de envíos',
-      level: 'intermediate',
-      icon: '📦',
-      category: 'operations'
-    },
-    services: {
-      name: 'Servicios',
-      description: 'Configuración de servicios del sistema',
-      level: 'advanced',
-      icon: '⚙️',
-      category: 'configuration'
-    },
-    notifications: {
-      name: 'Notificaciones',
-      description: 'Centro de notificaciones del sistema',
-      level: 'basic',
-      icon: '🔔',
-      category: 'core'
-    },
-    'internal-chat': {
-      name: 'Chat Interno',
-      description: 'Comunicación interna entre agentes',
-      level: 'basic',
-      icon: '💭',
-      category: 'communication'
-    }
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -176,97 +50,6 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
       ...prev,
       [permission]: !prev[permission]
     }));
-  };
-
-  // Inicializar permisos de módulos basados en el rol
-  const initializeModulePermissions = useCallback(() => {
-    if (!formData.role) return;
-
-    const defaultPermissions: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } } = {};
-    
-    Object.keys(systemModules).forEach(moduleId => {
-      const module = systemModules[moduleId as keyof typeof systemModules];
-      const isBasicRole = formData.role === 'agent' || formData.role === 'viewer';
-      const isAdvancedRole = formData.role === 'admin';
-      const isSupervisor = formData.role === 'supervisor';
-      
-      if (isAdvancedRole) {
-        // Admin: acceso completo a todos los módulos
-        defaultPermissions[moduleId] = { read: true, write: true, configure: true };
-      } else if (isSupervisor) {
-        // Supervisor: acceso de lectura y escritura, configuración limitada
-        defaultPermissions[moduleId] = { 
-          read: true, 
-          write: true, 
-          configure: module.level !== 'advanced' 
-        };
-      } else if (isBasicRole) {
-        // Roles básicos: acceso limitado según el tipo de módulo
-        const allowedCategories = ['core', 'communication', 'support'];
-        const hasAccess = allowedCategories.includes(module.category);
-        
-        defaultPermissions[moduleId] = { 
-          read: hasAccess, 
-          write: hasAccess && module.level === 'basic', 
-          configure: false 
-        };
-      } else {
-        // Rol desconocido: acceso básico solo a módulos core
-        const isCore = module.category === 'core';
-        defaultPermissions[moduleId] = { 
-          read: isCore, 
-          write: false, 
-          configure: false 
-        };
-      }
-    });
-
-    const newModulePermissions: UserModulePermissions = {
-      email: formData.email || 'nuevo@agente.com',
-      role: formData.role,
-      accessibleModules: Object.entries(systemModules).map(([id, module]) => ({
-        id,
-        name: module.name,
-        description: module.description,
-        level: module.level as 'basic' | 'intermediate' | 'advanced',
-        actions: defaultPermissions[id]
-      })),
-      permissions: {
-        modules: defaultPermissions
-      }
-    };
-
-    setModulePermissions(newModulePermissions);
-    setAvailableModules(systemModules);
-  }, [formData.role, formData.email, systemModules]);
-
-  // Inicializar permisos cuando cambia el rol
-  useEffect(() => {
-    if (formData.role && isOpen) {
-      initializeModulePermissions();
-    }
-  }, [formData.role, isOpen, initializeModulePermissions]);
-
-  const handleModulePermissionChange = (moduleId: string, action: 'read' | 'write' | 'configure', value: boolean) => {
-    if (!modulePermissions) return;
-    
-    setModulePermissions(prev => {
-      if (!prev) return prev;
-      
-      return {
-        ...prev,
-        permissions: {
-          ...prev.permissions,
-          modules: {
-            ...prev.permissions.modules,
-            [moduleId]: {
-              ...prev.permissions.modules[moduleId],
-              [action]: value
-            }
-          }
-        }
-      };
-    });
   };
 
   const validateForm = () => {
@@ -297,7 +80,6 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
     
     if (validateForm() && !isSubmitting) {
       setIsSubmitting(true);
-      showLoading('Creando agente...', 'Configurando permisos de módulos');
       
       try {
         const agentData: CreateAgentRequest = {
@@ -305,69 +87,12 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
           email: formData.email.trim(),
           role: formData.role,
           phone: formData.phone.trim() || undefined,
-          permissions,
-          modulePermissions: modulePermissions?.permissions || undefined
+          permissions
         };
         
-        // Usar el servicio de permisos para crear el agente
-        try {
-          const createdAgent = await modulePermissionsService.createAgentWithPermissions(agentData);
-          infoLog('Agente creado exitosamente con permisos', { 
-            email: agentData.email,
-            modulesCount: Object.keys(modulePermissions?.permissions?.modules || {}).length
-          });
-          
-          // Convertir a TeamMember para compatibilidad
-          const teamMember: TeamMember = {
-            id: createdAgent.email, // Usar email como ID temporal
-            name: agentData.name,
-            email: agentData.email,
-            role: agentData.role as any,
-            phone: agentData.phone,
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(agentData.name)}&background=random`,
-            isActive: true,
-            permissions: agentData.permissions,
-            performance: {
-              totalChats: 0,
-              csat: 0,
-              conversionRate: 0,
-              responseTime: '0:00'
-            },
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          };
-          
-          onAgentCreated(teamMember);
-          showSuccess('¡Agente creado exitosamente!', `Se ha creado el agente ${agentData.name} con permisos configurados`);
-          
-        } catch (backendError) {
-          infoLog('Error creando agente en backend, usando simulación', { error: backendError });
-          
-          // Fallback: simular creación si el backend falla
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          const simulatedAgent: TeamMember = {
-            id: agentData.email,
-            name: agentData.name,
-            email: agentData.email,
-            role: agentData.role as any,
-            phone: agentData.phone,
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(agentData.name)}&background=random`,
-            isActive: true,
-            permissions: agentData.permissions,
-            performance: {
-              totalChats: 0,
-              csat: 0,
-              conversionRate: 0,
-              responseTime: '0:00'
-            },
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          };
-          
-          onAgentCreated(simulatedAgent);
-          showSuccess('¡Agente creado exitosamente!', `Se ha creado el agente ${agentData.name} (modo offline)`);
-        }
+        // Simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        onAgentCreated(agentData as TeamMember); // Assuming onAgentCreated handles the actual creation
         
         // Resetear formulario
         setFormData({
@@ -382,18 +107,13 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
           approve: false,
           configure: false
         });
-        setModulePermissions(null);
-        setAvailableModules({});
         setErrors({});
-        setActiveTab('profile');
         onClose();
       } catch (error) {
         // El error se maneja en el componente padre
         console.error('Error creating agent:', error);
-        showError('Error al crear agente', 'Por favor, verifica los datos e intenta de nuevo');
       } finally {
         setIsSubmitting(false);
-        hideNotification();
       }
     }
   };
@@ -412,434 +132,240 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
         approve: false,
         configure: false
       });
-      setModulePermissions(null);
-      setAvailableModules({});
       setErrors({});
-      setActiveTab('profile');
       onClose();
     }
   };
 
   if (!isOpen) return null;
 
-  const tabs = [
-    { id: 'profile', label: 'Perfil', icon: '👤' },
-    { id: 'permissions', label: 'Permisos', icon: '🔐' },
-    { id: 'modulePermissions', label: 'Módulos', icon: '📋' }
-  ] as const;
-
   return (
-    <>
-      <NotificationComponent />
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto no-scrollbar">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">
-              Crear Nuevo Agente
-            </h2>
-            <button
-              onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-              aria-label="Cerrar modal"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Crear Nuevo Agente
+          </h2>
+          <button
+            onClick={handleClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+            aria-label="Cerrar modal"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        {/* Tabs */}
-        <div className="px-6 py-3 border-b border-gray-200">
-          <nav className="flex space-x-8">
-            {tabs.map((tab) => (
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Información básica */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900">Información Básica</h3>
+            
+            {/* Nombre */}
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                Nombre completo *
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                  errors.name ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="Ej: María García López"
+                disabled={isSubmitting}
+              />
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+              )}
+            </div>
+
+            {/* Email */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Correo electrónico *
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                  errors.email ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="maria.garcia@empresa.com"
+                disabled={isSubmitting}
+              />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+              )}
+            </div>
+
+            {/* Rol */}
+            <div>
+              <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+                Rol *
+              </label>
+              <select
+                id="role"
+                name="role"
+                value={formData.role}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                disabled={isSubmitting}
+              >
+                <option value="agent">Agente</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="admin">Administrador</option>
+                <option value="viewer">Visualizador</option>
+              </select>
+            </div>
+
+            {/* Teléfono */}
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                Teléfono
+              </label>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                  errors.phone ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="+52 1 477 123 4567"
+                disabled={isSubmitting}
+              />
+              {errors.phone && (
+                <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+              )}
+              <p className="mt-1 text-xs text-gray-500">Opcional. Formato internacional recomendado.</p>
+            </div>
+          </div>
+
+          {/* Permisos */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900">Permisos</h3>
+            <p className="text-sm text-gray-600">
+              Selecciona los permisos que tendrá el nuevo agente
+            </p>
+            
+            <div className="grid grid-cols-2 gap-3">
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                type="button"
+                onClick={() => handlePermissionChange('read')}
+                className={`p-3 border rounded-lg text-left transition-colors ${
+                  permissions.read
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  <span className="font-medium">Leer</span>
+                </div>
+                <p className="text-xs mt-1 opacity-75">Acceso de lectura</p>
               </button>
-            ))}
-          </nav>
-        </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 scrollbar-medium">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Tab: Perfil */}
-            {activeTab === 'profile' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nombre Completo *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      name="name"
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        errors.name ? 'border-red-300' : ''
-                      }`}
-                      placeholder="Ej: María García López"
-                      required
-                    />
-                    {errors.name && (
-                      <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Correo Electrónico *
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      name="email"
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        errors.email ? 'border-red-300' : ''
-                      }`}
-                      placeholder="maria.garcia@empresa.com"
-                      required
-                    />
-                    {errors.email && (
-                      <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Rol *
-                    </label>
-                    <select
-                      value={formData.role}
-                      onChange={handleInputChange}
-                      name="role"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    >
-                      <option value="agent">Agente</option>
-                      <option value="supervisor">Supervisor</option>
-                      <option value="admin">Administrador</option>
-                      <option value="viewer">Visualizador</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Teléfono
-                    </label>
-                    <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      name="phone"
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        errors.phone ? 'border-red-300' : ''
-                      }`}
-                      placeholder="+52 1 477 123 4567"
-                    />
-                    {errors.phone && (
-                      <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
-                    )}
-                    <p className="mt-1 text-xs text-gray-500">Opcional. Formato internacional recomendado.</p>
-                  </div>
+              <button
+                type="button"
+                onClick={() => handlePermissionChange('write')}
+                className={`p-3 border rounded-lg text-left transition-colors ${
+                  permissions.write
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  <span className="font-medium">Escribir</span>
                 </div>
-              </div>
-            )}
+                <p className="text-xs mt-1 opacity-75">Acceso de escritura</p>
+              </button>
 
-            {/* Tab: Permisos */}
-            {activeTab === 'permissions' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {Object.entries({
-                    read: { label: 'Leer', description: 'Ver conversaciones y datos de clientes', level: 'advanced' },
-                    write: { label: 'Escribir', description: 'Enviar mensajes y responder a clientes', level: 'advanced' },
-                    approve: { label: 'Aprobar', description: 'Aprobar campañas y decisiones importantes', level: 'intermediate' },
-                    configure: { label: 'Configurar', description: 'Acceso a configuración del sistema', level: 'basic' }
-                  }).map(([key, permission]) => (
-                    <div key={key} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={`permission-${key}`}
-                            checked={permissions[key as keyof typeof permissions]}
-                            onChange={() => handlePermissionChange(key as keyof typeof permissions)}
-                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                          />
-                          <label htmlFor={`permission-${key}`} className="text-sm font-medium text-gray-900">
-                            {permission.label}
-                          </label>
-                        </div>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          permission.level === 'advanced' ? 'bg-red-100 text-red-800' :
-                          permission.level === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-green-100 text-green-800'
-                        }`}>
-                          {permission.level}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-600">{permission.description}</p>
-                    </div>
-                  ))}
+              <button
+                type="button"
+                onClick={() => handlePermissionChange('approve')}
+                className={`p-3 border rounded-lg text-left transition-colors ${
+                  permissions.approve
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="font-medium">Aprobar</span>
                 </div>
-              </div>
-            )}
+                <p className="text-xs mt-1 opacity-75">Permisos de aprobación</p>
+              </button>
 
-            {/* Tab: Permisos de Módulos */}
-            {activeTab === 'modulePermissions' && (
-              <div className="space-y-6 max-h-96 overflow-y-auto scrollbar-medium">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-gray-900">Permisos de Módulos</h3>
-                  <div className="text-sm text-gray-600">
-                    <span className="font-medium">Resumen:</span>
-                    {modulePermissions && (
-                      <>
-                        <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
-                          {Object.values(modulePermissions.permissions.modules).filter(p => p.read).length} con lectura
-                        </span>
-                        <span className="ml-1 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-                          {Object.values(modulePermissions.permissions.modules).filter(p => p.write).length} con escritura
-                        </span>
-                        <span className="ml-1 px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">
-                          {Object.values(modulePermissions.permissions.modules).filter(p => p.configure).length} con configuración
-                        </span>
-                      </>
-                    )}
-                  </div>
+              <button
+                type="button"
+                onClick={() => handlePermissionChange('configure')}
+                className={`p-3 border rounded-lg text-left transition-colors ${
+                  permissions.configure
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span className="font-medium">Configurar</span>
                 </div>
-                
-                <div className="space-y-6">
-                  {/* Filtros rápidos por rol */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="text-sm font-medium text-blue-900 mb-3">Configuración Rápida por Rol</h4>
-                    <p className="text-xs text-blue-700 mb-3">Selecciona una plantilla predefinida de permisos según el rol del agente:</p>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!modulePermissions) return;
-                          const newPermissions = { ...modulePermissions };
-                          Object.keys(systemModules).forEach(moduleId => {
-                            const module = systemModules[moduleId as keyof typeof systemModules];
-                            const allowedCategories = ['core', 'communication', 'support'];
-                            const hasAccess = allowedCategories.includes(module.category);
-                            newPermissions.permissions.modules[moduleId] = {
-                              read: hasAccess,
-                              write: hasAccess && module.level === 'basic',
-                              configure: false
-                            };
-                          });
-                          setModulePermissions(newPermissions);
-                        }}
-                        className="px-3 py-1 text-xs bg-green-100 text-green-800 rounded-full hover:bg-green-200 transition-colors"
-                      >
-                        🎯 Agente Básico (Chat + Dashboard)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!modulePermissions) return;
-                          const newPermissions = { ...modulePermissions };
-                          Object.keys(systemModules).forEach(moduleId => {
-                            const module = systemModules[moduleId as keyof typeof systemModules];
-                            const allowedCategories = ['core', 'communication', 'crm', 'marketing', 'support'];
-                            const hasAccess = allowedCategories.includes(module.category);
-                            newPermissions.permissions.modules[moduleId] = {
-                              read: hasAccess,
-                              write: hasAccess,
-                              configure: module.level === 'basic'
-                            };
-                          });
-                          setModulePermissions(newPermissions);
-                        }}
-                        className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 transition-colors"
-                      >
-                        💼 Vendedor (Chat + Clientes + Campañas)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!modulePermissions) return;
-                          const newPermissions = { ...modulePermissions };
-                          Object.keys(systemModules).forEach(moduleId => {
-                            const module = systemModules[moduleId as keyof typeof systemModules];
-                            const allowedCategories = ['core', 'management', 'support'];
-                            const hasAccess = allowedCategories.includes(module.category);
-                            newPermissions.permissions.modules[moduleId] = {
-                              read: hasAccess,
-                              write: hasAccess,
-                              configure: hasAccess && module.level !== 'advanced'
-                            };
-                          });
-                          setModulePermissions(newPermissions);
-                        }}
-                        className="px-3 py-1 text-xs bg-purple-100 text-purple-800 rounded-full hover:bg-purple-200 transition-colors"
-                      >
-                        🏢 RH/Admin (HR + Team + Dashboard)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!modulePermissions) return;
-                          const newPermissions = { ...modulePermissions };
-                          Object.keys(systemModules).forEach(moduleId => {
-                            newPermissions.permissions.modules[moduleId] = {
-                              read: true,
-                              write: true,
-                              configure: true
-                            };
-                          });
-                          setModulePermissions(newPermissions);
-                        }}
-                        className="px-3 py-1 text-xs bg-red-100 text-red-800 rounded-full hover:bg-red-200 transition-colors"
-                      >
-                        👑 Acceso Completo
-                      </button>
-                    </div>
-                  </div>
+                <p className="text-xs mt-1 opacity-75">Permisos de configuración</p>
+              </button>
+            </div>
+          </div>
 
-                  {/* Módulos organizados por categorías */}
-                  {Object.entries({
-                    'core': { name: 'Módulos Principales', icon: '🏠', color: 'blue' },
-                    'communication': { name: 'Comunicación', icon: '💬', color: 'green' },
-                    'crm': { name: 'CRM', icon: '👥', color: 'purple' },
-                    'management': { name: 'Gestión', icon: '👨‍💼', color: 'red' },
-                    'marketing': { name: 'Marketing', icon: '📢', color: 'yellow' },
-                    'operations': { name: 'Operaciones', icon: '⚙️', color: 'gray' },
-                    'ai': { name: 'Inteligencia Artificial', icon: '🤖', color: 'indigo' },
-                    'support': { name: 'Soporte', icon: '📚', color: 'teal' },
-                    'configuration': { name: 'Configuración', icon: '⚙️', color: 'orange' }
-                  }).map(([category, categoryInfo]) => {
-                    const categoryModules = Object.entries(availableModules).filter(([, module]) => {
-                      const moduleData = module as { category: string };
-                      return moduleData.category === category;
-                    });
-
-                    if (categoryModules.length === 0) return null;
-
-                    return (
-                      <div key={category} className="border border-gray-200 rounded-lg overflow-hidden">
-                        <div className={`bg-${categoryInfo.color}-50 border-b border-${categoryInfo.color}-200 px-4 py-3`}>
-                          <h4 className={`text-sm font-medium text-${categoryInfo.color}-900 flex items-center gap-2`}>
-                            <span>{categoryInfo.icon}</span>
-                            {categoryInfo.name}
-                            <span className={`text-xs px-2 py-1 bg-${categoryInfo.color}-100 text-${categoryInfo.color}-800 rounded-full`}>
-                              {categoryModules.length} módulos
-                            </span>
-                          </h4>
-                        </div>
-                        
-                        <div className="p-4 space-y-4">
-                          {categoryModules.map(([moduleId, module]) => {
-                            const currentModulePermissions = modulePermissions?.permissions?.modules?.[moduleId];
-                            const moduleData = module as { name: string; description: string; level: string; icon: string };
-                            
-                            return (
-                              <div key={moduleId} className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-                                <div className="flex items-center justify-between mb-3">
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-2xl">{moduleData.icon}</span>
-                                    <div>
-                                      <h5 className="text-sm font-medium text-gray-900">{moduleData.name}</h5>
-                                      <p className="text-xs text-gray-600">{moduleData.description}</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <span className={`text-xs px-2 py-1 rounded-full ${
-                                      moduleData.level === 'advanced' ? 'bg-red-100 text-red-800' :
-                                      moduleData.level === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                                      'bg-green-100 text-green-800'
-                                    }`}>
-                                      {moduleData.level}
-                                    </span>
-                                  </div>
-                                </div>
-                                
-                                <div className="grid grid-cols-3 gap-4">
-                                  {Object.entries({
-                                    read: { label: '👁️ Leer', description: 'Ver información', color: 'green' },
-                                    write: { label: '✏️ Escribir', description: 'Crear y editar', color: 'blue' },
-                                    configure: { label: '⚙️ Configurar', description: 'Administrar', color: 'purple' }
-                                  }).map(([action, actionInfo]) => (
-                                    <div key={action} className="flex flex-col items-center space-y-2">
-                                      <label className="flex items-center space-x-2 cursor-pointer">
-                                        <input
-                                          type="checkbox"
-                                          checked={currentModulePermissions?.[action as keyof typeof currentModulePermissions] || false}
-                                          onChange={(e) => handleModulePermissionChange(moduleId, action as 'read' | 'write' | 'configure', e.target.checked)}
-                                          className={`w-4 h-4 text-${actionInfo.color}-600 border-gray-300 rounded focus:ring-${actionInfo.color}-500`}
-                                        />
-                                        <span className="text-sm font-medium text-gray-700">{actionInfo.label}</span>
-                                      </label>
-                                      <p className="text-xs text-gray-500 text-center">{actionInfo.description}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                {Object.keys(availableModules).length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>Selecciona un rol para ver los módulos disponibles.</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-          </form>
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <div className="flex items-center justify-end space-x-3">
+          {/* Botones de acción */}
+          <div className="flex items-center space-x-3 pt-4 border-t border-gray-200">
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isSubmitting}
             >
               Cancelar
             </button>
             <button
               type="submit"
-              onClick={handleSubmit}
+              className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               disabled={isSubmitting}
-              className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isSubmitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
                   Creando...
                 </>
               ) : (
-                <>
-                  ➕ Nuevo Agente
-                </>
+                '+ Nuevo Agente'
               )}
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
-    </>
   );
 };
 

@@ -146,31 +146,13 @@ export const LeftSidebar: React.FC = () => {
 
   // Filtrar módulos según permisos del usuario
   const navigationItems = React.useMemo(() => {
-    // Si está cargando permisos, mostrar solo módulos básicos como fallback
+    // Si está cargando permisos, mostrar todos los módulos (fallback seguro)
     if (permissionsLoading) {
-      infoLog('🔄 Cargando permisos, mostrando módulos básicos', { loading: permissionsLoading });
-      const basicModules = ['dashboard', 'notifications'];
-      return allNavigationItems.filter(item => basicModules.includes(item.id));
+      return allNavigationItems;
     }
 
-    // Filtrar solo los módulos a los que tiene acceso según el backend
-    const accessibleItems = allNavigationItems.filter((item: { id: string; icon: React.ComponentType<{ className?: string }>; title: string }) => {
-      const hasAccess = canAccessModule(item.id);
-      if (!hasAccess) {
-        infoLog('🚫 Módulo filtrado de navegación', { moduleId: item.id, title: item.title });
-      } else {
-        infoLog('✅ Módulo incluido en navegación', { moduleId: item.id, title: item.title });
-      }
-      return hasAccess;
-    });
-
-    infoLog('📋 Navegación filtrada completada', { 
-      totalModules: allNavigationItems.length,
-      accessibleModules: accessibleItems.length,
-      filteredModules: accessibleItems.map(item => ({ id: item.id, title: item.title }))
-    });
-
-    return accessibleItems;
+    // Filtrar solo los módulos a los que tiene acceso
+    return allNavigationItems.filter((item: { id: string; icon: React.ComponentType<{ className?: string }>; title: string }) => canAccessModule(item.id));
   }, [allNavigationItems, canAccessModule, permissionsLoading]);
 
   return (
