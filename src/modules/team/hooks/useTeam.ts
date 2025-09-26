@@ -22,7 +22,7 @@ export const useTeam = () => {
     updateEmployee,
     deleteEmployee,
     loadStats,
-    set,
+    updateWithAgentData,
     
     // Estado legacy (compatibilidad)
     teamData, 
@@ -92,21 +92,11 @@ export const useTeam = () => {
         updatedAt: agent.updatedAt
       }));
       
-      // ✅ CORRECTO: Actualizar el estado directamente usando setState
-      // En lugar de usar loadEmployees, actualizamos el estado directamente
-      set({
+      // ✅ CORRECTO: Usar la función específica para actualizar con datos de agentes
+      updateWithAgentData({
         employees: employeesData,
         pagination: response.pagination,
-        stats: {
-          total: response.summary.total,
-          active: response.summary.active,
-          inactive: response.summary.inactive,
-          onLeave: 0,
-          averagePerformance: 0,
-          totalExperience: 0
-        },
-        loading: false,
-        error: null
+        summary: response.summary
       });
       
       logger.systemInfo('Agentes del equipo cargados exitosamente', {

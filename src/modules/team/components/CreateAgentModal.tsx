@@ -378,6 +378,19 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
       });
       setModulePermissions({});
       setAvailableModules({});
+      setNotifications({
+        email: true,
+        push: true,
+        sms: false,
+        desktop: true
+      });
+      setConfiguration({
+        language: 'es',
+        timezone: 'America/Mexico_City',
+        theme: 'light',
+        autoLogout: true,
+        twoFactor: false
+      });
       setActiveTab('basic');
       setErrors({});
       onClose();
@@ -806,6 +819,218 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
                     )}
                   </>
                 )}
+              </div>
+            )}
+
+            {/* Tab: Notificaciones */}
+            {activeTab === 'notifications' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">Configuración de Notificaciones</h3>
+                    <p className="text-sm text-gray-600 mt-1">Configura cómo el agente recibirá las notificaciones del sistema</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Email */}
+                  <div className="p-4 border border-gray-300 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <span className="text-blue-600 text-lg">📧</span>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">Email</h4>
+                          <p className="text-sm text-gray-600">Notificaciones por correo electrónico</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={notifications.email}
+                          onChange={(e) => handleNotificationChange('email', e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Push */}
+                  <div className="p-4 border border-gray-300 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          <span className="text-green-600 text-lg">📱</span>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">Push</h4>
+                          <p className="text-sm text-gray-600">Notificaciones push móviles</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={notifications.push}
+                          onChange={(e) => handleNotificationChange('push', e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* SMS */}
+                  <div className="p-4 border border-gray-300 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-yellow-100 rounded-lg">
+                          <span className="text-yellow-600 text-lg">💬</span>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">SMS</h4>
+                          <p className="text-sm text-gray-600">Mensajes de texto</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={notifications.sms}
+                          onChange={(e) => handleNotificationChange('sms', e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Desktop */}
+                  <div className="p-4 border border-gray-300 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-purple-100 rounded-lg">
+                          <span className="text-purple-600 text-lg">🖥️</span>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">Desktop</h4>
+                          <p className="text-sm text-gray-600">Notificaciones de escritorio</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={notifications.desktop}
+                          onChange={(e) => handleNotificationChange('desktop', e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab: Configuración */}
+            {activeTab === 'configuration' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">Configuración Personal</h3>
+                    <p className="text-sm text-gray-600 mt-1">Configura las preferencias personales del agente</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6">
+                  {/* Idioma */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      🌐 Idioma
+                    </label>
+                    <select
+                      value={configuration.language}
+                      onChange={(e) => handleConfigurationChange('language', e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="es">🇪🇸 Español</option>
+                      <option value="en">🇺🇸 English</option>
+                      <option value="fr">🇫🇷 Français</option>
+                      <option value="pt">🇧🇷 Português</option>
+                    </select>
+                  </div>
+
+                  {/* Zona Horaria */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      🕒 Zona Horaria
+                    </label>
+                    <select
+                      value={configuration.timezone}
+                      onChange={(e) => handleConfigurationChange('timezone', e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="America/Mexico_City">🇲🇽 Ciudad de México (UTC-6)</option>
+                      <option value="America/New_York">🇺🇸 Nueva York (UTC-5)</option>
+                      <option value="America/Los_Angeles">🇺🇸 Los Ángeles (UTC-8)</option>
+                      <option value="Europe/Madrid">🇪🇸 Madrid (UTC+1)</option>
+                      <option value="America/Sao_Paulo">🇧🇷 São Paulo (UTC-3)</option>
+                    </select>
+                  </div>
+
+                  {/* Tema */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      🎨 Tema
+                    </label>
+                    <select
+                      value={configuration.theme}
+                      onChange={(e) => handleConfigurationChange('theme', e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="light">☀️ Claro</option>
+                      <option value="dark">🌙 Oscuro</option>
+                      <option value="auto">🔄 Automático</option>
+                    </select>
+                  </div>
+
+                  {/* Configuraciones de seguridad */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-900">🔐 Seguridad</h4>
+                    
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <div>
+                        <h5 className="font-medium text-gray-900">Cerrar sesión automático</h5>
+                        <p className="text-sm text-gray-600">Cerrar sesión después de inactividad</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={configuration.autoLogout}
+                          onChange={(e) => handleConfigurationChange('autoLogout', e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                      <div>
+                        <h5 className="font-medium text-gray-900">Autenticación de dos factores</h5>
+                        <p className="text-sm text-gray-600">Seguridad adicional para el inicio de sesión</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={configuration.twoFactor}
+                          onChange={(e) => handleConfigurationChange('twoFactor', e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

@@ -67,6 +67,9 @@ interface TeamStore extends TeamStoreState {
   // Cargar estadísticas
   loadStats: () => Promise<void>;
   
+  // Actualizar estado con datos de agentes (específico para el módulo de agentes)
+  updateWithAgentData: (agentData: any) => void;
+  
   // ===== ACCIONES LEGACY (PARA COMPATIBILIDAD) =====
   
   setTeamData: (data: any | null) => void;
@@ -338,6 +341,27 @@ export const useTeamStore = create<TeamStore>()(
           } catch (error: any) {
             console.error('Error al cargar estadísticas:', error);
           }
+        },
+        
+        // Función específica para actualizar con datos de agentes
+        updateWithAgentData: (agentData) => {
+          set({
+            employees: agentData.employees,
+            pagination: agentData.pagination,
+            stats: {
+              total: agentData.summary.total,
+              active: agentData.summary.active,
+              inactive: agentData.summary.inactive,
+              onLeave: 0,
+              averagePerformance: 0,
+              totalExperience: 0
+            },
+            loading: false,
+            error: null
+          });
+          
+          // Sincronizar con members legacy
+          get().syncMembersFromEmployees();
         },
         
         // ===== ACCIONES LEGACY =====
