@@ -45,25 +45,27 @@ export interface ModulePermissionsResponse {
 
 // Función para normalizar datos del backend según las indicaciones
 const normalizeBackendData = (backendResponse: any): UserModulePermissions => {
-  const { user, permissions } = backendResponse.data;
+  const { user, permissions, modulePermissions } = backendResponse.data;
   
   // Log para debug
   console.log('🔍 Normalizando datos del backend:', {
     user,
     permissions,
-    modules: permissions?.permissions?.modules
+    modulePermissions,
+    accessibleModules: modulePermissions?.accessibleModules,
+    modules: permissions?.permissions?.modules || permissions?.modules
   });
   
   return {
     email: user.email,
     role: user.role,
-    accessibleModules: permissions.accessibleModules || [],
+    accessibleModules: modulePermissions?.accessibleModules || permissions?.accessibleModules || [],
     permissions: {
-      read: permissions.permissions?.read || false,
-      write: permissions.permissions?.write || false,
-      approve: permissions.permissions?.approve || false,
-      configure: permissions.permissions?.configure || false,
-      modules: permissions.permissions?.modules || {}
+      read: permissions?.permissions?.read || permissions?.read || false,
+      write: permissions?.permissions?.write || permissions?.write || false,
+      approve: permissions?.permissions?.approve || permissions?.approve || false,
+      configure: permissions?.permissions?.configure || permissions?.configure || false,
+      modules: permissions?.permissions?.modules || permissions?.modules || {}
     }
   };
 };

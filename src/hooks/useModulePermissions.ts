@@ -72,9 +72,33 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
       infoLog('Error cargando permisos, usando fallback', { error });
       setError('Error al cargar permisos, usando configuración por defecto');
       
-      // FALLBACK SEGURO: Si hay error, mostrar todos los módulos
-      // Esto mantiene la funcionalidad existente
-      setAccessibleModules([]); // Array vacío significa "todos los módulos"
+      // FALLBACK SEGURO: Si hay error, permitir acceso a todos los módulos
+      // Crear una lista de todos los módulos disponibles como fallback
+      const fallbackModules: ModulePermission[] = [
+        { id: 'dashboard', name: 'Dashboard', description: 'Panel principal', level: 'basic' },
+        { id: 'hr', name: 'Recursos Humanos', description: 'Módulo de empleados', level: 'advanced' },
+        { id: 'notifications', name: 'Centro de Notificaciones', description: 'Gestión de notificaciones', level: 'basic' },
+        { id: 'internal-chat', name: 'Chat Interno', description: 'Comunicación interna', level: 'basic' },
+        { id: 'contacts', name: 'Clientes', description: 'Gestión de clientes', level: 'basic' },
+        { id: 'campaigns', name: 'Campañas', description: 'Gestión de campañas', level: 'advanced' },
+        { id: 'team', name: 'Equipo', description: 'Gestión de equipo', level: 'advanced' },
+        { id: 'analytics', name: 'Analytics', description: 'Análisis de datos', level: 'advanced' },
+        { id: 'ai', name: 'IA', description: 'Inteligencia artificial', level: 'advanced' },
+        { id: 'settings', name: 'Configuración', description: 'Configuración del sistema', level: 'advanced' },
+        { id: 'clients', name: 'Customer Hub', description: 'Centro de clientes', level: 'basic' },
+        { id: 'chat', name: 'Mensajes', description: 'Sistema de mensajes', level: 'basic' },
+        { id: 'phone', name: 'Teléfono', description: 'Sistema telefónico', level: 'basic' },
+        { id: 'knowledge-base', name: 'Base de Conocimiento', description: 'Base de conocimientos', level: 'basic' },
+        { id: 'supervision', name: 'Supervisión', description: 'Herramientas de supervisión', level: 'advanced' },
+        { id: 'copilot', name: 'Copiloto IA', description: 'Asistente de IA', level: 'advanced' },
+        { id: 'providers', name: 'Proveedores', description: 'Gestión de proveedores', level: 'advanced' },
+        { id: 'warehouse', name: 'Almacén', description: 'Gestión de almacén', level: 'advanced' },
+        { id: 'shipping', name: 'Envíos', description: 'Gestión de envíos', level: 'advanced' },
+        { id: 'services', name: 'Servicios', description: 'Gestión de servicios', level: 'advanced' }
+      ];
+      
+      setAccessibleModules(fallbackModules);
+      infoLog('Usando módulos de fallback', { moduleCount: fallbackModules.length });
     } finally {
       setLoading(false);
     }
@@ -108,14 +132,14 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
       return true;
     }
     
-    // Si no hay módulos accesibles definidos, permitir acceso por defecto
+    // Si no hay módulos accesibles definidos, denegar acceso
     if (!accessibleModules || accessibleModules.length === 0) {
       // Log solo una vez por hook para evitar spam
       if (!noModulesAccessibleLogged.current) {
-        infoLog('No hay módulos accesibles definidos, permitiendo acceso por defecto');
+        infoLog('No hay módulos accesibles definidos, denegando acceso');
         noModulesAccessibleLogged.current = true;
       }
-      return true;
+      return false;
     }
     
     const hasAccess = accessibleModules.some(module => module.id === moduleId);

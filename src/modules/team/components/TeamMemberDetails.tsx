@@ -533,9 +533,7 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
               <div className="bg-white p-4 lg:p-6 rounded-lg border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Tiempo de Respuesta</h3>
                 <div className="text-2xl lg:text-3xl font-bold text-green-600 mb-2">
-                  {member.performance?.responseTime?.average 
-                    ? `${member.performance.responseTime.average}s` 
-                    : member.performance?.averageResponseTime || 'N/A'}
+                  {member.performance?.responseTime || 'N/A'}
                 </div>
                 <p className="text-sm text-gray-600">Promedio</p>
               </div>
