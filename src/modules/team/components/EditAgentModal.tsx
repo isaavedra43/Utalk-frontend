@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { TeamMember } from '../../../types/team';
 import { infoLog } from '../../../config/logger';
 import { modulePermissionsService, UserModulePermissions } from '../../../services/modulePermissions';
+import { teamService } from '../services/teamService';
 
 interface EditAgentModalProps {
   isOpen: boolean;
@@ -41,216 +42,254 @@ interface EditAgentData {
   };
 }
 
+// ✅ ESTRUCTURAS DE DATOS POR DEFECTO
+const getDefaultFormData = (): EditAgentData => ({
+  name: '',
+  email: '',
+  password: '',
+  role: 'agent',
+  phone: '',
+  isActive: true,
+  permissions: {
+    basic: {
+      read: false,
+      write: false,
+      approve: false,
+      configure: false
+    },
+    modules: {
+      dashboard: { read: false, write: false, configure: false },
+      contacts: { read: false, write: false, configure: false },
+      campaigns: { read: false, write: false, configure: false },
+      team: { read: false, write: false, configure: false },
+      analytics: { read: false, write: false, configure: false },
+      ai: { read: false, write: false, configure: false },
+      settings: { read: false, write: false, configure: false },
+      hr: { read: false, write: false, configure: false },
+      clients: { read: false, write: false, configure: false },
+      notifications: { read: false, write: false, configure: false },
+      chat: { read: false, write: false, configure: false },
+      'internal-chat': { read: false, write: false, configure: false },
+      phone: { read: false, write: false, configure: false },
+      'knowledge-base': { read: false, write: false, configure: false },
+      supervision: { read: false, write: false, configure: false },
+      copilot: { read: false, write: false, configure: false },
+      providers: { read: false, write: false, configure: false },
+      warehouse: { read: false, write: false, configure: false },
+      shipping: { read: false, write: false, configure: false },
+      services: { read: false, write: false, configure: false }
+    }
+  },
+  notifications: {
+    email: true,
+    push: true,
+    sms: false,
+    desktop: true
+  },
+  configuration: {
+    language: 'es',
+    timezone: 'America/Mexico_City',
+    theme: 'light',
+    autoLogout: true,
+    twoFactor: false
+  }
+});
+
+// ✅ FUNCIÓN DE VALIDACIÓN DE DATOS
+const validateFormData = (data: EditAgentData): boolean => {
+  if (!data.name?.trim()) {
+    infoLog('❌ Nombre es requerido');
+    return false;
+  }
+  
+  if (!data.email?.trim()) {
+    infoLog('❌ Email es requerido');
+    return false;
+  }
+  
+  if (!data.permissions || !data.permissions.modules) {
+    infoLog('❌ Permisos de módulos son requeridos');
+    return false;
+  }
+  
+  return true;
+};
+
 export const EditAgentModal: React.FC<EditAgentModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
   member
 }) => {
-  const [formData, setFormData] = useState<EditAgentData>({
-    name: '',
-    email: '',
-    password: '',
-    role: 'agent',
-    phone: '',
-    isActive: true,
-    permissions: {
-      basic: {
-        read: false,
-        write: false,
-        approve: false,
-        configure: false
-      },
-      modules: {}
-    },
-    notifications: {
-      email: true,
-      push: true,
-      sms: false,
-      desktop: true
-    },
-    configuration: {
-      language: 'es',
-      timezone: 'America/Mexico_City',
-      theme: 'light',
-      autoLogout: true,
-      twoFactor: false
-    }
-  });
-
+  // ✅ ESTADOS PRINCIPALES CON VALORES POR DEFECTO
+  const [formData, setFormData] = useState<EditAgentData>(getDefaultFormData());
   const [activeTab, setActiveTab] = useState<'profile' | 'permissions' | 'notifications' | 'settings' | 'modulePermissions'>('profile');
-  const [isLoading, setIsLoading] = useState(false);
   
-  // Estado para permisos de módulos
+  // ✅ ESTADOS DE CARGA Y ERROR
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // ✅ ESTADOS PARA PERMISOS DE MÓDULOS
   const [modulePermissions, setModulePermissions] = useState<UserModulePermissions | null>(null);
   const [availableModules, setAvailableModules] = useState<{ [moduleId: string]: unknown }>({});
   const [loadingModules, setLoadingModules] = useState(false);
 
-  // Función para asegurar que todos los módulos estén incluidos
-  const ensureAllModules = (modulePermissions: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } }) => {
-    const allModules = [
-      'dashboard', 'contacts', 'campaigns', 'team', 'analytics', 'ai', 'settings', 'hr',
-      'clients', 'notifications', 'chat', 'internal-chat', 'phone', 'knowledge-base',
-      'supervision', 'copilot', 'providers', 'warehouse', 'shipping', 'services'
-    ];
-    
-    const completeModules: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } } = {};
-    
-    allModules.forEach(moduleId => {
-      if (modulePermissions[moduleId]) {
-        // Usar permisos proporcionados
-        completeModules[moduleId] = modulePermissions[moduleId];
-      } else {
-        // Usar permisos por defecto (sin acceso)
-        completeModules[moduleId] = {
-          read: false,
-          write: false,
-          configure: false
-        };
-      }
-    });
-    
-    return completeModules;
-  };
+  // ✅ FUNCIÓN PARA CARGAR DATOS DEL AGENTE
+  const loadAgentData = useCallback(async () => {
+    if (!member?.email) {
+      infoLog('❌ No hay email de miembro para cargar datos');
+      return;
+    }
 
-  // Cargar datos del miembro cuando se abre el modal
-  useEffect(() => {
-    if (member && isOpen) {
-      setFormData({
-        name: member.name || '',
-        email: member.email || '',
+    try {
+      setLoading(true);
+      setError(null);
+      
+      infoLog('🔍 Cargando datos del agente:', { email: member.email });
+      
+      // Cargar datos básicos del agente
+      const agentData = await teamService.getAgent(member.id);
+      
+      // Cargar permisos de módulos
+      const modulePerms = await teamService.getUserModulePermissions(member.email);
+      
+      // Cargar módulos disponibles
+      const modules = await modulePermissionsService.getAvailableModules();
+      
+      infoLog('📥 Datos recibidos del backend', { 
+        agentData, 
+        modulePerms, 
+        modulesCount: Object.keys(modules).length 
+      });
+      
+      // ✅ NORMALIZAR Y VALIDAR DATOS
+      const normalizedFormData: EditAgentData = {
+        name: agentData.name || '',
+        email: agentData.email || '',
         password: '',
-        role: (member.role as 'admin' | 'supervisor' | 'agent' | 'viewer') || 'agent',
-        phone: member.phone || '',
-        isActive: member.isActive !== false,
+        role: agentData.role as any || 'agent',
+        phone: agentData.phone || '',
+        isActive: agentData.isActive !== false,
         permissions: {
           basic: {
-            read: member.permissions?.read || false,
-            write: member.permissions?.write || false,
-            approve: member.permissions?.approve || false,
-            configure: member.permissions?.configure || false
+            read: agentData.permissions?.read || false,
+            write: agentData.permissions?.write || false,
+            approve: agentData.permissions?.approve || false,
+            configure: agentData.permissions?.configure || false
           },
-          modules: member.permissions?.modules || {}
+          modules: {
+            ...getDefaultFormData().permissions.modules,
+            ...(agentData.permissions?.modules || {}),
+            ...(modulePerms?.permissions?.modules || {})
+          }
         },
         notifications: {
-          email: member.notifications?.email !== false,
-          push: member.notifications?.push !== false,
-          sms: member.notifications?.sms === true,
-          desktop: member.notifications?.desktop !== false
+          email: agentData.settings?.notifications !== false,
+          push: true,
+          sms: false,
+          desktop: true
         },
         configuration: {
-          language: member.configuration?.language || 'es',
-          timezone: member.configuration?.timezone || 'America/Mexico_City',
-          theme: (member.configuration?.theme as 'light' | 'dark' | 'auto') || 'light',
-          autoLogout: member.configuration?.autoLogout !== false,
-          twoFactor: member.configuration?.twoFactor === true
+          language: agentData.settings?.language || 'es',
+          timezone: agentData.settings?.timezone || 'America/Mexico_City',
+          theme: 'light',
+          autoLogout: true,
+          twoFactor: false
         }
-      });
-    }
-  }, [member, isOpen]);
-
-  const loadModulePermissions = useCallback(async () => {
-    if (!member?.email) return;
-    
-    setLoadingModules(true);
-    try {
-      // Cargar módulos disponibles y permisos del usuario
-      const [modules, userPermissions] = await Promise.all([
-        modulePermissionsService.getAvailableModules(),
-        modulePermissionsService.getUserPermissions(member.email)
-      ]);
+      };
       
+      setFormData(normalizedFormData);
+      setModulePermissions(modulePerms);
       setAvailableModules(modules);
-      setModulePermissions(userPermissions);
-    } catch (error) {
-      infoLog('Error cargando permisos de módulos:', error);
+      
+      infoLog('✅ Datos del agente cargados y normalizados exitosamente');
+      
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      infoLog('❌ Error cargando datos del agente:', err);
+      setError(errorMessage);
+      
+      // Usar datos por defecto en caso de error
+      setFormData(getDefaultFormData());
+      setModulePermissions(null);
+      setAvailableModules({});
     } finally {
-      setLoadingModules(false);
+      setLoading(false);
     }
-  }, [member?.email]);
+  }, [member?.id, member?.email]);
 
-  // Cargar permisos de módulos cuando se abre la pestaña
+  // ✅ EFECTO PARA CARGAR DATOS AL ABRIR EL MODAL
   useEffect(() => {
-    if (isOpen && activeTab === 'modulePermissions' && member?.email) {
-      loadModulePermissions();
+    if (isOpen && member) {
+      loadAgentData();
     }
-  }, [isOpen, activeTab, member?.email, loadModulePermissions]);
+  }, [isOpen, member, loadAgentData]);
 
-  const handleModulePermissionChange = (moduleId: string, action: 'read' | 'write' | 'configure', value: boolean) => {
-    if (!modulePermissions) return;
-    
-    setModulePermissions(prev => {
-      if (!prev) return prev;
-      
-      const currentModulePerms = prev.permissions.modules[moduleId] || {
-        read: false,
-        write: false,
-        configure: false
-      };
-      
-      let newModulePerms = { ...currentModulePerms };
-      
-      if (action === 'read') {
-        newModulePerms.read = value;
-        // Si se deshabilita lectura, también deshabilitar escritura y configuración
-        if (!value) {
-          newModulePerms.write = false;
-          newModulePerms.configure = false;
-        }
-      } else if (action === 'write') {
-        newModulePerms.write = value;
-        // Si se habilita escritura, también habilitar lectura
-        if (value) {
-          newModulePerms.read = true;
-        }
-        // Si se deshabilita escritura, también deshabilitar configuración
-        if (!value) {
-          newModulePerms.configure = false;
-        }
-      } else if (action === 'configure') {
-        newModulePerms.configure = value;
-        // Si se habilita configuración, también habilitar lectura y escritura
-        if (value) {
-          newModulePerms.read = true;
-          newModulePerms.write = true;
-        }
+  // ✅ MEMOIZAR DATOS PARA EVITAR RE-RENDERIZADOS
+  const memoizedFormData = useMemo(() => {
+    return {
+      ...formData,
+      permissions: {
+        ...formData.permissions,
+        modules: { ...formData.permissions.modules }
       }
-      
-      return {
-        ...prev,
-        permissions: {
-          ...prev.permissions,
-          modules: {
-            ...prev.permissions.modules,
-            [moduleId]: newModulePerms
-          }
-        }
-      };
-    });
-  };
+    };
+  }, [formData]);
 
-  const handleSaveModulePermissions = async () => {
-    if (!modulePermissions || !member?.email) return;
+  const memoizedModulePermissions = useMemo(() => {
+    if (!modulePermissions) return null;
     
-    setIsLoading(true);
-    try {
-      await modulePermissionsService.updateUserPermissions(member.email, modulePermissions.permissions);
-      infoLog('Permisos de módulos actualizados exitosamente');
-    } catch (error) {
-      infoLog('Error actualizando permisos de módulos:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    return {
+      ...modulePermissions,
+      permissions: {
+        ...modulePermissions.permissions,
+        modules: { ...modulePermissions.permissions.modules }
+      }
+    };
+  }, [modulePermissions]);
 
-  const handleInputChange = (field: string, value: string) => {
+  // ✅ FUNCIONES DE MANEJO DE CAMBIOS CON VALIDACIÓN
+  const handleInputChange = useCallback((name: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [name]: value
     }));
-  };
+    
+    // Limpiar error si hay cambios
+    if (error) {
+      setError(null);
+    }
+  }, [error]);
 
-  const handlePermissionChange = (permission: string, value: boolean) => {
+  const handlePermissionChange = useCallback((moduleId: string, permission: string, value: boolean) => {
+    // ✅ VALIDAR CAMBIO ANTES DE APLICAR
+    if (!memoizedFormData.permissions?.modules?.[moduleId]) {
+      infoLog(`❌ Módulo ${moduleId} no existe en los permisos`);
+      return;
+    }
+    
+    if (typeof value !== 'boolean') {
+      infoLog(`❌ Valor de permiso inválido: ${value}`);
+      return;
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      permissions: {
+        ...prev.permissions,
+        modules: {
+          ...prev.permissions.modules,
+          [moduleId]: {
+            ...prev.permissions.modules[moduleId],
+            [permission]: value
+          }
+        }
+      }
+    }));
+  }, [memoizedFormData]);
+
+  const handleBasicPermissionChange = useCallback((permission: string, value: boolean) => {
     setFormData(prev => ({
       ...prev,
       permissions: {
@@ -261,9 +300,9 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
         }
       }
     }));
-  };
+  }, []);
 
-  const handleNotificationChange = (notification: string, value: boolean) => {
+  const handleNotificationChange = useCallback((notification: string, value: boolean) => {
     setFormData(prev => ({
       ...prev,
       notifications: {
@@ -271,533 +310,426 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
         [notification]: value
       }
     }));
-  };
+  }, []);
 
-
-
-  const handleSettingChange = (setting: string, value: string | boolean) => {
+  const handleConfigurationChange = useCallback((config: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
       configuration: {
         ...prev.configuration,
-        [setting]: value
+        [config]: value
       }
     }));
-  };
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    try {
-      // Asegurar que se envíen todos los módulos con sus permisos
-      const completeFormData = {
-        ...formData,
-        permissions: {
-          basic: formData.permissions.basic,
-          modules: ensureAllModules(formData.permissions.modules || {})
-        }
-      };
-      
-      await onSubmit(completeFormData);
-      onClose();
-    } catch (error) {
-      infoLog('Error al actualizar agente:', error);
-    } finally {
-      setIsLoading(false);
+  // ✅ FUNCIONES DE ACCIÓN MASIVA
+  const enableAllPermissions = useCallback(() => {
+    setFormData(prev => ({
+      ...prev,
+      permissions: {
+        ...prev.permissions,
+        modules: Object.keys(prev.permissions.modules).reduce((acc, moduleId) => {
+          acc[moduleId] = { read: true, write: true, configure: true };
+          return acc;
+        }, {} as { [key: string]: { read: boolean; write: boolean; configure: boolean } })
+      }
+    }));
+  }, []);
+
+  const disableAllPermissions = useCallback(() => {
+    setFormData(prev => ({
+      ...prev,
+      permissions: {
+        ...prev.permissions,
+        modules: Object.keys(prev.permissions.modules).reduce((acc, moduleId) => {
+          acc[moduleId] = { read: false, write: false, configure: false };
+          return acc;
+        }, {} as { [key: string]: { read: boolean; write: boolean; configure: boolean } })
+      }
+    }));
+  }, []);
+
+  // ✅ MANEJO DE ENVÍO CON VALIDACIÓN
+  const handleSubmit = useCallback(async () => {
+    if (!validateFormData(memoizedFormData)) {
+      setError('Por favor, complete todos los campos requeridos');
+      return;
     }
-  };
 
-  const tabs = [
-    { id: 'profile', label: 'Perfil', icon: '👤' },
-    { id: 'permissions', label: 'Permisos', icon: '🔐' },
-    { id: 'modulePermissions', label: 'Permisos de Módulos', icon: '📋' },
-    { id: 'notifications', label: 'Notificaciones', icon: '🔔' },
-    { id: 'settings', label: 'Configuración', icon: '⚙️' }
-  ] as const;
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      
+      infoLog('🚀 Enviando datos del agente:', { 
+        email: memoizedFormData.email,
+        modulesCount: Object.keys(memoizedFormData.permissions.modules).length
+      });
+      
+      await onSubmit(memoizedFormData);
+      
+      infoLog('✅ Agente actualizado exitosamente');
+      onClose();
+      
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar agente';
+      infoLog('❌ Error actualizando agente:', err);
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [memoizedFormData, onSubmit, onClose]);
 
-  if (!isOpen) return null;
+  // ✅ RENDERIZADO CONDICIONAL PARA ESTADOS DE CARGA Y ERROR
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-3 text-gray-600">Cargando datos del agente...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">
-              Editar Agente: {member?.name}
-            </h2>
+  if (error && !memoizedFormData.name) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="bg-red-50 border border-red-200 rounded-md p-4">
+            <div className="flex">
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Error</h3>
+                <div className="mt-2 text-sm text-red-700">{error}</div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end">
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              Cerrar
             </button>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b">
+          <h2 className="text-xl font-semibold text-gray-900">
+            Editar Agente: {memoizedFormData.name || member?.name || 'Usuario'}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
         {/* Tabs */}
-        <div className="px-6 py-3 border-b border-gray-200">
-          <nav className="flex space-x-8">
-            {tabs.map((tab) => (
+        <div className="border-b">
+          <nav className="flex space-x-8 px-6">
+            {[
+              { id: 'profile', label: 'Perfil', icon: '👤' },
+              { id: 'permissions', label: 'Permisos', icon: '🔒' },
+              { id: 'modulePermissions', label: 'Permisos de Módulos', icon: '📄' },
+              { id: 'notifications', label: 'Notificaciones', icon: '🔔' },
+              { id: 'settings', label: 'Configuración', icon: '⚙️' }
+            ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
+                <span className="mr-2">{tab.icon}</span>
+                {tab.label}
               </button>
             ))}
           </nav>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 scrollbar-medium">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Tab: Perfil */}
-            {activeTab === 'profile' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nombre Completo
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => handleInputChange('name', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
+        <div className="p-6 max-h-[60vh] overflow-y-auto">
+          {error && (
+            <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-4">
+              <div className="text-sm text-red-700">{error}</div>
+            </div>
+          )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Correo Electrónico
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
+          {activeTab === 'profile' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Nombre</label>
+                <input
+                  type="text"
+                  value={memoizedFormData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Email</label>
+                <input
+                  type="email"
+                  value={memoizedFormData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Contraseña (dejar vacío para mantener la actual)</label>
+                <input
+                  type="password"
+                  value={memoizedFormData.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Rol</label>
+                <select
+                  value={memoizedFormData.role}
+                  onChange={(e) => handleInputChange('role', e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="agent">Agente</option>
+                  <option value="supervisor">Supervisor</option>
+                  <option value="admin">Administrador</option>
+                  <option value="viewer">Solo Lectura</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Teléfono</label>
+                <input
+                  type="tel"
+                  value={memoizedFormData.phone || ''}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={memoizedFormData.isActive || false}
+                  onChange={(e) => handleInputChange('isActive', e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label className="ml-2 block text-sm text-gray-900">Usuario activo</label>
+              </div>
+            </div>
+          )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Contraseña
-                    </label>
-                    <input
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => handleInputChange('password', e.target.value)}
-                      placeholder="Dejar en blanco para no cambiar"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Rol
-                    </label>
-                    <select
-                      value={formData.role}
-                      onChange={(e) => handleInputChange('role', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    >
-                      <option value="agent">Agente</option>
-                      <option value="supervisor">Supervisor</option>
-                      <option value="admin">Administrador</option>
-                      <option value="viewer">Visualizador</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Teléfono
-                    </label>
-                    <input
-                      type="tel"
-                      value={formData.phone || ''}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="+52 1 477 123 4567"
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-2">
+          {activeTab === 'permissions' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900">Permisos Básicos</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { key: 'read', label: 'Leer', description: 'Puede ver información' },
+                  { key: 'write', label: 'Escribir', description: 'Puede crear y modificar' },
+                  { key: 'approve', label: 'Aprobar', description: 'Puede aprobar cambios' },
+                  { key: 'configure', label: 'Configurar', description: 'Puede modificar configuración' }
+                ].map((perm) => (
+                  <div key={perm.key} className="flex items-center">
                     <input
                       type="checkbox"
-                      id="isActive"
-                      checked={formData.isActive || false}
-                      onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      checked={memoizedFormData.permissions.basic[perm.key as keyof typeof memoizedFormData.permissions.basic]}
+                      onChange={(e) => handleBasicPermissionChange(perm.key, e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
-                    <label htmlFor="isActive" className="text-sm font-medium text-gray-900">
-                      Usuario Activo
-                    </label>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tab: Permisos */}
-            {activeTab === 'permissions' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {Object.entries({
-                    read: { label: 'Leer', description: 'Ver conversaciones y datos de clientes', level: 'advanced' },
-                    write: { label: 'Escribir', description: 'Enviar mensajes y responder a clientes', level: 'advanced' },
-                    approve: { label: 'Aprobar', description: 'Aprobar campañas y decisiones importantes', level: 'intermediate' },
-                    configure: { label: 'Configurar', description: 'Acceso a configuración del sistema', level: 'basic' }
-                  }).map(([key, permission]) => (
-                    <div key={key} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={`permission-${key}`}
-                            checked={formData.permissions.basic[key as keyof typeof formData.permissions.basic]}
-                            onChange={(e) => handlePermissionChange(key, e.target.checked)}
-                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                          />
-                          <label htmlFor={`permission-${key}`} className="text-sm font-medium text-gray-900">
-                            {permission.label}
-                          </label>
-                        </div>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          permission.level === 'advanced' ? 'bg-red-100 text-red-800' :
-                          permission.level === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-green-100 text-green-800'
-                        }`}>
-                          {permission.level}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-600">{permission.description}</p>
+                    <div className="ml-3">
+                      <label className="text-sm font-medium text-gray-900">{perm.label}</label>
+                      <p className="text-xs text-gray-500">{perm.description}</p>
                     </div>
-                  ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'modulePermissions' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-gray-900">Permisos de Módulos</h3>
+                <div className="space-x-2">
+                  <button
+                    onClick={enableAllPermissions}
+                    className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
+                  >
+                    Habilitar Todos
+                  </button>
+                  <button
+                    onClick={disableAllPermissions}
+                    className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
+                  >
+                    Deshabilitar Todos
+                  </button>
                 </div>
               </div>
-            )}
-
-            {/* Tab: Permisos de Módulos */}
-            {activeTab === 'modulePermissions' && (
-              <div className="space-y-6 max-h-96 overflow-y-auto scrollbar-medium">
-                {loadingModules ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    <span className="ml-2 text-gray-600">Cargando permisos de módulos...</span>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-medium text-gray-900">Permisos de Módulos</h3>
-                      <div className="flex space-x-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            // Habilitar todos los módulos con lectura
-                            if (modulePermissions) {
-                              const newPermissions = { ...modulePermissions };
-                              Object.keys(availableModules).forEach(moduleId => {
-                                newPermissions.permissions.modules[moduleId] = {
-                                  read: true,
-                                  write: false,
-                                  configure: false
-                                };
-                              });
-                              setModulePermissions(newPermissions);
-                            }
-                          }}
-                          className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
-                        >
-                          Habilitar Todos
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            // Deshabilitar todos los módulos
-                            if (modulePermissions) {
-                              const newPermissions = { ...modulePermissions };
-                              Object.keys(availableModules).forEach(moduleId => {
-                                newPermissions.permissions.modules[moduleId] = {
-                                  read: false,
-                                  write: false,
-                                  configure: false
-                                };
-                              });
-                              setModulePermissions(newPermissions);
-                            }
-                          }}
-                          className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
-                        >
-                          Deshabilitar Todos
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleSaveModulePermissions}
-                          disabled={isLoading}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {isLoading ? 'Guardando...' : 'Guardar Cambios'}
-                        </button>
-                      </div>
+              
+              <div className="grid grid-cols-1 gap-4">
+                {Object.entries(memoizedFormData.permissions.modules).map(([moduleId, permissions]) => (
+                  <div key={moduleId} className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-gray-900 capitalize">{moduleId}</h4>
+                      <span className="text-sm text-gray-500">
+                        {Object.values(permissions).filter(Boolean).length}/3 permisos activos
+                      </span>
                     </div>
                     
-                    <div className="space-y-4">
-                      {Object.entries(availableModules).map(([moduleId, module]) => {
-                        const currentModulePermissions = modulePermissions?.permissions?.modules?.[moduleId] || {
-                          read: false,
-                          write: false,
-                          configure: false
-                        };
-                        
-                        const moduleData = module as { 
-                          id: string;
-                          name: string; 
-                          description: string; 
-                          level: 'basic' | 'intermediate' | 'advanced';
-                        };
-                        
-                        return (
-                          <div key={moduleId} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex-1">
-                                <h4 className="text-sm font-medium text-gray-900 flex items-center">
-                                  {moduleData.name}
-                                  {currentModulePermissions.read && (
-                                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                      Activo
-                                    </span>
-                                  )}
-                                </h4>
-                                <p className="text-xs text-gray-600 mt-1">{moduleData.description}</p>
-                              </div>
-                              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                moduleData.level === 'advanced' ? 'bg-red-100 text-red-800' :
-                                moduleData.level === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-green-100 text-green-800'
-                              }`}>
-                                {moduleData.level}
-                              </span>
-                            </div>
-                            
-                            <div className="grid grid-cols-3 gap-4">
-                              <div className="flex items-center space-x-2">
-                                <input
-                                  type="checkbox"
-                                  id={`module-${moduleId}-read`}
-                                  checked={currentModulePermissions.read}
-                                  onChange={(e) => handleModulePermissionChange(moduleId, 'read', e.target.checked)}
-                                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                />
-                                <label htmlFor={`module-${moduleId}-read`} className="text-sm text-gray-700 font-medium">
-                                  📖 Leer
-                                </label>
-                              </div>
-                              
-                              <div className="flex items-center space-x-2">
-                                <input
-                                  type="checkbox"
-                                  id={`module-${moduleId}-write`}
-                                  checked={currentModulePermissions.write}
-                                  onChange={(e) => handleModulePermissionChange(moduleId, 'write', e.target.checked)}
-                                  disabled={!currentModulePermissions.read}
-                                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                />
-                                <label htmlFor={`module-${moduleId}-write`} className={`text-sm font-medium ${
-                                  !currentModulePermissions.read ? 'text-gray-400' : 'text-gray-700'
-                                }`}>
-                                  ✏️ Escribir
-                                </label>
-                              </div>
-                              
-                              <div className="flex items-center space-x-2">
-                                <input
-                                  type="checkbox"
-                                  id={`module-${moduleId}-configure`}
-                                  checked={currentModulePermissions.configure}
-                                  onChange={(e) => handleModulePermissionChange(moduleId, 'configure', e.target.checked)}
-                                  disabled={!currentModulePermissions.write}
-                                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                />
-                                <label htmlFor={`module-${moduleId}-configure`} className={`text-sm font-medium ${
-                                  !currentModulePermissions.write ? 'text-gray-400' : 'text-gray-700'
-                                }`}>
-                                  ⚙️ Configurar
-                                </label>
-                              </div>
-                            </div>
-                            
-                            {/* Información adicional */}
-                            <div className="mt-3 pt-3 border-t border-gray-100">
-                              <div className="flex items-center justify-between text-xs text-gray-500">
-                                <span>ID: {moduleId}</span>
-                                <span>
-                                  {Object.values(currentModulePermissions).filter(Boolean).length}/3 permisos activos
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    
-                    {Object.keys(availableModules).length === 0 && (
-                      <div className="text-center py-8 text-gray-500">
-                        No hay módulos disponibles para configurar.
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Tab: Notificaciones */}
-            {activeTab === 'notifications' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {Object.entries({
-                    email: { label: 'Notificaciones por Email', description: 'Recibir alertas por correo electrónico' },
-                    push: { label: 'Notificaciones Push', description: 'Alertas en tiempo real en el navegador' },
-                    sms: { label: 'Notificaciones SMS', description: 'Mensajes de texto para alertas críticas' },
-                    desktop: { label: 'Notificaciones de Escritorio', description: 'Alertas del sistema operativo' }
-                  }).map(([key, notification]) => (
-                    <div key={key} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { key: 'read', label: 'Leer', icon: '📖' },
+                        { key: 'write', label: 'Escribir', icon: '✏️' },
+                        { key: 'configure', label: 'Configurar', icon: '⚙️' }
+                      ].map((perm) => (
+                        <div key={perm.key} className="flex items-center">
                           <input
                             type="checkbox"
-                            id={`notification-${key}`}
-                            checked={formData.notifications[key as keyof typeof formData.notifications]}
-                            onChange={(e) => handleNotificationChange(key, e.target.checked)}
-                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            checked={permissions[perm.key as keyof typeof permissions]}
+                            onChange={(e) => handlePermissionChange(moduleId, perm.key, e.target.checked)}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                           />
-                          <label htmlFor={`notification-${key}`} className="text-sm font-medium text-gray-900">
-                            {notification.label}
+                          <label className="ml-2 text-sm text-gray-900">
+                            <span className="mr-1">{perm.icon}</span>
+                            {perm.label}
                           </label>
                         </div>
-                      </div>
-                      <p className="text-xs text-gray-600 mt-1">{notification.description}</p>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Tab: Configuración */}
-            {activeTab === 'settings' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Idioma
-                    </label>
-                    <select
-                      value={formData.configuration.language}
-                      onChange={(e) => handleSettingChange('language', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="es">Español</option>
-                      <option value="en">English</option>
-                      <option value="fr">Français</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Zona Horaria
-                    </label>
-                    <select
-                      value={formData.configuration.timezone}
-                      onChange={(e) => handleSettingChange('timezone', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="America/Mexico_City">México (GMT-6)</option>
-                      <option value="America/New_York">Nueva York (GMT-5)</option>
-                      <option value="America/Los_Angeles">Los Ángeles (GMT-8)</option>
-                      <option value="Europe/Madrid">Madrid (GMT+1)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tema
-                    </label>
-                    <select
-                      value={formData.configuration.theme}
-                      onChange={(e) => handleSettingChange('theme', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="light">Claro</option>
-                      <option value="dark">Oscuro</option>
-                      <option value="auto">Automático</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-900">Cerrar sesión automáticamente</h4>
-                      <p className="text-xs text-gray-600">Cerrar sesión después de 30 minutos de inactividad</p>
-                    </div>
+          {activeTab === 'notifications' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900">Configuración de Notificaciones</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { key: 'email', label: 'Email', description: 'Recibir notificaciones por correo' },
+                  { key: 'push', label: 'Push', description: 'Notificaciones push en el navegador' },
+                  { key: 'sms', label: 'SMS', description: 'Notificaciones por mensaje de texto' },
+                  { key: 'desktop', label: 'Escritorio', description: 'Notificaciones del sistema' }
+                ].map((notif) => (
+                  <div key={notif.key} className="flex items-center">
                     <input
                       type="checkbox"
-                      checked={formData.configuration.autoLogout}
-                      onChange={(e) => handleSettingChange('autoLogout', e.target.checked)}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      checked={memoizedFormData.notifications[notif.key as keyof typeof memoizedFormData.notifications]}
+                      onChange={(e) => handleNotificationChange(notif.key, e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-900">Autenticación de dos factores</h4>
-                      <p className="text-xs text-gray-600">Requerir código adicional para iniciar sesión</p>
+                    <div className="ml-3">
+                      <label className="text-sm font-medium text-gray-900">{notif.label}</label>
+                      <p className="text-xs text-gray-500">{notif.description}</p>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={formData.configuration.twoFactor}
-                      onChange={(e) => handleSettingChange('twoFactor', e.target.checked)}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
                   </div>
-                </div>
+                ))}
               </div>
-            )}
-          </form>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900">Configuración del Sistema</h3>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Idioma</label>
+                <select
+                  value={memoizedFormData.configuration.language}
+                  onChange={(e) => handleConfigurationChange('language', e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="es">Español</option>
+                  <option value="en">English</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Zona Horaria</label>
+                <select
+                  value={memoizedFormData.configuration.timezone}
+                  onChange={(e) => handleConfigurationChange('timezone', e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="America/Mexico_City">México (GMT-6)</option>
+                  <option value="America/New_York">Nueva York (GMT-5)</option>
+                  <option value="Europe/Madrid">Madrid (GMT+1)</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Tema</label>
+                <select
+                  value={memoizedFormData.configuration.theme}
+                  onChange={(e) => handleConfigurationChange('theme', e.target.value)}
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="light">Claro</option>
+                  <option value="dark">Oscuro</option>
+                  <option value="auto">Automático</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={memoizedFormData.configuration.autoLogout}
+                  onChange={(e) => handleConfigurationChange('autoLogout', e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label className="ml-2 block text-sm text-gray-900">Cierre automático de sesión</label>
+              </div>
+              
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={memoizedFormData.configuration.twoFactor}
+                  onChange={(e) => handleConfigurationChange('twoFactor', e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label className="ml-2 block text-sm text-gray-900">Autenticación de dos factores</label>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <div className="flex items-center justify-end space-x-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              onClick={handleSubmit}
-              disabled={isLoading}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Guardando...' : 'Guardar Cambios'}
-            </button>
-          </div>
+        <div className="flex items-center justify-end space-x-3 p-6 border-t bg-gray-50">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+          </button>
         </div>
       </div>
     </div>
   );
-}; 
+};
