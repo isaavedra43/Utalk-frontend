@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ArrowLeft, User, BarChart3, TrendingUp, Edit, Shield, Users, Brain } from 'lucide-react';
+import { X, ArrowLeft, User, BarChart3, TrendingUp, Edit, Shield, Users, Brain, Bell } from 'lucide-react';
 import type { TeamMember } from '../../../types/team';
 import { EditAgentModal } from './EditAgentModal';
 import { logger, LogCategory } from '../../../utils/logger';
@@ -192,81 +192,327 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
       <div className="flex-1 p-4 lg:p-6 overflow-y-auto scrollbar-medium">
         {activeTab === 'overview' && (
           <div className="space-y-4 lg:space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+            {/* Información Personal */}
+            <div className="bg-white p-4 lg:p-6 rounded-lg border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <User className="h-5 w-5 text-gray-500 mr-2" />
+                Información Personal
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <span className="text-sm font-medium text-gray-500">Nombre completo:</span>
+                  <span className="ml-2 text-sm text-gray-900">{member.name}</span>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-gray-500">Email:</span>
+                  <span className="ml-2 text-sm text-gray-900">{member.email}</span>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-gray-500">Rol:</span>
+                  <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                    member.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+                    member.role === 'supervisor' ? 'bg-blue-100 text-blue-800' :
+                    member.role === 'agent' ? 'bg-green-100 text-green-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {member.role === 'admin' ? 'Administrador' :
+                     member.role === 'supervisor' ? 'Supervisor' :
+                     member.role === 'agent' ? 'Agente' : 'Visualizador'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-gray-500">Teléfono:</span>
+                  <span className="ml-2 text-sm text-gray-900">{member.phone || 'No especificado'}</span>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-gray-500">Estado:</span>
+                  <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                    member.isActive 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {member.isActive ? 'Activo' : 'Inactivo'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-gray-500">Fecha de creación:</span>
+                  <span className="ml-2 text-sm text-gray-900">
+                    {member.createdAt ? new Date(member.createdAt).toLocaleDateString('es-ES', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    }) : 'No disponible'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-gray-500">Última actualización:</span>
+                  <span className="ml-2 text-sm text-gray-900">
+                    {member.updatedAt ? new Date(member.updatedAt).toLocaleDateString('es-ES', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    }) : 'No disponible'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Configuración */}
+            {member.configuration && (
               <div className="bg-white p-4 lg:p-6 rounded-lg border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <User className="h-5 w-5 text-gray-500 mr-2" />
-                  Información General
+                  <Brain className="h-5 w-5 text-gray-500 mr-2" />
+                  Configuración
                 </h3>
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <span className="text-sm font-medium text-gray-500">Estado:</span>
+                    <span className="text-sm font-medium text-gray-500">Idioma:</span>
+                    <span className="ml-2 text-sm text-gray-900">
+                      {member.configuration.language === 'es' ? 'Español' : 
+                       member.configuration.language === 'en' ? 'English' : member.configuration.language}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">Zona horaria:</span>
+                    <span className="ml-2 text-sm text-gray-900">{member.configuration.timezone}</span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">Tema:</span>
+                    <span className="ml-2 text-sm text-gray-900">
+                      {member.configuration.theme === 'light' ? 'Claro' :
+                       member.configuration.theme === 'dark' ? 'Oscuro' : 'Automático'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">Cierre automático:</span>
                     <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
-                      member.isActive 
+                      member.configuration.autoLogout 
                         ? 'bg-green-100 text-green-800' 
                         : 'bg-red-100 text-red-800'
                     }`}>
-                      {member.isActive ? 'Activo' : 'Inactivo'}
+                      {member.configuration.autoLogout ? 'Habilitado' : 'Deshabilitado'}
                     </span>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-gray-500">Creado:</span>
-                    <span className="ml-2 text-sm text-gray-900">
-                      {member.createdAt ? new Date(member.createdAt).toLocaleDateString() : 'N/A'}
+                    <span className="text-sm font-medium text-gray-500">Autenticación de dos factores:</span>
+                    <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                      member.configuration.twoFactor 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {member.configuration.twoFactor ? 'Habilitado' : 'Deshabilitado'}
                     </span>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">Chats atendidos:</span>
-                    <span className="ml-2 text-sm text-gray-900">{member.performance?.totalChats || 0}</span>
                   </div>
                 </div>
               </div>
+            )}
 
+            {/* Notificaciones */}
+            {member.notifications && (
+              <div className="bg-white p-4 lg:p-6 rounded-lg border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <Bell className="h-5 w-5 text-gray-500 mr-2" />
+                  Notificaciones
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">Email:</span>
+                    <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                      member.notifications.email 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {member.notifications.email ? 'Habilitado' : 'Deshabilitado'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">Push:</span>
+                    <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                      member.notifications.push 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {member.notifications.push ? 'Habilitado' : 'Deshabilitado'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">SMS:</span>
+                    <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                      member.notifications.sms 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {member.notifications.sms ? 'Habilitado' : 'Deshabilitado'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">Escritorio:</span>
+                    <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                      member.notifications.desktop 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {member.notifications.desktop ? 'Habilitado' : 'Deshabilitado'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Permisos Básicos */}
+            {member.permissions && (
               <div className="bg-white p-4 lg:p-6 rounded-lg border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                   <Shield className="h-5 w-5 text-gray-500 mr-2" />
-                  Permisos
+                  Permisos Básicos
                 </h3>
-                <div className="space-y-2">
-                  {member.permissions && Object.entries(member.permissions).map(([key, isActive]) => (
-                    <div key={key} className="flex items-center justify-between">
-                      <span className="text-sm text-gray-700 capitalize">
-                        {key === 'read' ? 'Leer' : key === 'write' ? 'Escribir' : key === 'approve' ? 'Aprobar' : 'Configurar'}
-                      </span>
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        isActive 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {isActive ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-white p-4 lg:p-6 rounded-lg border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <BarChart3 className="h-5 w-5 text-gray-500 mr-2" />
-                  Rendimiento
-                </h3>
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <span className="text-sm font-medium text-gray-500">Tiempo de respuesta:</span>
-                    <span className="ml-2 text-sm text-gray-900">
-                      {member.performance?.responseTime?.average 
-                        ? `${member.performance.responseTime.average}s` 
-                        : member.performance?.averageResponseTime || 'N/A'}
+                    <span className="text-sm font-medium text-gray-500">Leer:</span>
+                    <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                      member.permissions.read 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {member.permissions.read ? 'Permitido' : 'Denegado'}
                     </span>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-gray-500">Satisfacción:</span>
-                    <span className="ml-2 text-sm text-gray-900">{member.performance?.csat || 0}</span>
+                    <span className="text-sm font-medium text-gray-500">Escribir:</span>
+                    <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                      member.permissions.write 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {member.permissions.write ? 'Permitido' : 'Denegado'}
+                    </span>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-gray-500">Conversión:</span>
-                    <span className="ml-2 text-sm text-gray-900">{member.performance?.conversionRate || 0}%</span>
+                    <span className="text-sm font-medium text-gray-500">Aprobar:</span>
+                    <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                      member.permissions.approve 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {member.permissions.approve ? 'Permitido' : 'Denegado'}
+                    </span>
                   </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-500">Configurar:</span>
+                    <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                      member.permissions.configure 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {member.permissions.configure ? 'Permitido' : 'Denegado'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Permisos de Módulos */}
+            {member.permissions?.modules && (
+              <div className="bg-white p-4 lg:p-6 rounded-lg border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <Users className="h-5 w-5 text-gray-500 mr-2" />
+                  Permisos de Módulos
+                </h3>
+                <div className="grid grid-cols-1 gap-4">
+                  {Object.entries(member.permissions.modules).map(([moduleId, permissions]) => {
+                    const moduleNames: { [key: string]: string } = {
+                      'dashboard': 'Dashboard',
+                      'contacts': 'Clientes',
+                      'campaigns': 'Campañas',
+                      'team': 'Equipo',
+                      'analytics': 'Analytics',
+                      'ai': 'IA',
+                      'settings': 'Configuración',
+                      'hr': 'Recursos Humanos',
+                      'clients': 'Customer Hub',
+                      'notifications': 'Centro de Notificaciones',
+                      'chat': 'Mensajes',
+                      'internal-chat': 'Chat Interno',
+                      'phone': 'Teléfono',
+                      'knowledge-base': 'Base de Conocimiento',
+                      'supervision': 'Supervisión',
+                      'copilot': 'Copiloto IA',
+                      'providers': 'Proveedores',
+                      'warehouse': 'Almacén',
+                      'shipping': 'Envíos',
+                      'services': 'Servicios'
+                    };
+
+                    const activePermissions = Object.values(permissions).filter(Boolean).length;
+                    const totalPermissions = Object.keys(permissions).length;
+
+                    return (
+                      <div key={moduleId} className="border border-gray-200 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-sm font-medium text-gray-900">
+                            {moduleNames[moduleId] || moduleId}
+                          </h4>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            activePermissions > 0 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {activePermissions}/{totalPermissions} permisos
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(permissions).map(([permType, isActive]) => (
+                            <span
+                              key={permType}
+                              className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                isActive 
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : 'bg-gray-100 text-gray-600'
+                              }`}
+                            >
+                              {permType === 'read' ? 'Leer' :
+                               permType === 'write' ? 'Escribir' :
+                               permType === 'configure' ? 'Configurar' : permType}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Rendimiento */}
+            <div className="bg-white p-4 lg:p-6 rounded-lg border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <BarChart3 className="h-5 w-5 text-gray-500 mr-2" />
+                Rendimiento
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600 mb-1">
+                    {member.performance?.totalChats || 0}
+                  </div>
+                  <div className="text-sm text-gray-600">Chats Totales</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600 mb-1">
+                    {member.performance?.responseTime || 'N/A'}
+                  </div>
+                  <div className="text-sm text-gray-600">Tiempo de Respuesta</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-yellow-600 mb-1">
+                    {member.performance?.csat || 0}
+                  </div>
+                  <div className="text-sm text-gray-600">Satisfacción (CSAT)</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-600 mb-1">
+                    {member.performance?.conversionRate || 0}%
+                  </div>
+                  <div className="text-sm text-gray-600">Tasa de Conversión</div>
                 </div>
               </div>
             </div>
