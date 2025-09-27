@@ -88,24 +88,29 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
 
   // Verificar si puede acceder a un módulo
   const canAccessModule = useCallback((moduleId: string): boolean => {
-    // Si no hay permisos cargados o hay error, permitir acceso (fallback)
+    // Si está cargando, denegar acceso temporalmente
+    if (loading) {
+      return false;
+    }
+    
+    // Si no hay permisos cargados, denegar acceso
     if (!permissions) {
       // Log solo una vez por hook para evitar spam
       if (!permissionsFallbackLogged.current) {
-        infoLog('No hay permisos cargados, usando fallback para todos los módulos');
+        infoLog('No hay permisos cargados, denegando acceso a módulos');
         permissionsFallbackLogged.current = true;
       }
-      return true;
+      return false;
     }
     
-    // Si no hay módulos accesibles definidos, permitir acceso (fallback)
+    // Si no hay módulos accesibles definidos, denegar acceso
     if (!accessibleModules || accessibleModules.length === 0) {
       // Log solo una vez por hook para evitar spam
       if (!noModulesAccessibleLogged.current) {
-        infoLog('No hay módulos accesibles definidos, permitiendo acceso a todos los módulos');
+        infoLog('No hay módulos accesibles definidos, denegando acceso');
         noModulesAccessibleLogged.current = true;
       }
-      return true;
+      return false;
     }
     
     const hasAccess = accessibleModules.some(module => module.id === moduleId);
@@ -115,26 +120,31 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
     }
     
     return hasAccess;
-  }, [permissions, accessibleModules]);
+  }, [permissions, accessibleModules, loading]);
 
   // Verificar permiso específico
   const hasPermission = useCallback((moduleId: string, action: 'read' | 'write' | 'configure'): boolean => {
-    // Si no hay permisos cargados o hay error, permitir acceso (fallback)
+    // Si está cargando, denegar acceso temporalmente
+    if (loading) {
+      return false;
+    }
+    
+    // Si no hay permisos cargados, denegar acceso
     if (!permissions) {
-      return true;
+      return false;
     }
     
     // Validación robusta de la estructura de permisos
     if (!permissions.permissions || !permissions.permissions.modules) {
       // Log solo una vez por hook para evitar spam
       if (!invalidPermissionStructureLogged.current) {
-        infoLog('Estructura de permisos inválida, usando fallback', { 
+        infoLog('Estructura de permisos inválida, denegando acceso', { 
           hasPermissions: !!permissions.permissions,
           hasModules: !!permissions.permissions?.modules 
         });
         invalidPermissionStructureLogged.current = true;
       }
-      return true; // Fallback: permitir acceso
+      return false; // Denegar acceso si la estructura es inválida
     }
     
     const modulePermissions = permissions.permissions.modules[moduleId];
@@ -143,7 +153,7 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
     }
     
     return modulePermissions[action] || false;
-  }, [permissions]);
+  }, [permissions, loading]);
 
   // Funciones de conveniencia
   const canRead = useCallback((moduleId: string) => hasPermission(moduleId, 'read'), [hasPermission]);

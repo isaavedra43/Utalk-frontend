@@ -55,10 +55,8 @@ export const LoginForm: React.FC = () => {
     try {
       setIsLoading(true);
       await login(data.email, data.password);
-      // Prefetch del módulo de chat antes de navegar
-      prefetchChat();
-      infoLog('✅ Login exitoso, navegando al chat...');
-      navigate('/chat');
+      // ✅ NO NAVEGAR DIRECTAMENTE - Dejar que AuthModule maneje la redirección basada en permisos
+      infoLog('✅ Login exitoso, AuthModule manejará la redirección basada en permisos...');
       
     } catch (error) {
       infoLog('Error en login:', error);
