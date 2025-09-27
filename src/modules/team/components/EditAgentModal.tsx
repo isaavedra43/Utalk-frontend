@@ -235,6 +235,21 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
         }
       }));
       
+      // También actualizar modulePermissions para mantener sincronización
+      setModulePermissions(prevModulePerms => {
+        if (!prevModulePerms) return prevModulePerms;
+        return {
+          ...prevModulePerms,
+          permissions: {
+            ...prevModulePerms.permissions,
+            modules: {
+              ...prevModulePerms.permissions.modules,
+              [moduleId]: newModulePerms
+            }
+          }
+        };
+      });
+      
       return {
         ...prev,
         permissions: {
@@ -249,11 +264,12 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
   };
 
   const handleSaveModulePermissions = async () => {
-    if (!member?.email) return;
+    if (!member?.email || !modulePermissions) return;
     
     setIsLoading(true);
     try {
-      await modulePermissionsService.updateUserPermissions(member.email, formData.permissions);
+      // Usar los permisos actuales de modulePermissions que tienen la estructura correcta
+      await modulePermissionsService.updateUserPermissions(member.email, modulePermissions.permissions);
       infoLog('Permisos de módulos actualizados exitosamente');
       
       // Recargar los permisos actualizados
@@ -309,26 +325,26 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
     setIsLoading(true);
     
     try {
-      // Preparar datos para envío con la estructura correcta según indicaciones del backend
-      const completeFormData = {
-        name: formData.name,
-        email: formData.email,
-        role: formData.role,
-        phone: formData.phone,
-        isActive: formData.isActive,
-        password: formData.password || undefined, // Solo enviar si hay nueva contraseña
-        permissions: {
-          read: formData.permissions.read,
-          write: formData.permissions.write,
-          approve: formData.permissions.approve,
-          configure: formData.permissions.configure,
-          modules: ensureAllModules(formData.permissions.modules || {})
-        },
-        notifications: formData.notifications,
-        configuration: formData.configuration
-      };
+      // Si estamos en la pestaña de permisos de módulos, usar el endpoint específico
+      if (activeTab === 'modulePermissions' && modulePermissions) {
+        await modulePermissionsService.updateUserPermissions(member?.email || '', modulePermissions.permissions);
+        infoLog('Permisos de módulos actualizados exitosamente');
+      } else {
+        // Para otros campos, usar el endpoint de agentes
+        const completeFormData = {
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+          phone: formData.phone,
+          isActive: formData.isActive,
+          password: formData.password || undefined,
+          notifications: formData.notifications,
+          configuration: formData.configuration
+        };
+        
+        await onSubmit(completeFormData);
+      }
       
-      await onSubmit(completeFormData);
       onClose();
     } catch (error) {
       infoLog('Error al actualizar agente:', error);
@@ -621,7 +637,8 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                           return null;
                         }
                         
-                        const currentModulePermissions = formData?.permissions?.modules?.[moduleId] || {
+                        // Usar los permisos reales del backend (modulePermissions) en lugar del formData
+                        const currentModulePermissions = modulePermissions?.permissions?.modules?.[moduleId] || {
                           read: false,
                           write: false,
                           configure: false

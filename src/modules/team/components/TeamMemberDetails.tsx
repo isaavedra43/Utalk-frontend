@@ -55,20 +55,14 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
         agentName: agentData.name 
       });
 
-      // Preparar datos para la API según la estructura del backend (estructura normalizada)
+      // Preparar datos para la API según la estructura del backend (SOLO datos básicos del agente)
       const updateData = {
         name: agentData.name?.trim() || '',
         email: agentData.email?.trim() || '',
         role: agentData.role || 'agent',
         phone: agentData.phone?.trim() || null,
         isActive: agentData.isActive !== false,
-        permissions: {
-          read: agentData.permissions.read || false,
-          write: agentData.permissions.write || false,
-          approve: agentData.permissions.approve || false,
-          configure: agentData.permissions.configure || false,
-          modules: agentData.permissions.modules || {}
-        },
+        // NO enviar permissions aquí - se manejan por separado con modulePermissionsService
         notifications: {
           email: agentData.notifications?.email !== false,
           push: agentData.notifications?.push !== false,
