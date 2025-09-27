@@ -83,12 +83,26 @@ export interface TeamMember {
     write: boolean;
     approve: boolean;
     configure: boolean;
+    modules?: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } };
   };
   performance: {
     totalChats: number;
     csat: number;
     conversionRate: number;
     responseTime: string;
+  };
+  notifications?: {
+    email: boolean;
+    push: boolean;
+    sms: boolean;
+    desktop: boolean;
+  };
+  configuration?: {
+    language: string;
+    timezone: string;
+    theme: 'light' | 'dark' | 'auto';
+    autoLogout: boolean;
+    twoFactor: boolean;
   };
   createdAt: string;
   updatedAt: string;

@@ -46,31 +46,31 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
   member
 }) => {
   const [formData, setFormData] = useState<EditAgentData>({
-    name: '',
-    email: '',
+    name: member?.name || '',
+    email: member?.email || '',
     password: '',
-    role: 'agent',
-    phone: '',
-    isActive: true,
+    role: (member?.role as 'admin' | 'supervisor' | 'agent' | 'viewer') || 'agent',
+    phone: member?.phone || '',
+    isActive: member?.isActive !== false,
     permissions: {
-      read: false,
-      write: false,
-      approve: false,
-      configure: false,
-      modules: {}
+      read: member?.permissions?.read || false,
+      write: member?.permissions?.write || false,
+      approve: member?.permissions?.approve || false,
+      configure: member?.permissions?.configure || false,
+      modules: member?.permissions?.modules || {}
     },
     notifications: {
-      email: true,
-      push: true,
-      sms: false,
-      desktop: true
+      email: member?.notifications?.email !== false,
+      push: member?.notifications?.push !== false,
+      sms: member?.notifications?.sms === true,
+      desktop: member?.notifications?.desktop !== false
     },
     configuration: {
-      language: 'es',
-      timezone: 'America/Mexico_City',
-      theme: 'light',
-      autoLogout: true,
-      twoFactor: false
+      language: member?.configuration?.language || 'es',
+      timezone: member?.configuration?.timezone || 'America/Mexico_City',
+      theme: (member?.configuration?.theme as 'light' | 'dark' | 'auto') || 'light',
+      autoLogout: member?.configuration?.autoLogout !== false,
+      twoFactor: member?.configuration?.twoFactor === true
     }
   });
 
@@ -81,6 +81,40 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
   const [modulePermissions, setModulePermissions] = useState<UserModulePermissions | null>(null);
   const [availableModules, setAvailableModules] = useState<{ [moduleId: string]: unknown }>({});
   const [loadingModules, setLoadingModules] = useState(false);
+
+  // Actualizar formData cuando cambie el member
+  useEffect(() => {
+    if (member) {
+      setFormData({
+        name: member.name || '',
+        email: member.email || '',
+        password: '',
+        role: (member.role as 'admin' | 'supervisor' | 'agent' | 'viewer') || 'agent',
+        phone: member.phone || '',
+        isActive: member.isActive !== false,
+        permissions: {
+          read: member.permissions?.read || false,
+          write: member.permissions?.write || false,
+          approve: member.permissions?.approve || false,
+          configure: member.permissions?.configure || false,
+          modules: member.permissions?.modules || {}
+        },
+        notifications: {
+          email: member.notifications?.email !== false,
+          push: member.notifications?.push !== false,
+          sms: member.notifications?.sms === true,
+          desktop: member.notifications?.desktop !== false
+        },
+        configuration: {
+          language: member.configuration?.language || 'es',
+          timezone: member.configuration?.timezone || 'America/Mexico_City',
+          theme: (member.configuration?.theme as 'light' | 'dark' | 'auto') || 'light',
+          autoLogout: member.configuration?.autoLogout !== false,
+          twoFactor: member.configuration?.twoFactor === true
+        }
+      });
+    }
+  }, [member]);
 
   // Función para asegurar que todos los módulos estén incluidos
   const ensureAllModules = (modulePermissions: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } }) => {
