@@ -82,6 +82,47 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
   const [availableModules, setAvailableModules] = useState<{ [moduleId: string]: unknown }>({});
   const [loadingModules, setLoadingModules] = useState(false);
 
+  // Función para cargar permisos de módulos
+  const loadModulePermissions = useCallback(async () => {
+    if (!member?.email) return;
+    
+    setLoadingModules(true);
+    try {
+      // Cargar módulos disponibles y permisos del usuario
+      const [modules, userPermissions] = await Promise.all([
+        modulePermissionsService.getAvailableModules(),
+        modulePermissionsService.getUserPermissions(member.email)
+      ]);
+      
+      setAvailableModules(modules);
+      setModulePermissions(userPermissions);
+      
+      // Log para debug
+      console.log('🔍 Permisos cargados del backend:', {
+        userPermissions,
+        modules: userPermissions.permissions.modules,
+        notifications: userPermissions.permissions.modules.notifications
+      });
+      
+      // Actualizar formData con los permisos reales del backend
+      setFormData(prev => ({
+        ...prev,
+        permissions: {
+          read: userPermissions.permissions.read || false,
+          write: userPermissions.permissions.write || false,
+          approve: userPermissions.permissions.approve || false,
+          configure: userPermissions.permissions.configure || false,
+          modules: userPermissions.permissions.modules || {}
+        }
+      }));
+      
+    } catch (error) {
+      infoLog('Error cargando permisos de módulos:', error);
+    } finally {
+      setLoadingModules(false);
+    }
+  }, [member?.email]);
+
   // Actualizar formData cuando cambie el member
   useEffect(() => {
     if (member) {
@@ -179,46 +220,6 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
       loadModulePermissions();
     }
   }, [member, isOpen, loadModulePermissions]);
-
-  const loadModulePermissions = useCallback(async () => {
-    if (!member?.email) return;
-    
-    setLoadingModules(true);
-    try {
-      // Cargar módulos disponibles y permisos del usuario
-      const [modules, userPermissions] = await Promise.all([
-        modulePermissionsService.getAvailableModules(),
-        modulePermissionsService.getUserPermissions(member.email)
-      ]);
-      
-      setAvailableModules(modules);
-      setModulePermissions(userPermissions);
-      
-      // Log para debug
-      console.log('🔍 Permisos cargados del backend:', {
-        userPermissions,
-        modules: userPermissions.permissions.modules,
-        notifications: userPermissions.permissions.modules.notifications
-      });
-      
-      // Actualizar formData con los permisos reales del backend
-      setFormData(prev => ({
-        ...prev,
-        permissions: {
-          read: userPermissions.permissions.read || false,
-          write: userPermissions.permissions.write || false,
-          approve: userPermissions.permissions.approve || false,
-          configure: userPermissions.permissions.configure || false,
-          modules: userPermissions.permissions.modules || {}
-        }
-      }));
-      
-    } catch (error) {
-      infoLog('Error cargando permisos de módulos:', error);
-    } finally {
-      setLoadingModules(false);
-    }
-  }, [member?.email]);
 
   // Cargar permisos de módulos cuando se abre la pestaña
   useEffect(() => {
