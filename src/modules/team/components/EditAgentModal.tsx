@@ -82,6 +82,33 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
   const [availableModules, setAvailableModules] = useState<{ [moduleId: string]: unknown }>({});
   const [loadingModules, setLoadingModules] = useState(false);
 
+  // Función para asegurar que todos los módulos estén incluidos
+  const ensureAllModules = (modulePermissions: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } }) => {
+    const allModules = [
+      'dashboard', 'contacts', 'campaigns', 'team', 'analytics', 'ai', 'settings', 'hr',
+      'clients', 'notifications', 'chat', 'internal-chat', 'phone', 'knowledge-base',
+      'supervision', 'copilot', 'providers', 'warehouse', 'shipping', 'services'
+    ];
+    
+    const completeModules: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } } = {};
+    
+    allModules.forEach(moduleId => {
+      if (modulePermissions[moduleId]) {
+        // Usar permisos proporcionados
+        completeModules[moduleId] = modulePermissions[moduleId];
+      } else {
+        // Usar permisos por defecto (sin acceso)
+        completeModules[moduleId] = {
+          read: false,
+          write: false,
+          configure: false
+        };
+      }
+    });
+    
+    return completeModules;
+  };
+
   // Cargar datos del miembro cuando se abre el modal
   useEffect(() => {
     if (member && isOpen) {
@@ -254,7 +281,16 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
     setIsLoading(true);
     
     try {
-      await onSubmit(formData);
+      // Asegurar que se envíen todos los módulos con sus permisos
+      const completeFormData = {
+        ...formData,
+        permissions: {
+          ...formData.permissions,
+          modules: ensureAllModules(formData.permissions.modules || {})
+        }
+      };
+      
+      await onSubmit(completeFormData);
       onClose();
     } catch (error) {
       infoLog('Error al actualizar agente:', error);
