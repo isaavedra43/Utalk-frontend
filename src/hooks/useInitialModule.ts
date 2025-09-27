@@ -8,16 +8,17 @@ import { infoLog } from '../config/logger';
 export const useInitialModule = () => {
   const { accessibleModules, loading } = useModulePermissions();
 
-  const getInitialModule = useCallback((): string => {
-    // Si está cargando, retornar dashboard por defecto
+  const getInitialModule = useCallback((): string | null => {
+    // Si está cargando, retornar null para esperar
     if (loading) {
-      return 'dashboard';
+      infoLog('Permisos cargando, esperando...');
+      return null;
     }
 
-    // Si no hay módulos accesibles, retornar dashboard por defecto
+    // Si no hay módulos accesibles, retornar null
     if (!accessibleModules || accessibleModules.length === 0) {
-      infoLog('No hay módulos accesibles, usando dashboard por defecto');
-      return 'dashboard';
+      infoLog('No hay módulos accesibles para el usuario');
+      return null;
     }
 
     // Orden de prioridad para módulos iniciales
@@ -63,9 +64,9 @@ export const useInitialModule = () => {
       return firstAccessibleModule.id;
     }
 
-    // Fallback final: dashboard
-    infoLog('Fallback final: usando dashboard como módulo inicial');
-    return 'dashboard';
+    // Si no hay módulos accesibles, retornar null
+    infoLog('No se encontraron módulos accesibles');
+    return null;
   }, [accessibleModules, loading]);
 
   return {
