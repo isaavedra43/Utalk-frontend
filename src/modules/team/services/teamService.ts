@@ -10,167 +10,6 @@ import { logger } from '../../../utils/logger';
 
 // Servicio completamente alineado con el backend de agentes
 
-// ✅ ESTRUCTURAS DE DATOS POR DEFECTO PARA EVITAR ERRORES UNDEFINED
-const getDefaultAgentPermissions = () => ({
-  read: false,
-  write: false,
-  approve: false,
-  configure: false,
-  modules: {
-    dashboard: { read: false, write: false, configure: false },
-    contacts: { read: false, write: false, configure: false },
-    campaigns: { read: false, write: false, configure: false },
-    team: { read: false, write: false, configure: false },
-    analytics: { read: false, write: false, configure: false },
-    ai: { read: false, write: false, configure: false },
-    settings: { read: false, write: false, configure: false },
-    hr: { read: false, write: false, configure: false },
-    clients: { read: false, write: false, configure: false },
-    notifications: { read: false, write: false, configure: false },
-    chat: { read: false, write: false, configure: false },
-    'internal-chat': { read: false, write: false, configure: false },
-    phone: { read: false, write: false, configure: false },
-    'knowledge-base': { read: false, write: false, configure: false },
-    supervision: { read: false, write: false, configure: false },
-    copilot: { read: false, write: false, configure: false },
-    providers: { read: false, write: false, configure: false },
-    warehouse: { read: false, write: false, configure: false },
-    shipping: { read: false, write: false, configure: false },
-    services: { read: false, write: false, configure: false }
-  }
-});
-
-const getDefaultAgentData = (): TeamMember => ({
-  id: '',
-  email: '',
-  name: '',
-  role: 'agent',
-  phone: undefined,
-  avatar: '',
-  isActive: true,
-  permissions: getDefaultAgentPermissions(),
-  performance: {
-    totalChats: 0,
-    csat: 0,
-    conversionRate: 0,
-    responseTime: '0s'
-  },
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString()
-});
-
-// ✅ FUNCIÓN DE VALIDACIÓN ROBUSTA DE DATOS
-const validateAgentData = (agent: any): boolean => {
-  if (!agent || typeof agent !== 'object') {
-    logger.systemError('❌ Datos de agente inválidos: objeto vacío o undefined');
-    return false;
-  }
-
-  // Validar estructura básica
-  if (!agent.id || !agent.email || !agent.name) {
-    logger.systemError('❌ Datos de agente incompletos');
-    return false;
-  }
-
-  // Validar estructura de permisos
-  if (!agent.permissions || typeof agent.permissions !== 'object') {
-    logger.systemError('❌ Permisos de agente inválidos');
-    return false;
-  }
-
-  // Validar módulos de permisos
-  if (!agent.permissions.modules || typeof agent.permissions.modules !== 'object') {
-    logger.systemError('❌ Módulos de permisos inválidos');
-    return false;
-  }
-
-  return true;
-};
-
-// ✅ FUNCIÓN PARA NORMALIZAR DATOS DEL BACKEND
-const normalizeAgentData = (backendData: any): TeamMember => {
-  if (!backendData) {
-    logger.systemInfo('⚠️ Datos del backend vacíos, usando estructura por defecto');
-    return getDefaultAgentData();
-  }
-
-  // Si es respuesta directa del backend con estructura user/permissions
-  if (backendData.user && backendData.permissions) {
-    const { user, permissions } = backendData;
-    
-    // Normalizar permisos
-    const normalizedPermissions = {
-      read: permissions.read || false,
-      write: permissions.write || false,
-      approve: permissions.approve || false,
-      configure: permissions.configure || false,
-      modules: {}
-    };
-
-    // Mapear permisos de módulos
-    if (permissions.modules && typeof permissions.modules === 'object') {
-      Object.keys(permissions.modules).forEach(moduleId => {
-        const modulePerms = (permissions.modules as any)[moduleId];
-        if (modulePerms) {
-          (normalizedPermissions.modules as any)[moduleId] = {
-            read: modulePerms.read || false,
-            write: modulePerms.write || false,
-            configure: modulePerms.configure || false
-          };
-        }
-      });
-    }
-
-    return {
-      id: user.id || user.email || '',
-      email: user.email || '',
-      name: user.name || '',
-      role: user.role || 'agent',
-      phone: user.phone || undefined,
-      avatar: user.avatar || generateAvatar(user.name || user.email),
-      isActive: user.isActive !== undefined ? user.isActive : true,
-      permissions: normalizedPermissions,
-      performance: user.performance || {
-        totalChats: 0,
-        csat: 0,
-        conversionRate: 0,
-        responseTime: '0s'
-      },
-      createdAt: user.createdAt || new Date().toISOString(),
-      updatedAt: user.updatedAt || new Date().toISOString()
-    };
-  }
-
-  // Si es estructura directa de TeamMember
-  if (validateAgentData(backendData)) {
-    return {
-      ...getDefaultAgentData(),
-      ...backendData,
-      permissions: {
-        ...getDefaultAgentPermissions(),
-        ...backendData.permissions,
-        modules: {
-          ...getDefaultAgentPermissions().modules,
-          ...backendData.permissions?.modules
-        }
-      }
-    };
-  }
-
-  logger.systemInfo('⚠️ Estructura de datos del backend inválida, usando estructura por defecto');
-  return getDefaultAgentData();
-};
-
-// ✅ FUNCIÓN AUXILIAR PARA GENERAR AVATAR
-const generateAvatar = (name: string): string => {
-  if (!name) return '';
-  const words = name.trim().split(' ');
-  if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase();
-  }
-  return name.substring(0, 2).toUpperCase();
-};
-
 interface CreateAgentCompleteRequest {
   // Información básica
   name: string;
@@ -416,7 +255,7 @@ class TeamService {
   // ✅ ENDPOINT 4: Obtener agente específico
   async getAgent(id: string): Promise<TeamMember> {
     try {
-      logger.systemInfo('🔍 Obteniendo agente específico', { id });
+      logger.systemInfo('Obteniendo agente específico', { id });
       
       const encodedId = encodeURIComponent(id);
       const response = await api.get<TeamApiResponse<{ agent: TeamMember }>>(`/api/team/agents/${encodedId}`);
@@ -425,26 +264,11 @@ class TeamService {
         throw new Error(response.data.message || 'Error al obtener agente');
       }
       
-      const rawData = response.data.data.agent;
-      logger.systemInfo('📥 Datos recibidos del backend', { rawData });
-      
-      // ✅ NORMALIZAR Y VALIDAR DATOS
-      const normalizedData = normalizeAgentData(rawData);
-      
-      if (validateAgentData(normalizedData)) {
-        logger.systemInfo('✅ Datos del agente validados y normalizados');
-        return normalizedData;
-      } else {
-        logger.systemInfo('⚠️ Datos inválidos, usando estructura por defecto');
-        return getDefaultAgentData();
-      }
+      return response.data.data.agent;
       
     } catch (error) {
-      logger.systemError('❌ Error obteniendo agente');
-      
-      // En caso de error, retornar datos por defecto en lugar de fallar
-      logger.systemInfo('⚠️ Retornando datos por defecto debido a error');
-      return getDefaultAgentData();
+      logger.systemInfo('Error obteniendo agente', { error, agentId: id });
+      throw new Error('Error al obtener agente');
     }
   }
   
@@ -551,7 +375,7 @@ class TeamService {
   // ✅ ENDPOINT 9: Permisos de agente
   async getAgentPermissions(id: string): Promise<AgentPermissionsResponse> {
     try {
-      logger.systemInfo('🔍 Obteniendo permisos de agente', { id });
+      logger.systemInfo('Obteniendo permisos de agente', { id });
       
       const encodedId = encodeURIComponent(id);
       const response = await api.get<TeamApiResponse<AgentPermissionsResponse>>(`/api/team/agents/${encodedId}/permissions`);
@@ -560,60 +384,11 @@ class TeamService {
         throw new Error(response.data.message || 'Error al obtener permisos');
       }
       
-      const rawData = response.data.data;
-      logger.systemInfo('📥 Permisos recibidos del backend', { rawData });
-      
-      // ✅ VALIDAR Y NORMALIZAR PERMISOS
-      if (!rawData || !rawData.permissions || !rawData.permissions.modules) {
-        logger.systemInfo('⚠️ Estructura de permisos inválida, usando permisos por defecto');
-        return {
-          agent: {
-            id: id,
-            name: 'Usuario',
-            email: id,
-            role: 'agent',
-            isImmuneUser: false
-          },
-          permissions: {
-            basic: {
-              read: false,
-              write: false,
-              approve: false,
-              configure: false
-            },
-            modules: getDefaultAgentPermissions().modules
-          },
-          accessibleModules: []
-        };
-      }
-      
-      logger.systemInfo('✅ Permisos validados exitosamente');
-      return rawData;
+      return response.data.data;
       
     } catch (error) {
-      logger.systemError('❌ Error obteniendo permisos');
-      
-      // Retornar permisos por defecto en caso de error
-      logger.systemInfo('⚠️ Retornando permisos por defecto debido a error');
-      return {
-        agent: {
-          id: id,
-          name: 'Usuario',
-          email: id,
-          role: 'agent',
-          isImmuneUser: false
-        },
-        permissions: {
-          basic: {
-            read: false,
-            write: false,
-            approve: false,
-            configure: false
-          },
-          modules: getDefaultAgentPermissions().modules
-        },
-        accessibleModules: []
-      };
+      logger.systemInfo('Error obteniendo permisos', { error, agentId: id });
+      throw new Error('Error al obtener permisos del agente');
     }
   }
   
@@ -634,57 +409,6 @@ class TeamService {
     } catch (error) {
       logger.systemInfo('Error actualizando permisos', { error, agentId: id });
       throw new Error('Error al actualizar permisos del agente');
-    }
-  }
-
-  // ✅ NUEVO MÉTODO: Obtener permisos de módulos de usuario usando el servicio de módulos
-  async getUserModulePermissions(email: string): Promise<any> {
-    try {
-      logger.systemInfo('🔍 Obteniendo permisos de módulos de usuario', { email });
-      
-      // Usar el servicio de permisos de módulos
-      const { modulePermissionsService } = await import('../../../services/modulePermissions');
-      const permissions = await modulePermissionsService.getUserPermissions(email);
-      
-      logger.systemInfo('📥 Permisos de módulos obtenidos', { 
-        email,
-        modulesCount: Object.keys(permissions.permissions.modules || {}).length
-      });
-      
-      return permissions;
-      
-    } catch (error) {
-      logger.systemError('❌ Error obteniendo permisos de módulos');
-      
-      // Retornar permisos por defecto en caso de error
-      logger.systemInfo('⚠️ Retornando permisos por defecto debido a error');
-      return {
-        email: email,
-        role: 'agent',
-        accessibleModules: [],
-        permissions: {
-          modules: getDefaultAgentPermissions().modules
-        }
-      };
-    }
-  }
-
-  // ✅ NUEVO MÉTODO: Actualizar permisos de módulos de usuario
-  async updateUserModulePermissions(email: string, permissions: any): Promise<any> {
-    try {
-      logger.systemInfo('🔍 Actualizando permisos de módulos de usuario', { email, permissions });
-      
-      // Usar el servicio de permisos de módulos
-      const { modulePermissionsService } = await import('../../../services/modulePermissions');
-      const updatedPermissions = await modulePermissionsService.updateUserPermissions(email, permissions);
-      
-      logger.systemInfo('✅ Permisos de módulos actualizados exitosamente', { email });
-      
-      return updatedPermissions;
-      
-    } catch (error) {
-      logger.systemError('❌ Error actualizando permisos de módulos');
-      throw new Error('Error al actualizar permisos de módulos del usuario');
     }
   }
   

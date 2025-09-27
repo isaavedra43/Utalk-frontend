@@ -19,6 +19,10 @@ export interface UserModulePermissions {
   role: string;
   accessibleModules: ModulePermission[];
   permissions: {
+    read: boolean;
+    write: boolean;
+    approve: boolean;
+    configure: boolean;
     modules: {
       [moduleId: string]: {
         read: boolean;
@@ -39,6 +43,24 @@ export interface ModulePermissionsResponse {
   message?: string;
 }
 
+// Función para normalizar datos del backend según las indicaciones
+const normalizeBackendData = (backendResponse: any): UserModulePermissions => {
+  const { user, permissions } = backendResponse.data;
+  
+  return {
+    email: user.email,
+    role: user.role,
+    accessibleModules: permissions.accessibleModules || [],
+    permissions: {
+      read: permissions.read || false,
+      write: permissions.write || false,
+      approve: permissions.approve || false,
+      configure: permissions.configure || false,
+      modules: permissions.modules || {}
+    }
+  };
+};
+
 export const modulePermissionsService = {
   // Obtener mis permisos actuales
   async getMyPermissions(): Promise<UserModulePermissions> {
@@ -55,7 +77,9 @@ export const modulePermissionsService = {
         accessibleModules: response.data.data.permissions?.accessibleModules?.length || 0 
       });
       
-      return response.data.data.permissions!;
+      // Normalizar datos del backend según las indicaciones
+      const normalizedData = normalizeBackendData(response.data);
+      return normalizedData;
       
     } catch (error) {
       infoLog('Error obteniendo permisos', { error });
@@ -100,7 +124,9 @@ export const modulePermissionsService = {
       
       infoLog('Permisos de usuario obtenidos exitosamente', { email });
       
-      return response.data.data.permissions!;
+      // Normalizar datos del backend según las indicaciones
+      const normalizedData = normalizeBackendData(response.data);
+      return normalizedData;
       
     } catch (error) {
       infoLog('Error obteniendo permisos de usuario', { error, email });
@@ -155,7 +181,7 @@ export const modulePermissionsService = {
   // Actualizar permisos de un usuario
   async updateUserPermissions(email: string, permissions: UserModulePermissions['permissions']): Promise<UserModulePermissions> {
     try {
-      infoLog('Actualizando permisos de usuario', { email });
+      infoLog('Actualizando permisos de usuario', { email, permissions });
       
       const encodedEmail = encodeURIComponent(email);
       const response = await api.put<ModulePermissionsResponse>(`/api/module-permissions/user/${encodedEmail}`, {
@@ -168,7 +194,9 @@ export const modulePermissionsService = {
       
       infoLog('Permisos de usuario actualizados exitosamente', { email });
       
-      return response.data.data.permissions!;
+      // Normalizar datos del backend según las indicaciones
+      const normalizedData = normalizeBackendData(response.data);
+      return normalizedData;
       
     } catch (error) {
       infoLog('Error actualizando permisos de usuario', { error, email });
