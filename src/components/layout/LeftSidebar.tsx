@@ -146,9 +146,9 @@ export const LeftSidebar: React.FC = () => {
 
   // Filtrar módulos según permisos del usuario
   const navigationItems = React.useMemo(() => {
-    // Si está cargando permisos, mostrar todos los módulos (fallback seguro)
+    // Si está cargando permisos, no mostrar ningún módulo para evitar parpadeo
     if (permissionsLoading) {
-      return allNavigationItems;
+      return [];
     }
 
     // Filtrar solo los módulos a los que tiene acceso
@@ -169,25 +169,38 @@ export const LeftSidebar: React.FC = () => {
       {/* Navegación entre módulos */}
       <div className="flex-1 p-2">
         <div className="space-y-2">
-          {navigationItems.map((item: { id: string; icon: React.ComponentType<{ className?: string }>; title: string }) => {
-            const IconComponent = item.icon;
-            const isActive = currentModule === item.id;
-            
-            return (
-              <button
-                key={item.id}
-                onClick={() => navigateToModule(item.id)}
-                className={`relative w-full h-10 flex items-center justify-center rounded-lg text-sm transition-colors ${
-                  isActive 
-                    ? 'bg-blue-500 text-white shadow-sm' 
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-blue-600'
-                }`}
-                title={item.title}
-              >
-                <IconComponent className="h-5 w-5" />
-              </button>
-            );
-          })}
+          {permissionsLoading ? (
+            // Mostrar skeleton de carga mientras se cargan los permisos
+            <>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="w-full h-10 rounded-lg bg-gray-100 animate-pulse"
+                />
+              ))}
+            </>
+          ) : (
+            // Mostrar módulos cuando los permisos estén cargados
+            navigationItems.map((item: { id: string; icon: React.ComponentType<{ className?: string }>; title: string }) => {
+              const IconComponent = item.icon;
+              const isActive = currentModule === item.id;
+              
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => navigateToModule(item.id)}
+                  className={`relative w-full h-10 flex items-center justify-center rounded-lg text-sm transition-colors ${
+                    isActive 
+                      ? 'bg-blue-500 text-white shadow-sm' 
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-blue-600'
+                  }`}
+                  title={item.title}
+                >
+                  <IconComponent className="h-5 w-5" />
+                </button>
+              );
+            })
+          )}
         </div>
       </div>
 

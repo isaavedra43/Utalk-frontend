@@ -14,12 +14,15 @@ interface EditAgentData {
   name: string;
   email: string;
   password: string;
-  role: string;
+  role: 'admin' | 'supervisor' | 'agent' | 'viewer';
+  phone?: string;
+  isActive?: boolean;
   permissions: {
     read: boolean;
     write: boolean;
     approve: boolean;
     configure: boolean;
+    modules?: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } };
   };
   notifications: {
     email: boolean;
@@ -27,18 +30,12 @@ interface EditAgentData {
     sms: boolean;
     desktop: boolean;
   };
-  visualizations: {
-    dashboard: boolean;
-    reports: boolean;
-    analytics: boolean;
-    teamView: boolean;
-  };
-  settings: {
+  configuration: {
     language: string;
     timezone: string;
     theme: 'light' | 'dark' | 'auto';
     autoLogout: boolean;
-    twoFactorAuth: boolean;
+    twoFactor: boolean;
   };
 }
 
@@ -52,12 +49,15 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
     name: '',
     email: '',
     password: '',
-    role: '',
+    role: 'agent',
+    phone: '',
+    isActive: true,
     permissions: {
       read: false,
       write: false,
       approve: false,
-      configure: false
+      configure: false,
+      modules: {}
     },
     notifications: {
       email: true,
@@ -65,18 +65,12 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
       sms: false,
       desktop: true
     },
-    visualizations: {
-      dashboard: true,
-      reports: true,
-      analytics: false,
-      teamView: true
-    },
-    settings: {
+    configuration: {
       language: 'es',
       timezone: 'America/Mexico_City',
       theme: 'light',
       autoLogout: true,
-      twoFactorAuth: false
+      twoFactor: false
     }
   });
 
@@ -95,31 +89,28 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
         name: member.name || '',
         email: member.email || '',
         password: '',
-        role: member.role || '',
+        role: (member.role as 'admin' | 'supervisor' | 'agent' | 'viewer') || 'agent',
+        phone: member.phone || '',
+        isActive: member.isActive !== false,
         permissions: {
           read: member.permissions?.read || false,
           write: member.permissions?.write || false,
           approve: member.permissions?.approve || false,
-          configure: member.permissions?.configure || false
+          configure: member.permissions?.configure || false,
+          modules: member.permissions?.modules || {}
         },
         notifications: {
-          email: true,
-          push: true,
-          sms: false,
-          desktop: true
+          email: member.notifications?.email !== false,
+          push: member.notifications?.push !== false,
+          sms: member.notifications?.sms === true,
+          desktop: member.notifications?.desktop !== false
         },
-        visualizations: {
-          dashboard: true,
-          reports: true,
-          analytics: false,
-          teamView: true
-        },
-        settings: {
-          language: 'es',
-          timezone: 'America/Mexico_City',
-          theme: 'light',
-          autoLogout: true,
-          twoFactorAuth: false
+        configuration: {
+          language: member.configuration?.language || 'es',
+          timezone: member.configuration?.timezone || 'America/Mexico_City',
+          theme: (member.configuration?.theme as 'light' | 'dark' | 'auto') || 'light',
+          autoLogout: member.configuration?.autoLogout !== false,
+          twoFactor: member.configuration?.twoFactor === true
         }
       });
     }
@@ -251,8 +242,8 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
   const handleSettingChange = (setting: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
-      settings: {
-        ...prev.settings,
+      configuration: {
+        ...prev.configuration,
         [setting]: value
       }
     }));
@@ -378,13 +369,37 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       required
                     >
-                      <option value="">Seleccionar rol</option>
-                      <option value="Ejecutivo WhatsApp Senior">Ejecutivo WhatsApp Senior</option>
-                      <option value="Ejecutivo WhatsApp Junior">Ejecutivo WhatsApp Junior</option>
-                      <option value="Supervisor">Supervisor</option>
-                      <option value="Manager">Manager</option>
-                      <option value="Administrador">Administrador</option>
+                      <option value="agent">Agente</option>
+                      <option value="supervisor">Supervisor</option>
+                      <option value="admin">Administrador</option>
+                      <option value="viewer">Visualizador</option>
                     </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Teléfono
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.phone || ''}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="+52 1 477 123 4567"
+                    />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="isActive"
+                      checked={formData.isActive || false}
+                      onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="isActive" className="text-sm font-medium text-gray-900">
+                      Usuario Activo
+                    </label>
                   </div>
                 </div>
               </div>
@@ -643,7 +658,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                       Idioma
                     </label>
                     <select
-                      value={formData.settings.language}
+                      value={formData.configuration.language}
                       onChange={(e) => handleSettingChange('language', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
@@ -658,7 +673,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                       Zona Horaria
                     </label>
                     <select
-                      value={formData.settings.timezone}
+                      value={formData.configuration.timezone}
                       onChange={(e) => handleSettingChange('timezone', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
@@ -674,7 +689,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                       Tema
                     </label>
                     <select
-                      value={formData.settings.theme}
+                      value={formData.configuration.theme}
                       onChange={(e) => handleSettingChange('theme', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
@@ -693,7 +708,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                     </div>
                     <input
                       type="checkbox"
-                      checked={formData.settings.autoLogout}
+                      checked={formData.configuration.autoLogout}
                       onChange={(e) => handleSettingChange('autoLogout', e.target.checked)}
                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                     />
@@ -706,8 +721,8 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                     </div>
                     <input
                       type="checkbox"
-                      checked={formData.settings.twoFactorAuth}
-                      onChange={(e) => handleSettingChange('twoFactorAuth', e.target.checked)}
+                      checked={formData.configuration.twoFactor}
+                      onChange={(e) => handleSettingChange('twoFactor', e.target.checked)}
                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                     />
                   </div>

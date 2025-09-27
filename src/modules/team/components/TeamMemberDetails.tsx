@@ -15,12 +15,15 @@ interface EditAgentData {
   name: string;
   email: string;
   password: string;
-  role: string;
+  role: 'admin' | 'supervisor' | 'agent' | 'viewer';
+  phone?: string;
+  isActive?: boolean;
   permissions: {
     read: boolean;
     write: boolean;
     approve: boolean;
     configure: boolean;
+    modules?: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } };
   };
   notifications: {
     email: boolean;
@@ -28,18 +31,12 @@ interface EditAgentData {
     sms: boolean;
     desktop: boolean;
   };
-  visualizations: {
-    dashboard: boolean;
-    reports: boolean;
-    analytics: boolean;
-    teamView: boolean;
-  };
-  settings: {
+  configuration: {
     language: string;
     timezone: string;
     theme: 'light' | 'dark' | 'auto';
     autoLogout: boolean;
-    twoFactorAuth: boolean;
+    twoFactor: boolean;
   };
 }
 
@@ -58,25 +55,24 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
         agentName: agentData.name 
       });
 
-      // Preparar datos para la API - Simplificados para debug
-      const updateData: { name: string; email: string; role: 'admin' | 'supervisor' | 'agent' | 'viewer'; permissions?: { read: boolean; write: boolean; approve: boolean; configure: boolean }; password?: string } = {
+      // Preparar datos para la API según la estructura del backend
+      const updateData = {
         name: agentData.name,
         email: agentData.email,
-        role: agentData.role as 'admin' | 'supervisor' | 'agent' | 'viewer'
+        role: agentData.role,
+        phone: agentData.phone,
+        isActive: agentData.isActive,
+        permissions: agentData.permissions,
+        notifications: agentData.notifications,
+        configuration: agentData.configuration
       };
 
-      // Solo enviar permisos si están definidos
-      if (agentData.permissions) {
-        updateData.permissions = agentData.permissions;
-      }
-
-      // Si hay contraseña, agregarla
+      // Si hay contraseña, agregarla como newPassword
       if (agentData.password.trim()) {
-        updateData.password = agentData.password;
+        (updateData as any).newPassword = agentData.password;
       }
 
-      // Llamar API para actualizar agente
-      // Intentar con el email como ID ya que parece ser el identificador principal
+      // Llamar API para actualizar agente usando el email como ID
       await teamService.updateAgent(member.email, updateData);
       
       logger.systemInfo('Agente actualizado exitosamente', { 
