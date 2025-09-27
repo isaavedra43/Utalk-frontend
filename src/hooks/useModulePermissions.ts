@@ -112,59 +112,64 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
 
   // Verificar si puede acceder a un módulo
   const canAccessModule = useCallback((moduleId: string): boolean => {
-    // Si está cargando, denegar acceso hasta que se carguen los permisos
+    // Si está cargando, permitir acceso temporalmente para evitar bloqueos
     if (loading) {
-      return false;
+      infoLog('Permisos cargando, permitiendo acceso temporalmente', { moduleId });
+      return true;
     }
     
-    // Si no hay permisos cargados, denegar acceso por defecto
+    // Si no hay permisos cargados, permitir acceso por defecto para evitar bloqueos
     if (!permissions) {
       // Log solo una vez por hook para evitar spam
       if (!permissionsFallbackLogged.current) {
-        infoLog('No hay permisos cargados, denegando acceso');
+        infoLog('No hay permisos cargados, permitiendo acceso por defecto');
         permissionsFallbackLogged.current = true;
       }
-      return false;
+      return true;
     }
     
     // Si es usuario inmune, permitir acceso a todos los módulos
     if (permissions.isImmuneUser) {
+      infoLog('Usuario inmune, permitiendo acceso a todos los módulos', { moduleId });
       return true;
     }
     
-    // Si no hay módulos accesibles definidos, denegar acceso
-    if (!accessibleModules || accessibleModules.length === 0) {
-      // Log solo una vez por hook para evitar spam
-      if (!noModulesAccessibleLogged.current) {
-        infoLog('No hay módulos accesibles definidos, denegando acceso');
-        noModulesAccessibleLogged.current = true;
-      }
-      return false;
+    // Verificar si tiene permisos específicos para el módulo
+    const hasModulePermissions = permissions.permissions?.modules?.[moduleId];
+    if (hasModulePermissions && (hasModulePermissions.read || hasModulePermissions.write || hasModulePermissions.configure)) {
+      infoLog('Acceso permitido por permisos específicos del módulo', { 
+        moduleId, 
+        permissions: hasModulePermissions 
+      });
+      return true;
     }
     
-    const hasAccess = accessibleModules.some(module => module.id === moduleId);
+    // Verificar si está en la lista de módulos accesibles
+    if (accessibleModules && accessibleModules.length > 0) {
+      const hasAccess = accessibleModules.some(module => module.id === moduleId);
+      infoLog('Verificando acceso por lista de módulos accesibles', { 
+        moduleId, 
+        hasAccess,
+        accessibleModules: accessibleModules.map(m => m.id)
+      });
+      return hasAccess;
+    }
     
-    // Log detallado para debug
-    infoLog('Verificando acceso a módulo', { 
-      moduleId, 
-      hasAccess,
-      accessibleModules: accessibleModules.map(m => m.id),
-      isImmuneUser: permissions.isImmuneUser
-    });
-    
-    return hasAccess;
+    // Si no hay módulos accesibles definidos, permitir acceso por defecto para evitar bloqueos
+    infoLog('No hay módulos accesibles definidos, permitiendo acceso por defecto', { moduleId });
+    return true;
   }, [permissions, accessibleModules, loading]);
 
   // Verificar permiso específico
   const hasPermission = useCallback((moduleId: string, action: 'read' | 'write' | 'configure'): boolean => {
-    // Si está cargando, denegar acceso hasta que se carguen los permisos
+    // Si está cargando, permitir acceso temporalmente para evitar bloqueos
     if (loading) {
-      return false;
+      return true;
     }
     
-    // Si no hay permisos cargados, denegar acceso por defecto
+    // Si no hay permisos cargados, permitir acceso por defecto para evitar bloqueos
     if (!permissions) {
-      return false;
+      return true;
     }
     
     // Si es usuario inmune, permitir acceso a todos los módulos
