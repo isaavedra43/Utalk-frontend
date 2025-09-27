@@ -19,11 +19,13 @@ interface EditAgentData {
   phone?: string;
   isActive?: boolean;
   permissions: {
-    read: boolean;
-    write: boolean;
-    approve: boolean;
-    configure: boolean;
-    modules?: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } };
+    basic: {
+      read: boolean;
+      write: boolean;
+      approve: boolean;
+      configure: boolean;
+    };
+    modules: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } };
   };
   notifications: {
     email: boolean;
@@ -57,20 +59,44 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
 
       // Preparar datos para la API según la estructura del backend
       const updateData = {
-        name: agentData.name,
-        email: agentData.email,
-        role: agentData.role,
-        phone: agentData.phone,
-        isActive: agentData.isActive,
-        permissions: agentData.permissions,
-        notifications: agentData.notifications,
-        configuration: agentData.configuration
+        name: agentData.name?.trim() || '',
+        email: agentData.email?.trim() || '',
+        role: agentData.role || 'agent',
+        phone: agentData.phone?.trim() || null,
+        isActive: agentData.isActive !== false,
+        permissions: {
+          basic: {
+            read: agentData.permissions.basic?.read || false,
+            write: agentData.permissions.basic?.write || false,
+            approve: agentData.permissions.basic?.approve || false,
+            configure: agentData.permissions.basic?.configure || false
+          },
+          modules: agentData.permissions.modules || {}
+        },
+        notifications: {
+          email: agentData.notifications?.email !== false,
+          push: agentData.notifications?.push !== false,
+          sms: agentData.notifications?.sms === true,
+          desktop: agentData.notifications?.desktop !== false
+        },
+        configuration: {
+          language: agentData.configuration?.language || 'es',
+          timezone: agentData.configuration?.timezone || 'America/Mexico_City',
+          theme: agentData.configuration?.theme || 'light',
+          autoLogout: agentData.configuration?.autoLogout !== false,
+          twoFactor: agentData.configuration?.twoFactor === true
+        }
       };
 
       // Si hay contraseña, agregarla como newPassword
-      if (agentData.password.trim()) {
-        (updateData as any).newPassword = agentData.password;
+      if (agentData.password && agentData.password.trim()) {
+        (updateData as any).newPassword = agentData.password.trim();
       }
+
+      // Debug: Log del payload antes de enviar
+      logger.systemInfo('Payload de actualización', { 
+        updateData: JSON.stringify(updateData, null, 2)
+      });
 
       // Llamar API para actualizar agente usando el email como ID
       await teamService.updateAgent(member.email, updateData);
