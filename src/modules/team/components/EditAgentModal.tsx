@@ -18,11 +18,13 @@ interface EditAgentData {
   phone?: string;
   isActive?: boolean;
   permissions: {
-    read: boolean;
-    write: boolean;
-    approve: boolean;
-    configure: boolean;
-    modules?: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } };
+    basic: {
+      read: boolean;
+      write: boolean;
+      approve: boolean;
+      configure: boolean;
+    };
+    modules: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } };
   };
   notifications: {
     email: boolean;
@@ -53,10 +55,12 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
     phone: '',
     isActive: true,
     permissions: {
-      read: false,
-      write: false,
-      approve: false,
-      configure: false,
+      basic: {
+        read: false,
+        write: false,
+        approve: false,
+        configure: false
+      },
       modules: {}
     },
     notifications: {
@@ -120,10 +124,12 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
         phone: member.phone || '',
         isActive: member.isActive !== false,
         permissions: {
-          read: member.permissions?.read || false,
-          write: member.permissions?.write || false,
-          approve: member.permissions?.approve || false,
-          configure: member.permissions?.configure || false,
+          basic: {
+            read: member.permissions?.read || false,
+            write: member.permissions?.write || false,
+            approve: member.permissions?.approve || false,
+            configure: member.permissions?.configure || false
+          },
           modules: member.permissions?.modules || {}
         },
         notifications: {
@@ -249,7 +255,10 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
       ...prev,
       permissions: {
         ...prev.permissions,
-        [permission]: value
+        basic: {
+          ...prev.permissions.basic,
+          [permission]: value
+        }
       }
     }));
   };
@@ -285,7 +294,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
       const completeFormData = {
         ...formData,
         permissions: {
-          ...formData.permissions,
+          basic: formData.permissions.basic,
           modules: ensureAllModules(formData.permissions.modules || {})
         }
       };
@@ -457,7 +466,7 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                           <input
                             type="checkbox"
                             id={`permission-${key}`}
-                            checked={formData.permissions[key as keyof typeof formData.permissions]}
+                            checked={formData.permissions.basic[key as keyof typeof formData.permissions.basic]}
                             onChange={(e) => handlePermissionChange(key, e.target.checked)}
                             className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                           />
