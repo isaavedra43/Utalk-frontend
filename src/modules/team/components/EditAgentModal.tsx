@@ -174,8 +174,11 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
           twoFactor: member.configuration?.twoFactor === true
         }
       });
+      
+      // Cargar permisos de módulos cuando se abre el modal
+      loadModulePermissions();
     }
-  }, [member, isOpen]);
+  }, [member, isOpen, loadModulePermissions]);
 
   const loadModulePermissions = useCallback(async () => {
     if (!member?.email) return;
@@ -190,6 +193,13 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
       
       setAvailableModules(modules);
       setModulePermissions(userPermissions);
+      
+      // Log para debug
+      console.log('🔍 Permisos cargados del backend:', {
+        userPermissions,
+        modules: userPermissions.permissions.modules,
+        notifications: userPermissions.permissions.modules.notifications
+      });
       
       // Actualizar formData con los permisos reales del backend
       setFormData(prev => ({
@@ -677,6 +687,16 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
                           write: false,
                           configure: false
                         };
+                        
+                        // Log para debug
+                        if (moduleId === 'notifications') {
+                          console.log('🔍 Renderizando módulo notifications:', {
+                            moduleId,
+                            currentModulePermissions,
+                            modulePermissions: modulePermissions?.permissions?.modules,
+                            allModules: modulePermissions?.permissions?.modules
+                          });
+                        }
                         
                         const moduleData = module as { 
                           id: string;
