@@ -19,12 +19,10 @@ interface EditAgentData {
   phone?: string;
   isActive?: boolean;
   permissions: {
-    basic: {
-      read: boolean;
-      write: boolean;
-      approve: boolean;
-      configure: boolean;
-    };
+    read: boolean;
+    write: boolean;
+    approve: boolean;
+    configure: boolean;
     modules: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } };
   };
   notifications: {
@@ -57,7 +55,7 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
         agentName: agentData.name 
       });
 
-      // Preparar datos para la API según la estructura del backend
+      // Preparar datos para la API según la estructura del backend (estructura normalizada)
       const updateData = {
         name: agentData.name?.trim() || '',
         email: agentData.email?.trim() || '',
@@ -65,12 +63,10 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
         phone: agentData.phone?.trim() || null,
         isActive: agentData.isActive !== false,
         permissions: {
-          basic: {
-            read: agentData.permissions.basic?.read || false,
-            write: agentData.permissions.basic?.write || false,
-            approve: agentData.permissions.basic?.approve || false,
-            configure: agentData.permissions.basic?.configure || false
-          },
+          read: agentData.permissions.read || false,
+          write: agentData.permissions.write || false,
+          approve: agentData.permissions.approve || false,
+          configure: agentData.permissions.configure || false,
           modules: agentData.permissions.modules || {}
         },
         notifications: {

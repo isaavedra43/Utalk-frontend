@@ -309,16 +309,23 @@ export const EditAgentModal: React.FC<EditAgentModalProps> = ({
     setIsLoading(true);
     
     try {
-      // Asegurar que se envíen todos los módulos con sus permisos
+      // Preparar datos para envío con la estructura correcta según indicaciones del backend
       const completeFormData = {
-        ...formData,
+        name: formData.name,
+        email: formData.email,
+        role: formData.role,
+        phone: formData.phone,
+        isActive: formData.isActive,
+        password: formData.password || undefined, // Solo enviar si hay nueva contraseña
         permissions: {
           read: formData.permissions.read,
           write: formData.permissions.write,
           approve: formData.permissions.approve,
           configure: formData.permissions.configure,
           modules: ensureAllModules(formData.permissions.modules || {})
-        }
+        },
+        notifications: formData.notifications,
+        configuration: formData.configuration
       };
       
       await onSubmit(completeFormData);
