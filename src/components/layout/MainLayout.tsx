@@ -5,6 +5,7 @@ import { useAuthContext } from '../../contexts/useAuthContext';
 import { LeftSidebar } from './LeftSidebar';
 import { MobileMenu } from './MobileMenu';
 import { useMobileMenuContext } from '../../contexts/MobileMenuContext';
+import { ProtectedRoute } from '../ProtectedRoute';
 // Lazy load de módulos
 const ChatModule = lazy(() => import('../chat/ChatModule').then(m => ({ default: m.ChatModule })));
 const DashboardModule = lazy(() => import('../../modules/dashboard').then(m => ({ default: m.DashboardModule })));
@@ -116,80 +117,112 @@ export const MainLayout: React.FC = () => {
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {currentModule === 'chat' && (
           <Suspense fallback={Fallback}>
-            <ChatModule />
+            <ProtectedRoute moduleId="chat">
+              <ChatModule />
+            </ProtectedRoute>
           </Suspense>
         )}
         {currentModule === 'dashboard' && (
           <Suspense fallback={Fallback}>
-            <DashboardModule />
+            <ProtectedRoute moduleId="dashboard">
+              <DashboardModule />
+            </ProtectedRoute>
           </Suspense>
         )}
         {currentModule === 'team' && (
           <Suspense fallback={Fallback}>
-            <TeamModule />
+            <ProtectedRoute moduleId="team">
+              <TeamModule />
+            </ProtectedRoute>
           </Suspense>
         )}
         {currentModule === 'clients' && (
           <Suspense fallback={Fallback}>
-            <ClientModule />
+            <ProtectedRoute moduleId="clients">
+              <ClientModule />
+            </ProtectedRoute>
           </Suspense>
         )}
         {currentModule === 'notifications' && (
           <Suspense fallback={Fallback}>
-            <NotificationsModule />
+            <ProtectedRoute moduleId="notifications">
+              <NotificationsModule />
+            </ProtectedRoute>
           </Suspense>
         )}
         {currentModule === 'internal-chat' && (
           <Suspense fallback={Fallback}>
-            <InternalChatModule />
+            <ProtectedRoute moduleId="internal-chat">
+              <InternalChatModule />
+            </ProtectedRoute>
           </Suspense>
         )}
         {currentModule === 'campaigns' && (
           <Suspense fallback={Fallback}>
-            <CampaignsModule />
+            <ProtectedRoute moduleId="campaigns">
+              <CampaignsModule />
+            </ProtectedRoute>
           </Suspense>
         )}
         {currentModule === 'phone' && (
-          <CallsModule />
+          <ProtectedRoute moduleId="phone">
+            <CallsModule />
+          </ProtectedRoute>
         )}
         {currentModule === 'knowledge-base' && (
           <Suspense fallback={Fallback}>
-            <KnowledgeBaseModule />
+            <ProtectedRoute moduleId="knowledge-base">
+              <KnowledgeBaseModule />
+            </ProtectedRoute>
           </Suspense>
         )}
         {currentModule === 'hr' && (
           <Suspense fallback={Fallback}>
-            <HRModule />
+            <ProtectedRoute moduleId="hr">
+              <HRModule />
+            </ProtectedRoute>
           </Suspense>
         )}
         {currentModule === 'supervision' && (
           <Suspense fallback={Fallback}>
-            <SupervisionModule />
+            <ProtectedRoute moduleId="supervision">
+              <SupervisionModule />
+            </ProtectedRoute>
           </Suspense>
         )}
         {currentModule === 'copilot' && (
           <Suspense fallback={Fallback}>
-            <CopilotModule />
+            <ProtectedRoute moduleId="copilot">
+              <CopilotModule />
+            </ProtectedRoute>
           </Suspense>
         )}
         {currentModule === 'providers' && (
           <Suspense fallback={Fallback}>
-            <ProvidersModule />
+            <ProtectedRoute moduleId="providers">
+              <ProvidersModule />
+            </ProtectedRoute>
           </Suspense>
         )}
         {currentModule === 'warehouse' && (
           <Suspense fallback={Fallback}>
-            <WarehouseModule />
+            <ProtectedRoute moduleId="warehouse">
+              <WarehouseModule />
+            </ProtectedRoute>
           </Suspense>
         )}
         {currentModule === 'shipping' && (
           <Suspense fallback={Fallback}>
-            <ShippingModule />
+            <ProtectedRoute moduleId="shipping">
+              <ShippingModule />
+            </ProtectedRoute>
           </Suspense>
         )}
         {currentModule === 'services' && (
           <Suspense fallback={Fallback}>
-            <ServicesModule />
+            <ProtectedRoute moduleId="services">
+              <ServicesModule />
+            </ProtectedRoute>
           </Suspense>
         )}
         {currentModule !== 'chat' && currentModule !== 'dashboard' && currentModule !== 'team' && currentModule !== 'clients' && currentModule !== 'notifications' && currentModule !== 'internal-chat' && currentModule !== 'campaigns' && currentModule !== 'phone' && currentModule !== 'knowledge-base' && currentModule !== 'hr' && currentModule !== 'supervision' && currentModule !== 'copilot' && currentModule !== 'providers' && currentModule !== 'warehouse' && currentModule !== 'shipping' && currentModule !== 'services' && (

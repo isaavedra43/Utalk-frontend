@@ -483,6 +483,76 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
               </div>
             )}
 
+            {/* Permisos de Módulos */}
+            {member.permissions?.modules && (
+              <div className="bg-white p-4 lg:p-6 rounded-lg border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <Users className="h-5 w-5 text-gray-500 mr-2" />
+                  Permisos de Módulos
+                </h3>
+                <div className="grid grid-cols-1 gap-4">
+                  {Object.entries(member.permissions.modules).map(([moduleId, permissions]) => {
+                    const moduleNames: { [key: string]: string } = {
+                      'dashboard': 'Dashboard',
+                      'clients': 'Customer Hub',
+                      'team': 'Equipo & Performance',
+                      'notifications': 'Centro de Notificaciones',
+                      'chat': 'Mensajes',
+                      'internal-chat': 'Chat Interno',
+                      'campaigns': 'Campañas',
+                      'phone': 'Teléfono',
+                      'knowledge-base': 'Base de Conocimiento',
+                      'hr': 'Recursos Humanos',
+                      'supervision': 'Supervisión',
+                      'copilot': 'Copiloto IA',
+                      'providers': 'Proveedores',
+                      'warehouse': 'Almacén',
+                      'shipping': 'Envíos',
+                      'services': 'Servicios',
+                      'analytics': 'Analytics',
+                      'ai': 'IA',
+                      'settings': 'Configuración',
+                      'contacts': 'Contactos'
+                    };
+
+                    const moduleName = moduleNames[moduleId] || moduleId;
+                    const hasAnyPermission = permissions.read || permissions.write || permissions.configure;
+
+                    return (
+                      <div key={moduleId} className={`p-4 rounded-lg border ${hasAnyPermission ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-gray-900">{moduleName}</h4>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${hasAnyPermission ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                            {hasAnyPermission ? 'Acceso Permitido' : 'Sin Acceso'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="flex items-center">
+                            <span className={`inline-block w-2 h-2 rounded-full mr-2 ${permissions.read ? 'bg-blue-500' : 'bg-gray-300'}`}></span>
+                            <span className={`text-sm ${permissions.read ? 'text-blue-700' : 'text-gray-500'}`}>
+                              Leer {permissions.read ? '✓' : '✗'}
+                            </span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className={`inline-block w-2 h-2 rounded-full mr-2 ${permissions.write ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                            <span className={`text-sm ${permissions.write ? 'text-green-700' : 'text-gray-500'}`}>
+                              Escribir {permissions.write ? '✓' : '✗'}
+                            </span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className={`inline-block w-2 h-2 rounded-full mr-2 ${permissions.configure ? 'bg-purple-500' : 'bg-gray-300'}`}></span>
+                            <span className={`text-sm ${permissions.configure ? 'text-purple-700' : 'text-gray-500'}`}>
+                              Configurar {permissions.configure ? '✓' : '✗'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Rendimiento */}
             <div className="bg-white p-4 lg:p-6 rounded-lg border border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">

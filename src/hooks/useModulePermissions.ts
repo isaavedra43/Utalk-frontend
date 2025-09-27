@@ -112,19 +112,19 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
 
   // Verificar si puede acceder a un módulo
   const canAccessModule = useCallback((moduleId: string): boolean => {
-    // Si está cargando, permitir acceso temporalmente para evitar bloqueos
+    // Si está cargando, denegar acceso hasta que se carguen los permisos
     if (loading) {
-      return true;
+      return false;
     }
     
-    // Si no hay permisos cargados, permitir acceso por defecto
+    // Si no hay permisos cargados, denegar acceso por defecto
     if (!permissions) {
       // Log solo una vez por hook para evitar spam
       if (!permissionsFallbackLogged.current) {
-        infoLog('No hay permisos cargados, permitiendo acceso por defecto');
+        infoLog('No hay permisos cargados, denegando acceso');
         permissionsFallbackLogged.current = true;
       }
-      return true;
+      return false;
     }
     
     // Si es usuario inmune, permitir acceso a todos los módulos
@@ -143,24 +143,28 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
     }
     
     const hasAccess = accessibleModules.some(module => module.id === moduleId);
-    // Log solo para módulos específicos y con menos frecuencia
-    if (!hasAccess) {
-      infoLog('Acceso denegado a módulo', { moduleId, accessibleModules: accessibleModules.map(m => m.id) });
-    }
+    
+    // Log detallado para debug
+    infoLog('Verificando acceso a módulo', { 
+      moduleId, 
+      hasAccess,
+      accessibleModules: accessibleModules.map(m => m.id),
+      isImmuneUser: permissions.isImmuneUser
+    });
     
     return hasAccess;
   }, [permissions, accessibleModules, loading]);
 
   // Verificar permiso específico
   const hasPermission = useCallback((moduleId: string, action: 'read' | 'write' | 'configure'): boolean => {
-    // Si está cargando, permitir acceso temporalmente
+    // Si está cargando, denegar acceso hasta que se carguen los permisos
     if (loading) {
-      return true;
+      return false;
     }
     
-    // Si no hay permisos cargados, permitir acceso por defecto
+    // Si no hay permisos cargados, denegar acceso por defecto
     if (!permissions) {
-      return true;
+      return false;
     }
     
     // Si es usuario inmune, permitir acceso a todos los módulos
