@@ -492,25 +492,33 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-blue-600 mb-1">
-                    {member.performance?.totalChats || 0}
+                    {typeof member.performance?.totalChats === 'number' ? member.performance.totalChats : 0}
                   </div>
                   <div className="text-sm text-gray-600">Chats Totales</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-600 mb-1">
-                    {member.performance?.responseTime || 'N/A'}
+                    {(() => {
+                      const responseTime = member.performance?.responseTime;
+                      if (typeof responseTime === 'string') {
+                        return responseTime;
+                      } else if (typeof responseTime === 'object' && responseTime?.average) {
+                        return `${responseTime.average}s`;
+                      }
+                      return 'N/A';
+                    })()}
                   </div>
                   <div className="text-sm text-gray-600">Tiempo de Respuesta</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-yellow-600 mb-1">
-                    {member.performance?.csat || 0}
+                    {typeof member.performance?.csat === 'number' ? member.performance.csat : 0}
                   </div>
                   <div className="text-sm text-gray-600">Satisfacción (CSAT)</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-purple-600 mb-1">
-                    {member.performance?.conversionRate || 0}%
+                    {typeof member.performance?.conversionRate === 'number' ? member.performance.conversionRate : 0}%
                   </div>
                   <div className="text-sm text-gray-600">Tasa de Conversión</div>
                 </div>
@@ -533,7 +541,15 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
               <div className="bg-white p-4 lg:p-6 rounded-lg border border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Tiempo de Respuesta</h3>
                 <div className="text-2xl lg:text-3xl font-bold text-green-600 mb-2">
-                  {member.performance?.responseTime || 'N/A'}
+                  {(() => {
+                    const responseTime = member.performance?.responseTime;
+                    if (typeof responseTime === 'string') {
+                      return responseTime;
+                    } else if (typeof responseTime === 'object' && responseTime?.average) {
+                      return `${responseTime.average}s`;
+                    }
+                    return 'N/A';
+                  })()}
                 </div>
                 <p className="text-sm text-gray-600">Promedio</p>
               </div>
