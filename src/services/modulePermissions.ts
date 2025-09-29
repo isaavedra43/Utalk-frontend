@@ -43,29 +43,65 @@ export interface ModulePermissionsResponse {
   message?: string;
 }
 
-// Función para normalizar datos del backend según las indicaciones
+// Función para normalizar datos del backend de forma tolerante a variaciones
 const normalizeBackendData = (backendResponse: any): UserModulePermissions => {
-  const { user, permissions, modulePermissions } = backendResponse.data;
-  
+  const { user, permissions, modulePermissions } = backendResponse.data || {};
+
+  // Orígenes posibles en API actuales: data.permissions y/o data.user
+  const permissionsBlock = permissions || {};
+  const modulesFromPermissions = permissionsBlock?.permissions?.modules || permissionsBlock?.modules || {};
+  const accessibleFromPermissions = permissionsBlock?.accessibleModules || [];
+  const accessibleFromModulePerms = modulePermissions?.accessibleModules || [];
+
+  // Unificar lista de módulos accesibles y enriquecer con acciones
+  const rawAccessible = [...accessibleFromPermissions, ...accessibleFromModulePerms];
+  const seenIds = new Set<string>();
+  const unifiedAccessible = rawAccessible
+    .filter((m: any) => {
+      if (!m || !m.id) return false;
+      if (seenIds.has(m.id)) return false;
+      seenIds.add(m.id);
+      return true;
+    })
+    .map((m: any) => {
+      const permsForModule = modulesFromPermissions[m.id] || {};
+      return {
+        id: m.id,
+        name: m.name || m.id,
+        description: m.description || '',
+        level: m.level || 'basic',
+        actions: {
+          read: !!permsForModule.read,
+          write: !!permsForModule.write,
+          configure: !!permsForModule.configure
+        }
+      } as ModulePermission;
+    });
+
+  // Datos de usuario: tomar de data.user o de data.permissions
+  const email = user?.email || permissionsBlock?.email || '';
+  const role = user?.role || permissionsBlock?.role || 'user';
+
   // Log para debug
-  console.log('🔍 Normalizando datos del backend:', {
+  infoLog('🔍 Normalizando datos del backend:', {
+  infoLog('🔍 Normalizando datos del backend:', {
     user,
     permissions,
     modulePermissions,
-    accessibleModules: modulePermissions?.accessibleModules,
-    modules: permissions?.permissions?.modules || permissions?.modules
+    modules: modulesFromPermissions,
+    accessibleModules: unifiedAccessible
   });
-  
+
   return {
-    email: user.email,
-    role: user.role,
-    accessibleModules: modulePermissions?.accessibleModules || permissions?.accessibleModules || [],
+    email,
+    role,
+    accessibleModules: unifiedAccessible,
     permissions: {
-      read: permissions?.permissions?.read || permissions?.read || false,
-      write: permissions?.permissions?.write || permissions?.write || false,
-      approve: permissions?.permissions?.approve || permissions?.approve || false,
-      configure: permissions?.permissions?.configure || permissions?.configure || false,
-      modules: permissions?.permissions?.modules || permissions?.modules || {}
+      read: !!(permissionsBlock?.permissions?.read || permissionsBlock?.read),
+      write: !!(permissionsBlock?.permissions?.write || permissionsBlock?.write),
+      approve: !!(permissionsBlock?.permissions?.approve || permissionsBlock?.approve),
+      configure: !!(permissionsBlock?.permissions?.configure || permissionsBlock?.configure),
+      modules: modulesFromPermissions
     }
   };
 };
