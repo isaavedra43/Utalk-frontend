@@ -84,7 +84,6 @@ const normalizeBackendData = (backendResponse: any): UserModulePermissions => {
 
   // Log para debug
   infoLog('🔍 Normalizando datos del backend:', {
-  infoLog('🔍 Normalizando datos del backend:', {
     user,
     permissions,
     modulePermissions,
