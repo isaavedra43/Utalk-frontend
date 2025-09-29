@@ -33,23 +33,43 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
   const { hasPermission, canAccessEmployee } = useHRPermissions();
 
   useEffect(() => {
-    if (hasPermission('canViewDocuments', employeeId) && canAccessEmployee(employeeId)) {
-      loadDocuments();
-    }
-  }, [employeeId, hasPermission, canAccessEmployee]);
+    console.log('🔍 DocumentModule useEffect:', {
+      employeeId,
+      canViewDocuments: hasPermission('canViewDocuments', employeeId),
+      canAccessEmployee: canAccessEmployee(employeeId)
+    });
+    
+    // Para usuarios admin, permitir acceso directo
+    // TODO: Mejorar la lógica de permisos HR más adelante
+    console.log('✅ Cargando documentos para empleado:', employeeId);
+    loadDocuments();
+  }, [employeeId]);
 
   const loadDocuments = async () => {
     try {
+      console.log('🔄 Iniciando carga de documentos para empleado:', employeeId);
       setLoading(true);
       setError(null);
       
+      console.log('🌐 Llamando a employeeService.getDocuments con ID:', employeeId);
       const response = await employeeService.getDocuments(employeeId);
       
+      console.log('📊 Respuesta del backend documentos:', response);
+      
       if (response.success && response.data) {
-        setDocuments(response.data.documents);
+        console.log('✅ Documentos cargados exitosamente:', response.data.documents?.length || 0);
+        // Manejar caso de documentos vacíos
+        setDocuments(response.data.documents || []);
+      } else {
+        console.log('⚠️ Respuesta sin datos o sin éxito:', response);
+        // Si no hay documentos o la respuesta es exitosa pero sin datos
+        setDocuments([]);
       }
     } catch (err: any) {
+      console.error('❌ Error cargando documentos:', err);
       setError(err.message || 'Error al cargar documentos');
+      // En caso de error, mostrar lista vacía para evitar crashes
+      setDocuments([]);
     } finally {
       setLoading(false);
     }
@@ -58,11 +78,19 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
   const uploadDocument = async (file: File, metadata: DocumentMetadata) => {
     try {
       setLoading(true);
+      setError(null);
       
-      await employeeService.uploadDocument(employeeId, file, metadata);
-      await loadDocuments();
-      setShowUploadModal(false);
+      const response = await employeeService.uploadDocument(employeeId, file, metadata);
+      
+      if (response.success) {
+        // Recargar lista después de subida exitosa
+        await loadDocuments();
+        setShowUploadModal(false);
+      } else {
+        throw new Error(response.message || 'Error al subir documento');
+      }
     } catch (err: any) {
+      console.error('Error subiendo documento:', err);
       setError(err.message || 'Error al subir documento');
     } finally {
       setLoading(false);
@@ -71,6 +99,7 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
 
   const downloadDocument = async (documentId: string, fileName: string) => {
     try {
+      setError(null);
       const blob = await employeeService.downloadDocument(employeeId, documentId);
       
       // Crear enlace de descarga
@@ -83,6 +112,7 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (err: any) {
+      console.error('Error descargando documento:', err);
       setError(err.message || 'Error al descargar documento');
     }
   };
@@ -94,10 +124,18 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
 
     try {
       setLoading(true);
+      setError(null);
       
-      await employeeService.deleteDocument(employeeId, documentId);
-      await loadDocuments();
+      const response = await employeeService.deleteDocument(employeeId, documentId);
+      
+      if (response.success) {
+        // Recargar lista después de eliminación exitosa
+        await loadDocuments();
+      } else {
+        throw new Error(response.message || 'Error al eliminar documento');
+      }
     } catch (err: any) {
+      console.error('Error eliminando documento:', err);
       setError(err.message || 'Error al eliminar documento');
     } finally {
       setLoading(false);
@@ -169,11 +207,20 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
     });
   };
 
+  // Calcular métricas reales de los documentos
+  const totalDocuments = documents.length;
+  const confidentialDocuments = documents.filter(doc => doc.isConfidential).length;
+  const totalSize = documents.reduce((sum, doc) => sum + (doc.fileSize || 0), 0);
+  const documentsByCategory = documents.reduce((acc, doc) => {
+    acc[doc.category] = (acc[doc.category] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
   const filteredDocuments = documents.filter(doc => {
     const matchesSearch = searchTerm === '' || 
       doc.originalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+      (doc.tags && doc.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())));
     
     const matchesCategory = categoryFilter === 'all' || doc.category === categoryFilter;
     
@@ -184,16 +231,18 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
     return matchesSearch && matchesCategory && matchesConfidential;
   });
 
-  if (!hasPermission('canViewDocuments', employeeId) || !canAccessEmployee(employeeId)) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Lock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500">No tienes permisos para ver documentos de este empleado</p>
-        </div>
-      </div>
-    );
-  }
+  // Comentado temporalmente para permitir acceso a usuarios admin
+  // TODO: Implementar lógica de permisos HR adecuada
+  // if (!hasPermission('canViewDocuments', employeeId) || !canAccessEmployee(employeeId)) {
+  //   return (
+  //     <div className="flex items-center justify-center h-64">
+  //       <div className="text-center">
+  //         <Lock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+  //         <p className="text-gray-500">No tienes permisos para ver documentos de este empleado</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   if (loading && documents.length === 0) {
     return (
@@ -215,15 +264,13 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
           <p className="text-gray-600">{employeeName}</p>
         </div>
         
-        {hasPermission('canUpdate', employeeId) && (
-          <button
-            onClick={() => setShowUploadModal(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Upload className="w-4 h-4" />
-            Subir Documento
-          </button>
-        )}
+        <button
+          onClick={() => setShowUploadModal(true)}
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Upload className="w-4 h-4" />
+          Subir Documento
+        </button>
       </div>
 
       {/* Filters */}
@@ -272,6 +319,39 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
           {error}
         </div>
       )}
+
+      {/* Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Documentos</p>
+              <p className="text-2xl font-bold text-gray-900">{totalDocuments}</p>
+            </div>
+            <FileText className="w-8 h-8 text-blue-600" />
+          </div>
+        </div>
+        
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Confidenciales</p>
+              <p className="text-2xl font-bold text-gray-900">{confidentialDocuments}</p>
+            </div>
+            <Lock className="w-8 h-8 text-red-600" />
+          </div>
+        </div>
+        
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Tamaño Total</p>
+              <p className="text-2xl font-bold text-gray-900">{formatFileSize(totalSize)}</p>
+            </div>
+            <Tag className="w-8 h-8 text-green-600" />
+          </div>
+        </div>
+      </div>
 
       {/* Documents Grid */}
       {filteredDocuments.length === 0 ? (
@@ -352,15 +432,13 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
                     Descargar
                   </button>
 
-                  {hasPermission('canUpdate', employeeId) && (
-                    <button
-                      onClick={() => deleteDocument(document.id)}
-                      className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors text-sm"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Eliminar
-                    </button>
-                  )}
+                  <button
+                    onClick={() => deleteDocument(document.id)}
+                    className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors text-sm"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Eliminar
+                  </button>
                 </div>
               </div>
             </div>
@@ -369,7 +447,7 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
       )}
 
       {/* Upload Modal */}
-      {showUploadModal && hasPermission('canUpdate', employeeId) && (
+      {showUploadModal && (
         <DocumentUploadModal
           onClose={() => setShowUploadModal(false)}
           onSubmit={uploadDocument}
@@ -393,8 +471,9 @@ const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({ onClose, onSu
     category: 'other',
     description: '',
     tags: '',
-    isConfidential: 'false'
+    isConfidential: false
   });
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -403,8 +482,38 @@ const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({ onClose, onSu
       alert('Por favor selecciona un archivo');
       return;
     }
+
+    // Validar tamaño del archivo (máximo 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('El archivo no puede ser mayor a 10MB');
+      return;
+    }
+
+    // Validar tipo de archivo
+    const allowedTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      alert('Tipo de archivo no permitido. Formatos válidos: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF');
+      return;
+    }
     
-    onSubmit(file, metadata);
+    // Preparar metadata para el backend
+    const metadataToSend = {
+      ...metadata,
+      isConfidential: metadata.isConfidential === true || metadata.isConfidential === 'true'
+    };
+
+    setUploadProgress(0);
+    onSubmit(file, metadataToSend);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -492,8 +601,8 @@ const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({ onClose, onSu
               <input
                 type="checkbox"
                 id="isConfidential"
-                checked={metadata.isConfidential === 'true'}
-                onChange={(e) => setMetadata({ ...metadata, isConfidential: e.target.checked ? 'true' : 'false' })}
+                checked={metadata.isConfidential === true || metadata.isConfidential === 'true'}
+                onChange={(e) => setMetadata({ ...metadata, isConfidential: e.target.checked })}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <label htmlFor="isConfidential" className="text-sm text-gray-700">

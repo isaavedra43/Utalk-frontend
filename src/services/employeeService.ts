@@ -278,6 +278,14 @@ class EmployeeService {
     return response.data;
   }
 
+  /**
+   * Obtener resumen de documentos del empleado
+   */
+  async getDocumentSummary(employeeId: string): Promise<any> {
+    const response = await api.get(`${this.baseEndpoint}/${employeeId}/documents/summary`);
+    return response.data;
+  }
+
   // ===== MÉTODOS DE UTILIDAD =====
 
   /**
