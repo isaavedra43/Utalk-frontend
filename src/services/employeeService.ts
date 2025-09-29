@@ -141,12 +141,10 @@ class EmployeeService {
   }
 
   /**
-   * Obtener organigrama
+   * Obtener organigrama (eliminado)
    */
-  async getOrgChart(department?: string): Promise<OrgChartResponse> {
-    const params = department ? `?department=${encodeURIComponent(department)}` : '';
-    const response = await api.get(`${this.baseEndpoint}/org-chart${params}`);
-    return response.data;
+  async getOrgChart(): Promise<OrgChartResponse> {
+    throw new Error('Organigrama deshabilitado');
   }
 
   // ===== MÉTODOS DE NÓMINA =====
@@ -320,7 +318,7 @@ class EmployeeService {
   /**
    * Validar permisos HR para una acción específica
    */
-  validateHRPermission(action: 'create' | 'read' | 'update' | 'delete' | 'viewPayroll' | 'viewAttendance' | 'viewDocuments' | 'approveVacations', userRole?: string): boolean {
+  validateHRPermission(action: 'create' | 'read' | 'update' | 'delete' | 'viewPayroll' | 'viewAttendance' | 'viewDocuments' | 'approveVacations'): boolean {
     // Implementar lógica de validación de permisos según el rol
     const userTokenData = this.getUserTokenData();
     
@@ -377,7 +375,8 @@ class EmployeeService {
   /**
    * Manejar errores de API de manera consistente
    */
-  private handleAPIError(error: any): never {
+  // Método utilizado internamente por otros servicios; mantener export interno para consistencia
+  /* private handleAPIError(error: any): never {
     if (error.response) {
       const { status, data } = error.response;
       
@@ -400,7 +399,7 @@ class EmployeeService {
     } else {
       throw new Error(error.message || 'Error desconocido');
     }
-  }
+  } */
 
   // ===== MÉTODOS DE COMPATIBILIDAD CON COMPONENTES EXISTENTES =====
 

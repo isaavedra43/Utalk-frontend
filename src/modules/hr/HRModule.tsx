@@ -26,11 +26,9 @@ import { PayrollModule } from './components/PayrollModule';
 import { AttendanceModule } from './components/AttendanceModule';
 import { VacationModule } from './components/VacationModule';
 import { DocumentModule } from './components/DocumentModule';
-import { OrgChartModule } from './components/OrgChartModule';
 import { TalentModule } from './components/TalentModule';
 import { RecruitmentModule } from './components/RecruitmentModule';
 import { AnalyticsModule } from './components/AnalyticsModule';
-import { ComplianceModule } from './components/ComplianceModule';
 import { HRCopilot } from './components/HRCopilot';
 import { MobileMenuButton } from '../../components/layout/MobileMenuButton';
 import { Button } from '../../components/ui/button';
@@ -56,7 +54,6 @@ const HRModule: React.FC = () => {
   const tabs = [
     { id: 'dashboard', name: 'Panorama', icon: BarChart3 },
     { id: 'employees', name: 'Empleados', icon: Users },
-    { id: 'orgchart', name: 'Organigrama', icon: BarChart3 },
     { id: 'payroll', name: 'Nómina', icon: DollarSign },
     { id: 'attendance', name: 'Asistencia', icon: Calendar },
     { id: 'vacations', name: 'Vacaciones', icon: Calendar },
@@ -64,7 +61,6 @@ const HRModule: React.FC = () => {
     { id: 'talent', name: 'Talento', icon: Target },
     { id: 'recruitment', name: 'Reclutamiento', icon: UserPlus },
     { id: 'analytics', name: 'Analítica', icon: TrendingUp },
-    { id: 'compliance', name: 'Cumplimiento', icon: Shield },
     { id: 'copilot', name: 'Copiloto', icon: Bot },
   ];
 
@@ -103,11 +99,6 @@ const HRModule: React.FC = () => {
         ) : (
           <EmployeeList onSelectEmployee={handleEmployeeSelect} />
         );
-      case 'orgchart':
-        return <OrgChartModule onEmployeeSelect={(employeeId) => {
-          // Cargar empleado y mostrar detalles
-          console.log('Empleado seleccionado desde organigrama:', employeeId);
-        }} />;
       case 'payroll':
         return selectedEmployee ? (
           <PayrollModule 
@@ -159,8 +150,6 @@ const HRModule: React.FC = () => {
         return <RecruitmentModule />;
       case 'analytics':
         return <AnalyticsModule />;
-      case 'compliance':
-        return <ComplianceModule />;
       case 'copilot':
         return <HRCopilot />;
       default:

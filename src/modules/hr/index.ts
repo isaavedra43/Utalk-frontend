@@ -22,7 +22,6 @@ export { PayrollModule } from './components/PayrollModule';
 export { TalentModule } from './components/TalentModule';
 export { RecruitmentModule } from './components/RecruitmentModule';
 export { AnalyticsModule } from './components/AnalyticsModule';
-export { ComplianceModule } from './components/ComplianceModule';
 export { HRCopilot } from './components/HRCopilot';
 
 // Módulo de Extras y Asistencia
