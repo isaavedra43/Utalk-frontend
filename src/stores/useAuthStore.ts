@@ -114,8 +114,14 @@ export const useAuthStore = create<AuthStore>()(
               }
             });
             
+            // El backend devuelve { success, data: { user, ... } }
+            const backendUser = (response.data && response.data.data && response.data.data.user) || null;
+            if (!backendUser) {
+              logger.authError('Estructura inesperada en /api/auth/profile', new Error('Perfil sin user'));
+              return null;
+            }
             logger.authInfo('Token válido, usuario autenticado');
-            return response.data;
+            return backendUser as BackendUser;
           } catch (error) {
             logger.authError('Token inválido o expirado', error as Error);
             return null;
