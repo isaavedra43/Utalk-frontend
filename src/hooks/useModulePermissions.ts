@@ -69,36 +69,10 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
       });
       
     } catch (error) {
-      infoLog('Error cargando permisos, usando fallback', { error });
-      setError('Error al cargar permisos, usando configuración por defecto');
-      
-      // FALLBACK SEGURO: Si hay error, permitir acceso a todos los módulos
-      // Crear una lista de todos los módulos disponibles como fallback
-      const fallbackModules: ModulePermission[] = [
-        { id: 'dashboard', name: 'Dashboard', description: 'Panel principal', level: 'basic' },
-        { id: 'hr', name: 'Recursos Humanos', description: 'Módulo de empleados', level: 'advanced' },
-        { id: 'notifications', name: 'Centro de Notificaciones', description: 'Gestión de notificaciones', level: 'basic' },
-        { id: 'internal-chat', name: 'Chat Interno', description: 'Comunicación interna', level: 'basic' },
-        { id: 'contacts', name: 'Clientes', description: 'Gestión de clientes', level: 'basic' },
-        { id: 'campaigns', name: 'Campañas', description: 'Gestión de campañas', level: 'advanced' },
-        { id: 'team', name: 'Equipo', description: 'Gestión de equipo', level: 'advanced' },
-        { id: 'analytics', name: 'Analytics', description: 'Análisis de datos', level: 'advanced' },
-        { id: 'ai', name: 'IA', description: 'Inteligencia artificial', level: 'advanced' },
-        { id: 'settings', name: 'Configuración', description: 'Configuración del sistema', level: 'advanced' },
-        { id: 'clients', name: 'Customer Hub', description: 'Centro de clientes', level: 'basic' },
-        { id: 'chat', name: 'Mensajes', description: 'Sistema de mensajes', level: 'basic' },
-        { id: 'phone', name: 'Teléfono', description: 'Sistema telefónico', level: 'basic' },
-        { id: 'knowledge-base', name: 'Base de Conocimiento', description: 'Base de conocimientos', level: 'basic' },
-        { id: 'supervision', name: 'Supervisión', description: 'Herramientas de supervisión', level: 'advanced' },
-        { id: 'copilot', name: 'Copiloto IA', description: 'Asistente de IA', level: 'advanced' },
-        { id: 'providers', name: 'Proveedores', description: 'Gestión de proveedores', level: 'advanced' },
-        { id: 'warehouse', name: 'Almacén', description: 'Gestión de almacén', level: 'advanced' },
-        { id: 'shipping', name: 'Envíos', description: 'Gestión de envíos', level: 'advanced' },
-        { id: 'services', name: 'Servicios', description: 'Gestión de servicios', level: 'advanced' }
-      ];
-      
-      setAccessibleModules(fallbackModules);
-      infoLog('Usando módulos de fallback', { moduleCount: fallbackModules.length });
+      infoLog('Error cargando permisos, denegando por defecto', { error });
+      setError('Error al cargar permisos');
+      // Política segura: sin permisos del backend, no se otorga acceso
+      setAccessibleModules([]);
     } finally {
       setLoading(false);
     }
@@ -112,20 +86,18 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
 
   // Verificar si puede acceder a un módulo
   const canAccessModule = useCallback((moduleId: string): boolean => {
-    // Si está cargando, permitir acceso temporalmente para evitar bloqueos
+    // Política segura: mientras carga, negar para evitar mostrar módulos indebidos
     if (loading) {
-      infoLog('Permisos cargando, permitiendo acceso temporalmente', { moduleId });
-      return true;
+      return false;
     }
     
-    // Si no hay permisos cargados, permitir acceso por defecto para evitar bloqueos
+    // Si no hay permisos aún, negar por defecto
     if (!permissions) {
-      // Log solo una vez por hook para evitar spam
       if (!permissionsFallbackLogged.current) {
-        infoLog('No hay permisos cargados, permitiendo acceso por defecto');
+        infoLog('No hay permisos cargados, denegando por defecto');
         permissionsFallbackLogged.current = true;
       }
-      return true;
+      return false;
     }
     
     // Si es usuario inmune, permitir acceso a todos los módulos
@@ -155,21 +127,20 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
       return hasAccess;
     }
     
-    // Si no hay módulos accesibles definidos, permitir acceso por defecto para evitar bloqueos
-    infoLog('No hay módulos accesibles definidos, permitiendo acceso por defecto', { moduleId });
-    return true;
+    // Si no hay módulos accesibles definidos, negar por defecto
+    infoLog('No hay módulos accesibles definidos, denegando por defecto', { moduleId });
+    return false;
   }, [permissions, accessibleModules, loading]);
 
   // Verificar permiso específico
   const hasPermission = useCallback((moduleId: string, action: 'read' | 'write' | 'configure'): boolean => {
-    // Si está cargando, permitir acceso temporalmente para evitar bloqueos
+    // Política segura: mientras carga o si no hay permisos, negar
     if (loading) {
-      return true;
+      return false;
     }
     
-    // Si no hay permisos cargados, permitir acceso por defecto para evitar bloqueos
     if (!permissions) {
-      return true;
+      return false;
     }
     
     // Si es usuario inmune, permitir acceso a todos los módulos
@@ -179,20 +150,19 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
     
     // Validación robusta de la estructura de permisos
     if (!permissions.permissions || !permissions.permissions.modules) {
-      // Log solo una vez por hook para evitar spam
       if (!invalidPermissionStructureLogged.current) {
-        infoLog('Estructura de permisos inválida, permitiendo acceso por defecto', { 
+        infoLog('Estructura de permisos inválida, denegando por defecto', { 
           hasPermissions: !!permissions.permissions,
           hasModules: !!permissions.permissions?.modules 
         });
         invalidPermissionStructureLogged.current = true;
       }
-      return true; // Permitir acceso por defecto si la estructura es inválida
+      return false; // Denegar si la estructura es inválida
     }
     
     const modulePermissions = permissions.permissions.modules[moduleId];
     if (!modulePermissions) {
-      return true; // Permitir acceso por defecto si no hay permisos específicos
+      return false; // Denegar si no hay permisos específicos
     }
     
     return modulePermissions[action] || false;
