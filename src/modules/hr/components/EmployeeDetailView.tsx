@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { 
-  ArrowLeft, 
-  Download, 
-  Share2, 
-  Edit, 
+import {
+  ArrowLeft,
+  Download,
+  Share2,
+  Edit,
   MoreHorizontal,
   User,
   Building,
@@ -17,6 +17,7 @@ import {
   History,
   Plus
 } from 'lucide-react';
+import type { Employee } from '../../../types/employee';
 import EditEmployeeModal from './EditEmployeeModal';
 import { employeesApi } from '../../../services/employeesApi';
 import { useNotifications } from '../../../contexts/NotificationContext';
@@ -32,7 +33,7 @@ import EmployeeSkillsView from './EmployeeSkillsView';
 import EmployeeHistoryView from './EmployeeHistoryView';
 
 // Usar exactamente el mismo tipo que usa EmployeeList (que funciona perfectamente)
-import { Employee } from '../../../services/employeesApi';
+import { Employee } from '../../../types/employee';
 
 interface EmployeeDetailViewProps {
   employee: Employee;
@@ -54,7 +55,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   const { showNotification } = useNotifications();
 
   // Función para manejar la actualización del empleado
-  const handleUpdateEmployee = async (updatedData: Partial<Employee>) => {
+  const handleUpdateEmployee = async (updatedData: Partial<Employee>): Promise<void> => {
     if (!employee?.id) {
       showNotification({
         type: 'error',
@@ -132,7 +133,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   }
 
   // Función helper para formatear fechas de forma segura
-  const safeFormatDate = (date: string | Date | null | undefined | { _seconds: number; _nanoseconds?: number }) => {
+  const safeFormatDate = (date: string | Date | null | undefined | { _seconds: number; _nanoseconds?: number }): string => {
     try {
       if (!date) return 'N/A';
       
@@ -176,7 +177,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   };
 
   // Función helper para obtener iniciales de forma segura
-  const safeGetInitials = (firstName: string | undefined, lastName: string | undefined) => {
+  const safeGetInitials = (firstName: string | undefined, lastName: string | undefined): string => {
     try {
       const first = firstName?.charAt(0)?.toUpperCase() || '';
       const last = lastName?.charAt(0)?.toUpperCase() || '';
@@ -188,7 +189,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   };
 
   // Función para formatear salario de forma segura
-  const safeFormatSalary = (salary: number | undefined, currency: string | undefined) => {
+  const safeFormatSalary = (salary: number | undefined, currency: string | undefined): string => {
     try {
       if (!salary || salary === 0) return 'N/A';
       return `$${salary.toLocaleString()} ${currency || 'MXN'}`;
@@ -198,7 +199,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
     }
   };
 
-  const renderTabContent = () => {
+  const renderTabContent = (): React.ReactNode => {
     console.log('🎯 Renderizando contenido de tab:', activeTab);
     console.log('👤 Datos del empleado:', employee);
     

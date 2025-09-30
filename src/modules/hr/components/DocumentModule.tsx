@@ -38,12 +38,12 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
       canViewDocuments: hasPermission('canViewDocuments', employeeId),
       canAccessEmployee: canAccessEmployee(employeeId)
     });
-    
+
     // Para usuarios admin, permitir acceso directo
     // TODO: Mejorar la lógica de permisos HR más adelante
     console.log('✅ Cargando documentos para empleado:', employeeId);
     loadDocuments();
-  }, [employeeId]);
+  }, [employeeId, loadDocuments]);
 
   const loadDocuments = async () => {
     try {
@@ -77,20 +77,25 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
 
   const uploadDocument = async (file: File, metadata: DocumentMetadata) => {
     try {
+      console.log('🔄 Iniciando subida de documento:', { employeeId, fileName: file.name, metadata });
       setLoading(true);
       setError(null);
-      
+
       const response = await employeeService.uploadDocument(employeeId, file, metadata);
-      
+
+      console.log('📊 Respuesta de subida:', response);
+
       if (response.success) {
+        console.log('✅ Documento subido exitosamente, recargando lista...');
         // Recargar lista después de subida exitosa
         await loadDocuments();
         setShowUploadModal(false);
+        console.log('✅ Lista recargada después de subida');
       } else {
         throw new Error(response.message || 'Error al subir documento');
       }
     } catch (err: any) {
-      console.error('Error subiendo documento:', err);
+      console.error('❌ Error subiendo documento:', err);
       setError(err.message || 'Error al subir documento');
     } finally {
       setLoading(false);
@@ -123,19 +128,24 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
     }
 
     try {
+      console.log('🔄 Iniciando eliminación de documento:', { employeeId, documentId });
       setLoading(true);
       setError(null);
-      
+
       const response = await employeeService.deleteDocument(employeeId, documentId);
-      
+
+      console.log('📊 Respuesta de eliminación:', response);
+
       if (response.success) {
+        console.log('✅ Documento eliminado exitosamente, recargando lista...');
         // Recargar lista después de eliminación exitosa
         await loadDocuments();
+        console.log('✅ Lista recargada después de eliminación');
       } else {
         throw new Error(response.message || 'Error al eliminar documento');
       }
     } catch (err: any) {
-      console.error('Error eliminando documento:', err);
+      console.error('❌ Error eliminando documento:', err);
       setError(err.message || 'Error al eliminar documento');
     } finally {
       setLoading(false);
