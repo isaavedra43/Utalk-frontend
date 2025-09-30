@@ -1,5 +1,22 @@
 import React from 'react';
-import LucideReact from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Download, 
+  Share2, 
+  Edit, 
+  MoreHorizontal, 
+  User, 
+  Building, 
+  MapPin, 
+  Calendar, 
+  DollarSign, 
+  FileText, 
+  AlertTriangle, 
+  Star, 
+  Award, 
+  History, 
+  Plus 
+} from 'lucide-react';
 import { employeesApi } from '../../../services/employeesApi';
 import { useNotifications } from '../../../contexts/NotificationContext';
 import EditEmployeeModal from './EditEmployeeModal';
@@ -82,15 +99,15 @@ const EmployeeDetailView = ({
   };
 
   const tabs = [
-    { id: 'summary', label: 'Resumen', icon: LucideReact.User },
-    { id: 'payroll', label: 'Nómina', icon: LucideReact.DollarSign },
-    { id: 'attendance', label: 'Extras', icon: LucideReact.Plus },
-    { id: 'vacations', label: 'Vacaciones', icon: LucideReact.Calendar },
-    { id: 'documents', label: 'Documentos', icon: LucideReact.FileText },
-    { id: 'incidents', label: 'Incidentes', icon: LucideReact.AlertTriangle },
-    { id: 'evaluations', label: 'Evaluaciones', icon: LucideReact.Star },
-    { id: 'skills', label: 'Habilidades', icon: LucideReact.Award },
-    { id: 'history', label: 'Historial', icon: LucideReact.History }
+    { id: 'summary', label: 'Resumen', icon: User },
+    { id: 'payroll', label: 'Nómina', icon: DollarSign },
+    { id: 'attendance', label: 'Extras', icon: Plus },
+    { id: 'vacations', label: 'Vacaciones', icon: Calendar },
+    { id: 'documents', label: 'Documentos', icon: FileText },
+    { id: 'incidents', label: 'Incidentes', icon: AlertTriangle },
+    { id: 'evaluations', label: 'Evaluaciones', icon: Star },
+    { id: 'skills', label: 'Habilidades', icon: Award },
+    { id: 'history', label: 'Historial', icon: History }
   ];
 
   // Validación básica del empleado
@@ -98,7 +115,7 @@ const EmployeeDetailView = ({
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <LucideReact.AlertTriangle className="h-5 w-5 text-red-400 mx-auto mb-2" />
+          <AlertTriangle className="h-5 w-5 text-red-400 mx-auto mb-2" />
           <p className="text-red-700">Error: No se encontraron datos del empleado</p>
           <button onClick={onBack} className="mt-4 bg-red-600 text-white px-4 py-2 rounded">
             Volver a la lista
@@ -185,7 +202,7 @@ const EmployeeDetailView = ({
             return (
               <div className="p-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                  <LucideReact.DollarSign className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <DollarSign className="h-8 w-8 text-blue-400 mx-auto mb-2" />
                   <h3 className="text-lg font-medium text-blue-800 mb-1">Nómina</h3>
                   <p className="text-blue-600 text-sm">No hay información de nómina disponible para este empleado.</p>
                 </div>
@@ -201,7 +218,7 @@ const EmployeeDetailView = ({
             return (
               <div className="p-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                  <LucideReact.Plus className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <Plus className="h-8 w-8 text-blue-400 mx-auto mb-2" />
                   <h3 className="text-lg font-medium text-blue-800 mb-1">Extras</h3>
                   <p className="text-blue-600 text-sm">No hay información de asistencia disponible para este empleado.</p>
                 </div>
@@ -217,7 +234,7 @@ const EmployeeDetailView = ({
             return (
               <div className="p-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                  <LucideReact.Calendar className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <Calendar className="h-8 w-8 text-blue-400 mx-auto mb-2" />
                   <h3 className="text-lg font-medium text-blue-800 mb-1">Vacaciones</h3>
                   <p className="text-blue-600 text-sm">No hay información de vacaciones disponible para este empleado.</p>
                 </div>
@@ -237,7 +254,7 @@ const EmployeeDetailView = ({
             return (
               <div className="p-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                  <LucideReact.FileText className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <FileText className="h-8 w-8 text-blue-400 mx-auto mb-2" />
                   <h3 className="text-lg font-medium text-blue-800 mb-1">Documentos</h3>
                   <p className="text-blue-600 text-sm">No hay documentos disponibles para este empleado.</p>
                 </div>
@@ -253,7 +270,7 @@ const EmployeeDetailView = ({
             return (
               <div className="p-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                  <LucideReact.AlertTriangle className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <AlertTriangle className="h-8 w-8 text-blue-400 mx-auto mb-2" />
                   <h3 className="text-lg font-medium text-blue-800 mb-1">Incidentes</h3>
                   <p className="text-blue-600 text-sm">No hay incidentes registrados para este empleado.</p>
                 </div>
@@ -269,7 +286,7 @@ const EmployeeDetailView = ({
             return (
               <div className="p-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                  <LucideReact.Star className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <Star className="h-8 w-8 text-blue-400 mx-auto mb-2" />
                   <h3 className="text-lg font-medium text-blue-800 mb-1">Evaluaciones</h3>
                   <p className="text-blue-600 text-sm">No hay evaluaciones disponibles para este empleado.</p>
                 </div>
@@ -285,7 +302,7 @@ const EmployeeDetailView = ({
             return (
               <div className="p-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                  <LucideReact.Award className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <Award className="h-8 w-8 text-blue-400 mx-auto mb-2" />
                   <h3 className="text-lg font-medium text-blue-800 mb-1">Habilidades</h3>
                   <p className="text-blue-600 text-sm">No hay habilidades registradas para este empleado.</p>
                 </div>
@@ -301,7 +318,7 @@ const EmployeeDetailView = ({
             return (
               <div className="p-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                  <LucideReact.History className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <History className="h-8 w-8 text-blue-400 mx-auto mb-2" />
                   <h3 className="text-lg font-medium text-blue-800 mb-1">Historial</h3>
                   <p className="text-blue-600 text-sm">No hay historial disponible para este empleado.</p>
                 </div>
@@ -651,7 +668,7 @@ const EmployeeDetailView = ({
             return (
               <div className="p-6">
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-                  <LucideReact.AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-2" />
+                  <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-2" />
                   <h3 className="text-lg font-medium text-red-800 mb-1">Error en Vista Summary</h3>
                   <p className="text-red-600 text-sm">Ocurrió un error al mostrar el resumen. Intenta cambiar de pestaña.</p>
                 </div>
@@ -664,7 +681,7 @@ const EmployeeDetailView = ({
       return (
         <div className="p-6">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
-            <LucideReact.AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-2" />
+            <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-2" />
             <h3 className="text-lg font-medium text-red-800 mb-1">Error Temporal</h3>
             <p className="text-red-600 text-sm">Ocurrió un error al cargar este módulo. Intenta cambiar de pestaña.</p>
           </div>
@@ -687,7 +704,7 @@ const EmployeeDetailView = ({
                   onClick={onBack}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                  <LucideReact.ArrowLeft className="h-5 w-5 text-gray-600" />
+                  <ArrowLeft className="h-5 w-5 text-gray-600" />
                 </button>
                 
                 <div className="flex items-center space-x-4">
@@ -715,15 +732,15 @@ const EmployeeDetailView = ({
                     
                     <div className="flex items-center space-x-6 mt-2">
                       <div className="flex items-center space-x-1 text-sm text-gray-600">
-                        <LucideReact.Building className="h-4 w-4" />
+                        <Building className="h-4 w-4" />
                         <span>{employee?.position?.department || 'N/A'}</span>
                       </div>
                       <div className="flex items-center space-x-1 text-sm text-gray-600">
-                        <LucideReact.MapPin className="h-4 w-4" />
+                        <MapPin className="h-4 w-4" />
                         <span>{employee?.location?.office || 'N/A'}</span>
                       </div>
                       <div className="flex items-center space-x-1 text-sm text-gray-600">
-                        <LucideReact.Calendar className="h-4 w-4" />
+                        <Calendar className="h-4 w-4" />
                         <span>Ingreso: {safeFormatDate(employee?.contract?.startDate)}</span>
                       </div>
                     </div>
@@ -732,22 +749,22 @@ const EmployeeDetailView = ({
                 
                 <div className="flex items-center space-x-3 ml-auto">
                   <button className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                    <LucideReact.Download className="h-4 w-4" />
+                    <Download className="h-4 w-4" />
                     <span>Exportar</span>
                   </button>
                   <button className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                    <LucideReact.Share2 className="h-4 w-4" />
+                    <Share2 className="h-4 w-4" />
                     <span>Compartir</span>
                   </button>
                   <button 
                     onClick={() => setIsEditModalOpen(true)}
                     className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    <LucideReact.Edit className="h-4 w-4" />
+                    <Edit className="h-4 w-4" />
                     <span>Editar</span>
                   </button>
                   <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                    <LucideReact.MoreHorizontal className="h-5 w-5" />
+                    <MoreHorizontal className="h-5 w-5" />
                   </button>
                 </div>
               </div>
@@ -798,7 +815,7 @@ const EmployeeDetailView = ({
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-red-50 border border-red-200 rounded-lg p-8 max-w-md">
-          <LucideReact.AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-4" />
+          <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-red-800 mb-2 text-center">Error de Renderizado</h3>
           <p className="text-red-600 text-sm text-center mb-4">
             Ocurrió un error al mostrar los detalles del empleado. Los datos están disponibles pero hay un problema de renderizado.

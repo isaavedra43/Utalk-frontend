@@ -38,9 +38,6 @@ declare module 'react-dom' {
 }
 
 declare module 'lucide-react' {
-  import * as LucideReact from 'lucide-react';
-  export = LucideReact;
-  export as namespace LucideReact;
   export const ArrowLeft: any;
   export const Download: any;
   export const Share2: any;
@@ -57,7 +54,6 @@ declare module 'lucide-react' {
   export const Award: any;
   export const History: any;
   export const Plus: any;
-  export default LucideReact;
 }
 
 declare namespace JSX {
