@@ -69,8 +69,36 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
     // Para usuarios admin, permitir acceso directo
     // TODO: Mejorar la lógica de permisos HR más adelante
     console.log('✅ Cargando documentos para empleado:', employeeId);
-    loadDocuments();
-  }, [employeeId, loadDocuments]);
+    
+    // Llamar directamente a la función sin dependencias
+    const loadDocs = async () => {
+      if (!employeeId) return;
+      
+      setLoading(true);
+      setError(null);
+      
+      try {
+        console.log('📄 Cargando documentos para empleado:', employeeId);
+        const response = await employeeService.getDocuments(employeeId);
+        
+        if (response.success && response.data) {
+          console.log('✅ Documentos cargados exitosamente:', response.data.documents?.length || 0);
+          setDocuments(response.data.documents || []);
+        } else {
+          console.log('⚠️ Respuesta sin datos o sin éxito:', response);
+          setDocuments([]);
+        }
+      } catch (err: any) {
+        console.error('❌ Error al cargar documentos:', err);
+        setError(err.message || 'Error al cargar documentos');
+        setDocuments([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadDocs();
+  }, [employeeId]);
 
 
   const uploadDocument = async (file: File, metadata: DocumentMetadata) => {

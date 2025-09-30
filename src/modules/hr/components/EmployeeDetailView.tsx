@@ -35,7 +35,7 @@ interface EmployeeDetailViewProps {
   onBack: () => void;
 }
 
-const EmployeeDetailView = ({ 
+const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({ 
   employee, 
   onBack 
 }: EmployeeDetailViewProps) => {
