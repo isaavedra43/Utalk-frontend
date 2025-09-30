@@ -10,7 +10,8 @@ import {
   Lock,
   Calendar,
   User,
-  Tag
+  Tag,
+  Award
 } from 'lucide-react';
 import { Document, DocumentMetadata } from '../../../types/employee';
 import employeeService from '../../../services/employeeService';
@@ -32,6 +33,32 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
 
   const { hasPermission, canAccessEmployee } = useHRPermissions();
 
+  const loadDocuments = React.useCallback(async () => {
+    if (!employeeId) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log('📄 Cargando documentos para empleado:', employeeId);
+      const response = await employeeService.getDocuments(employeeId);
+      
+      if (response.success && response.data) {
+        console.log('✅ Documentos cargados exitosamente:', response.data.documents?.length || 0);
+        setDocuments(response.data.documents || []);
+      } else {
+        console.log('⚠️ Respuesta sin datos o sin éxito:', response);
+        setDocuments([]);
+      }
+    } catch (err: any) {
+      console.error('❌ Error al cargar documentos:', err);
+      setError(err.message || 'Error al cargar documentos');
+      setDocuments([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [employeeId]);
+
   useEffect(() => {
     console.log('🔍 DocumentModule useEffect:', {
       employeeId,
@@ -45,35 +72,6 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
     loadDocuments();
   }, [employeeId, loadDocuments]);
 
-  const loadDocuments = async () => {
-    try {
-      console.log('🔄 Iniciando carga de documentos para empleado:', employeeId);
-      setLoading(true);
-      setError(null);
-      
-      console.log('🌐 Llamando a employeeService.getDocuments con ID:', employeeId);
-      const response = await employeeService.getDocuments(employeeId);
-      
-      console.log('📊 Respuesta del backend documentos:', response);
-      
-      if (response.success && response.data) {
-        console.log('✅ Documentos cargados exitosamente:', response.data.documents?.length || 0);
-        // Manejar caso de documentos vacíos
-        setDocuments(response.data.documents || []);
-      } else {
-        console.log('⚠️ Respuesta sin datos o sin éxito:', response);
-        // Si no hay documentos o la respuesta es exitosa pero sin datos
-        setDocuments([]);
-      }
-    } catch (err: any) {
-      console.error('❌ Error cargando documentos:', err);
-      setError(err.message || 'Error al cargar documentos');
-      // En caso de error, mostrar lista vacía para evitar crashes
-      setDocuments([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const uploadDocument = async (file: File, metadata: DocumentMetadata) => {
     try {
