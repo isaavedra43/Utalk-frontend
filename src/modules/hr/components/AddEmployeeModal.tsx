@@ -16,6 +16,8 @@ import {
   Camera
 } from 'lucide-react';
 import { employeesApi } from '../../../services/employeesApi';
+import { useValidationErrors } from '../../../hooks/useValidationErrors';
+import { useToast } from '../../../hooks/useToast';
 import type { Employee, PersonalInfo, Position, Location, Contract, SalaryInfo } from '../../../types/hr';
 
 interface AddEmployeeModalProps {
@@ -34,6 +36,17 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingNumber, setIsGeneratingNumber] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Hooks para manejo de errores
+  const { 
+    fieldErrors, 
+    processValidationError, 
+    clearFieldError, 
+    clearAllErrors, 
+    getFieldError, 
+    highlightAllErrorFields 
+  } = useValidationErrors();
+  const { showSuccess, showError } = useToast();
 
   // Función para generar número de empleado automático en secuencia
   const generateEmployeeNumber = async (): Promise<string> => {
@@ -388,10 +401,13 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
       return prev;
     });
     
-    // Limpiar error del campo
+    // Limpiar error del campo local
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
+    
+    // Limpiar error de validación del backend
+    clearFieldError(field);
     
     // Limpiar error de horario personalizado si se está modificando
     if (field.includes('customSchedule') && errors.customSchedule) {
@@ -462,6 +478,8 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
     if (!validateStep(currentStep)) return;
 
     setIsLoading(true);
+    clearAllErrors(); // Limpiar errores previos
+    
     try {
       // Crear el objeto empleado
       const newEmployee = {
@@ -510,10 +528,27 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
       };
 
       await onSave(newEmployee);
+      
+      // Solo cerrar el modal si no hay errores
+      showSuccess('Éxito', 'Empleado creado correctamente', 3000);
       onClose();
       await resetForm();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al guardar empleado:', error);
+      
+      // Verificar si es un error de validación del backend
+      if (error?.response?.data?.error === 'validation_error') {
+        const validationErrors = processValidationError(error.response.data);
+        if (validationErrors) {
+          // Resaltar campos con errores
+          highlightAllErrorFields();
+          // NO cerrar el modal, permitir corrección
+          return;
+        }
+      }
+      
+      // Para otros errores, mostrar mensaje genérico
+      showError('Error', 'Error al crear empleado. Por favor, intenta de nuevo.', 5000);
     } finally {
       setIsLoading(false);
     }
@@ -522,6 +557,7 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
   const resetForm = async () => {
     setCurrentStep(1);
     setAvatar(null);
+    clearAllErrors(); // Limpiar errores de validación
     
     // Generar nuevo número de empleado
     setIsGeneratingNumber(true);
@@ -709,15 +745,18 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                 </label>
                 <input
                   type="text"
+                  name="firstName"
                   value={formData.firstName}
                   onChange={(e) => handleInputChange('firstName', e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.firstName ? 'border-red-500' : 'border-gray-300'
+                    errors.firstName || getFieldError('firstName') ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="Ana"
                 />
-                {errors.firstName && (
-                  <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
+                {(errors.firstName || getFieldError('firstName')) && (
+                  <p className="error-message">
+                    {errors.firstName || getFieldError('firstName')}
+                  </p>
                 )}
               </div>
 
@@ -727,15 +766,18 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                 </label>
                 <input
                   type="text"
+                  name="lastName"
                   value={formData.lastName}
                   onChange={(e) => handleInputChange('lastName', e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.lastName ? 'border-red-500' : 'border-gray-300'
+                    errors.lastName || getFieldError('lastName') ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="García"
                 />
-                {errors.lastName && (
-                  <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
+                {(errors.lastName || getFieldError('lastName')) && (
+                  <p className="error-message">
+                    {errors.lastName || getFieldError('lastName')}
+                  </p>
                 )}
               </div>
 
@@ -745,14 +787,23 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                 </label>
                 <input
                   type="email"
+                  name="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    getFieldError('email') ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder="ana.garcia@empresa.com"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Campo opcional
-                </p>
+                {getFieldError('email') ? (
+                  <p className="error-message">
+                    {getFieldError('email')}
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Campo opcional
+                  </p>
+                )}
               </div>
 
               <div>
@@ -761,15 +812,18 @@ export const AddEmployeeModal: React.FC<AddEmployeeModalProps> = ({
                 </label>
                 <input
                   type="tel"
+                  name="phone"
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.phone ? 'border-red-500' : 'border-gray-300'
+                    errors.phone || getFieldError('phone') ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="+52 55 1234 5678"
                 />
-                {errors.phone && (
-                  <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
+                {(errors.phone || getFieldError('phone')) && (
+                  <p className="error-message">
+                    {errors.phone || getFieldError('phone')}
+                  </p>
                 )}
               </div>
 

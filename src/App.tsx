@@ -9,7 +9,7 @@ import { AuthModule } from './modules/auth'
 import { ForgotPasswordForm } from './modules/auth/components/ForgotPasswordForm'
 import { MainLayout } from './components/layout/MainLayout'
 import { LeftSidebar } from './components/layout/LeftSidebar'
-import { ErrorBoundary } from './components/dashboard/ErrorBoundary'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { 
   InternalChatModule, 
@@ -27,6 +27,8 @@ import {
 
 import { useAuthContext } from './contexts/useAuthContext'
 import { MonitoringBubble } from './components/monitoring'
+import ToastContainer from './components/ui/ToastContainer'
+import { useToast } from './hooks/useToast'
 
 // Componente de protección de rutas - OPTIMIZADO
 const AuthProtectedRoute: React.FC<{ children: React.ReactNode }> = memo(({ children }) => {
@@ -428,6 +430,7 @@ function App() {
 
   // Mostrar el módulo de monitoreo siempre (desarrollo y producción)
   const showMonitoring = true; // Siempre visible para debugging urgente
+  const { toasts, removeToast } = useToast();
 
   return (
     <Router>
@@ -611,6 +614,9 @@ function App() {
             </MobileMenuProvider>
           </WebSocketProvider>
         </AuthProvider>
+        
+        {/* Contenedor de Toasts */}
+        <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
       </ErrorBoundary>
     </Router>
   );

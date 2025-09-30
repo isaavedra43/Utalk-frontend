@@ -162,10 +162,13 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({ onSelectEmployee }) 
   const handleAddEmployee = async (employeeData: Partial<Employee>) => {
     try {
       await employeesApi.createEmployee(employeeData);
+      // Solo cerrar el modal si no hay errores
       setIsAddModalOpen(false);
       loadEmployees(); // Recargar la lista
     } catch (error) {
       console.error('Error al agregar empleado:', error);
+      // Re-lanzar el error para que el modal lo maneje
+      throw error;
     }
   };
 
