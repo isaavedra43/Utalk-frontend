@@ -147,19 +147,33 @@ export interface VacationSummary {
 
 export interface Document {
   id: string;
+  employeeId: string;
   fileName: string;
   originalName: string;
   fileSize: number;
   mimeType: string;
-  fileUrl: string;
-  category: 'contract' | 'id' | 'tax' | 'certification' | 'other';
-  description?: string;
-  tags: string[];
+  category: 'contract' | 'identification' | 'payroll' | 'medical' | 'training' | 'performance' | 'other';
+  subcategory?: string;
   isConfidential: boolean;
+  tags: string[];
+  description?: string;
   uploadedBy: string;
   uploadedAt: string;
-  expiresAt?: string;
+  lastModified: string;
   version: number;
+  status: 'active' | 'archived' | 'deleted';
+  downloadCount: number;
+  filePath: string;
+  thumbnailPath?: string;
+  metadata: {
+    department?: string;
+    position?: string;
+    effectiveDate?: string;
+    expiryDate?: string;
+    approvalStatus?: 'pending' | 'approved' | 'rejected';
+    approvedBy?: string;
+    approvedAt?: string;
+  };
 }
 
 // ===== TIPOS PARA ORGANIGRAMA =====
@@ -275,8 +289,14 @@ export interface VacationBalanceResponse {
 
 export interface DocumentResponse {
   success: boolean;
+  message: string;
+  timestamp: string;
   data: {
     documents: Document[];
+    totalCount: number;
+    categories: string[];
+    confidentialCount: number;
+    publicCount: number;
   };
 }
 

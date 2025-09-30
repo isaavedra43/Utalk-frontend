@@ -66,39 +66,9 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
       canAccessEmployee: canAccessEmployee(employeeId)
     });
 
-    // Para usuarios admin, permitir acceso directo
-    // TODO: Mejorar la lógica de permisos HR más adelante
-    console.log('✅ Cargando documentos para empleado:', employeeId);
-    
-    // Llamar directamente a la función sin dependencias
-    const loadDocs = async () => {
-      if (!employeeId) return;
-      
-      setLoading(true);
-      setError(null);
-      
-      try {
-        console.log('📄 Cargando documentos para empleado:', employeeId);
-        const response = await employeeService.getDocuments(employeeId);
-        
-        if (response.success && response.data) {
-          console.log('✅ Documentos cargados exitosamente:', response.data.documents?.length || 0);
-          setDocuments(response.data.documents || []);
-        } else {
-          console.log('⚠️ Respuesta sin datos o sin éxito:', response);
-          setDocuments([]);
-        }
-      } catch (err: any) {
-        console.error('❌ Error al cargar documentos:', err);
-        setError(err.message || 'Error al cargar documentos');
-        setDocuments([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadDocs();
-  }, [employeeId]);
+    // Cargar documentos reales del backend
+    loadDocuments();
+  }, [employeeId, loadDocuments]);
 
 
   const uploadDocument = async (file: File, metadata: DocumentMetadata) => {
@@ -182,12 +152,18 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
     switch (category) {
       case 'contract':
         return <FileText className="w-5 h-5 text-blue-600" />;
-      case 'id':
+      case 'identification':
         return <User className="w-5 h-5 text-green-600" />;
-      case 'tax':
+      case 'payroll':
         return <Calendar className="w-5 h-5 text-purple-600" />;
-      case 'certification':
+      case 'medical':
+        return <User className="w-5 h-5 text-red-600" />;
+      case 'training':
         return <Award className="w-5 h-5 text-orange-600" />;
+      case 'performance':
+        return <Award className="w-5 h-5 text-yellow-600" />;
+      case 'other':
+        return <FileText className="w-5 h-5 text-gray-600" />;
       default:
         return <FileText className="w-5 h-5 text-gray-600" />;
     }
@@ -197,12 +173,16 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
     switch (category) {
       case 'contract':
         return 'Contrato';
-      case 'id':
+      case 'identification':
         return 'Identificación';
-      case 'tax':
-        return 'Fiscal';
-      case 'certification':
-        return 'Certificación';
+      case 'payroll':
+        return 'Nómina';
+      case 'medical':
+        return 'Médico';
+      case 'training':
+        return 'Capacitación';
+      case 'performance':
+        return 'Rendimiento';
       case 'other':
         return 'Otro';
       default:
@@ -214,12 +194,16 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
     switch (category) {
       case 'contract':
         return 'bg-blue-100 text-blue-800';
-      case 'id':
+      case 'identification':
         return 'bg-green-100 text-green-800';
-      case 'tax':
+      case 'payroll':
         return 'bg-purple-100 text-purple-800';
-      case 'certification':
+      case 'medical':
+        return 'bg-red-100 text-red-800';
+      case 'training':
         return 'bg-orange-100 text-orange-800';
+      case 'performance':
+        return 'bg-yellow-100 text-yellow-800';
       case 'other':
         return 'bg-gray-100 text-gray-800';
       default:
@@ -331,9 +315,11 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
           >
             <option value="all">Todas las categorías</option>
             <option value="contract">Contrato</option>
-            <option value="id">Identificación</option>
-            <option value="tax">Fiscal</option>
-            <option value="certification">Certificación</option>
+            <option value="identification">Identificación</option>
+            <option value="payroll">Nómina</option>
+            <option value="medical">Médico</option>
+            <option value="training">Capacitación</option>
+            <option value="performance">Rendimiento</option>
             <option value="other">Otro</option>
           </select>
         </div>
@@ -453,8 +439,8 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ employeeId, empl
 
                 <div className="text-xs text-gray-500 mb-4">
                   <p>Subido: {formatDate(document.uploadedAt)}</p>
-                  {document.expiresAt && (
-                    <p>Expira: {formatDate(document.expiresAt)}</p>
+                  {document.metadata?.expiryDate && (
+                    <p>Expira: {formatDate(document.metadata.expiryDate)}</p>
                   )}
                 </div>
 
