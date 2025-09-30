@@ -273,10 +273,17 @@
 
 /* ===== RESPONSIVE DESIGN ===== */
 
-/* Desktop: ocultar composer móvil y usar el original */
+/* Desktop: ajustar composer para desktop */
 @media (min-width: 641px) {
   .mobile-chat-composer {
-    display: none;
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+    padding: 16px 20px;
+    padding-bottom: 16px;
   }
 }
 

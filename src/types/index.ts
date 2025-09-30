@@ -198,8 +198,6 @@ export interface SocketEvents {
   'user-offline': (data: { userId: string }) => void;
   'conversation-event': (data: Partial<Conversation>) => void;
   'message-read': (data: { conversationId: string; messageIds: string[] }) => void;
-  // NUEVO: Eventos del dashboard
-  'dashboard-update': (data: DashboardUpdate) => void;
   // NUEVO: Eventos del equipo
   'team-member-updated': (data: { member: TeamMember }) => void;
   'team-member-status-changed': (data: { memberId: string; status: 'active' | 'inactive' }) => void;
@@ -219,8 +217,6 @@ export interface SocketEvents {
 // Re-exportar tipos de sidebar
 export * from './sidebar';
 
-// Re-exportar tipos del dashboard
-export * from './dashboard';
 
 // Re-exportar tipos del equipo
 export * from './team';
@@ -228,11 +224,7 @@ export * from './team';
 // Re-exportar tipos de clientes
 export * from './client';
 
-// Re-exportar tipos de notificaciones
-export * from './notification';
 
-// Importar tipos del dashboard para uso en este archivo
-import type { DashboardUpdate } from './dashboard';
 import type { TeamMember, PerformanceMetrics, CoachingPlan, Permission } from './team';
 import type { 
   Client, 

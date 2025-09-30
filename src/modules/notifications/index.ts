@@ -1,1 +1,1 @@
-export { default as NotificationsModule } from './NotificationsModule';
+export { NotificationsModule } from './NotificationsModule';

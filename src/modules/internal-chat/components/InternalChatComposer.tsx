@@ -43,7 +43,13 @@ export const InternalChatComposer: React.FC = () => {
   ];
 
   const handleSendMessage = () => {
-    if (!message.trim() || !activeChannel) return;
+    if (!message.trim()) return;
+    
+    if (!activeChannel) {
+      // Mostrar mensaje de error o seleccionar el primer canal disponible
+      console.warn('No hay canal activo seleccionado');
+      return;
+    }
 
     actions.sendMessage(activeChannel.id, message.trim());
     setMessage('');
@@ -81,9 +87,10 @@ export const InternalChatComposer: React.FC = () => {
     console.log('Abrir copiloto IA');
   };
 
-  if (!activeChannel) {
-    return null;
-  }
+  // Mostrar el composer incluso si no hay canal activo
+  // if (!activeChannel) {
+  //   return null;
+  // }
 
   return (
     <div className="mobile-chat-composer">
@@ -151,7 +158,7 @@ export const InternalChatComposer: React.FC = () => {
         
         <button
           onClick={handleSendMessage}
-          disabled={!message.trim()}
+          disabled={!message.trim() || !activeChannel}
           className="send-button"
         >
           <Send className="h-4 w-4" />
@@ -160,7 +167,7 @@ export const InternalChatComposer: React.FC = () => {
 
       {/* Indicador de canal */}
       <div className="channel-indicator">
-        Enviando a #{activeChannel.name}
+        {activeChannel ? `Enviando a #${activeChannel.name}` : 'Selecciona un canal para enviar mensajes'}
       </div>
     </div>
   );

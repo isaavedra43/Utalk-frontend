@@ -169,6 +169,23 @@ const InternalChatContext = createContext<{
 export const InternalChatProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(internalChatReducer, initialState);
 
+  // Efecto para establecer un usuario por defecto
+  useEffect(() => {
+    if (!state.currentUser) {
+      const defaultUser: InternalUser = {
+        id: 'user_default',
+        name: 'Usuario',
+        email: 'usuario@utalk.com',
+        avatar: undefined,
+        status: 'online',
+        lastSeen: new Date(),
+        role: 'user',
+        permissions: [],
+      };
+      dispatch({ type: 'SET_CURRENT_USER', payload: defaultUser });
+    }
+  }, [state.currentUser]);
+
   // Efecto para establecer automáticamente el primer canal como activo
   useEffect(() => {
     if (state.channels.length > 0 && !state.activeChannel) {
