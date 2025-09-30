@@ -103,7 +103,7 @@ const HRModule: React.FC = () => {
         return selectedEmployee ? (
           <PayrollModule 
             employeeId={selectedEmployee.id} 
-            employeeName={`${selectedEmployee.firstName} ${selectedEmployee.lastName}`} 
+            employeeName={`${selectedEmployee.personalInfo.firstName} ${selectedEmployee.personalInfo.lastName}`} 
           />
         ) : (
           <PayrollModule />
@@ -112,7 +112,7 @@ const HRModule: React.FC = () => {
         return selectedEmployee ? (
           <AttendanceModule 
             employeeId={selectedEmployee.id} 
-            employeeName={`${selectedEmployee.firstName} ${selectedEmployee.lastName}`} 
+            employeeName={`${selectedEmployee.personalInfo.firstName} ${selectedEmployee.personalInfo.lastName}`} 
           />
         ) : (
           <div className="text-center py-12">
@@ -124,7 +124,7 @@ const HRModule: React.FC = () => {
         return selectedEmployee ? (
           <VacationModule 
             employeeId={selectedEmployee.id} 
-            employeeName={`${selectedEmployee.firstName} ${selectedEmployee.lastName}`} 
+            employeeName={`${selectedEmployee.personalInfo.firstName} ${selectedEmployee.personalInfo.lastName}`} 
           />
         ) : (
           <div className="text-center py-12">
@@ -136,7 +136,7 @@ const HRModule: React.FC = () => {
         return selectedEmployee ? (
           <DocumentModule 
             employeeId={selectedEmployee.id} 
-            employeeName={`${selectedEmployee.firstName} ${selectedEmployee.lastName}`} 
+            employeeName={`${selectedEmployee.personalInfo.firstName} ${selectedEmployee.personalInfo.lastName}`} 
           />
         ) : (
           <div className="text-center py-12">

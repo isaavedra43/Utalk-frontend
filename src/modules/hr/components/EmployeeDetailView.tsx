@@ -25,7 +25,7 @@ import { useNotifications } from '../../../contexts/NotificationContext';
 import EmployeePayrollView from './EmployeePayrollView';
 import EmployeeAttendanceView from './EmployeeAttendanceView';
 import EmployeeVacationsView from './EmployeeVacationsView';
-import EmployeeDocumentsView from './EmployeeDocumentsView';
+import { DocumentModule } from './DocumentModule';
 import EmployeeIncidentsView from './EmployeeIncidentsView';
 import EmployeeEvaluationsView from './EmployeeEvaluationsView';
 import EmployeeSkillsView from './EmployeeSkillsView';
@@ -258,9 +258,13 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
         
         case 'documents':
           try {
-            return <EmployeeDocumentsView employeeId={employee.id} onBack={onBack} />;
+            console.log('🎯 Renderizando DocumentModule para empleado:', employee.id);
+            return <DocumentModule 
+              employeeId={employee.id} 
+              employeeName={`${employee.personalInfo.firstName} ${employee.personalInfo.lastName}`}
+            />;
           } catch (error) {
-            console.error('Error en EmployeeDocumentsView:', error);
+            console.error('Error en DocumentModule:', error);
             return (
               <div className="p-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
