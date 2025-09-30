@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import UploadFilesModal from './UploadFilesModal';
+import { employeesApi } from '../../../services/employeesApi';
 import { 
   FileText, 
   Image, 
@@ -106,181 +107,79 @@ const EmployeeDocumentsView: React.FC<EmployeeDocumentsViewProps> = ({
     setShowUploadModal(false);
   };
 
-  // Simular datos de documentos
+  // Cargar datos reales de documentos
   useEffect(() => {
-    const mockDocumentsData: EmployeeDocumentsData = {
-      employeeId: 'EMP241001',
-      employeeName: 'Ana García',
-      position: 'Gerente de Marketing',
-      department: 'Marketing',
-      totalFiles: 24,
-      totalSize: 156.7, // MB
-      categories: {
-        contract: 3,
-        id: 2,
-        medical: 4,
-        academic: 5,
-        performance: 6,
-        disciplinary: 1,
-        personal: 2,
-        other: 1
-      },
-      files: [
-        {
-          id: '1',
-          name: 'Contrato_Laboral_Ana_Garcia.pdf',
-          type: 'pdf',
-          category: 'contract',
-          size: 2.3,
-          uploadDate: '2024-01-15',
-          uploadedBy: 'Juan Pérez',
-          description: 'Contrato laboral firmado',
-          tags: ['contrato', 'laboral', 'firmado'],
-          isPublic: false,
-          isStarred: true,
-          downloadCount: 12,
-          lastAccessed: '2024-01-20',
-          url: '/documents/contract.pdf',
-          mimeType: 'application/pdf'
-        },
-        {
-          id: '2',
-          name: 'INE_Ana_Garcia.jpg',
-          type: 'image',
-          category: 'id',
-          size: 1.8,
-          uploadDate: '2024-01-10',
-          uploadedBy: 'Ana García',
-          description: 'Identificación oficial',
-          tags: ['identificación', 'INE', 'oficial'],
-          isPublic: false,
-          isStarred: false,
-          downloadCount: 5,
-          lastAccessed: '2024-01-18',
-          url: '/documents/ine.jpg',
-          mimeType: 'image/jpeg'
-        },
-        {
-          id: '3',
-          name: 'Certificado_Medico_2024.pdf',
-          type: 'pdf',
-          category: 'medical',
-          size: 0.9,
-          uploadDate: '2024-02-01',
-          uploadedBy: 'Ana García',
-          description: 'Certificado médico anual',
-          tags: ['médico', 'certificado', 'salud'],
-          isPublic: false,
-          isStarred: false,
-          downloadCount: 3,
-          lastAccessed: '2024-02-05',
-          url: '/documents/medical.pdf',
-          mimeType: 'application/pdf'
-        },
-        {
-          id: '4',
-          name: 'Evaluacion_Desempeno_2023.xlsx',
-          type: 'spreadsheet',
-          category: 'performance',
-          size: 0.5,
-          uploadDate: '2024-01-25',
-          uploadedBy: 'María López',
-          description: 'Evaluación de desempeño anual',
-          tags: ['evaluación', 'desempeño', '2023'],
-          isPublic: false,
-          isStarred: true,
-          downloadCount: 8,
-          lastAccessed: '2024-01-30',
-          url: '/documents/evaluation.xlsx',
-          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        },
-        {
-          id: '5',
-          name: 'Foto_Perfil_Ana.jpg',
-          type: 'image',
-          category: 'personal',
-          size: 0.8,
-          uploadDate: '2024-01-05',
-          uploadedBy: 'Ana García',
-          description: 'Foto de perfil para tarjeta de empleado',
-          tags: ['foto', 'perfil', 'empleado'],
-          isPublic: true,
-          isStarred: false,
-          downloadCount: 15,
-          lastAccessed: '2024-01-15',
-          url: '/documents/profile.jpg',
-          mimeType: 'image/jpeg'
-        },
-        {
-          id: '6',
-          name: 'Video_Presentacion_Proyecto.mp4',
-          type: 'video',
-          category: 'performance',
-          size: 45.2,
-          uploadDate: '2024-02-10',
-          uploadedBy: 'Ana García',
-          description: 'Video de presentación del proyecto Q1',
-          tags: ['video', 'presentación', 'proyecto'],
-          isPublic: false,
-          isStarred: false,
-          downloadCount: 2,
-          lastAccessed: '2024-02-12',
-          url: '/documents/presentation.mp4',
-          mimeType: 'video/mp4'
-        },
-        {
-          id: '7',
-          name: 'Audio_Reunion_Equipo.mp3',
-          type: 'audio',
-          category: 'performance',
-          size: 12.5,
-          uploadDate: '2024-02-08',
-          uploadedBy: 'Ana García',
-          description: 'Grabación de reunión de equipo',
-          tags: ['audio', 'reunión', 'equipo'],
-          isPublic: false,
-          isStarred: false,
-          downloadCount: 1,
-          lastAccessed: '2024-02-09',
-          url: '/documents/meeting.mp3',
-          mimeType: 'audio/mpeg'
-        },
-        {
-          id: '8',
-          name: 'Titulo_Universidad.pdf',
-          type: 'pdf',
-          category: 'academic',
-          size: 3.1,
-          uploadDate: '2024-01-20',
-          uploadedBy: 'Ana García',
-          description: 'Título universitario',
-          tags: ['título', 'universidad', 'académico'],
-          isPublic: false,
-          isStarred: true,
-          downloadCount: 4,
-          lastAccessed: '2024-01-25',
-          url: '/documents/degree.pdf',
-          mimeType: 'application/pdf'
-        }
-      ],
-      recentUploads: [],
-      mostDownloaded: []
+    const loadDocuments = async () => {
+      try {
+        setLoading(true);
+        const response = await employeesApi.getEmployeeDocuments(employeeId, {
+          page: 1,
+          limit: 100
+        });
+        
+        // Transformar datos del backend al formato esperado por el componente
+        const transformedData: EmployeeDocumentsData = {
+          employeeId: employeeId,
+          employeeName: 'Empleado', // Se puede obtener del contexto o props
+          position: 'Puesto',
+          department: 'Departamento',
+          totalFiles: response.summary.totalFiles,
+          totalSize: response.summary.totalSize,
+          categories: response.summary.categories,
+          files: response.documents.map(doc => ({
+            id: doc.id,
+            name: doc.fileName,
+            type: getFileTypeFromMime(doc.mimeType),
+            category: doc.category,
+            size: doc.fileSize / (1024 * 1024), // Convertir bytes a MB
+            uploadDate: doc.uploadedAt,
+            uploadedBy: doc.uploadedBy,
+            description: doc.description || '',
+            tags: doc.tags || [],
+            isPublic: !doc.isConfidential,
+            isStarred: false, // No disponible en el backend actual
+            downloadCount: 0, // No disponible en el backend actual
+            lastAccessed: doc.uploadedAt, // Usar fecha de subida como fallback
+            url: doc.fileUrl,
+            mimeType: doc.mimeType
+          })),
+          recentUploads: [],
+          mostDownloaded: []
+        };
+
+        // Calcular archivos recientes y más descargados
+        transformedData.recentUploads = transformedData.files
+          .sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime())
+          .slice(0, 5);
+        
+        transformedData.mostDownloaded = transformedData.files
+          .sort((a, b) => b.downloadCount - a.downloadCount)
+          .slice(0, 5);
+
+        setDocumentsData(transformedData);
+      } catch (error) {
+        console.error('Error al cargar documentos:', error);
+        setDocumentsData(null);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    // Calcular archivos recientes y más descargados
-    mockDocumentsData.recentUploads = mockDocumentsData.files
-      .sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime())
-      .slice(0, 5);
-    
-    mockDocumentsData.mostDownloaded = mockDocumentsData.files
-      .sort((a, b) => b.downloadCount - a.downloadCount)
-      .slice(0, 5);
-
-    setTimeout(() => {
-      setDocumentsData(mockDocumentsData);
-      setLoading(false);
-    }, 1000);
+    loadDocuments();
   }, [employeeId]);
+
+  // Función helper para determinar el tipo de archivo desde MIME type
+  const getFileTypeFromMime = (mimeType: string): DocumentFile['type'] => {
+    if (mimeType.includes('pdf')) return 'pdf';
+    if (mimeType.includes('image')) return 'image';
+    if (mimeType.includes('video')) return 'video';
+    if (mimeType.includes('audio')) return 'audio';
+    if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return 'spreadsheet';
+    if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) return 'presentation';
+    if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('archive')) return 'archive';
+    if (mimeType.includes('text') || mimeType.includes('document')) return 'document';
+    return 'other';
+  };
 
   const getFileIcon = (type: string) => {
     switch (type) {

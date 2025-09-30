@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { employeesApi } from '../../../services/employeesApi';
 import { 
   Star, 
   Target, 
@@ -159,258 +160,101 @@ const EmployeeEvaluationsView: React.FC<EmployeeEvaluationsViewProps> = ({
   const [showNewEvaluation, setShowNewEvaluation] = useState(false);
   const [selectedEvaluation, setSelectedEvaluation] = useState<Evaluation | null>(null);
 
-  // Simular datos de evaluaciones
+  // Cargar datos reales de evaluaciones
   useEffect(() => {
-    const mockEvaluationsData: EmployeeEvaluationsData = {
-      employeeId: 'EMP241001',
-      employeeName: 'Ana García',
-      position: 'Gerente de Marketing',
-      department: 'Marketing',
-      totalEvaluations: 12,
-      completedEvaluations: 10,
-      pendingEvaluations: 2,
-      averageScore: 4.2,
-      evaluations: [
-        {
-          id: '1',
-          type: 'annual',
-          period: '2024',
-          startDate: '2024-01-01',
-          endDate: '2024-12-31',
-          status: 'completed',
-          evaluator: 'Juan Pérez',
-          evaluatorRole: 'Director de Marketing',
-          employee: 'Ana García',
-          overallScore: 4.3,
-          maxScore: 5,
-          categories: [
-            {
-              name: 'Liderazgo',
-              score: 4.5,
-              maxScore: 5,
-              weight: 25,
-              description: 'Capacidad de liderar equipos y tomar decisiones'
+    const loadEvaluations = async () => {
+      try {
+        setLoading(true);
+        const response = await employeesApi.getEmployeeEvaluations(employeeId, {
+          page: 1,
+          limit: 100
+        });
+        
+        // Transformar datos del backend al formato esperado por el componente
+        const transformedData: EmployeeEvaluationsData = {
+          employeeId: employeeId,
+          employeeName: 'Empleado', // Se puede obtener del contexto o props
+          position: 'Puesto',
+          department: 'Departamento',
+          totalEvaluations: response.summary.totalEvaluations,
+          completedEvaluations: response.summary.byStatus.completed || 0,
+          pendingEvaluations: response.summary.byStatus.in_progress || 0,
+          averageScore: response.summary.averageScore,
+          evaluations: response.evaluations.map(evaluation => ({
+            id: evaluation.id,
+            type: evaluation.type as any,
+            period: evaluation.period,
+            startDate: evaluation.createdAt,
+            endDate: evaluation.completedAt || evaluation.updatedAt,
+            status: evaluation.status as any,
+            evaluator: 'Evaluador', // El backend no devuelve nombre del evaluador
+            evaluatorRole: 'Evaluador',
+            employee: 'Empleado',
+            overallScore: evaluation.overallScore,
+            maxScore: 5,
+            categories: [], // No disponible en el backend actual
+            objectives: response.objectives || [],
+            competencies: response.competencies || [],
+            feedback: {
+              strengths: evaluation.strengths || [],
+              areasForImprovement: evaluation.areasForImprovement || [],
+              recommendations: [],
+              comments: evaluation.feedback || ''
             },
-            {
-              name: 'Comunicación',
-              score: 4.2,
-              maxScore: 5,
-              weight: 20,
-              description: 'Habilidades de comunicación verbal y escrita'
+            developmentPlan: {
+              goals: evaluation.goals || [],
+              training: [],
+              mentoring: [],
+              timeline: ''
             },
-            {
-              name: 'Innovación',
-              score: 4.0,
-              maxScore: 5,
-              weight: 20,
-              description: 'Creatividad e innovación en proyectos'
-            },
-            {
-              name: 'Resultados',
-              score: 4.5,
-              maxScore: 5,
-              weight: 35,
-              description: 'Cumplimiento de objetivos y resultados'
-            }
-          ],
-          objectives: [
-            {
-              id: '1',
-              title: 'Aumentar ventas en 15%',
-              description: 'Incrementar las ventas del departamento en un 15% respecto al año anterior',
-              target: '15%',
-              actual: '18%',
-              status: 'exceeded',
-              weight: 30,
-              score: 5,
-              maxScore: 5,
-              dueDate: '2024-12-31',
-              completionDate: '2024-12-15'
-            },
-            {
-              id: '2',
-              title: 'Implementar nueva estrategia digital',
-              description: 'Desarrollar e implementar una nueva estrategia de marketing digital',
-              target: '100%',
-              actual: '100%',
-              status: 'completed',
-              weight: 25,
-              score: 5,
-              maxScore: 5,
-              dueDate: '2024-09-30',
-              completionDate: '2024-09-25'
-            },
-            {
-              id: '3',
-              title: 'Capacitar al equipo',
-              description: 'Capacitar al equipo en nuevas herramientas de marketing',
-              target: '100%',
-              actual: '80%',
-              status: 'in_progress',
-              weight: 20,
-              score: 4,
-              maxScore: 5,
-              dueDate: '2024-12-31'
-            }
-          ],
-          competencies: [
-            {
-              id: '1',
-              name: 'Liderazgo de Equipos',
-              level: 'advanced',
-              score: 4.5,
-              maxScore: 5,
-              description: 'Capacidad para liderar y motivar equipos',
-              evidence: ['Proyecto exitoso Q3', 'Feedback del equipo']
-            },
-            {
-              id: '2',
-              name: 'Análisis de Datos',
-              level: 'intermediate',
-              score: 3.5,
-              maxScore: 5,
-              description: 'Habilidad para analizar datos y tomar decisiones',
-              evidence: ['Reportes mensuales', 'Dashboard de KPIs']
-            },
-            {
-              id: '3',
-              name: 'Comunicación Efectiva',
-              level: 'advanced',
-              score: 4.2,
-              maxScore: 5,
-              description: 'Comunicación clara y efectiva',
-              evidence: ['Presentaciones ejecutivas', 'Reuniones de equipo']
-            }
-          ],
-          feedback: {
-            strengths: [
-              'Excelente liderazgo y motivación del equipo',
-              'Creatividad en estrategias de marketing',
-              'Cumplimiento consistente de objetivos'
-            ],
-            areasForImprovement: [
-              'Mejorar habilidades de análisis de datos',
-              'Desarrollar más experiencia en marketing digital'
-            ],
-            recommendations: [
-              'Tomar curso de análisis de datos',
-              'Participar en conferencias de marketing digital'
-            ],
-            comments: 'Ana ha demostrado un excelente desempeño durante el año, superando las expectativas en la mayoría de los objetivos. Su liderazgo y creatividad son destacables.'
+            nextReviewDate: evaluation.updatedAt,
+            isConfidential: false,
+            attachments: [],
+            createdAt: evaluation.createdAt,
+            updatedAt: evaluation.updatedAt
+          })),
+          summary: {
+            byType: response.summary.byType,
+            byStatus: response.summary.byStatus,
+            byPeriod: {},
+            scoreTrend: []
           },
-          developmentPlan: {
-            goals: [
-              'Mejorar habilidades de análisis de datos',
-              'Desarrollar expertise en marketing digital',
-              'Liderar proyecto de transformación digital'
-            ],
-            training: [
-              'Curso de Excel avanzado',
-              'Certificación en Google Analytics',
-              'Workshop de marketing digital'
-            ],
-            mentoring: [
-              'Mentoría con Director de Analytics',
-              'Sesiones con consultor externo'
-            ],
-            timeline: '6 meses'
+          recentEvaluations: [],
+          topPerformances: [],
+          objectives: {
+            total: response.objectives?.length || 0,
+            completed: 0,
+            inProgress: 0,
+            overdue: 0
           },
-          nextReviewDate: '2025-01-15',
-          isConfidential: false,
-          attachments: ['evaluacion_2024.pdf', 'objetivos_2024.pdf'],
-          createdAt: '2024-01-15',
-          updatedAt: '2024-12-20'
-        },
-        {
-          id: '2',
-          type: 'quarterly',
-          period: 'Q4 2024',
-          startDate: '2024-10-01',
-          endDate: '2024-12-31',
-          status: 'in_progress',
-          evaluator: 'Juan Pérez',
-          evaluatorRole: 'Director de Marketing',
-          employee: 'Ana García',
-          overallScore: 0,
-          maxScore: 5,
-          categories: [],
-          objectives: [],
-          competencies: [],
-          feedback: {
-            strengths: [],
-            areasForImprovement: [],
-            recommendations: [],
-            comments: ''
-          },
-          developmentPlan: {
-            goals: [],
-            training: [],
-            mentoring: [],
-            timeline: ''
-          },
-          nextReviewDate: '2025-01-15',
-          isConfidential: false,
-          attachments: [],
-          createdAt: '2024-10-01',
-          updatedAt: '2024-10-01'
-        }
-      ],
-      summary: {
-        byType: {
-          annual: 3,
-          quarterly: 4,
-          monthly: 3,
-          performance: 2
-        },
-        byStatus: {
-          completed: 10,
-          in_progress: 2,
-          draft: 0,
-          approved: 8,
-          rejected: 0,
-          archived: 2
-        },
-        byPeriod: {
-          '2024': 4,
-          '2023': 4,
-          '2022': 4
-        },
-        scoreTrend: [
-          { period: '2022', score: 3.8 },
-          { period: '2023', score: 4.0 },
-          { period: '2024', score: 4.2 }
-        ]
-      },
-      recentEvaluations: [],
-      topPerformances: [],
-      objectives: {
-        total: 15,
-        completed: 12,
-        inProgress: 2,
-        overdue: 1
-      },
-      competencies: {
-        total: 12,
-        assessed: 10,
-        developing: 2,
-        mastered: 8
+          competencies: {
+            total: response.competencies?.length || 0,
+            assessed: 0,
+            developing: 0,
+            mastered: 0
+          }
+        };
+
+        // Calcular evaluaciones recientes y mejores desempeños
+        transformedData.recentEvaluations = transformedData.evaluations
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 5);
+        
+        transformedData.topPerformances = transformedData.evaluations
+          .filter(evaluation => evaluation.overallScore >= 4.0)
+          .sort((a, b) => b.overallScore - a.overallScore)
+          .slice(0, 3);
+
+        setEvaluationsData(transformedData);
+      } catch (error) {
+        console.error('Error al cargar evaluaciones:', error);
+        setEvaluationsData(null);
+      } finally {
+        setLoading(false);
       }
     };
 
-    // Calcular evaluaciones recientes y mejores desempeños
-    mockEvaluationsData.recentEvaluations = mockEvaluationsData.evaluations
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 5);
-    
-    mockEvaluationsData.topPerformances = mockEvaluationsData.evaluations
-      .filter(evaluation => evaluation.overallScore >= 4.0)
-      .sort((a, b) => b.overallScore - a.overallScore)
-      .slice(0, 3);
-
-    setTimeout(() => {
-      setEvaluationsData(mockEvaluationsData);
-      setLoading(false);
-    }, 1000);
+    loadEvaluations();
   }, [employeeId]);
 
   const getTypeIcon = (type: string) => {

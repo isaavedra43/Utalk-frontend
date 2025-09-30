@@ -9,10 +9,12 @@
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx",
+    "jsx": "react",
 
     /* Linting */
     "strict": true,
@@ -35,5 +37,5 @@
       "@/modules/*": ["src/modules/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "src/types/global.d.ts"]
 }

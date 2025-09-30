@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { employeesApi } from '../../../services/employeesApi';
 import { 
   Clock, 
   User, 
@@ -93,210 +94,94 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<'timeline' | 'table' | 'summary'>('timeline');
 
-  // Simular datos de historial
+  // Cargar datos reales de historial
   useEffect(() => {
-    const mockHistoryData: EmployeeHistoryData = {
-      employeeId: 'EMP241001',
-      employeeName: 'Ana García',
-      position: 'Gerente de Marketing',
-      department: 'Marketing',
-      totalEvents: 47,
-      recentEvents: 12,
-      events: [
-        {
-          id: '1',
-          type: 'profile_update',
-          category: 'personal',
-          title: 'Actualización de Información Personal',
-          description: 'Se actualizó el número de teléfono',
-          details: 'Cambio de número de teléfono de contacto',
-          oldValue: '+52 55 1234 5678',
-          newValue: '+52 55 9876 5432',
-          timestamp: '2024-12-20T14:30:00Z',
-          userId: 'USR001',
-          userName: 'María López',
-          userRole: 'Administrador de RH',
-          isSystem: false,
-          severity: 'low',
-          tags: ['contacto', 'personal'],
-          relatedModule: 'profile',
-          metadata: { field: 'phone', section: 'personal_info' }
-        },
-        {
-          id: '2',
-          type: 'evaluation',
-          category: 'performance',
-          title: 'Nueva Evaluación de Rendimiento',
-          description: 'Se completó la evaluación anual 2024',
-          details: 'Evaluación anual completada con puntuación de 4.3/5.0',
-          oldValue: '',
-          newValue: '4.3/5.0',
-          timestamp: '2024-12-15T10:00:00Z',
-          userId: 'USR002',
-          userName: 'Juan Pérez',
-          userRole: 'Director de Marketing',
-          isSystem: false,
-          severity: 'medium',
-          tags: ['evaluación', 'rendimiento', 'anual'],
-          relatedModule: 'evaluations',
-          metadata: { evaluation_type: 'annual', score: 4.3 }
-        },
-        {
-          id: '3',
-          type: 'salary_change',
-          category: 'work',
-          title: 'Ajuste Salarial',
-          description: 'Incremento salarial por evaluación de rendimiento',
-          details: 'Aumento del 8% en el salario base por excelente desempeño',
-          oldValue: '$45,000.00',
-          newValue: '$48,600.00',
-          timestamp: '2024-12-10T16:45:00Z',
-          userId: 'USR003',
-          userName: 'Carlos Rodríguez',
-          userRole: 'Director de RH',
-          isSystem: false,
-          severity: 'high',
-          tags: ['salario', 'incremento', 'rendimiento'],
-          relatedModule: 'payroll',
-          metadata: { increase_percentage: 8, reason: 'performance' }
-        },
-        {
-          id: '4',
-          type: 'skill_update',
-          category: 'development',
-          title: 'Nueva Habilidad Registrada',
-          description: 'Se agregó la habilidad de Marketing Digital',
-          details: 'Habilidad de Marketing Digital agregada con nivel avanzado',
-          oldValue: '',
-          newValue: 'Marketing Digital - Avanzado',
-          timestamp: '2024-12-05T11:20:00Z',
-          userId: 'USR001',
-          userName: 'María López',
-          userRole: 'Administrador de RH',
-          isSystem: false,
-          severity: 'medium',
-          tags: ['habilidad', 'marketing', 'desarrollo'],
-          relatedModule: 'skills',
-          metadata: { skill: 'Marketing Digital', level: 'advanced' }
-        },
-        {
-          id: '5',
-          type: 'certification',
-          category: 'development',
-          title: 'Nueva Certificación',
-          description: 'Certificación Google Ads obtenida',
-          details: 'Certificación Google Ads Certified obtenida exitosamente',
-          oldValue: '',
-          newValue: 'Google Ads Certified',
-          timestamp: '2024-11-28T09:15:00Z',
-          userId: 'USR004',
-          userName: 'Ana García',
-          userRole: 'Empleado',
-          isSystem: false,
-          severity: 'medium',
-          tags: ['certificación', 'google', 'marketing'],
-          relatedModule: 'skills',
-          metadata: { issuer: 'Google', credential_id: 'GADS-2024-001' }
-        },
-        {
-          id: '6',
-          type: 'incident',
-          category: 'administrative',
-          title: 'Reporte de Incidencia',
-          description: 'Reporte de accidente menor en oficina',
-          details: 'Incidente menor reportado y documentado correctamente',
-          oldValue: '',
-          newValue: 'Incidencia INC-2024-001',
-          timestamp: '2024-11-20T13:30:00Z',
-          userId: 'USR005',
-          userName: 'Luis Martínez',
-          userRole: 'Supervisor de Seguridad',
-          isSystem: false,
-          severity: 'high',
-          tags: ['incidencia', 'seguridad', 'accidente'],
-          relatedModule: 'incidents',
-          metadata: { incident_type: 'accident', severity: 'minor' }
-        },
-        {
-          id: '7',
-          type: 'vacation',
-          category: 'administrative',
-          title: 'Solicitud de Vacaciones',
-          description: 'Solicitud de vacaciones aprobada',
-          details: 'Vacaciones del 15 al 25 de diciembre aprobadas',
-          oldValue: '',
-          newValue: '10 días aprobados',
-          timestamp: '2024-11-15T08:45:00Z',
-          userId: 'USR002',
-          userName: 'Juan Pérez',
-          userRole: 'Director de Marketing',
-          isSystem: false,
-          severity: 'low',
-          tags: ['vacaciones', 'aprobado', 'diciembre'],
-          relatedModule: 'vacations',
-          metadata: { start_date: '2024-12-15', end_date: '2024-12-25', days: 10 }
-        },
-        {
-          id: '8',
-          type: 'system',
-          category: 'system',
-          title: 'Creación de Perfil',
-          description: 'Perfil de empleado creado en el sistema',
-          details: 'Perfil inicial creado con información básica',
-          oldValue: '',
-          newValue: 'Perfil EMP241001',
-          timestamp: '2022-03-14T10:00:00Z',
-          userId: 'SYSTEM',
-          userName: 'Sistema',
-          userRole: 'Sistema',
-          isSystem: true,
-          severity: 'medium',
-          tags: ['sistema', 'creación', 'perfil'],
-          relatedModule: 'profile',
-          metadata: { action: 'profile_creation', employee_id: 'EMP241001' }
-        }
-      ],
-      summary: {
-        byType: {
-          profile_update: 8,
-          evaluation: 6,
-          salary_change: 3,
-          skill_update: 12,
-          certification: 4,
-          incident: 2,
-          vacation: 7,
-          system: 5
-        },
-        byCategory: {
-          personal: 8,
-          work: 10,
-          performance: 6,
-          development: 16,
-          administrative: 9,
-          system: 5
-        },
-        byUser: {
-          'María López': 15,
-          'Juan Pérez': 12,
-          'Carlos Rodríguez': 8,
-          'Ana García': 7,
-          'Sistema': 5
-        },
-        timeline: [
-          { date: '2024-12', count: 12 },
-          { date: '2024-11', count: 8 },
-          { date: '2024-10', count: 6 },
-          { date: '2024-09', count: 4 },
-          { date: '2024-08', count: 5 }
-        ]
+    const loadHistory = async () => {
+      try {
+        setLoading(true);
+        const response = await employeesApi.getEmployeeHistory(employeeId, {
+          page: 1,
+          limit: 100
+        });
+        
+        // Transformar datos del backend al formato esperado por el componente
+        const transformedData: EmployeeHistoryData = {
+          employeeId: employeeId,
+          employeeName: 'Empleado', // Se puede obtener del contexto o props
+          position: 'Puesto',
+          department: 'Departamento',
+          totalEvents: response.summary.totalEvents,
+          recentEvents: response.summary.recentEvents,
+          events: response.history.map(event => ({
+            id: event.id,
+            type: event.type as any,
+            category: getCategoryFromType(event.type),
+            title: event.description,
+            description: event.description,
+            details: event.details?.description || event.description,
+            oldValue: event.oldValue,
+            newValue: event.newValue,
+            timestamp: event.changedAt,
+            userId: event.changedBy,
+            userName: event.changedBy, // El backend no devuelve nombre de usuario
+            userRole: 'Usuario',
+            isSystem: event.changedBy === 'SYSTEM',
+            severity: getSeverityFromType(event.type),
+            tags: [event.type, event.module],
+            relatedModule: event.module,
+            metadata: event.details
+          })),
+          summary: {
+            byType: {},
+            byCategory: {},
+            byUser: {},
+            timeline: []
+          }
+        };
+
+        // Calcular resúmenes
+        transformedData.events.forEach(event => {
+          // Por tipo
+          transformedData.summary.byType[event.type] = 
+            (transformedData.summary.byType[event.type] || 0) + 1;
+          
+          // Por categoría
+          transformedData.summary.byCategory[event.category] = 
+            (transformedData.summary.byCategory[event.category] || 0) + 1;
+          
+          // Por usuario
+          transformedData.summary.byUser[event.userName] = 
+            (transformedData.summary.byUser[event.userName] || 0) + 1;
+        });
+
+        setHistoryData(transformedData);
+      } catch (error) {
+        console.error('Error al cargar historial:', error);
+        setHistoryData(null);
+      } finally {
+        setLoading(false);
       }
     };
 
-    setTimeout(() => {
-      setHistoryData(mockHistoryData);
-      setLoading(false);
-    }, 1000);
+    loadHistory();
   }, [employeeId]);
+
+  // Función helper para determinar categoría desde tipo
+  const getCategoryFromType = (type: string): HistoryEvent['category'] => {
+    if (type.includes('profile') || type.includes('personal')) return 'personal';
+    if (type.includes('salary') || type.includes('payroll')) return 'work';
+    if (type.includes('evaluation') || type.includes('performance')) return 'performance';
+    if (type.includes('skill') || type.includes('certification')) return 'development';
+    if (type.includes('incident') || type.includes('vacation')) return 'administrative';
+    return 'system';
+  };
+
+  // Función helper para determinar severidad desde tipo
+  const getSeverityFromType = (type: string): HistoryEvent['severity'] => {
+    if (type.includes('salary') || type.includes('incident')) return 'high';
+    if (type.includes('evaluation') || type.includes('skill')) return 'medium';
+    return 'low';
+  };
 
   const getEventIcon = (type: string) => {
     switch (type) {
