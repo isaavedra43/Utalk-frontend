@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React, { memo, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { WebSocketProvider } from './contexts/WebSocketContext'
@@ -382,6 +382,19 @@ const ServicesPage: React.FC = () => {
 
 function App() {
   console.log('🔍 App - Componente App renderizado');
+
+  // ✅ Inicializar monitor de salud de la app
+  useEffect(() => {
+    import('./utils/appHealthMonitor').then(({ AppHealthMonitor }) => {
+      const monitor = AppHealthMonitor.getInstance();
+      console.log('✅ Monitor de salud de la app iniciado');
+      
+      // Cleanup al desmontar
+      return () => {
+        monitor.stop();
+      };
+    });
+  }, []);
 
   // Mostrar el módulo de monitoreo siempre (desarrollo y producción)
   const showMonitoring = true; // Siempre visible para debugging urgente

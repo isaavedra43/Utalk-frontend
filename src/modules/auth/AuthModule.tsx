@@ -44,9 +44,29 @@ export const AuthModule = () => {
 
   const toggleTheme = () => setIsDark(!isDark);
 
-  // Si ya está autenticado, redirigir al módulo inicial basado en permisos
+  // ✅ MEJORADO: Sistema de redirección robusto con timeout
   if (isAuthenticated) {
-    // Si los permisos están cargando, mostrar loading
+    const [redirectTimeout, setRedirectTimeout] = useState(false);
+    
+    // ✅ Timeout de seguridad: Si después de 5 segundos no redirige, forzar redirección
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        if (!permissionsLoading) {
+          console.log('⚠️ Timeout de redirección alcanzado, forzando navegación...');
+          setRedirectTimeout(true);
+        }
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }, [permissionsLoading]);
+    
+    // Si el timeout se alcanzó, forzar redirección a un módulo seguro
+    if (redirectTimeout) {
+      console.log('🔀 Redirección forzada a /inventory');
+      return <Navigate to="/inventory" replace />;
+    }
+    
+    // Si los permisos están cargando, mostrar loading con auto-refresh
     if (permissionsLoading) {
       return (
         <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
@@ -55,9 +75,15 @@ export const AuthModule = () => {
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               Cargando permisos...
             </h3>
-            <p className="text-gray-600">
+            <p className="text-gray-600 mb-4">
               Determinando módulos disponibles
             </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
+            >
+              Recargar si tarda mucho
+            </button>
           </div>
         </div>
       );
@@ -66,34 +92,14 @@ export const AuthModule = () => {
     // Obtener el módulo inicial basado en permisos
     const initialModule = getInitialModule();
     
-    // Si no hay módulo inicial (no hay permisos), mostrar error
+    // Si no hay módulo inicial (no hay permisos), redirigir a inventario por defecto
     if (!initialModule) {
-      return (
-        <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-          <div className="text-center">
-            <div className="text-red-500 mb-4">
-              <svg className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Sin permisos de acceso
-            </h3>
-            <p className="text-gray-500 mb-4">
-              No tienes permisos para acceder a ningún módulo del sistema
-            </p>
-            <button 
-              onClick={() => window.location.href = '/login'}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-            >
-              Cerrar sesión
-            </button>
-          </div>
-        </div>
-      );
+      console.log('⚠️ No hay módulo inicial, redirigiendo a /inventory por defecto');
+      return <Navigate to="/inventory" replace />;
     }
 
     const modulePath = `/${initialModule}`;
+    console.log('✅ Redirigiendo a módulo inicial:', modulePath);
     return <Navigate to={modulePath} replace />;
   }
 
