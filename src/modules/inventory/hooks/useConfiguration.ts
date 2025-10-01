@@ -46,14 +46,18 @@ export const useConfiguration = () => {
     }
   }, []);
 
-  const initializeDefaultConfiguration = useCallback(() => {
+  // ✅ ELIMINADO: Ya no se crean datos falsos
+  // Ahora solo se limpia la configuración local
+  const clearLocalConfiguration = useCallback(() => {
     try {
-      const config = ConfigService.initializeDefaultConfiguration();
+      ConfigService.clearLocalConfiguration();
+      const config = ConfigService.getConfiguration();
       setConfiguration(config);
       setError(null);
+      console.log('✅ Configuración local limpiada - Solo datos reales del backend');
       return config;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al inicializar configuración por defecto');
+      setError(err instanceof Error ? err.message : 'Error al limpiar configuración');
       throw err;
     }
   }, []);
@@ -257,7 +261,7 @@ export const useConfiguration = () => {
     // Gestión general
     refreshConfiguration,
     resetConfiguration,
-    initializeDefaultConfiguration,
+    clearLocalConfiguration, // ✅ Cambio: Ya no se inicializan datos falsos
     exportConfiguration,
     importConfiguration,
     

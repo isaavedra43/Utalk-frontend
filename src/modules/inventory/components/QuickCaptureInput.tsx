@@ -19,7 +19,7 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
   onAddMultiplePieces,
   onChangeWidth
 }) => {
-  const { activeMaterials, initializeDefaultConfiguration } = useConfiguration();
+  const { activeMaterials } = useConfiguration();
   
   const [length, setLength] = useState('');
   const [selectedMaterial, setSelectedMaterial] = useState(availableMaterials[0] || '');
@@ -42,13 +42,13 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
     inputRef.current?.focus();
   }, []);
 
-  // ✅ Inicializar configuración por defecto si no hay materiales
+  // ✅ ELIMINADO: Ya NO se crean datos falsos automáticamente
+  // Si no hay materiales, el usuario debe crear proveedores y materiales primero
   useEffect(() => {
     if (activeMaterials.length === 0) {
-      console.log('🔧 No hay materiales disponibles, inicializando configuración por defecto...');
-      initializeDefaultConfiguration();
+      console.log('ℹ️ No hay materiales configurados - El usuario debe crear proveedores y materiales en la configuración');
     }
-  }, [activeMaterials.length, initializeDefaultConfiguration]);
+  }, [activeMaterials.length]);
 
   // ✅ LIMPIAR ERRORES AUTOMÁTICAMENTE - Material es opcional
   useEffect(() => {

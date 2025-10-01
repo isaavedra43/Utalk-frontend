@@ -17,7 +17,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
     loading,
     error,
     resetConfiguration,
-    initializeDefaultConfiguration,
+    clearLocalConfiguration, // ✅ Cambio: Ya no se inicializan datos falsos
     exportConfiguration,
     importConfiguration,
     getConfigurationStats
@@ -44,12 +44,14 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
     }
   };
 
-  const handleInitializeDefaultConfiguration = async () => {
+  // ✅ ELIMINADO: Ya no se crean datos falsos
+  // Ahora solo se puede limpiar la configuración local
+  const handleClearLocalConfiguration = async () => {
     try {
-      initializeDefaultConfiguration();
-      showNotification('success', 'Configuración por defecto inicializada correctamente');
+      clearLocalConfiguration();
+      showNotification('success', 'Configuración local limpiada - Use datos del backend');
     } catch (error) {
-      showNotification('error', 'Error al inicializar configuración por defecto');
+      showNotification('error', 'Error al limpiar configuración local');
     }
   };
 

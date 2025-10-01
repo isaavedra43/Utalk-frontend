@@ -12,98 +12,16 @@ const DEFAULT_MATERIAL_CATEGORIES = [
   'Otros'
 ];
 
-// Configuración por defecto
+// ✅ Configuración VACÍA por defecto - Solo datos reales del backend
 const DEFAULT_CONFIG: ModuleConfiguration = {
-  providers: [
-    {
-      id: 'prov-001',
-      name: 'Mármoles del Norte',
-      contact: 'Juan Pérez',
-      phone: '+52 81 1234-5678',
-      materialIds: ['mat-001', 'mat-002', 'mat-003', 'mat-004'] // Mármoles y Granitos
-    },
-    {
-      id: 'prov-002', 
-      name: 'Canteras del Sur',
-      contact: 'María González',
-      phone: '+52 33 9876-5432',
-      materialIds: ['mat-005', 'mat-006', 'mat-007', 'mat-008'] // Cuarzos y Piedras Naturales
-    },
-    {
-      id: 'prov-003',
-      name: 'Piedras Preciosas SA',
-      contact: 'Carlos Rodríguez',
-      phone: '+52 55 2468-1357',
-      materialIds: ['mat-001', 'mat-004', 'mat-005', 'mat-009', 'mat-010'] // Variedad de materiales premium
-    }
-  ],
-  materials: [
-    // Mármoles
-    {
-      id: 'mat-001',
-      name: 'Mármol Blanco Carrara',
-      category: 'Mármol',
-      description: 'Mármol blanco de alta calidad',
-      isActive: true,
-      providerIds: ['prov-001', 'prov-003'] // Mármoles del Norte y Piedras Preciosas
-    },
-    {
-      id: 'mat-002',
-      name: 'Mármol Travertino',
-      category: 'Mármol',
-      description: 'Mármol travertino natural',
-      isActive: true,
-      providerIds: ['prov-001'] // Solo Mármoles del Norte
-    },
-    {
-      id: 'mat-003',
-      name: 'Mármol Negro Marquina',
-      category: 'Mármol',
-      description: 'Mármol negro elegante',
-      isActive: true,
-      providerIds: ['prov-001'] // Solo Mármoles del Norte
-    },
-    // Granitos
-    {
-      id: 'mat-004',
-      name: 'Granito Gris',
-      category: 'Granito',
-      description: 'Granito gris resistente',
-      isActive: true,
-      providerIds: ['prov-001', 'prov-003'] // Mármoles del Norte y Piedras Preciosas
-    },
-    {
-      id: 'mat-005',
-      name: 'Granito Negro Absoluto',
-      category: 'Granito',
-      description: 'Granito negro absoluto',
-      isActive: true,
-      providerIds: ['prov-002', 'prov-003'] // Canteras del Sur y Piedras Preciosas
-    },
-    // Cuarzos
-    {
-      id: 'mat-006',
-      name: 'Cuarzo Blanco',
-      category: 'Cuarzo',
-      description: 'Cuarzo blanco brillante',
-      isActive: true,
-      providerIds: ['prov-002'] // Solo Canteras del Sur
-    },
-    {
-      id: 'mat-007',
-      name: 'Cuarzo Gris',
-      category: 'Cuarzo',
-      description: 'Cuarzo gris moderno',
-      isActive: true,
-      providerIds: ['prov-002'] // Solo Canteras del Sur
-    }
-  ],
+  providers: [], // ✅ NO HAY PROVEEDORES FALSOS - Solo los que cree el usuario
+  materials: [], // ✅ NO HAY MATERIALES FALSOS - Solo los que cree el usuario
   settings: {
     defaultStandardWidth: 0.3,
     autoSaveEnabled: true,
     showPieceNumbers: true,
     allowMultipleMaterials: true,
-    requireMaterialSelection: true,
+    requireMaterialSelection: false, // ✅ No requerir material para permitir registros sin configuración previa
     defaultMaterialCategories: DEFAULT_MATERIAL_CATEGORIES
   },
   lastUpdated: new Date()
@@ -112,6 +30,7 @@ const DEFAULT_CONFIG: ModuleConfiguration = {
 export class ConfigService {
   /**
    * Obtiene la configuración actual del módulo
+   * ✅ NO CREA DATOS FALSOS - Retorna configuración vacía
    */
   static getConfiguration(): ModuleConfiguration {
     try {
@@ -126,8 +45,8 @@ export class ConfigService {
       console.error('Error al cargar configuración:', error);
     }
     
-    // Si no existe configuración, inicializar con la configuración por defecto
-    console.log('🔧 Inicializando configuración por defecto del inventario...');
+    // ✅ Retornar configuración VACÍA - No crear datos falsos
+    console.log('✅ Inicializando configuración vacía - Usuario debe crear proveedores y materiales');
     this.saveConfiguration(DEFAULT_CONFIG);
     return DEFAULT_CONFIG;
   }
@@ -149,22 +68,23 @@ export class ConfigService {
   }
 
   /**
-   * Resetea la configuración a los valores por defecto
+   * Resetea la configuración a los valores por defecto (VACÍA)
+   * ✅ NO CREA DATOS FALSOS
    */
   static resetConfiguration(): ModuleConfiguration {
-    console.log('🔄 Reseteando configuración del inventario a valores por defecto...');
+    console.log('✅ Reseteando configuración a configuración vacía - Solo datos reales');
     const defaultConfig = { ...DEFAULT_CONFIG };
     this.saveConfiguration(defaultConfig);
     return defaultConfig;
   }
 
   /**
-   * Fuerza la inicialización de la configuración por defecto
+   * ELIMINADO: Ya no se fuerza inicialización de datos falsos
+   * ✅ Solo se permite limpiar la configuración local
    */
-  static initializeDefaultConfiguration(): ModuleConfiguration {
-    console.log('🚀 Forzando inicialización de configuración por defecto...');
+  static clearLocalConfiguration(): void {
+    console.log('🧹 Limpiando configuración local - Datos se obtendrán del backend');
     localStorage.removeItem(CONFIG_STORAGE_KEY);
-    return this.resetConfiguration();
   }
 
   // ==================== GESTIÓN DE PROVEEDORES ====================
