@@ -14,10 +14,12 @@ export interface EvidenceUploadResponse {
 export class EvidenceService {
   /**
    * Subir archivos de evidencia para una plataforma
+   * ⚠️ providerId es REQUERIDO según documentación del backend
    */
   static async uploadEvidence(
     files: File[], 
-    platformId: string, 
+    platformId: string,
+    providerId: string,
     descriptions?: string[]
   ): Promise<Evidence[]> {
     try {
@@ -28,15 +30,16 @@ export class EvidenceService {
       // Agregar archivos
       files.forEach((file, index) => {
         formData.append('files', file);
-        if (descriptions && descriptions[index]) {
-          formData.append(`descriptions`, descriptions[index]);
-        }
       });
       
-      // Agregar metadata
+      // Agregar metadata requerida
       formData.append('platformId', platformId);
-      formData.append('module', 'inventory');
-      formData.append('entityType', 'platform');
+      formData.append('providerId', providerId);
+      
+      // Agregar descripciones como JSON según documentación
+      if (descriptions && descriptions.length > 0) {
+        formData.append('descriptions', JSON.stringify(descriptions));
+      }
       
       const response = await api.post('/api/inventory/evidence/upload', formData, {
         headers: {
@@ -48,15 +51,16 @@ export class EvidenceService {
         throw new Error('Error en la respuesta del servidor');
       }
       
+      // Mapear respuesta del backend según documentación
       const uploadedFiles: Evidence[] = response.data.data.map((file: any) => ({
         id: file.id,
         fileName: file.fileName,
         fileType: file.fileType,
         fileSize: file.fileSize,
-        uploadDate: new Date(file.uploadDate),
-        uploadedBy: file.uploadedBy || 'Usuario Actual',
+        uploadDate: new Date(file.createdAt || file.uploadDate),
+        uploadedBy: file.uploadedBy || file.userId || 'Usuario Actual',
         description: file.description,
-        url: file.url
+        url: file.downloadUrl || file.url  // Backend usa downloadUrl según docs
       }));
       
       console.log(`✅ ${uploadedFiles.length} archivo(s) subido(s) exitosamente`);
@@ -70,24 +74,28 @@ export class EvidenceService {
   
   /**
    * Obtener evidencias de una plataforma
+   * ⚠️ providerId es REQUERIDO según documentación del backend
    */
-  static async getPlatformEvidence(platformId: string): Promise<Evidence[]> {
+  static async getPlatformEvidence(platformId: string, providerId: string): Promise<Evidence[]> {
     try {
-      const response = await api.get(`/api/inventory/evidence/${platformId}`);
+      const response = await api.get(`/api/inventory/evidence/${platformId}`, {
+        params: { providerId }
+      });
       
       if (!response.data || !response.data.success) {
         throw new Error('Error obteniendo evidencias');
       }
       
+      // Mapear respuesta del backend según documentación
       return response.data.data.map((evidence: any) => ({
         id: evidence.id,
-        fileName: evidence.fileName,
-        fileType: evidence.fileType,
-        fileSize: evidence.fileSize,
-        uploadDate: new Date(evidence.uploadDate),
-        uploadedBy: evidence.uploadedBy,
+        fileName: evidence.fileName || evidence.file_name,
+        fileType: evidence.fileType || evidence.file_type,
+        fileSize: evidence.fileSize || evidence.file_size,
+        uploadDate: new Date(evidence.createdAt || evidence.uploadDate || evidence.created_at),
+        uploadedBy: evidence.uploadedBy || evidence.uploaded_by || 'Usuario',
         description: evidence.description,
-        url: evidence.url
+        url: evidence.downloadUrl || evidence.url || evidence.file_path
       }));
       
     } catch (error) {
@@ -98,11 +106,15 @@ export class EvidenceService {
   
   /**
    * Eliminar evidencia
+   * ⚠️ platformId y providerId son REQUERIDOS según documentación del backend
    */
-  static async deleteEvidence(evidenceId: string, platformId: string): Promise<void> {
+  static async deleteEvidence(evidenceId: string, platformId: string, providerId: string): Promise<void> {
     try {
       await api.delete(`/api/inventory/evidence/${evidenceId}`, {
-        data: { platformId }
+        data: { 
+          platformId,
+          providerId
+        }
       });
       
       console.log(`✅ Evidencia ${evidenceId} eliminada exitosamente`);
