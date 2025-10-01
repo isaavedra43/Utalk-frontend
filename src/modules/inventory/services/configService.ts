@@ -126,7 +126,9 @@ export class ConfigService {
       console.error('Error al cargar configuración:', error);
     }
     
-    // Retornar configuración por defecto si no existe
+    // Si no existe configuración, inicializar con la configuración por defecto
+    console.log('🔧 Inicializando configuración por defecto del inventario...');
+    this.saveConfiguration(DEFAULT_CONFIG);
     return DEFAULT_CONFIG;
   }
 
@@ -150,9 +152,19 @@ export class ConfigService {
    * Resetea la configuración a los valores por defecto
    */
   static resetConfiguration(): ModuleConfiguration {
+    console.log('🔄 Reseteando configuración del inventario a valores por defecto...');
     const defaultConfig = { ...DEFAULT_CONFIG };
     this.saveConfiguration(defaultConfig);
     return defaultConfig;
+  }
+
+  /**
+   * Fuerza la inicialización de la configuración por defecto
+   */
+  static initializeDefaultConfiguration(): ModuleConfiguration {
+    console.log('🚀 Forzando inicialización de configuración por defecto...');
+    localStorage.removeItem(CONFIG_STORAGE_KEY);
+    return this.resetConfiguration();
   }
 
   // ==================== GESTIÓN DE PROVEEDORES ====================

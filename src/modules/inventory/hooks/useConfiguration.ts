@@ -46,6 +46,18 @@ export const useConfiguration = () => {
     }
   }, []);
 
+  const initializeDefaultConfiguration = useCallback(() => {
+    try {
+      const config = ConfigService.initializeDefaultConfiguration();
+      setConfiguration(config);
+      setError(null);
+      return config;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al inicializar configuración por defecto');
+      throw err;
+    }
+  }, []);
+
   const exportConfiguration = useCallback(() => {
     try {
       return ConfigService.exportConfiguration();
@@ -245,6 +257,7 @@ export const useConfiguration = () => {
     // Gestión general
     refreshConfiguration,
     resetConfiguration,
+    initializeDefaultConfiguration,
     exportConfiguration,
     importConfiguration,
     

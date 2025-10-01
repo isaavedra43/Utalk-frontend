@@ -17,6 +17,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
     loading,
     error,
     resetConfiguration,
+    initializeDefaultConfiguration,
     exportConfiguration,
     importConfiguration,
     getConfigurationStats
@@ -40,6 +41,15 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
       setShowResetConfirm(false);
     } catch (error) {
       showNotification('error', 'Error al restablecer configuración');
+    }
+  };
+
+  const handleInitializeDefaultConfiguration = async () => {
+    try {
+      initializeDefaultConfiguration();
+      showNotification('success', 'Configuración por defecto inicializada correctamente');
+    } catch (error) {
+      showNotification('error', 'Error al inicializar configuración por defecto');
     }
   };
 
@@ -211,6 +221,22 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
                       className="hidden"
                     />
                   </label>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Inicializar Configuración</h3>
+                <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                  <p className="text-sm text-purple-800 mb-3">
+                    Inicializa la configuración por defecto si no se han cargado los materiales o proveedores. Esto agregará los materiales y proveedores predeterminados.
+                  </p>
+                  <button
+                    onClick={handleInitializeDefaultConfiguration}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors active:scale-95"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Inicializar Configuración por Defecto
+                  </button>
                 </div>
               </div>
 
