@@ -239,10 +239,33 @@ export class PlatformApiService {
       if (filters?.limit) params.limit = filters.limit;
       if (filters?.offset) params.offset = filters.offset;
 
-      const response = await api.get<ApiResponse<PaginatedResponse<Platform>>>(this.BASE_PATH, {
+      const response = await api.get<ApiResponse<any>>(this.BASE_PATH, {
         params
       });
-      return response.data.data;
+      // Normalizar formato de respuesta del backend:
+      // A) { success, data: { platforms: Platform[], pagination, filters } }
+      // B) { success, data: { data: Platform[], pagination, filters } }
+      // C) { success, data: Platform[] } (fallback legacy)
+      const serverData = response.data?.data ?? {};
+      if (Array.isArray(serverData)) {
+        return { data: serverData, pagination: { total: serverData.length, limit: params?.limit ?? serverData.length, offset: params?.offset ?? 0, hasMore: false }, } as PaginatedResponse<Platform>;
+      }
+      if (Array.isArray(serverData.platforms)) {
+        return {
+          data: serverData.platforms,
+          pagination: serverData.pagination ?? { total: serverData.platforms.length, limit: params?.limit ?? serverData.platforms.length, offset: params?.offset ?? 0, hasMore: false },
+          filters: serverData.filters
+        } as PaginatedResponse<Platform>;
+      }
+      if (Array.isArray(serverData.data)) {
+        return {
+          data: serverData.data,
+          pagination: serverData.pagination ?? { total: serverData.data.length, limit: params?.limit ?? serverData.data.length, offset: params?.offset ?? 0, hasMore: false },
+          filters: serverData.filters
+        } as PaginatedResponse<Platform>;
+      }
+      // Si nada coincide, devolver estructura vacía para no romper UI
+      return { data: [], pagination: { total: 0, limit: params?.limit ?? 0, offset: params?.offset ?? 0, hasMore: false } } as PaginatedResponse<Platform>;
     } catch (error) {
       console.error('Error fetching platforms:', error);
       throw error;
