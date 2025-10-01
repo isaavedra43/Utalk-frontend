@@ -85,13 +85,24 @@ export const useConfiguration = () => {
 
   // ==================== GESTIÓN DE PROVEEDORES ====================
 
-  const addProvider = useCallback((provider: Omit<Provider, 'id'>) => {
+  // ✅ CAMBIO CRÍTICO: Ahora SIEMPRE envía al backend
+  const addProvider = useCallback(async (provider: Omit<Provider, 'id'>) => {
     try {
-      const newProvider = ConfigService.addProvider(provider);
+      // ✅ ENVIAR AL BACKEND INMEDIATAMENTE
+      const { ProviderApiService } = await import('../services/inventoryApiService');
+      const newProvider = await ProviderApiService.createProvider(provider);
+      
+      // ✅ Actualizar configuración local con datos del backend
+      const config = ConfigService.getConfiguration();
+      config.providers.push(newProvider);
+      ConfigService.saveConfiguration(config);
+      
       refreshConfiguration();
+      console.log('✅ Proveedor creado en backend:', newProvider);
       return newProvider;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al agregar proveedor');
+      console.error('❌ Error al crear proveedor:', err);
       throw err;
     }
   }, [refreshConfiguration]);
@@ -128,13 +139,24 @@ export const useConfiguration = () => {
 
   // ==================== GESTIÓN DE MATERIALES ====================
 
-  const addMaterial = useCallback((material: Omit<MaterialOption, 'id'>) => {
+  // ✅ CAMBIO CRÍTICO: Ahora SIEMPRE envía al backend
+  const addMaterial = useCallback(async (material: Omit<MaterialOption, 'id'>) => {
     try {
-      const newMaterial = ConfigService.addMaterial(material);
+      // ✅ ENVIAR AL BACKEND INMEDIATAMENTE
+      const { MaterialApiService } = await import('../services/inventoryApiService');
+      const newMaterial = await MaterialApiService.createMaterial(material);
+      
+      // ✅ Actualizar configuración local con datos del backend
+      const config = ConfigService.getConfiguration();
+      config.materials.push(newMaterial);
+      ConfigService.saveConfiguration(config);
+      
       refreshConfiguration();
+      console.log('✅ Material creado en backend:', newMaterial);
       return newMaterial;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al agregar material');
+      console.error('❌ Error al crear material:', err);
       throw err;
     }
   }, [refreshConfiguration]);

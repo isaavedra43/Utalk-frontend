@@ -45,7 +45,8 @@ export const ProviderManager: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // ✅ Cambio: Ahora es async porque addProvider envía al backend
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
@@ -54,14 +55,18 @@ export const ProviderManager: React.FC = () => {
       if (editingProvider) {
         updateProvider(editingProvider.id, formData);
       } else {
-        addProvider(formData);
+        // ✅ Ahora espera la respuesta del backend
+        console.log('📤 Enviando proveedor al backend...');
+        await addProvider(formData);
+        console.log('✅ Proveedor guardado exitosamente');
       }
       
       resetForm();
       setShowAddModal(false);
       setEditingProvider(null);
     } catch (error) {
-      console.error('Error al guardar proveedor:', error);
+      console.error('❌ Error al guardar proveedor:', error);
+      alert('Error al guardar proveedor. Verifica tu conexión a internet.');
     }
   };
 

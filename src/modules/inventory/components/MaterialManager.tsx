@@ -50,7 +50,8 @@ export const MaterialManager: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // ✅ Cambio: Ahora es async porque addMaterial envía al backend
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
@@ -59,14 +60,18 @@ export const MaterialManager: React.FC = () => {
       if (editingMaterial) {
         updateMaterial(editingMaterial.id, formData);
       } else {
-        addMaterial(formData);
+        // ✅ Ahora espera la respuesta del backend
+        console.log('📤 Enviando material al backend...');
+        await addMaterial(formData);
+        console.log('✅ Material guardado exitosamente');
       }
       
       resetForm();
       setShowAddModal(false);
       setEditingMaterial(null);
     } catch (error) {
-      console.error('Error al guardar material:', error);
+      console.error('❌ Error al guardar material:', error);
+      alert('Error al guardar material. Verifica tu conexión a internet.');
     }
   };
 
