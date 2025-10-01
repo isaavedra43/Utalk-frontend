@@ -52,7 +52,8 @@ api.interceptors.request.use(
 
     // VALIDACIÓN MEJORADA DE TOKENS - CRÍTICO PARA CALIDAD
     const token = localStorage.getItem('access_token');
-    const shouldAddToken = method !== 'GET' || url.includes('/api/media/proxy');
+    // ✅ CORREGIDO: Agregar token a TODAS las llamadas API (incluyendo GET)
+    const shouldAddToken = true;
     
     // Validación estricta del token antes de agregarlo
     if (token && shouldAddToken) {

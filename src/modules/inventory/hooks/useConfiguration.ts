@@ -9,65 +9,74 @@ export const useConfiguration = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Cargar configuración inicial
+  // ✅ PRIORIDAD: Cargar datos del backend PRIMERO, luego configuración local como fallback
   useEffect(() => {
-    try {
-      const config = ConfigService.getConfiguration();
-      setConfiguration(config);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar configuración');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // ✅ NUEVO: Traer proveedores y materiales reales del backend al abrir configuración
-  useEffect(() => {
-    const fetchBackendData = async () => {
+    const initializeConfiguration = async () => {
       try {
         setLoading(true);
-        console.log('🔄 Cargando proveedores y materiales desde el backend...');
-        
-        const [{ ProviderApiService, MaterialApiService }] = await Promise.all([
-          import('../services/inventoryApiService')
-        ]);
-
-        const [providers, materialsResponse] = await Promise.all([
-          ProviderApiService.getAllProviders(),
-          MaterialApiService.getAllMaterials({ limit: 1000 })
-        ]);
-
-        console.log('📦 Proveedores cargados:', providers);
-        console.log('📦 Respuesta de materiales:', materialsResponse);
-
-        // Extraer materiales de la respuesta
-        let materials = [];
-        if (materialsResponse && materialsResponse.data) {
-          materials = materialsResponse.data;
-        } else if (Array.isArray(materialsResponse)) {
-          materials = materialsResponse;
-        }
-
-        console.log('📦 Materiales extraídos:', materials);
-
-        const current = ConfigService.getConfiguration();
-        current.providers = providers || [];
-        current.materials = materials || [];
-        ConfigService.saveConfiguration(current);
-        setConfiguration({ ...current });
         setError(null);
         
-        console.log('✅ Configuración actualizada con datos del backend');
+        console.log('🔄 Iniciando carga de configuración desde backend...');
+        
+        // ✅ PASO 1: Intentar cargar desde backend PRIMERO
+        try {
+          console.log('📡 Importando servicios de API...');
+          const [{ ProviderApiService, MaterialApiService }] = await Promise.all([
+            import('../services/inventoryApiService')
+          ]);
+
+          console.log('📡 Haciendo llamadas al backend...');
+          const [providers, materialsResponse] = await Promise.all([
+            ProviderApiService.getAllProviders(),
+            MaterialApiService.getAllMaterials({ limit: 1000 })
+          ]);
+
+          console.log('✅ Proveedores obtenidos del backend:', providers?.length || 0);
+          console.log('✅ Respuesta de materiales del backend:', materialsResponse);
+
+          // Extraer materiales de la respuesta
+          let materials = [];
+          if (materialsResponse && materialsResponse.data) {
+            materials = materialsResponse.data;
+          } else if (Array.isArray(materialsResponse)) {
+            materials = materialsResponse;
+          }
+
+          console.log('✅ Materiales extraídos del backend:', materials?.length || 0);
+
+          // ✅ PASO 2: Actualizar configuración local con datos del backend
+          const config = ConfigService.getConfiguration();
+          config.providers = providers || [];
+          config.materials = materials || [];
+          config.lastUpdated = new Date();
+          ConfigService.saveConfiguration(config);
+          setConfiguration(config);
+          
+          console.log('✅ Configuración inicializada con datos del backend');
+          return;
+          
+        } catch (backendError) {
+          console.warn('⚠️ Error cargando desde backend, usando configuración local:', backendError);
+          // ✅ PASO 3: Fallback a configuración local si falla el backend
+          const config = ConfigService.getConfiguration();
+          setConfiguration(config);
+          console.log('✅ Configuración inicializada con datos locales');
+        }
+        
       } catch (err) {
-        console.warn('⚠️ No se pudo obtener proveedores/materiales del backend, mostrando locales.', err);
-        console.error('❌ Error detallado:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Error al cargar configuración';
+        setError(errorMessage);
+        console.error('❌ Error crítico al inicializar configuración:', err);
+        
+        // Último fallback: configuración vacía
+        const emptyConfig = ConfigService.getConfiguration();
+        setConfiguration(emptyConfig);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBackendData();
+    initializeConfiguration();
   }, []);
 
   // ==================== GESTIÓN GENERAL ====================

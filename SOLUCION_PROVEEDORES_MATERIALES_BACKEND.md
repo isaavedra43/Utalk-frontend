@@ -5,7 +5,21 @@ El módulo de inventario no mostraba los proveedores y materiales guardados en l
 
 ## 🔧 Correcciones Implementadas
 
-### 1. **Servicios de API Actualizados** (`inventoryApiService.ts`)
+### 1. **Problema Principal Identificado y Solucionado**
+
+**❌ PROBLEMA CRÍTICO:** El servicio de API (`src/services/api.ts`) tenía una condición que **NO agregaba el token de autenticación a las llamadas GET**, incluyendo las llamadas a `/api/inventory/providers` y `/api/inventory/materials`.
+
+**✅ SOLUCIÓN:** Corregido para agregar el token de autenticación a **TODAS** las llamadas API.
+
+```typescript
+// ANTES (INCORRECTO):
+const shouldAddToken = method !== 'GET' || url.includes('/api/media/proxy');
+
+// DESPUÉS (CORREGIDO):
+const shouldAddToken = true; // Agregar token a TODAS las llamadas API
+```
+
+### 2. **Servicios de API Actualizados** (`inventoryApiService.ts`)
 
 #### ✅ Proveedores Globales
 ```typescript
@@ -50,7 +64,7 @@ static async getProviderMaterials(providerId: string): Promise<MaterialOption[]>
 }
 ```
 
-### 2. **Hook de Configuración Actualizado** (`useConfiguration.ts`)
+### 3. **Hook de Configuración Actualizado** (`useConfiguration.ts`)
 
 #### ✅ Carga Automática desde Backend
 ```typescript
@@ -88,7 +102,7 @@ const refreshFromBackend = async () => {
 };
 ```
 
-### 3. **Modal de Configuración Mejorado** (`ConfigurationModal.tsx`)
+### 4. **Modal de Configuración Mejorado** (`ConfigurationModal.tsx`)
 
 #### ✅ Botón de Actualización
 - Agregado botón "Actualizar" en la barra de estadísticas
@@ -107,7 +121,12 @@ const refreshFromBackend = async () => {
 </button>
 ```
 
-### 4. **Correcciones de Tipado TypeScript**
+#### ✅ Botón de Prueba de APIs
+- Agregado botón "Probar APIs" para verificar conectividad
+- Permite probar las llamadas a proveedores y materiales directamente
+- Muestra resultados en consola y notificaciones
+
+### 5. **Correcciones de Tipado TypeScript**
 
 #### ✅ Interfaces Mejoradas
 ```typescript
@@ -177,11 +196,26 @@ GET /api/inventory/providers/:providerId/materials
 
 ## ✅ Verificación
 
-1. **Proveedores**: Todos los agentes ven la misma lista de proveedores
-2. **Materiales**: Todos los agentes ven la misma lista de materiales
+### Pasos para Probar:
+
+1. **Abrir Modal de Configuración**: Ir al módulo de inventario y hacer clic en el botón de configuración
+2. **Verificar Logs**: En la consola del navegador, buscar logs que empiecen con:
+   - `🔄 Iniciando carga de configuración desde backend...`
+   - `📡 Haciendo llamadas al backend...`
+   - `✅ Proveedores obtenidos del backend:`
+   - `✅ Materiales extraídos del backend:`
+
+3. **Probar APIs Manualmente**: Hacer clic en el botón "Probar APIs" para verificar conectividad
+4. **Verificar Datos**: Los proveedores y materiales deben aparecer en sus respectivas pestañas
+
+### Resultados Esperados:
+
+1. **Proveedores**: Todos los agentes ven la misma lista de proveedores desde el backend
+2. **Materiales**: Todos los agentes ven la misma lista de materiales desde el backend
 3. **Plataformas**: Al crear nueva plataforma, se cargan materiales del proveedor seleccionado
 4. **Actualización**: Botón de refresh funciona correctamente
-5. **Tipado**: Sin errores de TypeScript
+5. **Pruebas**: Botón "Probar APIs" muestra resultados exitosos
+6. **Tipado**: Sin errores de TypeScript
 
 ## 🎯 Resultado Final
 

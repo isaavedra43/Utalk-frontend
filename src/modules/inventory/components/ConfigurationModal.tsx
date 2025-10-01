@@ -24,6 +24,16 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
     refreshFromBackend // ✅ NUEVO: Función para refrescar desde backend
   } = useConfiguration();
 
+  // ✅ DEBUG: Logs para verificar estado del modal
+  console.log('🔍 ConfigurationModal renderizado');
+  console.log('🔍 Estado de configuración:', { 
+    configuration: !!configuration, 
+    loading, 
+    error,
+    providersCount: configuration?.providers?.length || 0,
+    materialsCount: configuration?.materials?.length || 0
+  });
+
   const [activeTab, setActiveTab] = useState<TabType>('providers');
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -52,6 +62,28 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
       showNotification('success', 'Datos actualizados desde el backend');
     } catch (error) {
       showNotification('error', 'Error al actualizar datos desde el backend');
+    }
+  };
+
+  // ✅ NUEVO: Función para probar las APIs directamente
+  const handleTestAPIs = async () => {
+    try {
+      console.log('🧪 Probando APIs directamente...');
+      
+      // Probar proveedores
+      const { ProviderApiService } = await import('../services/inventoryApiService');
+      const providers = await ProviderApiService.getAllProviders();
+      console.log('🧪 Proveedores obtenidos:', providers);
+      
+      // Probar materiales
+      const { MaterialApiService } = await import('../services/inventoryApiService');
+      const materials = await MaterialApiService.getAllMaterials({ limit: 1000 });
+      console.log('🧪 Materiales obtenidos:', materials);
+      
+      showNotification('success', `APIs funcionando: ${providers.length} proveedores, ${materials.data?.length || 0} materiales`);
+    } catch (error) {
+      console.error('🧪 Error en prueba de APIs:', error);
+      showNotification('error', `Error en APIs: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   };
 
@@ -161,15 +193,27 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
                 </div>
               </div>
               
-              {/* ✅ NUEVO: Botón para refrescar desde backend */}
-              <button
-                onClick={handleRefreshFromBackend}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
-                title="Actualizar datos desde el backend"
-              >
-                <RefreshCw className="h-3 w-3" />
-                <span className="hidden sm:inline">Actualizar</span>
-              </button>
+              <div className="flex items-center gap-2">
+                {/* ✅ NUEVO: Botón para probar APIs */}
+                <button
+                  onClick={handleTestAPIs}
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100 transition-colors"
+                  title="Probar conexión con APIs"
+                >
+                  <Check className="h-3 w-3" />
+                  <span className="hidden sm:inline">Probar APIs</span>
+                </button>
+                
+                {/* ✅ NUEVO: Botón para refrescar desde backend */}
+                <button
+                  onClick={handleRefreshFromBackend}
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                  title="Actualizar datos desde el backend"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  <span className="hidden sm:inline">Actualizar</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
