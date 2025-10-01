@@ -19,7 +19,7 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
   onAddMultiplePieces,
   onChangeWidth
 }) => {
-  const { activeMaterials } = useConfiguration();
+  const { activeMaterials, initializeDefaultConfiguration } = useConfiguration();
   
   const [length, setLength] = useState('');
   const [selectedMaterial, setSelectedMaterial] = useState(availableMaterials[0] || '');
@@ -32,9 +32,8 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
   const [batchData, setBatchData] = useState({ count: '', length: '', material: availableMaterials[0] || '' });
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Filtrar materiales disponibles
+  // Filtrar materiales disponibles - MOSTRAR TODOS LOS MATERIALES (no solo los de la plataforma)
   const filteredMaterials = activeMaterials.filter(material =>
-    availableMaterials.includes(material.name) &&
     material.name.toLowerCase().includes(materialSearch.toLowerCase())
   );
 
@@ -42,6 +41,14 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // ✅ Inicializar configuración por defecto si no hay materiales
+  useEffect(() => {
+    if (activeMaterials.length === 0) {
+      console.log('🔧 No hay materiales disponibles, inicializando configuración por defecto...');
+      initializeDefaultConfiguration();
+    }
+  }, [activeMaterials.length, initializeDefaultConfiguration]);
 
   // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
@@ -65,10 +72,8 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
       return;
     }
 
-    if (!selectedMaterial) {
-      setError('Selecciona un material');
-      return;
-    }
+    // ✅ MATERIAL ES OPCIONAL - usar material seleccionado o "Sin especificar"
+    const materialToUse = selectedMaterial || materialSearch || 'Sin especificar';
 
     const validation = validateLength(lengthValue);
     if (!validation.valid) {
@@ -76,7 +81,7 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
       return;
     }
 
-    const success = onAddPiece(lengthValue, selectedMaterial);
+    const success = onAddPiece(lengthValue, materialToUse);
     if (success) {
       setLength('');
       setError('');
@@ -120,10 +125,8 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
       return;
     }
 
-    if (!batchData.material) {
-      setError('Selecciona un material');
-      return;
-    }
+    // ✅ MATERIAL ES OPCIONAL EN MODO LOTE TAMBIÉN
+    const materialToUse = batchData.material || 'Sin especificar';
 
     const validation = validateLength(lengthValue);
     if (!validation.valid) {
@@ -131,7 +134,7 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
       return;
     }
 
-    const pieces = Array(count).fill({ length: lengthValue, material: batchData.material });
+    const pieces = Array(count).fill({ length: lengthValue, material: materialToUse });
     onAddMultiplePieces(pieces);
     
     setBatchData({ count: '', length: '', material: availableMaterials[0] || '' });
@@ -231,7 +234,7 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
             {/* Material Selector */}
             <div className="mb-3 sm:mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Material de la Pieza
+                Material de la Pieza <span className="text-gray-500">(Opcional)</span>
               </label>
               <div className="relative">
                 <input
@@ -242,7 +245,7 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
                     setShowMaterialDropdown(true);
                   }}
                   onFocus={() => setShowMaterialDropdown(true)}
-                  placeholder="Buscar material..."
+                  placeholder="Escribir material o buscar en la lista..."
                   className="w-full px-4 py-4 sm:py-3 text-xl sm:text-lg border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -271,7 +274,9 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
                       </button>
                     ))}
                     {filteredMaterials.length === 0 && (
-                      <div className="px-3 py-2 text-sm text-gray-500">No se encontraron materiales</div>
+                      <div className="px-3 py-2 text-sm text-gray-500">
+                        {materialSearch ? 'No se encontraron materiales con ese nombre' : 'Escribe el nombre del material o selecciona uno de la lista'}
+                      </div>
                     )}
                   </div>
                 )}
@@ -372,9 +377,10 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
                   onChange={(e) => setBatchData({ ...batchData, material: e.target.value })}
                   className="w-full px-3 py-3 sm:py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  {availableMaterials.map((material) => (
-                    <option key={material} value={material}>
-                      {material}
+                  <option value="">Sin especificar</option>
+                  {activeMaterials.map((material) => (
+                    <option key={material.id} value={material.name}>
+                      {material.name}
                     </option>
                   ))}
                 </select>
