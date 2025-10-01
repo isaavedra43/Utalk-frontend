@@ -832,3 +832,62 @@
     color: #f9fafb;
   }
 }
+
+/* ===== PREVENIR ZOOM AUTOMÁTICO EN iOS ===== */
+/* Regla global para todos los inputs - previene zoom automático en iOS */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+textarea,
+select {
+  font-size: 16px !important;
+}
+
+/* Regla específica para móviles iOS */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  textarea,
+  select {
+    font-size: 16px !important;
+    -webkit-appearance: none;
+    border-radius: 0;
+  }
+}
+
+/* Regla adicional para inputs en formularios */
+form input,
+form textarea,
+form select {
+  font-size: 16px !important;
+}
+
+/* Regla para inputs dentro de modales */
+.modal input,
+.modal textarea,
+.modal select {
+  font-size: 16px !important;
+}
+
+/* Regla para inputs en componentes específicos */
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select-selector,
+.ant-picker-input input {
+  font-size: 16px !important;
+}

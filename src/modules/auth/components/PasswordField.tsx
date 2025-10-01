@@ -33,6 +33,7 @@ export const PasswordField: React.FC<PasswordFieldProps> = ({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
+          style={{ fontSize: '16px' }}
           className={`w-full px-3 py-2 sm:py-2.5 pr-10 border rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
             error 
               ? 'border-red-300 bg-red-50' 
