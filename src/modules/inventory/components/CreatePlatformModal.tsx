@@ -42,24 +42,24 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
       <div className="bg-white rounded-lg shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between rounded-t-lg">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <Package className="h-6 w-6" />
-            Nueva Plataforma
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between rounded-t-lg sticky top-0 z-10">
+          <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+            <Package className="h-5 w-5 sm:h-6 sm:w-6" />
+            <span className="truncate">Nueva Plataforma</span>
           </h2>
           <button
             onClick={onClose}
-            className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-1 transition-colors"
+            className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-1.5 transition-colors flex-shrink-0"
           >
-            <X className="h-6 w-6" />
+            <X className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           {/* Platform Number */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
@@ -130,17 +130,17 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
+          <div className="flex gap-2 sm:gap-3 pt-4 border-t border-gray-200">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              className="flex-1 px-4 py-3 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm sm:text-base active:scale-95"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md hover:shadow-lg"
+              className="flex-1 px-4 py-3 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md hover:shadow-lg text-sm sm:text-base active:scale-95"
             >
               Crear Plataforma
             </button>

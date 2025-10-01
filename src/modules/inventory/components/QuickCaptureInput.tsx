@@ -108,23 +108,23 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
   return (
     <div className="bg-white rounded-lg shadow-lg border-2 border-blue-200 overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 flex items-center justify-between">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-          <Zap className="h-5 w-5" />
-          Captura Rápida
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between">
+        <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+          <Zap className="h-4 w-4 sm:h-5 sm:w-5" />
+          <span className="truncate">Captura Rápida</span>
         </h3>
         <button
           onClick={() => setShowSettings(!showSettings)}
-          className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-1 transition-colors"
+          className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-1.5 transition-colors active:scale-95 flex-shrink-0"
         >
-          <Settings className="h-5 w-5" />
+          <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
         </button>
       </div>
 
       {/* Settings Panel */}
       {showSettings && (
-        <div className="bg-gray-50 border-b border-gray-200 p-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="bg-gray-50 border-b border-gray-200 p-3 sm:p-4">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
             Ancho Estándar (m)
           </label>
           <div className="flex gap-2">
@@ -135,11 +135,11 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
               step="0.01"
               min="0.01"
               max="5"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 px-3 py-2.5 sm:py-2 text-base sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <button
               onClick={handleChangeWidth}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-4 py-2.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium active:scale-95"
             >
               Aplicar
             </button>
@@ -151,28 +151,29 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
       )}
 
       {/* Main Capture */}
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {!showBatchMode ? (
           <>
             {/* Standard Width Display */}
-            <div className="bg-blue-50 rounded-lg p-3 mb-4 border border-blue-200">
+            <div className="bg-blue-50 rounded-lg p-3 mb-3 sm:mb-4 border border-blue-200">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-blue-600 font-medium flex items-center gap-2">
-                  <Layers className="h-4 w-4" />
-                  Ancho Estándar
+                <span className="text-xs sm:text-sm text-blue-600 font-medium flex items-center gap-2">
+                  <Layers className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">Ancho Estándar</span>
                 </span>
-                <span className="text-2xl font-bold text-blue-900">{standardWidth.toFixed(2)} m</span>
+                <span className="text-xl sm:text-2xl font-bold text-blue-900">{standardWidth.toFixed(2)} m</span>
               </div>
             </div>
 
-            {/* Length Input */}
-            <div className="mb-4">
+            {/* Length Input - OPTIMIZADO PARA MÓVIL */}
+            <div className="mb-3 sm:mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Longitud de la Pieza (metros)
               </label>
               <input
                 ref={inputRef}
                 type="number"
+                inputMode="decimal"
                 value={length}
                 onChange={(e) => {
                   setLength(e.target.value);
@@ -183,7 +184,7 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
                 min="0.01"
                 max="10"
                 placeholder="Ej: 2.15"
-                className={`w-full px-4 py-3 text-lg border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                className={`w-full px-4 py-4 sm:py-3 text-xl sm:text-lg border-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   error ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
@@ -194,10 +195,10 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
 
             {/* Preview */}
             {length && !error && (
-              <div className="bg-green-50 rounded-lg p-3 mb-4 border border-green-200">
+              <div className="bg-green-50 rounded-lg p-3 mb-3 sm:mb-4 border border-green-200">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-green-600 font-medium">Metros Lineales</span>
-                  <span className="text-2xl font-bold text-green-900">{previewMeters.toFixed(3)}</span>
+                  <span className="text-xs sm:text-sm text-green-600 font-medium">Metros Lineales</span>
+                  <span className="text-xl sm:text-2xl font-bold text-green-900">{previewMeters.toFixed(3)}</span>
                 </div>
                 <p className="text-xs text-green-600 mt-1">
                   {length} m × {standardWidth.toFixed(2)} m
@@ -205,18 +206,18 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
               </div>
             )}
 
-            {/* Add Button */}
+            {/* Add Button - GRANDE Y TÁCTIL PARA MÓVIL */}
             <button
               onClick={handleAdd}
               disabled={!length || !!error}
-              className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg shadow-lg hover:shadow-xl"
+              className="w-full flex items-center justify-center gap-2 px-6 py-5 sm:py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-bold text-xl sm:text-lg shadow-lg hover:shadow-xl active:scale-98"
             >
-              <Plus className="h-6 w-6" />
-              Agregar Pieza
+              <Plus className="h-7 w-7 sm:h-6 sm:w-6" />
+              <span>Agregar Pieza</span>
             </button>
 
-            {/* Keyboard Shortcuts */}
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            {/* Keyboard Shortcuts - Oculto en móvil */}
+            <div className="mt-3 sm:mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200 hidden sm:block">
               <p className="text-xs text-gray-600 font-medium mb-2">Atajos de Teclado:</p>
               <div className="space-y-1 text-xs text-gray-500">
                 <div className="flex justify-between">
@@ -233,7 +234,7 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
             {/* Batch Mode Button */}
             <button
               onClick={() => setShowBatchMode(true)}
-              className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2 border-2 border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium"
+              className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-3 sm:py-2 border-2 border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium text-sm sm:text-base active:scale-95"
             >
               <Layers className="h-4 w-4" />
               Modo Por Lotes
@@ -242,21 +243,22 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
         ) : (
           <>
             {/* Batch Mode */}
-            <h4 className="font-bold text-gray-900 mb-4">Agregar Múltiples Piezas</h4>
+            <h4 className="font-bold text-gray-900 mb-3 sm:mb-4 text-base sm:text-lg">Agregar Múltiples Piezas</h4>
             
-            <div className="space-y-3 mb-4">
+            <div className="space-y-3 mb-3 sm:mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Cantidad de Piezas
                 </label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   value={batchData.count}
                   onChange={(e) => setBatchData({ ...batchData, count: e.target.value })}
                   min="1"
                   max="100"
                   placeholder="Ej: 10"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-3 sm:py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
@@ -266,18 +268,19 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
                 </label>
                 <input
                   type="number"
+                  inputMode="decimal"
                   value={batchData.length}
                   onChange={(e) => setBatchData({ ...batchData, length: e.target.value })}
                   step="0.01"
                   min="0.01"
                   placeholder="Ej: 2.15"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-3 sm:py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
 
             {batchData.count && batchData.length && (
-              <div className="bg-blue-50 rounded-lg p-3 mb-4 border border-blue-200">
+              <div className="bg-blue-50 rounded-lg p-3 mb-3 sm:mb-4 border border-blue-200">
                 <p className="text-sm text-blue-800">
                   Se agregarán <strong>{batchData.count} piezas</strong> de <strong>{parseFloat(batchData.length).toFixed(2)}m</strong> cada una
                 </p>
@@ -295,14 +298,14 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
                   setBatchData({ count: '', length: '' });
                   setError('');
                 }}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-3 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base font-medium active:scale-95"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleBatchAdd}
                 disabled={!batchData.count || !batchData.length}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                className="flex-1 px-4 py-3 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm sm:text-base active:scale-95"
               >
                 Agregar Lote
               </button>

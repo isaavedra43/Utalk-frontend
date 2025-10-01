@@ -63,23 +63,23 @@ export const InventoryMainView: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-20 sm:pb-6">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <Archive className="h-7 w-7 text-blue-600" />
-                Inventario de Materiales
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 sm:mb-4">
+            <div className="flex-1">
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <Archive className="h-5 w-5 sm:h-7 sm:w-7 text-blue-600" />
+                <span className="truncate">Inventario de Materiales</span>
               </h1>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600 mt-1 hidden sm:block">
                 Gestión de cuantificación de metros lineales
               </p>
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
+              className="flex items-center justify-center gap-2 px-4 sm:px-4 py-3 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg text-sm sm:text-base font-medium w-full sm:w-auto active:scale-95"
             >
               <Plus className="h-5 w-5" />
               Nueva Plataforma
@@ -87,68 +87,68 @@ export const InventoryMainView: React.FC = () => {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-blue-600 font-medium">Total Plataformas</p>
-                  <p className="text-2xl font-bold text-blue-900">{stats.total}</p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-3 sm:mb-4">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 sm:p-4 border border-blue-200">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-blue-600 font-medium truncate">Total Plataformas</p>
+                  <p className="text-xl sm:text-2xl font-bold text-blue-900">{stats.total}</p>
                 </div>
-                <Package className="h-8 w-8 text-blue-500" />
+                <Package className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 self-end sm:self-auto" />
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-4 border border-yellow-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-yellow-600 font-medium">En Proceso</p>
-                  <p className="text-2xl font-bold text-yellow-900">{stats.inProgress}</p>
+            <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-3 sm:p-4 border border-yellow-200">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-yellow-600 font-medium truncate">En Proceso</p>
+                  <p className="text-xl sm:text-2xl font-bold text-yellow-900">{stats.inProgress}</p>
                 </div>
-                <Calendar className="h-8 w-8 text-yellow-500" />
+                <Calendar className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-500 self-end sm:self-auto" />
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-green-600 font-medium">Completadas</p>
-                  <p className="text-2xl font-bold text-green-900">{stats.completed}</p>
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 sm:p-4 border border-green-200">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-green-600 font-medium truncate">Completadas</p>
+                  <p className="text-xl sm:text-2xl font-bold text-green-900">{stats.completed}</p>
                 </div>
-                <Archive className="h-8 w-8 text-green-500" />
+                <Archive className="h-6 w-6 sm:h-8 sm:w-8 text-green-500 self-end sm:self-auto" />
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-purple-600 font-medium">Metros Totales</p>
-                  <p className="text-2xl font-bold text-purple-900">{stats.totalMeters.toFixed(2)}</p>
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3 sm:p-4 border border-purple-200">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-purple-600 font-medium truncate">Metros Totales</p>
+                  <p className="text-xl sm:text-2xl font-bold text-purple-900">{stats.totalMeters.toFixed(2)}</p>
                 </div>
-                <Archive className="h-8 w-8 text-purple-500" />
+                <Archive className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500 self-end sm:self-auto" />
               </div>
             </div>
           </div>
 
           {/* Search and Filters */}
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar por número de plataforma o material..."
+                placeholder="Buscar plataforma..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
             <div className="flex items-center gap-2">
-              <Filter className="h-5 w-5 text-gray-400" />
+              <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 flex-shrink-0" />
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 sm:py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="all">Todos los estados</option>
+                <option value="all">Todos</option>
                 <option value="in_progress">En Proceso</option>
                 <option value="completed">Completadas</option>
                 <option value="exported">Exportadas</option>
@@ -159,16 +159,16 @@ export const InventoryMainView: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
         {filteredPlatforms.length === 0 ? (
-          <div className="text-center py-12">
-            <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <div className="text-center py-8 sm:py-12 px-4">
+            <Package className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
               {searchTerm || statusFilter !== 'all' 
                 ? 'No se encontraron plataformas' 
                 : 'No hay plataformas registradas'}
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-sm sm:text-base text-gray-600 mb-4 max-w-md mx-auto">
               {searchTerm || statusFilter !== 'all'
                 ? 'Intenta con otros filtros de búsqueda'
                 : 'Comienza creando una nueva plataforma para registrar metros lineales'}
@@ -176,7 +176,7 @@ export const InventoryMainView: React.FC = () => {
             {!searchTerm && statusFilter === 'all' && (
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md active:scale-95 text-sm sm:text-base"
               >
                 <Plus className="h-5 w-5" />
                 Crear Primera Plataforma
@@ -184,7 +184,7 @@ export const InventoryMainView: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {filteredPlatforms.map(platform => (
               <PlatformCard
                 key={platform.id}

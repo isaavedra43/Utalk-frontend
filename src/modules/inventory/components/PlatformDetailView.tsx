@@ -159,49 +159,49 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-20 sm:pb-6">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
           {/* Top Bar */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 sm:mb-4">
             <button
               onClick={onBack}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors active:scale-95 self-start"
             >
               <ArrowLeft className="h-5 w-5" />
-              <span className="font-medium">Volver al listado</span>
+              <span className="font-medium text-sm sm:text-base">Volver</span>
             </button>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
               {lastAction?.type === 'add' && platform.pieces.length > 0 && (
                 <button
                   onClick={handleUndo}
-                  className="flex items-center gap-2 px-3 py-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                  className="flex items-center gap-1.5 sm:gap-2 px-3 py-2.5 sm:py-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors flex-shrink-0 active:scale-95"
                 >
                   <Undo className="h-4 w-4" />
-                  <span className="text-sm font-medium">Deshacer</span>
+                  <span className="text-xs sm:text-sm font-medium">Deshacer</span>
                 </button>
               )}
 
               {platform.status === 'in_progress' && platform.pieces.length > 0 && (
                 <button
                   onClick={handleComplete}
-                  className="flex items-center gap-2 px-3 py-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                  className="flex items-center gap-1.5 sm:gap-2 px-3 py-2.5 sm:py-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors flex-shrink-0 active:scale-95"
                 >
                   <Check className="h-4 w-4" />
-                  <span className="text-sm font-medium">Completar</span>
+                  <span className="text-xs sm:text-sm font-medium">Completar</span>
                 </button>
               )}
 
-              <div className="relative">
+              <div className="relative flex-shrink-0">
                 <button
                   onClick={() => setShowExportMenu(!showExportMenu)}
                   disabled={platform.pieces.length === 0}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1.5 sm:gap-2 px-4 py-2.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                 >
                   <Download className="h-4 w-4" />
-                  <span className="font-medium">Exportar</span>
+                  <span className="font-medium text-xs sm:text-sm">Exportar</span>
                 </button>
 
                 {showExportMenu && (
@@ -218,32 +218,34 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
           </div>
 
           {/* Platform Info */}
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900 mb-2 truncate">
                 Plataforma {platform.platformNumber}
               </h1>
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <span className="flex items-center gap-1">
-                  <Layers className="h-4 w-4" />
-                  {platform.materialType}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
+                <span className="flex items-center gap-1 truncate">
+                  <Layers className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                  <span className="truncate">{platform.materialType}</span>
+                </span>
+                <span className="flex items-center gap-1 truncate">
+                  <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                  <span className="truncate">
+                    {new Date(platform.receptionDate).toLocaleDateString('es-MX', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </span>
                 </span>
                 <span className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
-                  {new Date(platform.receptionDate).toLocaleDateString('es-MX', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Package className="h-4 w-4" />
-                  {platform.pieces.length} piezas
+                  <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                  <span>{platform.pieces.length} piezas</span>
                 </span>
               </div>
             </div>
 
-            <span className={`px-4 py-2 rounded-full text-sm font-medium ${statusColors[platform.status]}`}>
+            <span className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium ${statusColors[platform.status]} flex-shrink-0 text-center`}>
               {statusLabels[platform.status]}
             </span>
           </div>
@@ -251,10 +253,10 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Left Column - Quick Capture */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 order-1 lg:order-none">
             <QuickCaptureInput
               standardWidth={platform.standardWidth}
               onAddPiece={handleAddPiece}
@@ -263,26 +265,26 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
             />
 
             {/* Summary Card */}
-            <div className="bg-white rounded-lg shadow-md p-6 mt-6 border border-gray-200">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Resumen</h3>
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mt-4 sm:mt-6 border border-gray-200">
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Resumen</h3>
               
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                  <span className="text-sm text-blue-600 font-medium">Total Piezas</span>
-                  <span className="text-2xl font-bold text-blue-900">{platform.pieces.length}</span>
+              <div className="space-y-2.5 sm:space-y-3">
+                <div className="flex justify-between items-center p-2.5 sm:p-3 bg-blue-50 rounded-lg">
+                  <span className="text-xs sm:text-sm text-blue-600 font-medium">Total Piezas</span>
+                  <span className="text-xl sm:text-2xl font-bold text-blue-900">{platform.pieces.length}</span>
                 </div>
 
-                <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                  <span className="text-sm text-purple-600 font-medium">Longitud Total</span>
-                  <span className="text-2xl font-bold text-purple-900">{platform.totalLength.toFixed(2)} m</span>
+                <div className="flex justify-between items-center p-2.5 sm:p-3 bg-purple-50 rounded-lg">
+                  <span className="text-xs sm:text-sm text-purple-600 font-medium">Longitud Total</span>
+                  <span className="text-xl sm:text-2xl font-bold text-purple-900">{platform.totalLength.toFixed(2)} m</span>
                 </div>
 
-                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border-2 border-green-300">
-                  <span className="text-sm text-green-600 font-medium">Metros Lineales</span>
-                  <span className="text-3xl font-bold text-green-900">{platform.totalLinearMeters.toFixed(3)}</span>
+                <div className="flex justify-between items-center p-2.5 sm:p-3 bg-green-50 rounded-lg border-2 border-green-300">
+                  <span className="text-xs sm:text-sm text-green-600 font-medium">Metros Lineales</span>
+                  <span className="text-2xl sm:text-3xl font-bold text-green-900">{platform.totalLinearMeters.toFixed(3)}</span>
                 </div>
 
-                <div className="pt-3 border-t border-gray-200">
+                <div className="pt-2.5 sm:pt-3 border-t border-gray-200">
                   <div className="flex justify-between text-xs text-gray-500">
                     <span>Ancho estándar</span>
                     <span className="font-medium text-gray-700">{platform.standardWidth.toFixed(2)} m</span>
@@ -304,17 +306,17 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
         </div>
       </div>
 
-      {/* Notification */}
+      {/* Notification - Optimizado para móvil */}
       {notification && (
-        <div className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 ${
+        <div className={`fixed bottom-4 left-3 right-3 sm:left-auto sm:right-4 sm:w-auto px-4 sm:px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 ${
           notification.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
         }`}>
           {notification.type === 'success' ? (
-            <Check className="h-5 w-5" />
+            <Check className="h-5 w-5 flex-shrink-0" />
           ) : (
-            <AlertCircle className="h-5 w-5" />
+            <AlertCircle className="h-5 w-5 flex-shrink-0" />
           )}
-          <span className="font-medium">{notification.message}</span>
+          <span className="font-medium text-sm sm:text-base flex-1">{notification.message}</span>
         </div>
       )}
     </div>
