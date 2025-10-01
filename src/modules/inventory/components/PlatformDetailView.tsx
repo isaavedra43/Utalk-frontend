@@ -127,8 +127,24 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
       updatePlatform(platform.id, { status: 'exported' });
       showNotification('success', 'Exportado a PDF exitosamente');
     } catch (error) {
-      showNotification('error', 'Error al exportar a PDF');
-      console.error(error);
+      console.error('Error al exportar PDF:', error);
+      // Método alternativo: generar HTML y descargar
+      try {
+        const html = ExportService.generatePrintHTML(platform);
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Plataforma_${platform.platformNumber}_${new Date().toISOString().split('T')[0]}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showNotification('success', 'Archivo HTML generado como alternativa');
+      } catch (fallbackError) {
+        console.error('Error en método alternativo:', fallbackError);
+        showNotification('error', 'Error al exportar. Verifica los permisos del navegador.');
+      }
     } finally {
       setExporting(false);
       setShowExportMenu(false);
@@ -143,8 +159,8 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
       updatePlatform(platform.id, { status: 'exported' });
       showNotification('success', 'Exportado a Excel exitosamente');
     } catch (error) {
+      console.error('Error al exportar Excel:', error);
       showNotification('error', 'Error al exportar a Excel');
-      console.error(error);
     } finally {
       setExporting(false);
       setShowExportMenu(false);
@@ -159,8 +175,8 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
       updatePlatform(platform.id, { status: 'exported' });
       showNotification('success', 'Exportado como imagen exitosamente');
     } catch (error) {
+      console.error('Error al exportar imagen:', error);
       showNotification('error', 'Error al exportar como imagen');
-      console.error(error);
     } finally {
       setExporting(false);
       setShowExportMenu(false);
@@ -232,7 +248,7 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 sm:pb-6">
+    <div className="h-screen bg-gray-50 overflow-y-auto pb-20 sm:pb-6">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">

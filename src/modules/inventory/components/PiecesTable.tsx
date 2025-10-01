@@ -72,27 +72,27 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
         <p className="text-blue-100 text-xs sm:text-sm mt-1">{pieces.length} pieza(s) registrada(s)</p>
       </div>
 
-      {/* Table - SCROLLEABLE EN MÓVIL */}
-      <div className="overflow-x-auto -mx-px">
-        <table className="w-full min-w-[800px]">
+      {/* Table - SCROLLEABLE HORIZONTAL */}
+      <div className="overflow-x-auto -mx-px border border-gray-200 rounded-lg">
+        <table className="w-full min-w-[1000px]">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+              <th className="w-16 px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                 No.
               </th>
-              <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+              <th className="w-48 px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                 Material
               </th>
-              <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+              <th className="w-24 px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                 Longitud (m)
               </th>
-              <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+              <th className="w-20 px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                 Ancho (m)
               </th>
-              <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+              <th className="w-28 px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                 Metros Lineales
               </th>
-              <th className="px-3 sm:px-6 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+              <th className="w-24 px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                 Acciones
               </th>
             </tr>
@@ -100,22 +100,22 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
           <tbody className="divide-y divide-gray-200">
             {pieces.map((piece, index) => (
               <tr key={piece.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <td className="w-16 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-center">
                   {piece.number}
                 </td>
-                <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="w-48 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-900">
                   {editingId === piece.id ? (
                     <input
                       type="text"
                       value={editMaterial}
                       onChange={(e) => setEditMaterial(e.target.value)}
-                      className="w-32 sm:w-40 px-2 py-1.5 text-base sm:text-sm border border-blue-500 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-2 py-1.5 text-sm border border-blue-500 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   ) : (
-                    <span className="text-sm font-medium text-blue-700">{piece.material}</span>
+                    <span className="text-sm font-medium text-blue-700 truncate block">{piece.material}</span>
                   )}
                 </td>
-                <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="w-24 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-900">
                   {editingId === piece.id ? (
                     <input
                       type="number"
@@ -127,49 +127,49 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
                         if (e.key === 'Escape') handleCancelEdit();
                       }}
                       step="0.01"
-                      className="w-20 sm:w-24 px-2 py-1.5 text-base sm:text-sm border border-blue-500 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-2 py-1.5 text-sm border border-blue-500 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       autoFocus
                     />
                   ) : (
-                    <span className="font-mono">{formatNumber(piece.length, 2)}</span>
+                    <span className="font-mono text-center block">{formatNumber(piece.length, 2)}</span>
                   )}
                 </td>
-                <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-700 font-mono">
+                <td className="w-20 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-700 font-mono text-center">
                   {formatNumber(piece.standardWidth, 2)}
                 </td>
-                <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm font-bold text-green-600 font-mono">
+                <td className="w-28 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm font-bold text-green-600 font-mono text-center">
                   {formatNumber(piece.linearMeters, 3)}
                 </td>
-                <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium">
+                <td className="w-24 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium">
                   {editingId === piece.id ? (
-                    <div className="flex justify-end gap-1 sm:gap-2">
+                    <div className="flex justify-center gap-1">
                       <button
                         onClick={() => handleSaveEdit(piece.id)}
-                        className="text-green-600 hover:text-green-900 p-1.5 sm:p-1 hover:bg-green-50 rounded transition-colors active:scale-95"
+                        className="text-green-600 hover:text-green-900 p-1.5 hover:bg-green-50 rounded transition-colors active:scale-95"
                         title="Guardar"
                       >
                         <Check className="h-4 w-4" />
                       </button>
                       <button
                         onClick={handleCancelEdit}
-                        className="text-gray-600 hover:text-gray-900 p-1.5 sm:p-1 hover:bg-gray-50 rounded transition-colors active:scale-95"
+                        className="text-gray-600 hover:text-gray-900 p-1.5 hover:bg-gray-50 rounded transition-colors active:scale-95"
                         title="Cancelar"
                       >
                         <X className="h-4 w-4" />
                       </button>
                     </div>
                   ) : (
-                    <div className="flex justify-end gap-1 sm:gap-2">
+                    <div className="flex justify-center gap-1">
                       <button
                         onClick={() => handleStartEdit(piece)}
-                        className="text-blue-600 hover:text-blue-900 p-1.5 sm:p-1 hover:bg-blue-50 rounded transition-colors active:scale-95"
+                        className="text-blue-600 hover:text-blue-900 p-1.5 hover:bg-blue-50 rounded transition-colors active:scale-95"
                         title="Editar"
                       >
                         <Edit3 className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => onDeletePiece(piece.id)}
-                        className="text-red-600 hover:text-red-900 p-1.5 sm:p-1 hover:bg-red-50 rounded transition-colors active:scale-95"
+                        className="text-red-600 hover:text-red-900 p-1.5 hover:bg-red-50 rounded transition-colors active:scale-95"
                         title="Eliminar"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -182,22 +182,22 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
 
             {/* Totals Row */}
             <tr className="bg-blue-600 text-white font-bold">
-              <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm">
+              <td className="w-16 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm text-center">
                 TOTAL
               </td>
-              <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm">
+              <td className="w-48 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm text-center">
                 —
               </td>
-              <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm font-mono">
+              <td className="w-24 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm font-mono text-center">
                 {formatNumber(totals.totalLength, 2)}
               </td>
-              <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm font-mono">
+              <td className="w-20 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm font-mono text-center">
                 {formatNumber(standardWidth, 2)}
               </td>
-              <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-base sm:text-lg font-mono">
+              <td className="w-28 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-base sm:text-lg font-mono text-center">
                 {formatNumber(totals.totalMeters, 3)}
               </td>
-              <td className="px-3 sm:px-6 py-3 sm:py-4"></td>
+              <td className="w-24 px-3 sm:px-4 py-3 sm:py-4"></td>
             </tr>
           </tbody>
         </table>
@@ -205,12 +205,15 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
 
       {/* Footer Info */}
       <div className="bg-gray-50 px-4 sm:px-6 py-3 border-t border-gray-200">
-        <p className="text-xs text-gray-600 text-center sm:text-left">
-          <strong>Nota:</strong> Haz clic en <Edit3 className="inline h-3 w-3" /> para editar o en <Trash2 className="inline h-3 w-3" /> para eliminar
-        </p>
-        <p className="text-xs text-gray-500 text-center mt-1 sm:hidden">
-          Desliza la tabla horizontalmente →
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <p className="text-xs text-gray-600">
+            <strong>Nota:</strong> Haz clic en <Edit3 className="inline h-3 w-3 mx-1" /> para editar o en <Trash2 className="inline h-3 w-3 mx-1" /> para eliminar
+          </p>
+          <p className="text-xs text-blue-600 font-medium flex items-center gap-1">
+            <span className="hidden sm:inline">← Desliza horizontalmente para ver más columnas</span>
+            <span className="sm:hidden">← Desliza horizontalmente</span>
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -45,6 +45,7 @@ export interface Provider {
   name: string;
   contact?: string;
   phone?: string;
+  materialIds: string[]; // IDs de los materiales que maneja este proveedor
 }
 
 export interface MaterialOption {
@@ -53,6 +54,7 @@ export interface MaterialOption {
   category?: string;
   description?: string;
   isActive?: boolean;
+  providerIds: string[]; // IDs de los proveedores que manejan este material
 }
 
 export interface ModuleConfiguration {

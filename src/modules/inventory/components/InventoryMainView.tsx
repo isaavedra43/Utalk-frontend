@@ -71,7 +71,7 @@ export const InventoryMainView: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 sm:pb-6">
+    <div className="h-screen bg-gray-50 overflow-y-auto pb-20 sm:pb-6">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">

@@ -57,11 +57,29 @@ export class ExportService {
    * Exporta a Excel (CSV con BOM para Excel)
    */
   static async exportToExcel(platform: Platform): Promise<void> {
-    const csv = this.toCSV(platform);
-    const BOM = '\uFEFF'; // Byte Order Mark para Excel
-    const filename = `Plataforma_${platform.platformNumber}_${new Date().toISOString().split('T')[0]}.csv`;
-    
-    this.downloadFile(BOM + csv, filename, 'text/csv;charset=utf-8;');
+    try {
+      const csv = this.toCSV(platform);
+      const BOM = '\uFEFF'; // Byte Order Mark para Excel
+      const filename = `Plataforma_${platform.platformNumber}_${new Date().toISOString().split('T')[0]}.csv`;
+      
+      // Crear blob y descargar
+      const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Limpiar URL
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    } catch (error) {
+      throw new Error('Error al exportar a Excel: ' + error);
+    }
   }
 
   /**
@@ -232,23 +250,46 @@ export class ExportService {
    * Imprime una plataforma (o genera PDF si el navegador lo soporta)
    */
   static async printToPDF(platform: Platform): Promise<void> {
-    const html = this.generatePrintHTML(platform);
-    const printWindow = window.open('', '_blank');
-    
-    if (!printWindow) {
-      throw new Error('No se pudo abrir la ventana de impresión. Verifica los permisos del navegador.');
+    try {
+      const html = this.generatePrintHTML(platform);
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
+      
+      if (!printWindow) {
+        throw new Error('No se pudo abrir la ventana de impresión. Verifica los permisos del navegador.');
+      }
+      
+      printWindow.document.write(html);
+      printWindow.document.close();
+      
+      // Esperar a que se cargue el contenido
+      return new Promise((resolve, reject) => {
+        printWindow.onload = () => {
+          setTimeout(() => {
+            try {
+              printWindow.focus();
+              printWindow.print();
+              setTimeout(() => {
+                printWindow.close();
+                resolve();
+              }, 1000);
+            } catch (printError) {
+              reject(new Error('Error al imprimir: ' + printError));
+            }
+          }, 250);
+        };
+        
+        printWindow.onerror = () => {
+          reject(new Error('Error al cargar el contenido para impresión'));
+        };
+        
+        // Timeout de seguridad
+        setTimeout(() => {
+          reject(new Error('Timeout: No se pudo cargar el contenido para impresión'));
+        }, 5000);
+      });
+    } catch (error) {
+      throw new Error('Error al generar PDF: ' + error);
     }
-    
-    printWindow.document.write(html);
-    printWindow.document.close();
-    
-    // Esperar a que se cargue antes de imprimir
-    printWindow.onload = () => {
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-      }, 250);
-    };
   }
 
   /**
@@ -303,18 +344,33 @@ export class ExportService {
 
     // Descargar imagen
     const filename = `Plataforma_${platform.platformNumber}_${new Date().toISOString().split('T')[0]}.png`;
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }
-    }, 'image/png');
+    
+    return new Promise<void>((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        try {
+          if (!blob) {
+            reject(new Error('No se pudo generar la imagen'));
+            return;
+          }
+          
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = filename;
+          link.style.display = 'none';
+          
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          // Limpiar URL después de un tiempo
+          setTimeout(() => URL.revokeObjectURL(url), 100);
+          resolve();
+        } catch (error) {
+          reject(new Error('Error al descargar imagen: ' + error));
+        }
+      }, 'image/png');
+    });
   }
 
   /**

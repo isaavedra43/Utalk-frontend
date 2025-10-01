@@ -90,7 +90,7 @@ export const MainLayout: React.FC = () => {
     if (path === '/copilot') return 'copilot';
     if (path === '/providers') return 'providers';
     if (path === '/warehouse') return 'warehouse';
-    if (path === '/inventory') return 'inventory';
+    if (path.startsWith('/inventory')) return 'inventory';
     if (path === '/shipping') return 'shipping';
     if (path === '/services') return 'services';
     return 'dashboard'; // default
