@@ -42,6 +42,7 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
   const [lastAction, setLastAction] = useState<{ type: 'add' | 'delete'; pieceId?: string } | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [showEvidenceSection, setShowEvidenceSection] = useState(false);
+  const [showEvidenceModal, setShowEvidenceModal] = useState(false);
   const [exporting, setExporting] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -552,8 +553,9 @@ Generado por Sistema de Inventario`;
               </span>
             </div>
 
-            {/* Fila 2: Botones de Acción - COMPACTOS */}
+            {/* Fila 2: Botones de Acción - REORGANIZADOS */}
             <div className="flex items-center gap-2 mb-3">
+              {/* Botón Completar - Primera posición */}
               {platform.status === 'in_progress' && platform.pieces.length > 0 && (
                 <button
                   onClick={handleComplete}
@@ -564,6 +566,7 @@ Generado por Sistema de Inventario`;
                 </button>
               )}
 
+              {/* Botón Deshacer - Segunda posición */}
               {lastAction?.type === 'add' && platform.pieces.length > 0 && (
                 <button
                   onClick={handleUndo}
@@ -574,6 +577,7 @@ Generado por Sistema de Inventario`;
                 </button>
               )}
 
+              {/* Botón Eliminar - Tercera posición */}
               <button
                 onClick={() => setShowDeleteModal(true)}
                 className="flex items-center justify-center gap-1 px-3 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg shadow-sm active:scale-95 transition-transform"
@@ -700,11 +704,11 @@ Generado por Sistema de Inventario`;
         </div>
       </div>
 
-      {/* Indicador de Sincronización */}
+      {/* Indicador de Sincronización - MEJORADO ESPACIADO */}
       {platform.needsSync && (
-        <div className="bg-gradient-to-r from-orange-50 to-orange-100 border-b border-orange-200 px-3 sm:px-6 lg:px-8 py-2">
+        <div className="bg-gradient-to-r from-orange-50 to-orange-100 border-b border-orange-200 px-3 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
               <span className="text-xs sm:text-sm text-orange-700 font-medium">
                 Esta plataforma necesita sincronización
@@ -716,7 +720,7 @@ Generado por Sistema de Inventario`;
                   updatePlatform(platform.id, {});
                   syncPendingPlatforms();
                 }}
-                className="text-xs text-orange-600 hover:text-orange-800 font-medium underline"
+                className="text-xs text-orange-600 hover:text-orange-800 font-medium underline px-2 py-1"
               >
                 Sincronizar
               </button>
@@ -842,9 +846,10 @@ Generado por Sistema de Inventario`;
         </div>
       </div>
 
-      {/* Barra de botones MEJORADA - Solo en móvil */}
+      {/* Barra de botones OPTIMIZADA - Solo en móvil */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-30 p-2.5">
         <div className="flex justify-center gap-2">
+          {/* Botón Excel */}
           <button
             onClick={handleExportExcel}
             disabled={platform.pieces.length === 0 || exporting}
@@ -855,6 +860,7 @@ Generado por Sistema de Inventario`;
             <span className="text-[10px] font-semibold">Excel</span>
           </button>
           
+          {/* Botón PDF */}
           <button
             onClick={handleExportPDF}
             disabled={platform.pieces.length === 0 || exporting}
@@ -865,6 +871,7 @@ Generado por Sistema de Inventario`;
             <span className="text-[10px] font-semibold">PDF</span>
           </button>
           
+          {/* Botón Imagen */}
           <button
             onClick={handleExportImage}
             disabled={platform.pieces.length === 0 || exporting}
@@ -875,8 +882,9 @@ Generado por Sistema de Inventario`;
             <span className="text-[10px] font-semibold">Imagen</span>
           </button>
 
+          {/* Botón Evidencias - NUEVO FORMULARIO */}
           <button
-            onClick={() => setShowEvidenceSection(!showEvidenceSection)}
+            onClick={() => setShowEvidenceModal(true)}
             className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 shadow-sm active:scale-95 transition-transform"
             title="Evidencias"
           >
@@ -1069,6 +1077,52 @@ Generado por Sistema de Inventario`;
                 >
                   Eliminar
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Evidencias - Solo móvil */}
+      {showEvidenceModal && (
+        <div className="lg:hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black bg-opacity-50"
+            onClick={() => setShowEvidenceModal(false)}
+          />
+          
+          {/* Modal */}
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-4">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0 w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                    <Camera className="h-5 w-5 text-indigo-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-semibold text-gray-900">Evidencias</h3>
+                    <p className="text-sm text-gray-500 mt-1">Plataforma {platform.platformNumber}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowEvidenceModal(false)}
+                  className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                >
+                  <span className="text-xl">×</span>
+                </button>
+              </div>
+              
+              {/* Contenido del modal */}
+              <div className="space-y-4">
+                {/* Componente de subida de evidencias */}
+                <EvidenceUpload
+                  platformId={platform.id}
+                  providerId={platform.providerId}
+                  existingEvidence={platform.evidence || []}
+                  onEvidenceUpdated={(evidence: Evidence[]) => updatePlatformEvidence(platform.id, evidence)}
+                />
               </div>
             </div>
           </div>
