@@ -6,6 +6,7 @@ import type { Evidence } from '../types';
 
 interface EvidenceUploadProps {
   platformId: string;
+  providerId: string;  // ⭐ REQUERIDO por backend
   existingEvidence?: Evidence[];
   onEvidenceUpdated: (evidence: Evidence[]) => void;
   className?: string;
@@ -22,6 +23,7 @@ interface FilePreview {
 
 export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
   platformId,
+  providerId,  // ⭐ REQUERIDO por backend
   existingEvidence = [],
   onEvidenceUpdated,
   className = ''
@@ -87,7 +89,8 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
 
       const uploadedEvidence = await EvidenceService.uploadEvidence(
         filesToUpload, 
-        platformId, 
+        platformId,
+        providerId,  // ⭐ AGREGADO - Requerido por backend
         descriptions
       );
 
@@ -127,7 +130,7 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
 
   const handleDeleteEvidence = async (evidenceId: string) => {
     try {
-      await EvidenceService.deleteEvidence(evidenceId, platformId);
+      await EvidenceService.deleteEvidence(evidenceId, platformId, providerId);
       const updatedEvidence = existingEvidence.filter(e => e.id !== evidenceId);
       onEvidenceUpdated(updatedEvidence);
     } catch (error) {

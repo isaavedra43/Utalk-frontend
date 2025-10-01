@@ -1058,6 +1058,7 @@ Generado por Sistema de Inventario`;
         <div className="mt-8">
           <EvidenceUpload
             platformId={platform.id}
+            providerId={platform.providerId}  // ⭐ AGREGADO - Requerido por backend
             existingEvidence={platform.evidence || []}
             onEvidenceUpdated={(evidence: Evidence[]) => updatePlatformEvidence(platform.id, evidence)}
           />
