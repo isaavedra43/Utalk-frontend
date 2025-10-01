@@ -6,6 +6,7 @@ export interface Piece {
   length: number;
   standardWidth: number;
   linearMeters: number;
+  material: string; // Material específico de esta pieza
   createdAt: Date;
 }
 
@@ -50,5 +51,21 @@ export interface MaterialOption {
   id: string;
   name: string;
   category?: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface ModuleConfiguration {
+  providers: Provider[];
+  materials: MaterialOption[];
+  settings: {
+    defaultStandardWidth: number;
+    autoSaveEnabled: boolean;
+    showPieceNumbers: boolean;
+    allowMultipleMaterials: boolean;
+    requireMaterialSelection: boolean;
+    defaultMaterialCategories: string[];
+  };
+  lastUpdated: Date;
 }
 

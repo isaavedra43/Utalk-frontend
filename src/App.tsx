@@ -584,7 +584,7 @@ function App() {
                   } 
                 />
                 <Route 
-                  path="/inventory" 
+                  path="/inventory/*" 
                   element={
                     <AuthProtectedRoute>
                       <ProtectedRoute moduleId="inventory">

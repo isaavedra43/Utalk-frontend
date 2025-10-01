@@ -11,9 +11,10 @@ export class ExportService {
    * Exporta una plataforma a CSV
    */
   static toCSV(platform: Platform): string {
-    const headers = ['No.', 'Longitud (m)', 'Ancho (m)', 'Metros Lineales'];
+    const headers = ['No.', 'Material', 'Longitud (m)', 'Ancho (m)', 'Metros Lineales'];
     const rows = platform.pieces.map(piece => [
       piece.number,
+      `"${piece.material}"`,
       formatNumber(piece.length, 2),
       formatNumber(piece.standardWidth, 2),
       formatNumber(piece.linearMeters, 3)
@@ -21,6 +22,7 @@ export class ExportService {
     
     const totalsRow = [
       'TOTAL',
+      '—',
       formatNumber(platform.totalLength, 2),
       formatNumber(platform.standardWidth, 2),
       formatNumber(platform.totalLinearMeters, 3)
@@ -505,7 +507,7 @@ export class ExportService {
 📏 Ancho Estándar: ${formatNumber(platform.standardWidth, 2)} m
 
 Detalle por pieza:
-${platform.pieces.map(p => `• Pieza ${p.number}: ${formatNumber(p.length, 2)}m → ${formatNumber(p.linearMeters, 3)} m²`).join('\n')}
+${platform.pieces.map(p => `• Pieza ${p.number}: ${p.material} - ${formatNumber(p.length, 2)}m → ${formatNumber(p.linearMeters, 3)} m²`).join('\n')}
 
 Generado por Sistema de Inventario`;
   }

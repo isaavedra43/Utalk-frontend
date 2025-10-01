@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Platform, Piece, InventorySettings } from '../types';
 import { StorageService } from '../services/storageService';
+import { ConfigService } from '../services/configService';
 import { calculateLinearMeters, calculatePlatformTotals, generateId, getNextPieceNumber } from '../utils/calculations';
 
 export const useInventory = () => {
@@ -16,10 +17,12 @@ export const useInventory = () => {
       const loadedPlatforms = StorageService.getPlatforms();
       const loadedSettings = StorageService.getSettings();
       
-      setPlatforms(loadedPlatforms);
+      setPlatforms(Array.isArray(loadedPlatforms) ? loadedPlatforms : []);
       setSettings(loadedSettings);
     } catch (error) {
       console.error('Error al cargar inventario:', error);
+      setPlatforms([]);
+      setSettings(null);
     } finally {
       setLoading(false);
     }
@@ -34,7 +37,8 @@ export const useInventory = () => {
     receptionDate?: Date;
     notes?: string;
   }): Platform => {
-    const defaultWidth = settings?.defaultStandardWidth || 0.3;
+    const configSettings = ConfigService.getSettings();
+    const defaultWidth = configSettings?.defaultStandardWidth || 0.3;
     
     const newPlatform: Platform = {
       id: generateId(),
@@ -58,7 +62,7 @@ export const useInventory = () => {
     setPlatforms(prev => [newPlatform, ...prev]);
     
     return newPlatform;
-  }, [settings]);
+  }, []);
 
   // Actualizar plataforma
   const updatePlatform = useCallback((platformId: string, updates: Partial<Platform>) => {
@@ -82,7 +86,7 @@ export const useInventory = () => {
   }, []);
 
   // Agregar pieza a plataforma
-  const addPiece = useCallback((platformId: string, length: number) => {
+  const addPiece = useCallback((platformId: string, length: number, material: string) => {
     setPlatforms(prev => {
       const updated = prev.map(platform => {
         if (platform.id === platformId) {
@@ -92,6 +96,7 @@ export const useInventory = () => {
             length,
             standardWidth: platform.standardWidth,
             linearMeters: calculateLinearMeters(length, platform.standardWidth),
+            material,
             createdAt: new Date()
           };
 
@@ -115,18 +120,19 @@ export const useInventory = () => {
   }, []);
 
   // Agregar múltiples piezas
-  const addMultiplePieces = useCallback((platformId: string, lengths: number[]) => {
+  const addMultiplePieces = useCallback((platformId: string, pieces: { length: number; material: string }[]) => {
     setPlatforms(prev => {
       const updated = prev.map(platform => {
         if (platform.id === platformId) {
           let nextNumber = getNextPieceNumber(platform.pieces);
           
-          const newPieces: Piece[] = lengths.map(length => ({
+          const newPieces: Piece[] = pieces.map(piece => ({
             id: generateId(),
             number: nextNumber++,
-            length,
+            length: piece.length,
             standardWidth: platform.standardWidth,
-            linearMeters: calculateLinearMeters(length, platform.standardWidth),
+            linearMeters: calculateLinearMeters(piece.length, platform.standardWidth),
+            material: piece.material,
             createdAt: new Date()
           }));
 
@@ -150,16 +156,18 @@ export const useInventory = () => {
   }, []);
 
   // Actualizar pieza
-  const updatePiece = useCallback((platformId: string, pieceId: string, length: number) => {
+  const updatePiece = useCallback((platformId: string, pieceId: string, updates: { length?: number; material?: string }) => {
     setPlatforms(prev => {
       const updated = prev.map(platform => {
         if (platform.id === platformId) {
           const updatedPieces = platform.pieces.map(piece => {
             if (piece.id === pieceId) {
+              const newLength = updates.length !== undefined ? updates.length : piece.length;
               return {
                 ...piece,
-                length,
-                linearMeters: calculateLinearMeters(length, piece.standardWidth)
+                length: newLength,
+                material: updates.material !== undefined ? updates.material : piece.material,
+                linearMeters: calculateLinearMeters(newLength, piece.standardWidth)
               };
             }
             return piece;

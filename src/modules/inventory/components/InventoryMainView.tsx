@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { Plus, Package, Search, Filter, Calendar, Archive } from 'lucide-react';
+import { Plus, Package, Search, Filter, Calendar, Archive, Settings } from 'lucide-react';
 import { useInventory } from '../hooks/useInventory';
 import type { Platform } from '../types';
 import { PlatformCard } from './PlatformCard';
 import { CreatePlatformModal } from './CreatePlatformModal';
 import { PlatformDetailView } from './PlatformDetailView';
+import { ConfigurationModal } from './ConfigurationModal';
 
 export const InventoryMainView: React.FC = () => {
   const { platforms, loading, createPlatform } = useInventory();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | Platform['status']>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
   const [selectedPlatformId, setSelectedPlatformId] = useState<string | null>(null);
   
   // Obtener la plataforma seleccionada actualizada desde el estado global
@@ -20,7 +22,8 @@ export const InventoryMainView: React.FC = () => {
   const filteredPlatforms = platforms.filter(platform => {
     const matchesSearch = 
       platform.platformNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      platform.materialType.toLowerCase().includes(searchTerm.toLowerCase());
+      (platform.materialTypes && platform.materialTypes.length > 0 && 
+       platform.materialTypes.some(material => material.toLowerCase().includes(searchTerm.toLowerCase())));
     
     const matchesStatus = statusFilter === 'all' || platform.status === statusFilter;
     
@@ -29,10 +32,10 @@ export const InventoryMainView: React.FC = () => {
 
   // Estadísticas
   const stats = {
-    total: platforms.length,
-    inProgress: platforms.filter(p => p.status === 'in_progress').length,
-    completed: platforms.filter(p => p.status === 'completed').length,
-    totalMeters: platforms.reduce((sum, p) => sum + p.totalLinearMeters, 0)
+    total: platforms?.length || 0,
+    inProgress: platforms?.filter(p => p.status === 'in_progress').length || 0,
+    completed: platforms?.filter(p => p.status === 'completed').length || 0,
+    totalMeters: platforms?.reduce((sum, p) => sum + (p.totalLinearMeters || 0), 0) || 0
   };
 
   const handleCreatePlatform = (data: {
@@ -82,13 +85,23 @@ export const InventoryMainView: React.FC = () => {
                 Gestión de cuantificación de metros lineales
               </p>
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center justify-center gap-2 px-4 sm:px-4 py-3 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg text-sm sm:text-base font-medium w-full sm:w-auto active:scale-95"
-            >
-              <Plus className="h-5 w-5" />
-              Nueva Plataforma
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowConfigModal(true)}
+                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-3 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm hover:shadow-md text-sm sm:text-base font-medium active:scale-95"
+                title="Configuración"
+              >
+                <Settings className="h-5 w-5" />
+                <span className="hidden sm:inline">Configuración</span>
+              </button>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center justify-center gap-2 px-4 sm:px-4 py-3 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg text-sm sm:text-base font-medium active:scale-95"
+              >
+                <Plus className="h-5 w-5" />
+                Nueva Plataforma
+              </button>
+            </div>
           </div>
 
           {/* Stats */}
@@ -206,6 +219,12 @@ export const InventoryMainView: React.FC = () => {
         <CreatePlatformModal
           onClose={() => setShowCreateModal(false)}
           onCreate={handleCreatePlatform}
+        />
+      )}
+
+      {showConfigModal && (
+        <ConfigurationModal
+          onClose={() => setShowConfigModal(false)}
         />
       )}
     </div>

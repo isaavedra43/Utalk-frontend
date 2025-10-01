@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Package, Calendar, Layers, FileText, Truck, User, Search, Check } from 'lucide-react';
-import { MOCK_PROVIDERS, MOCK_MATERIALS, getMaterialsByCategory } from '../data/mockData';
+import { useConfiguration } from '../hooks/useConfiguration';
 import type { Provider, MaterialOption } from '../types';
 
 interface CreatePlatformModalProps {
@@ -15,6 +15,8 @@ interface CreatePlatformModalProps {
 }
 
 export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClose, onCreate }) => {
+  const { providers, activeMaterials } = useConfiguration();
+  
   const [formData, setFormData] = useState({
     platformNumber: '',
     materialTypes: [] as string[],
@@ -29,11 +31,19 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
   const [materialSearch, setMaterialSearch] = useState('');
   const [showMaterialDropdown, setShowMaterialDropdown] = useState(false);
   
-  const materialCategories = getMaterialsByCategory();
-  const filteredProviders = MOCK_PROVIDERS.filter(provider =>
+  const materialCategories = activeMaterials.reduce((acc, material) => {
+    const category = material.category || 'Otros';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(material);
+    return acc;
+  }, {} as Record<string, MaterialOption[]>);
+
+  const filteredProviders = providers.filter(provider =>
     provider.name.toLowerCase().includes(providerSearch.toLowerCase())
   );
-  const filteredMaterials = MOCK_MATERIALS.filter(material =>
+  const filteredMaterials = activeMaterials.filter(material =>
     material.name.toLowerCase().includes(materialSearch.toLowerCase())
   );
 

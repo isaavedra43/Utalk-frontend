@@ -7,7 +7,7 @@ interface PiecesTableProps {
   pieces: Piece[];
   standardWidth: number;
   onDeletePiece: (pieceId: string) => void;
-  onUpdatePiece: (pieceId: string, length: number) => void;
+  onUpdatePiece: (pieceId: string, updates: { length?: number; material?: string }) => void;
 }
 
 export const PiecesTable: React.FC<PiecesTableProps> = ({
@@ -18,16 +18,18 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [editMaterial, setEditMaterial] = useState('');
 
   const handleStartEdit = (piece: Piece) => {
     setEditingId(piece.id);
     setEditValue(piece.length.toString());
+    setEditMaterial(piece.material);
   };
 
   const handleSaveEdit = (pieceId: string) => {
     const newLength = parseFloat(editValue);
-    if (!isNaN(newLength) && newLength > 0) {
-      onUpdatePiece(pieceId, newLength);
+    if (!isNaN(newLength) && newLength > 0 && editMaterial.trim()) {
+      onUpdatePiece(pieceId, { length: newLength, material: editMaterial });
       setEditingId(null);
     }
   };
@@ -35,6 +37,7 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditValue('');
+    setEditMaterial('');
   };
 
   // Calcular totales
@@ -71,11 +74,14 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
 
       {/* Table - SCROLLEABLE EN MÓVIL */}
       <div className="overflow-x-auto -mx-px">
-        <table className="w-full min-w-[600px]">
+        <table className="w-full min-w-[800px]">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                 No.
+              </th>
+              <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                Material
               </th>
               <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                 Longitud (m)
@@ -96,6 +102,18 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
               <tr key={piece.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                 <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {piece.number}
+                </td>
+                <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-900">
+                  {editingId === piece.id ? (
+                    <input
+                      type="text"
+                      value={editMaterial}
+                      onChange={(e) => setEditMaterial(e.target.value)}
+                      className="w-32 sm:w-40 px-2 py-1.5 text-base sm:text-sm border border-blue-500 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <span className="text-sm font-medium text-blue-700">{piece.material}</span>
+                  )}
                 </td>
                 <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-900">
                   {editingId === piece.id ? (
@@ -166,6 +184,9 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
             <tr className="bg-blue-600 text-white font-bold">
               <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm">
                 TOTAL
+              </td>
+              <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm">
+                —
               </td>
               <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm font-mono">
                 {formatNumber(totals.totalLength, 2)}

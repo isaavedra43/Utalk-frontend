@@ -70,23 +70,23 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
   };
 
   // Manejar agregar pieza
-  const handleAddPiece = (length: number) => {
+  const handleAddPiece = (length: number, material: string) => {
     const validation = validateLength(length);
     if (!validation.valid) {
       showNotification('error', validation.error!);
       return false;
     }
 
-    addPiece(platform.id, length);
+    addPiece(platform.id, length, material);
     setLastAction({ type: 'add' });
     showNotification('success', `Pieza agregada: ${length.toFixed(2)}m`);
     return true;
   };
 
   // Manejar agregar múltiples piezas
-  const handleAddMultiplePieces = (lengths: number[]) => {
-    addMultiplePieces(platform.id, lengths);
-    showNotification('success', `${lengths.length} piezas agregadas`);
+  const handleAddMultiplePieces = (pieces: { length: number; material: string }[]) => {
+    addMultiplePieces(platform.id, pieces);
+    showNotification('success', `${pieces.length} piezas agregadas`);
   };
 
   // Manejar eliminar pieza
@@ -367,6 +367,7 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
           <div className="lg:col-span-1 order-1 lg:order-none">
             <QuickCaptureInput
               standardWidth={platform.standardWidth}
+              availableMaterials={platform.materialTypes}
               onAddPiece={handleAddPiece}
               onAddMultiplePieces={handleAddMultiplePieces}
               onChangeWidth={(newWidth) => changeStandardWidth(platform.id, newWidth)}
@@ -417,7 +418,7 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
               pieces={platform.pieces}
               standardWidth={platform.standardWidth}
               onDeletePiece={handleDeletePiece}
-              onUpdatePiece={(pieceId, length) => updatePiece(platform.id, pieceId, length)}
+              onUpdatePiece={(pieceId, updates) => updatePiece(platform.id, pieceId, updates)}
             />
           </div>
         </div>
