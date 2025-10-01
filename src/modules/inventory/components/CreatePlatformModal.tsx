@@ -30,6 +30,8 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
   const [selectedMaterials, setSelectedMaterials] = useState<MaterialOption[]>([]);
   const [materialSearch, setMaterialSearch] = useState('');
   const [showMaterialDropdown, setShowMaterialDropdown] = useState(false);
+  const [providerMaterials, setProviderMaterials] = useState<MaterialOption[]>([]);
+  const [loadingMaterials, setLoadingMaterials] = useState(false);
   
   const materialCategories = activeMaterials.reduce((acc, material) => {
     const category = material.category || 'Otros';
@@ -43,21 +45,42 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
   const filteredProviders = providers.filter(provider =>
     provider.name.toLowerCase().includes(providerSearch.toLowerCase())
   );
-  // Filtrar materiales por proveedor seleccionado y búsqueda
-  const filteredMaterials = activeMaterials.filter(material => {
+  // ✅ Cargar materiales del proveedor cuando se selecciona
+  useEffect(() => {
+    const loadProviderMaterials = async () => {
+      if (!formData.providerId) {
+        setProviderMaterials([]);
+        return;
+      }
+      
+      try {
+        setLoadingMaterials(true);
+        console.log('📤 Cargando materiales del proveedor:', formData.providerId);
+        
+        // ✅ Obtener materiales del backend
+        const { ProviderApiService } = await import('../services/inventoryApiService');
+        const materials = await ProviderApiService.getProviderMaterials(formData.providerId);
+        
+        console.log('✅ Materiales del proveedor obtenidos:', materials);
+        setProviderMaterials(materials);
+      } catch (error) {
+        console.error('❌ Error cargando materiales del proveedor:', error);
+        setProviderMaterials([]);
+      } finally {
+        setLoadingMaterials(false);
+      }
+    };
+    
+    loadProviderMaterials();
+  }, [formData.providerId]);
+  
+  // ✅ Usar materiales del proveedor si están disponibles, sino usar todos
+  const materialsToShow = providerMaterials.length > 0 ? providerMaterials : activeMaterials;
+  
+  // Filtrar materiales por búsqueda
+  const filteredMaterials = materialsToShow.filter(material => {
     const matchesSearch = material.name.toLowerCase().includes(materialSearch.toLowerCase());
-    
-    // Si no hay proveedor seleccionado, mostrar todos los materiales
-    if (!formData.provider) {
-      return matchesSearch;
-    }
-    
-    // Filtrar por materiales que maneja el proveedor seleccionado
-    const selectedProvider = providers.find(p => p.name === formData.provider);
-    const matchesProvider = selectedProvider ? 
-      (material.providerIds && material.providerIds.includes(selectedProvider.id)) : true;
-    
-    return matchesSearch && matchesProvider;
+    return matchesSearch;
   });
 
   const validate = (): boolean => {
@@ -231,6 +254,34 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
               <Layers className="h-4 w-4 text-gray-500" />
               Tipos de Material *
             </label>
+            
+            {/* Mensaje informativo según proveedor */}
+            {formData.provider && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-2">
+                <p className="text-xs text-blue-800">
+                  💡 Mostrando solo materiales de <strong>{formData.provider}</strong>
+                </p>
+              </div>
+            )}
+            
+            {/* Loading materiales */}
+            {loadingMaterials && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-2">
+                <p className="text-xs text-gray-600">⏳ Cargando materiales del proveedor...</p>
+              </div>
+            )}
+            
+            {/* Sin materiales */}
+            {formData.provider && !loadingMaterials && providerMaterials.length === 0 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-2">
+                <p className="text-xs text-yellow-800">
+                  ⚠️ Este proveedor no tiene materiales asociados.
+                </p>
+                <p className="text-xs text-yellow-700 mt-1">
+                  Debes editar el proveedor y asignarle materiales.
+                </p>
+              </div>
+            )}
             
             {/* Materiales seleccionados */}
             {selectedMaterials.length > 0 && (
