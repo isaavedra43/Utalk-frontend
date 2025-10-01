@@ -19,19 +19,22 @@ const DEFAULT_CONFIG: ModuleConfiguration = {
       id: 'prov-001',
       name: 'Mármoles del Norte',
       contact: 'Juan Pérez',
-      phone: '+52 81 1234-5678'
+      phone: '+52 81 1234-5678',
+      materialIds: ['mat-001', 'mat-002', 'mat-003', 'mat-004'] // Mármoles y Granitos
     },
     {
       id: 'prov-002', 
       name: 'Canteras del Sur',
       contact: 'María González',
-      phone: '+52 33 9876-5432'
+      phone: '+52 33 9876-5432',
+      materialIds: ['mat-005', 'mat-006', 'mat-007', 'mat-008'] // Cuarzos y Piedras Naturales
     },
     {
       id: 'prov-003',
       name: 'Piedras Preciosas SA',
       contact: 'Carlos Rodríguez',
-      phone: '+52 55 2468-1357'
+      phone: '+52 55 2468-1357',
+      materialIds: ['mat-001', 'mat-004', 'mat-005', 'mat-009', 'mat-010'] // Variedad de materiales premium
     }
   ],
   materials: [
