@@ -135,7 +135,9 @@ export default defineConfig({
       devOptions: {
         enabled: true,
         type: 'module'
-      }
+      },
+      // Asegurar que el manifest se genere en /manifest.webmanifest
+      filename: 'manifest.webmanifest'
     })
   ],
   base: '/',
