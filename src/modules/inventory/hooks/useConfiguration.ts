@@ -87,22 +87,32 @@ export const useConfiguration = () => {
 
   // ✅ CAMBIO CRÍTICO: Ahora SIEMPRE envía al backend
   const addProvider = useCallback(async (provider: Omit<Provider, 'id'>) => {
+    console.log('🚀 [addProvider] Iniciando creación de proveedor:', provider);
+    
     try {
       // ✅ ENVIAR AL BACKEND INMEDIATAMENTE
+      console.log('📤 [addProvider] Importando ProviderApiService...');
       const { ProviderApiService } = await import('../services/inventoryApiService');
+      
+      console.log('📤 [addProvider] Enviando POST al backend...');
       const newProvider = await ProviderApiService.createProvider(provider);
+      console.log('✅ [addProvider] Proveedor creado en backend:', newProvider);
       
       // ✅ Actualizar configuración local con datos del backend
+      console.log('💾 [addProvider] Actualizando LocalStorage...');
       const config = ConfigService.getConfiguration();
       config.providers.push(newProvider);
       ConfigService.saveConfiguration(config);
       
       refreshConfiguration();
-      console.log('✅ Proveedor creado en backend:', newProvider);
+      console.log('✅ [addProvider] PROCESO COMPLETADO - Proveedor guardado en backend y LocalStorage');
       return newProvider;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al agregar proveedor');
-      console.error('❌ Error al crear proveedor:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Error al agregar proveedor';
+      setError(errorMessage);
+      console.error('❌ [addProvider] ERROR COMPLETO:', err);
+      console.error('❌ [addProvider] Error message:', errorMessage);
+      console.error('❌ [addProvider] Stack:', err instanceof Error ? err.stack : 'No stack');
       throw err;
     }
   }, [refreshConfiguration]);
@@ -141,22 +151,32 @@ export const useConfiguration = () => {
 
   // ✅ CAMBIO CRÍTICO: Ahora SIEMPRE envía al backend
   const addMaterial = useCallback(async (material: Omit<MaterialOption, 'id'>) => {
+    console.log('🚀 [addMaterial] Iniciando creación de material:', material);
+    
     try {
       // ✅ ENVIAR AL BACKEND INMEDIATAMENTE
+      console.log('📤 [addMaterial] Importando MaterialApiService...');
       const { MaterialApiService } = await import('../services/inventoryApiService');
+      
+      console.log('📤 [addMaterial] Enviando POST al backend...');
       const newMaterial = await MaterialApiService.createMaterial(material);
+      console.log('✅ [addMaterial] Material creado en backend:', newMaterial);
       
       // ✅ Actualizar configuración local con datos del backend
+      console.log('💾 [addMaterial] Actualizando LocalStorage...');
       const config = ConfigService.getConfiguration();
       config.materials.push(newMaterial);
       ConfigService.saveConfiguration(config);
       
       refreshConfiguration();
-      console.log('✅ Material creado en backend:', newMaterial);
+      console.log('✅ [addMaterial] PROCESO COMPLETADO - Material guardado en backend y LocalStorage');
       return newMaterial;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al agregar material');
-      console.error('❌ Error al crear material:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Error al agregar material';
+      setError(errorMessage);
+      console.error('❌ [addMaterial] ERROR COMPLETO:', err);
+      console.error('❌ [addMaterial] Error message:', errorMessage);
+      console.error('❌ [addMaterial] Stack:', err instanceof Error ? err.stack : 'No stack');
       throw err;
     }
   }, [refreshConfiguration]);
