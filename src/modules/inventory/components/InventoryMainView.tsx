@@ -9,7 +9,7 @@ import { PlatformDetailView } from './PlatformDetailView';
 import { ConfigurationModal } from './ConfigurationModal';
 
 export const InventoryMainView: React.FC = () => {
-  const { platforms, loading, createPlatform } = useInventory();
+  const { platforms, loading, createPlatform, syncPendingPlatforms, syncStatus } = useInventory();
   const { openMenu } = useMobileMenuContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | Platform['status']>('all');
@@ -164,6 +164,41 @@ export const InventoryMainView: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Estado de Sincronización */}
+          {syncStatus.needsSync && (
+            <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm sm:text-base font-medium text-orange-800">
+                      {syncStatus.pending} plataforma{syncStatus.pending !== 1 ? 's' : ''} pendiente{syncStatus.pending !== 1 ? 's' : ''} de sincronización
+                    </span>
+                  </div>
+                  {!syncStatus.isOnline && (
+                    <span className="text-xs text-orange-600 bg-orange-200 px-2 py-1 rounded-full">
+                      Sin conexión
+                    </span>
+                  )}
+                </div>
+                {syncStatus.isOnline && (
+                  <button
+                    onClick={syncPendingPlatforms}
+                    className="text-xs sm:text-sm text-orange-700 hover:text-orange-800 font-medium underline"
+                  >
+                    Sincronizar ahora
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-orange-600 mt-1">
+                {syncStatus.isOnline 
+                  ? 'Las plataformas se sincronizarán automáticamente cuando se complete la conexión.'
+                  : 'Conecta a internet para sincronizar automáticamente.'
+                }
+              </p>
+            </div>
+          )}
 
           {/* Search and Filters */}
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">

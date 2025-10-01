@@ -1,6 +1,6 @@
 // Hook principal para manejo de inventario
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Platform, Piece, InventorySettings, Provider } from '../types';
 import { StorageService } from '../services/storageService';
 import { ConfigService } from '../services/configService';
@@ -91,7 +91,7 @@ export const useInventory = () => {
       createdBy: 'Usuario Actual' // TODO: Obtener del contexto de usuario
     };
 
-    // Si hay conexión, crear en backend primero
+    // SIEMPRE intentar crear en backend primero si hay conexión
     if (isOnline) {
       try {
         const createdPlatform = await PlatformApiService.createPlatform(platformData);
@@ -101,22 +101,23 @@ export const useInventory = () => {
         return createdPlatform;
       } catch (error) {
         console.error('Error al crear plataforma en backend:', error);
-        // Si falla el backend, crear localmente con ID temporal
+        // Si falla el backend, crear localmente con ID temporal y marcar para sincronización
         const tempPlatform: Platform = {
           id: generateId(),
-          platformNumber: `TEMP-${Date.now()}`, // Folio temporal
+          platformNumber: `SYNC-${Date.now()}`, // Folio temporal marcado para sincronización
           ...platformData,
           totalLinearMeters: 0,
           totalLength: 0,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          needsSync: true // ✅ Marcar que necesita sincronización
         };
         StorageService.savePlatform(tempPlatform);
         setPlatforms(prev => [tempPlatform, ...prev]);
         return tempPlatform;
       }
     } else {
-      // Modo offline - crear con ID temporal
+      // Modo offline - crear con ID temporal y marcar para sincronización
       const tempPlatform: Platform = {
         id: generateId(),
         platformNumber: `OFFLINE-${Date.now()}`, // Folio temporal para offline
@@ -124,7 +125,8 @@ export const useInventory = () => {
         totalLinearMeters: 0,
         totalLength: 0,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        needsSync: true // ✅ Marcar que necesita sincronización
       };
       StorageService.savePlatform(tempPlatform);
       setPlatforms(prev => [tempPlatform, ...prev]);
@@ -142,13 +144,41 @@ export const useInventory = () => {
     StorageService.savePlatform(updatedPlatform);
     setPlatforms(prev => prev.map(p => p.id === platformId ? updatedPlatform : p));
     
-    // Si hay conexión y providerId, sincronizar con backend
-    if (isOnline && platform.providerId) {
+    // ✅ SOLUCIÓN: Manejar sincronización correctamente
+    if (isOnline) {
       try {
-        await PlatformApiService.updatePlatform(platformId, platform.providerId, updates);
+        // Verificar si la plataforma necesita sincronización
+        if (platform.needsSync || platform.id.startsWith('SYNC-') || platform.id.startsWith('OFFLINE-')) {
+          // Crear en backend primero
+          const createdPlatform = await PlatformApiService.createPlatform(platform);
+          
+          // Actualizar con el nuevo ID del backend
+          await PlatformApiService.updatePlatform(createdPlatform.id, createdPlatform.providerId!, updates);
+          
+          // Actualizar localmente con el ID del backend
+          const syncedPlatform = { 
+            ...updatedPlatform, 
+            id: createdPlatform.id, 
+            platformNumber: createdPlatform.platformNumber,
+            providerId: createdPlatform.providerId,
+            needsSync: false 
+          };
+          StorageService.savePlatform(syncedPlatform);
+          setPlatforms(prev => prev.map(p => p.id === platformId ? syncedPlatform : p));
+          
+        } else if (platform.providerId) {
+          // Plataforma ya existe en backend - actualizar normalmente
+          await PlatformApiService.updatePlatform(platformId, platform.providerId, updates);
+        }
       } catch (error) {
-        console.error('Error al actualizar plataforma en backend:', error);
-        // Mantener cambios locales si falla la sincronización
+        console.error('Error al sincronizar plataforma:', error);
+        
+        // ✅ SOLUCIÓN: Si es error 404, marcar para sincronización
+        if (error.status === 404 || error.response?.status === 404) {
+          const platformToSync = { ...updatedPlatform, needsSync: true };
+          StorageService.savePlatform(platformToSync);
+          setPlatforms(prev => prev.map(p => p.id === platformId ? platformToSync : p));
+        }
       }
     }
   }, [platforms, isOnline]);
@@ -342,6 +372,62 @@ export const useInventory = () => {
     });
   }, []);
 
+  // ✅ SOLUCIÓN: Función para sincronizar plataformas pendientes
+  const syncPendingPlatforms = useCallback(async () => {
+    if (!isOnline) return;
+
+    const pendingPlatforms = platforms.filter(p => p.needsSync === true);
+    console.log(`🔄 Sincronizando ${pendingPlatforms.length} plataformas pendientes...`);
+    
+    for (const platform of pendingPlatforms) {
+      try {
+        console.log(`📤 Creando plataforma ${platform.id} en backend...`);
+        const createdPlatform = await PlatformApiService.createPlatform(platform);
+        
+        // Actualizar localmente con el ID del backend
+        const syncedPlatform = { 
+          ...platform, 
+          id: createdPlatform.id, 
+          platformNumber: createdPlatform.platformNumber,
+          providerId: createdPlatform.providerId,
+          needsSync: false 
+        };
+        
+        StorageService.savePlatform(syncedPlatform);
+        setPlatforms(prev => prev.map(p => p.id === platform.id ? syncedPlatform : p));
+        console.log(`✅ Plataforma sincronizada: ${platform.id} → ${createdPlatform.id}`);
+        
+      } catch (error) {
+        console.error(`❌ Error sincronizando plataforma ${platform.id}:`, error);
+      }
+    }
+  }, [platforms, isOnline]);
+
+  // ✅ SOLUCIÓN: Ejecutar sincronización cuando se detecte conexión
+  useEffect(() => {
+    if (isOnline) {
+      const pendingPlatforms = platforms.filter(p => p.needsSync === true);
+      if (pendingPlatforms.length > 0) {
+        console.log(`🌐 Conexión detectada, sincronizando ${pendingPlatforms.length} plataformas...`);
+        syncPendingPlatforms();
+      }
+    }
+  }, [isOnline, platforms, syncPendingPlatforms]);
+
+  // ✅ SOLUCIÓN: Estado de sincronización
+  const syncStatus = useMemo(() => {
+    const pendingPlatforms = platforms.filter(p => p.needsSync === true);
+    const syncedPlatforms = platforms.filter(p => !p.needsSync);
+    
+    return {
+      total: platforms.length,
+      pending: pendingPlatforms.length,
+      synced: syncedPlatforms.length,
+      needsSync: pendingPlatforms.length > 0,
+      isOnline
+    };
+  }, [platforms, isOnline]);
+
   return {
     platforms,
     settings,
@@ -354,7 +440,10 @@ export const useInventory = () => {
     updatePiece,
     deletePiece,
     updateSettings,
-    changeStandardWidth
+    changeStandardWidth,
+    // ✅ SOLUCIÓN: Nuevas funciones de sincronización
+    syncPendingPlatforms,
+    syncStatus
   };
 };
 

@@ -159,5 +159,37 @@ export class StorageService {
       return false;
     }
   }
+
+  /**
+   * Obtiene plataformas que necesitan sincronización
+   */
+  static getPendingSyncPlatforms(): Platform[] {
+    const platforms = this.getPlatforms();
+    return platforms.filter(p => p.needsSync === true);
+  }
+
+  /**
+   * Marca una plataforma como sincronizada
+   */
+  static markPlatformAsSynced(platformId: string): void {
+    const platforms = this.getPlatforms();
+    const platform = platforms.find(p => p.id === platformId);
+    if (platform) {
+      platform.needsSync = false;
+      this.savePlatforms(platforms);
+    }
+  }
+
+  /**
+   * Marca una plataforma como pendiente de sincronización
+   */
+  static markPlatformAsPendingSync(platformId: string): void {
+    const platforms = this.getPlatforms();
+    const platform = platforms.find(p => p.id === platformId);
+    if (platform) {
+      platform.needsSync = true;
+      this.savePlatforms(platforms);
+    }
+  }
 }
 

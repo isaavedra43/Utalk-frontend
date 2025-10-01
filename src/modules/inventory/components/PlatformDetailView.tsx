@@ -32,7 +32,7 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
   platform: initialPlatform,
   onBack
 }) => {
-  const { platforms, updatePlatform, deletePlatform, addPiece, addMultiplePieces, updatePiece, deletePiece, changeStandardWidth } = useInventory();
+  const { platforms, updatePlatform, deletePlatform, addPiece, addMultiplePieces, updatePiece, deletePiece, changeStandardWidth, syncPendingPlatforms, syncStatus } = useInventory();
   
   // Obtener la plataforma actualizada desde el estado global
   const platform = platforms.find(p => p.id === initialPlatform.id) || initialPlatform;
@@ -700,11 +700,36 @@ Generado por Sistema de Inventario`;
                     </div>
                   </button>
                 </div>
-              </div>
-            </div>
           </div>
+        </div>
+      </div>
 
-          {/* Platform Info - VISTA MÓVIL ULTRA COMPACTA */}
+      {/* Indicador de Sincronización */}
+      {platform.needsSync && (
+        <div className="bg-gradient-to-r from-orange-50 to-orange-100 border-b border-orange-200 px-3 sm:px-6 lg:px-8 py-2">
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+              <span className="text-xs sm:text-sm text-orange-700 font-medium">
+                Esta plataforma necesita sincronización
+              </span>
+            </div>
+            {syncStatus.isOnline && (
+              <button
+                onClick={() => {
+                  updatePlatform(platform.id, {});
+                  syncPendingPlatforms();
+                }}
+                className="text-xs text-orange-600 hover:text-orange-800 font-medium underline"
+              >
+                Sincronizar
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Platform Info - VISTA MÓVIL ULTRA COMPACTA */}
           <div className="block lg:hidden">
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200">
               <h1 className="text-lg font-bold text-gray-900 mb-2">

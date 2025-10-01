@@ -27,6 +27,7 @@ export interface Platform {
   createdBy?: string;
   createdAt: Date;
   updatedAt: Date;
+  needsSync?: boolean; // Marcar plataformas que necesitan sincronización con backend
 }
 
 export interface InventorySettings {
