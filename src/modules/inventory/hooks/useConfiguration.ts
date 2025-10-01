@@ -22,6 +22,40 @@ export const useConfiguration = () => {
     }
   }, []);
 
+  // ✅ NUEVO: Traer proveedores y materiales reales del backend al abrir configuración
+  useEffect(() => {
+    const fetchBackendData = async () => {
+      try {
+        setLoading(true);
+        const [{ ProviderApiService, MaterialApiService }] = await Promise.all([
+          import('../services/inventoryApiService')
+        ]);
+
+        const [providers, materialsResponse] = await Promise.all([
+          ProviderApiService.getAllProviders(),
+          MaterialApiService.getAllMaterials({ limit: 1000 })
+        ]);
+
+        const materials = Array.isArray((materialsResponse as any)?.data)
+          ? (materialsResponse as any).data
+          : (materialsResponse as any)?.materials || materialsResponse || [];
+
+        const current = ConfigService.getConfiguration();
+        current.providers = providers || [];
+        current.materials = materials || [];
+        ConfigService.saveConfiguration(current);
+        setConfiguration({ ...current });
+        setError(null);
+      } catch (err) {
+        console.warn('⚠️ No se pudo obtener proveedores/materiales del backend, mostrando locales.', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBackendData();
+  }, []);
+
   // ==================== GESTIÓN GENERAL ====================
 
   const refreshConfiguration = useCallback(() => {
@@ -299,6 +333,28 @@ export const useConfiguration = () => {
     configuration,
     loading,
     error,
+    // Utilidad para refrescar desde backend bajo demanda
+    refreshFromBackend: async () => {
+      try {
+        const [{ ProviderApiService, MaterialApiService }] = await Promise.all([
+          import('../services/inventoryApiService')
+        ]);
+        const [providers, materialsResponse] = await Promise.all([
+          ProviderApiService.getAllProviders(),
+          MaterialApiService.getAllMaterials({ limit: 1000 })
+        ]);
+        const materials = Array.isArray((materialsResponse as any)?.data)
+          ? (materialsResponse as any).data
+          : (materialsResponse as any)?.materials || materialsResponse || [];
+        const current = ConfigService.getConfiguration();
+        current.providers = providers || [];
+        current.materials = materials || [];
+        ConfigService.saveConfiguration(current);
+        setConfiguration({ ...current });
+      } catch (e) {
+        console.error('❌ Error refrescando datos de backend:', e);
+      }
+    },
     
     // Gestión general
     refreshConfiguration,
