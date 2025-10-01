@@ -15,9 +15,10 @@ import {
   Truck,
   User
 } from 'lucide-react';
-import type { Platform } from '../types';
+import type { Platform, Evidence } from '../types';
 import { useInventory } from '../hooks/useInventory';
 import { SimpleExportService } from '../services/simpleExportService';
+import { EvidenceUpload } from './EvidenceUpload';
 import { validateLength } from '../utils/calculations';
 import { QuickCaptureInput } from './QuickCaptureInput';
 import { PiecesTable } from './PiecesTable';
@@ -31,7 +32,7 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
   platform: initialPlatform,
   onBack
 }: PlatformDetailViewProps) => {
-  const { platforms, updatePlatform, deletePlatform, addPiece, addMultiplePieces, updatePiece, deletePiece, changeStandardWidth, syncPendingPlatforms, syncStatus } = useInventory();
+  const { platforms, updatePlatform, deletePlatform, addPiece, addMultiplePieces, updatePiece, deletePiece, changeStandardWidth, syncPendingPlatforms, syncStatus, updatePlatformEvidence } = useInventory();
   
   // Obtener la plataforma actualizada desde el estado global
   const platform = platforms.find((p: Platform) => p.id === initialPlatform.id) || initialPlatform;
@@ -1005,6 +1006,15 @@ Generado por Sistema de Inventario`;
             />
           </div>
         </div>
+      </div>
+
+      {/* Sección de Evidencias */}
+      <div className="mt-8">
+        <EvidenceUpload
+          platformId={platform.id}
+          existingEvidence={platform.evidence || []}
+          onEvidenceUpdated={(evidence: Evidence[]) => updatePlatformEvidence(platform.id, evidence)}
+        />
       </div>
 
       {/* Modal de Confirmación de Eliminación */}

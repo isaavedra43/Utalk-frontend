@@ -1,7 +1,7 @@
 // Hook principal para manejo de inventario
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { Platform, Piece, InventorySettings } from '../types';
+import type { Platform, Piece, InventorySettings, Evidence } from '../types';
 import { StorageService } from '../services/storageService';
 import { ConfigService } from '../services/configService';
 import { PlatformApiService } from '../services/inventoryApiService';
@@ -460,6 +460,69 @@ export const useInventory = () => {
     };
   }, [platforms, isOnline]);
 
+  // ✅ NUEVA: Función para agregar evidencia a una plataforma
+  const addEvidenceToPlatform = useCallback((platformId: string, evidence: Evidence[]) => {
+    setPlatforms((prev: Platform[]) => {
+      const updated = prev.map((platform: Platform) => {
+        if (platform.id === platformId) {
+          const updatedPlatform = {
+            ...platform,
+            evidence: [...(platform.evidence || []), ...evidence],
+            updatedAt: new Date()
+          };
+          StorageService.savePlatform(updatedPlatform);
+          return updatedPlatform;
+        }
+        return platform;
+      });
+      return updated;
+    });
+  }, []);
+
+  // ✅ NUEVA: Función para eliminar evidencia de una plataforma
+  const removeEvidenceFromPlatform = useCallback((platformId: string, evidenceId: string) => {
+    setPlatforms((prev: Platform[]) => {
+      const updated = prev.map((platform: Platform) => {
+        if (platform.id === platformId) {
+          const updatedPlatform = {
+            ...platform,
+            evidence: (platform.evidence || []).filter((e: Evidence) => e.id !== evidenceId),
+            updatedAt: new Date()
+          };
+          StorageService.savePlatform(updatedPlatform);
+          return updatedPlatform;
+        }
+        return platform;
+      });
+      return updated;
+    });
+  }, []);
+
+  // ✅ NUEVA: Función para obtener evidencias de una plataforma
+  const getPlatformEvidence = useCallback((platformId: string): Evidence[] => {
+    const platform = platforms.find((p: Platform) => p.id === platformId);
+    return platform?.evidence || [];
+  }, [platforms]);
+
+  // ✅ NUEVA: Función para actualizar evidencias de una plataforma (usado por el componente)
+  const updatePlatformEvidence = useCallback((platformId: string, evidence: Evidence[]) => {
+    setPlatforms((prev: Platform[]) => {
+      const updated = prev.map((platform: Platform) => {
+        if (platform.id === platformId) {
+          const updatedPlatform = {
+            ...platform,
+            evidence,
+            updatedAt: new Date()
+          };
+          StorageService.savePlatform(updatedPlatform);
+          return updatedPlatform;
+        }
+        return platform;
+      });
+      return updated;
+    });
+  }, []);
+
   return {
     platforms,
     settings,
@@ -477,7 +540,12 @@ export const useInventory = () => {
     syncPendingPlatforms,
     syncStatus,
     // ✅ NUEVA: Función para actualizar datos desde la base de datos
-    refreshData
+    refreshData,
+    // ✅ NUEVA: Funciones para manejo de evidencias
+    addEvidenceToPlatform,
+    removeEvidenceFromPlatform,
+    getPlatformEvidence,
+    updatePlatformEvidence
   };
 };
 
