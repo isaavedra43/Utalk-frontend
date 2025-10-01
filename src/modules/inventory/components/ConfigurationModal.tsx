@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Settings, Users, Package, Sliders, Download, Upload, RotateCcw, AlertCircle, Check, RefreshCw } from 'lucide-react';
+import { X, Settings, Users, Package, Settings as SlidersIcon, Download, Plus as UploadIcon, RefreshCw as RotateCcwIcon, AlertCircle, Check, RefreshCw } from 'lucide-react';
 import { useConfiguration } from '../hooks/useConfiguration';
 import { ProviderManager } from './ProviderManager';
 import { MaterialManager } from './MaterialManager';
@@ -11,13 +11,12 @@ interface ConfigurationModalProps {
 
 type TabType = 'providers' | 'materials' | 'settings' | 'export';
 
-export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose }) => {
+export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose }: ConfigurationModalProps) => {
   const {
     configuration,
     loading,
     error,
     resetConfiguration,
-    clearLocalConfiguration, // ✅ Cambio: Ya no se inicializan datos falsos
     exportConfiguration,
     importConfiguration,
     getConfigurationStats,
@@ -50,7 +49,8 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
       resetConfiguration();
       showNotification('success', 'Configuración restablecida a valores por defecto');
       setShowResetConfirm(false);
-    } catch (error) {
+    } catch (resetError) {
+      console.error('Error al restablecer configuración:', resetError);
       showNotification('error', 'Error al restablecer configuración');
     }
   };
@@ -60,7 +60,8 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
     try {
       await refreshFromBackend();
       showNotification('success', 'Datos actualizados desde el backend');
-    } catch (error) {
+    } catch (refreshError) {
+      console.error('Error al actualizar datos desde el backend:', refreshError);
       showNotification('error', 'Error al actualizar datos desde el backend');
     }
   };
@@ -81,22 +82,13 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
       console.log('🧪 Materiales obtenidos:', materials);
       
       showNotification('success', `APIs funcionando: ${providers.length} proveedores, ${materials.data?.length || 0} materiales`);
-    } catch (error) {
-      console.error('🧪 Error en prueba de APIs:', error);
-      showNotification('error', `Error en APIs: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } catch (apiError) {
+      console.error('🧪 Error en prueba de APIs:', apiError);
+      showNotification('error', `Error en APIs: ${apiError instanceof Error ? apiError.message : 'Error desconocido'}`);
     }
   };
 
-  // ✅ ELIMINADO: Ya no se crean datos falsos
-  // Ahora solo se puede limpiar la configuración local
-  const handleClearLocalConfiguration = async () => {
-    try {
-      clearLocalConfiguration();
-      showNotification('success', 'Configuración local limpiada - Use datos del backend');
-    } catch (error) {
-      showNotification('error', 'Error al limpiar configuración local');
-    }
-  };
+  // ✅ ELIMINADO: handleClearLocalConfiguration no se usa en este modal
 
   const handleExportConfiguration = () => {
     try {
@@ -111,7 +103,8 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       showNotification('success', 'Configuración exportada exitosamente');
-    } catch (error) {
+    } catch (exportError) {
+      console.error('Error al exportar configuración:', exportError);
       showNotification('error', 'Error al exportar configuración');
     }
   };
@@ -127,7 +120,8 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
         importConfiguration(content);
         showNotification('success', 'Configuración importada exitosamente');
         event.target.value = ''; // Limpiar input
-      } catch (error) {
+      } catch (importError) {
+        console.error('Error al importar configuración:', importError);
         showNotification('error', 'Error al importar configuración');
       }
     };
@@ -137,7 +131,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
   const tabs = [
     { id: 'providers' as TabType, label: 'Proveedores', icon: Users },
     { id: 'materials' as TabType, label: 'Materiales', icon: Package },
-    { id: 'settings' as TabType, label: 'Configuración', icon: Sliders },
+    { id: 'settings' as TabType, label: 'Configuración', icon: SlidersIcon },
     { id: 'export' as TabType, label: 'Exportar/Importar', icon: Download }
   ];
 
@@ -185,7 +179,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
                   <span><strong>{stats.activeMaterials}</strong> Materiales Activos</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Sliders className="h-4 w-4 text-purple-600" />
+                  <SlidersIcon className="h-4 w-4 text-purple-600" />
                   <span><strong>{stats.materialCategories}</strong> Categorías</span>
                 </div>
                 <div className="text-xs text-gray-500">
@@ -281,7 +275,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
                     Importa una configuración desde un archivo JSON. Esto reemplazará la configuración actual.
                   </p>
                   <label className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors active:scale-95 cursor-pointer">
-                    <Upload className="h-4 w-4" />
+                    <UploadIcon className="h-4 w-4" />
                     Importar Configuración
                     <input
                       type="file"
@@ -300,7 +294,10 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
                     Inicializa la configuración por defecto si no se han cargado los materiales o proveedores. Esto agregará los materiales y proveedores predeterminados.
                   </p>
                   <button
-                    onClick={handleInitializeDefaultConfiguration}
+                    onClick={() => {
+                      console.log('Inicializar configuración por defecto - función no implementada');
+                      showNotification('error', 'Función de inicialización no implementada');
+                    }}
                     className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors active:scale-95"
                   >
                     <Settings className="h-4 w-4" />
@@ -319,7 +316,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
                     onClick={() => setShowResetConfirm(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors active:scale-95"
                   >
-                    <RotateCcw className="h-4 w-4" />
+                    <RotateCcwIcon className="h-4 w-4" />
                     Restablecer a Valores por Defecto
                   </button>
                 </div>
@@ -345,7 +342,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                    <RotateCcw className="h-5 w-5 text-red-600" />
+                    <RotateCcwIcon className="h-5 w-5 text-red-600" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-semibold text-gray-900">Restablecer Configuración</h3>

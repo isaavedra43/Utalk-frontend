@@ -5,6 +5,8 @@ import { ConfigService } from '../services/configService';
 import type { ModuleConfiguration, Provider, MaterialOption } from '../types';
 
 export const useConfiguration = () => {
+  console.log('🎯 [useConfiguration] Hook inicializado/renderizado');
+  
   const [configuration, setConfiguration] = useState<ModuleConfiguration | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +18,8 @@ export const useConfiguration = () => {
         setLoading(true);
         setError(null);
         
-        console.log('🔄 Iniciando carga de configuración desde backend...');
+        console.log('🔄 [useConfiguration] Iniciando carga de configuración desde backend...');
+        console.log('🔄 [useConfiguration] Estado inicial:', { loading, error, configuration: !!configuration });
         
         // ✅ PASO 1: Intentar cargar desde backend PRIMERO
         try {
@@ -25,14 +28,14 @@ export const useConfiguration = () => {
             import('../services/inventoryApiService')
           ]);
 
-          console.log('📡 Haciendo llamadas al backend...');
-          const [providers, materialsResponse] = await Promise.all([
-            ProviderApiService.getAllProviders(),
-            MaterialApiService.getAllMaterials({ limit: 1000 })
-          ]);
-
-          console.log('✅ Proveedores obtenidos del backend:', providers?.length || 0);
-          console.log('✅ Respuesta de materiales del backend:', materialsResponse);
+          console.log('📡 [useConfiguration] Haciendo llamadas al backend...');
+          console.log('📡 [useConfiguration] Llamando ProviderApiService.getAllProviders()...');
+          const providers = await ProviderApiService.getAllProviders();
+          console.log('✅ [useConfiguration] Proveedores obtenidos:', providers);
+          
+          console.log('📡 [useConfiguration] Llamando MaterialApiService.getAllMaterials()...');
+          const materialsResponse = await MaterialApiService.getAllMaterials({ limit: 1000 });
+          console.log('✅ [useConfiguration] Respuesta de materiales:', materialsResponse);
 
           // Extraer materiales de la respuesta
           let materials = [];
@@ -76,6 +79,7 @@ export const useConfiguration = () => {
       }
     };
 
+    console.log('🚀 [useConfiguration] useEffect ejecutándose - iniciando configuración...');
     initializeConfiguration();
   }, []);
 
