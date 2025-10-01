@@ -11,7 +11,10 @@ export const InventoryMainView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | Platform['status']>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
+  const [selectedPlatformId, setSelectedPlatformId] = useState<string | null>(null);
+  
+  // Obtener la plataforma seleccionada actualizada desde el estado global
+  const selectedPlatform = selectedPlatformId ? platforms.find(p => p.id === selectedPlatformId) : null;
 
   // Filtrar plataformas
   const filteredPlatforms = platforms.filter(platform => {
@@ -34,19 +37,21 @@ export const InventoryMainView: React.FC = () => {
 
   const handleCreatePlatform = (data: {
     platformNumber: string;
-    materialType: string;
+    materialTypes: string[];
+    provider: string;
+    driver: string;
     notes?: string;
   }) => {
     const newPlatform = createPlatform(data);
     setShowCreateModal(false);
-    setSelectedPlatform(newPlatform);
+    setSelectedPlatformId(newPlatform.id);
   };
 
   if (selectedPlatform) {
     return (
       <PlatformDetailView
         platform={selectedPlatform}
-        onBack={() => setSelectedPlatform(null)}
+        onBack={() => setSelectedPlatformId(null)}
       />
     );
   }
@@ -189,7 +194,7 @@ export const InventoryMainView: React.FC = () => {
               <PlatformCard
                 key={platform.id}
                 platform={platform}
-                onClick={() => setSelectedPlatform(platform)}
+                onClick={() => setSelectedPlatformId(platform.id)}
               />
             ))}
           </div>

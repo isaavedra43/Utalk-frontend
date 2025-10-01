@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
-import { X, Package, Calendar, Layers, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Package, Calendar, Layers, FileText, Truck, User, Search, Check } from 'lucide-react';
+import { MOCK_PROVIDERS, MOCK_MATERIALS, getMaterialsByCategory } from '../data/mockData';
+import type { Provider, MaterialOption } from '../types';
 
 interface CreatePlatformModalProps {
   onClose: () => void;
   onCreate: (data: {
     platformNumber: string;
-    materialType: string;
+    materialTypes: string[];
+    provider: string;
+    driver: string;
     notes?: string;
   }) => void;
 }
@@ -13,10 +17,25 @@ interface CreatePlatformModalProps {
 export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClose, onCreate }) => {
   const [formData, setFormData] = useState({
     platformNumber: '',
-    materialType: 'Mármol',
+    materialTypes: [] as string[],
+    provider: '',
+    driver: '',
     notes: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [providerSearch, setProviderSearch] = useState('');
+  const [showProviderDropdown, setShowProviderDropdown] = useState(false);
+  const [selectedMaterials, setSelectedMaterials] = useState<MaterialOption[]>([]);
+  const [materialSearch, setMaterialSearch] = useState('');
+  const [showMaterialDropdown, setShowMaterialDropdown] = useState(false);
+  
+  const materialCategories = getMaterialsByCategory();
+  const filteredProviders = MOCK_PROVIDERS.filter(provider =>
+    provider.name.toLowerCase().includes(providerSearch.toLowerCase())
+  );
+  const filteredMaterials = MOCK_MATERIALS.filter(material =>
+    material.name.toLowerCase().includes(materialSearch.toLowerCase())
+  );
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -25,8 +44,16 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
       newErrors.platformNumber = 'El número de plataforma es requerido';
     }
 
-    if (!formData.materialType.trim()) {
-      newErrors.materialType = 'El tipo de material es requerido';
+    if (formData.materialTypes.length === 0) {
+      newErrors.materialTypes = 'Debe seleccionar al menos un material';
+    }
+
+    if (!formData.provider.trim()) {
+      newErrors.provider = 'El proveedor es requerido';
+    }
+
+    if (!formData.driver.trim()) {
+      newErrors.driver = 'El nombre del chofer es requerido';
     }
 
     setErrors(newErrors);
@@ -40,6 +67,47 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
       onCreate(formData);
     }
   };
+
+  // Funciones para manejar materiales
+  const handleMaterialSelect = (material: MaterialOption) => {
+    if (!selectedMaterials.find(m => m.id === material.id)) {
+      const newSelectedMaterials = [...selectedMaterials, material];
+      setSelectedMaterials(newSelectedMaterials);
+      setFormData({
+        ...formData,
+        materialTypes: newSelectedMaterials.map(m => m.name)
+      });
+    }
+    setMaterialSearch('');
+    setShowMaterialDropdown(false);
+  };
+
+  const handleMaterialRemove = (materialId: string) => {
+    const newSelectedMaterials = selectedMaterials.filter(m => m.id !== materialId);
+    setSelectedMaterials(newSelectedMaterials);
+    setFormData({
+      ...formData,
+      materialTypes: newSelectedMaterials.map(m => m.name)
+    });
+  };
+
+  // Funciones para manejar proveedor
+  const handleProviderSelect = (provider: Provider) => {
+    setFormData({ ...formData, provider: provider.name });
+    setProviderSearch(provider.name);
+    setShowProviderDropdown(false);
+  };
+
+  // Cerrar dropdowns al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowProviderDropdown(false);
+      setShowMaterialDropdown(false);
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
@@ -81,29 +149,146 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
             )}
           </div>
 
-          {/* Material Type */}
+          {/* Material Types - Multi Select */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
               <Layers className="h-4 w-4 text-gray-500" />
-              Tipo de Material *
+              Tipos de Material *
             </label>
-            <select
-              value={formData.materialType}
-              onChange={(e) => setFormData({ ...formData, materialType: e.target.value })}
+            
+            {/* Materiales seleccionados */}
+            {selectedMaterials.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {selectedMaterials.map((material) => (
+                  <span
+                    key={material.id}
+                    className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                  >
+                    {material.name}
+                    <button
+                      type="button"
+                      onClick={() => handleMaterialRemove(material.id)}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            
+            {/* Input de búsqueda de materiales */}
+            <div className="relative">
+              <input
+                type="text"
+                value={materialSearch}
+                onChange={(e) => {
+                  setMaterialSearch(e.target.value);
+                  setShowMaterialDropdown(true);
+                }}
+                onFocus={() => setShowMaterialDropdown(true)}
+                placeholder="Buscar materiales..."
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.materialTypes ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              
+              {/* Dropdown de materiales */}
+              {showMaterialDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {filteredMaterials.map((material) => (
+                    <button
+                      key={material.id}
+                      type="button"
+                      onClick={() => handleMaterialSelect(material)}
+                      disabled={selectedMaterials.find(m => m.id === material.id)}
+                      className="w-full px-3 py-2 text-left hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
+                    >
+                      <div>
+                        <div className="font-medium text-sm">{material.name}</div>
+                        <div className="text-xs text-gray-500">{material.category}</div>
+                      </div>
+                      {selectedMaterials.find(m => m.id === material.id) && (
+                        <Check className="h-4 w-4 text-blue-600" />
+                      )}
+                    </button>
+                  ))}
+                  {filteredMaterials.length === 0 && (
+                    <div className="px-3 py-2 text-sm text-gray-500">No se encontraron materiales</div>
+                  )}
+                </div>
+              )}
+            </div>
+            {errors.materialTypes && (
+              <p className="text-xs text-red-600 mt-1">{errors.materialTypes}</p>
+            )}
+          </div>
+
+          {/* Provider */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+              <Truck className="h-4 w-4 text-gray-500" />
+              Proveedor *
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={providerSearch}
+                onChange={(e) => {
+                  setProviderSearch(e.target.value);
+                  setShowProviderDropdown(true);
+                }}
+                onFocus={() => setShowProviderDropdown(true)}
+                placeholder="Buscar proveedor..."
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.provider ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              
+              {/* Dropdown de proveedores */}
+              {showProviderDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {filteredProviders.map((provider) => (
+                    <button
+                      key={provider.id}
+                      type="button"
+                      onClick={() => handleProviderSelect(provider)}
+                      className="w-full px-3 py-2 text-left hover:bg-gray-50"
+                    >
+                      <div className="font-medium text-sm">{provider.name}</div>
+                      <div className="text-xs text-gray-500">{provider.contact}</div>
+                    </button>
+                  ))}
+                  {filteredProviders.length === 0 && (
+                    <div className="px-3 py-2 text-sm text-gray-500">No se encontraron proveedores</div>
+                  )}
+                </div>
+              )}
+            </div>
+            {errors.provider && (
+              <p className="text-xs text-red-600 mt-1">{errors.provider}</p>
+            )}
+          </div>
+
+          {/* Driver */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+              <User className="h-4 w-4 text-gray-500" />
+              Nombre del Chofer *
+            </label>
+            <input
+              type="text"
+              value={formData.driver}
+              onChange={(e) => setFormData({ ...formData, driver: e.target.value })}
+              placeholder="Ej: Juan Pérez, María González"
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.materialType ? 'border-red-500' : 'border-gray-300'
+                errors.driver ? 'border-red-500' : 'border-gray-300'
               }`}
-            >
-              <option value="Mármol">Mármol</option>
-              <option value="Granito">Granito</option>
-              <option value="Cuarzo">Cuarzo</option>
-              <option value="Piedra Natural">Piedra Natural</option>
-              <option value="Ónix">Ónix</option>
-              <option value="Travertino">Travertino</option>
-              <option value="Otro">Otro</option>
-            </select>
-            {errors.materialType && (
-              <p className="text-xs text-red-600 mt-1">{errors.materialType}</p>
+            />
+            {errors.driver && (
+              <p className="text-xs text-red-600 mt-1">{errors.driver}</p>
             )}
           </div>
 

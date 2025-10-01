@@ -15,7 +15,9 @@ import {
   AlertCircle,
   Undo,
   FileSpreadsheet,
-  FileImage
+  FileImage,
+  Truck,
+  User
 } from 'lucide-react';
 import type { Platform } from '../types';
 import { useInventory } from '../hooks/useInventory';
@@ -34,13 +36,14 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
   platform: initialPlatform,
   onBack
 }) => {
-  const { platforms, updatePlatform, addPiece, addMultiplePieces, updatePiece, deletePiece, changeStandardWidth } = useInventory();
+  const { platforms, updatePlatform, deletePlatform, addPiece, addMultiplePieces, updatePiece, deletePiece, changeStandardWidth } = useInventory();
   
   // Obtener la plataforma actualizada desde el estado global
   const platform = platforms.find(p => p.id === initialPlatform.id) || initialPlatform;
   
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [lastAction, setLastAction] = useState<{ type: 'add' | 'delete'; pieceId?: string } | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
@@ -49,6 +52,21 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 3000);
+  };
+
+  // Función para eliminar plataforma
+  const handleDeletePlatform = () => {
+    try {
+      deletePlatform(platform.id);
+      showNotification('success', 'Plataforma eliminada exitosamente');
+      setTimeout(() => {
+        onBack();
+      }, 1000);
+    } catch (error) {
+      showNotification('error', 'Error al eliminar la plataforma');
+      console.error(error);
+    }
+    setShowDeleteModal(false);
   };
 
   // Manejar agregar pieza
@@ -133,13 +151,68 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
     }
   };
 
-  // Compartir
-  const handleShare = async () => {
+  // Exportar como Imagen
+  const handleExportImage = async () => {
     try {
-      await ExportService.share(platform);
-      showNotification('success', 'Compartido exitosamente');
+      setExporting(true);
+      await ExportService.exportToImage(platform);
+      updatePlatform(platform.id, { status: 'exported' });
+      showNotification('success', 'Exportado como imagen exitosamente');
     } catch (error) {
-      showNotification('error', 'No se pudo compartir');
+      showNotification('error', 'Error al exportar como imagen');
+      console.error(error);
+    } finally {
+      setExporting(false);
+      setShowExportMenu(false);
+    }
+  };
+
+  // Compartir como Texto
+  const handleShareText = async () => {
+    try {
+      await ExportService.share(platform, 'text');
+      showNotification('success', 'Compartido como texto exitosamente');
+    } catch (error) {
+      showNotification('error', 'No se pudo compartir como texto');
+      console.error(error);
+    } finally {
+      setShowExportMenu(false);
+    }
+  };
+
+  // Compartir como Imagen
+  const handleShareImage = async () => {
+    try {
+      await ExportService.share(platform, 'image');
+      showNotification('success', 'Compartido como imagen exitosamente');
+    } catch (error) {
+      showNotification('error', 'No se pudo compartir como imagen');
+      console.error(error);
+    } finally {
+      setShowExportMenu(false);
+    }
+  };
+
+  // Compartir como PDF
+  const handleSharePDF = async () => {
+    try {
+      await ExportService.share(platform, 'pdf');
+      showNotification('success', 'Compartido como PDF exitosamente');
+    } catch (error) {
+      showNotification('error', 'No se pudo compartir como PDF');
+      console.error(error);
+    } finally {
+      setShowExportMenu(false);
+    }
+  };
+
+  // Compartir como Excel
+  const handleShareExcel = async () => {
+    try {
+      await ExportService.share(platform, 'excel');
+      showNotification('success', 'Compartido como Excel exitosamente');
+    } catch (error) {
+      showNotification('error', 'No se pudo compartir como Excel');
       console.error(error);
     } finally {
       setShowExportMenu(false);
@@ -194,6 +267,14 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
                 </button>
               )}
 
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="flex items-center gap-1.5 sm:gap-2 px-3 py-2.5 sm:py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0 active:scale-95"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="text-xs sm:text-sm font-medium">Eliminar</span>
+              </button>
+
               <div className="relative flex-shrink-0">
                 <button
                   onClick={() => setShowExportMenu(!showExportMenu)}
@@ -208,7 +289,11 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
                   <ExportMenu
                     onExportPDF={handleExportPDF}
                     onExportExcel={handleExportExcel}
-                    onShare={handleShare}
+                    onExportImage={handleExportImage}
+                    onShareText={handleShareText}
+                    onShareImage={handleShareImage}
+                    onSharePDF={handleSharePDF}
+                    onShareExcel={handleShareExcel}
                     onClose={() => setShowExportMenu(false)}
                     exporting={exporting}
                   />
@@ -226,7 +311,12 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
               <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
                 <span className="flex items-center gap-1 truncate">
                   <Layers className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                  <span className="truncate">{platform.materialType}</span>
+                  <span className="truncate">
+                    {platform.materialTypes.length > 0 
+                      ? platform.materialTypes.join(', ')
+                      : 'Sin materiales'
+                    }
+                  </span>
                 </span>
                 <span className="flex items-center gap-1 truncate">
                   <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
@@ -241,6 +331,24 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
                 <span className="flex items-center gap-1">
                   <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                   <span>{platform.pieces.length} piezas</span>
+                </span>
+                {platform.createdBy && (
+                  <span className="flex items-center gap-1 text-blue-600">
+                    <Edit3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <span className="truncate">Creada por: {platform.createdBy}</span>
+                  </span>
+                )}
+              </div>
+              
+              {/* Información adicional del proveedor y chofer */}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 mt-2">
+                <span className="flex items-center gap-1 truncate">
+                  <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                  <span className="truncate">Proveedor: {platform.provider || 'No especificado'}</span>
+                </span>
+                <span className="flex items-center gap-1 truncate">
+                  <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                  <span className="truncate">Chofer: {platform.driver || 'No especificado'}</span>
                 </span>
               </div>
             </div>
@@ -284,6 +392,15 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
                   <span className="text-2xl sm:text-3xl font-bold text-green-900">{platform.totalLinearMeters.toFixed(3)}</span>
                 </div>
 
+                {/* METROS TOTALES DE LA CARGA - DESTACADO */}
+                <div className="flex justify-between items-center p-3 sm:p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg border-2 border-orange-300 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    <span className="text-sm sm:text-base text-orange-700 font-semibold">Metros Totales de la Carga</span>
+                  </div>
+                  <span className="text-2xl sm:text-3xl font-bold text-orange-800">{platform.totalLinearMeters.toFixed(2)} m²</span>
+                </div>
+
                 <div className="pt-2.5 sm:pt-3 border-t border-gray-200">
                   <div className="flex justify-between text-xs text-gray-500">
                     <span>Ancho estándar</span>
@@ -305,6 +422,56 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Modal de Confirmación de Eliminación */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black bg-opacity-50"
+            onClick={() => setShowDeleteModal(false)}
+          />
+          
+          {/* Modal */}
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                  <Trash2 className="h-5 w-5 text-red-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-semibold text-gray-900">Eliminar Plataforma</h3>
+                  <p className="text-sm text-gray-500 mt-1">Esta acción no se puede deshacer</p>
+                </div>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-sm text-gray-700">
+                  ¿Estás seguro de que quieres eliminar la plataforma <strong>"{platform.platformNumber}"</strong>?
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  Se eliminarán todas las piezas registradas ({platform.pieces.length} piezas) y sus datos.
+                </p>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors active:scale-95"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDeletePlatform}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors active:scale-95"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Notification - Optimizado para móvil */}
       {notification && (

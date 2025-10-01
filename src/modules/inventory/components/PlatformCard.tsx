@@ -51,10 +51,15 @@ export const PlatformCard: React.FC<PlatformCardProps> = ({ platform, onClick })
           </span>
         </div>
 
-        {/* Material Type */}
+        {/* Material Types */}
         <div className="flex items-center gap-2 text-gray-700 min-w-0">
           <Layers className="h-4 w-4 text-gray-400 flex-shrink-0" />
-          <span className="text-sm font-medium truncate">{platform.materialType}</span>
+          <span className="text-sm font-medium truncate">
+            {platform.materialTypes.length > 0 
+              ? platform.materialTypes.join(', ')
+              : 'Sin materiales'
+            }
+          </span>
         </div>
 
         {/* Stats */}
@@ -75,9 +80,15 @@ export const PlatformCard: React.FC<PlatformCardProps> = ({ platform, onClick })
         </div>
 
         {/* Additional Info */}
-        <div className="pt-2 border-t border-gray-100">
+        <div className="pt-2 border-t border-gray-100 space-y-1">
           <p className="text-xs text-gray-500 truncate">
             Ancho estándar: <span className="font-medium text-gray-700">{formatNumber(platform.standardWidth, 2)} m</span>
+          </p>
+          <p className="text-xs text-gray-500 truncate">
+            Proveedor: <span className="font-medium text-gray-700">{platform.provider || 'No especificado'}</span>
+          </p>
+          <p className="text-xs text-gray-500 truncate">
+            Chofer: <span className="font-medium text-gray-700">{platform.driver || 'No especificado'}</span>
           </p>
         </div>
       </div>

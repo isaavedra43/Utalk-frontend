@@ -8,7 +8,6 @@ import { NotificationProvider } from './contexts/NotificationContext'
 import { AuthModule } from './modules/auth'
 import { ForgotPasswordForm } from './modules/auth/components/ForgotPasswordForm'
 import { MainLayout } from './components/layout/MainLayout'
-import { LeftSidebar } from './components/layout/LeftSidebar'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { 
@@ -589,7 +588,7 @@ function App() {
                   element={
                     <AuthProtectedRoute>
                       <ProtectedRoute moduleId="inventory">
-                        <InventoryModule />
+                        <MainLayout />
                       </ProtectedRoute>
                     </AuthProtectedRoute>
                   } 

@@ -28,7 +28,9 @@ export const useInventory = () => {
   // Crear nueva plataforma
   const createPlatform = useCallback((data: {
     platformNumber: string;
-    materialType: string;
+    materialTypes: string[];
+    provider: string;
+    driver: string;
     receptionDate?: Date;
     notes?: string;
   }): Platform => {
@@ -38,13 +40,16 @@ export const useInventory = () => {
       id: generateId(),
       platformNumber: data.platformNumber,
       receptionDate: data.receptionDate || new Date(),
-      materialType: data.materialType,
+      materialTypes: data.materialTypes,
+      provider: data.provider,
+      driver: data.driver,
       standardWidth: defaultWidth,
       pieces: [],
       totalLinearMeters: 0,
       totalLength: 0,
       status: 'in_progress',
       notes: data.notes,
+      createdBy: 'Usuario Actual', // TODO: Obtener del contexto de usuario
       createdAt: new Date(),
       updatedAt: new Date()
     };
