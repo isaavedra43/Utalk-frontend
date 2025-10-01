@@ -22,7 +22,23 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredAction = 'read'
 }) => {
   const navigate = useNavigate();
-  const { logout } = useAuthContext();
+
+  // ✅ Usar contexto con manejo seguro de errores
+  let authContext;
+  try {
+    authContext = useAuthContext();
+  } catch (error) {
+    console.warn('⚠️ useAuthContext no disponible en ProtectedRoute, usando estado seguro');
+    authContext = {
+      logout: async () => {},
+      isAuthenticated: false,
+      loading: false,
+      user: null,
+      backendUser: null
+    };
+  }
+
+  const { logout } = authContext;
   const { canAccessModule, hasPermission, loading, error, accessibleModules } = useModulePermissions();
   
   // ✅ Redirección automática si no tiene acceso
