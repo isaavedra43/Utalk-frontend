@@ -18,6 +18,25 @@ export class ErrorBoundary extends Component<Props, State> {
   private retryTimeoutId?: NodeJS.Timeout;
   private maxRetries = 3;
   
+  // Detecta promesas/thenables (usadas por Suspense)
+  private isThenable = (value: unknown): boolean => {
+    return (
+      (!!value && (typeof value === 'object' || typeof value === 'function')) &&
+      typeof (value as any).then === 'function'
+    );
+  };
+
+  // Normaliza cualquier cosa lanzada a una instancia de Error legible
+  private normalizeError = (err: unknown): Error => {
+    if (err instanceof Error) return err;
+    try {
+      const asString = typeof err === 'string' ? err : JSON.stringify(err);
+      return new Error(asString || 'Unknown non-Error exception');
+    } catch {
+      return new Error('Unknown non-Error exception');
+    }
+  };
+  
   public state: State = {
     hasError: false,
     retryCount: 0,
@@ -29,12 +48,22 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error, retryCount: 0, isRecovering: false };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('🚨 ErrorBoundary - Error capturado:', error);
+  public componentDidCatch(error: unknown, errorInfo: ErrorInfo) {
+    // Ignorar promesas de Suspense: no son errores y no deben mostrar fallback
+    if (this.isThenable(error)) {
+      // Restablecer el estado si React llamó getDerivedStateFromError por error
+      if (this.state.hasError) {
+        this.setState({ hasError: false, error: undefined, isRecovering: false });
+      }
+      return;
+    }
+
+    const normalized = this.normalizeError(error);
+    console.error('🚨 ErrorBoundary - Error capturado:', normalized);
     console.error('🚨 ErrorBoundary - Error info:', errorInfo);
 
     // Log del error para debugging
-    if (error.message.includes('Minified React error #310')) {
+    if (normalized.message?.includes('Minified React error #310')) {
       console.error('🚨 ErrorBoundary - Error #310 detectado: Problema con hooks de React');
       console.error('🚨 ErrorBoundary - Posible causa: Hooks llamados condicionalmente');
     }
@@ -45,7 +74,7 @@ export class ErrorBoundary extends Component<Props, State> {
     }));
     
     // Intentar recuperación automática para errores de autenticación
-    this.attemptAutoRecovery(error);
+    this.attemptAutoRecovery(normalized);
   }
   
   private isAuthError = (error: Error): boolean => {

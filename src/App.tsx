@@ -1,34 +1,45 @@
 
-import React, { memo, useEffect } from 'react';
+import React, { memo, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { WebSocketProvider } from './contexts/WebSocketContext'
 import { MobileMenuProvider } from './contexts/MobileMenuContext'
 import { NotificationProvider } from './contexts/NotificationContext'
-import { AuthModule } from './modules/auth'
-import { ForgotPasswordForm } from './modules/auth/components/ForgotPasswordForm'
-import { MainLayout } from './components/layout/MainLayout'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { ProtectedRoute } from './components/ProtectedRoute'
-import { 
-  InternalChatModule, 
-  CampaignsModule, 
-  CallsModule, 
-  KnowledgeBaseModule, 
-  HRModule, 
-  SupervisionModule, 
-  CopilotModule,
-  InventoryModule,
-  ShippingModule,
-  ServicesModule
-} from './modules'
-
 import { useAuthContext } from './contexts/useAuthContext'
-import { MonitoringBubble } from './components/monitoring'
-import ToastContainer from './components/ui/ToastContainer'
 import { useToast } from './hooks/useToast'
-import { PWAInstallPrompt } from './components/pwa/PWAInstallPrompt'
-import { PWAUpdatePrompt } from './components/pwa/PWAUpdatePrompt'
+
+// ✅ OPTIMIZACIÓN: Lazy loading de módulos para carga más rápida
+const AuthModule = lazy(() => import('./modules/auth').then(m => ({ default: m.AuthModule })));
+const ForgotPasswordForm = lazy(() => import('./modules/auth/components/ForgotPasswordForm').then(m => ({ default: m.ForgotPasswordForm })));
+const MainLayout = lazy(() => import('./components/layout/MainLayout').then(m => ({ default: m.MainLayout })));
+const ProtectedRoute = lazy(() => import('./components/ProtectedRoute').then(m => ({ default: m.ProtectedRoute })));
+const MonitoringBubble = lazy(() => import('./components/monitoring').then(m => ({ default: m.MonitoringBubble })));
+const ToastContainer = lazy(() => import('./components/ui/ToastContainer').then(m => ({ default: m.default })));
+const PWAInstallPrompt = lazy(() => import('./components/pwa/PWAInstallPrompt').then(m => ({ default: m.PWAInstallPrompt })));
+const PWAUpdatePrompt = lazy(() => import('./components/pwa/PWAUpdatePrompt').then(m => ({ default: m.PWAUpdatePrompt })));
+
+// ✅ Lazy loading de módulos pesados
+const InternalChatModule = lazy(() => import('./modules').then(m => ({ default: m.InternalChatModule })));
+const CampaignsModule = lazy(() => import('./modules').then(m => ({ default: m.CampaignsModule })));
+const CallsModule = lazy(() => import('./modules').then(m => ({ default: m.CallsModule })));
+const KnowledgeBaseModule = lazy(() => import('./modules').then(m => ({ default: m.KnowledgeBaseModule })));
+const HRModule = lazy(() => import('./modules').then(m => ({ default: m.HRModule })));
+const SupervisionModule = lazy(() => import('./modules').then(m => ({ default: m.SupervisionModule })));
+const CopilotModule = lazy(() => import('./modules').then(m => ({ default: m.CopilotModule })));
+const InventoryModule = lazy(() => import('./modules').then(m => ({ default: m.InventoryModule })));
+const ShippingModule = lazy(() => import('./modules').then(m => ({ default: m.ShippingModule })));
+const ServicesModule = lazy(() => import('./modules').then(m => ({ default: m.ServicesModule })));
+
+// ✅ Loading component optimizado
+const PageLoader = () => (
+  <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+    <div className="text-center">
+      <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+      <p className="text-sm text-gray-600">Cargando...</p>
+    </div>
+  </div>
+);
 
 // Componente de protección de rutas - OPTIMIZADO
 const AuthProtectedRoute: React.FC<{ children: React.ReactNode }> = memo(({ children }) => {
@@ -408,6 +419,7 @@ function App() {
             <MobileMenuProvider>
               <NotificationProvider>
                 <div className="app">
+              <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/login" element={<AuthModule />} />
                 <Route path="/forgot-password" element={<ForgotPasswordForm />} />
@@ -564,13 +576,20 @@ function App() {
 
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
               </Routes>
+              </Suspense>
               
               {/* Módulo de Monitoreo - Solo en desarrollo o con flag habilitado */}
-              {showMonitoring && <MonitoringBubble enabled={true} />}
+              {showMonitoring && (
+                <Suspense fallback={null}>
+                  <MonitoringBubble enabled={true} />
+                </Suspense>
+              )}
               
               {/* Componentes PWA */}
-              <PWAInstallPrompt />
-              <PWAUpdatePrompt />
+              <Suspense fallback={null}>
+                <PWAInstallPrompt />
+                <PWAUpdatePrompt />
+              </Suspense>
                 </div>
               </NotificationProvider>
             </MobileMenuProvider>
