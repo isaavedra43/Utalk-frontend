@@ -3,14 +3,14 @@ import { useState, useRef } from 'react';
 import {
   ArrowLeft,
   Printer,
-  CheckCircleCircle,
+  Check,
   Edit,
-  Trash2,
-  Package2,
-  Layers3,
+  Trash,
+  Package,
+  Layers,
   Calendar,
   AlertCircle,
-  Undo2,
+  Undo,
   FileSpreadsheet,
   FileImage,
   Truck,
@@ -94,7 +94,7 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
   };
 
   // Manejar deshacer última acción
-  const handleUndo2 = () => {
+  const handleUndo = () => {
     if (lastAction?.type === 'add' && platform.pieces.length > 0) {
       const lastPiece = platform.pieces[platform.pieces.length - 1];
       deletePiece(platform.id, lastPiece.id);
@@ -553,37 +553,43 @@ Generado por Sistema de Inventario`;
             </div>
 
             {/* Segunda fila: Acciones principales - OPTIMIZADO SIN SCROLL */}
-            <div className="space-y-2">
-              {/* Fila 1: Botones prioritarios */}
-              <div className="flex items-center gap-2">
+            <div className="space-y-3 mt-3">
+              {/* Fila 1: Botones prioritarios con mejor espaciado */}
+              <div className="flex items-center justify-between gap-3">
                 {platform.status === 'in_progress' && platform.pieces.length > 0 && (
                   <button
                     onClick={handleComplete}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white border border-green-600 rounded-xl shadow-lg hover:from-green-600 hover:to-green-700 hover:shadow-xl transition-all duration-200 active:scale-95 active:shadow-2xl"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white border border-green-600 rounded-xl shadow-lg hover:from-green-600 hover:to-green-700 hover:shadow-xl transition-all duration-200 active:scale-95 active:shadow-2xl"
                   >
-                    <CheckCircle className="h-4 w-4" />
+                    <Check className="h-4 w-4" />
                     <span className="text-sm font-semibold">Completar</span>
                   </button>
                 )}
 
-                <button
-                  onClick={() => setShowDeleteModal(true)}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-gradient-to-r from-red-50 to-red-100 text-red-700 border border-red-200 rounded-xl shadow-sm hover:from-red-100 hover:to-red-200 hover:shadow-md transition-all duration-200 active:scale-95 active:shadow-lg"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span className="text-sm font-semibold">Eliminar</span>
-                </button>
+                <div className="flex flex-col items-end">
+                  <button
+                    onClick={() => setShowDeleteModal(true)}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-red-50 to-red-100 text-red-700 border border-red-200 rounded-lg shadow-sm hover:from-red-100 hover:to-red-200 hover:shadow-md transition-all duration-200 active:scale-95 active:shadow-lg"
+                    title="⚠️ Eliminar plataforma permanentemente"
+                  >
+                    <Trash className="h-3.5 w-3.5" />
+                    <span className="text-xs font-semibold">Eliminar</span>
+                  </button>
+                  <span className="text-xs text-red-500 mt-1 text-right">
+                    ⚠️ Acción irreversible
+                  </span>
+                </div>
               </div>
 
               {/* Fila 2: Botones secundarios (solo si existen) */}
               {lastAction?.type === 'add' && platform.pieces.length > 0 && (
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={handleUndo2}
+                    onClick={handleUndo}
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-gradient-to-r from-orange-50 to-orange-100 text-orange-700 border border-orange-200 rounded-xl shadow-sm hover:from-orange-100 hover:to-orange-200 hover:shadow-md transition-all duration-200 active:scale-95 active:shadow-lg"
                     title="Deshacer última acción"
                   >
-                    <Undo2 className="h-4 w-4" />
+                    <Undo className="h-4 w-4" />
                     <span className="text-sm font-semibold">Deshacer</span>
                   </button>
                   
@@ -611,11 +617,11 @@ Generado por Sistema de Inventario`;
               <div className="flex items-center gap-2 overflow-x-auto pb-1">
                 {lastAction?.type === 'add' && platform.pieces.length > 0 && (
                   <button
-                    onClick={handleUndo2}
+                    onClick={handleUndo}
                     className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-50 to-orange-100 text-orange-700 border border-orange-200 rounded-xl shadow-sm hover:from-orange-100 hover:to-orange-200 hover:shadow-md transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-lg"
                   >
                     <div className="p-1 bg-orange-100 rounded-lg">
-                      <Undo2 className="h-4 w-4" />
+                      <Undo className="h-4 w-4" />
                     </div>
                     <span className="text-xs sm:text-sm font-semibold">Deshacer</span>
                   </button>
@@ -627,21 +633,25 @@ Generado por Sistema de Inventario`;
                     className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white border border-green-600 rounded-xl shadow-lg hover:from-green-600 hover:to-green-700 hover:shadow-xl transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-2xl"
                   >
                     <div className="p-1 bg-green-600 rounded-lg">
-                      <CheckCircle className="h-4 w-4" />
+                      <Check className="h-4 w-4" />
                     </div>
                     <span className="text-xs sm:text-sm font-semibold">Completar</span>
                   </button>
                 )}
 
-                <button
-                  onClick={() => setShowDeleteModal(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-50 to-red-100 text-red-700 border border-red-200 rounded-xl shadow-sm hover:from-red-100 hover:to-red-200 hover:shadow-md transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-lg"
-                >
-                  <div className="p-1 bg-red-100 rounded-lg">
-                    <Trash2 className="h-4 w-4" />
-                  </div>
-                  <span className="text-xs sm:text-sm font-semibold">Eliminar</span>
-                </button>
+                <div className="flex flex-col items-center">
+                  <button
+                    onClick={() => setShowDeleteModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-red-50 to-red-100 text-red-700 border border-red-200 rounded-lg shadow-sm hover:from-red-100 hover:to-red-200 hover:shadow-md transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-lg"
+                    title="⚠️ Eliminar plataforma permanentemente"
+                  >
+                    <Trash className="h-3.5 w-3.5" />
+                    <span className="text-xs font-semibold">Eliminar</span>
+                  </button>
+                  <span className="text-xs text-red-500 mt-1 text-center">
+                    ⚠️ Irreversible
+                  </span>
+                </div>
 
                 {/* Botones de Exportación Rápida */}
                 <div className="flex gap-2 flex-shrink-0">
@@ -704,7 +714,7 @@ Generado por Sistema de Inventario`;
               {/* Información ultra compacta en una sola línea */}
               <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600">
                 <div className="flex items-center gap-1">
-                  <Layers3 className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                  <Layers className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
                   <span className="truncate max-w-[120px]">
                     {platform.materialTypes.length > 0 
                       ? platform.materialTypes.join(', ')
@@ -724,7 +734,7 @@ Generado por Sistema de Inventario`;
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <Package2 className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" />
+                  <Package className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" />
                   <span>{platform.pieces.length} pz</span>
                 </div>
 
@@ -757,7 +767,7 @@ Generado por Sistema de Inventario`;
                 </h1>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
                   <span className="flex items-center gap-1 truncate">
-                    <Layers3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <Layers className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="truncate">
                       {platform.materialTypes.length > 0 
                         ? platform.materialTypes.join(', ')
@@ -776,7 +786,7 @@ Generado por Sistema de Inventario`;
                     </span>
                   </span>
                   <span className="flex items-center gap-1">
-                    <Package2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span>{platform.pieces.length} piezas</span>
                   </span>
                   {platform.createdBy && (
@@ -987,7 +997,7 @@ Generado por Sistema de Inventario`;
             <div className="p-4 sm:p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                  <Trash2 className="h-5 w-5 text-red-600" />
+                  <Trash className="h-5 w-5 text-red-600" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-semibold text-gray-900">Eliminar Plataforma</h3>
@@ -1029,7 +1039,7 @@ Generado por Sistema de Inventario`;
           notification.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
         }`}>
           {notification.type === 'success' ? (
-            <CheckCircle className="h-5 w-5 flex-shrink-0" />
+            <Check className="h-5 w-5 flex-shrink-0" />
           ) : (
             <AlertCircle className="h-5 w-5 flex-shrink-0" />
           )}
