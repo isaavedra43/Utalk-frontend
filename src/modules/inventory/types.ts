@@ -10,6 +10,17 @@ export interface Piece {
   createdAt: Date;
 }
 
+export interface Evidence {
+  id: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  uploadDate: Date;
+  uploadedBy: string;
+  description?: string;
+  url?: string; // URL del archivo en el servidor
+}
+
 export interface Platform {
   id: string;
   platformNumber: string;
@@ -28,6 +39,7 @@ export interface Platform {
   createdAt: Date;
   updatedAt: Date;
   needsSync?: boolean; // Marcar plataformas que necesitan sincronización con backend
+  evidence?: Evidence[]; // ✅ NUEVO: Evidencias adjuntas a la plataforma
 }
 
 export interface InventorySettings {

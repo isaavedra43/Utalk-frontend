@@ -404,6 +404,37 @@ export const useInventory = () => {
     }
   }, [platforms, isOnline]);
 
+  // ✅ NUEVA: Función para actualizar toda la información desde la base de datos
+  const refreshData = useCallback(async () => {
+    if (!isOnline) {
+      console.warn('⚠️ Sin conexión a internet, no se puede actualizar desde la base de datos');
+      return;
+    }
+
+    try {
+      console.log('🔄 Actualizando datos desde la base de datos...');
+      
+      // Obtener todas las plataformas del backend
+      const response = await PlatformApiService.getAllPlatforms({ limit: 1000 });
+      
+      if (response.data && response.data.length > 0) {
+        // Guardar todas las plataformas en localStorage
+        response.data.forEach(platform => StorageService.savePlatform(platform));
+        
+        // Actualizar el estado local
+        setPlatforms(response.data);
+        
+        console.log(`✅ Datos actualizados: ${response.data.length} plataformas cargadas`);
+      } else {
+        console.log('ℹ️ No hay plataformas en la base de datos');
+        setPlatforms([]);
+      }
+    } catch (error) {
+      console.error('❌ Error al actualizar datos desde la base de datos:', error);
+      throw error; // Re-lanzar para que el componente pueda manejar el error
+    }
+  }, [isOnline]);
+
   // ✅ SOLUCIÓN: Ejecutar sincronización cuando se detecte conexión
   useEffect(() => {
     if (isOnline) {
@@ -444,7 +475,9 @@ export const useInventory = () => {
     changeStandardWidth,
     // ✅ SOLUCIÓN: Nuevas funciones de sincronización
     syncPendingPlatforms,
-    syncStatus
+    syncStatus,
+    // ✅ NUEVA: Función para actualizar datos desde la base de datos
+    refreshData
   };
 };
 

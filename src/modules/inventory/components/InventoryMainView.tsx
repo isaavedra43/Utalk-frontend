@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Package, Search, Filter, Calendar, Archive, Settings, Menu } from 'lucide-react';
+import { Plus, Package, Search, Filter, Calendar, Archive, Settings, Menu, RefreshCw } from 'lucide-react';
 import { useInventory } from '../hooks/useInventory';
 import { useMobileMenuContext } from '../../../contexts/MobileMenuContext';
 import type { Platform } from '../types';
@@ -9,13 +9,14 @@ import { PlatformDetailView } from './PlatformDetailView';
 import { ConfigurationModal } from './ConfigurationModal';
 
 export const InventoryMainView: React.FC = () => {
-  const { platforms, loading, createPlatform, syncPendingPlatforms, syncStatus } = useInventory();
+  const { platforms, loading, createPlatform, syncPendingPlatforms, syncStatus, refreshData } = useInventory();
   const { openMenu } = useMobileMenuContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | Platform['status']>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [selectedPlatformId, setSelectedPlatformId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Obtener la plataforma seleccionada actualizada desde el estado global
   const selectedPlatform = selectedPlatformId ? platforms.find(p => p.id === selectedPlatformId) : null;
@@ -53,6 +54,17 @@ export const InventoryMainView: React.FC = () => {
       setSelectedPlatformId(newPlatform.id);
     } catch (error) {
       console.error('Error creating platform:', error);
+    }
+  };
+
+  const handleRefreshData = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshData();
+    } catch (error) {
+      console.error('Error al actualizar datos:', error);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -104,6 +116,17 @@ export const InventoryMainView: React.FC = () => {
             </div>
             
             <div className="flex gap-2">
+              <button
+                onClick={handleRefreshData}
+                disabled={isRefreshing || !syncStatus.isOnline}
+                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-3 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm hover:shadow-md text-sm sm:text-base font-medium active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={syncStatus.isOnline ? "Actualizar datos desde la base de datos" : "Sin conexión a internet"}
+              >
+                <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">
+                  {isRefreshing ? 'Actualizando...' : 'Actualizar'}
+                </span>
+              </button>
               <button
                 onClick={() => setShowConfigModal(true)}
                 className="flex items-center justify-center gap-2 px-3 sm:px-4 py-3 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors shadow-sm hover:shadow-md text-sm sm:text-base font-medium active:scale-95"

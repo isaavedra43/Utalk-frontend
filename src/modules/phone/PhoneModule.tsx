@@ -1,10 +1,31 @@
 import React from 'react';
-import { Phone, PhoneCall, PhoneIncoming, PhoneOutgoing, Mic, Headphones } from 'lucide-react';
+import { Phone, PhoneCall, PhoneIncoming, PhoneOutgoing, Mic, Headphones, Menu } from 'lucide-react';
+import { useMobileMenuContext } from '../../contexts/MobileMenuContext';
 
 const PhoneModule: React.FC = () => {
+  const { openMenu } = useMobileMenuContext();
+
   return (
     <div className="min-h-screen bg-white">
-      <div className="max-w-4xl mx-auto px-6 py-12">
+      {/* Header móvil con menú */}
+      <div className="absolute top-0 left-0 right-0 z-10 lg:hidden">
+        <div className="bg-white border-b border-gray-200 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={openMenu}
+                className="flex items-center justify-center p-2 bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border border-gray-200 rounded-xl shadow-sm hover:from-gray-100 hover:to-gray-200 hover:shadow-md transition-all duration-200 active:scale-95 active:shadow-lg"
+                title="Abrir menú de módulos"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              <h1 className="text-lg font-bold text-gray-900">Teléfono</h1>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-6 py-12 pt-20 lg:pt-12">
         <div className="text-center">
           <div className="w-24 h-24 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-lg">
             <Phone className="w-12 h-12 text-white" />
