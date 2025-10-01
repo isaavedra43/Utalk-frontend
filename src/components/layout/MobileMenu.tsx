@@ -18,7 +18,8 @@ import {
   Truck, 
   Warehouse, 
   Package, 
-  Settings
+  Settings,
+  Archive
 } from 'lucide-react';
 import { useModulePermissions } from '../../hooks/useModulePermissions';
 
@@ -79,6 +80,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
                   { id: 'copilot', icon: Bot, label: 'Copiloto IA', path: '/copilot' },
                   { id: 'providers', icon: Truck, label: 'Proveedores', path: '/providers' },
                   { id: 'warehouse', icon: Warehouse, label: 'Almacén', path: '/warehouse' },
+                  { id: 'inventory', icon: Archive, label: 'Inventario', path: '/inventory' },
                   { id: 'shipping', icon: Package, label: 'Envíos', path: '/shipping' },
                   { id: 'services', icon: Settings, label: 'Servicios', path: '/services' }
                 ];

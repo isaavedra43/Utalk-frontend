@@ -531,20 +531,22 @@ Generado por Sistema de Inventario`;
     <div className="h-screen bg-gray-50 overflow-y-auto pb-20 sm:pb-6">
       {/* Header - OPTIMIZADO PARA MÓVIL */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-3">
           {/* VISTA MÓVIL: Header compacto */}
           <div className="block lg:hidden">
             {/* Primera fila: Navegación */}
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-2">
               <button
                 onClick={onBack}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors active:scale-95"
+                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border border-gray-200 rounded-xl shadow-sm hover:from-gray-100 hover:to-gray-200 hover:shadow-md transition-all duration-200 active:scale-95 active:shadow-lg"
               >
-                <ArrowLeft className="h-5 w-5" />
-                <span className="font-medium text-sm">Volver</span>
+                <div className="p-1 bg-gray-100 rounded-lg">
+                  <ArrowLeft className="h-4 w-4" />
+                </div>
+                <span className="font-semibold text-sm">Volver</span>
               </button>
 
-              <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusColors[platform.status]} text-center`}>
+              <span className={`px-3 py-1.5 rounded-2xl text-xs font-bold ${statusColors[platform.status]} text-center shadow-sm border`}>
                 {statusLabels[platform.status]}
               </span>
             </div>
@@ -554,69 +556,83 @@ Generado por Sistema de Inventario`;
               {/* Botones de acción principales */}
               <button
                 onClick={() => setShowDeleteModal(true)}
-                className="flex items-center gap-1.5 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0 active:scale-95"
+                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-50 to-red-100 text-red-700 border border-red-200 rounded-xl shadow-sm hover:from-red-100 hover:to-red-200 hover:shadow-md transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-lg"
               >
-                <Trash className="h-4 w-4" />
-                <span className="text-xs font-medium">Eliminar</span>
+                <div className="p-1 bg-red-100 rounded-lg">
+                  <Trash className="h-3.5 w-3.5" />
+                </div>
+                <span className="text-xs font-semibold">Eliminar</span>
               </button>
 
               {lastAction?.type === 'add' && platform.pieces.length > 0 && (
                 <button
                   onClick={handleUndo}
-                  className="flex items-center gap-1.5 px-3 py-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors flex-shrink-0 active:scale-95"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-50 to-orange-100 text-orange-700 border border-orange-200 rounded-xl shadow-sm hover:from-orange-100 hover:to-orange-200 hover:shadow-md transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-lg"
                   title="Deshacer última acción"
                 >
-                  <Undo className="h-4 w-4" />
-                  <span className="text-xs font-medium">Deshacer</span>
+                  <div className="p-1 bg-orange-100 rounded-lg">
+                    <Undo className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="text-xs font-semibold">Deshacer</span>
                 </button>
               )}
 
               {platform.status === 'in_progress' && platform.pieces.length > 0 && (
                 <button
                   onClick={handleComplete}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex-shrink-0 active:scale-95"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white border border-green-600 rounded-xl shadow-lg hover:from-green-600 hover:to-green-700 hover:shadow-xl transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-2xl"
                 >
-                  <Check className="h-4 w-4" />
-                  <span className="text-xs font-medium">Completar</span>
+                  <div className="p-1 bg-green-600 rounded-lg">
+                    <Check className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="text-xs font-semibold">Completar</span>
                 </button>
               )}
 
               {/* Botones de exportación compactos */}
-              <div className="flex gap-1 flex-shrink-0 ml-auto">
+              <div className="flex gap-2 flex-shrink-0 ml-auto">
                 <button
                   onClick={handleExportExcel}
                   disabled={platform.pieces.length === 0 || exporting}
-                  className="flex items-center justify-center w-10 h-10 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
-                  title="Excel"
+                  className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl shadow-lg hover:from-green-600 hover:to-green-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
+                  title="Exportar a Excel"
                 >
-                  <FileSpreadsheet className="h-4 w-4" />
+                  <div className="p-1.5 bg-green-600 rounded-xl">
+                    <FileSpreadsheet className="h-4 w-4" />
+                  </div>
                 </button>
                 
                 <button
                   onClick={handleExportPDF}
                   disabled={platform.pieces.length === 0 || exporting}
-                  className="flex items-center justify-center w-10 h-10 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
-                  title="PDF"
+                  className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-2xl shadow-lg hover:from-red-600 hover:to-red-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
+                  title="Exportar a PDF"
                 >
-                  <Printer className="h-4 w-4" />
+                  <div className="p-1.5 bg-red-600 rounded-xl">
+                    <Printer className="h-4 w-4" />
+                  </div>
                 </button>
                 
                 <button
                   onClick={handleExportImage}
                   disabled={platform.pieces.length === 0 || exporting}
-                  className="flex items-center justify-center w-10 h-10 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
-                  title="Imagen"
+                  className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl shadow-lg hover:from-purple-600 hover:to-purple-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
+                  title="Exportar como Imagen"
                 >
-                  <FileImage className="h-4 w-4" />
+                  <div className="p-1.5 bg-purple-600 rounded-xl">
+                    <FileImage className="h-4 w-4" />
+                  </div>
                 </button>
 
                 <button
                   onClick={handleShare}
                   disabled={platform.pieces.length === 0}
-                  className="flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
-                  title="Compartir"
+                  className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl shadow-lg hover:from-blue-600 hover:to-blue-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
+                  title="Compartir en WhatsApp, Email, SMS"
                 >
-                  📤
+                  <div className="p-1.5 bg-blue-600 rounded-xl">
+                    <span className="text-lg">📤</span>
+                  </div>
                 </button>
               </div>
             </div>
@@ -628,96 +644,112 @@ Generado por Sistema de Inventario`;
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 sm:mb-4">
               <button
                 onClick={onBack}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors active:scale-95 self-start"
+                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border border-gray-200 rounded-xl shadow-sm hover:from-gray-100 hover:to-gray-200 hover:shadow-md transition-all duration-200 active:scale-95 active:shadow-lg self-start"
               >
-                <ArrowLeft className="h-5 w-5" />
-                <span className="font-medium text-sm sm:text-base">Volver</span>
+                <div className="p-1 bg-gray-100 rounded-lg">
+                  <ArrowLeft className="h-4 w-4" />
+                </div>
+                <span className="font-semibold text-sm sm:text-base">Volver</span>
               </button>
 
               <div className="flex items-center gap-2 overflow-x-auto pb-1">
                 {lastAction?.type === 'add' && platform.pieces.length > 0 && (
                   <button
                     onClick={handleUndo}
-                    className="flex items-center gap-1.5 sm:gap-2 px-3 py-2.5 sm:py-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors flex-shrink-0 active:scale-95"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-50 to-orange-100 text-orange-700 border border-orange-200 rounded-xl shadow-sm hover:from-orange-100 hover:to-orange-200 hover:shadow-md transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-lg"
                   >
-                    <Undo className="h-4 w-4" />
-                    <span className="text-xs sm:text-sm font-medium">Deshacer</span>
+                    <div className="p-1 bg-orange-100 rounded-lg">
+                      <Undo className="h-4 w-4" />
+                    </div>
+                    <span className="text-xs sm:text-sm font-semibold">Deshacer</span>
                   </button>
                 )}
 
                 {platform.status === 'in_progress' && platform.pieces.length > 0 && (
                   <button
                     onClick={handleComplete}
-                    className="flex items-center gap-1.5 sm:gap-2 px-3 py-2.5 sm:py-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors flex-shrink-0 active:scale-95"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white border border-green-600 rounded-xl shadow-lg hover:from-green-600 hover:to-green-700 hover:shadow-xl transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-2xl"
                   >
-                    <Check className="h-4 w-4" />
-                    <span className="text-xs sm:text-sm font-medium">Completar</span>
+                    <div className="p-1 bg-green-600 rounded-lg">
+                      <Check className="h-4 w-4" />
+                    </div>
+                    <span className="text-xs sm:text-sm font-semibold">Completar</span>
                   </button>
                 )}
 
                 <button
                   onClick={() => setShowDeleteModal(true)}
-                  className="flex items-center gap-1.5 sm:gap-2 px-3 py-2.5 sm:py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0 active:scale-95"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-50 to-red-100 text-red-700 border border-red-200 rounded-xl shadow-sm hover:from-red-100 hover:to-red-200 hover:shadow-md transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-lg"
                 >
-                  <Trash className="h-4 w-4" />
-                  <span className="text-xs sm:text-sm font-medium">Eliminar</span>
+                  <div className="p-1 bg-red-100 rounded-lg">
+                    <Trash className="h-4 w-4" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-semibold">Eliminar</span>
                 </button>
 
                 {/* Botones de Exportación Rápida */}
-                <div className="flex gap-1 flex-shrink-0">
+                <div className="flex gap-2 flex-shrink-0">
                   <button
                     onClick={handleExportExcel}
                     disabled={platform.pieces.length === 0 || exporting}
-                    className="flex items-center gap-1 px-2 py-2.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                    className="flex items-center justify-center w-11 h-11 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl shadow-lg hover:from-green-600 hover:to-green-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
                     title="Exportar a Excel (CSV)"
                   >
-                    <FileSpreadsheet className="h-4 w-4" />
+                    <div className="p-1.5 bg-green-600 rounded-xl">
+                      <FileSpreadsheet className="h-4 w-4" />
+                    </div>
                   </button>
                   
                   <button
                     onClick={handleExportPDF}
                     disabled={platform.pieces.length === 0 || exporting}
-                    className="flex items-center gap-1 px-2 py-2.5 sm:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                    className="flex items-center justify-center w-11 h-11 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-2xl shadow-lg hover:from-red-600 hover:to-red-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
                     title="Exportar a PDF"
                   >
-                    <Printer className="h-4 w-4" />
+                    <div className="p-1.5 bg-red-600 rounded-xl">
+                      <Printer className="h-4 w-4" />
+                    </div>
                   </button>
                   
                   <button
                     onClick={handleExportImage}
                     disabled={platform.pieces.length === 0 || exporting}
-                    className="flex items-center gap-1 px-2 py-2.5 sm:py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                    className="flex items-center justify-center w-11 h-11 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl shadow-lg hover:from-purple-600 hover:to-purple-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
                     title="Exportar como Imagen"
                   >
-                    <FileImage className="h-4 w-4" />
+                    <div className="p-1.5 bg-purple-600 rounded-xl">
+                      <FileImage className="h-4 w-4" />
+                    </div>
                   </button>
 
                   {/* Botón de Compartir */}
                   <button
                     onClick={handleShare}
                     disabled={platform.pieces.length === 0}
-                    className="flex items-center gap-1 px-2 py-2.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                    className="flex items-center justify-center w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl shadow-lg hover:from-blue-600 hover:to-blue-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
                     title="Compartir tabla en WhatsApp, Email, SMS, etc."
                   >
-                    📤
+                    <div className="p-1.5 bg-blue-600 rounded-xl">
+                      <span className="text-lg">📤</span>
+                    </div>
                   </button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Platform Info - VISTA MÓVIL COMPACTA */}
+          {/* Platform Info - VISTA MÓVIL ULTRA COMPACTA */}
           <div className="block lg:hidden">
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
-              <h1 className="text-xl font-bold text-gray-900 mb-3">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200">
+              <h1 className="text-lg font-bold text-gray-900 mb-2">
                 Plataforma {platform.platformNumber}
               </h1>
               
-              {/* Grid de información compacta */}
-              <div className="grid grid-cols-1 gap-2 text-sm">
-                <div className="flex items-center gap-2 text-gray-700">
-                  <Layers className="h-4 w-4 text-blue-500 flex-shrink-0" />
-                  <span className="truncate">
+              {/* Información ultra compacta en una sola línea */}
+              <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600">
+                <div className="flex items-center gap-1">
+                  <Layers className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                  <span className="truncate max-w-[120px]">
                     {platform.materialTypes.length > 0 
                       ? platform.materialTypes.join(', ')
                       : 'Sin materiales'
@@ -725,31 +757,34 @@ Generado por Sistema de Inventario`;
                   </span>
                 </div>
                 
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Calendar className="h-4 w-4 text-green-500 flex-shrink-0" />
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
                   <span>
                     {new Date(platform.receptionDate).toLocaleDateString('es-MX', {
-                      year: 'numeric',
                       month: 'short',
                       day: 'numeric'
                     })}
                   </span>
-                  <span className="text-gray-400">•</span>
-                  <Package className="h-4 w-4 text-purple-500 flex-shrink-0" />
-                  <span>{platform.pieces.length} piezas</span>
                 </div>
 
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Truck className="h-4 w-4 text-orange-500 flex-shrink-0" />
-                  <span className="truncate">{platform.provider || 'Sin proveedor'}</span>
-                  <span className="text-gray-400">•</span>
-                  <User className="h-4 w-4 text-teal-500 flex-shrink-0" />
-                  <span className="truncate">{platform.driver || 'Sin chofer'}</span>
+                <div className="flex items-center gap-1">
+                  <Package className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" />
+                  <span>{platform.pieces.length} pz</span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <Truck className="h-3.5 w-3.5 text-orange-500 flex-shrink-0" />
+                  <span className="truncate max-w-[100px]">{platform.provider || 'Sin prov.'}</span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <User className="h-3.5 w-3.5 text-teal-500 flex-shrink-0" />
+                  <span className="truncate max-w-[80px]">{platform.driver || 'Sin chofer'}</span>
                 </div>
 
                 {platform.createdBy && (
-                  <div className="flex items-center gap-2 text-blue-600">
-                    <Edit className="h-4 w-4 flex-shrink-0" />
+                  <div className="flex items-center gap-1 text-blue-600">
+                    <Edit className="h-3.5 w-3.5 flex-shrink-0" />
                     <span className="text-xs">Creada por: {platform.createdBy}</span>
                   </div>
                 )}
@@ -818,11 +853,11 @@ Generado por Sistema de Inventario`;
       </div>
 
       {/* Main Content - VISTA MÓVIL OPTIMIZADA */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
         {/* VISTA MÓVIL: Capturador primero, luego tabla */}
         <div className="block lg:hidden">
           {/* 1. CAPTURADOR RÁPIDO - PRIMERO EN MÓVIL */}
-          <div className="mb-4">
+          <div className="mb-3">
             <QuickCaptureInput
               standardWidth={platform.standardWidth}
               availableMaterials={platform.materialTypes}
@@ -833,34 +868,34 @@ Generado por Sistema de Inventario`;
           </div>
 
           {/* 2. RESUMEN COMPACTO - SEGUNDO EN MÓVIL */}
-          <div className="bg-white rounded-xl shadow-lg p-4 mb-4 border border-gray-200">
-            <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+          <div className="bg-white rounded-xl shadow-lg p-3 mb-3 border border-gray-200">
+            <h3 className="text-base font-bold text-gray-900 mb-2 flex items-center gap-2">
               📊 Resumen
             </h3>
             
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-blue-50 rounded-lg p-3 text-center">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-blue-50 rounded-lg p-2 text-center">
                 <div className="text-xs text-blue-600 font-medium mb-1">Total Piezas</div>
-                <div className="text-2xl font-bold text-blue-900">{platform.pieces.length}</div>
+                <div className="text-xl font-bold text-blue-900">{platform.pieces.length}</div>
               </div>
 
-              <div className="bg-purple-50 rounded-lg p-3 text-center">
+              <div className="bg-purple-50 rounded-lg p-2 text-center">
                 <div className="text-xs text-purple-600 font-medium mb-1">Longitud Total</div>
-                <div className="text-2xl font-bold text-purple-900">{platform.totalLength.toFixed(2)} m</div>
+                <div className="text-xl font-bold text-purple-900">{platform.totalLength.toFixed(2)} m</div>
               </div>
 
-              <div className="bg-green-50 rounded-lg p-3 text-center border-2 border-green-300">
+              <div className="bg-green-50 rounded-lg p-2 text-center border-2 border-green-300">
                 <div className="text-xs text-green-600 font-medium mb-1">Metros Lineales</div>
-                <div className="text-2xl font-bold text-green-900">{platform.totalLinearMeters.toFixed(3)}</div>
+                <div className="text-xl font-bold text-green-900">{platform.totalLinearMeters.toFixed(3)}</div>
               </div>
 
-              <div className="bg-orange-50 rounded-lg p-3 text-center border-2 border-orange-300">
+              <div className="bg-orange-50 rounded-lg p-2 text-center border-2 border-orange-300">
                 <div className="text-xs text-orange-600 font-medium mb-1">Metros Totales</div>
-                <div className="text-2xl font-bold text-orange-900">{platform.totalLinearMeters.toFixed(2)} m²</div>
+                <div className="text-xl font-bold text-orange-900">{platform.totalLinearMeters.toFixed(2)} m²</div>
               </div>
             </div>
 
-            <div className="mt-3 pt-3 border-t border-gray-200 text-center">
+            <div className="mt-2 pt-2 border-t border-gray-200 text-center">
               <span className="text-xs text-gray-500">
                 Ancho estándar: <span className="font-semibold text-gray-700">{platform.standardWidth.toFixed(2)} m</span>
               </span>
