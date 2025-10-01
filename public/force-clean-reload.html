@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpieza Forzada - UTalk</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #1f2937;
+            margin-bottom: 16px;
+            font-size: 24px;
+        }
+        p {
+            color: #6b7280;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        .button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 8px;
+            min-width: 200px;
+        }
+        .button:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        .button.danger {
+            background: #ef4444;
+        }
+        .button.danger:hover {
+            background: #dc2626;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .progress {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background: #3b82f6;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🧹</div>
+        <h1>Limpieza Forzada Completa</h1>
+        <p>
+            Esta herramienta realizará una limpieza completa del navegador y forzará 
+            una recarga limpia de la aplicación UTalk.
+        </p>
+        
+        <button class="button" onclick="performForceClean()">
+            🚀 Iniciar Limpieza Forzada
+        </button>
+        
+        <div id="progress" class="progress" style="display: none;">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        
+        <div id="status" class="status" style="display: none;"></div>
+        
+        <div id="steps" style="display: none; text-align: left; margin-top: 20px;">
+            <h3>Progreso de Limpieza:</h3>
+            <ul id="steps-list" style="list-style: none; padding: 0;">
+                <li id="step-1">⏳ Limpiando localStorage...</li>
+                <li id="step-2">⏳ Limpiando sessionStorage...</li>
+                <li id="step-3">⏳ Limpiando IndexedDB...</li>
+                <li id="step-4">⏳ Eliminando Service Workers...</li>
+                <li id="step-5">⏳ Limpiando Cache del navegador...</li>
+                <li id="step-6">⏳ Limpiando cookies...</li>
+                <li id="step-7">⏳ Redirigiendo a la aplicación...</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 0;
+        const totalSteps = 7;
+
+        function updateProgress(step, message) {
+            const progressBar = document.getElementById('progress-bar');
+            const progress = document.getElementById('progress');
+            const stepElement = document.getElementById(`step-${step}`);
+            
+            if (stepElement) {
+                stepElement.innerHTML = `✅ ${message}`;
+            }
+            
+            const percentage = (step / totalSteps) * 100;
+            progressBar.style.width = `${percentage}%`;
+            
+            if (step === totalSteps) {
+                progress.style.display = 'none';
+            } else {
+                progress.style.display = 'block';
+            }
+        }
+
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+
+        async function performForceClean() {
+            const stepsDiv = document.getElementById('steps');
+            const progress = document.getElementById('progress');
+            stepsDiv.style.display = 'block';
+            progress.style.display = 'block';
+            
+            showStatus('Iniciando limpieza forzada...', 'info');
+
+            try {
+                // Paso 1: Limpiar localStorage
+                updateProgress(1, 'localStorage limpiado');
+                localStorage.clear();
+                await delay(500);
+
+                // Paso 2: Limpiar sessionStorage
+                updateProgress(2, 'sessionStorage limpiado');
+                sessionStorage.clear();
+                await delay(500);
+
+                // Paso 3: Limpiar IndexedDB
+                updateProgress(3, 'IndexedDB limpiado');
+                if ('indexedDB' in window) {
+                    try {
+                        const databases = await indexedDB.databases();
+                        await Promise.all(databases.map(db => {
+                            return new Promise((resolve, reject) => {
+                                const deleteReq = indexedDB.deleteDatabase(db.name);
+                                deleteReq.onsuccess = () => resolve();
+                                deleteReq.onerror = () => reject(deleteReq.error);
+                            });
+                        }));
+                    } catch (error) {
+                        console.warn('Error limpiando IndexedDB:', error);
+                    }
+                }
+                await delay(500);
+
+                // Paso 4: Eliminar Service Workers
+                updateProgress(4, 'Service Workers eliminados');
+                if ('serviceWorker' in navigator) {
+                    try {
+                        const registrations = await navigator.serviceWorker.getRegistrations();
+                        await Promise.all(registrations.map(registration => registration.unregister()));
+                    } catch (error) {
+                        console.warn('Error eliminando Service Workers:', error);
+                    }
+                }
+                await delay(500);
+
+                // Paso 5: Limpiar Cache del navegador
+                updateProgress(5, 'Cache del navegador limpiado');
+                if ('caches' in window) {
+                    try {
+                        const cacheNames = await caches.keys();
+                        await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+                    } catch (error) {
+                        console.warn('Error limpiando cache:', error);
+                    }
+                }
+                await delay(500);
+
+                // Paso 6: Limpiar cookies
+                updateProgress(6, 'Cookies limpiadas');
+                document.cookie.split(";").forEach(cookie => {
+                    const eqPos = cookie.indexOf("=");
+                    const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+                    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.${window.location.hostname}`;
+                });
+                await delay(500);
+
+                // Paso 7: Redirigir
+                updateProgress(7, 'Redirigiendo a la aplicación...');
+                showStatus('✅ Limpieza completada. Redirigiendo...', 'success');
+                
+                await delay(1000);
+                
+                // Forzar recarga completa
+                window.location.href = '/';
+                
+            } catch (error) {
+                console.error('Error durante la limpieza:', error);
+                showStatus('❌ Error durante la limpieza. Redirigiendo de todos modos...', 'error');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            }
+        }
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Auto-iniciar si hay parámetro en URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('auto') === 'true') {
+            setTimeout(() => {
+                performForceClean();
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

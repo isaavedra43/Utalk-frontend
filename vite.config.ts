@@ -24,51 +24,51 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: '/pwa-icons/icon-72x72.png',
+            src: '/pwa-icons/icon-72x72.png.svg',
             sizes: '72x72',
-            type: 'image/png',
+            type: 'image/svg+xml',
             purpose: 'any maskable'
           },
           {
-            src: '/pwa-icons/icon-96x96.png',
+            src: '/pwa-icons/icon-96x96.png.svg',
             sizes: '96x96',
-            type: 'image/png',
+            type: 'image/svg+xml',
             purpose: 'any maskable'
           },
           {
-            src: '/pwa-icons/icon-128x128.png',
+            src: '/pwa-icons/icon-128x128.png.svg',
             sizes: '128x128',
-            type: 'image/png',
+            type: 'image/svg+xml',
             purpose: 'any maskable'
           },
           {
-            src: '/pwa-icons/icon-144x144.png',
+            src: '/pwa-icons/icon-144x144.png.svg',
             sizes: '144x144',
-            type: 'image/png',
+            type: 'image/svg+xml',
             purpose: 'any maskable'
           },
           {
-            src: '/pwa-icons/icon-152x152.png',
+            src: '/pwa-icons/icon-152x152.png.svg',
             sizes: '152x152',
-            type: 'image/png',
+            type: 'image/svg+xml',
             purpose: 'any maskable'
           },
           {
-            src: '/pwa-icons/icon-192x192.png',
+            src: '/pwa-icons/icon-192x192.png.svg',
             sizes: '192x192',
-            type: 'image/png',
+            type: 'image/svg+xml',
             purpose: 'any maskable'
           },
           {
-            src: '/pwa-icons/icon-384x384.png',
+            src: '/pwa-icons/icon-384x384.png.svg',
             sizes: '384x384',
-            type: 'image/png',
+            type: 'image/svg+xml',
             purpose: 'any maskable'
           },
           {
-            src: '/pwa-icons/icon-512x512.png',
+            src: '/pwa-icons/icon-512x512.png.svg',
             sizes: '512x512',
-            type: 'image/png',
+            type: 'image/svg+xml',
             purpose: 'any maskable'
           }
         ],

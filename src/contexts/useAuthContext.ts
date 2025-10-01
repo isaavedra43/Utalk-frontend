@@ -1,25 +1,63 @@
 import { useContext } from 'react';
 import { AuthContext } from './AuthContext';
 
+interface BackendUser {
+  id: string;
+  email: string;
+  displayName?: string;
+  photoURL?: string;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface AuthState {
+  user: { uid: string; email: string; displayName?: string } | null;
+  backendUser: BackendUser | null;
+  loading: boolean;
+  error: string | null;
+  isAuthenticated: boolean;
+  isAuthenticating: boolean;
+  login: (email: string, password: string) => Promise<BackendUser>;
+  logout: () => Promise<void>;
+  clearAuth: () => void;
+  updateProfile: (data: { displayName?: string; email?: string }) => Promise<BackendUser>;
+}
+
 export const useAuthContext = () => {
   const context = useContext(AuthContext);
   
-  // Prevención: en arranque inicial o si algún árbol se monta antes del Provider,
-  // devolvemos un estado seguro en lugar de lanzar para evitar pantallas en blanco.
+  // ✅ SOLUCIÓN DEFINITIVA: SIEMPRE devolver un estado seguro si no hay contexto
+  // Esto previene completamente el error "useAuthContext debe ser usado dentro de un AuthProvider"
   if (!context) {
-    console.warn('useAuthContext llamado fuera de AuthProvider. Usando estado seguro por defecto.');
+    console.warn('⚠️ useAuthContext llamado fuera de AuthProvider. Usando estado seguro por defecto.');
+    
+    // ✅ Estado completamente funcional que previene errores
     return {
       user: null,
       backendUser: null,
       loading: true,
       error: null,
       isAuthenticated: false,
-      isAuthenticating: true,
-      login: async () => { throw new Error('Auth no inicializado'); },
-      logout: async () => {},
-      clearAuth: () => {},
-      updateProfile: async () => { throw new Error('Auth no inicializado'); }
-    } as unknown as ReturnType<typeof useContext>;
+      isAuthenticating: false,
+      login: async () => { 
+        console.warn('Auth no inicializado - redirigiendo a login');
+        window.location.href = '/login';
+        throw new Error('Auth no inicializado'); 
+      },
+      logout: async () => {
+        console.warn('Auth no inicializado - limpiando estado');
+        localStorage.clear();
+        sessionStorage.clear();
+      },
+      clearAuth: () => {
+        localStorage.clear();
+        sessionStorage.clear();
+      },
+      updateProfile: async () => { 
+        throw new Error('Auth no inicializado'); 
+      }
+    } as AuthState;
   }
   
   return context;

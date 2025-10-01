@@ -277,6 +277,23 @@ export class AppHealthMonitor {
           >
             🔧 Limpieza Avanzada
           </button>
+          
+          <button 
+            id="force-clean-btn"
+            style="
+              width: 100%;
+              padding: 12px 24px;
+              background-color: #dc2626;
+              color: white;
+              border: none;
+              border-radius: 8px;
+              font-size: 16px;
+              font-weight: 600;
+              cursor: pointer;
+            "
+          >
+            🚀 Limpieza Forzada Completa
+          </button>
         </div>
       </div>
     `;
@@ -296,6 +313,10 @@ export class AppHealthMonitor {
 
     document.getElementById('advanced-clear-btn')?.addEventListener('click', () => {
       window.location.href = '/clear-app-state.html';
+    });
+
+    document.getElementById('force-clean-btn')?.addEventListener('click', () => {
+      window.location.href = '/force-clean-reload.html';
     });
   }
 

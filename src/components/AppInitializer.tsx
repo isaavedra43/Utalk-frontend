@@ -3,7 +3,6 @@
  * Maneja la carga inicial y evita pantallas en blanco
  */
 import React, { useEffect, useState } from 'react';
-import { useAuthContext } from '../contexts/useAuthContext';
 
 interface AppInitializerProps {
   children: React.ReactNode;
@@ -12,7 +11,6 @@ interface AppInitializerProps {
 export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [initializationError, setInitializationError] = useState<string | null>(null);
-  const { loading, isAuthenticated, error } = useAuthContext();
 
   useEffect(() => {
     // ✅ Timeout de seguridad para evitar pantallas en blanco indefinidas
@@ -22,16 +20,28 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
         setInitializationError('Tiempo de inicialización excedido');
         setIsInitialized(true);
       }
-    }, 10000); // 10 segundos máximo
+    }, 8000); // 8 segundos máximo
 
-    // ✅ Marcar como inicializado cuando el contexto de auth esté listo
-    if (!loading && (isAuthenticated || error)) {
+    // ✅ Verificar si hay contenido en el DOM
+    const checkContent = () => {
+      const root = document.getElementById('root');
+      const hasContent = root && root.children.length > 0;
+      
+      if (hasContent || isInitialized) {
+        clearTimeout(initTimeout);
+        setIsInitialized(true);
+      }
+    };
+
+    // ✅ Verificar inmediatamente y cada 500ms
+    checkContent();
+    const interval = setInterval(checkContent, 500);
+
+    return () => {
       clearTimeout(initTimeout);
-      setIsInitialized(true);
-    }
-
-    return () => clearTimeout(initTimeout);
-  }, [loading, isAuthenticated, error, isInitialized]);
+      clearInterval(interval);
+    };
+  }, [isInitialized]);
 
   // ✅ Mostrar loading mientras se inicializa
   if (!isInitialized) {
