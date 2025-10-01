@@ -75,7 +75,7 @@ export const useInventory = () => {
     const configSettings = ConfigService.getSettings();
     const defaultWidth = configSettings?.defaultStandardWidth || 0.3;
     
-    // Crear datos para enviar al backend (sin platformNumber, id, ni totales)
+    // Crear datos para enviar al backend (incluyendo platformNumber generado)
     const platformData = {
       receptionDate: data.receptionDate || new Date(),
       materialTypes: data.materialTypes,
@@ -88,14 +88,15 @@ export const useInventory = () => {
       totalLength: 0,
       status: 'in_progress' as const,
       notes: data.notes,
-      createdBy: 'Usuario Actual' // TODO: Obtener del contexto de usuario
+      createdBy: 'Usuario Actual', // TODO: Obtener del contexto de usuario
+      platformNumber: `SYNC-${Date.now()}` // ✅ Generar platformNumber para el backend
     };
 
     // SIEMPRE intentar crear en backend primero si hay conexión
     if (isOnline) {
       try {
         const createdPlatform = await PlatformApiService.createPlatform(platformData);
-        // El backend genera el platformNumber y el id automáticamente
+        // El backend confirma el platformNumber enviado y genera el id automáticamente
         StorageService.savePlatform(createdPlatform);
         setPlatforms((prev: Platform[]) => [createdPlatform, ...prev]);
         return createdPlatform;
@@ -103,9 +104,8 @@ export const useInventory = () => {
         console.error('Error al crear plataforma en backend:', error);
         // Si falla el backend, crear localmente con ID temporal y marcar para sincronización
         const tempPlatform: Platform = {
-          id: generateId(),
-          platformNumber: `SYNC-${Date.now()}`, // Folio temporal marcado para sincronización
           ...platformData,
+          id: generateId(),
           totalLinearMeters: 0,
           totalLength: 0,
           createdAt: new Date(),
@@ -119,9 +119,9 @@ export const useInventory = () => {
     } else {
       // Modo offline - crear con ID temporal y marcar para sincronización
       const tempPlatform: Platform = {
-        id: generateId(),
-        platformNumber: `OFFLINE-${Date.now()}`, // Folio temporal para offline
         ...platformData,
+        id: generateId(),
+        platformNumber: `OFFLINE-${Date.now()}`, // Folio temporal para offline (sobrescribe el de platformData)
         totalLinearMeters: 0,
         totalLength: 0,
         createdAt: new Date(),

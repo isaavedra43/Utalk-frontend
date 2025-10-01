@@ -265,16 +265,18 @@ export class PlatformApiService {
   }
 
   /**
-   * Crear nueva plataforma (el backend genera automáticamente el platformNumber)
+   * Crear nueva plataforma (incluye platformNumber generado por frontend)
    */
-  static async createPlatform(platform: Omit<Platform, 'id' | 'platformNumber' | 'createdAt' | 'updatedAt'>): Promise<Platform> {
+  static async createPlatform(platform: Omit<Platform, 'id' | 'createdAt' | 'updatedAt'>): Promise<Platform> {
     try {
       // Asegurar que receptionDate esté en formato ISO string
       const platformData = {
         ...platform,
         receptionDate: typeof platform.receptionDate === 'string' 
           ? platform.receptionDate 
-          : platform.receptionDate.toISOString()
+          : platform.receptionDate.toISOString(),
+        // Asegurar que platformNumber esté presente
+        platformNumber: platform.platformNumber || `SYNC-${Date.now()}`
       };
       
       const response = await api.post<ApiResponse<Platform>>(this.BASE_PATH, platformData);

@@ -13,7 +13,8 @@ import {
   FileSpreadsheet,
   FileImage,
   Truck,
-  User
+  User,
+  Camera
 } from 'lucide-react';
 import type { Platform, Evidence } from '../types';
 import { useInventory } from '../hooks/useInventory';
@@ -37,10 +38,11 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
   // Obtener la plataforma actualizada desde el estado global
   const platform = platforms.find((p: Platform) => p.id === initialPlatform.id) || initialPlatform;
   
-  const [exporting, setExporting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [lastAction, setLastAction] = useState<{ type: 'add' | 'delete'; pieceId?: string } | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [showEvidenceSection, setShowEvidenceSection] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
 
   // Función para mostrar notificación
@@ -597,6 +599,38 @@ Generado por Sistema de Inventario`;
                   <div className="flex-1"></div>
                 </div>
               )}
+
+              {/* Fila 3: Botones de Exportación y Evidencias */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleExportExcel}
+                  disabled={platform.pieces.length === 0 || exporting}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-gradient-to-r from-green-50 to-green-100 text-green-700 border border-green-200 rounded-xl shadow-sm hover:from-green-100 hover:to-green-200 hover:shadow-md transition-all duration-200 active:scale-95 active:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Exportar a Excel"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  <span className="text-sm font-semibold">Excel</span>
+                </button>
+
+                <button
+                  onClick={handleExportPDF}
+                  disabled={platform.pieces.length === 0 || exporting}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-gradient-to-r from-red-50 to-red-100 text-red-700 border border-red-200 rounded-xl shadow-sm hover:from-red-100 hover:to-red-200 hover:shadow-md transition-all duration-200 active:scale-95 active:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Exportar a PDF"
+                >
+                  <Printer className="h-4 w-4" />
+                  <span className="text-sm font-semibold">PDF</span>
+                </button>
+
+                <button
+                  onClick={() => setShowEvidenceSection(!showEvidenceSection)}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl shadow-sm hover:from-indigo-100 hover:to-indigo-200 hover:shadow-md transition-all duration-200 active:scale-95 active:shadow-lg"
+                  title="Gestionar Evidencias"
+                >
+                  <Camera className="h-4 w-4" />
+                  <span className="text-sm font-semibold">Evidencias</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -653,7 +687,7 @@ Generado por Sistema de Inventario`;
                   </span>
                 </div>
 
-                {/* Botones de Exportación Rápida */}
+                {/* Botones de Exportación y Evidencias */}
                 <div className="flex gap-2 flex-shrink-0">
                   <button
                     onClick={handleExportExcel}
@@ -685,6 +719,17 @@ Generado por Sistema de Inventario`;
                   >
                     <div className="p-1.5 bg-purple-600 rounded-xl">
                       <FileImage className="h-4 w-4" />
+                    </div>
+                  </button>
+
+                  {/* Botón de Evidencias */}
+                  <button
+                    onClick={() => setShowEvidenceSection(!showEvidenceSection)}
+                    className="flex items-center justify-center w-11 h-11 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-2xl shadow-lg hover:from-indigo-600 hover:to-indigo-700 hover:shadow-xl transition-all duration-200 active:scale-95 active:shadow-2xl"
+                    title="Gestionar Evidencias"
+                  >
+                    <div className="p-1.5 bg-indigo-600 rounded-xl">
+                      <Camera className="h-4 w-4" />
                     </div>
                   </button>
 
@@ -1008,14 +1053,16 @@ Generado por Sistema de Inventario`;
         </div>
       </div>
 
-      {/* Sección de Evidencias */}
-      <div className="mt-8">
-        <EvidenceUpload
-          platformId={platform.id}
-          existingEvidence={platform.evidence || []}
-          onEvidenceUpdated={(evidence: Evidence[]) => updatePlatformEvidence(platform.id, evidence)}
-        />
-      </div>
+      {/* Sección de Evidencias - Solo visible cuando se activa */}
+      {showEvidenceSection && (
+        <div className="mt-8">
+          <EvidenceUpload
+            platformId={platform.id}
+            existingEvidence={platform.evidence || []}
+            onEvidenceUpdated={(evidence: Evidence[]) => updatePlatformEvidence(platform.id, evidence)}
+          />
+        </div>
+      )}
 
       {/* Modal de Confirmación de Eliminación */}
       {showDeleteModal && (
