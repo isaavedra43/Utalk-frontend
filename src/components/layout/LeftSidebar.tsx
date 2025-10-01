@@ -19,7 +19,8 @@ import {
   Truck,
   Warehouse,
   Package,
-  Settings
+  Settings,
+  Archive
 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/useAuthContext';
 import { infoLog } from '../../config/logger';
@@ -131,6 +132,11 @@ export const LeftSidebar: React.FC = () => {
       id: 'warehouse',
       icon: Warehouse,
       title: 'Almacén'
+    },
+    {
+      id: 'inventory',
+      icon: Archive,
+      title: 'Inventario'
     },
     {
       id: 'shipping',

@@ -21,6 +21,7 @@ import {
   CopilotModule,
   ProvidersModule,
   WarehouseModule,
+  InventoryModule,
   ShippingModule,
   ServicesModule
 } from './modules'
@@ -579,6 +580,16 @@ function App() {
                     <AuthProtectedRoute>
                       <ProtectedRoute moduleId="warehouse">
                         <WarehousePage />
+                      </ProtectedRoute>
+                    </AuthProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/inventory" 
+                  element={
+                    <AuthProtectedRoute>
+                      <ProtectedRoute moduleId="inventory">
+                        <InventoryModule />
                       </ProtectedRoute>
                     </AuthProtectedRoute>
                   } 
