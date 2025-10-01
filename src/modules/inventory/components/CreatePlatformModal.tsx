@@ -6,7 +6,6 @@ import type { Provider, MaterialOption } from '../types';
 interface CreatePlatformModalProps {
   onClose: () => void;
   onCreate: (data: {
-    platformNumber: string;
     materialTypes: string[];
     provider: string;
     providerId?: string;
@@ -19,7 +18,6 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
   const { providers, activeMaterials } = useConfiguration();
   
   const [formData, setFormData] = useState({
-    platformNumber: '',
     materialTypes: [] as string[],
     provider: '',
     providerId: '',
@@ -64,10 +62,6 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-
-    if (!formData.platformNumber.trim()) {
-      newErrors.platformNumber = 'El número de plataforma es requerido';
-    }
 
     if (formData.materialTypes.length === 0) {
       newErrors.materialTypes = 'Debe seleccionar al menos un material';
@@ -160,25 +154,28 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
-          {/* Platform Number */}
+          {/* Platform Number - Auto-generated */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
               <Package className="h-4 w-4 text-gray-500" />
-              Número de Plataforma *
+              Número de Plataforma
             </label>
-            <input
-              type="text"
-              value={formData.platformNumber}
-              onChange={(e) => setFormData({ ...formData, platformNumber: e.target.value })}
-              placeholder="Ej: PLT-001, A-123"
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.platformNumber ? 'border-red-500' : 'border-gray-300'
-              }`}
-              autoFocus
-            />
-            {errors.platformNumber && (
-              <p className="text-xs text-red-600 mt-1">{errors.platformNumber}</p>
-            )}
+            <div className="relative">
+              <input
+                type="text"
+                value="Se generará automáticamente"
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+                readOnly
+              />
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                <Package className="h-4 w-4 text-green-500" />
+              </div>
+            </div>
+            <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
+              <Check className="h-3 w-3" />
+              El folio será único y secuencial (ej: PLT-001, PLT-002...)
+            </p>
           </div>
 
           {/* Material Types - Multi Select */}
@@ -351,7 +348,7 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
           {/* Info Box */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-sm text-blue-800">
-              <strong>Nota:</strong> Una vez creada la plataforma, podrás comenzar a registrar las longitudes de las piezas de manera rápida e intuitiva.
+              <strong>Nota:</strong> El número de plataforma se genera automáticamente de forma secuencial y única (PLT-001, PLT-002, etc.). Una vez creada, podrás comenzar a registrar las longitudes de las piezas de manera rápida e intuitiva.
             </p>
           </div>
 

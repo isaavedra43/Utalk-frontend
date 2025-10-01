@@ -1,15 +1,16 @@
-import React, { useState, useRef } from 'react';
+import React from 'react';
+import { useState, useRef } from 'react';
 import {
   ArrowLeft,
   Printer,
-  Check,
+  CheckCircleCircle,
   Edit,
-  Trash,
-  Package,
-  Layers,
+  Trash2,
+  Package2,
+  Layers3,
   Calendar,
   AlertCircle,
-  Undo,
+  Undo2,
   FileSpreadsheet,
   FileImage,
   Truck,
@@ -93,7 +94,7 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
   };
 
   // Manejar deshacer última acción
-  const handleUndo = () => {
+  const handleUndo2 = () => {
     if (lastAction?.type === 'add' && platform.pieces.length > 0) {
       const lastPiece = platform.pieces[platform.pieces.length - 1];
       deletePiece(platform.id, lastPiece.id);
@@ -528,9 +529,9 @@ Generado por Sistema de Inventario`;
   };
 
   return (
-    <div className="h-screen bg-gray-50 overflow-y-auto pb-20 sm:pb-6">
+    <div className="h-screen bg-gray-50 overflow-y-auto pb-24 sm:pb-6">
       {/* Header - OPTIMIZADO PARA MÓVIL */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
+      <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-3">
           {/* VISTA MÓVIL: Header compacto */}
           <div className="block lg:hidden">
@@ -551,90 +552,45 @@ Generado por Sistema de Inventario`;
               </span>
             </div>
 
-            {/* Segunda fila: Acciones principales */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              {/* Botones de acción principales */}
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-50 to-red-100 text-red-700 border border-red-200 rounded-xl shadow-sm hover:from-red-100 hover:to-red-200 hover:shadow-md transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-lg"
-              >
-                <div className="p-1 bg-red-100 rounded-lg">
-                  <Trash className="h-3.5 w-3.5" />
-                </div>
-                <span className="text-xs font-semibold">Eliminar</span>
-              </button>
-
-              {lastAction?.type === 'add' && platform.pieces.length > 0 && (
-                <button
-                  onClick={handleUndo}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-50 to-orange-100 text-orange-700 border border-orange-200 rounded-xl shadow-sm hover:from-orange-100 hover:to-orange-200 hover:shadow-md transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-lg"
-                  title="Deshacer última acción"
-                >
-                  <div className="p-1 bg-orange-100 rounded-lg">
-                    <Undo className="h-3.5 w-3.5" />
-                  </div>
-                  <span className="text-xs font-semibold">Deshacer</span>
-                </button>
-              )}
-
-              {platform.status === 'in_progress' && platform.pieces.length > 0 && (
-                <button
-                  onClick={handleComplete}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white border border-green-600 rounded-xl shadow-lg hover:from-green-600 hover:to-green-700 hover:shadow-xl transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-2xl"
-                >
-                  <div className="p-1 bg-green-600 rounded-lg">
-                    <Check className="h-3.5 w-3.5" />
-                  </div>
-                  <span className="text-xs font-semibold">Completar</span>
-                </button>
-              )}
-
-              {/* Botones de exportación compactos */}
-              <div className="flex gap-2 flex-shrink-0 ml-auto">
-                <button
-                  onClick={handleExportExcel}
-                  disabled={platform.pieces.length === 0 || exporting}
-                  className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl shadow-lg hover:from-green-600 hover:to-green-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
-                  title="Exportar a Excel"
-                >
-                  <div className="p-1.5 bg-green-600 rounded-xl">
-                    <FileSpreadsheet className="h-4 w-4" />
-                  </div>
-                </button>
-                
-                <button
-                  onClick={handleExportPDF}
-                  disabled={platform.pieces.length === 0 || exporting}
-                  className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-2xl shadow-lg hover:from-red-600 hover:to-red-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
-                  title="Exportar a PDF"
-                >
-                  <div className="p-1.5 bg-red-600 rounded-xl">
-                    <Printer className="h-4 w-4" />
-                  </div>
-                </button>
-                
-                <button
-                  onClick={handleExportImage}
-                  disabled={platform.pieces.length === 0 || exporting}
-                  className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl shadow-lg hover:from-purple-600 hover:to-purple-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
-                  title="Exportar como Imagen"
-                >
-                  <div className="p-1.5 bg-purple-600 rounded-xl">
-                    <FileImage className="h-4 w-4" />
-                  </div>
-                </button>
+            {/* Segunda fila: Acciones principales - OPTIMIZADO SIN SCROLL */}
+            <div className="space-y-2">
+              {/* Fila 1: Botones prioritarios */}
+              <div className="flex items-center gap-2">
+                {platform.status === 'in_progress' && platform.pieces.length > 0 && (
+                  <button
+                    onClick={handleComplete}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white border border-green-600 rounded-xl shadow-lg hover:from-green-600 hover:to-green-700 hover:shadow-xl transition-all duration-200 active:scale-95 active:shadow-2xl"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-sm font-semibold">Completar</span>
+                  </button>
+                )}
 
                 <button
-                  onClick={handleShare}
-                  disabled={platform.pieces.length === 0}
-                  className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl shadow-lg hover:from-blue-600 hover:to-blue-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
-                  title="Compartir en WhatsApp, Email, SMS"
+                  onClick={() => setShowDeleteModal(true)}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-gradient-to-r from-red-50 to-red-100 text-red-700 border border-red-200 rounded-xl shadow-sm hover:from-red-100 hover:to-red-200 hover:shadow-md transition-all duration-200 active:scale-95 active:shadow-lg"
                 >
-                  <div className="p-1.5 bg-blue-600 rounded-xl">
-                    <span className="text-lg">📤</span>
-                  </div>
+                  <Trash2 className="h-4 w-4" />
+                  <span className="text-sm font-semibold">Eliminar</span>
                 </button>
               </div>
+
+              {/* Fila 2: Botones secundarios (solo si existen) */}
+              {lastAction?.type === 'add' && platform.pieces.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleUndo2}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-3 bg-gradient-to-r from-orange-50 to-orange-100 text-orange-700 border border-orange-200 rounded-xl shadow-sm hover:from-orange-100 hover:to-orange-200 hover:shadow-md transition-all duration-200 active:scale-95 active:shadow-lg"
+                    title="Deshacer última acción"
+                  >
+                    <Undo2 className="h-4 w-4" />
+                    <span className="text-sm font-semibold">Deshacer</span>
+                  </button>
+                  
+                  {/* Espacio vacío para mantener consistencia */}
+                  <div className="flex-1"></div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -655,11 +611,11 @@ Generado por Sistema de Inventario`;
               <div className="flex items-center gap-2 overflow-x-auto pb-1">
                 {lastAction?.type === 'add' && platform.pieces.length > 0 && (
                   <button
-                    onClick={handleUndo}
+                    onClick={handleUndo2}
                     className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-50 to-orange-100 text-orange-700 border border-orange-200 rounded-xl shadow-sm hover:from-orange-100 hover:to-orange-200 hover:shadow-md transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-lg"
                   >
                     <div className="p-1 bg-orange-100 rounded-lg">
-                      <Undo className="h-4 w-4" />
+                      <Undo2 className="h-4 w-4" />
                     </div>
                     <span className="text-xs sm:text-sm font-semibold">Deshacer</span>
                   </button>
@@ -671,7 +627,7 @@ Generado por Sistema de Inventario`;
                     className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white border border-green-600 rounded-xl shadow-lg hover:from-green-600 hover:to-green-700 hover:shadow-xl transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-2xl"
                   >
                     <div className="p-1 bg-green-600 rounded-lg">
-                      <Check className="h-4 w-4" />
+                      <CheckCircle className="h-4 w-4" />
                     </div>
                     <span className="text-xs sm:text-sm font-semibold">Completar</span>
                   </button>
@@ -682,7 +638,7 @@ Generado por Sistema de Inventario`;
                   className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-50 to-red-100 text-red-700 border border-red-200 rounded-xl shadow-sm hover:from-red-100 hover:to-red-200 hover:shadow-md transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-lg"
                 >
                   <div className="p-1 bg-red-100 rounded-lg">
-                    <Trash className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" />
                   </div>
                   <span className="text-xs sm:text-sm font-semibold">Eliminar</span>
                 </button>
@@ -748,7 +704,7 @@ Generado por Sistema de Inventario`;
               {/* Información ultra compacta en una sola línea */}
               <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600">
                 <div className="flex items-center gap-1">
-                  <Layers className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
+                  <Layers3 className="h-3.5 w-3.5 text-blue-500 flex-shrink-0" />
                   <span className="truncate max-w-[120px]">
                     {platform.materialTypes.length > 0 
                       ? platform.materialTypes.join(', ')
@@ -768,7 +724,7 @@ Generado por Sistema de Inventario`;
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <Package className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" />
+                  <Package2 className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" />
                   <span>{platform.pieces.length} pz</span>
                 </div>
 
@@ -801,7 +757,7 @@ Generado por Sistema de Inventario`;
                 </h1>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
                   <span className="flex items-center gap-1 truncate">
-                    <Layers className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <Layers3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span className="truncate">
                       {platform.materialTypes.length > 0 
                         ? platform.materialTypes.join(', ')
@@ -820,7 +776,7 @@ Generado por Sistema de Inventario`;
                     </span>
                   </span>
                   <span className="flex items-center gap-1">
-                    <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                    <Package2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span>{platform.pieces.length} piezas</span>
                   </span>
                   {platform.createdBy && (
@@ -849,6 +805,47 @@ Generado por Sistema de Inventario`;
               </span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Barra de botones de exportar fija - Solo en móvil */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-30 p-3">
+        <div className="flex justify-center gap-3">
+          <button
+            onClick={handleExportExcel}
+            disabled={platform.pieces.length === 0 || exporting}
+            className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl shadow-lg hover:from-green-600 hover:to-green-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
+            title="Exportar a Excel"
+          >
+            <FileSpreadsheet className="h-6 w-6" />
+          </button>
+          
+          <button
+            onClick={handleExportPDF}
+            disabled={platform.pieces.length === 0 || exporting}
+            className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-2xl shadow-lg hover:from-red-600 hover:to-red-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
+            title="Exportar a PDF"
+          >
+            <Printer className="h-6 w-6" />
+          </button>
+          
+          <button
+            onClick={handleExportImage}
+            disabled={platform.pieces.length === 0 || exporting}
+            className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl shadow-lg hover:from-purple-600 hover:to-purple-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
+            title="Exportar como Imagen"
+          >
+            <FileImage className="h-6 w-6" />
+          </button>
+
+          <button
+            onClick={handleShare}
+            disabled={platform.pieces.length === 0}
+            className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl shadow-lg hover:from-blue-600 hover:to-blue-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
+            title="Compartir"
+          >
+            <span className="text-xl">📤</span>
+          </button>
         </div>
       </div>
 
@@ -990,7 +987,7 @@ Generado por Sistema de Inventario`;
             <div className="p-4 sm:p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                  <Trash className="h-5 w-5 text-red-600" />
+                  <Trash2 className="h-5 w-5 text-red-600" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-semibold text-gray-900">Eliminar Plataforma</h3>
@@ -1032,7 +1029,7 @@ Generado por Sistema de Inventario`;
           notification.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
         }`}>
           {notification.type === 'success' ? (
-            <Check className="h-5 w-5 flex-shrink-0" />
+            <CheckCircle className="h-5 w-5 flex-shrink-0" />
           ) : (
             <AlertCircle className="h-5 w-5 flex-shrink-0" />
           )}

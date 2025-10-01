@@ -265,9 +265,9 @@ export class PlatformApiService {
   }
 
   /**
-   * Crear nueva plataforma
+   * Crear nueva plataforma (el backend genera automáticamente el platformNumber)
    */
-  static async createPlatform(platform: Omit<Platform, 'id' | 'createdAt' | 'updatedAt'>): Promise<Platform> {
+  static async createPlatform(platform: Omit<Platform, 'id' | 'platformNumber' | 'createdAt' | 'updatedAt'>): Promise<Platform> {
     try {
       // Asegurar que receptionDate esté en formato ISO string
       const platformData = {

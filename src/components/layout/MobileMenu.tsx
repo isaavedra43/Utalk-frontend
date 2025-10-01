@@ -17,9 +17,11 @@ import {
   Bot, 
   Package, 
   Settings,
-  Archive
+  Archive,
+  LogOut
 } from 'lucide-react';
 import { useModulePermissions } from '../../hooks/useModulePermissions';
+import { useAuthContext } from '../../contexts/useAuthContext';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -29,10 +31,20 @@ interface MobileMenuProps {
 export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const { canAccessModule, loading: permissionsLoading } = useModulePermissions();
+  const { logout } = useAuthContext();
 
   const handleNavigation = (path: string) => {
     navigate(path);
     onClose();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      onClose(); // Cerrar el menú después del logout
+    } catch (error) {
+      console.error('Error en logout:', error);
+    }
   };
 
   if (!isOpen) return null;
@@ -110,6 +122,22 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose }) => {
                   ));
               })()}
             </div>
+            
+            {/* Separador */}
+            <div className="border-t border-gray-200 my-4"></div>
+            
+            {/* Botón de Log Out */}
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-between p-4 rounded-xl bg-red-50 hover:bg-red-100 transition-colors border border-red-200"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                  <LogOut className="h-5 w-5 text-red-600" />
+                </div>
+                <span className="font-medium text-red-900">Cerrar Sesión</span>
+              </div>
+            </button>
           </div>
         </div>
       </div>

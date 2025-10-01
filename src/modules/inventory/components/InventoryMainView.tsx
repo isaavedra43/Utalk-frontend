@@ -41,7 +41,6 @@ export const InventoryMainView: React.FC = () => {
   };
 
   const handleCreatePlatform = async (data: {
-    platformNumber: string;
     materialTypes: string[];
     provider: string;
     providerId?: string;

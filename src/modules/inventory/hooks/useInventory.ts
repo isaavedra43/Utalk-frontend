@@ -65,7 +65,6 @@ export const useInventory = () => {
 
   // Crear nueva plataforma
   const createPlatform = useCallback(async (data: {
-    platformNumber: string;
     materialTypes: string[];
     provider: string;
     providerId?: string;
@@ -76,9 +75,8 @@ export const useInventory = () => {
     const configSettings = ConfigService.getSettings();
     const defaultWidth = configSettings?.defaultStandardWidth || 0.3;
     
-    const newPlatform: Platform = {
-      id: generateId(),
-      platformNumber: data.platformNumber,
+    // Crear datos para enviar al backend (sin platformNumber, id, ni totales)
+    const platformData = {
       receptionDate: data.receptionDate || new Date(),
       materialTypes: data.materialTypes,
       provider: data.provider,
@@ -88,33 +86,50 @@ export const useInventory = () => {
       pieces: [],
       totalLinearMeters: 0,
       totalLength: 0,
-      status: 'in_progress',
+      status: 'in_progress' as const,
       notes: data.notes,
-      createdBy: 'Usuario Actual', // TODO: Obtener del contexto de usuario
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdBy: 'Usuario Actual' // TODO: Obtener del contexto de usuario
     };
 
-    // Guardar localmente primero
-    StorageService.savePlatform(newPlatform);
-    setPlatforms(prev => [newPlatform, ...prev]);
-    
-    // Si hay conexión, sincronizar con backend
+    // Si hay conexión, crear en backend primero
     if (isOnline) {
       try {
-        const createdPlatform = await PlatformApiService.createPlatform(newPlatform);
-        // Actualizar con el ID del servidor
-        const updatedPlatform = { ...createdPlatform, providerId: newPlatform.providerId };
-        StorageService.savePlatform(updatedPlatform);
-        setPlatforms(prev => prev.map(p => p.id === newPlatform.id ? updatedPlatform : p));
-        return updatedPlatform;
+        const createdPlatform = await PlatformApiService.createPlatform(platformData);
+        // El backend genera el platformNumber y el id automáticamente
+        StorageService.savePlatform(createdPlatform);
+        setPlatforms(prev => [createdPlatform, ...prev]);
+        return createdPlatform;
       } catch (error) {
         console.error('Error al crear plataforma en backend:', error);
-        // Mantener la plataforma local si falla la sincronización
+        // Si falla el backend, crear localmente con ID temporal
+        const tempPlatform: Platform = {
+          id: generateId(),
+          platformNumber: `TEMP-${Date.now()}`, // Folio temporal
+          ...platformData,
+          totalLinearMeters: 0,
+          totalLength: 0,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        StorageService.savePlatform(tempPlatform);
+        setPlatforms(prev => [tempPlatform, ...prev]);
+        return tempPlatform;
       }
+    } else {
+      // Modo offline - crear con ID temporal
+      const tempPlatform: Platform = {
+        id: generateId(),
+        platformNumber: `OFFLINE-${Date.now()}`, // Folio temporal para offline
+        ...platformData,
+        totalLinearMeters: 0,
+        totalLength: 0,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      StorageService.savePlatform(tempPlatform);
+      setPlatforms(prev => [tempPlatform, ...prev]);
+      return tempPlatform;
     }
-    
-    return newPlatform;
   }, [isOnline]);
 
   // Actualizar plataforma
