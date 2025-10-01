@@ -4,18 +4,19 @@ import { useConfiguration } from '../hooks/useConfiguration';
 import type { Provider } from '../types';
 
 export const ProviderManager: React.FC = () => {
-  const { providers, addProvider, updateProvider, deleteProvider } = useConfiguration();
+  const { providers, materials, addProvider, updateProvider, deleteProvider } = useConfiguration();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     contact: '',
-    phone: ''
+    phone: '',
+    materialIds: [] as string[]
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const resetForm = () => {
-    setFormData({ name: '', contact: '', phone: '' });
+    setFormData({ name: '', contact: '', phone: '', materialIds: [] });
     setErrors({});
   };
 
@@ -34,6 +35,10 @@ export const ProviderManager: React.FC = () => {
       newErrors.phone = 'El teléfono es requerido';
     } else if (!/^[\+]?[\d\s\-\(\)]+$/.test(formData.phone)) {
       newErrors.phone = 'Formato de teléfono inválido';
+    }
+
+    if (formData.materialIds.length === 0) {
+      newErrors.materialIds = 'Debe seleccionar al menos un material';
     }
 
     setErrors(newErrors);
@@ -64,7 +69,8 @@ export const ProviderManager: React.FC = () => {
     setFormData({
       name: provider.name,
       contact: provider.contact || '',
-      phone: provider.phone || ''
+      phone: provider.phone || '',
+      materialIds: provider.materialIds || []
     });
     setEditingProvider(provider);
     setShowAddModal(true);
@@ -78,6 +84,20 @@ export const ProviderManager: React.FC = () => {
         console.error('Error al eliminar proveedor:', error);
       }
     }
+  };
+
+  const handleMaterialToggle = (materialId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      materialIds: prev.materialIds.includes(materialId)
+        ? prev.materialIds.filter(id => id !== materialId)
+        : [...prev.materialIds, materialId]
+    }));
+  };
+
+  const getMaterialName = (materialId: string) => {
+    const material = materials.find(m => m.id === materialId);
+    return material ? material.name : 'Material desconocido';
   };
 
   const handleCloseModal = () => {
@@ -157,6 +177,25 @@ export const ProviderManager: React.FC = () => {
                     <span className="truncate">{provider.phone}</span>
                   </div>
                 )}
+                
+                {/* Materials */}
+                {provider.materialIds && provider.materialIds.length > 0 && (
+                  <div className="mt-3 pt-2 border-t border-gray-100">
+                    <p className="text-xs text-gray-500 mb-2">Materiales que maneja:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {provider.materialIds.slice(0, 3).map(materialId => (
+                        <span key={materialId} className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                          {getMaterialName(materialId)}
+                        </span>
+                      ))}
+                      {provider.materialIds.length > 3 && (
+                        <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                          +{provider.materialIds.length - 3} más
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -228,6 +267,54 @@ export const ProviderManager: React.FC = () => {
                 />
                 {errors.phone && (
                   <p className="text-xs text-red-600 mt-1">{errors.phone}</p>
+                )}
+              </div>
+
+              {/* Materials Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Materiales que maneja *
+                </label>
+                <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-3 bg-gray-50">
+                  {materials.filter(m => m.isActive).map((material) => (
+                    <label key={material.id} className="flex items-center gap-2 py-2 hover:bg-white hover:shadow-sm rounded px-2 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={formData.materialIds.includes(material.id)}
+                        onChange={() => handleMaterialToggle(material.id)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-gray-900">{material.name}</span>
+                        <span className="text-xs text-gray-500 ml-2">({material.category})</span>
+                      </div>
+                    </label>
+                  ))}
+                  {materials.filter(m => m.isActive).length === 0 && (
+                    <p className="text-sm text-gray-500 text-center py-4">No hay materiales disponibles</p>
+                  )}
+                </div>
+                {formData.materialIds.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs text-gray-600 mb-1">Materiales seleccionados:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {formData.materialIds.map(materialId => (
+                        <span key={materialId} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                          {getMaterialName(materialId)}
+                          <button
+                            type="button"
+                            onClick={() => handleMaterialToggle(materialId)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {errors.materialIds && (
+                  <p className="text-xs text-red-600 mt-1">{errors.materialIds}</p>
                 )}
               </div>
 

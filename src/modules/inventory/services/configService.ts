@@ -44,21 +44,24 @@ const DEFAULT_CONFIG: ModuleConfiguration = {
       name: 'Mármol Blanco Carrara',
       category: 'Mármol',
       description: 'Mármol blanco de alta calidad',
-      isActive: true
+      isActive: true,
+      providerIds: ['prov-001', 'prov-003'] // Mármoles del Norte y Piedras Preciosas
     },
     {
       id: 'mat-002',
       name: 'Mármol Travertino',
       category: 'Mármol',
       description: 'Mármol travertino natural',
-      isActive: true
+      isActive: true,
+      providerIds: ['prov-001'] // Solo Mármoles del Norte
     },
     {
       id: 'mat-003',
       name: 'Mármol Negro Marquina',
       category: 'Mármol',
       description: 'Mármol negro elegante',
-      isActive: true
+      isActive: true,
+      providerIds: ['prov-001'] // Solo Mármoles del Norte
     },
     // Granitos
     {
@@ -66,14 +69,16 @@ const DEFAULT_CONFIG: ModuleConfiguration = {
       name: 'Granito Gris',
       category: 'Granito',
       description: 'Granito gris resistente',
-      isActive: true
+      isActive: true,
+      providerIds: ['prov-001', 'prov-003'] // Mármoles del Norte y Piedras Preciosas
     },
     {
       id: 'mat-005',
       name: 'Granito Negro Absoluto',
       category: 'Granito',
       description: 'Granito negro absoluto',
-      isActive: true
+      isActive: true,
+      providerIds: ['prov-002', 'prov-003'] // Canteras del Sur y Piedras Preciosas
     },
     // Cuarzos
     {
@@ -81,14 +86,16 @@ const DEFAULT_CONFIG: ModuleConfiguration = {
       name: 'Cuarzo Blanco',
       category: 'Cuarzo',
       description: 'Cuarzo blanco brillante',
-      isActive: true
+      isActive: true,
+      providerIds: ['prov-002'] // Solo Canteras del Sur
     },
     {
       id: 'mat-007',
       name: 'Cuarzo Gris',
       category: 'Cuarzo',
       description: 'Cuarzo gris moderno',
-      isActive: true
+      isActive: true,
+      providerIds: ['prov-002'] // Solo Canteras del Sur
     }
   ],
   settings: {

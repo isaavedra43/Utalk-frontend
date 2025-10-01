@@ -43,9 +43,22 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
   const filteredProviders = providers.filter(provider =>
     provider.name.toLowerCase().includes(providerSearch.toLowerCase())
   );
-  const filteredMaterials = activeMaterials.filter(material =>
-    material.name.toLowerCase().includes(materialSearch.toLowerCase())
-  );
+  // Filtrar materiales por proveedor seleccionado y búsqueda
+  const filteredMaterials = activeMaterials.filter(material => {
+    const matchesSearch = material.name.toLowerCase().includes(materialSearch.toLowerCase());
+    
+    // Si no hay proveedor seleccionado, mostrar todos los materiales
+    if (!formData.provider) {
+      return matchesSearch;
+    }
+    
+    // Filtrar por materiales que maneja el proveedor seleccionado
+    const selectedProvider = providers.find(p => p.name === formData.provider);
+    const matchesProvider = selectedProvider ? 
+      (material.providerIds && material.providerIds.includes(selectedProvider.id)) : true;
+    
+    return matchesSearch && matchesProvider;
+  });
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -103,7 +116,13 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
 
   // Funciones para manejar proveedor
   const handleProviderSelect = (provider: Provider) => {
-    setFormData({ ...formData, provider: provider.name });
+    // Limpiar materiales seleccionados cuando se cambia el proveedor
+    setSelectedMaterials([]);
+    setFormData({ 
+      ...formData, 
+      provider: provider.name,
+      materialTypes: [] // Limpiar tipos de materiales
+    });
     setProviderSearch(provider.name);
     setShowProviderDropdown(false);
   };
@@ -189,6 +208,15 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
             
             {/* Input de búsqueda de materiales */}
             <div className="relative">
+              {/* Mensaje informativo sobre filtrado por proveedor */}
+              {formData.provider && (
+                <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-700">
+                    💡 Mostrando solo materiales de <strong>{formData.provider}</strong>
+                  </p>
+                </div>
+              )}
+              
               <input
                 type="text"
                 value={materialSearch}
@@ -197,7 +225,7 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
                   setShowMaterialDropdown(true);
                 }}
                 onFocus={() => setShowMaterialDropdown(true)}
-                placeholder="Buscar materiales..."
+                placeholder={formData.provider ? "Buscar materiales del proveedor..." : "Buscar materiales..."}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   errors.materialTypes ? 'border-red-500' : 'border-gray-300'
                 }`}
