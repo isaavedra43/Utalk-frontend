@@ -16,7 +16,6 @@ interface PWAState {
   isIOS: boolean;
   isAndroid: boolean;
   needRefresh: boolean;
-  offlineReady: boolean;
   updateAvailable: boolean;
 }
 
@@ -36,7 +35,6 @@ export const usePWA = (): PWAState & PWAActions => {
   // Hook de vite-plugin-pwa para actualización
   const {
     needRefresh: [needRefresh, setNeedRefresh],
-    offlineReady: [offlineReady, setOfflineReady],
     updateServiceWorker,
   } = useRegisterSW({
     onRegistered(registration) {
@@ -151,7 +149,6 @@ export const usePWA = (): PWAState & PWAActions => {
     isIOS,
     isAndroid,
     needRefresh,
-    offlineReady,
     updateAvailable: needRefresh,
     
     // Acciones
