@@ -89,6 +89,26 @@ interface PlatformStats {
   };
 }
 
+// ✅ NUEVO: Interfaz para respuestas del servidor de plataformas
+interface PlatformServerResponse {
+  platforms?: Platform[];
+  data?: Platform[];
+  pagination?: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+    nextOffset?: number;
+  };
+  filters?: {
+    available?: {
+      statuses?: string[];
+      providers?: string[];
+      materialTypes?: string[];
+    };
+  };
+}
+
 // ==================== PROVEEDORES ====================
 
 export class ProviderApiService {
@@ -225,8 +245,8 @@ export class PlatformApiService {
     providerId?: string;
     provider?: string;
     materialType?: string;
-    startDate?: string;
-    endDate?: string;
+    startDate?: string | Date;
+    endDate?: string | Date;
     search?: string;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
@@ -234,18 +254,18 @@ export class PlatformApiService {
     offset?: number;
   }): Promise<PaginatedResponse<Platform>> {
     try {
-      const params: any = {};
+      const params: Record<string, string | number> = {};
       
       // Convertir fechas a ISO strings si se proporcionan como Date
       if (filters?.startDate) {
         params.startDate = typeof filters.startDate === 'string' 
           ? filters.startDate 
-          : filters.startDate.toISOString();
+          : (filters.startDate as Date).toISOString();
       }
       if (filters?.endDate) {
         params.endDate = typeof filters.endDate === 'string' 
           ? filters.endDate 
-          : filters.endDate.toISOString();
+          : (filters.endDate as Date).toISOString();
       }
       
       // Agregar otros filtros
@@ -259,33 +279,72 @@ export class PlatformApiService {
       if (filters?.limit) params.limit = filters.limit;
       if (filters?.offset) params.offset = filters.offset;
 
-      const response = await api.get<ApiResponse<any>>(this.BASE_PATH, {
+      const response = await api.get<ApiResponse<PlatformServerResponse | Platform[]>>(this.BASE_PATH, {
         params
       });
+      
       // Normalizar formato de respuesta del backend:
       // A) { success, data: { platforms: Platform[], pagination, filters } }
       // B) { success, data: { data: Platform[], pagination, filters } }
       // C) { success, data: Platform[] } (fallback legacy)
-      const serverData = response.data?.data ?? {};
+      const serverData = response.data?.data;
+      
+      // Si es un array directo (formato legacy)
       if (Array.isArray(serverData)) {
-        return { data: serverData, pagination: { total: serverData.length, limit: params?.limit ?? serverData.length, offset: params?.offset ?? 0, hasMore: false }, } as PaginatedResponse<Platform>;
-      }
-      if (Array.isArray(serverData.platforms)) {
-        return {
-          data: serverData.platforms,
-          pagination: serverData.pagination ?? { total: serverData.platforms.length, limit: params?.limit ?? serverData.platforms.length, offset: params?.offset ?? 0, hasMore: false },
-          filters: serverData.filters
+        return { 
+          data: serverData, 
+          pagination: { 
+            total: serverData.length, 
+            limit: params?.limit ?? serverData.length, 
+            offset: params?.offset ?? 0, 
+            hasMore: false 
+          } 
         } as PaginatedResponse<Platform>;
       }
-      if (Array.isArray(serverData.data)) {
-        return {
-          data: serverData.data,
-          pagination: serverData.pagination ?? { total: serverData.data.length, limit: params?.limit ?? serverData.data.length, offset: params?.offset ?? 0, hasMore: false },
-          filters: serverData.filters
-        } as PaginatedResponse<Platform>;
+      
+      // Si es un objeto con estructura compleja
+      if (serverData && typeof serverData === 'object') {
+        const platformData = serverData as PlatformServerResponse;
+        
+        // Formato A: { platforms: Platform[] }
+        if (Array.isArray(platformData.platforms)) {
+          return {
+            data: platformData.platforms,
+            pagination: platformData.pagination ?? { 
+              total: platformData.platforms.length, 
+              limit: params?.limit ?? platformData.platforms.length, 
+              offset: params?.offset ?? 0, 
+              hasMore: false 
+            },
+            filters: platformData.filters
+          } as PaginatedResponse<Platform>;
+        }
+        
+        // Formato B: { data: Platform[] }
+        if (Array.isArray(platformData.data)) {
+          return {
+            data: platformData.data,
+            pagination: platformData.pagination ?? { 
+              total: platformData.data.length, 
+              limit: params?.limit ?? platformData.data.length, 
+              offset: params?.offset ?? 0, 
+              hasMore: false 
+            },
+            filters: platformData.filters
+          } as PaginatedResponse<Platform>;
+        }
       }
+      
       // Si nada coincide, devolver estructura vacía para no romper UI
-      return { data: [], pagination: { total: 0, limit: params?.limit ?? 0, offset: params?.offset ?? 0, hasMore: false } } as PaginatedResponse<Platform>;
+      return { 
+        data: [], 
+        pagination: { 
+          total: 0, 
+          limit: params?.limit ?? 0, 
+          offset: params?.offset ?? 0, 
+          hasMore: false 
+        } 
+      } as PaginatedResponse<Platform>;
     } catch (error) {
       console.error('Error fetching platforms:', error);
       throw error;
@@ -550,7 +609,10 @@ export class ConfigurationApiService {
     serverConfig?: ModuleConfiguration;
   }> {
     try {
-      const response = await api.post<ApiResponse<any>>(
+      const response = await api.post<ApiResponse<{
+        needsUpdate: boolean;
+        serverConfig?: ModuleConfiguration;
+      }>>(
         `${this.BASE_PATH}/sync`,
         {
           lastUpdated: localConfig.lastUpdated,
@@ -688,7 +750,7 @@ export class SyncService {
     try {
       await api.get('/api/health');
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
