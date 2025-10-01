@@ -6,9 +6,9 @@ import { WebSocketProvider } from './contexts/WebSocketContext'
 import { MobileMenuProvider } from './contexts/MobileMenuContext'
 import { NotificationProvider } from './contexts/NotificationContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { useAuthContext } from './contexts/useAuthContext'
 import { useToast } from './hooks/useToast'
 import { AppInitializer } from './components/AppInitializer'
+import { SafeAuthWrapper } from './components/SafeAuthWrapper'
 
 // ✅ OPTIMIZACIÓN: Lazy loading de módulos para carga más rápida
 const AuthModule = lazy(() => import('./modules/auth').then(m => ({ default: m.AuthModule })));
@@ -42,354 +42,96 @@ const PageLoader = () => (
   </div>
 );
 
-// Componente de protección de rutas - OPTIMIZADO
-const AuthProtectedRoute: React.FC<{ children: React.ReactNode }> = memo(({ children }) => {
-  const { isAuthenticated, loading } = useAuthContext();
+// ✅ ELIMINADO: SafeAuthWrapper problemático
+// Ahora usamos SafeAuthWrapper que es más robusto
 
-  // Si está cargando, mostrar loading
-  if (loading) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Verificando autenticación...
-          </h3>
-        </div>
-      </div>
-    );
-  }
+// ✅ SIMPLIFICADO: Componente sin useAuthContext directo
+const ChatPage: React.FC = () => (
+  <ErrorBoundary>
+    <MainLayout />
+  </ErrorBoundary>
+);
 
-  // Si no está autenticado, redirigir a login
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+const DashboardPage: React.FC = () => (
+  <ErrorBoundary>
+    <MainLayout />
+  </ErrorBoundary>
+);
 
-  // Si está autenticado, mostrar el contenido
-  return <>{children}</>;
-});
+// ✅ COMPONENTES SIMPLIFICADOS SIN useAuthContext DIRECTO
+const TeamPage: React.FC = () => (
+  <ErrorBoundary>
+    <MainLayout />
+  </ErrorBoundary>
+);
 
-AuthProtectedRoute.displayName = 'AuthProtectedRoute';
+const ClientsPage: React.FC = () => (
+  <ErrorBoundary>
+    <MainLayout />
+  </ErrorBoundary>
+);
 
-// Componente para el módulo de chat - CON PROTECCIÓN ADICIONAL
-const ChatPage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuthContext();
-  
-  // Protección adicional para evitar renderizado con estado inválido
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Cargando chat...
-          </h3>
-        </div>
-      </div>
-    );
-  }
+const NotificationsPage: React.FC = () => (
+  <ErrorBoundary>
+    <MainLayout />
+  </ErrorBoundary>
+);
 
-  return (
-    <ErrorBoundary>
-      <MainLayout />
-    </ErrorBoundary>
-  );
-};
+// ✅ COMPONENTES NUEVOS SIMPLIFICADOS
+const InternalChatPage: React.FC = () => (
+  <ErrorBoundary>
+    <MainLayout />
+  </ErrorBoundary>
+);
 
-// Componente para el módulo de dashboard - CON PROTECCIÓN ADICIONAL
-const DashboardPage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuthContext();
-  
-  // Protección adicional para evitar renderizado con estado inválido
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Cargando dashboard...
-          </h3>
-        </div>
-      </div>
-    );
-  }
+const CampaignsPage: React.FC = () => (
+  <ErrorBoundary>
+    <MainLayout />
+  </ErrorBoundary>
+);
 
-  return (
-    <ErrorBoundary>
-      <MainLayout />
-    </ErrorBoundary>
-  );
-};
+const PhonePage: React.FC = () => (
+  <ErrorBoundary>
+    <MainLayout />
+  </ErrorBoundary>
+);
 
-// Componente para el módulo de equipo - CON PROTECCIÓN ADICIONAL
-const TeamPage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuthContext();
-  
-  // Protección adicional para evitar renderizado con estado inválido
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Cargando equipo...
-          </h3>
-        </div>
-      </div>
-    );
-  }
+// ✅ TODOS LOS COMPONENTES SIMPLIFICADOS SIN useAuthContext DIRECTO
+const KnowledgeBasePage: React.FC = () => (
+  <ErrorBoundary>
+    <MainLayout />
+  </ErrorBoundary>
+);
 
-  return (
-    <ErrorBoundary>
-      <MainLayout />
-    </ErrorBoundary>
-  );
-};
+const HRPage: React.FC = () => (
+  <ErrorBoundary>
+    <MainLayout />
+  </ErrorBoundary>
+);
 
-// Componente para el módulo de clientes - CON PROTECCIÓN ADICIONAL
-const ClientsPage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuthContext();
-  
-  // Protección adicional para evitar renderizado con estado inválido
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Cargando clientes...
-          </h3>
-        </div>
-      </div>
-    );
-  }
+const SupervisionPage: React.FC = () => (
+  <ErrorBoundary>
+    <MainLayout />
+  </ErrorBoundary>
+);
 
-  return (
-    <ErrorBoundary>
-      <MainLayout />
-    </ErrorBoundary>
-  );
-};
+const CopilotPage: React.FC = () => (
+  <ErrorBoundary>
+    <MainLayout />
+  </ErrorBoundary>
+);
 
-// Componente para el módulo de notificaciones - CON PROTECCIÓN ADICIONAL
-const NotificationsPage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuthContext();
-  
-  // Protección adicional para evitar renderizado con estado inválido
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Cargando notificaciones...
-          </h3>
-        </div>
-      </div>
-    );
-  }
+const ShippingPage: React.FC = () => (
+  <ErrorBoundary>
+    <MainLayout />
+  </ErrorBoundary>
+);
 
-  return (
-    <ErrorBoundary>
-      <MainLayout />
-    </ErrorBoundary>
-  );
-};
-
-// Componentes para los nuevos módulos
-const InternalChatPage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuthContext();
-  
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Cargando chat interno...
-          </h3>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <ErrorBoundary>
-      <MainLayout />
-    </ErrorBoundary>
-  );
-};
-
-const CampaignsPage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuthContext();
-  
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Cargando campañas...
-          </h3>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <ErrorBoundary>
-      <MainLayout />
-    </ErrorBoundary>
-  );
-};
-
-const PhonePage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuthContext();
-  
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Cargando teléfono...
-          </h3>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <ErrorBoundary>
-      <MainLayout />
-    </ErrorBoundary>
-  );
-};
-
-const KnowledgeBasePage: React.FC = () => {
-  return (
-    <ErrorBoundary>
-      <MainLayout />
-    </ErrorBoundary>
-  );
-};
-
-const HRPage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuthContext();
-  
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Cargando recursos humanos...
-          </h3>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <ErrorBoundary>
-      <MainLayout />
-    </ErrorBoundary>
-  );
-};
-
-const SupervisionPage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuthContext();
-  
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Cargando supervisión...
-          </h3>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <ErrorBoundary>
-      <MainLayout />
-    </ErrorBoundary>
-  );
-};
-
-const CopilotPage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuthContext();
-  
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Cargando copiloto...
-          </h3>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <ErrorBoundary>
-      <MainLayout />
-    </ErrorBoundary>
-  );
-};
-
-
-
-const ShippingPage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuthContext();
-  
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Cargando envíos...
-          </h3>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <ErrorBoundary>
-      <MainLayout />
-    </ErrorBoundary>
-  );
-};
-
-const ServicesPage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuthContext();
-  
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Cargando servicios...
-          </h3>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <ErrorBoundary>
-      <MainLayout />
-    </ErrorBoundary>
-  );
-};
+const ServicesPage: React.FC = () => (
+  <ErrorBoundary>
+    <MainLayout />
+  </ErrorBoundary>
+);
 
 
 function App() {
@@ -431,151 +173,151 @@ function App() {
                 <Route 
                   path="/chat" 
                   element={
-                    <AuthProtectedRoute>
+                    <SafeAuthWrapper>
                       <ProtectedRoute moduleId="chat">
                         <ChatPage />
                       </ProtectedRoute>
-                    </AuthProtectedRoute>
+                    </SafeAuthWrapper>
                   } 
                 />
                 <Route 
                   path="/dashboard" 
                   element={
-                    <AuthProtectedRoute>
+                    <SafeAuthWrapper>
                       <ProtectedRoute moduleId="dashboard">
                         <DashboardPage />
                       </ProtectedRoute>
-                    </AuthProtectedRoute>
+                    </SafeAuthWrapper>
                   } 
                 />
                 <Route 
                   path="/team" 
                   element={
-                    <AuthProtectedRoute>
+                    <SafeAuthWrapper>
                       <ProtectedRoute moduleId="team">
                         <TeamPage />
                       </ProtectedRoute>
-                    </AuthProtectedRoute>
+                    </SafeAuthWrapper>
                   } 
                 />
                 <Route 
                   path="/clients" 
                   element={
-                    <AuthProtectedRoute>
+                    <SafeAuthWrapper>
                       <ProtectedRoute moduleId="clients">
                         <ClientsPage />
                       </ProtectedRoute>
-                    </AuthProtectedRoute>
+                    </SafeAuthWrapper>
                   } 
                 />
                 <Route 
                   path="/notifications" 
                   element={
-                    <AuthProtectedRoute>
+                    <SafeAuthWrapper>
                       <ProtectedRoute moduleId="notifications">
                         <NotificationsPage />
                       </ProtectedRoute>
-                    </AuthProtectedRoute>
+                    </SafeAuthWrapper>
                   } 
                 />
                 <Route 
                   path="/internal-chat" 
                   element={
-                    <AuthProtectedRoute>
+                    <SafeAuthWrapper>
                       <ProtectedRoute moduleId="internal-chat">
                         <InternalChatPage />
                       </ProtectedRoute>
-                    </AuthProtectedRoute>
+                    </SafeAuthWrapper>
                   } 
                 />
                 <Route 
                   path="/campaigns" 
                   element={
-                    <AuthProtectedRoute>
+                    <SafeAuthWrapper>
                       <ProtectedRoute moduleId="campaigns">
                         <CampaignsPage />
                       </ProtectedRoute>
-                    </AuthProtectedRoute>
+                    </SafeAuthWrapper>
                   } 
                 />
                 <Route 
                   path="/phone" 
                   element={
-                    <AuthProtectedRoute>
+                    <SafeAuthWrapper>
                       <ProtectedRoute moduleId="phone">
                         <PhonePage />
                       </ProtectedRoute>
-                    </AuthProtectedRoute>
+                    </SafeAuthWrapper>
                   } 
                 />
                 <Route 
                   path="/knowledge-base" 
                   element={
-                    <AuthProtectedRoute>
+                    <SafeAuthWrapper>
                       <ProtectedRoute moduleId="knowledge-base">
                         <KnowledgeBasePage />
                       </ProtectedRoute>
-                    </AuthProtectedRoute>
+                    </SafeAuthWrapper>
                   } 
                 />
                 <Route 
                   path="/hr" 
                   element={
-                    <AuthProtectedRoute>
+                    <SafeAuthWrapper>
                       <ProtectedRoute moduleId="hr">
                         <HRPage />
                       </ProtectedRoute>
-                    </AuthProtectedRoute>
+                    </SafeAuthWrapper>
                   } 
                 />
                 <Route 
                   path="/supervision" 
                   element={
-                    <AuthProtectedRoute>
+                    <SafeAuthWrapper>
                       <ProtectedRoute moduleId="supervision">
                         <SupervisionPage />
                       </ProtectedRoute>
-                    </AuthProtectedRoute>
+                    </SafeAuthWrapper>
                   } 
                 />
                 <Route 
                   path="/copilot" 
                   element={
-                    <AuthProtectedRoute>
+                    <SafeAuthWrapper>
                       <ProtectedRoute moduleId="copilot">
                         <CopilotPage />
                       </ProtectedRoute>
-                    </AuthProtectedRoute>
+                    </SafeAuthWrapper>
                   } 
                 />
                 <Route 
                   path="/inventory/*" 
                   element={
-                    <AuthProtectedRoute>
+                    <SafeAuthWrapper>
                       <ProtectedRoute moduleId="inventory">
                         <MainLayout />
                       </ProtectedRoute>
-                    </AuthProtectedRoute>
+                    </SafeAuthWrapper>
                   } 
                 />
                 <Route 
                   path="/shipping" 
                   element={
-                    <AuthProtectedRoute>
+                    <SafeAuthWrapper>
                       <ProtectedRoute moduleId="shipping">
                         <ShippingPage />
                       </ProtectedRoute>
-                    </AuthProtectedRoute>
+                    </SafeAuthWrapper>
                   } 
                 />
                 <Route 
                   path="/services" 
                   element={
-                    <AuthProtectedRoute>
+                    <SafeAuthWrapper>
                       <ProtectedRoute moduleId="services">
                         <ServicesPage />
                       </ProtectedRoute>
-                    </AuthProtectedRoute>
+                    </SafeAuthWrapper>
                   } 
                 />
 

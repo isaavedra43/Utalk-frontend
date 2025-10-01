@@ -32,12 +32,16 @@ export const useAuthContext = () => {
   if (!context) {
     console.warn('⚠️ useAuthContext llamado fuera de AuthProvider. Usando estado seguro por defecto.');
     
+    // ✅ VERIFICAR si hay token en localStorage para determinar estado inicial
+    const hasToken = localStorage.getItem('access_token');
+    const shouldRedirectToLogin = !hasToken;
+    
     // ✅ Estado completamente funcional que previene errores
     return {
       user: null,
       backendUser: null,
-      loading: true,
-      error: null,
+      loading: false, // ✅ CRÍTICO: No loading infinito
+      error: shouldRedirectToLogin ? 'No autenticado' : null,
       isAuthenticated: false,
       isAuthenticating: false,
       login: async () => { 
@@ -49,10 +53,12 @@ export const useAuthContext = () => {
         console.warn('Auth no inicializado - limpiando estado');
         localStorage.clear();
         sessionStorage.clear();
+        window.location.href = '/login';
       },
       clearAuth: () => {
         localStorage.clear();
         sessionStorage.clear();
+        window.location.href = '/login';
       },
       updateProfile: async () => { 
         throw new Error('Auth no inicializado'); 

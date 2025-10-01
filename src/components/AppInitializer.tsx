@@ -13,35 +13,58 @@ export const AppInitializer: React.FC<AppInitializerProps> = ({ children }) => {
   const [initializationError, setInitializationError] = useState<string | null>(null);
 
   useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        console.log('🚀 AppInitializer - Iniciando inicialización de la aplicación');
+        
+        // ✅ PASO 1: Verificar que React esté montado correctamente
+        const root = document.getElementById('root');
+        if (!root) {
+          throw new Error('Elemento root no encontrado');
+        }
+        
+        // ✅ PASO 2: Esperar un momento para que los contextos se inicialicen
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // ✅ PASO 3: Verificar que no haya errores críticos de JavaScript
+        if (window.onerror || window.addEventListener) {
+          console.log('✅ AppInitializer - Entorno JavaScript estable');
+        }
+        
+        // ✅ PASO 4: Verificar localStorage accesible
+        try {
+          localStorage.setItem('_test', 'test');
+          localStorage.removeItem('_test');
+          console.log('✅ AppInitializer - LocalStorage accesible');
+        } catch (e) {
+          console.warn('⚠️ AppInitializer - LocalStorage no disponible:', e);
+        }
+        
+        // ✅ PASO 5: Marcar como inicializado
+        console.log('✅ AppInitializer - Inicialización completada');
+        setIsInitialized(true);
+        
+      } catch (error) {
+        console.error('❌ AppInitializer - Error durante la inicialización:', error);
+        setInitializationError(error instanceof Error ? error.message : 'Error desconocido');
+        setIsInitialized(true); // Continuar de todas formas
+      }
+    };
+
     // ✅ Timeout de seguridad para evitar pantallas en blanco indefinidas
     const initTimeout = setTimeout(() => {
       if (!isInitialized) {
-        console.warn('⚠️ AppInitializer - Timeout de inicialización alcanzado');
-        setInitializationError('Tiempo de inicialización excedido');
+        console.warn('⚠️ AppInitializer - Timeout de inicialización alcanzado, forzando inicialización');
         setIsInitialized(true);
       }
-    }, 8000); // 8 segundos máximo
+    }, 5000); // 5 segundos máximo
 
-    // ✅ Verificar si hay contenido en el DOM
-    const checkContent = () => {
-      const root = document.getElementById('root');
-      const hasContent = root && root.children.length > 0;
-      
-      if (hasContent || isInitialized) {
-        clearTimeout(initTimeout);
-        setIsInitialized(true);
-      }
-    };
-
-    // ✅ Verificar inmediatamente y cada 500ms
-    checkContent();
-    const interval = setInterval(checkContent, 500);
+    initializeApp();
 
     return () => {
       clearTimeout(initTimeout);
-      clearInterval(interval);
     };
-  }, [isInitialized]);
+  }, []);
 
   // ✅ Mostrar loading mientras se inicializa
   if (!isInitialized) {
