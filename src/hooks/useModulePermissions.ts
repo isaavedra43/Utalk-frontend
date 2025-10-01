@@ -91,6 +91,12 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
       return false;
     }
     
+    // TEMPORAL: Permitir acceso al módulo de inventario mientras se configura en el backend
+    if (moduleId === 'inventory') {
+      infoLog('Acceso temporal permitido al módulo de inventario', { moduleId });
+      return true;
+    }
+    
     // Si no hay permisos aún, negar por defecto
     if (!permissions) {
       if (!permissionsFallbackLogged.current) {
@@ -137,6 +143,12 @@ export const useModulePermissions = (): UseModulePermissionsReturn => {
     // Política segura: mientras carga o si no hay permisos, negar
     if (loading) {
       return false;
+    }
+    
+    // TEMPORAL: Permitir todos los permisos al módulo de inventario mientras se configura en el backend
+    if (moduleId === 'inventory') {
+      infoLog('Permiso temporal otorgado al módulo de inventario', { moduleId, action });
+      return true;
     }
     
     if (!permissions) {
