@@ -50,6 +50,13 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
     }
   }, [activeMaterials.length, initializeDefaultConfiguration]);
 
+  // ✅ LIMPIAR ERRORES AUTOMÁTICAMENTE - Material es opcional
+  useEffect(() => {
+    if (error && error.includes('material')) {
+      setError('');
+    }
+  }, [error]);
+
   // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = () => {
@@ -81,9 +88,14 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
       return;
     }
 
+    // ✅ LIMPIAR CUALQUIER ERROR DE MATERIAL
+    setError('');
+
     const success = onAddPiece(lengthValue, materialToUse);
     if (success) {
       setLength('');
+      setMaterialSearch('');
+      setSelectedMaterial('');
       setError('');
       inputRef.current?.focus();
     }
