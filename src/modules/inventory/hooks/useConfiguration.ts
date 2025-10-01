@@ -27,6 +27,8 @@ export const useConfiguration = () => {
     const fetchBackendData = async () => {
       try {
         setLoading(true);
+        console.log('🔄 Cargando proveedores y materiales desde el backend...');
+        
         const [{ ProviderApiService, MaterialApiService }] = await Promise.all([
           import('../services/inventoryApiService')
         ]);
@@ -36,9 +38,18 @@ export const useConfiguration = () => {
           MaterialApiService.getAllMaterials({ limit: 1000 })
         ]);
 
-        const materials = Array.isArray((materialsResponse as any)?.data)
-          ? (materialsResponse as any).data
-          : (materialsResponse as any)?.materials || materialsResponse || [];
+        console.log('📦 Proveedores cargados:', providers);
+        console.log('📦 Respuesta de materiales:', materialsResponse);
+
+        // Extraer materiales de la respuesta
+        let materials = [];
+        if (materialsResponse && materialsResponse.data) {
+          materials = materialsResponse.data;
+        } else if (Array.isArray(materialsResponse)) {
+          materials = materialsResponse;
+        }
+
+        console.log('📦 Materiales extraídos:', materials);
 
         const current = ConfigService.getConfiguration();
         current.providers = providers || [];
@@ -46,8 +57,11 @@ export const useConfiguration = () => {
         ConfigService.saveConfiguration(current);
         setConfiguration({ ...current });
         setError(null);
+        
+        console.log('✅ Configuración actualizada con datos del backend');
       } catch (err) {
         console.warn('⚠️ No se pudo obtener proveedores/materiales del backend, mostrando locales.', err);
+        console.error('❌ Error detallado:', err);
       } finally {
         setLoading(false);
       }
@@ -336,21 +350,37 @@ export const useConfiguration = () => {
     // Utilidad para refrescar desde backend bajo demanda
     refreshFromBackend: async () => {
       try {
+        console.log('🔄 Refrescando datos desde el backend...');
+        
         const [{ ProviderApiService, MaterialApiService }] = await Promise.all([
           import('../services/inventoryApiService')
         ]);
+        
         const [providers, materialsResponse] = await Promise.all([
           ProviderApiService.getAllProviders(),
           MaterialApiService.getAllMaterials({ limit: 1000 })
         ]);
-        const materials = Array.isArray((materialsResponse as any)?.data)
-          ? (materialsResponse as any).data
-          : (materialsResponse as any)?.materials || materialsResponse || [];
+        
+        console.log('📦 Proveedores refrescados:', providers);
+        console.log('📦 Respuesta de materiales refrescada:', materialsResponse);
+        
+        // Extraer materiales de la respuesta
+        let materials = [];
+        if (materialsResponse && materialsResponse.data) {
+          materials = materialsResponse.data;
+        } else if (Array.isArray(materialsResponse)) {
+          materials = materialsResponse;
+        }
+        
+        console.log('📦 Materiales extraídos (refresh):', materials);
+        
         const current = ConfigService.getConfiguration();
         current.providers = providers || [];
         current.materials = materials || [];
         ConfigService.saveConfiguration(current);
         setConfiguration({ ...current });
+        
+        console.log('✅ Datos refrescados desde el backend');
       } catch (e) {
         console.error('❌ Error refrescando datos de backend:', e);
       }

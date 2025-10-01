@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Settings, Users, Package, Sliders, Download, Upload, RotateCcw, AlertCircle, Check } from 'lucide-react';
+import { X, Settings, Users, Package, Sliders, Download, Upload, RotateCcw, AlertCircle, Check, RefreshCw } from 'lucide-react';
 import { useConfiguration } from '../hooks/useConfiguration';
 import { ProviderManager } from './ProviderManager';
 import { MaterialManager } from './MaterialManager';
@@ -20,7 +20,8 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
     clearLocalConfiguration, // ✅ Cambio: Ya no se inicializan datos falsos
     exportConfiguration,
     importConfiguration,
-    getConfigurationStats
+    getConfigurationStats,
+    refreshFromBackend // ✅ NUEVO: Función para refrescar desde backend
   } = useConfiguration();
 
   const [activeTab, setActiveTab] = useState<TabType>('providers');
@@ -41,6 +42,16 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
       setShowResetConfirm(false);
     } catch (error) {
       showNotification('error', 'Error al restablecer configuración');
+    }
+  };
+
+  // ✅ NUEVO: Función para refrescar datos desde el backend
+  const handleRefreshFromBackend = async () => {
+    try {
+      await refreshFromBackend();
+      showNotification('success', 'Datos actualizados desde el backend');
+    } catch (error) {
+      showNotification('error', 'Error al actualizar datos desde el backend');
     }
   };
 
@@ -131,22 +142,34 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
         {/* Stats Bar */}
         {stats && (
           <div className="bg-gray-50 border-b border-gray-200 px-4 sm:px-6 py-3">
-            <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-              <div className="flex items-center gap-1">
-                <Users className="h-4 w-4 text-blue-600" />
-                <span><strong>{stats.totalProviders}</strong> Proveedores</span>
+            <div className="flex flex-wrap gap-4 text-sm text-gray-600 items-center justify-between">
+              <div className="flex flex-wrap gap-4">
+                <div className="flex items-center gap-1">
+                  <Users className="h-4 w-4 text-blue-600" />
+                  <span><strong>{stats.totalProviders}</strong> Proveedores</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Package className="h-4 w-4 text-green-600" />
+                  <span><strong>{stats.activeMaterials}</strong> Materiales Activos</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Sliders className="h-4 w-4 text-purple-600" />
+                  <span><strong>{stats.materialCategories}</strong> Categorías</span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Última actualización: {stats.lastUpdated.toLocaleDateString('es-MX')}
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <Package className="h-4 w-4 text-green-600" />
-                <span><strong>{stats.activeMaterials}</strong> Materiales Activos</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Sliders className="h-4 w-4 text-purple-600" />
-                <span><strong>{stats.materialCategories}</strong> Categorías</span>
-              </div>
-              <div className="text-xs text-gray-500">
-                Última actualización: {stats.lastUpdated.toLocaleDateString('es-MX')}
-              </div>
+              
+              {/* ✅ NUEVO: Botón para refrescar desde backend */}
+              <button
+                onClick={handleRefreshFromBackend}
+                className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                title="Actualizar datos desde el backend"
+              >
+                <RefreshCw className="h-3 w-3" />
+                <span className="hidden sm:inline">Actualizar</span>
+              </button>
             </div>
           </div>
         )}

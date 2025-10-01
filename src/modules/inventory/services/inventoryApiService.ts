@@ -95,12 +95,24 @@ export class ProviderApiService {
   private static readonly BASE_PATH = '/api/inventory/providers';
 
   /**
-   * Obtener todos los proveedores
+   * Obtener todos los proveedores (global, sin userId)
    */
   static async getAllProviders(): Promise<Provider[]> {
     try {
-      const response = await api.get<ApiResponse<Provider[]>>(this.BASE_PATH);
-      return response.data.data;
+      const response = await api.get<ApiResponse<{ providers: Provider[] }>>(this.BASE_PATH, {
+        params: { limit: 1000, offset: 0, search: '', isActive: '' }
+      });
+      
+      // Manejar diferentes formatos de respuesta
+      if (response.data.data && Array.isArray(response.data.data)) {
+        return response.data.data;
+      } else if (response.data.data && Array.isArray(response.data.data.providers)) {
+        return response.data.data.providers;
+      } else if (Array.isArray(response.data)) {
+        return response.data;
+      }
+      
+      return [];
     } catch (error) {
       console.error('Error fetching providers:', error);
       throw error;
@@ -177,14 +189,22 @@ export class ProviderApiService {
   }
 
   /**
-   * Obtener materiales de un proveedor
+   * Obtener materiales de un proveedor específico
    */
   static async getProviderMaterials(providerId: string): Promise<MaterialOption[]> {
     try {
       const response = await api.get<ApiResponse<MaterialOption[]>>(
         `${this.BASE_PATH}/${providerId}/materials`
       );
-      return response.data.data;
+      
+      // Manejar diferentes formatos de respuesta
+      if (response.data.data && Array.isArray(response.data.data)) {
+        return response.data.data;
+      } else if (Array.isArray(response.data)) {
+        return response.data;
+      }
+      
+      return [];
     } catch (error) {
       console.error('Error fetching provider materials:', error);
       throw error;
@@ -367,7 +387,7 @@ export class MaterialApiService {
   private static readonly BASE_PATH = '/api/inventory/materials';
 
   /**
-   * Obtener todos los materiales
+   * Obtener todos los materiales (global, sin userId)
    */
   static async getAllMaterials(filters?: {
     active?: boolean;
@@ -378,10 +398,38 @@ export class MaterialApiService {
     offset?: number;
   }): Promise<PaginatedResponse<MaterialOption>> {
     try {
-      const response = await api.get<ApiResponse<PaginatedResponse<MaterialOption>>>(this.BASE_PATH, {
-        params: filters
+      const params = {
+        limit: filters?.limit || 1000,
+        offset: filters?.offset || 0,
+        search: filters?.search || '',
+        category: filters?.category || '',
+        isActive: filters?.active !== undefined ? filters.active.toString() : ''
+      };
+      
+      const response = await api.get<ApiResponse<{ materials: MaterialOption[] }>>(this.BASE_PATH, {
+        params
       });
-      return response.data.data;
+      
+      // Manejar diferentes formatos de respuesta
+      let materials: MaterialOption[] = [];
+      
+      if (response.data.data && Array.isArray(response.data.data)) {
+        materials = response.data.data;
+      } else if (response.data.data && Array.isArray(response.data.data.materials)) {
+        materials = response.data.data.materials;
+      } else if (response.data && Array.isArray(response.data)) {
+        materials = response.data;
+      }
+      
+      return {
+        data: materials,
+        pagination: {
+          total: materials.length,
+          limit: params.limit,
+          offset: params.offset,
+          hasMore: false
+        }
+      };
     } catch (error) {
       console.error('Error fetching materials:', error);
       throw error;
