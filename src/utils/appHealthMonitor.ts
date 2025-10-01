@@ -10,6 +10,8 @@ export class AppHealthMonitor {
   private isBlankScreen: boolean = false;
   private recoveryAttempts: number = 0;
   private maxRecoveryAttempts: number = 3;
+  private firstPaintGuardTimer: NodeJS.Timeout | null = null;
+  private overlayShown: boolean = false;
 
   private constructor() {
     this.startMonitoring();
@@ -33,6 +35,16 @@ export class AppHealthMonitor {
     this.healthCheckInterval = setInterval(() => {
       this.performHealthCheck();
     }, 2000);
+
+    // Guard de primer render: si en 4s el #root sigue vacío, activar recuperación sin recargar
+    this.firstPaintGuardTimer = setTimeout(() => {
+      const root = document.getElementById('root');
+      if (root && root.children.length === 0 && window.location.pathname !== '/login') {
+        console.error('🚨 First paint no ocurrió. Aplicando redirección segura.');
+        this.showOverlay('Inicializando…');
+        this.safeRedirect();
+      }
+    }, 4000);
   }
 
   /**
@@ -81,7 +93,8 @@ export class AppHealthMonitor {
       if (!this.isBlankScreen) {
         console.error('🚨 PANTALLA EN BLANCO DETECTADA');
         this.isBlankScreen = true;
-        this.attemptRecovery('blank_screen');
+        this.showOverlay('Recuperando vista…');
+        this.safeRedirect();
       }
     } else {
       this.isBlankScreen = false;
@@ -145,10 +158,9 @@ export class AppHealthMonitor {
     // Estrategias de recuperación
     switch (reason) {
       case 'blank_screen':
-        setTimeout(() => {
-          console.log('🔄 Recargando aplicación...');
-          window.location.reload();
-        }, 1000);
+        // Preferir redirección segura para evitar loops de recarga
+        this.showOverlay('Restaurando sesión…');
+        this.safeRedirect();
         break;
 
       case 'auth_error':
@@ -267,6 +279,10 @@ export class AppHealthMonitor {
       this.healthCheckInterval = null;
       console.log('🛑 AppHealthMonitor detenido');
     }
+    if (this.firstPaintGuardTimer) {
+      clearTimeout(this.firstPaintGuardTimer);
+      this.firstPaintGuardTimer = null;
+    }
   }
 
   /**
@@ -275,6 +291,43 @@ export class AppHealthMonitor {
   public forceRecovery(): void {
     console.log('🔧 Recuperación forzada iniciada');
     this.showManualRecoveryUI();
+  }
+
+  /** Overlay ligero para feedback durante recuperación */
+  private showOverlay(message: string): void {
+    if (this.overlayShown) return;
+    this.overlayShown = true;
+    const overlay = document.createElement('div');
+    overlay.id = 'app-health-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.96);z-index:9999;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial';
+    overlay.innerHTML = `
+      <div style="text-align:center;max-width:360px;padding:16px;">
+        <div style="width:48px;height:48px;margin:0 auto 10px;border:4px solid #2563eb;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite"></div>
+        <div style="font-weight:700;color:#111827;margin-bottom:4px">Recuperando aplicación…</div>
+        <div style="font-size:13px;color:#4b5563;margin-bottom:10px">${message}</div>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button id="ov-refresh" style="padding:6px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#111827;font-weight:600">Recargar</button>
+          <button id="ov-login" style="padding:6px 10px;border-radius:8px;background:#2563eb;color:#fff;border:none;font-weight:600">Ir a Login</button>
+        </div>
+      </div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    `;
+    document.body.appendChild(overlay);
+    document.getElementById('ov-refresh')?.addEventListener('click', () => window.location.reload());
+    document.getElementById('ov-login')?.addEventListener('click', () => { localStorage.clear(); sessionStorage.clear(); window.location.href = '/login'; });
+  }
+
+  /** Redirección segura a una ruta estable para evitar pantalla en blanco */
+  private safeRedirect(): void {
+    const current = window.location.pathname;
+    const candidates = ['/inventory', '/dashboard'];
+    const target = candidates.find(p => p !== current) || '/dashboard';
+    try {
+      window.history.replaceState({}, '', target);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    } catch {
+      window.location.href = target;
+    }
   }
 }
 
