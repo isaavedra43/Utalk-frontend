@@ -431,7 +431,18 @@ export const useInventory = () => {
       }
     } catch (error) {
       console.error('❌ Error al actualizar datos desde la base de datos:', error);
-      throw error; // Re-lanzar para que el componente pueda manejar el error
+      
+      // Manejar específicamente rate limit errors
+      if (error && typeof error === 'object' && 'message' in error) {
+        const errorMessage = (error as Error).message.toLowerCase();
+        if (errorMessage.includes('rate limit') || errorMessage.includes('too many requests')) {
+          console.warn('⚠️ Rate limit detectado, esperando antes del próximo intento...');
+          // No re-lanzar error de rate limit, solo loggear
+          return;
+        }
+      }
+      
+      throw error; // Re-lanzar otros errores para que el componente pueda manejar
     }
   }, [isOnline]);
 

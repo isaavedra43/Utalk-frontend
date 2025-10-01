@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Plus, Package, Search, Filter, Calendar, Archive, Settings, Menu, RefreshCw } from 'lucide-react';
 import { useInventory } from '../hooks/useInventory';
 import { useMobileMenuContext } from '../../../contexts/MobileMenuContext';
@@ -17,6 +17,8 @@ export const InventoryMainView: React.FC = () => {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [selectedPlatformId, setSelectedPlatformId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const lastRefreshTime = useRef<number>(0);
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Obtener la plataforma seleccionada actualizada desde el estado global
   const selectedPlatform = selectedPlatformId ? platforms.find(p => p.id === selectedPlatformId) : null;
@@ -57,16 +59,66 @@ export const InventoryMainView: React.FC = () => {
     }
   };
 
-  const handleRefreshData = async () => {
+  const handleRefreshData = useCallback(async () => {
+    const now = Date.now();
+    const timeSinceLastRefresh = now - lastRefreshTime.current;
+    const MIN_REFRESH_INTERVAL = 3000; // 3 segundos mínimo entre refrescos
+
+    // Si ya está refrescando, no hacer nada
+    if (isRefreshing) {
+      console.log('⚠️ Refresh ya en progreso, ignorando solicitud');
+      return;
+    }
+
+    // Si ha pasado menos del tiempo mínimo, programar para más tarde
+    if (timeSinceLastRefresh < MIN_REFRESH_INTERVAL) {
+      const waitTime = MIN_REFRESH_INTERVAL - timeSinceLastRefresh;
+      console.log(`⏳ Rate limit: esperando ${waitTime}ms antes del próximo refresh`);
+      
+      // Cancelar timeout anterior si existe
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+      
+      // Programar refresh para después del tiempo de espera
+      refreshTimeoutRef.current = setTimeout(() => {
+        handleRefreshData();
+      }, waitTime);
+      
+      return;
+    }
+
+    // Limpiar timeout si existe
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = null;
+    }
+
+    // Actualizar timestamp del último refresh
+    lastRefreshTime.current = now;
     setIsRefreshing(true);
+
     try {
+      console.log('🔄 Iniciando refresh de datos...');
       await refreshData();
+      console.log('✅ Refresh completado exitosamente');
     } catch (error) {
-      console.error('Error al actualizar datos:', error);
+      console.error('❌ Error al actualizar datos:', error);
+      // En caso de error, permitir refresh más temprano
+      lastRefreshTime.current = now - MIN_REFRESH_INTERVAL + 1000;
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [isRefreshing, refreshData]);
+
+  // Cleanup timeout al desmontar componente
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (selectedPlatform) {
     return (
