@@ -8,6 +8,7 @@ import { NotificationProvider } from './contexts/NotificationContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useAuthContext } from './contexts/useAuthContext'
 import { useToast } from './hooks/useToast'
+import { AppInitializer } from './components/AppInitializer'
 
 // ✅ OPTIMIZACIÓN: Lazy loading de módulos para carga más rápida
 const AuthModule = lazy(() => import('./modules/auth').then(m => ({ default: m.AuthModule })));
@@ -414,12 +415,16 @@ function App() {
   return (
     <Router>
       <ErrorBoundary>
+        {/* ✅ SOLUCIÓN CRÍTICA: AuthProvider debe estar FUERA de Suspense
+            para evitar que componentes se monten antes del contexto */}
         <AuthProvider>
           <WebSocketProvider>
             <MobileMenuProvider>
               <NotificationProvider>
-                <div className="app">
-              <Suspense fallback={<PageLoader />}>
+                <AppInitializer>
+                  <div className="app">
+                    {/* ✅ SUSPENSE INDIVIDUAL por ruta para mejor control */}
+                    <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/login" element={<AuthModule />} />
                 <Route path="/forgot-password" element={<ForgotPasswordForm />} />
@@ -576,21 +581,22 @@ function App() {
 
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
               </Routes>
-              </Suspense>
-              
-              {/* Módulo de Monitoreo - Solo en desarrollo o con flag habilitado */}
-              {showMonitoring && (
-                <Suspense fallback={null}>
-                  <MonitoringBubble enabled={true} />
-                </Suspense>
-              )}
-              
-              {/* Componentes PWA */}
-              <Suspense fallback={null}>
-                <PWAInstallPrompt />
-                <PWAUpdatePrompt />
-              </Suspense>
-                </div>
+                    </Suspense>
+                    
+                    {/* Módulo de Monitoreo - Solo en desarrollo o con flag habilitado */}
+                    {showMonitoring && (
+                      <Suspense fallback={null}>
+                        <MonitoringBubble enabled={true} />
+                      </Suspense>
+                    )}
+                    
+                    {/* Componentes PWA */}
+                    <Suspense fallback={null}>
+                      <PWAInstallPrompt />
+                      <PWAUpdatePrompt />
+                    </Suspense>
+                  </div>
+                </AppInitializer>
               </NotificationProvider>
             </MobileMenuProvider>
           </WebSocketProvider>

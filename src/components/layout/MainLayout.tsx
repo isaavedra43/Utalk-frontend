@@ -29,6 +29,18 @@ export const MainLayout: React.FC = () => {
   const location = useLocation();
   const { setCurrentModule } = useUIStore();
   const { isAuthenticated, loading } = useAuthContext();
+
+  // Guard adicional: si contexto aún no está listo, mostrar loader y no montar nada
+  if (typeof isAuthenticated === 'undefined' || typeof loading === 'undefined') {
+    return (
+      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-top-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Inicializando…</h3>
+        </div>
+      </div>
+    );
+  }
   const { isOpen: isMobileMenuOpen, closeMenu: closeMobileMenu } = useMobileMenuContext();
   
   // NUEVO: Protección contra estado de autenticación inválido

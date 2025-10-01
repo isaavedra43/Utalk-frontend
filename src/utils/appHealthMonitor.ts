@@ -36,15 +36,18 @@ export class AppHealthMonitor {
       this.performHealthCheck();
     }, 2000);
 
-    // Guard de primer render: si en 4s el #root sigue vacío, activar recuperación sin recargar
+    // ✅ Guard de primer render mejorado: tiempo más largo y verificación más robusta
     this.firstPaintGuardTimer = setTimeout(() => {
       const root = document.getElementById('root');
-      if (root && root.children.length === 0 && window.location.pathname !== '/login') {
+      const hasContent = root && root.children.length > 0 && 
+        !(root.children.length === 1 && root.children[0].tagName === 'SCRIPT');
+      
+      if (!hasContent && window.location.pathname !== '/login') {
         console.error('🚨 First paint no ocurrió. Aplicando redirección segura.');
-        this.showOverlay('Inicializando…');
+        this.showOverlay('Inicializando aplicación…');
         this.safeRedirect();
       }
-    }, 4000);
+    }, 6000); // ✅ Aumentado a 6 segundos para dar más tiempo
   }
 
   /**
@@ -82,19 +85,32 @@ export class AppHealthMonitor {
   }
 
   /**
-   * Detectar pantalla en blanco
+   * Detectar pantalla en blanco - MEJORADO
    */
   private checkBlankScreen(): void {
     const body = document.body;
     const root = document.getElementById('root');
 
-    // Si el body o root están vacíos
-    if (!body || !root || !root.children || root.children.length === 0) {
+    // ✅ Verificación más robusta de pantalla en blanco
+    const isBlank = !body || !root || 
+      root.children.length === 0 || 
+      (root.children.length === 1 && root.children[0].tagName === 'SCRIPT') ||
+      (root.innerHTML.trim() === '' && !document.querySelector('[class*="loading"], [class*="spinner"]'));
+
+    // ✅ Solo activar recuperación si realmente es una pantalla en blanco
+    // y no estamos en login o en proceso de carga normal
+    if (isBlank && window.location.pathname !== '/login') {
       if (!this.isBlankScreen) {
         console.error('🚨 PANTALLA EN BLANCO DETECTADA');
         this.isBlankScreen = true;
-        this.showOverlay('Recuperando vista…');
-        this.safeRedirect();
+        
+        // ✅ Intentar recuperación más suave primero
+        setTimeout(() => {
+          if (document.getElementById('root')?.children.length === 0) {
+            this.showOverlay('Recuperando aplicación…');
+            this.safeRedirect();
+          }
+        }, 1000);
       }
     } else {
       this.isBlankScreen = false;
@@ -244,6 +260,23 @@ export class AppHealthMonitor {
           >
             🧹 Limpiar y Reiniciar
           </button>
+          
+          <button 
+            id="advanced-clear-btn"
+            style="
+              width: 100%;
+              padding: 12px 24px;
+              background-color: #f59e0b;
+              color: white;
+              border: none;
+              border-radius: 8px;
+              font-size: 16px;
+              font-weight: 600;
+              cursor: pointer;
+            "
+          >
+            🔧 Limpieza Avanzada
+          </button>
         </div>
       </div>
     `;
@@ -259,6 +292,10 @@ export class AppHealthMonitor {
       localStorage.clear();
       sessionStorage.clear();
       window.location.href = '/login';
+    });
+
+    document.getElementById('advanced-clear-btn')?.addEventListener('click', () => {
+      window.location.href = '/clear-app-state.html';
     });
   }
 

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpieza de Estado - UTalk</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #1f2937;
+            margin-bottom: 16px;
+            font-size: 24px;
+        }
+        p {
+            color: #6b7280;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        .button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 8px;
+            min-width: 200px;
+        }
+        .button:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        .button.danger {
+            background: #ef4444;
+        }
+        .button.danger:hover {
+            background: #dc2626;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🧹</div>
+        <h1>Limpieza de Estado</h1>
+        <p>
+            Esta herramienta limpiará completamente el estado de la aplicación UTalk, 
+            incluyendo tokens, cache, y datos temporales.
+        </p>
+        
+        <button class="button" onclick="clearAppState()">
+            🧹 Limpiar Estado Completo
+        </button>
+        
+        <button class="button danger" onclick="clearAllAndReload()">
+            ⚠️ Limpiar Todo y Recargar
+        </button>
+        
+        <button class="button" onclick="goToApp()">
+            🏠 Ir a UTalk
+        </button>
+        
+        <div id="status" class="status" style="display: none;"></div>
+    </div>
+
+    <script>
+        function showStatus(message, isError = false) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${isError ? 'error' : 'success'}`;
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+
+        function clearAppState() {
+            try {
+                // Limpiar localStorage
+                localStorage.clear();
+                
+                // Limpiar sessionStorage
+                sessionStorage.clear();
+                
+                // Limpiar IndexedDB
+                if ('indexedDB' in window) {
+                    indexedDB.databases().then(databases => {
+                        databases.forEach(db => {
+                            indexedDB.deleteDatabase(db.name);
+                        });
+                    });
+                }
+                
+                // Limpiar cache del service worker
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(registrations => {
+                        registrations.forEach(registration => {
+                            registration.unregister();
+                        });
+                    });
+                }
+                
+                // Limpiar cookies
+                document.cookie.split(";").forEach(cookie => {
+                    const eqPos = cookie.indexOf("=");
+                    const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
+                });
+                
+                showStatus('✅ Estado limpiado exitosamente');
+            } catch (error) {
+                console.error('Error limpiando estado:', error);
+                showStatus('❌ Error al limpiar el estado', true);
+            }
+        }
+
+        function clearAllAndReload() {
+            clearAppState();
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1000);
+        }
+
+        function goToApp() {
+            window.location.href = '/';
+        }
+
+        // Mostrar información del estado actual
+        window.addEventListener('load', () => {
+            const hasTokens = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+            if (hasTokens) {
+                showStatus('⚠️ Se detectaron tokens en el almacenamiento', true);
+            }
+        });
+    </script>
+</body>
+</html>
