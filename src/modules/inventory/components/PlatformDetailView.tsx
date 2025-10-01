@@ -49,9 +49,9 @@ export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
   };
 
   // Función para eliminar plataforma
-  const handleDeletePlatform = () => {
+  const handleDeletePlatform = async () => {
     try {
-      deletePlatform(platform.id);
+      await deletePlatform(platform.id);
       showNotification('success', 'Plataforma eliminada exitosamente');
       setTimeout(() => {
         onBack();
