@@ -6,6 +6,71 @@ import { useContext } from 'react';
 import api from '../services/api';
 import { cleanCorruptedTokens, getStoredTokens, forceCleanAuth, isAuthStateCorrupted } from '../utils/authUtils';
 
+// SINGLETON PATTERN PARA EVITAR RACE CONDITIONS
+let initializationPromise: Promise<void> | null = null;
+let isInitializing = false;
+
+const getInitializationPromise = (authStore: any): Promise<void> => {
+  if (initializationPromise) {
+    return initializationPromise;
+  }
+  
+  if (isInitializing) {
+    // Si ya se está inicializando, esperar a que termine
+    return new Promise((resolve) => {
+      const checkInitialization = () => {
+        if (!isInitializing) {
+          resolve();
+        } else {
+          setTimeout(checkInitialization, 100);
+        }
+      };
+      checkInitialization();
+    });
+  }
+  
+  isInitializing = true;
+  initializationPromise = performInitialization(authStore);
+  
+  return initializationPromise;
+};
+
+const performInitialization = async (authStore: any): Promise<void> => {
+  try {
+    infoLog('🔐 SINGLETON - Iniciando inicialización única de autenticación...');
+    
+    // Verificar si el estado está corrupto
+    if (isAuthStateCorrupted()) {
+      infoLog('🔐 SINGLETON - Estado de autenticación corrupto detectado, limpiando completamente...');
+      forceCleanAuth();
+      authStore.clearAuth();
+      authStore.setLoading(false);
+      return;
+    }
+    
+    // Limpiar tokens corruptos automáticamente (solo una vez)
+    cleanCorruptedTokens();
+    const { accessToken, refreshToken } = getStoredTokens();
+    
+    if (accessToken && refreshToken) {
+      infoLog('🔐 SINGLETON - Tokens encontrados, validando con backend...');
+      
+      // Usar el nuevo método initializeAuth del store
+      await authStore.initializeAuth();
+    } else {
+      infoLog('🔐 SINGLETON - No hay tokens en localStorage');
+      authStore.clearAuth();
+      authStore.setLoading(false);
+    }
+  } catch (error) {
+    infoLog('🔐 SINGLETON - Error en inicialización:', error);
+    authStore.clearAuth();
+    authStore.setLoading(false);
+  } finally {
+    isInitializing = false;
+  }
+};
+
 interface BackendUser {
   id: string;
   email: string;
@@ -58,7 +123,7 @@ export const useAuth = (): AuthState => {
     return authenticated;
   }, [authStore.user, authStore.backendUser, authStore.isAuthenticating, authStore.loading]);
 
-  // Verificar estado inicial de autenticación - OPTIMIZADO
+  // Verificar estado inicial de autenticación - SINGLETON PATTERN
   useEffect(() => {
     // Solo ejecutar una vez al montar el componente
     if (hasCheckedInitialAuth.current || !authStore.loading) {
@@ -69,91 +134,13 @@ export const useAuth = (): AuthState => {
       try {
         hasCheckedInitialAuth.current = true;
         
-        // Verificar si el estado está corrupto
-        if (isAuthStateCorrupted()) {
-          infoLog('🔐 useAuth - Estado de autenticación corrupto detectado, limpiando completamente...');
-          forceCleanAuth();
-          authStore.clearAuth();
-          authStore.setLoading(false);
-          return;
-        }
+        // Usar singleton pattern para evitar múltiples inicializaciones
+        await getInitializationPromise(authStore);
         
-        // Limpiar tokens corruptos automáticamente (solo una vez)
-        cleanCorruptedTokens();
-        const { accessToken, refreshToken } = getStoredTokens();
-        
-        if (accessToken && refreshToken) {
-          infoLog('🔐 useAuth - Tokens encontrados en localStorage, validando con backend...');
-          
-          // Intentar validar token con el backend
-          const validatedUser = await authStore.validateToken(accessToken);
-          
-          if (validatedUser) {
-            // Token válido, establecer usuario autenticado
-            authStore.setBackendUser(validatedUser);
-            authStore.setUser({ 
-              uid: validatedUser.id, 
-              email: validatedUser.email, 
-              displayName: validatedUser.displayName 
-            });
-            infoLog('🔐 useAuth - Autenticación inicial exitosa');
-          } else {
-            // Intentar refresh del token antes de limpiar
-            infoLog('🔐 useAuth - Token inválido, intentando refresh...');
-            try {
-              // Verificar que el refreshToken sea válido
-              if (!refreshToken) {
-                infoLog('🔐 useAuth - Refresh token inválido, limpiando autenticación');
-                authStore.clearAuth();
-                authStore.setLoading(false);
-                return;
-              }
-              
-              const refreshResponse = await api.post('/api/auth/refresh', { 
-                refreshToken: refreshToken 
-              });
-              
-              if (refreshResponse.data.accessToken) {
-                // Refresh exitoso, actualizar tokens
-                localStorage.setItem('access_token', refreshResponse.data.accessToken);
-                if (refreshResponse.data.refreshToken) {
-                  localStorage.setItem('refresh_token', refreshResponse.data.refreshToken);
-                }
-                
-                // Validar el nuevo token
-                const newValidatedUser = await authStore.validateToken(refreshResponse.data.accessToken);
-                if (newValidatedUser) {
-                  authStore.setBackendUser(newValidatedUser);
-                  authStore.setUser({ 
-                    uid: newValidatedUser.id, 
-                    email: newValidatedUser.email, 
-                    displayName: newValidatedUser.displayName 
-                  });
-                  infoLog('🔐 useAuth - Refresh exitoso, autenticación restaurada');
-                  
-                  // Disparar evento de token refrescado
-                  window.dispatchEvent(new CustomEvent('auth:token-refreshed', {
-                    detail: { accessToken: refreshResponse.data.accessToken }
-                  }));
-                  return;
-                }
-              }
-            } catch (refreshError) {
-              infoLog('🔐 useAuth - Refresh falló:', refreshError);
-            }
-            
-            // Si llegamos aquí, tanto validación como refresh fallaron
-            infoLog('🔐 useAuth - Token inválido y refresh falló, limpiando autenticación');
-            authStore.clearAuth();
-          }
-        } else {
-          infoLog('🔐 useAuth - No hay tokens en localStorage');
-        }
+        infoLog('🔐 useAuth - Inicialización completada');
       } catch (error) {
-        infoLog('Error verificando autenticación inicial:', error);
-        // En caso de error, limpiar autenticación para estar seguros
+        infoLog('🔐 useAuth - Error en inicialización:', error);
         authStore.clearAuth();
-      } finally {
         authStore.setLoading(false);
       }
     };

@@ -10,16 +10,23 @@ interface Props {
 interface State {
   hasError: boolean;
   error?: Error;
+  retryCount: number;
+  isRecovering: boolean;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
+  private retryTimeoutId?: NodeJS.Timeout;
+  private maxRetries = 3;
+  
   public state: State = {
-    hasError: false
+    hasError: false,
+    retryCount: 0,
+    isRecovering: false
   };
 
   public static getDerivedStateFromError(error: Error): State {
     // Actualizar el estado para que el siguiente renderizado muestre la UI de fallback
-    return { hasError: true, error };
+    return { hasError: true, error, retryCount: 0, isRecovering: false };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -36,10 +43,86 @@ export class ErrorBoundary extends Component<Props, State> {
     window.dispatchEvent(new CustomEvent('app:error-boundary', {
       detail: { error, errorInfo, timestamp: Date.now() }
     }));
+    
+    // Intentar recuperación automática para errores de autenticación
+    this.attemptAutoRecovery(error);
+  }
+  
+  private isAuthError = (error: Error): boolean => {
+    const authErrorPatterns = [
+      'TOKEN_EXPIRED',
+      'MALFORMED_TOKEN',
+      'INVALID_TOKEN',
+      'authentication',
+      'auth',
+      '401',
+      'Unauthorized'
+    ];
+    
+    const errorMessage = error.message.toLowerCase();
+    const errorStack = error.stack?.toLowerCase() || '';
+    
+    return authErrorPatterns.some(pattern => 
+      errorMessage.includes(pattern.toLowerCase()) || 
+      errorStack.includes(pattern.toLowerCase())
+    );
+  };
+  
+  private attemptAutoRecovery = (error: Error) => {
+    if (this.state.retryCount >= this.maxRetries) {
+      console.log('🚨 ErrorBoundary - Máximo de reintentos alcanzado');
+      return;
+    }
+    
+    if (this.isAuthError(error)) {
+      console.log('🚨 ErrorBoundary - Error de autenticación detectado, intentando recuperación automática...');
+      
+      this.setState({ isRecovering: true });
+      
+      // Limpiar tokens y estado de autenticación
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      
+      // Disparar evento de autenticación fallida
+      window.dispatchEvent(new CustomEvent('auth:authentication-failed'));
+      
+      // Intentar recuperación después de un delay
+      this.retryTimeoutId = setTimeout(() => {
+        this.setState({
+          hasError: false,
+          error: undefined,
+          retryCount: this.state.retryCount + 1,
+          isRecovering: false
+        });
+        
+        // Redirigir al login si no estamos ya ahí
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+      }, 2000);
+    }
+  };
+  
+  public componentWillUnmount() {
+    if (this.retryTimeoutId) {
+      clearTimeout(this.retryTimeoutId);
+    }
   }
 
   private handleRetry = () => {
-    this.setState({ hasError: false, error: undefined });
+    if (this.state.retryCount >= this.maxRetries) {
+      console.log('🚨 ErrorBoundary - Máximo de reintentos alcanzado, limpiando autenticación');
+      this.handleClearAuth();
+      return;
+    }
+    
+    this.setState({ 
+      hasError: false, 
+      error: undefined,
+      retryCount: this.state.retryCount + 1,
+      isRecovering: false
+    });
   };
 
   private handleClearAuth = () => {
@@ -47,8 +130,11 @@ export class ErrorBoundary extends Component<Props, State> {
     localStorage.clear();
     sessionStorage.clear();
     
-    // Recargar página
-    window.location.reload();
+    // Disparar evento de autenticación fallida
+    window.dispatchEvent(new CustomEvent('auth:authentication-failed'));
+    
+    // Redirigir al login en lugar de recargar
+    window.location.href = '/login';
   };
 
   public render() {
@@ -88,8 +174,19 @@ export class ErrorBoundary extends Component<Props, State> {
                   </h3>
                   
                   <p className="text-sm text-gray-500 mb-6">
-                    Ha ocurrido un error inesperado. Por favor, intenta de nuevo.
+                    {this.state.isRecovering 
+                      ? 'Recuperando automáticamente...' 
+                      : `Ha ocurrido un error inesperado. Reintento ${this.state.retryCount}/${this.maxRetries}`
+                    }
                   </p>
+                  
+                  {this.state.isRecovering && (
+                    <div className="mb-4">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{width: '60%'}}></div>
+                      </div>
+                    </div>
+                  )}
 
                   {this.state.error && (
                     <details className="mb-4 text-left">
@@ -103,18 +200,21 @@ export class ErrorBoundary extends Component<Props, State> {
                   )}
 
                   <div className="space-y-3">
-                    <button
-                      onClick={this.handleRetry}
-                      className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-                    >
-                      Reintentar
-                    </button>
+                    {!this.state.isRecovering && (
+                      <button
+                        onClick={this.handleRetry}
+                        disabled={this.state.retryCount >= this.maxRetries}
+                        className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {this.state.retryCount >= this.maxRetries ? 'Máximo de reintentos' : `Reintentar (${this.state.retryCount}/${this.maxRetries})`}
+                      </button>
+                    )}
                     
                     <button
                       onClick={this.handleClearAuth}
                       className="w-full bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors"
                     >
-                      Limpiar y reiniciar
+                      Ir al login
                     </button>
                   </div>
                 </div>

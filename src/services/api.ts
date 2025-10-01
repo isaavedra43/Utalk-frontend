@@ -4,6 +4,7 @@ import { deduplicateRequest, generateRequestKey } from '../utils/retryUtils';
 import { sanitizeConversationId } from '../utils/conversationUtils';
 import { logger, LogCategory } from '../utils/logger';
 import { infoLog } from '../config/logger';
+import { retryApiOperation, retryAuthOperation } from '../utils/retryWithBackoff';
 
 // Usar URL del backend real
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || 'https://utalk-backend-production.up.railway.app';
@@ -49,17 +50,54 @@ api.interceptors.request.use(
       throw new Error('Rate limit exceeded');
     }
 
-    // AÑADIR TOKEN ANTES DE DEDUP PARA SOPORTAR GET /api/media/proxy
+    // VALIDACIÓN MEJORADA DE TOKENS - CRÍTICO PARA CALIDAD
     const token = localStorage.getItem('access_token');
     const shouldAddToken = method !== 'GET' || url.includes('/api/media/proxy');
     
+    // Validación estricta del token antes de agregarlo
     if (token && shouldAddToken) {
-      config.headers.Authorization = `Bearer ${token}`;
-      logger.apiInfo('Token agregado a request', {
+      // Verificar que el token no sea undefined, null o malformado
+      if (token === 'undefined' || token === 'null' || token.length < 10 || !token.startsWith('eyJ')) {
+        logger.apiError('Token inválido detectado en request', new Error('Token malformado'), {
+          method: method?.toUpperCase(),
+          url: url,
+          tokenValue: token,
+          tokenLength: token.length,
+          tokenStart: token.substring(0, 10)
+        });
+        
+        // Limpiar token inválido y evitar el request
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        
+        // Disparar evento de autenticación fallida
+        window.dispatchEvent(new CustomEvent('auth:authentication-failed'));
+        
+        return Promise.reject(new Error('Token inválido en localStorage'));
+      }
+      
+      const authHeader = `Bearer ${token}`;
+      
+      // Verificar que el header no contenga undefined
+      if (authHeader.includes('undefined')) {
+        logger.apiError('Header Authorization contiene undefined', new Error('Header malformado'), {
+          method: method?.toUpperCase(),
+          url: url,
+          authHeader: authHeader,
+          tokenValue: token
+        });
+        return Promise.reject(new Error('Header Authorization malformado'));
+      }
+      
+      config.headers.Authorization = authHeader;
+      
+      logger.apiInfo('Token válido agregado a request', {
         method: method?.toUpperCase(),
         url: url,
         hasToken: !!token,
-        tokenPreview: token ? token.substring(0, 20) + '...' : 'null'
+        tokenPreview: token ? token.substring(0, 20) + '...' : 'null',
+        headerValid: !authHeader.includes('undefined')
       });
     } else if (shouldAddToken && !token) {
       // Loggear requests sin token para métodos no-GET y proxy de medios
@@ -265,10 +303,14 @@ api.interceptors.response.use(
 
         try {
           const refreshToken = localStorage.getItem('refresh_token');
-          if (!refreshToken) {
-            logger.authError('No hay refresh token disponible', new Error('Refresh token no encontrado'), {
+          
+          // VALIDACIÓN MEJORADA DEL REFRESH TOKEN
+          if (!refreshToken || refreshToken === 'undefined' || refreshToken === 'null' || refreshToken.length < 10) {
+            logger.authError('Refresh token inválido o no disponible', new Error('Refresh token inválido'), {
               hasAccessToken: !!localStorage.getItem('access_token'),
-              hasRefreshToken: false
+              hasRefreshToken: !!refreshToken,
+              refreshTokenValue: refreshToken,
+              refreshTokenLength: refreshToken?.length
             });
             
             // Limpiar tokens y redirigir
@@ -288,17 +330,57 @@ api.interceptors.response.use(
             refreshTokenPreview: refreshToken ? refreshToken.substring(0, 20) + '...' : 'null'
           });
           
-          const response = await api.post('/api/auth/refresh', { refreshToken });
+          // VALIDACIÓN DEL PAYLOAD DE REFRESH
+          const refreshPayload = { refreshToken };
+          if (!refreshPayload.refreshToken || refreshPayload.refreshToken.includes('undefined')) {
+            logger.authError('Payload de refresh contiene token inválido', new Error('Payload inválido'), {
+              refreshToken: refreshPayload.refreshToken
+            });
+            throw new Error('Refresh token inválido en payload');
+          }
+          
+          // USAR RETRY SYSTEM PARA REFRESH TOKEN - CRÍTICO
+          const refreshResult = await retryAuthOperation(async () => {
+            return await api.post('/api/auth/refresh', refreshPayload);
+          });
+          
+          if (!refreshResult.success) {
+            logger.authError('Refresh token falló después de todos los reintentos', refreshResult.error as Error);
+            throw refreshResult.error || new Error('Refresh token falló');
+          }
+          
+          const response = refreshResult.data!;
           
           const { accessToken, refreshToken: newRefreshToken } = response.data;
+          
+          // VALIDACIÓN DE LA RESPUESTA DE REFRESH
+          if (!accessToken || accessToken === 'undefined' || accessToken === 'null') {
+            logger.authError('Respuesta de refresh contiene token inválido', new Error('Token de respuesta inválido'), {
+              hasAccessToken: !!accessToken,
+              accessTokenValue: accessToken,
+              responseData: response.data
+            });
+            throw new Error('Token de acceso inválido en respuesta de refresh');
+          }
           
           localStorage.setItem('access_token', accessToken);
           localStorage.setItem('refresh_token', newRefreshToken);
           
+          // VALIDACIÓN FINAL ANTES DE GUARDAR
+          if (accessToken.includes('undefined') || newRefreshToken?.includes('undefined')) {
+            logger.authError('Tokens refrescados contienen undefined', new Error('Tokens malformados'), {
+              accessToken: accessToken,
+              newRefreshToken: newRefreshToken
+            });
+            throw new Error('Tokens refrescados malformados');
+          }
+          
           logger.authInfo('Token refrescado exitosamente', {
             hasNewAccessToken: !!accessToken,
             hasNewRefreshToken: !!newRefreshToken,
-            accessTokenPreview: accessToken ? accessToken.substring(0, 20) + '...' : 'null'
+            accessTokenPreview: accessToken ? accessToken.substring(0, 20) + '...' : 'null',
+            accessTokenValid: !accessToken.includes('undefined'),
+            refreshTokenValid: !newRefreshToken?.includes('undefined')
           });
           
           // Notificar a la aplicación que el token fue refrescado para reautenticar WS
