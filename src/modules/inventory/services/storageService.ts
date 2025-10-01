@@ -19,12 +19,12 @@ export class StorageService {
       
       const platforms = JSON.parse(data);
       // Convertir fechas de string a Date
-      return platforms.map((p: any) => ({
+      return platforms.map((p: Platform & { receptionDate: string | Date; createdAt: string | Date; updatedAt: string | Date }) => ({
         ...p,
         receptionDate: new Date(p.receptionDate),
         createdAt: new Date(p.createdAt),
         updatedAt: new Date(p.updatedAt),
-        pieces: p.pieces.map((piece: any) => ({
+        pieces: p.pieces.map((piece: { id: string; number: number; length: number; standardWidth: number; linearMeters: number; material: string; createdAt: string | Date }) => ({
           ...piece,
           createdAt: new Date(piece.createdAt)
         }))

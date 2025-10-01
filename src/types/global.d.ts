@@ -1,10 +1,14 @@
 /// <reference types="react" />
 /// <reference types="react-dom" />
 
+// Parche para React 19 - Exportaciones nombradas
 declare module 'react' {
   import * as React from 'react';
-  export = React;
-  export as namespace React;
+  
+  // Re-exportar todo de React
+  export * from 'react';
+  
+  // Exportaciones específicas para compatibilidad
   export const useState: typeof React.useState;
   export const useEffect: typeof React.useEffect;
   export const useCallback: typeof React.useCallback;
@@ -22,6 +26,7 @@ declare module 'react' {
   export const lazy: typeof React.lazy;
   export const Suspense: typeof React.Suspense;
   export const StrictMode: typeof React.StrictMode;
+  
   export default React;
 }
 
@@ -54,6 +59,38 @@ declare module 'lucide-react' {
   export const Award: any;
   export const History: any;
   export const Plus: any;
+  export const Printer: any;
+  export const Check: any;
+  export const Trash: any;
+  export const Package: any;
+  export const Layers: any;
+  export const Undo: any;
+  export const FileSpreadsheet: any;
+  export const FileImage: any;
+  export const Truck: any;
+  export const AlertCircle: any;
+  export const X: any;
+  export const RefreshCw: any;
+  export const Share: any;
+  export const Camera: any;
+  export const Mic: any;
+  export const Bell: any;
+  export const CheckCircle: any;
+  export const XCircle: any;
+  export const MapPin: any;
+  export const Building2: any;
+  export const LayoutDashboard: any;
+  export const Users: any;
+  export const MessageSquare: any;
+  export const Settings: any;
+  export const LogOut: any;
+  export const Menu: any;
+  export const Zap: any;
+  export const Search: any;
+  export const Trash2: any;
+  export const Edit3: any;
+  export const Building: any;
+  export const Share2: any;
 }
 
 declare namespace JSX {

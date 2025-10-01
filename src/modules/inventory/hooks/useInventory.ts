@@ -1,10 +1,10 @@
 // Hook principal para manejo de inventario
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { Platform, Piece, InventorySettings, Provider } from '../types';
+import type { Platform, Piece, InventorySettings } from '../types';
 import { StorageService } from '../services/storageService';
 import { ConfigService } from '../services/configService';
-import { PlatformApiService, ProviderApiService } from '../services/inventoryApiService';
+import { PlatformApiService } from '../services/inventoryApiService';
 import { calculateLinearMeters, calculatePlatformTotals, generateId, getNextPieceNumber } from '../utils/calculations';
 
 export const useInventory = () => {
@@ -97,7 +97,7 @@ export const useInventory = () => {
         const createdPlatform = await PlatformApiService.createPlatform(platformData);
         // El backend genera el platformNumber y el id automáticamente
         StorageService.savePlatform(createdPlatform);
-        setPlatforms(prev => [createdPlatform, ...prev]);
+        setPlatforms((prev: Platform[]) => [createdPlatform, ...prev]);
         return createdPlatform;
       } catch (error) {
         console.error('Error al crear plataforma en backend:', error);
@@ -113,7 +113,7 @@ export const useInventory = () => {
           needsSync: true // ✅ Marcar que necesita sincronización
         };
         StorageService.savePlatform(tempPlatform);
-        setPlatforms(prev => [tempPlatform, ...prev]);
+        setPlatforms((prev: Platform[]) => [tempPlatform, ...prev]);
         return tempPlatform;
       }
     } else {
@@ -129,20 +129,20 @@ export const useInventory = () => {
         needsSync: true // ✅ Marcar que necesita sincronización
       };
       StorageService.savePlatform(tempPlatform);
-      setPlatforms(prev => [tempPlatform, ...prev]);
+      setPlatforms((prev: Platform[]) => [tempPlatform, ...prev]);
       return tempPlatform;
     }
   }, [isOnline]);
 
   // Actualizar plataforma
   const updatePlatform = useCallback(async (platformId: string, updates: Partial<Platform>) => {
-    const platform = platforms.find(p => p.id === platformId);
+    const platform = platforms.find((p: Platform) => p.id === platformId);
     if (!platform) return;
 
     // Actualizar localmente primero
     const updatedPlatform = { ...platform, ...updates, updatedAt: new Date() };
     StorageService.savePlatform(updatedPlatform);
-    setPlatforms(prev => prev.map(p => p.id === platformId ? updatedPlatform : p));
+    setPlatforms((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? updatedPlatform : p));
     
     // ✅ SOLUCIÓN: Manejar sincronización correctamente
     if (isOnline) {
@@ -164,7 +164,7 @@ export const useInventory = () => {
             needsSync: false 
           };
           StorageService.savePlatform(syncedPlatform);
-          setPlatforms(prev => prev.map(p => p.id === platformId ? syncedPlatform : p));
+          setPlatforms((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? syncedPlatform : p));
           
         } else if (platform.providerId) {
           // Plataforma ya existe en backend - actualizar normalmente
@@ -174,10 +174,11 @@ export const useInventory = () => {
         console.error('Error al sincronizar plataforma:', error);
         
         // ✅ SOLUCIÓN: Si es error 404, marcar para sincronización
-        if (error.status === 404 || error.response?.status === 404) {
+        const apiError = error as { status?: number; response?: { status?: number } };
+        if (apiError.status === 404 || apiError.response?.status === 404) {
           const platformToSync = { ...updatedPlatform, needsSync: true };
           StorageService.savePlatform(platformToSync);
-          setPlatforms(prev => prev.map(p => p.id === platformId ? platformToSync : p));
+          setPlatforms((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? platformToSync : p));
         }
       }
     }
@@ -185,11 +186,11 @@ export const useInventory = () => {
 
   // Eliminar plataforma
   const deletePlatform = useCallback(async (platformId: string) => {
-    const platform = platforms.find(p => p.id === platformId);
+    const platform = platforms.find((p: Platform) => p.id === platformId);
     
     // Eliminar localmente primero
     StorageService.deletePlatform(platformId);
-    setPlatforms(prev => prev.filter(p => p.id !== platformId));
+    setPlatforms((prev: Platform[]) => prev.filter((p: Platform) => p.id !== platformId));
     
     // Si hay conexión y providerId, sincronizar con backend
     if (isOnline && platform?.providerId) {
@@ -204,8 +205,8 @@ export const useInventory = () => {
 
   // Agregar pieza a plataforma
   const addPiece = useCallback((platformId: string, length: number, material: string) => {
-    setPlatforms(prev => {
-      const updated = prev.map(platform => {
+    setPlatforms((prev: Platform[]) => {
+      const updated = prev.map((platform: Platform) => {
         if (platform.id === platformId) {
           const newPiece: Piece = {
             id: generateId(),
@@ -238,8 +239,8 @@ export const useInventory = () => {
 
   // Agregar múltiples piezas
   const addMultiplePieces = useCallback((platformId: string, pieces: { length: number; material: string }[]) => {
-    setPlatforms(prev => {
-      const updated = prev.map(platform => {
+    setPlatforms((prev: Platform[]) => {
+      const updated = prev.map((platform: Platform) => {
         if (platform.id === platformId) {
           let nextNumber = getNextPieceNumber(platform.pieces);
           
@@ -274,10 +275,10 @@ export const useInventory = () => {
 
   // Actualizar pieza
   const updatePiece = useCallback((platformId: string, pieceId: string, updates: { length?: number; material?: string }) => {
-    setPlatforms(prev => {
-      const updated = prev.map(platform => {
+    setPlatforms((prev: Platform[]) => {
+      const updated = prev.map((platform: Platform) => {
         if (platform.id === platformId) {
-          const updatedPieces = platform.pieces.map(piece => {
+          const updatedPieces = platform.pieces.map((piece: Piece) => {
             if (piece.id === pieceId) {
               const newLength = updates.length !== undefined ? updates.length : piece.length;
               return {
@@ -310,10 +311,10 @@ export const useInventory = () => {
 
   // Eliminar pieza
   const deletePiece = useCallback((platformId: string, pieceId: string) => {
-    setPlatforms(prev => {
-      const updated = prev.map(platform => {
+    setPlatforms((prev: Platform[]) => {
+      const updated = prev.map((platform: Platform) => {
         if (platform.id === platformId) {
-          const updatedPieces = platform.pieces.filter(p => p.id !== pieceId);
+          const updatedPieces = platform.pieces.filter((p: Piece) => p.id !== pieceId);
           const totals = calculatePlatformTotals(updatedPieces);
 
           const updatedPlatform = {
@@ -334,7 +335,7 @@ export const useInventory = () => {
 
   // Actualizar configuración
   const updateSettings = useCallback((newSettings: Partial<InventorySettings>) => {
-    setSettings(prev => {
+    setSettings((prev: InventorySettings | null) => {
       const updated = { ...prev!, ...newSettings };
       StorageService.saveSettings(updated);
       return updated;
@@ -343,11 +344,11 @@ export const useInventory = () => {
 
   // Cambiar ancho estándar de una plataforma
   const changeStandardWidth = useCallback((platformId: string, newWidth: number) => {
-    setPlatforms(prev => {
-      const updated = prev.map(platform => {
+    setPlatforms((prev: Platform[]) => {
+      const updated = prev.map((platform: Platform) => {
         if (platform.id === platformId) {
           // Recalcular todas las piezas con el nuevo ancho
-          const updatedPieces = platform.pieces.map(piece => ({
+          const updatedPieces = platform.pieces.map((piece: Piece) => ({
             ...piece,
             standardWidth: newWidth,
             linearMeters: calculateLinearMeters(piece.length, newWidth)
@@ -376,7 +377,7 @@ export const useInventory = () => {
   const syncPendingPlatforms = useCallback(async () => {
     if (!isOnline) return;
 
-    const pendingPlatforms = platforms.filter(p => p.needsSync === true);
+    const pendingPlatforms = platforms.filter((p: Platform) => p.needsSync === true);
     console.log(`🔄 Sincronizando ${pendingPlatforms.length} plataformas pendientes...`);
     
     for (const platform of pendingPlatforms) {
@@ -394,7 +395,7 @@ export const useInventory = () => {
         };
         
         StorageService.savePlatform(syncedPlatform);
-        setPlatforms(prev => prev.map(p => p.id === platform.id ? syncedPlatform : p));
+        setPlatforms((prev: Platform[]) => prev.map((p: Platform) => p.id === platform.id ? syncedPlatform : p));
         console.log(`✅ Plataforma sincronizada: ${platform.id} → ${createdPlatform.id}`);
         
       } catch (error) {
@@ -406,7 +407,7 @@ export const useInventory = () => {
   // ✅ SOLUCIÓN: Ejecutar sincronización cuando se detecte conexión
   useEffect(() => {
     if (isOnline) {
-      const pendingPlatforms = platforms.filter(p => p.needsSync === true);
+      const pendingPlatforms = platforms.filter((p: Platform) => p.needsSync === true);
       if (pendingPlatforms.length > 0) {
         console.log(`🌐 Conexión detectada, sincronizando ${pendingPlatforms.length} plataformas...`);
         syncPendingPlatforms();
@@ -416,8 +417,8 @@ export const useInventory = () => {
 
   // ✅ SOLUCIÓN: Estado de sincronización
   const syncStatus = useMemo(() => {
-    const pendingPlatforms = platforms.filter(p => p.needsSync === true);
-    const syncedPlatforms = platforms.filter(p => !p.needsSync);
+    const pendingPlatforms = platforms.filter((p: Platform) => p.needsSync === true);
+    const syncedPlatforms = platforms.filter((p: Platform) => !p.needsSync);
     
     return {
       total: platforms.length,

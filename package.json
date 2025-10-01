@@ -12,18 +12,22 @@
     "build": "vite build",
     "build:analyze": "tsc --noEmit && vite build --mode analyze",
     "build:prod": "tsc --noEmit && vite build --mode production",
+    "build:pwa": "tsc --noEmit && vite build --mode production",
     "postinstall": "echo 'Dependencias instaladas correctamente'",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext ts,tsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "type-check": "tsc --noEmit",
     "preview": "vite preview --host 0.0.0.0 --port $PORT",
+    "preview:pwa": "vite preview --host 0.0.0.0 --port 5173",
     "start": "npx serve -s dist -l $PORT",
     "clean:logs": "node scripts/clean-console-logs.js",
     "optimize-imports": "node scripts/optimize-imports.js",
     "analyze-bundle": "node scripts/bundle-analyzer.js",
     "analyze": "npm run build:analyze && npx vite-bundle-analyzer dist",
-    "bundle-size": "npm run build && npx vite-bundle-analyzer dist"
+    "bundle-size": "npm run build && npx vite-bundle-analyzer dist",
+    "pwa:generate-vapid": "npx web-push generate-vapid-keys",
+    "pwa:check": "echo 'Verificando configuración PWA...' && node -e \"console.log('✅ Manifest:', require('fs').existsSync('public/manifest.webmanifest') ? 'OK' : '❌ FALTA'); console.log('✅ Icons:', require('fs').existsSync('public/pwa-icons') ? 'OK' : '❌ FALTA'); console.log('✅ Service Worker config:', require('fs').existsSync('vite.config.ts') ? 'OK' : '❌ FALTA');\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -87,6 +91,8 @@
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.39.1",
     "vite": "^7.1.2",
-    "vitest": "^3.2.4"
+    "vite-plugin-pwa": "1.0.3",
+    "vitest": "^3.2.4",
+    "workbox-window": "7.3.0"
   }
 }

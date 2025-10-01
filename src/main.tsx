@@ -115,3 +115,22 @@ const renderApp = () => {
 
 // Inicializar la aplicación
 renderApp();
+
+// Registrar Service Worker para PWA
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((registration) => {
+        console.log('✅ PWA: Service Worker registrado', registration);
+        
+        // Verificar actualizaciones cada hora
+        setInterval(() => {
+          registration.update();
+        }, 60 * 60 * 1000);
+      })
+      .catch((error) => {
+        console.error('❌ PWA: Error al registrar Service Worker', error);
+      });
+  });
+}

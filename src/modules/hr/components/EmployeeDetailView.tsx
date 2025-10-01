@@ -48,7 +48,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   const { showNotification } = useNotifications();
 
   // Función para manejar la actualización del empleado
-  const handleUpdateEmployee = async (updatedData: any) => {
+  const handleUpdateEmployee = async (updatedData: Partial<Employee>) => {
     if (!employee?.id) {
       showNotification({
         type: 'error',
@@ -126,7 +126,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   }
 
   // Función helper para formatear fechas de forma segura
-  const safeFormatDate = (date: any) => {
+  const safeFormatDate = (date: Date | string | { _seconds: number } | null | undefined): string => {
     try {
       if (!date) return 'N/A';
       
@@ -139,11 +139,11 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
       else if (date instanceof Date) {
         dateObj = date;
       }
-      else if (date && typeof date === 'object' && date._seconds) {
-        dateObj = new Date(date._seconds * 1000);
+      else if (date && typeof date === 'object' && '_seconds' in date) {
+        dateObj = new Date((date as { _seconds: number })._seconds * 1000);
       }
       else {
-        dateObj = new Date(date);
+        dateObj = new Date(String(date));
       }
       
       if (isNaN(dateObj.getTime())) {
@@ -162,7 +162,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   };
 
   // Función helper para obtener iniciales de forma segura
-  const safeGetInitials = (firstName: any, lastName: any) => {
+  const safeGetInitials = (firstName: string | undefined, lastName: string | undefined): string => {
     try {
       const first = firstName?.charAt(0)?.toUpperCase() || '';
       const last = lastName?.charAt(0)?.toUpperCase() || '';
@@ -174,7 +174,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   };
 
   // Función para formatear salario de forma segura
-  const safeFormatSalary = (salary: any, currency: any) => {
+  const safeFormatSalary = (salary: number | undefined, currency: string | undefined): string => {
     try {
       if (!salary || salary === 0) return 'N/A';
       return `$${salary.toLocaleString()} ${currency || 'MXN'}`;

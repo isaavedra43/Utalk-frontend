@@ -1,5 +1,4 @@
-import React from 'react';
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   ArrowLeft,
   Printer,
@@ -31,11 +30,11 @@ interface PlatformDetailViewProps {
 export const PlatformDetailView: React.FC<PlatformDetailViewProps> = ({
   platform: initialPlatform,
   onBack
-}) => {
+}: PlatformDetailViewProps) => {
   const { platforms, updatePlatform, deletePlatform, addPiece, addMultiplePieces, updatePiece, deletePiece, changeStandardWidth, syncPendingPlatforms, syncStatus } = useInventory();
   
   // Obtener la plataforma actualizada desde el estado global
-  const platform = platforms.find(p => p.id === initialPlatform.id) || initialPlatform;
+  const platform = platforms.find((p: Platform) => p.id === initialPlatform.id) || initialPlatform;
   
   const [exporting, setExporting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -492,7 +491,7 @@ Generado por Sistema de Inventario`;
       try {
         await navigator.clipboard.writeText(shareText);
         showNotification('success', 'Texto copiado al portapapeles');
-      } catch (error) {
+      } catch {
         showNotification('error', 'Error al copiar texto');
       }
       document.body.removeChild(modal);
@@ -516,13 +515,13 @@ Generado por Sistema de Inventario`;
     return now.toISOString().split('T')[0];
   };
 
-  const statusColors = {
+  const statusColors: Record<string, string> = {
     in_progress: 'bg-yellow-100 text-yellow-800',
     completed: 'bg-green-100 text-green-800',
     exported: 'bg-blue-100 text-blue-800'
   };
 
-  const statusLabels = {
+  const statusLabels: Record<string, string> = {
     in_progress: 'En Proceso',
     completed: 'Completada',
     exported: 'Exportada'
@@ -895,7 +894,7 @@ Generado por Sistema de Inventario`;
               availableMaterials={platform.materialTypes}
               onAddPiece={handleAddPiece}
               onAddMultiplePieces={handleAddMultiplePieces}
-              onChangeWidth={(newWidth) => changeStandardWidth(platform.id, newWidth)}
+              onChangeWidth={(newWidth: number) => changeStandardWidth(platform.id, newWidth)}
             />
           </div>
 
@@ -940,7 +939,7 @@ Generado por Sistema de Inventario`;
               pieces={platform.pieces}
               standardWidth={platform.standardWidth}
               onDeletePiece={handleDeletePiece}
-              onUpdatePiece={(pieceId, updates) => updatePiece(platform.id, pieceId, updates)}
+              onUpdatePiece={(pieceId: string, updates: Partial<{ length: number; material: string; standardWidth: number }>) => updatePiece(platform.id, pieceId, updates)}
             />
           </div>
         </div>
@@ -954,7 +953,7 @@ Generado por Sistema de Inventario`;
               availableMaterials={platform.materialTypes}
               onAddPiece={handleAddPiece}
               onAddMultiplePieces={handleAddMultiplePieces}
-              onChangeWidth={(newWidth) => changeStandardWidth(platform.id, newWidth)}
+              onChangeWidth={(newWidth: number) => changeStandardWidth(platform.id, newWidth)}
             />
 
             {/* Summary Card */}
@@ -1002,7 +1001,7 @@ Generado por Sistema de Inventario`;
               pieces={platform.pieces}
               standardWidth={platform.standardWidth}
               onDeletePiece={handleDeletePiece}
-              onUpdatePiece={(pieceId, updates) => updatePiece(platform.id, pieceId, updates)}
+              onUpdatePiece={(pieceId: string, updates: Partial<{ length: number; material: string; standardWidth: number }>) => updatePiece(platform.id, pieceId, updates)}
             />
           </div>
         </div>

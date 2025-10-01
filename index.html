@@ -2,11 +2,59 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    
+    <!-- PWA Primary Meta Tags -->
+    <title>UTalk - Chat & Atención al Cliente</title>
+    <meta name="title" content="UTalk - Chat & Atención al Cliente" />
+    <meta name="description" content="Plataforma de atención al cliente en tiempo real con WhatsApp, chat interno, gestión de equipo y recursos humanos" />
+    <meta name="keywords" content="chat, atención al cliente, mensajería, whatsapp, pwa, crm, gestión de equipo" />
+    
+    <!-- Viewport optimizado para PWA móvil -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+    
+    <!-- PWA Theme Color -->
+    <meta name="theme-color" content="#3B82F6" />
+    <meta name="msapplication-TileColor" content="#3B82F6" />
+    
+    <!-- Apple PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="UTalk" />
+    <link rel="apple-touch-icon" href="/pwa-icons/icon-180x180.png" />
+    <link rel="apple-touch-startup-image" href="/pwa-icons/splash-screen.png" />
+    
+    <!-- Icons -->
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Utalk - Plataforma de atención al cliente en tiempo real" />
-    <meta name="keywords" content="chat, atención al cliente, mensajería, whatsapp" />
-    <title>Utalk - Chat & Atención al Cliente</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/pwa-icons/icon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/pwa-icons/icon-16x16.png" />
+    <link rel="mask-icon" href="/mask-icon.svg" color="#3B82F6" />
+    
+    <!-- Microsoft PWA -->
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    
+    <!-- Security Headers -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    
+    <!-- Social Media Meta Tags (Open Graph) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://utalk.app/" />
+    <meta property="og:title" content="UTalk - Chat & Atención al Cliente" />
+    <meta property="og:description" content="Plataforma de atención al cliente en tiempo real" />
+    <meta property="og:image" content="/pwa-icons/icon-512x512.png" />
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="UTalk - Chat & Atención al Cliente" />
+    <meta name="twitter:description" content="Plataforma de atención al cliente en tiempo real" />
+    <meta name="twitter:image" content="/pwa-icons/icon-512x512.png" />
+    
+    <!-- Preconnect para optimización -->
+    <link rel="preconnect" href="https://utalk-backend-production.up.railway.app" />
+    <link rel="dns-prefetch" href="https://utalk-backend-production.up.railway.app" />
+    
+    <!-- Manifest -->
+    <link rel="manifest" href="/manifest.webmanifest" />
   </head>
   <body>
     <div id="root"></div>

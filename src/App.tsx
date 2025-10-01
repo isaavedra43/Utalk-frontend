@@ -27,6 +27,8 @@ import { useAuthContext } from './contexts/useAuthContext'
 import { MonitoringBubble } from './components/monitoring'
 import ToastContainer from './components/ui/ToastContainer'
 import { useToast } from './hooks/useToast'
+import { PWAInstallPrompt } from './components/pwa/PWAInstallPrompt'
+import { PWAUpdatePrompt } from './components/pwa/PWAUpdatePrompt'
 
 // Componente de protección de rutas - OPTIMIZADO
 const AuthProtectedRoute: React.FC<{ children: React.ReactNode }> = memo(({ children }) => {
@@ -552,6 +554,10 @@ function App() {
               
               {/* Módulo de Monitoreo - Solo en desarrollo o con flag habilitado */}
               {showMonitoring && <MonitoringBubble enabled={true} />}
+              
+              {/* Componentes PWA */}
+              <PWAInstallPrompt />
+              <PWAUpdatePrompt />
                 </div>
               </NotificationProvider>
             </MobileMenuProvider>
