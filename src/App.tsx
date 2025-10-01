@@ -18,8 +18,6 @@ import {
   HRModule, 
   SupervisionModule, 
   CopilotModule,
-  ProvidersModule,
-  WarehouseModule,
   InventoryModule,
   ShippingModule,
   ServicesModule
@@ -331,52 +329,7 @@ const CopilotPage: React.FC = () => {
   );
 };
 
-// Componentes para los módulos adicionales
-const ProvidersPage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuthContext();
-  
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Cargando proveedores...
-          </h3>
-        </div>
-      </div>
-    );
-  }
 
-  return (
-    <ErrorBoundary>
-      <MainLayout />
-    </ErrorBoundary>
-  );
-};
-
-const WarehousePage: React.FC = () => {
-  const { isAuthenticated, loading } = useAuthContext();
-  
-  if (loading || !isAuthenticated) {
-    return (
-      <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Cargando almacén...
-          </h3>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <ErrorBoundary>
-      <MainLayout />
-    </ErrorBoundary>
-  );
-};
 
 const ShippingPage: React.FC = () => {
   const { isAuthenticated, loading } = useAuthContext();
@@ -559,26 +512,6 @@ function App() {
                     <AuthProtectedRoute>
                       <ProtectedRoute moduleId="copilot">
                         <CopilotPage />
-                      </ProtectedRoute>
-                    </AuthProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/providers" 
-                  element={
-                    <AuthProtectedRoute>
-                      <ProtectedRoute moduleId="providers">
-                        <ProvidersPage />
-                      </ProtectedRoute>
-                    </AuthProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/warehouse" 
-                  element={
-                    <AuthProtectedRoute>
-                      <ProtectedRoute moduleId="warehouse">
-                        <WarehousePage />
                       </ProtectedRoute>
                     </AuthProtectedRoute>
                   } 

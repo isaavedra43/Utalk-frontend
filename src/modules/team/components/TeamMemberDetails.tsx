@@ -437,8 +437,7 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
                       'knowledge-base': 'Base de Conocimiento',
                       'supervision': 'Supervisión',
                       'copilot': 'Copiloto IA',
-                      'providers': 'Proveedores',
-                      'warehouse': 'Almacén',
+                      'inventory': 'Inventario',
                       'shipping': 'Envíos',
                       'services': 'Servicios'
                     };
@@ -505,8 +504,7 @@ export const TeamMemberDetails: React.FC<TeamMemberDetailsProps> = ({
                       'hr': 'Recursos Humanos',
                       'supervision': 'Supervisión',
                       'copilot': 'Copiloto IA',
-                      'providers': 'Proveedores',
-                      'warehouse': 'Almacén',
+                      'inventory': 'Inventario',
                       'shipping': 'Envíos',
                       'services': 'Servicios',
                       'analytics': 'Analytics',

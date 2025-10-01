@@ -40,16 +40,21 @@ export const InventoryMainView: React.FC = () => {
     totalMeters: platforms?.reduce((sum, p) => sum + (p.totalLinearMeters || 0), 0) || 0
   };
 
-  const handleCreatePlatform = (data: {
+  const handleCreatePlatform = async (data: {
     platformNumber: string;
     materialTypes: string[];
     provider: string;
+    providerId?: string;
     driver: string;
     notes?: string;
   }) => {
-    const newPlatform = createPlatform(data);
-    setShowCreateModal(false);
-    setSelectedPlatformId(newPlatform.id);
+    try {
+      const newPlatform = await createPlatform(data);
+      setShowCreateModal(false);
+      setSelectedPlatformId(newPlatform.id);
+    } catch (error) {
+      console.error('Error creating platform:', error);
+    }
   };
 
   if (selectedPlatform) {

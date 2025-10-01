@@ -16,8 +16,6 @@ import {
   UserCheck,
   Eye,
   Bot,
-  Truck,
-  Warehouse,
   Package,
   Settings,
   Archive
@@ -122,16 +120,6 @@ export const LeftSidebar: React.FC = () => {
       id: 'copilot',
       icon: Bot,
       title: 'Copiloto IA'
-    },
-    {
-      id: 'providers',
-      icon: Truck,
-      title: 'Proveedores'
-    },
-    {
-      id: 'warehouse',
-      icon: Warehouse,
-      title: 'Almacén'
     },
     {
       id: 'inventory',

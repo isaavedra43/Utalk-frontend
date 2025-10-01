@@ -63,7 +63,7 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
     const allModules = [
       'dashboard', 'contacts', 'campaigns', 'team', 'analytics', 'ai', 'settings', 'hr',
       'clients', 'notifications', 'chat', 'internal-chat', 'phone', 'knowledge-base',
-      'supervision', 'copilot', 'providers', 'warehouse', 'shipping', 'services'
+      'supervision', 'copilot', 'inventory', 'shipping', 'services'
     ];
     
     const completeModules: { [moduleId: string]: { read: boolean; write: boolean; configure: boolean } } = {};

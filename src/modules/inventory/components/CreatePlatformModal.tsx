@@ -9,6 +9,7 @@ interface CreatePlatformModalProps {
     platformNumber: string;
     materialTypes: string[];
     provider: string;
+    providerId?: string;
     driver: string;
     notes?: string;
   }) => void;
@@ -21,6 +22,7 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
     platformNumber: '',
     materialTypes: [] as string[],
     provider: '',
+    providerId: '',
     driver: '',
     notes: ''
   });
@@ -121,6 +123,7 @@ export const CreatePlatformModal: React.FC<CreatePlatformModalProps> = ({ onClos
     setFormData({ 
       ...formData, 
       provider: provider.name,
+      providerId: provider.id,
       materialTypes: [] // Limpiar tipos de materiales
     });
     setProviderSearch(provider.name);

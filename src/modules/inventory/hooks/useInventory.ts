@@ -1,42 +1,78 @@
 // Hook principal para manejo de inventario
 
 import { useState, useEffect, useCallback } from 'react';
-import type { Platform, Piece, InventorySettings } from '../types';
+import type { Platform, Piece, InventorySettings, Provider } from '../types';
 import { StorageService } from '../services/storageService';
 import { ConfigService } from '../services/configService';
+import { PlatformApiService, ProviderApiService } from '../services/inventoryApiService';
 import { calculateLinearMeters, calculatePlatformTotals, generateId, getNextPieceNumber } from '../utils/calculations';
 
 export const useInventory = () => {
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [settings, setSettings] = useState<InventorySettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  // Detectar cambios de conectividad
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Cargar datos al iniciar
   useEffect(() => {
-    try {
-      const loadedPlatforms = StorageService.getPlatforms();
-      const loadedSettings = StorageService.getSettings();
-      
-      setPlatforms(Array.isArray(loadedPlatforms) ? loadedPlatforms : []);
-      setSettings(loadedSettings);
-    } catch (error) {
-      console.error('Error al cargar inventario:', error);
-      setPlatforms([]);
-      setSettings(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    const loadData = async () => {
+      try {
+        // Primero cargar desde localStorage
+        const loadedPlatforms = StorageService.getPlatforms();
+        const loadedSettings = StorageService.getSettings();
+        
+        setPlatforms(Array.isArray(loadedPlatforms) ? loadedPlatforms : []);
+        setSettings(loadedSettings);
+        
+        // Si hay conexión, intentar sincronizar con backend
+        if (isOnline) {
+          try {
+            const response = await PlatformApiService.getAllPlatforms({ limit: 1000 });
+            if (response.data && response.data.length > 0) {
+              // Actualizar con datos del backend
+              response.data.forEach(platform => StorageService.savePlatform(platform));
+              setPlatforms(response.data);
+            }
+          } catch (error) {
+            console.log('Error al sincronizar con backend, usando datos locales:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Error al cargar inventario:', error);
+        setPlatforms([]);
+        setSettings(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [isOnline]);
 
   // Crear nueva plataforma
-  const createPlatform = useCallback((data: {
+  const createPlatform = useCallback(async (data: {
     platformNumber: string;
     materialTypes: string[];
     provider: string;
+    providerId?: string;
     driver: string;
     receptionDate?: Date;
     notes?: string;
-  }): Platform => {
+  }): Promise<Platform> => {
     const configSettings = ConfigService.getSettings();
     const defaultWidth = configSettings?.defaultStandardWidth || 0.3;
     
@@ -46,6 +82,7 @@ export const useInventory = () => {
       receptionDate: data.receptionDate || new Date(),
       materialTypes: data.materialTypes,
       provider: data.provider,
+      providerId: data.providerId || generateId(), // Generar providerId si no se proporciona
       driver: data.driver,
       standardWidth: defaultWidth,
       pieces: [],
@@ -58,32 +95,67 @@ export const useInventory = () => {
       updatedAt: new Date()
     };
 
+    // Guardar localmente primero
     StorageService.savePlatform(newPlatform);
     setPlatforms(prev => [newPlatform, ...prev]);
     
+    // Si hay conexión, sincronizar con backend
+    if (isOnline) {
+      try {
+        const createdPlatform = await PlatformApiService.createPlatform(newPlatform);
+        // Actualizar con el ID del servidor
+        const updatedPlatform = { ...createdPlatform, providerId: newPlatform.providerId };
+        StorageService.savePlatform(updatedPlatform);
+        setPlatforms(prev => prev.map(p => p.id === newPlatform.id ? updatedPlatform : p));
+        return updatedPlatform;
+      } catch (error) {
+        console.error('Error al crear plataforma en backend:', error);
+        // Mantener la plataforma local si falla la sincronización
+      }
+    }
+    
     return newPlatform;
-  }, []);
+  }, [isOnline]);
 
   // Actualizar plataforma
-  const updatePlatform = useCallback((platformId: string, updates: Partial<Platform>) => {
-    setPlatforms(prev => {
-      const updated = prev.map(p => {
-        if (p.id === platformId) {
-          const updatedPlatform = { ...p, ...updates, updatedAt: new Date() };
-          StorageService.savePlatform(updatedPlatform);
-          return updatedPlatform;
-        }
-        return p;
-      });
-      return updated;
-    });
-  }, []);
+  const updatePlatform = useCallback(async (platformId: string, updates: Partial<Platform>) => {
+    const platform = platforms.find(p => p.id === platformId);
+    if (!platform) return;
+
+    // Actualizar localmente primero
+    const updatedPlatform = { ...platform, ...updates, updatedAt: new Date() };
+    StorageService.savePlatform(updatedPlatform);
+    setPlatforms(prev => prev.map(p => p.id === platformId ? updatedPlatform : p));
+    
+    // Si hay conexión y providerId, sincronizar con backend
+    if (isOnline && platform.providerId) {
+      try {
+        await PlatformApiService.updatePlatform(platformId, platform.providerId, updates);
+      } catch (error) {
+        console.error('Error al actualizar plataforma en backend:', error);
+        // Mantener cambios locales si falla la sincronización
+      }
+    }
+  }, [platforms, isOnline]);
 
   // Eliminar plataforma
-  const deletePlatform = useCallback((platformId: string) => {
+  const deletePlatform = useCallback(async (platformId: string) => {
+    const platform = platforms.find(p => p.id === platformId);
+    
+    // Eliminar localmente primero
     StorageService.deletePlatform(platformId);
     setPlatforms(prev => prev.filter(p => p.id !== platformId));
-  }, []);
+    
+    // Si hay conexión y providerId, sincronizar con backend
+    if (isOnline && platform?.providerId) {
+      try {
+        await PlatformApiService.deletePlatform(platformId, platform.providerId);
+      } catch (error) {
+        console.error('Error al eliminar plataforma en backend:', error);
+        // Mantener eliminación local si falla la sincronización
+      }
+    }
+  }, [platforms, isOnline]);
 
   // Agregar pieza a plataforma
   const addPiece = useCallback((platformId: string, length: number, material: string) => {

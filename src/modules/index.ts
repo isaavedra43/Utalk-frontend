@@ -27,8 +27,6 @@ export { SupervisionModule } from './supervision';
 export { CopilotModule } from './copilot';
 
 // Exportar módulos adicionales
-export { ProvidersModule } from './providers';
-export { WarehouseModule } from './warehouse';
 export { default as InventoryModule } from './inventory/InventoryModule';
 export { ShippingModule } from './shipping';
 export { ServicesModule } from './services';

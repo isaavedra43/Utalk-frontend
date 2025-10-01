@@ -16,6 +16,7 @@ export interface Platform {
   receptionDate: Date;
   materialTypes: string[]; // Cambiado a array para múltiples materiales
   provider: string;
+  providerId?: string; // ID del proveedor para sincronización con backend
   driver: string;
   standardWidth: number;
   pieces: Piece[];

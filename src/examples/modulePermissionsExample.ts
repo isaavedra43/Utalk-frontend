@@ -30,8 +30,7 @@ export const configureHRAgent = async (agentEmail: string) => {
         'phone': { read: false, write: false, configure: false },
         'supervision': { read: false, write: false, configure: false },
         'copilot': { read: false, write: false, configure: false },
-        'providers': { read: false, write: false, configure: false },
-        'warehouse': { read: false, write: false, configure: false },
+        'inventory': { read: false, write: false, configure: false },
         'shipping': { read: false, write: false, configure: false },
         'services': { read: false, write: false, configure: false }
       }
@@ -74,8 +73,7 @@ export const configureSalesAgent = async (agentEmail: string) => {
         'team': { read: false, write: false, configure: false },
         'internal-chat': { read: true, write: true, configure: false }, // Permitido para coordinación
         'supervision': { read: false, write: false, configure: false },
-        'providers': { read: false, write: false, configure: false },
-        'warehouse': { read: false, write: false, configure: false },
+        'inventory': { read: false, write: false, configure: false },
         'shipping': { read: false, write: false, configure: false },
         'services': { read: false, write: false, configure: false }
       }
@@ -118,8 +116,7 @@ export const configureSupervisor = async (supervisorEmail: string) => {
         
         // Acceso limitado a módulos administrativos
         'hr': { read: true, write: false, configure: false }, // Solo lectura
-        'providers': { read: true, write: false, configure: false },
-        'warehouse': { read: true, write: false, configure: false },
+        'inventory': { read: true, write: true, configure: false }, // Acceso completo al inventario
         'shipping': { read: true, write: false, configure: false },
         'services': { read: true, write: false, configure: false }
       }
@@ -140,7 +137,50 @@ export const configureSupervisor = async (supervisorEmail: string) => {
 };
 
 /**
- * EJEMPLO 4: Verificar permisos de un usuario
+ * EJEMPLO 4: Configurar un agente de inventario/almacén
+ * Solo puede acceder al módulo de inventario y módulos básicos
+ */
+export const configureInventoryAgent = async (agentEmail: string) => {
+  try {
+    const inventoryAgentPermissions = {
+      modules: {
+        // Módulos permitidos para inventario
+        'dashboard': { read: true, write: false, configure: false },
+        'inventory': { read: true, write: true, configure: true }, // Acceso completo al inventario
+        'notifications': { read: true, write: false, configure: false },
+        'internal-chat': { read: true, write: true, configure: false }, // Para coordinación
+        
+        // Módulos restringidos
+        'clients': { read: false, write: false, configure: false },
+        'chat': { read: false, write: false, configure: false },
+        'campaigns': { read: false, write: false, configure: false },
+        'phone': { read: false, write: false, configure: false },
+        'knowledge-base': { read: true, write: false, configure: false }, // Solo lectura para consultas
+        'hr': { read: false, write: false, configure: false },
+        'team': { read: false, write: false, configure: false },
+        'supervision': { read: false, write: false, configure: false },
+        'copilot': { read: false, write: false, configure: false },
+        'shipping': { read: true, write: false, configure: false }, // Solo lectura para coordinación
+        'services': { read: false, write: false, configure: false }
+      }
+    };
+
+    await modulePermissionsService.updateUserPermissions(agentEmail, inventoryAgentPermissions);
+    console.log('✅ Agente de inventario configurado exitosamente');
+    
+    return {
+      success: true,
+      message: 'Agente configurado para inventario',
+      allowedModules: ['dashboard', 'inventory', 'notifications', 'internal-chat', 'knowledge-base', 'shipping']
+    };
+  } catch (error) {
+    console.error('❌ Error configurando agente de inventario:', error);
+    throw error;
+  }
+};
+
+/**
+ * EJEMPLO 5: Verificar permisos de un usuario
  */
 export const checkUserPermissions = async (userEmail: string) => {
   try {
@@ -256,9 +296,12 @@ export const ExampleUsageInComponent = () => {
  * 3. Para configurar un supervisor:
  *    await configureSupervisor('supervisor@empresa.com');
  * 
- * 4. Para verificar permisos:
+ * 4. Para configurar un agente de inventario:
+ *    await configureInventoryAgent('inventario@empresa.com');
+ * 
+ * 5. Para verificar permisos:
  *    await checkUserPermissions('usuario@empresa.com');
  * 
- * 5. Para ver todos los módulos disponibles:
+ * 6. Para ver todos los módulos disponibles:
  *    await listAvailableModules();
  */

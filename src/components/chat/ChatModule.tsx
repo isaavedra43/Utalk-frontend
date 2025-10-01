@@ -26,7 +26,6 @@ import {
   Eye,
   Bot,
   Truck,
-  Warehouse,
   Package
 } from 'lucide-react';
 import { MobileMenuButton } from '../layout/MobileMenuButton';
