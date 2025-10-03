@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   CalendarDays, 
   Clock, 
-  TrendingUp, 
-  TrendingDown,
   CheckCircle,
   XCircle,
   AlertTriangle,
@@ -12,254 +10,217 @@ import {
   Search,
   ChevronDown,
   Eye,
-  Share2,
-  MoreHorizontal,
-  Timer,
-  UserCheck,
-  UserX,
-  Coffee,
-  Home,
-  Car,
-  Plane,
-  Heart,
-  Zap,
-  Target,
-  BarChart3,
-  PieChart,
-  Activity,
-  Building,
   Plus,
   Calendar,
-  MapPin,
-  Sun,
-  Snowflake,
-  Umbrella,
-  Gift,
+  Plane,
+  Heart,
   Baby,
   User,
-  FileText,
-  Send,
   Edit,
   Trash2,
-  Clock3,
-  CheckSquare,
-  Square
+  Send,
+  Coffee,
+  Home,
+  BarChart3,
+  FileText,
+  Activity
 } from 'lucide-react';
+import { useVacations } from '../../../hooks/useVacations';
+import { useNotifications } from '../../../contexts/NotificationContext';
+import VacationRequestModal from './VacationRequestModal';
 import VacationsChart from './VacationsChart';
+import type { CreateVacationRequest, VacationRequest } from '../../../services/vacationsService';
 
-interface VacationRequest {
-  id: string;
-  startDate: string;
-  endDate: string;
-  days: number;
-  type: 'vacation' | 'personal' | 'sick_leave' | 'maternity' | 'paternity' | 'unpaid' | 'compensatory';
-  reason: string;
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
-  requestedDate: string;
-  approvedBy?: string;
-  approvedDate?: string;
-  rejectedReason?: string;
-  attachments?: string[];
-}
-
-interface VacationBalance {
-  total: number;
-  used: number;
-  available: number;
-  pending: number;
-  expired: number;
-  nextExpiration?: string;
-}
-
-interface VacationPolicy {
-  annualDays: number;
-  accrualRate: number;
-  maxCarryover: number;
-  probationPeriod: number;
-  advanceRequest: number;
-  blackoutPeriods: Array<{
-    startDate: string;
-    endDate: string;
-    reason: string;
-  }>;
-}
-
-interface EmployeeVacationsData {
-  employeeId: string;
-  employeeName: string;
-  position: string;
-  department: string;
-  hireDate: string;
-  currentBalance: VacationBalance;
-  policy: VacationPolicy;
-  requests: VacationRequest[];
-  history: VacationRequest[];
-  summary: {
-    totalRequests: number;
-    approvedRequests: number;
-    pendingRequests: number;
-    rejectedRequests: number;
-    totalDaysUsed: number;
-    averageDaysPerRequest: number;
-    mostUsedMonth: string;
-    lastVacation: string;
-  };
-}
+// ============================================================================
+// TYPES
+// ============================================================================
 
 interface EmployeeVacationsViewProps {
   employeeId: string;
+  employeeName?: string;
   onBack: () => void;
 }
 
+// ============================================================================
+// COMPONENT
+// ============================================================================
+
 const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({ 
-  employeeId, 
+  employeeId,
+  employeeName = 'Empleado',
   onBack 
 }) => {
-  const [vacationsData, setVacationsData] = useState<EmployeeVacationsData | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState('current');
-  const [filterType, setFilterType] = useState('all');
+  const { showSuccess, showError } = useNotifications();
+  
+  // Usar hook de vacaciones
+  const {
+    data,
+    requests,
+    balance,
+    policy,
+    summary,
+    loading,
+    error,
+    createRequest,
+    updateRequest,
+    cancelRequest,
+    deleteRequest,
+    approveRequest,
+    rejectRequest,
+    calculateDays,
+    checkAvailability,
+    uploadAttachments,
+    exportVacations,
+    getCalendar,
+    refreshData
+  } = useVacations({ employeeId, autoRefresh: false });
+
+  // Estado local de UI
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [filterType, setFilterType] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [activeTab, setActiveTab] = useState<'overview' | 'requests' | 'history' | 'calendar'>('overview');
   const [showNewRequest, setShowNewRequest] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<VacationRequest | null>(null);
 
-  // Simular datos de vacaciones
-  useEffect(() => {
-    const mockVacationsData: EmployeeVacationsData = {
-      employeeId: 'EMP241001',
-      employeeName: 'Ana García',
-      position: 'Gerente de Marketing',
-      department: 'Marketing',
-      hireDate: '2022-03-14',
-      currentBalance: {
-        total: 20,
-        used: 8,
-        available: 12,
-        pending: 3,
-        expired: 0,
-        nextExpiration: '2024-12-31'
-      },
-      policy: {
-        annualDays: 20,
-        accrualRate: 1.67, // días por mes
-        maxCarryover: 5,
-        probationPeriod: 6,
-        advanceRequest: 30,
-        blackoutPeriods: [
-          {
-            startDate: '2024-12-15',
-            endDate: '2024-12-31',
-            reason: 'Temporada alta de fin de año'
-          }
-        ]
-      },
-      requests: [
-        {
-          id: '1',
-          startDate: '2024-02-15',
-          endDate: '2024-02-20',
-          days: 4,
-          type: 'vacation',
-          reason: 'Vacaciones familiares',
-          status: 'approved',
-          requestedDate: '2024-01-15',
-          approvedBy: 'Juan Pérez',
-          approvedDate: '2024-01-16'
-        },
-        {
-          id: '2',
-          startDate: '2024-03-10',
-          endDate: '2024-03-12',
-          days: 3,
-          type: 'personal',
-          reason: 'Asuntos personales',
-          status: 'pending',
-          requestedDate: '2024-02-28'
-        },
-        {
-          id: '3',
-          startDate: '2024-04-01',
-          endDate: '2024-04-05',
-          days: 5,
-          type: 'vacation',
-          reason: 'Semana Santa',
-          status: 'approved',
-          requestedDate: '2024-02-15',
-          approvedBy: 'Juan Pérez',
-          approvedDate: '2024-02-16'
-        }
-      ],
-      history: [
-        {
-          id: '1',
-          startDate: '2023-12-20',
-          endDate: '2023-12-27',
-          days: 6,
-          type: 'vacation',
-          reason: 'Vacaciones de fin de año',
-          status: 'approved',
-          requestedDate: '2023-11-15',
-          approvedBy: 'Juan Pérez',
-          approvedDate: '2023-11-16'
-        },
-        {
-          id: '2',
-          startDate: '2023-08-15',
-          endDate: '2023-08-18',
-          days: 4,
-          type: 'vacation',
-          reason: 'Vacaciones de verano',
-          status: 'approved',
-          requestedDate: '2023-07-15',
-          approvedBy: 'Juan Pérez',
-          approvedDate: '2023-07-16'
-        }
-      ],
-      summary: {
-        totalRequests: 5,
-        approvedRequests: 4,
-        pendingRequests: 1,
-        rejectedRequests: 0,
-        totalDaysUsed: 8,
-        averageDaysPerRequest: 3.2,
-        mostUsedMonth: 'Diciembre',
-        lastVacation: '2024-02-20'
+  // ============================================================================
+  // HANDLERS
+  // ============================================================================
+
+  // Manejar creación/edición de solicitud
+  const handleSubmitRequest = async (requestData: CreateVacationRequest, attachments: File[]) => {
+    try {
+      // Subir archivos primero
+      let attachmentIds: string[] = [];
+      if (attachments.length > 0) {
+        attachmentIds = await uploadAttachments(attachments);
       }
-    };
 
-    setTimeout(() => {
-      setVacationsData(mockVacationsData);
-      setLoading(false);
-    }, 1000);
-  }, [employeeId]);
+      if (selectedRequest) {
+        // Modo edición
+        await updateRequest(selectedRequest.id, {
+          ...requestData,
+          attachments: attachmentIds
+        });
+        showSuccess('Solicitud actualizada exitosamente');
+      } else {
+        // Modo creación
+        await createRequest({
+          ...requestData,
+          attachments: attachmentIds
+        });
+        showSuccess('Solicitud enviada exitosamente');
+      }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'cancelled': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      setShowNewRequest(false);
+      setSelectedRequest(null);
+      await refreshData();
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error procesando solicitud');
+      throw error;
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'approved': return 'Aprobado';
-      case 'pending': return 'Pendiente';
-      case 'rejected': return 'Rechazado';
-      case 'cancelled': return 'Cancelado';
-      default: return 'Desconocido';
+  // Manejar edición
+  const handleEditRequest = (request: VacationRequest) => {
+    if (request.status !== 'pending') {
+      showError('Solo se pueden editar solicitudes pendientes');
+      return;
+    }
+    setSelectedRequest(request);
+    setShowNewRequest(true);
+  };
+
+  // Manejar cancelación
+  const handleCancelRequest = async (requestId: string) => {
+    const reason = prompt('Motivo de la cancelación (opcional):');
+    
+    try {
+      await cancelRequest(requestId, reason || undefined);
+      showSuccess('Solicitud cancelada exitosamente');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error cancelando solicitud');
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'approved': return <CheckCircle className="h-4 w-4" />;
-      case 'pending': return <Clock3 className="h-4 w-4" />;
-      case 'rejected': return <XCircle className="h-4 w-4" />;
-      case 'cancelled': return <Square className="h-4 w-4" />;
-      default: return <Clock3 className="h-4 w-4" />;
+  // Manejar eliminación
+  const handleDeleteRequest = async (requestId: string) => {
+    if (!confirm('¿Estás seguro de eliminar esta solicitud?')) return;
+
+    try {
+      await deleteRequest(requestId);
+      showSuccess('Solicitud eliminada exitosamente');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error eliminando solicitud');
+    }
+  };
+
+  // Manejar aprobación
+  const handleApproveRequest = async (requestId: string) => {
+    try {
+      await approveRequest(requestId);
+      showSuccess('Solicitud aprobada exitosamente');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error aprobando solicitud');
+    }
+  };
+
+  // Manejar rechazo
+  const handleRejectRequest = async (requestId: string) => {
+    const reason = prompt('Motivo del rechazo:');
+    if (!reason) return;
+
+    try {
+      await rejectRequest(requestId, reason);
+      showSuccess('Solicitud rechazada');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error rechazando solicitud');
+    }
+  };
+
+  // Manejar exportación
+  const handleExport = async () => {
+    try {
+      const blob = await exportVacations('excel');
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vacaciones_${employeeId}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      showSuccess('Vacaciones exportadas exitosamente');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error exportando vacaciones');
+    }
+  };
+
+  // ============================================================================
+  // HELPERS
+  // ============================================================================
+
+  const filteredRequests = requests.filter(request => {
+    const matchesSearch = request.reason.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filterType === 'all' || request.type === filterType;
+    const matchesStatus = filterStatus === 'all' || request.status === filterStatus;
+    return matchesSearch && matchesType && matchesStatus;
+  });
+
+  const pendingRequests = requests.filter(r => r.status === 'pending');
+  const approvedRequests = requests.filter(r => r.status === 'approved');
+  const historyRequests = requests.filter(r => r.status === 'approved' || r.status === 'rejected');
+
+  const getTypeText = (type: string) => {
+    switch (type) {
+      case 'vacation': return 'Vacaciones';
+      case 'personal': return 'Personal';
+      case 'sick_leave': return 'Enfermedad';
+      case 'maternity': return 'Maternidad';
+      case 'paternity': return 'Paternidad';
+      case 'unpaid': return 'Sin Goce';
+      case 'compensatory': return 'Compensatorio';
+      default: return 'Otro';
     }
   };
 
@@ -269,67 +230,67 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
       case 'personal': return <User className="h-4 w-4" />;
       case 'sick_leave': return <Heart className="h-4 w-4" />;
       case 'maternity': return <Baby className="h-4 w-4" />;
-      case 'paternity': return <Baby className="h-4 w-4" />;
-      case 'unpaid': return <Clock className="h-4 w-4" />;
-      case 'compensatory': return <Gift className="h-4 w-4" />;
+      case 'paternity': return <Home className="h-4 w-4" />;
+      case 'compensatory': return <Coffee className="h-4 w-4" />;
       default: return <Calendar className="h-4 w-4" />;
     }
   };
 
-  const getTypeText = (type: string) => {
-    switch (type) {
-      case 'vacation': return 'Vacaciones';
-      case 'personal': return 'Personal';
-      case 'sick_leave': return 'Incapacidad';
-      case 'maternity': return 'Maternidad';
-      case 'paternity': return 'Paternidad';
-      case 'unpaid': return 'Sin goce';
-      case 'compensatory': return 'Compensatorio';
-      default: return 'Otro';
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      case 'cancelled': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending': return <Clock className="h-4 w-4" />;
+      case 'approved': return <CheckCircle className="h-4 w-4" />;
+      case 'rejected': return <XCircle className="h-4 w-4" />;
+      default: return <Clock className="h-4 w-4" />;
     }
   };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-MX', {
       year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const formatDateShort = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-MX', {
       month: 'short',
       day: 'numeric'
     });
   };
 
-  const filteredRequests = vacationsData?.requests.filter(request => {
-    const matchesSearch = request.reason.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         request.startDate.includes(searchTerm) ||
-                         request.endDate.includes(searchTerm);
-    const matchesFilter = filterType === 'all' || request.status === filterType;
-    return matchesSearch && matchesFilter;
-  }) || [];
+  // ============================================================================
+  // RENDER
+  // ============================================================================
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Cargando información de vacaciones...</p>
         </div>
       </div>
     );
   }
 
-  if (!vacationsData) {
+  if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No se encontró información</h3>
-          <p className="text-gray-600">No hay datos de vacaciones disponibles para este empleado.</p>
+          <AlertTriangle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Error al cargar vacaciones</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => refreshData()}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
+            Reintentar
+          </button>
         </div>
       </div>
     );
@@ -337,6 +298,23 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Modal de Nueva/Editar Solicitud */}
+      <VacationRequestModal
+        isOpen={showNewRequest}
+        onClose={() => {
+          setShowNewRequest(false);
+          setSelectedRequest(null);
+        }}
+        onSubmit={handleSubmitRequest}
+        employeeId={employeeId}
+        employeeName={employeeName}
+        availableDays={balance?.available || 0}
+        request={selectedRequest}
+        mode={selectedRequest ? 'edit' : 'create'}
+        onCalculateDays={calculateDays}
+        onCheckAvailability={checkAvailability}
+      />
+
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -350,20 +328,25 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
               </button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Vacaciones</h1>
-                <p className="text-gray-600">{vacationsData.employeeName} - {vacationsData.position}</p>
+                <p className="text-gray-600">{data?.employeeName || employeeName} - {data?.position || ''}</p>
               </div>
             </div>
             
             <div className="flex items-center space-x-3">
-              <button className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                <Share2 className="h-4 w-4" />
-                <span>Compartir</span>
-              </button>
-              <button className="flex items-center space-x-2 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors">
+              <button 
+                onClick={() => {
+                  setSelectedRequest(null);
+                  setShowNewRequest(true);
+                }}
+                className="flex items-center space-x-2 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+              >
                 <Plus className="h-4 w-4" />
                 <span>Solicitar Vacaciones</span>
               </button>
-              <button className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+              <button 
+                onClick={handleExport}
+                className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
                 <Download className="h-4 w-4" />
                 <span>Exportar</span>
               </button>
@@ -373,17 +356,17 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Resumen General */}
+        {/* Cards de Balance */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-xl shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Días Disponibles</p>
-                <p className="text-2xl font-bold text-green-600">{vacationsData.currentBalance.available}</p>
-                <p className="text-xs text-gray-500">de {vacationsData.currentBalance.total} días</p>
+                <p className="text-3xl font-bold text-green-600">{balance?.available || 0}</p>
+                <p className="text-xs text-gray-500">de {balance?.total || 0} días</p>
               </div>
               <div className="p-3 bg-green-100 rounded-lg">
-                <Calendar className="h-6 w-6 text-green-600" />
+                <CalendarDays className="h-6 w-6 text-green-600" />
               </div>
             </div>
           </div>
@@ -392,7 +375,7 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Días Usados</p>
-                <p className="text-2xl font-bold text-blue-600">{vacationsData.currentBalance.used}</p>
+                <p className="text-3xl font-bold text-blue-600">{balance?.used || 0}</p>
                 <p className="text-xs text-gray-500">Este año</p>
               </div>
               <div className="p-3 bg-blue-100 rounded-lg">
@@ -405,11 +388,11 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Pendientes</p>
-                <p className="text-2xl font-bold text-yellow-600">{vacationsData.currentBalance.pending}</p>
+                <p className="text-3xl font-bold text-yellow-600">{balance?.pending || 0}</p>
                 <p className="text-xs text-gray-500">Por aprobar</p>
               </div>
               <div className="p-3 bg-yellow-100 rounded-lg">
-                <Clock3 className="h-6 w-6 text-yellow-600" />
+                <Clock className="h-6 w-6 text-yellow-600" />
               </div>
             </div>
           </div>
@@ -418,17 +401,19 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Última Vacación</p>
-                <p className="text-2xl font-bold text-purple-600">{formatDateShort(vacationsData.summary.lastVacation)}</p>
+                <p className="text-xl font-bold text-purple-600">
+                  {summary?.lastVacation ? formatDate(summary.lastVacation.startDate) : '-'}
+                </p>
                 <p className="text-xs text-gray-500">Fecha</p>
               </div>
               <div className="p-3 bg-purple-100 rounded-lg">
-                <Sun className="h-6 w-6 text-purple-600" />
+                <Calendar className="h-6 w-6 text-purple-600" />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Navegación por pestañas */}
+        {/* Navegación por Pestañas */}
         <div className="bg-white rounded-xl shadow-sm border mb-6">
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8 px-6">
@@ -436,7 +421,7 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
                 { id: 'overview', label: 'Resumen', icon: BarChart3 },
                 { id: 'requests', label: 'Solicitudes', icon: FileText },
                 { id: 'history', label: 'Historial', icon: Clock },
-                { id: 'calendar', label: 'Calendario', icon: CalendarDays }
+                { id: 'calendar', label: 'Calendario', icon: Calendar }
               ].map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -445,7 +430,7 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
                     onClick={() => setActiveTab(tab.id as any)}
                     className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                       activeTab === tab.id
-                        ? 'border-blue-500 text-blue-600'
+                        ? 'border-green-500 text-green-600'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                   >
@@ -458,269 +443,306 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
           </div>
         </div>
 
-        {/* Contenido de las pestañas */}
+        {/* Tab: Overview */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* Gráficos de tendencias */}
+            {/* Gráfica de Uso */}
+            <div className="bg-white rounded-xl shadow-sm border">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Uso de Vacaciones</h3>
+                <VacationsChart 
+                  data={summary?.byMonth || {}}
+                  total={balance?.total || 20}
+                />
+              </div>
+            </div>
+
+            {/* Estadísticas */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-xl shadow-sm border">
                 <div className="p-6">
-                  <h4 className="font-medium text-gray-900 mb-4">Uso de Vacaciones</h4>
-                  <VacationsChart 
-                    data={vacationsData.history.map(request => ({
-                      date: request.startDate,
-                      days: request.days,
-                      type: request.type,
-                      status: request.status
-                    }))}
-                    type="usage"
-                    height={200}
-                  />
+                  <h4 className="font-medium text-gray-900 mb-4">Estadísticas de Solicitudes</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Total Solicitudes</span>
+                      <span className="font-medium text-gray-900">{summary?.totalRequests || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Aprobadas</span>
+                      <span className="font-medium text-green-600">{summary?.approvedRequests || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Pendientes</span>
+                      <span className="font-medium text-yellow-600">{summary?.pendingRequests || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Rechazadas</span>
+                      <span className="font-medium text-red-600">{summary?.rejectedRequests || 0}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border">
                 <div className="p-6">
                   <h4 className="font-medium text-gray-900 mb-4">Distribución por Tipo</h4>
-                  <VacationsChart 
-                    data={vacationsData.history.map(request => ({
-                      date: request.startDate,
-                      days: request.days,
-                      type: request.type,
-                      status: request.status
-                    }))}
-                    type="distribution"
-                    height={200}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Estadísticas detalladas */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white rounded-xl shadow-sm border">
-                <div className="p-6">
-                  <h4 className="font-medium text-gray-900 mb-4">Estadísticas de Solicitudes</h4>
                   <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Total Solicitudes</span>
-                      <span className="font-medium text-blue-600">{vacationsData.summary.totalRequests}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Aprobadas</span>
-                      <span className="font-medium text-green-600">{vacationsData.summary.approvedRequests}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Pendientes</span>
-                      <span className="font-medium text-yellow-600">{vacationsData.summary.pendingRequests}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Rechazadas</span>
-                      <span className="font-medium text-red-600">{vacationsData.summary.rejectedRequests}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-sm border">
-                <div className="p-6">
-                  <h4 className="font-medium text-gray-900 mb-4">Política de Vacaciones</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Días Anuales</span>
-                      <span className="font-medium text-blue-600">{vacationsData.policy.annualDays}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Acumulación</span>
-                      <span className="font-medium text-blue-600">{vacationsData.policy.accrualRate} días/mes</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Máximo Acarreo</span>
-                      <span className="font-medium text-blue-600">{vacationsData.policy.maxCarryover} días</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Anticipación</span>
-                      <span className="font-medium text-blue-600">{vacationsData.policy.advanceRequest} días</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-sm border">
-                <div className="p-6">
-                  <h4 className="font-medium text-gray-900 mb-4">Períodos Restringidos</h4>
-                  <div className="space-y-3">
-                    {vacationsData.policy.blackoutPeriods.map((period, index) => (
-                      <div key={index} className="border-l-4 border-red-200 pl-3">
-                        <p className="text-sm font-medium text-gray-900">
-                          {formatDate(period.startDate)} - {formatDate(period.endDate)}
-                        </p>
-                        <p className="text-xs text-gray-600">{period.reason}</p>
+                    {summary && Object.entries(summary.byType).map(([type, count]) => (
+                      <div key={type} className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          {getTypeIcon(type)}
+                          <span className="text-sm text-gray-600">{getTypeText(type)}</span>
+                        </div>
+                        <span className="font-medium text-gray-900">{count} días</span>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Política de Vacaciones */}
+            {policy && (
+              <div className="bg-white rounded-xl shadow-sm border">
+                <div className="p-6">
+                  <h4 className="font-medium text-gray-900 mb-4">Política de Vacaciones</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-600 mb-1">Días Anuales</p>
+                      <p className="text-2xl font-bold text-gray-900">{policy.annualDays}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-600 mb-1">Acumulación</p>
+                      <p className="text-2xl font-bold text-gray-900">{policy.accrualRate.toFixed(2)}</p>
+                      <p className="text-xs text-gray-500">días/mes</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-600 mb-1">Anticipación</p>
+                      <p className="text-2xl font-bold text-gray-900">{policy.advanceRequest}</p>
+                      <p className="text-xs text-gray-500">días</p>
+                    </div>
+                  </div>
+
+                  {/* Períodos Restringidos */}
+                  {policy.blackoutPeriods && policy.blackoutPeriods.length > 0 && (
+                    <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                      <h5 className="text-sm font-medium text-red-900 mb-2">Períodos Restringidos</h5>
+                      <div className="space-y-1">
+                        {policy.blackoutPeriods.map((period, index) => (
+                          <div key={index} className="text-xs text-red-700">
+                            • {formatDate(period.startDate)} - {formatDate(period.endDate)}: {period.reason}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
+        {/* Tab: Solicitudes */}
         {activeTab === 'requests' && (
           <div className="space-y-6">
-            {/* Filtros y botón de nueva solicitud */}
             <div className="bg-white rounded-xl shadow-sm border">
               <div className="p-6 border-b">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">Solicitudes de Vacaciones</h3>
                   <button 
-                    onClick={() => setShowNewRequest(true)}
-                    className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                    onClick={() => {
+                      setSelectedRequest(null);
+                      setShowNewRequest(true);
+                    }}
+                    className="flex items-center space-x-2 px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
                   >
                     <Plus className="h-4 w-4" />
                     <span>Nueva Solicitud</span>
                   </button>
                 </div>
-                
+
                 <div className="flex items-center space-x-3">
-                  <div className="relative">
+                  <div className="relative flex-1">
                     <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                     <input
                       type="text"
                       placeholder="Buscar por razón o fecha..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-full"
                     />
                   </div>
+
                   <div className="relative">
                     <Filter className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                     <select
-                      value={filterType}
-                      onChange={(e) => setFilterType(e.target.value)}
-                      className="pl-10 pr-8 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                      className="pl-10 pr-8 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     >
                       <option value="all">Todos</option>
-                      <option value="pending">Pendientes</option>
-                      <option value="approved">Aprobadas</option>
-                      <option value="rejected">Rechazadas</option>
-                      <option value="cancelled">Canceladas</option>
+                      <option value="pending">Pendiente</option>
+                      <option value="approved">Aprobado</option>
+                      <option value="rejected">Rechazado</option>
+                      <option value="cancelled">Cancelado</option>
                     </select>
                   </div>
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Período</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Días</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Razón</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Solicitado</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+              <div className="p-6">
+                {filteredRequests.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-600">No se encontraron solicitudes</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {requests.length === 0 
+                        ? 'Crea tu primera solicitud haciendo clic en "Nueva Solicitud"'
+                        : 'Intenta ajustar los filtros de búsqueda'
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
                     {filteredRequests.map((request) => (
-                      <tr key={request.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          <div>
-                            <div className="font-medium">{formatDateShort(request.startDate)}</div>
-                            <div className="text-gray-500">al {formatDateShort(request.endDate)}</div>
+                      <div key={request.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <div className="flex items-center space-x-2">
+                                {getTypeIcon(request.type)}
+                                <span className="font-medium text-gray-900">{getTypeText(request.type)}</span>
+                              </div>
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full inline-flex items-center space-x-1 ${getStatusColor(request.status)}`}>
+                                {getStatusIcon(request.status)}
+                                <span className="ml-1">{getStatusText(request.status)}</span>
+                              </span>
+                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                                {request.days} días
+                              </span>
+                            </div>
+
+                            <p className="text-sm text-gray-600 mb-2">{request.reason}</p>
+
+                            <div className="flex items-center space-x-4 text-xs text-gray-500">
+                              <span className="flex items-center space-x-1">
+                                <Calendar className="h-3 w-3" />
+                                <span>{formatDate(request.startDate)} - {formatDate(request.endDate)}</span>
+                              </span>
+                              <span className="flex items-center space-x-1">
+                                <Clock className="h-3 w-3" />
+                                <span>Solicitado: {formatDate(request.requestedDate)}</span>
+                              </span>
+                              {request.approvedBy && (
+                                <span className="flex items-center space-x-1">
+                                  <CheckCircle className="h-3 w-3" />
+                                  <span>Aprobado por: {request.approvedByName || request.approvedBy}</span>
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center space-x-2">
-                            {getTypeIcon(request.type)}
-                            <span className="text-sm text-gray-900">{getTypeText(request.type)}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {request.days} día{request.days > 1 ? 's' : ''}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center space-x-2">
-                            {getStatusIcon(request.status)}
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(request.status)}`}>
-                              {getStatusText(request.status)}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                          {request.reason}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatDateShort(request.requestedDate)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center space-x-2">
-                            <button className="text-blue-600 hover:text-blue-900">
-                              <Eye className="h-4 w-4" />
-                            </button>
+
+                          <div className="flex items-center space-x-2 ml-4">
                             {request.status === 'pending' && (
                               <>
-                                <button className="text-green-600 hover:text-green-900">
+                                <button
+                                  onClick={() => handleEditRequest(request)}
+                                  className="p-1 hover:bg-blue-100 rounded text-blue-600"
+                                  title="Editar"
+                                >
                                   <Edit className="h-4 w-4" />
                                 </button>
-                                <button className="text-red-600 hover:text-red-900">
-                                  <Trash2 className="h-4 w-4" />
+                                <button
+                                  onClick={() => handleCancelRequest(request.id)}
+                                  className="p-1 hover:bg-yellow-100 rounded text-yellow-600"
+                                  title="Cancelar"
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleApproveRequest(request.id)}
+                                  className="p-1 hover:bg-green-100 rounded text-green-600"
+                                  title="Aprobar"
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleRejectRequest(request.id)}
+                                  className="p-1 hover:bg-red-100 rounded text-red-600"
+                                  title="Rechazar"
+                                >
+                                  <XCircle className="h-4 w-4" />
                                 </button>
                               </>
                             )}
+                            <button
+                              onClick={() => handleDeleteRequest(request.id)}
+                              className="p-1 hover:bg-red-100 rounded text-red-600"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </div>
-                        </td>
-                      </tr>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )}
 
+        {/* Tab: Historial */}
         {activeTab === 'history' && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm border">
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Historial de Vacaciones</h3>
-                <div className="space-y-4">
-                  {vacationsData.history.map((request) => (
-                    <div key={request.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-gray-900">
-                            {formatDate(request.startDate)} - {formatDate(request.endDate)}
-                          </h4>
-                          <p className="text-sm text-gray-600">{request.reason}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-lg font-bold text-blue-600">{request.days} día{request.days > 1 ? 's' : ''}</p>
-                          <p className="text-sm text-gray-500 capitalize">{getTypeText(request.type)}</p>
+                {historyRequests.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Clock className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-600">No hay historial disponible</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {historyRequests.map((request) => (
+                      <div key={request.id} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <span className="font-medium text-gray-900">
+                                {formatDate(request.startDate)} - {formatDate(request.endDate)}
+                              </span>
+                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                {request.days} días
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600">{request.reason}</p>
+                            <div className="flex items-center space-x-2 mt-2">
+                              {getTypeIcon(request.type)}
+                              <span className="text-xs text-gray-500">{getTypeText(request.type)}</span>
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(request.status)}`}>
+                                {getStatusText(request.status)}
+                              </span>
+                              {request.approvedBy && (
+                                <span className="text-xs text-gray-500">
+                                  Aprobado por: {request.approvedByName || request.approvedBy}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div className="mt-3 flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          {getStatusIcon(request.status)}
-                          <span className={`text-sm font-medium ${getStatusColor(request.status)}`}>
-                            {getStatusText(request.status)}
-                          </span>
-                        </div>
-                        {request.approvedBy && (
-                          <p className="text-sm text-gray-500">
-                            Aprobado por: {request.approvedBy}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )}
 
+        {/* Tab: Calendario */}
         {activeTab === 'calendar' && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm border">
@@ -728,9 +750,11 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Calendario de Vacaciones</h3>
                 <div className="h-96 flex items-center justify-center bg-gray-50 rounded-lg">
                   <div className="text-center">
-                    <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                    <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-3" />
                     <p className="text-gray-600">Calendario de vacaciones</p>
-                    <p className="text-sm text-gray-500">Se mostrará aquí un calendario interactivo con las vacaciones programadas</p>
+                    <p className="text-sm text-gray-500">
+                      Se mostrará aquí un calendario interactivo con las vacaciones programadas
+                    </p>
                   </div>
                 </div>
               </div>
@@ -740,6 +764,16 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
       </div>
     </div>
   );
+};
+
+const getStatusText = (status: string) => {
+  switch (status) {
+    case 'pending': return 'Pendiente';
+    case 'approved': return 'Aprobado';
+    case 'rejected': return 'Rechazado';
+    case 'cancelled': return 'Cancelado';
+    default: return 'Desconocido';
+  }
 };
 
 export { EmployeeVacationsView };
