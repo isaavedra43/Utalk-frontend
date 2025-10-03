@@ -19,7 +19,6 @@ export { AttendanceChart } from './components/AttendanceChart';
 export { VacationsChart } from './components/VacationsChart';
 export { HRDashboard } from './components/HRDashboard';
 export { PayrollModule } from './components/PayrollModule';
-export { TalentModule } from './components/TalentModule';
 export { RecruitmentModule } from './components/RecruitmentModule';
 export { AnalyticsModule } from './components/AnalyticsModule';
 export { HRCopilot } from './components/HRCopilot';

@@ -3,7 +3,6 @@ import {
   Users, 
   BarChart3, 
   DollarSign, 
-  Target, 
   UserPlus, 
   TrendingUp, 
   Shield, 
@@ -27,7 +26,6 @@ import { AttendanceModule } from './components/AttendanceModule';
 import { VacationModule } from './components/VacationModule';
 import { DocumentModule } from './components/DocumentModule';
 import { HRDocumentsModule } from './components/HRDocumentsModule';
-import { TalentModule } from './components/TalentModule';
 import { RecruitmentModule } from './components/RecruitmentModule';
 import { AnalyticsModule } from './components/AnalyticsModule';
 import { HRCopilot } from './components/HRCopilot';
@@ -59,7 +57,6 @@ const HRModule: React.FC = () => {
     { id: 'attendance', name: 'Asistencia', icon: Calendar },
     { id: 'vacations', name: 'Vacaciones', icon: Calendar },
     { id: 'documents', name: 'Documentos', icon: FileText },
-    { id: 'talent', name: 'Talento', icon: Target },
     { id: 'recruitment', name: 'Reclutamiento', icon: UserPlus },
     { id: 'analytics', name: 'Analítica', icon: TrendingUp },
     { id: 'copilot', name: 'Copiloto', icon: Bot },
@@ -142,8 +139,6 @@ const HRModule: React.FC = () => {
         ) : (
           <HRDocumentsModule />
         );
-      case 'talent':
-        return <TalentModule />;
       case 'recruitment':
         return <RecruitmentModule />;
       case 'analytics':
