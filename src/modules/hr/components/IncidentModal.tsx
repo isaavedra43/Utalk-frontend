@@ -30,7 +30,7 @@ interface IncidentModalProps {
 }
 
 interface IncidentFormData {
-  type: 'administrative' | 'theft' | 'accident' | 'injury' | 'disciplinary' | 'security' | 'equipment' | 'other';
+  type: 'safety' | 'equipment' | 'workplace' | 'environmental' | 'security' | 'quality' | 'other';
   severity: 'low' | 'medium' | 'high' | 'critical';
   title: string;
   description: string;
@@ -142,8 +142,21 @@ const IncidentModal: React.FC<IncidentModalProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.title.trim()) newErrors.title = 'El título es requerido';
-    if (!formData.description.trim()) newErrors.description = 'La descripción es requerida';
+    // Validación del título (mínimo 5 caracteres)
+    if (!formData.title.trim()) {
+      newErrors.title = 'El título es requerido';
+    } else if (formData.title.trim().length < 5) {
+      newErrors.title = 'El título debe tener al menos 5 caracteres';
+    }
+
+    // Validación de la descripción (mínimo 20 caracteres)
+    if (!formData.description.trim()) {
+      newErrors.description = 'La descripción es requerida';
+    } else if (formData.description.trim().length < 20) {
+      newErrors.description = 'La descripción debe tener al menos 20 caracteres';
+    }
+
+    // Validación de campos requeridos
     if (!formData.date) newErrors.date = 'La fecha es requerida';
     if (!formData.time) newErrors.time = 'La hora es requerida';
     if (!formData.location.trim()) newErrors.location = 'La ubicación es requerida';
@@ -325,13 +338,13 @@ const IncidentModal: React.FC<IncidentModalProps> = ({
   // Icono por tipo
   const getTypeIcon = (type: IncidentFormData['type']) => {
     switch (type) {
-      case 'administrative': return <FileText className="h-5 w-5" />;
-      case 'theft': return <Shield className="h-5 w-5" />;
-      case 'accident': return <Car className="h-5 w-5" />;
-      case 'injury': return <Heart className="h-5 w-5" />;
-      case 'disciplinary': return <AlertTriangle className="h-5 w-5" />;
-      case 'security': return <Shield className="h-5 w-5" />;
+      case 'safety': return <Shield className="h-5 w-5" />;
       case 'equipment': return <Briefcase className="h-5 w-5" />;
+      case 'workplace': return <Car className="h-5 w-5" />;
+      case 'environmental': return <Heart className="h-5 w-5" />;
+      case 'security': return <Shield className="h-5 w-5" />;
+      case 'quality': return <AlertTriangle className="h-5 w-5" />;
+      case 'other': return <FileText className="h-5 w-5" />;
       default: return <AlertTriangle className="h-5 w-5" />;
     }
   };
@@ -379,14 +392,13 @@ const IncidentModal: React.FC<IncidentModalProps> = ({
                   </label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {[
-                      { value: 'administrative', label: 'Administrativa', icon: FileText, color: 'blue' },
-                      { value: 'theft', label: 'Robo', icon: Shield, color: 'purple' },
-                      { value: 'accident', label: 'Accidente', icon: Car, color: 'orange' },
-                      { value: 'injury', label: 'Lesión', icon: Heart, color: 'pink' },
-                      { value: 'disciplinary', label: 'Disciplinaria', icon: AlertTriangle, color: 'yellow' },
+                      { value: 'safety', label: 'Seguridad', icon: Shield, color: 'blue' },
+                      { value: 'equipment', label: 'Equipamiento', icon: Briefcase, color: 'green' },
+                      { value: 'workplace', label: 'Lugar de Trabajo', icon: Car, color: 'orange' },
+                      { value: 'environmental', label: 'Ambiental', icon: Heart, color: 'pink' },
                       { value: 'security', label: 'Seguridad', icon: Shield, color: 'indigo' },
-                      { value: 'equipment', label: 'Equipo', icon: Briefcase, color: 'green' },
-                      { value: 'other', label: 'Otro', icon: AlertTriangle, color: 'gray' }
+                      { value: 'quality', label: 'Calidad', icon: AlertTriangle, color: 'yellow' },
+                      { value: 'other', label: 'Otro', icon: FileText, color: 'gray' }
                     ].map(({ value, label, icon: Icon, color }) => (
                       <button
                         key={value}

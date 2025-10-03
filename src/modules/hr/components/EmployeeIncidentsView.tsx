@@ -111,8 +111,19 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
       setShowNewIncident(false);
       setSelectedIncident(null);
       await refreshData();
-    } catch (error) {
-      showError(error instanceof Error ? error.message : 'Error procesando incidencia');
+    } catch (error: any) {
+      console.error('Error en handleSubmitIncident:', error);
+      
+      // Manejar errores de validación del backend
+      if (error?.response?.data?.details && Array.isArray(error.response.data.details)) {
+        const errorMessages = error.response.data.details.join(', ');
+        showError(`Errores de validación: ${errorMessages}`);
+      } else if (error?.response?.data?.message) {
+        showError(error.response.data.message);
+      } else {
+        showError(error instanceof Error ? error.message : 'Error procesando incidencia');
+      }
+      
       throw error;
     }
   };
@@ -241,26 +252,26 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'administrative': return <FileText className="h-4 w-4" />;
-      case 'theft': return <Shield className="h-4 w-4" />;
-      case 'accident': return <Car className="h-4 w-4" />;
-      case 'injury': return <Heart className="h-4 w-4" />;
-      case 'disciplinary': return <AlertTriangle className="h-4 w-4" />;
-      case 'security': return <Shield className="h-4 w-4" />;
+      case 'safety': return <Shield className="h-4 w-4" />;
       case 'equipment': return <Briefcase className="h-4 w-4" />;
+      case 'workplace': return <Car className="h-4 w-4" />;
+      case 'environmental': return <Heart className="h-4 w-4" />;
+      case 'security': return <Shield className="h-4 w-4" />;
+      case 'quality': return <AlertTriangle className="h-4 w-4" />;
+      case 'other': return <FileText className="h-4 w-4" />;
       default: return <AlertTriangle className="h-4 w-4" />;
     }
   };
 
   const getTypeText = (type: string) => {
     switch (type) {
-      case 'administrative': return 'Administrativa';
-      case 'theft': return 'Robo';
-      case 'accident': return 'Accidente';
-      case 'injury': return 'Lesión';
-      case 'disciplinary': return 'Disciplinaria';
+      case 'safety': return 'Seguridad';
+      case 'equipment': return 'Equipamiento';
+      case 'workplace': return 'Lugar de Trabajo';
+      case 'environmental': return 'Ambiental';
       case 'security': return 'Seguridad';
-      case 'equipment': return 'Equipo';
+      case 'quality': return 'Calidad';
+      case 'other': return 'Otro';
       default: return 'Otro';
     }
   };
