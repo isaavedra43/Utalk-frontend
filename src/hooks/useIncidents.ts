@@ -44,6 +44,12 @@ export const useIncidents = (options: UseIncidentsOptions): UseIncidentsReturn =
 
   // Función para cargar datos
   const refreshData = useCallback(async () => {
+    if (!employeeId) {
+      console.warn('⚠️ useIncidents: employeeId no proporcionado');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -56,11 +62,11 @@ export const useIncidents = (options: UseIncidentsOptions): UseIncidentsReturn =
         incidentsService.getIncidentsSummary(employeeId)
       ]);
 
-      setIncidents(incidentsData);
-      setSummary(summaryData);
+      setIncidents(incidentsData || []);
+      setSummary(summaryData || null);
 
       console.log('✅ Datos de incidencias cargados:', {
-        totalIncidents: incidentsData.length,
+        totalIncidents: incidentsData?.length || 0,
         summary: summaryData
       });
     } catch (err) {
@@ -303,4 +309,3 @@ export const useIncidents = (options: UseIncidentsOptions): UseIncidentsReturn =
 };
 
 export default useIncidents;
-

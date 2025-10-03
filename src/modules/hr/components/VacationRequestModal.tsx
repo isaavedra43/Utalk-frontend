@@ -1,19 +1,18 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-// @ts-ignore - Los iconos existen pero TypeScript cache puede no reconocerlos
+import React, { useState, useRef, useEffect } from 'react';
 import {
   X,
   Calendar,
-  Clock,
+  Clock3,
   FileText,
-  Upload,
+  Upload as UploadIcon,
   Trash2,
   AlertTriangle,
   CheckCircle,
-  Plane,
-  Heart,
-  Baby,
-  Home,
-  Coffee,
+  Send as SendIcon,
+  Heart as HeartIcon,
+  UserPlus as UserPlusIcon,
+  Home as HomeIcon,
+  Coffee as CoffeeIcon,
   DollarSign,
   User,
   XCircle
@@ -55,7 +54,6 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  employeeId,
   employeeName,
   availableDays,
   request,
@@ -264,13 +262,13 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
   // Obtener icono según tipo
   const getTypeIcon = () => {
     switch (formData.type) {
-      case 'vacation': return <Plane className="h-5 w-5" />;
+      case 'vacation': return <SendIcon className="h-5 w-5" />;
       case 'personal': return <User className="h-5 w-5" />;
-      case 'sick_leave': return <Heart className="h-5 w-5" />;
-      case 'maternity': return <Baby className="h-5 w-5" />;
-      case 'paternity': return <Home className="h-5 w-5" />;
+      case 'sick_leave': return <HeartIcon className="h-5 w-5" />;
+      case 'maternity': return <UserPlusIcon className="h-5 w-5" />;
+      case 'paternity': return <HomeIcon className="h-5 w-5" />;
       case 'unpaid': return <DollarSign className="h-5 w-5" />;
-      case 'compensatory': return <Coffee className="h-5 w-5" />;
+      case 'compensatory': return <CoffeeIcon className="h-5 w-5" />;
       default: return <Calendar className="h-5 w-5" />;
     }
   };
@@ -346,12 +344,12 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
                   </label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {[
-                      { value: 'vacation', label: 'Vacaciones', icon: Plane, color: 'blue' },
+                      { value: 'vacation', label: 'Vacaciones', icon: SendIcon, color: 'blue' },
                       { value: 'personal', label: 'Personal', icon: User, color: 'purple' },
-                      { value: 'sick_leave', label: 'Enfermedad', icon: Heart, color: 'red' },
-                      { value: 'maternity', label: 'Maternidad', icon: Baby, color: 'pink' },
-                      { value: 'paternity', label: 'Paternidad', icon: Home, color: 'indigo' },
-                      { value: 'compensatory', label: 'Compensatorio', icon: Coffee, color: 'amber' },
+                      { value: 'sick_leave', label: 'Enfermedad', icon: HeartIcon, color: 'red' },
+                      { value: 'maternity', label: 'Maternidad', icon: UserPlusIcon, color: 'pink' },
+                      { value: 'paternity', label: 'Paternidad', icon: HomeIcon, color: 'indigo' },
+                      { value: 'compensatory', label: 'Compensatorio', icon: CoffeeIcon, color: 'amber' },
                       { value: 'unpaid', label: 'Sin Goce', icon: DollarSign, color: 'gray' }
                     ].map(({ value, label, icon: Icon, color }) => (
                       <button
@@ -424,7 +422,7 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
                   <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <Clock className="h-5 w-5 text-blue-600" />
+                        <Clock3 className="h-5 w-5 text-blue-600" />
                         <span className="text-sm font-medium text-blue-900">
                           Días solicitados:
                         </span>
@@ -532,7 +530,7 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
                   </label>
                   
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                    <Upload className="h-6 w-6 text-gray-400 mx-auto mb-2" />
+                    <UploadIcon className="h-6 w-6 text-gray-400 mx-auto mb-2" />
                     <p className="text-sm text-gray-600 mb-2">
                       Certificados médicos, justificantes, etc.
                     </p>

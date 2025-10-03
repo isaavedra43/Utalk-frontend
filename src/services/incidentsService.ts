@@ -380,4 +380,3 @@ class IncidentsService {
 // Exportar instancia única del servicio
 export const incidentsService = new IncidentsService();
 export default incidentsService;
-

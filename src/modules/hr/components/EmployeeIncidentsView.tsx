@@ -55,7 +55,7 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
 }) => {
   const { showSuccess, showError } = useNotifications();
   
-  // Usar hook de incidencias
+  // Hook para manejar incidencias
   const {
     incidents,
     summary,
@@ -74,7 +74,7 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
     refreshData
   } = useIncidents({ employeeId, autoRefresh: false });
 
-  // Estado local de UI
+  // Estado local
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -87,24 +87,20 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
   // HANDLERS
   // ============================================================================
 
-  // Manejar creación/edición de incidencia
   const handleSubmitIncident = async (incidentData: IncidentRequest, attachments: File[]) => {
     try {
-      // Subir archivos primero
       let attachmentIds: string[] = [];
       if (attachments.length > 0) {
         attachmentIds = await uploadAttachments(attachments);
       }
 
       if (selectedIncident) {
-        // Modo edición
         await updateIncident(selectedIncident.id, {
           ...incidentData as any,
           attachments: attachmentIds
         });
         showSuccess('Incidencia actualizada exitosamente');
       } else {
-        // Modo creación
         await createIncident({
           ...incidentData,
           attachments: attachmentIds
@@ -121,13 +117,11 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
     }
   };
 
-  // Manejar apertura de modal de edición
   const handleEditIncident = (incident: Incident) => {
     setSelectedIncident(incident);
     setShowNewIncident(true);
   };
 
-  // Manejar eliminación de incidencia
   const handleDeleteIncident = async (incidentId: string) => {
     if (!confirm('¿Estás seguro de eliminar esta incidencia? Esta acción no se puede deshacer.')) return;
 
@@ -139,7 +133,6 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
     }
   };
 
-  // Manejar aprobación
   const handleApproveIncident = async (incidentId: string) => {
     try {
       await approveIncident(incidentId);
@@ -149,7 +142,6 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
     }
   };
 
-  // Manejar rechazo
   const handleRejectIncident = async (incidentId: string) => {
     const comments = prompt('Motivo del rechazo:');
     if (!comments) return;
@@ -162,7 +154,6 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
     }
   };
 
-  // Manejar cierre
   const handleCloseIncident = async (incidentId: string) => {
     const resolution = prompt('Resolución final de la incidencia:');
     if (!resolution) return;
@@ -175,7 +166,6 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
     }
   };
 
-  // Manejar marcar como pagado
   const handleMarkAsPaid = async (incidentId: string) => {
     const paidBy = prompt('Nombre de quien realizó el pago:');
     if (!paidBy) return;
@@ -188,7 +178,6 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
     }
   };
 
-  // Manejar exportación
   const handleExport = async () => {
     try {
       const blob = await exportIncidents('excel');
@@ -206,7 +195,6 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
     }
   };
 
-  // Manejar generación de reportes
   const handleGenerateReport = async (reportType: 'acta' | 'robo' | 'accidente' | 'lesion' | 'disciplinario' | 'equipo') => {
     if (!selectedIncident) {
       showError('Selecciona una incidencia primero');
@@ -230,7 +218,7 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
   };
 
   // ============================================================================
-  // HELPERS
+  // FILTERS & DATA PROCESSING
   // ============================================================================
 
   const criticalIncidents = incidents.filter(
@@ -246,6 +234,10 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
     const matchesSeverity = filterSeverity === 'all' || incident.severity === filterSeverity;
     return matchesSearch && matchesType && matchesStatus && matchesSeverity;
   });
+
+  // ============================================================================
+  // UTILITY FUNCTIONS
+  // ============================================================================
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -326,7 +318,7 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
   };
 
   // ============================================================================
-  // RENDER
+  // RENDER STATES
   // ============================================================================
 
   if (loading) {
@@ -358,9 +350,13 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
     );
   }
 
+  // ============================================================================
+  // MAIN RENDER
+  // ============================================================================
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Modal de Nueva/Editar Incidencia */}
+      {/* Modal */}
       <IncidentModal
         isOpen={showNewIncident}
         onClose={() => {
@@ -393,6 +389,13 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
             
             <div className="flex items-center space-x-3">
               <button 
+                onClick={() => setShowNewIncident(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Nueva Incidencia</span>
+              </button>
+              <button 
                 onClick={handleExport}
                 className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
@@ -404,8 +407,9 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
         </div>
       </div>
 
+      {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Resumen General */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-xl shadow-sm border">
             <div className="flex items-center justify-between">
@@ -460,7 +464,7 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
           </div>
         </div>
 
-        {/* Navegación por pestañas */}
+        {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border mb-6">
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8 px-6">
@@ -490,10 +494,9 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
           </div>
         </div>
 
-        {/* Tab: Overview */}
+        {/* Tab Content */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* Estadísticas por tipo */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-xl shadow-sm border">
                 <div className="p-6">
@@ -529,36 +532,6 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
               </div>
             </div>
 
-            {/* Costos */}
-            {summary && summary.totalCost > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border">
-                <div className="p-6">
-                  <h4 className="font-medium text-gray-900 mb-4">Costos por Incidencias</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <p className="text-sm text-blue-600 mb-1">Total</p>
-                      <p className="text-2xl font-bold text-blue-900">
-                        ${summary.totalCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                    <div className="bg-green-50 p-4 rounded-lg">
-                      <p className="text-sm text-green-600 mb-1">Pagado</p>
-                      <p className="text-2xl font-bold text-green-900">
-                        ${summary.paidCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                    <div className="bg-orange-50 p-4 rounded-lg">
-                      <p className="text-sm text-orange-600 mb-1">Pendiente</p>
-                      <p className="text-2xl font-bold text-orange-900">
-                        ${summary.unpaidCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Incidencias críticas */}
             {criticalIncidents.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border">
                 <div className="p-6">
@@ -597,312 +570,226 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
           </div>
         )}
 
-        {/* Tab: Incidencias */}
         {activeTab === 'incidents' && (
           <div className="space-y-6">
-            {/* Filtros y botón de nueva incidencia */}
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6 border-b">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Incidencias Registradas</h3>
-                  <button 
-                    onClick={() => {
-                      setSelectedIncident(null);
-                      setShowNewIncident(true);
-                    }}
-                    className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Nueva Incidencia</span>
-                  </button>
-                </div>
-                
-                <div className="flex items-center space-x-3">
-                  <div className="relative flex-1">
-                    <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            {/* Filters */}
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input
                       type="text"
-                      placeholder="Buscar incidencias..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Buscar incidencias..."
                     />
                   </div>
-                  
-                  <div className="relative">
-                    <Filter className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                    <select
-                      value={filterType}
-                      onChange={(e) => setFilterType(e.target.value)}
-                      className="pl-10 pr-8 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="all">Todos los tipos</option>
-                      <option value="administrative">Administrativa</option>
-                      <option value="theft">Robo</option>
-                      <option value="accident">Accidente</option>
-                      <option value="injury">Lesión</option>
-                      <option value="disciplinary">Disciplinaria</option>
-                      <option value="security">Seguridad</option>
-                      <option value="equipment">Equipo</option>
-                      <option value="other">Otro</option>
-                    </select>
-                  </div>
-
-                  <div className="relative">
-                    <select
-                      value={filterStatus}
-                      onChange={(e) => setFilterStatus(e.target.value)}
-                      className="pl-4 pr-8 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="all">Todos los estados</option>
-                      <option value="draft">Borrador</option>
-                      <option value="pending">Pendiente</option>
-                      <option value="in_review">En Revisión</option>
-                      <option value="approved">Aprobado</option>
-                      <option value="rejected">Rechazado</option>
-                      <option value="closed">Cerrado</option>
-                    </select>
-                  </div>
-
-                  <div className="relative">
-                    <select
-                      value={filterSeverity}
-                      onChange={(e) => setFilterSeverity(e.target.value)}
-                      className="pl-4 pr-8 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="all">Todas las severidades</option>
-                      <option value="low">Baja</option>
-                      <option value="medium">Media</option>
-                      <option value="high">Alta</option>
-                      <option value="critical">Crítica</option>
-                    </select>
-                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">Todos los tipos</option>
+                    <option value="administrative">Administrativa</option>
+                    <option value="theft">Robo</option>
+                    <option value="accident">Accidente</option>
+                    <option value="injury">Lesión</option>
+                    <option value="disciplinary">Disciplinaria</option>
+                    <option value="security">Seguridad</option>
+                    <option value="equipment">Equipo</option>
+                    <option value="other">Otro</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">Todos los estados</option>
+                    <option value="draft">Borrador</option>
+                    <option value="pending">Pendiente</option>
+                    <option value="in_review">En Revisión</option>
+                    <option value="approved">Aprobado</option>
+                    <option value="rejected">Rechazado</option>
+                    <option value="closed">Cerrado</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Severidad</label>
+                  <select
+                    value={filterSeverity}
+                    onChange={(e) => setFilterSeverity(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">Todas las severidades</option>
+                    <option value="low">Baja</option>
+                    <option value="medium">Media</option>
+                    <option value="high">Alta</option>
+                    <option value="critical">Crítica</option>
+                  </select>
                 </div>
               </div>
+            </div>
 
-              {/* Lista de incidencias */}
-              <div className="p-6">
-                {filteredIncidents.length === 0 ? (
-                  <div className="text-center py-12">
-                    <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-600">No se encontraron incidencias</p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {incidents.length === 0 
-                        ? 'Agrega la primera incidencia haciendo clic en "Nueva Incidencia"'
-                        : 'Intenta ajustar los filtros de búsqueda'
-                      }
-                    </p>
-                  </div>
-                ) : (
-                <div className="space-y-4">
-                  {filteredIncidents.map((incident) => (
-                    <div key={incident.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            {getTypeIcon(incident.type)}
-                            <h4 className="font-medium text-gray-900">{incident.title}</h4>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getSeverityColor(incident.severity)}`}>
-                              {getSeverityText(incident.severity)}
-                            </span>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(incident.status)}`}>
-                              {getStatusText(incident.status)}
-                            </span>
-                              {incident.cost && incident.cost > 0 && (
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                  incident.costPaid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                }`}>
-                                  ${incident.cost.toLocaleString('es-MX')} {incident.costPaid ? '(Pagado)' : '(Pendiente)'}
-                                </span>
-                              )}
-                          </div>
-                          
-                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">{incident.description}</p>
-                          
-                          <div className="flex items-center space-x-4 text-xs text-gray-500">
-                            <span className="flex items-center space-x-1">
-                              <Calendar className="h-3 w-3" />
-                                <span>{formatDate(incident.date)} a las {incident.time}</span>
-                            </span>
-                            <span className="flex items-center space-x-1">
-                              <MapPin className="h-3 w-3" />
-                              <span>{incident.location}</span>
-                            </span>
-                            <span className="flex items-center space-x-1">
-                              <User className="h-3 w-3" />
-                                <span>Reportado por: {incident.reportedByName || incident.reportedBy}</span>
-                            </span>
-                          </div>
+            {/* Incidents List */}
+            <div className="bg-white rounded-xl shadow-sm border">
+              <div className="p-6 border-b">
+                <h3 className="text-lg font-semibold text-gray-900">Incidencias Registradas ({filteredIncidents.length})</h3>
+              </div>
+              
+              <div className="divide-y divide-gray-200">
+                {filteredIncidents.map((incident) => (
+                  <div key={incident.id} className="p-6 hover:bg-gray-50">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          {getTypeIcon(incident.type)}
+                          <h4 className="text-lg font-medium text-gray-900">{incident.title}</h4>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getSeverityColor(incident.severity)}`}>
+                            {getSeverityText(incident.severity)}
+                          </span>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(incident.status)}`}>
+                            {getStatusText(incident.status)}
+                          </span>
                         </div>
                         
-                        <div className="flex items-center space-x-2 ml-4">
-                            <button 
-                              onClick={() => handleEditIncident(incident)}
-                              className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600"
-                              title="Editar"
-                            >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                            
-                            {incident.status === 'pending' && (
-                              <>
-                                <button 
-                                  onClick={() => handleApproveIncident(incident.id)}
-                                  className="p-1 hover:bg-green-100 rounded text-green-600"
-                                  title="Aprobar"
-                                >
-                                  <CheckCircle className="h-4 w-4" />
-                          </button>
-                                <button 
-                                  onClick={() => handleRejectIncident(incident.id)}
-                                  className="p-1 hover:bg-red-100 rounded text-red-600"
-                                  title="Rechazar"
-                                >
-                                  <XCircle className="h-4 w-4" />
-                                </button>
-                              </>
-                            )}
-
-                            {incident.status === 'approved' && !incident.costPaid && incident.cost && incident.cost > 0 && (
-                              <button 
-                                onClick={() => handleMarkAsPaid(incident.id)}
-                                className="p-1 hover:bg-blue-100 rounded text-blue-600"
-                                title="Marcar como pagado"
-                              >
-                                <CreditCard className="h-4 w-4" />
-                              </button>
-                            )}
-
-                            {(incident.status === 'approved' || incident.status === 'in_review') && (
-                              <button 
-                                onClick={() => handleCloseIncident(incident.id)}
-                                className="p-1 hover:bg-purple-100 rounded text-purple-600"
-                                title="Cerrar incidencia"
-                              >
-                                <Archive className="h-4 w-4" />
-                              </button>
-                            )}
-                            
-                            <button 
-                              onClick={() => handleDeleteIncident(incident.id)}
-                              className="p-1 hover:bg-red-100 rounded text-red-600"
-                              title="Eliminar"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                          </button>
+                        <p className="text-gray-600 mb-3">{incident.description}</p>
+                        
+                        <div className="flex items-center space-x-6 text-sm text-gray-500">
+                          <div className="flex items-center space-x-1">
+                            <Calendar className="h-4 w-4" />
+                            <span>{formatDate(incident.date)}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <MapPin className="h-4 w-4" />
+                            <span>{incident.location}</span>
+                          </div>
+                          {incident.cost && (
+                            <div className="flex items-center space-x-1">
+                              <DollarSign className="h-4 w-4" />
+                              <span>${incident.cost.toLocaleString('es-MX')}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <button 
+                          onClick={() => handleEditIncident(incident)}
+                          className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 hover:text-gray-900"
+                          title="Editar"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteIncident(incident.id)}
+                          className="p-2 hover:bg-red-100 rounded-lg text-red-600 hover:text-red-900"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
+                
+                {filteredIncidents.length === 0 && (
+                  <div className="p-12 text-center">
+                    <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No se encontraron incidencias</h3>
+                    <p className="text-gray-600 mb-4">
+                      {incidents.length === 0 
+                        ? 'No hay incidencias registradas para este empleado.'
+                        : 'Intenta ajustar los filtros de búsqueda.'
+                      }
+                    </p>
+                    {incidents.length === 0 && (
+                      <button 
+                        onClick={() => setShowNewIncident(true)}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        Registrar Primera Incidencia
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
           </div>
         )}
 
-        {/* Tab: Reportes */}
         {activeTab === 'reports' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Generar Reportes</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Selecciona una incidencia de la lista y luego elige el tipo de reporte a generar
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <button 
-                    onClick={() => handleGenerateReport('acta')}
-                    disabled={!selectedIncident}
-                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <div className="flex items-center space-x-3 mb-2">
-                      <FileText className="h-5 w-5 text-blue-600" />
-                      <span className="font-medium text-gray-900">Acta Administrativa</span>
-                    </div>
-                    <p className="text-sm text-gray-600">Generar acta administrativa formal</p>
-                  </button>
-                  
-                  <button 
-                    onClick={() => handleGenerateReport('robo')}
-                    disabled={!selectedIncident}
-                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <div className="flex items-center space-x-3 mb-2">
-                      <Shield className="h-5 w-5 text-red-600" />
-                      <span className="font-medium text-gray-900">Reporte de Robo</span>
-                    </div>
-                    <p className="text-sm text-gray-600">Reporte de robo o hurto</p>
-                  </button>
-                  
-                  <button 
-                    onClick={() => handleGenerateReport('accidente')}
-                    disabled={!selectedIncident}
-                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <div className="flex items-center space-x-3 mb-2">
-                      <Car className="h-5 w-5 text-orange-600" />
-                      <span className="font-medium text-gray-900">Reporte de Accidente</span>
-                    </div>
-                    <p className="text-sm text-gray-600">Accidente laboral o de trabajo</p>
-                  </button>
-                  
-                  <button 
-                    onClick={() => handleGenerateReport('lesion')}
-                    disabled={!selectedIncident}
-                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <div className="flex items-center space-x-3 mb-2">
-                      <Heart className="h-5 w-5 text-pink-600" />
-                      <span className="font-medium text-gray-900">Reporte de Lesión</span>
-                    </div>
-                    <p className="text-sm text-gray-600">Lesión o herida en el trabajo</p>
-                  </button>
-                  
-                  <button 
-                    onClick={() => handleGenerateReport('disciplinario')}
-                    disabled={!selectedIncident}
-                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <div className="flex items-center space-x-3 mb-2">
-                      <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                      <span className="font-medium text-gray-900">Reporte Disciplinario</span>
-                    </div>
-                    <p className="text-sm text-gray-600">Falta disciplinaria</p>
-                  </button>
-                  
-                  <button 
-                    onClick={() => handleGenerateReport('equipo')}
-                    disabled={!selectedIncident}
-                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <div className="flex items-center space-x-3 mb-2">
-                      <Briefcase className="h-5 w-5 text-purple-600" />
-                      <span className="font-medium text-gray-900">Reporte de Equipo</span>
-                    </div>
-                    <p className="text-sm text-gray-600">Daño o pérdida de equipo</p>
-                  </button>
-                </div>
+          <div className="bg-white rounded-xl shadow-sm border p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Generar Reportes</h3>
+            <p className="text-gray-600 mb-6">Selecciona una incidencia y el tipo de reporte que deseas generar.</p>
+            
+            {incidents.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">No hay incidencias para generar reportes.</p>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Seleccionar Incidencia</label>
+                  <select
+                    value={selectedIncident?.id || ''}
+                    onChange={(e) => {
+                      const incident = incidents.find(inc => inc.id === e.target.value);
+                      setSelectedIncident(incident || null);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Selecciona una incidencia</option>
+                    {incidents.map((incident) => (
+                      <option key={incident.id} value={incident.id}>
+                        {incident.title} - {formatDate(incident.date)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {selectedIncident && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {[
+                      { type: 'acta', label: 'Acta Administrativa' },
+                      { type: 'robo', label: 'Reporte de Robo' },
+                      { type: 'accidente', label: 'Reporte de Accidente' },
+                      { type: 'lesion', label: 'Reporte de Lesión' },
+                      { type: 'disciplinario', label: 'Reporte Disciplinario' },
+                      { type: 'equipo', label: 'Reporte de Equipo' }
+                    ].map(({ type, label }) => (
+                      <button
+                        key={type}
+                        onClick={() => handleGenerateReport(type as any)}
+                        className="p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                      >
+                        <FileText className="h-6 w-6 text-blue-600 mb-2" />
+                        <p className="text-sm font-medium text-gray-900">{label}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Tab: Analytics */}
         {activeTab === 'analytics' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Análisis de Incidencias</h3>
-                <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-                  <div className="text-center">
-                    <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-600">Gráficos de análisis</p>
-                    <p className="text-sm text-gray-500">Se mostrarán aquí gráficos de tendencias y análisis de incidencias</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="bg-white rounded-xl shadow-sm border p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Análisis y Estadísticas</h3>
+            <p className="text-gray-600">Vista de análisis avanzado de incidencias (próximamente).</p>
           </div>
         )}
       </div>
@@ -910,5 +797,4 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
   );
 };
 
-export { EmployeeIncidentsView };
 export default EmployeeIncidentsView;
