@@ -1,5 +1,5 @@
 import api from './api';
-import { handleApiError } from '../config/api';
+import { handleApiError } from '../config/apiConfig';
 
 // ============================================================================
 // TYPES & INTERFACES
