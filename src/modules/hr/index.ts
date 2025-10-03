@@ -9,7 +9,7 @@ export { EmployeeAttendanceView } from './components/EmployeeAttendanceView';
 export { EmployeeVacationsView } from './components/EmployeeVacationsView';
 export { EmployeeDocumentsView } from './components/EmployeeDocumentsView';
 export { EmployeeIncidentsView } from './components/EmployeeIncidentsView';
-export { EmployeeEvaluationsView } from './components/EmployeeEvaluationsView';
+export { EmployeeEquipmentView } from './components/EmployeeEquipmentView';
 export { EmployeeSkillsView } from './components/EmployeeSkillsView';
 export { EmployeeHistoryView } from './components/EmployeeHistoryView';
 export { default as EditEmployeeModal } from './components/EditEmployeeModal';

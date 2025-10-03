@@ -25,7 +25,7 @@ import { EmployeeAttendanceView } from './EmployeeAttendanceView';
 import { EmployeeVacationsView } from './EmployeeVacationsView';
 import { DocumentModule } from './DocumentModule';
 import { EmployeeIncidentsView } from './EmployeeIncidentsView';
-import { EmployeeEvaluationsView } from './EmployeeEvaluationsView';
+import { EmployeeEquipmentView } from './EmployeeEquipmentView';
 import { EmployeeSkillsView } from './EmployeeSkillsView';
 import { EmployeeHistoryView } from './EmployeeHistoryView';
 import type { Employee } from '../../../services/employeesApi';
@@ -105,7 +105,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
     { id: 'vacations', label: 'Vacaciones', icon: Calendar },
     { id: 'documents', label: 'Documentos', icon: FileText },
     { id: 'incidents', label: 'Incidentes', icon: AlertTriangle },
-    { id: 'evaluations', label: 'Evaluaciones', icon: Star },
+    { id: 'equipment', label: 'Equipo', icon: Star },
     { id: 'skills', label: 'Habilidades', icon: Award },
     { id: 'history', label: 'Historial', icon: History }
   ];
@@ -278,17 +278,17 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
             );
           }
         
-        case 'evaluations':
+        case 'equipment':
           try {
-            return <EmployeeEvaluationsView employeeId={employee.id} onBack={onBack} />;
+            return <EmployeeEquipmentView employeeId={employee.id} employeeName={`${employee.firstName} ${employee.lastName}`} onBack={onBack} />;
           } catch (error) {
-            console.error('Error en EmployeeEvaluationsView:', error);
+            console.error('Error en EmployeeEquipmentView:', error);
             return (
               <div className="p-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
                   <Star className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-                  <h3 className="text-lg font-medium text-blue-800 mb-1">Evaluaciones</h3>
-                  <p className="text-blue-600 text-sm">No hay evaluaciones disponibles para este empleado.</p>
+                  <h3 className="text-lg font-medium text-blue-800 mb-1">Equipo</h3>
+                  <p className="text-blue-600 text-sm">Error al cargar el módulo de equipo.</p>
                 </div>
               </div>
             );

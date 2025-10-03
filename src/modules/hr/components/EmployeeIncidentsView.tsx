@@ -49,7 +49,7 @@ interface EmployeeIncidentsViewProps {
 // ============================================================================
 
 const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({ 
-  employeeId,
+  employeeId, 
   employeeName = 'Empleado',
   onBack 
 }) => {
@@ -694,20 +694,20 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {filteredIncidents.map((incident) => (
-                      <div key={incident.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
-                              {getTypeIcon(incident.type)}
-                              <h4 className="font-medium text-gray-900">{incident.title}</h4>
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getSeverityColor(incident.severity)}`}>
-                                {getSeverityText(incident.severity)}
-                              </span>
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(incident.status)}`}>
-                                {getStatusText(incident.status)}
-                              </span>
+                <div className="space-y-4">
+                  {filteredIncidents.map((incident) => (
+                    <div key={incident.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-2">
+                            {getTypeIcon(incident.type)}
+                            <h4 className="font-medium text-gray-900">{incident.title}</h4>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getSeverityColor(incident.severity)}`}>
+                              {getSeverityText(incident.severity)}
+                            </span>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(incident.status)}`}>
+                              {getStatusText(incident.status)}
+                            </span>
                               {incident.cost && incident.cost > 0 && (
                                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                                   incident.costPaid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
@@ -715,34 +715,34 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                                   ${incident.cost.toLocaleString('es-MX')} {incident.costPaid ? '(Pagado)' : '(Pendiente)'}
                                 </span>
                               )}
-                            </div>
-                            
-                            <p className="text-sm text-gray-600 mb-3 line-clamp-2">{incident.description}</p>
-                            
-                            <div className="flex items-center space-x-4 text-xs text-gray-500">
-                              <span className="flex items-center space-x-1">
-                                <Calendar className="h-3 w-3" />
-                                <span>{formatDate(incident.date)} a las {incident.time}</span>
-                              </span>
-                              <span className="flex items-center space-x-1">
-                                <MapPin className="h-3 w-3" />
-                                <span>{incident.location}</span>
-                              </span>
-                              <span className="flex items-center space-x-1">
-                                <User className="h-3 w-3" />
-                                <span>Reportado por: {incident.reportedByName || incident.reportedBy}</span>
-                              </span>
-                            </div>
                           </div>
                           
-                          <div className="flex items-center space-x-2 ml-4">
+                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">{incident.description}</p>
+                          
+                          <div className="flex items-center space-x-4 text-xs text-gray-500">
+                            <span className="flex items-center space-x-1">
+                              <Calendar className="h-3 w-3" />
+                                <span>{formatDate(incident.date)} a las {incident.time}</span>
+                            </span>
+                            <span className="flex items-center space-x-1">
+                              <MapPin className="h-3 w-3" />
+                              <span>{incident.location}</span>
+                            </span>
+                            <span className="flex items-center space-x-1">
+                              <User className="h-3 w-3" />
+                                <span>Reportado por: {incident.reportedByName || incident.reportedBy}</span>
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2 ml-4">
                             <button 
                               onClick={() => handleEditIncident(incident)}
                               className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600"
                               title="Editar"
                             >
-                              <Edit className="h-4 w-4" />
-                            </button>
+                            <Edit className="h-4 w-4" />
+                          </button>
                             
                             {incident.status === 'pending' && (
                               <>
@@ -752,7 +752,7 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                                   title="Aprobar"
                                 >
                                   <CheckCircle className="h-4 w-4" />
-                                </button>
+                          </button>
                                 <button 
                                   onClick={() => handleRejectIncident(incident.id)}
                                   className="p-1 hover:bg-red-100 rounded text-red-600"
@@ -789,12 +789,12 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                               title="Eliminar"
                             >
                               <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
+                          </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
+                </div>
                 )}
               </div>
             </div>
