@@ -115,8 +115,6 @@ export interface PayrollPeriod {
 }
 
 export interface PayrollMetrics {
-  pendingOvertimeHours: number;
-  periodIncidents: number;
   totalEmployees: number;
   activePeriods: number;
   totalCost: number;

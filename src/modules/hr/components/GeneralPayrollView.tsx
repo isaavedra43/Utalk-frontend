@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Clock, 
-  AlertCircle, 
   Play, 
   Download,
   Calendar,
@@ -52,10 +50,7 @@ interface CustomPeriodData {
 
 const GeneralPayrollView: React.FC = () => {
   // Estados para métricas
-  const [metrics, setMetrics] = useState<PayrollMetrics>({
-    pendingOvertimeHours: 125,
-    periodIncidents: 18
-  });
+  const [metrics, setMetrics] = useState<PayrollMetrics>({});
 
   // Estados para períodos de nómina
   const [payrollPeriods, setPayrollPeriods] = useState<PayrollPeriod[]>([]);
@@ -668,38 +663,6 @@ const GeneralPayrollView: React.FC = () => {
         </div>
       )}
 
-      {/* Métricas principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Horas Extra Pendientes */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <Clock className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Horas Extra Pendientes</p>
-                <p className="text-3xl font-bold text-gray-900">{metrics.pendingOvertimeHours}h</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Incidencias del Período */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-red-50 rounded-lg">
-                <AlertCircle className="h-6 w-6 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">Incidencias del Período</p>
-                <p className="text-3xl font-bold text-gray-900">{metrics.periodIncidents}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Sección de Ejecución de Nómina */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
