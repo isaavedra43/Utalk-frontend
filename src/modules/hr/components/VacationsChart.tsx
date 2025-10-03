@@ -35,11 +35,13 @@ const VacationsChart: React.FC<VacationsChartProps> = ({
   height = 200 
 }) => {
   const getMaxValue = () => {
-    return Math.max(...data.map(d => d.days));
+    if (data.length === 0) return 10;
+    return Math.max(...data.map(d => d.days), 1);
   };
 
   const getMinValue = () => {
-    return Math.min(...data.map(d => d.days));
+    if (data.length === 0) return 0;
+    return Math.min(...data.map(d => d.days), 0);
   };
 
   const getTypeColor = (type: string) => {
@@ -100,10 +102,13 @@ const VacationsChart: React.FC<VacationsChartProps> = ({
   const chartMin = Math.max(0, minValue - padding);
 
   const getY = (value: number) => {
-    return height - ((value - chartMin) / (chartMax - chartMin)) * height;
+    const range = chartMax - chartMin;
+    if (range === 0) return height / 2; // Center if no range
+    return height - ((value - chartMin) / range) * height;
   };
 
   const getX = (index: number) => {
+    if (data.length <= 1) return 50; // Center point if only one data point
     return (index / (data.length - 1)) * 100;
   };
 
@@ -364,7 +369,7 @@ const VacationsChart: React.FC<VacationsChartProps> = ({
         <div className="text-center">
           <p className="text-xs text-gray-600">Promedio</p>
           <p className="font-medium text-gray-900">
-            {(data.reduce((sum, d) => sum + d.days, 0) / data.length).toFixed(1)} días
+            {data.length > 0 ? (data.reduce((sum, d) => sum + d.days, 0) / data.length).toFixed(1) : '0.0'} días
           </p>
         </div>
         <div className="text-center">

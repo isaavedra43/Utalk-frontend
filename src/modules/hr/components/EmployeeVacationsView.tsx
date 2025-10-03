@@ -451,8 +451,13 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Uso de Vacaciones</h3>
                 <VacationsChart 
-                  data={summary?.byMonth || {}}
-                  total={balance?.total || 20}
+                  data={Object.entries(summary?.byMonth || {}).map(([month, days]) => ({
+                    date: month,
+                    days: days,
+                    type: 'vacation',
+                    status: 'approved'
+                  }))}
+                  type="usage"
                 />
               </div>
             </div>
