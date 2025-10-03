@@ -32,7 +32,7 @@ import {
   X,
   ChevronDown,
   FileSpreadsheet,
-  FilePresentation,
+  Presentation,
   Archive,
   HardDrive,
   Activity
@@ -178,7 +178,7 @@ const HRDocumentsModule: React.FC<HRDocumentsModuleProps> = ({ onBack }) => {
       case 'spreadsheet':
         return <FileSpreadsheet className="h-8 w-8" />;
       case 'presentation':
-        return <FilePresentation className="h-8 w-8" />;
+        return <Presentation className="h-8 w-8" />;
       case 'archive':
         return <Archive className="h-8 w-8" />;
       default:
