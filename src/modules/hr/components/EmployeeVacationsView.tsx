@@ -29,6 +29,7 @@ import { useVacations } from '../../../hooks/useVacations';
 import { useNotifications } from '../../../contexts/NotificationContext';
 import VacationRequestModal from './VacationRequestModal';
 import VacationsChart from './VacationsChart';
+import VacationCalendar from './VacationCalendar';
 import type { CreateVacationRequest, VacationRequest } from '../../../services/vacationsService';
 
 // ============================================================================
@@ -753,15 +754,7 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
             <div className="bg-white rounded-xl shadow-sm border">
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Calendario de Vacaciones</h3>
-                <div className="h-96 flex items-center justify-center bg-gray-50 rounded-lg">
-                  <div className="text-center">
-                    <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-600">Calendario de vacaciones</p>
-                    <p className="text-sm text-gray-500">
-                      Se mostrará aquí un calendario interactivo con las vacaciones programadas
-                    </p>
-                  </div>
-                </div>
+                <VacationCalendar requests={requests} />
               </div>
             </div>
           </div>

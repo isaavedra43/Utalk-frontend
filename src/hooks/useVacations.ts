@@ -65,18 +65,22 @@ export const useVacations = (options: UseVacationsOptions): UseVacationsReturn =
 
       console.log('🔄 Cargando datos de vacaciones para empleado:', employeeId);
 
-      // Cargar todos los datos en paralelo
-      const vacationsData = await vacationsService.getVacationsData(employeeId);
+      // Cargar todos los datos
+      const [vacationsData, requestsData] = await Promise.all([
+        vacationsService.getVacationsData(employeeId),
+        vacationsService.getRequests(employeeId)
+      ]);
 
       setData(vacationsData);
-      setRequests(vacationsData.requests || []);
+      setRequests(requestsData || []);
       setBalance(vacationsData.balance);
       setPolicy(vacationsData.policy);
       setSummary(vacationsData.summary);
 
       console.log('✅ Datos de vacaciones cargados:', {
-        totalRequests: vacationsData.requests?.length || 0,
-        balance: vacationsData.balance
+        totalRequests: requestsData?.length || 0,
+        balance: vacationsData.balance,
+        summary: vacationsData.summary
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error cargando vacaciones';
