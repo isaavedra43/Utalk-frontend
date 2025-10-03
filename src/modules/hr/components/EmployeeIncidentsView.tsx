@@ -587,60 +587,60 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                       placeholder="Buscar incidencias..."
                     />
                   </div>
-                </div>
-                
+                  </div>
+                  
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
-                  <select
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
+                    <select
+                      value={filterType}
+                      onChange={(e) => setFilterType(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="all">Todos los tipos</option>
-                    <option value="administrative">Administrativa</option>
-                    <option value="theft">Robo</option>
-                    <option value="accident">Accidente</option>
-                    <option value="injury">Lesión</option>
-                    <option value="disciplinary">Disciplinaria</option>
-                    <option value="security">Seguridad</option>
-                    <option value="equipment">Equipo</option>
-                    <option value="other">Otro</option>
-                  </select>
-                </div>
-                
+                    >
+                      <option value="all">Todos los tipos</option>
+                      <option value="administrative">Administrativa</option>
+                      <option value="theft">Robo</option>
+                      <option value="accident">Accidente</option>
+                      <option value="injury">Lesión</option>
+                      <option value="disciplinary">Disciplinaria</option>
+                      <option value="security">Seguridad</option>
+                      <option value="equipment">Equipo</option>
+                      <option value="other">Otro</option>
+                    </select>
+                  </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
+                    <select
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="all">Todos los estados</option>
-                    <option value="draft">Borrador</option>
-                    <option value="pending">Pendiente</option>
-                    <option value="in_review">En Revisión</option>
-                    <option value="approved">Aprobado</option>
-                    <option value="rejected">Rechazado</option>
-                    <option value="closed">Cerrado</option>
-                  </select>
-                </div>
-                
+                    >
+                      <option value="all">Todos los estados</option>
+                      <option value="draft">Borrador</option>
+                      <option value="pending">Pendiente</option>
+                      <option value="in_review">En Revisión</option>
+                      <option value="approved">Aprobado</option>
+                      <option value="rejected">Rechazado</option>
+                      <option value="closed">Cerrado</option>
+                    </select>
+                  </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Severidad</label>
-                  <select
-                    value={filterSeverity}
-                    onChange={(e) => setFilterSeverity(e.target.value)}
+                    <select
+                      value={filterSeverity}
+                      onChange={(e) => setFilterSeverity(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="all">Todas las severidades</option>
-                    <option value="low">Baja</option>
-                    <option value="medium">Media</option>
-                    <option value="high">Alta</option>
-                    <option value="critical">Crítica</option>
-                  </select>
+                    >
+                      <option value="all">Todas las severidades</option>
+                      <option value="low">Baja</option>
+                      <option value="medium">Media</option>
+                      <option value="high">Alta</option>
+                      <option value="critical">Crítica</option>
+                    </select>
+                  </div>
                 </div>
               </div>
-            </div>
 
             {/* Incidents List */}
             <div className="bg-white rounded-xl shadow-sm border">
@@ -649,31 +649,31 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
               </div>
               
               <div className="divide-y divide-gray-200">
-                {filteredIncidents.map((incident) => (
+                  {filteredIncidents.map((incident) => (
                   <div key={incident.id} className="p-6 hover:bg-gray-50">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          {getTypeIcon(incident.type)}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-2">
+                            {getTypeIcon(incident.type)}
                           <h4 className="text-lg font-medium text-gray-900">{incident.title}</h4>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getSeverityColor(incident.severity)}`}>
-                            {getSeverityText(incident.severity)}
-                          </span>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(incident.status)}`}>
-                            {getStatusText(incident.status)}
-                          </span>
-                        </div>
-                        
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getSeverityColor(incident.severity)}`}>
+                              {getSeverityText(incident.severity)}
+                            </span>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(incident.status)}`}>
+                              {getStatusText(incident.status)}
+                            </span>
+                          </div>
+                          
                         <p className="text-gray-600 mb-3">{incident.description}</p>
                         
                         <div className="flex items-center space-x-6 text-sm text-gray-500">
                           <div className="flex items-center space-x-1">
                             <Calendar className="h-4 w-4" />
-                            <span>{formatDate(incident.date)}</span>
+                              <span>{formatDate(incident.date)}</span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <MapPin className="h-4 w-4" />
-                            <span>{incident.location}</span>
+                              <span>{incident.location}</span>
                           </div>
                           {incident.cost && (
                             <div className="flex items-center space-x-1">
@@ -681,28 +681,28 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                               <span>${incident.cost.toLocaleString('es-MX')}</span>
                             </div>
                           )}
+                          </div>
                         </div>
-                      </div>
-                      
+                        
                       <div className="flex items-center space-x-2">
                         <button 
                           onClick={() => handleEditIncident(incident)}
                           className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 hover:text-gray-900"
                           title="Editar"
                         >
-                          <Edit className="h-4 w-4" />
-                        </button>
+                            <Edit className="h-4 w-4" />
+                          </button>
                         <button 
                           onClick={() => handleDeleteIncident(incident.id)}
                           className="p-2 hover:bg-red-100 rounded-lg text-red-600 hover:text-red-900"
                           title="Eliminar"
                         >
                           <Trash2 className="h-4 w-4" />
-                        </button>
+                          </button>
+                      </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
                 
                 {filteredIncidents.length === 0 && (
                   <div className="p-12 text-center">
@@ -722,7 +722,7 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                         Registrar Primera Incidencia
                       </button>
                     )}
-                  </div>
+                </div>
                 )}
               </div>
             </div>
@@ -731,14 +731,14 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
 
         {activeTab === 'reports' && (
           <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Generar Reportes</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Generar Reportes</h3>
             <p className="text-gray-600 mb-6">Selecciona una incidencia y el tipo de reporte que deseas generar.</p>
             
             {incidents.length === 0 ? (
               <div className="text-center py-8">
                 <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">No hay incidencias para generar reportes.</p>
-              </div>
+                    </div>
             ) : (
               <div className="space-y-4">
                 <div>
@@ -798,3 +798,4 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
 };
 
 export default EmployeeIncidentsView;
+export { EmployeeIncidentsView };
