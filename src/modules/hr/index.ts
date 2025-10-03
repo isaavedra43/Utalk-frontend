@@ -31,3 +31,6 @@ export { default as OvertimeTable } from './components/OvertimeTable';
 export { default as AbsencesTable } from './components/AbsencesTable';
 export { default as LoansTable } from './components/LoansTable';
 export { default as ErrorBoundary } from './components/ErrorBoundary';
+
+// Módulo de Documentos Generales RH
+export { HRDocumentsModule } from './components/HRDocumentsModule';
