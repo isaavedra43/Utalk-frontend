@@ -402,15 +402,33 @@ export const useAuthStore = create<AuthStore>()(
           }
         },
 
-        // Logout optimizado
+        // Logout optimizado y robusto - SIN ERRORES
         logout: async () => {
           try {
             set({ loading: true });
-            await api.post('/api/auth/logout');
+            
+            // ✅ CRÍTICO: Intentar logout en backend SOLO si hay token
+            const accessToken = localStorage.getItem('access_token');
+            if (accessToken && accessToken !== 'undefined' && accessToken !== 'null') {
+              try {
+                await api.post('/api/auth/logout');
+                logger.authInfo('Logout exitoso en backend');
+              } catch (error) {
+                // ✅ Ignorar errores del backend durante logout
+                logger.authInfo('Error en logout backend (ignorado)', error as Error);
+              }
+            }
           } catch (error) {
-            infoLog('Error en logout:', error);
+            // ✅ NO mostrar errores al usuario durante logout
+            logger.authInfo('Error en logout (ignorado)', error as Error);
           } finally {
+            // ✅ SIEMPRE limpiar autenticación local, incluso si el backend falla
             get().clearAuth();
+            
+            // ✅ Redirigir inmediatamente al login
+            setTimeout(() => {
+              window.location.href = '/login';
+            }, 100);
           }
         },
       })

@@ -27,10 +27,20 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const accessToken = localStorage.getItem('access_token');
   const refreshToken = localStorage.getItem('refresh_token');
   
-  // Si NO hay tokens, redirigir inmediatamente al login SIN usar hooks
-  if (!accessToken && !refreshToken) {
-    console.log('🔐 ProtectedRoute - No hay tokens, redirigiendo a login');
-    navigate('/login', { replace: true });
+  // Si NO hay tokens válidos, redirigir inmediatamente al login SIN usar hooks
+  const hasValidTokens = accessToken && 
+                         accessToken !== 'undefined' && 
+                         accessToken !== 'null' &&
+                         accessToken.length > 10;
+  
+  if (!hasValidTokens) {
+    console.log('🔐 ProtectedRoute - No hay tokens válidos, redirigiendo a login');
+    // Limpiar cualquier resto de autenticación corrupta
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    // Usar window.location para forzar recarga completa
+    window.location.href = '/login';
     return null;
   }
 
@@ -39,18 +49,25 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   try {
     authContext = useAuthContext();
   } catch (error) {
-    console.warn('⚠️ useAuthContext no disponible en ProtectedRoute, redirigiendo a login');
-    navigate('/login', { replace: true });
+    console.error('❌ useAuthContext no disponible en ProtectedRoute, limpiando y redirigiendo');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
     return null;
   }
 
   const { logout, isAuthenticated, loading: authLoading } = authContext;
   const { canAccessModule, hasPermission, loading, error, accessibleModules } = useModulePermissions();
 
-  // ✅ Si no está autenticado, redirigir a login
+  // ✅ Si no está autenticado después de cargar, redirigir a login
   if (!authLoading && !isAuthenticated) {
-    console.log('🔐 ProtectedRoute - Usuario no autenticado, redirigiendo a login');
-    navigate('/login', { replace: true });
+    console.log('🔐 ProtectedRoute - Usuario no autenticado después de verificación, cerrando sesión');
+    // Limpiar y redirigir
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
     return null;
   }
   
