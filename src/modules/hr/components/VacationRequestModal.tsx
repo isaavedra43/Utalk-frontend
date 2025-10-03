@@ -14,7 +14,8 @@ import {
   Home,
   Coffee,
   DollarSign,
-  User
+  User,
+  XCircle
 } from 'lucide-react';
 import { useNotifications } from '../../../contexts/NotificationContext';
 import type { VacationRequest, CreateVacationRequest } from '../../../services/vacationsService';
