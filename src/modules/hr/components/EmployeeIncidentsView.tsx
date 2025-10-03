@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   AlertTriangle, 
   FileText, 
@@ -10,9 +10,6 @@ import {
   Edit, 
   Trash2, 
   Share2, 
-  Printer, 
-  Signature, 
-  Upload, 
   CheckCircle, 
   XCircle, 
   Clock, 
@@ -24,271 +21,231 @@ import {
   Heart, 
   DollarSign, 
   Briefcase, 
-  Users, 
-  Building, 
   ChevronDown, 
   MoreHorizontal, 
-  Send, 
-  Save, 
   Archive, 
-  Flag, 
   AlertCircle, 
-  Zap, 
-  Target, 
   BarChart3, 
-  PieChart, 
   Activity,
-  FileCheck,
-  FileX,
-  FileClock
+  CreditCard
 } from 'lucide-react';
+import { useIncidents } from '../../../hooks/useIncidents';
+import { useNotifications } from '../../../contexts/NotificationContext';
+import IncidentModal from './IncidentModal';
+import type { Incident, IncidentRequest } from '../../../services/incidentsService';
 
-interface Incident {
-  id: string;
-  type: 'administrative' | 'theft' | 'accident' | 'injury' | 'disciplinary' | 'security' | 'equipment' | 'other';
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  status: 'draft' | 'pending' | 'in_review' | 'approved' | 'rejected' | 'closed';
-  title: string;
-  description: string;
-  date: string;
-  time: string;
-  location: string;
-  reportedBy: string;
-  reportedDate: string;
-  involvedPersons: string[];
-  witnesses: string[];
-  evidence: string[];
-  actions: string[];
-  consequences: string[];
-  preventiveMeasures: string[];
-  supervisor: string;
-  hrReviewer: string;
-  legalReviewer?: string;
-  signedBy: string[];
-  printedDate?: string;
-  uploadedDocuments: string[];
-  followUpDate?: string;
-  resolution?: string;
-  cost?: number;
-  insuranceClaim?: boolean;
-  policeReport?: boolean;
-  medicalReport?: boolean;
-  tags: string[];
-  isConfidential: boolean;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-}
-
-interface EmployeeIncidentsData {
-  employeeId: string;
-  employeeName: string;
-  position: string;
-  department: string;
-  totalIncidents: number;
-  openIncidents: number;
-  closedIncidents: number;
-  incidents: Incident[];
-  summary: {
-    byType: Record<string, number>;
-    bySeverity: Record<string, number>;
-    byStatus: Record<string, number>;
-    byMonth: Record<string, number>;
-  };
-  recentIncidents: Incident[];
-  criticalIncidents: Incident[];
-}
+// ============================================================================
+// TYPES
+// ============================================================================
 
 interface EmployeeIncidentsViewProps {
   employeeId: string;
+  employeeName?: string;
   onBack: () => void;
 }
 
+// ============================================================================
+// COMPONENT
+// ============================================================================
+
 const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({ 
-  employeeId, 
+  employeeId,
+  employeeName = 'Empleado',
   onBack 
 }) => {
-  const [incidentsData, setIncidentsData] = useState<EmployeeIncidentsData | null>(null);
+  const { showSuccess, showError } = useNotifications();
+  
+  // Usar hook de incidencias
+  const {
+    incidents,
+    summary,
+    loading,
+    error,
+    createIncident,
+    updateIncident,
+    deleteIncident,
+    approveIncident,
+    rejectIncident,
+    closeIncident,
+    markCostAsPaid,
+    uploadAttachments,
+    exportIncidents,
+    generateReport,
+    refreshData
+  } = useIncidents({ employeeId, autoRefresh: false });
+
+  // Estado local de UI
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterSeverity, setFilterSeverity] = useState('all');
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'incidents' | 'reports' | 'analytics'>('overview');
   const [showNewIncident, setShowNewIncident] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
 
-  // Simular datos de incidencias
-  useEffect(() => {
-    const mockIncidentsData: EmployeeIncidentsData = {
-      employeeId: 'EMP241001',
-      employeeName: 'Ana García',
-      position: 'Gerente de Marketing',
-      department: 'Marketing',
-      totalIncidents: 8,
-      openIncidents: 3,
-      closedIncidents: 5,
-      incidents: [
-        {
-          id: '1',
-          type: 'administrative',
-          severity: 'medium',
-          status: 'approved',
-          title: 'Acta Administrativa - Retraso en entrega de reportes',
-          description: 'El empleado presentó retrasos en la entrega de reportes mensuales durante dos meses consecutivos.',
-          date: '2024-01-15',
-          time: '14:30',
-          location: 'Oficina Principal - Piso 3',
-          reportedBy: 'Juan Pérez',
-          reportedDate: '2024-01-15',
-          involvedPersons: ['Ana García'],
-          witnesses: ['María López', 'Carlos Ruiz'],
-          evidence: ['reporte_retraso.pdf', 'email_evidencia.pdf'],
-          actions: ['Llamada de atención verbal', 'Plan de mejora'],
-          consequences: ['Advertencia por escrito'],
-          preventiveMeasures: ['Establecer recordatorios automáticos', 'Reunión semanal de seguimiento'],
-          supervisor: 'Juan Pérez',
-          hrReviewer: 'Laura Martínez',
-          signedBy: ['Ana García', 'Juan Pérez', 'Laura Martínez'],
-          printedDate: '2024-01-16',
-          uploadedDocuments: ['acta_administrativa_001.pdf'],
-          followUpDate: '2024-02-15',
-          resolution: 'Empleado se comprometió a cumplir con los plazos establecidos',
-          tags: ['administrativo', 'retraso', 'reportes'],
-          isConfidential: false,
-          priority: 'medium'
-        },
-        {
-          id: '2',
-          type: 'theft',
-          severity: 'high',
-          status: 'in_review',
-          title: 'Reporte de Robo - Equipo de cómputo',
-          description: 'Se reportó el robo de una laptop de la empresa durante el horario laboral.',
-          date: '2024-02-10',
-          time: '16:45',
-          location: 'Oficina Principal - Piso 3 - Cubículo 15',
-          reportedBy: 'Ana García',
-          reportedDate: '2024-02-10',
-          involvedPersons: ['Ana García'],
-          witnesses: ['Roberto Silva', 'Patricia González'],
-          evidence: ['foto_cubículo.pdf', 'inventario_equipos.pdf'],
-          actions: ['Reporte a seguridad', 'Notificación a RRHH', 'Reporte policial'],
-          consequences: ['Investigación interna', 'Revisión de protocolos de seguridad'],
-          preventiveMeasures: ['Instalación de cámaras', 'Control de acceso mejorado'],
-          supervisor: 'Juan Pérez',
-          hrReviewer: 'Laura Martínez',
-          legalReviewer: 'Dr. Carlos Legal',
-          policeReport: true,
-          tags: ['robo', 'equipo', 'seguridad'],
-          isConfidential: true,
-          priority: 'urgent'
-        },
-        {
-          id: '3',
-          type: 'accident',
-          severity: 'medium',
-          status: 'closed',
-          title: 'Accidente Laboral - Caída en escaleras',
-          description: 'El empleado sufrió una caída en las escaleras del edificio durante el horario laboral.',
-          date: '2024-01-28',
-          time: '09:15',
-          location: 'Escaleras principales - Piso 2 a 3',
-          reportedBy: 'Ana García',
-          reportedDate: '2024-01-28',
-          involvedPersons: ['Ana García'],
-          witnesses: ['Luis Mendoza', 'Carmen Vega'],
-          evidence: ['foto_escaleras.pdf', 'reporte_médico.pdf'],
-          actions: ['Atención médica inmediata', 'Reporte a IMSS', 'Investigación del área'],
-          consequences: ['Ausencia laboral de 2 días', 'Revisión médica'],
-          preventiveMeasures: ['Instalación de barandales', 'Señalización de seguridad'],
-          supervisor: 'Juan Pérez',
-          hrReviewer: 'Laura Martínez',
-          signedBy: ['Ana García', 'Juan Pérez', 'Laura Martínez'],
-          printedDate: '2024-01-29',
-          uploadedDocuments: ['reporte_accidente_001.pdf', 'certificado_médico.pdf'],
-          followUpDate: '2024-02-28',
-          resolution: 'Empleado se recuperó completamente, medidas preventivas implementadas',
-          cost: 2500,
-          insuranceClaim: true,
-          medicalReport: true,
-          tags: ['accidente', 'caída', 'escaleras'],
-          isConfidential: false,
-          priority: 'high'
-        },
-        {
-          id: '4',
-          type: 'injury',
-          severity: 'low',
-          status: 'approved',
-          title: 'Lesión Menor - Cortada en dedo',
-          description: 'El empleado sufrió una cortada menor en el dedo índice mientras manipulaba documentos.',
-          date: '2024-02-05',
-          time: '11:30',
-          location: 'Oficina Principal - Piso 3 - Cubículo 12',
-          reportedBy: 'Ana García',
-          reportedDate: '2024-02-05',
-          involvedPersons: ['Ana García'],
-          witnesses: ['Elena Torres'],
-          evidence: ['foto_lesión.pdf'],
-          actions: ['Primeros auxilios', 'Curación en enfermería'],
-          consequences: ['Tiempo de trabajo perdido: 15 minutos'],
-          preventiveMeasures: ['Capacitación en manipulación de documentos', 'Guantes de protección'],
-          supervisor: 'Juan Pérez',
-          hrReviewer: 'Laura Martínez',
-          signedBy: ['Ana García', 'Juan Pérez'],
-          printedDate: '2024-02-06',
-          uploadedDocuments: ['reporte_lesión_001.pdf'],
-          followUpDate: '2024-02-12',
-          resolution: 'Lesión curada, empleado regresó a sus actividades normales',
-          tags: ['lesión', 'cortada', 'documentos'],
-          isConfidential: false,
-          priority: 'low'
-        }
-      ],
-      summary: {
-        byType: {
-          administrative: 2,
-          theft: 1,
-          accident: 2,
-          injury: 2,
-          disciplinary: 1
-        },
-        bySeverity: {
-          low: 2,
-          medium: 4,
-          high: 2,
-          critical: 0
-        },
-        byStatus: {
-          draft: 0,
-          pending: 1,
-          in_review: 1,
-          approved: 3,
-          rejected: 0,
-          closed: 3
-        },
-        byMonth: {
-          '2024-01': 2,
-          '2024-02': 2
-        }
-      },
-      recentIncidents: [],
-      criticalIncidents: []
-    };
+  // ============================================================================
+  // HANDLERS
+  // ============================================================================
 
-    // Calcular incidencias recientes y críticas
-    mockIncidentsData.recentIncidents = mockIncidentsData.incidents
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 5);
-    
-    mockIncidentsData.criticalIncidents = mockIncidentsData.incidents
-      .filter(incident => incident.severity === 'high' || incident.severity === 'critical')
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  // Manejar creación/edición de incidencia
+  const handleSubmitIncident = async (incidentData: IncidentRequest, attachments: File[]) => {
+    try {
+      // Subir archivos primero
+      let attachmentIds: string[] = [];
+      if (attachments.length > 0) {
+        attachmentIds = await uploadAttachments(attachments);
+      }
 
-    setTimeout(() => {
-      setIncidentsData(mockIncidentsData);
-      setLoading(false);
-    }, 1000);
-  }, [employeeId]);
+      if (selectedIncident) {
+        // Modo edición
+        await updateIncident(selectedIncident.id, {
+          ...incidentData as any,
+          attachments: attachmentIds
+        });
+        showSuccess('Incidencia actualizada exitosamente');
+      } else {
+        // Modo creación
+        await createIncident({
+          ...incidentData,
+          attachments: attachmentIds
+        });
+        showSuccess('Incidencia creada exitosamente');
+      }
+
+      setShowNewIncident(false);
+      setSelectedIncident(null);
+      await refreshData();
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error procesando incidencia');
+      throw error;
+    }
+  };
+
+  // Manejar apertura de modal de edición
+  const handleEditIncident = (incident: Incident) => {
+    setSelectedIncident(incident);
+    setShowNewIncident(true);
+  };
+
+  // Manejar eliminación de incidencia
+  const handleDeleteIncident = async (incidentId: string) => {
+    if (!confirm('¿Estás seguro de eliminar esta incidencia? Esta acción no se puede deshacer.')) return;
+
+    try {
+      await deleteIncident(incidentId);
+      showSuccess('Incidencia eliminada exitosamente');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error eliminando incidencia');
+    }
+  };
+
+  // Manejar aprobación
+  const handleApproveIncident = async (incidentId: string) => {
+    try {
+      await approveIncident(incidentId);
+      showSuccess('Incidencia aprobada exitosamente');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error aprobando incidencia');
+    }
+  };
+
+  // Manejar rechazo
+  const handleRejectIncident = async (incidentId: string) => {
+    const comments = prompt('Motivo del rechazo:');
+    if (!comments) return;
+
+    try {
+      await rejectIncident(incidentId, comments);
+      showSuccess('Incidencia rechazada');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error rechazando incidencia');
+    }
+  };
+
+  // Manejar cierre
+  const handleCloseIncident = async (incidentId: string) => {
+    const resolution = prompt('Resolución final de la incidencia:');
+    if (!resolution) return;
+
+    try {
+      await closeIncident(incidentId, resolution);
+      showSuccess('Incidencia cerrada exitosamente');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error cerrando incidencia');
+    }
+  };
+
+  // Manejar marcar como pagado
+  const handleMarkAsPaid = async (incidentId: string) => {
+    const paidBy = prompt('Nombre de quien realizó el pago:');
+    if (!paidBy) return;
+
+    try {
+      await markCostAsPaid(incidentId, paidBy);
+      showSuccess('Costo marcado como pagado exitosamente');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error marcando como pagado');
+    }
+  };
+
+  // Manejar exportación
+  const handleExport = async () => {
+    try {
+      const blob = await exportIncidents('excel');
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `incidencias_${employeeId}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      showSuccess('Incidencias exportadas exitosamente');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error exportando incidencias');
+    }
+  };
+
+  // Manejar generación de reportes
+  const handleGenerateReport = async (reportType: 'acta' | 'robo' | 'accidente' | 'lesion' | 'disciplinario' | 'equipo') => {
+    if (!selectedIncident) {
+      showError('Selecciona una incidencia primero');
+      return;
+    }
+
+    try {
+      const blob = await generateReport(selectedIncident.id, reportType);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `reporte_${reportType}_${selectedIncident.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      showSuccess('Reporte generado exitosamente');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error generando reporte');
+    }
+  };
+
+  // ============================================================================
+  // HELPERS
+  // ============================================================================
+
+  const criticalIncidents = incidents.filter(
+    inc => inc.severity === 'high' || inc.severity === 'critical'
+  );
+
+  const filteredIncidents = incidents.filter(incident => {
+    const matchesSearch = incident.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         incident.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         incident.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesType = filterType === 'all' || incident.type === filterType;
+    const matchesStatus = filterStatus === 'all' || incident.status === filterStatus;
+    const matchesSeverity = filterSeverity === 'all' || incident.severity === filterSeverity;
+    return matchesSearch && matchesType && matchesStatus && matchesSeverity;
+  });
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -360,18 +317,6 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'draft': return <FileClock className="h-4 w-4" />;
-      case 'pending': return <Clock className="h-4 w-4" />;
-      case 'in_review': return <Eye className="h-4 w-4" />;
-      case 'approved': return <CheckCircle className="h-4 w-4" />;
-      case 'rejected': return <XCircle className="h-4 w-4" />;
-      case 'closed': return <Archive className="h-4 w-4" />;
-      default: return <Clock className="h-4 w-4" />;
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-MX', {
       year: 'numeric',
@@ -380,22 +325,9 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
     });
   };
 
-  const formatDateShort = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-MX', {
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const filteredIncidents = incidentsData?.incidents.filter(incident => {
-    const matchesSearch = incident.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         incident.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         incident.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesType = filterType === 'all' || incident.type === filterType;
-    const matchesStatus = filterStatus === 'all' || incident.status === filterStatus;
-    const matchesSeverity = filterSeverity === 'all' || incident.severity === filterSeverity;
-    return matchesSearch && matchesType && matchesStatus && matchesSeverity;
-  }) || [];
+  // ============================================================================
+  // RENDER
+  // ============================================================================
 
   if (loading) {
     return (
@@ -408,13 +340,19 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
     );
   }
 
-  if (!incidentsData) {
+  if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <AlertTriangle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No se encontró información</h3>
-          <p className="text-gray-600">No hay datos de incidencias disponibles para este empleado.</p>
+          <AlertTriangle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Error al cargar incidencias</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => refreshData()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Reintentar
+          </button>
         </div>
       </div>
     );
@@ -422,6 +360,20 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Modal de Nueva/Editar Incidencia */}
+      <IncidentModal
+        isOpen={showNewIncident}
+        onClose={() => {
+          setShowNewIncident(false);
+          setSelectedIncident(null);
+        }}
+        onSubmit={handleSubmitIncident}
+        employeeId={employeeId}
+        employeeName={employeeName}
+        incident={selectedIncident}
+        mode={selectedIncident ? 'edit' : 'create'}
+      />
+
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -435,16 +387,15 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
               </button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Incidencias</h1>
-                <p className="text-gray-600">{incidentsData.employeeName} - {incidentsData.position}</p>
+                <p className="text-gray-600">{employeeName}</p>
               </div>
             </div>
             
             <div className="flex items-center space-x-3">
-              <button className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                <Share2 className="h-4 w-4" />
-                <span>Compartir</span>
-              </button>
-              <button className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+              <button 
+                onClick={handleExport}
+                className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
                 <Download className="h-4 w-4" />
                 <span>Exportar</span>
               </button>
@@ -460,7 +411,7 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Incidencias</p>
-                <p className="text-2xl font-bold text-blue-600">{incidentsData.totalIncidents}</p>
+                <p className="text-2xl font-bold text-blue-600">{summary?.totalIncidents || 0}</p>
                 <p className="text-xs text-gray-500">registradas</p>
               </div>
               <div className="p-3 bg-blue-100 rounded-lg">
@@ -473,7 +424,7 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Abiertas</p>
-                <p className="text-2xl font-bold text-orange-600">{incidentsData.openIncidents}</p>
+                <p className="text-2xl font-bold text-orange-600">{summary?.openIncidents || 0}</p>
                 <p className="text-xs text-gray-500">pendientes</p>
               </div>
               <div className="p-3 bg-orange-100 rounded-lg">
@@ -486,7 +437,7 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Cerradas</p>
-                <p className="text-2xl font-bold text-green-600">{incidentsData.closedIncidents}</p>
+                <p className="text-2xl font-bold text-green-600">{summary?.closedIncidents || 0}</p>
                 <p className="text-xs text-gray-500">resueltas</p>
               </div>
               <div className="p-3 bg-green-100 rounded-lg">
@@ -499,7 +450,7 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Críticas</p>
-                <p className="text-2xl font-bold text-red-600">{incidentsData.criticalIncidents.length}</p>
+                <p className="text-2xl font-bold text-red-600">{criticalIncidents.length}</p>
                 <p className="text-xs text-gray-500">alta prioridad</p>
               </div>
               <div className="p-3 bg-red-100 rounded-lg">
@@ -539,7 +490,7 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
           </div>
         </div>
 
-        {/* Contenido de las pestañas */}
+        {/* Tab: Overview */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
             {/* Estadísticas por tipo */}
@@ -548,7 +499,7 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                 <div className="p-6">
                   <h4 className="font-medium text-gray-900 mb-4">Incidencias por Tipo</h4>
                   <div className="space-y-3">
-                    {Object.entries(incidentsData.summary.byType).map(([type, count]) => (
+                    {summary && Object.entries(summary.byType).map(([type, count]) => (
                       <div key={type} className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           {getTypeIcon(type)}
@@ -565,7 +516,7 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                 <div className="p-6">
                   <h4 className="font-medium text-gray-900 mb-4">Incidencias por Severidad</h4>
                   <div className="space-y-3">
-                    {Object.entries(incidentsData.summary.bySeverity).map(([severity, count]) => (
+                    {summary && Object.entries(summary.bySeverity).map(([severity, count]) => (
                       <div key={severity} className="flex items-center justify-between">
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${getSeverityColor(severity)}`}>
                           {getSeverityText(severity)}
@@ -578,16 +529,45 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
               </div>
             </div>
 
+            {/* Costos */}
+            {summary && summary.totalCost > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border">
+                <div className="p-6">
+                  <h4 className="font-medium text-gray-900 mb-4">Costos por Incidencias</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <p className="text-sm text-blue-600 mb-1">Total</p>
+                      <p className="text-2xl font-bold text-blue-900">
+                        ${summary.totalCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <p className="text-sm text-green-600 mb-1">Pagado</p>
+                      <p className="text-2xl font-bold text-green-900">
+                        ${summary.paidCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="bg-orange-50 p-4 rounded-lg">
+                      <p className="text-sm text-orange-600 mb-1">Pendiente</p>
+                      <p className="text-2xl font-bold text-orange-900">
+                        ${summary.unpaidCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Incidencias críticas */}
-            {incidentsData.criticalIncidents.length > 0 && (
+            {criticalIncidents.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border">
                 <div className="p-6">
                   <h4 className="font-medium text-gray-900 mb-4">Incidencias Críticas</h4>
                   <div className="space-y-4">
-                    {incidentsData.criticalIncidents.map((incident) => (
+                    {criticalIncidents.map((incident) => (
                       <div key={incident.id} className="border border-red-200 rounded-lg p-4 bg-red-50">
                         <div className="flex items-start justify-between">
-                          <div>
+                          <div className="flex-1">
                             <h5 className="font-medium text-red-900">{incident.title}</h5>
                             <p className="text-sm text-red-700 mt-1">{incident.description}</p>
                             <div className="flex items-center space-x-4 mt-2">
@@ -600,10 +580,10 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <button className="p-1 hover:bg-red-100 rounded text-red-600">
-                              <Eye className="h-4 w-4" />
-                            </button>
-                            <button className="p-1 hover:bg-red-100 rounded text-red-600">
+                            <button 
+                              onClick={() => handleEditIncident(incident)}
+                              className="p-1 hover:bg-red-100 rounded text-red-600"
+                            >
                               <Edit className="h-4 w-4" />
                             </button>
                           </div>
@@ -617,6 +597,7 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
           </div>
         )}
 
+        {/* Tab: Incidencias */}
         {activeTab === 'incidents' && (
           <div className="space-y-6">
             {/* Filtros y botón de nueva incidencia */}
@@ -625,7 +606,10 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">Incidencias Registradas</h3>
                   <button 
-                    onClick={() => setShowNewIncident(true)}
+                    onClick={() => {
+                      setSelectedIncident(null);
+                      setShowNewIncident(true);
+                    }}
                     className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     <Plus className="h-4 w-4" />
@@ -698,70 +682,140 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
 
               {/* Lista de incidencias */}
               <div className="p-6">
-                <div className="space-y-4">
-                  {filteredIncidents.map((incident) => (
-                    <div key={incident.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            {getTypeIcon(incident.type)}
-                            <h4 className="font-medium text-gray-900">{incident.title}</h4>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getSeverityColor(incident.severity)}`}>
-                              {getSeverityText(incident.severity)}
-                            </span>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(incident.status)}`}>
-                              {getStatusText(incident.status)}
-                            </span>
+                {filteredIncidents.length === 0 ? (
+                  <div className="text-center py-12">
+                    <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-600">No se encontraron incidencias</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {incidents.length === 0 
+                        ? 'Agrega la primera incidencia haciendo clic en "Nueva Incidencia"'
+                        : 'Intenta ajustar los filtros de búsqueda'
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredIncidents.map((incident) => (
+                      <div key={incident.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-2">
+                              {getTypeIcon(incident.type)}
+                              <h4 className="font-medium text-gray-900">{incident.title}</h4>
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getSeverityColor(incident.severity)}`}>
+                                {getSeverityText(incident.severity)}
+                              </span>
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(incident.status)}`}>
+                                {getStatusText(incident.status)}
+                              </span>
+                              {incident.cost && incident.cost > 0 && (
+                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                  incident.costPaid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                }`}>
+                                  ${incident.cost.toLocaleString('es-MX')} {incident.costPaid ? '(Pagado)' : '(Pendiente)'}
+                                </span>
+                              )}
+                            </div>
+                            
+                            <p className="text-sm text-gray-600 mb-3 line-clamp-2">{incident.description}</p>
+                            
+                            <div className="flex items-center space-x-4 text-xs text-gray-500">
+                              <span className="flex items-center space-x-1">
+                                <Calendar className="h-3 w-3" />
+                                <span>{formatDate(incident.date)} a las {incident.time}</span>
+                              </span>
+                              <span className="flex items-center space-x-1">
+                                <MapPin className="h-3 w-3" />
+                                <span>{incident.location}</span>
+                              </span>
+                              <span className="flex items-center space-x-1">
+                                <User className="h-3 w-3" />
+                                <span>Reportado por: {incident.reportedByName || incident.reportedBy}</span>
+                              </span>
+                            </div>
                           </div>
                           
-                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">{incident.description}</p>
-                          
-                          <div className="flex items-center space-x-4 text-xs text-gray-500">
-                            <span className="flex items-center space-x-1">
-                              <Calendar className="h-3 w-3" />
-                              <span>{formatDate(incident.date)}</span>
-                            </span>
-                            <span className="flex items-center space-x-1">
-                              <MapPin className="h-3 w-3" />
-                              <span>{incident.location}</span>
-                            </span>
-                            <span className="flex items-center space-x-1">
-                              <User className="h-3 w-3" />
-                              <span>Reportado por: {incident.reportedBy}</span>
-                            </span>
+                          <div className="flex items-center space-x-2 ml-4">
+                            <button 
+                              onClick={() => handleEditIncident(incident)}
+                              className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600"
+                              title="Editar"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            
+                            {incident.status === 'pending' && (
+                              <>
+                                <button 
+                                  onClick={() => handleApproveIncident(incident.id)}
+                                  className="p-1 hover:bg-green-100 rounded text-green-600"
+                                  title="Aprobar"
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </button>
+                                <button 
+                                  onClick={() => handleRejectIncident(incident.id)}
+                                  className="p-1 hover:bg-red-100 rounded text-red-600"
+                                  title="Rechazar"
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                </button>
+                              </>
+                            )}
+
+                            {incident.status === 'approved' && !incident.costPaid && incident.cost && incident.cost > 0 && (
+                              <button 
+                                onClick={() => handleMarkAsPaid(incident.id)}
+                                className="p-1 hover:bg-blue-100 rounded text-blue-600"
+                                title="Marcar como pagado"
+                              >
+                                <CreditCard className="h-4 w-4" />
+                              </button>
+                            )}
+
+                            {(incident.status === 'approved' || incident.status === 'in_review') && (
+                              <button 
+                                onClick={() => handleCloseIncident(incident.id)}
+                                className="p-1 hover:bg-purple-100 rounded text-purple-600"
+                                title="Cerrar incidencia"
+                              >
+                                <Archive className="h-4 w-4" />
+                              </button>
+                            )}
+                            
+                            <button 
+                              onClick={() => handleDeleteIncident(incident.id)}
+                              className="p-1 hover:bg-red-100 rounded text-red-600"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2 ml-4">
-                          <button className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600">
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600">
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600">
-                            <Printer className="h-4 w-4" />
-                          </button>
-                          <button className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </button>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )}
 
+        {/* Tab: Reportes */}
         {activeTab === 'reports' && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm border">
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Generar Reportes</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Selecciona una incidencia de la lista y luego elige el tipo de reporte a generar
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                  <button 
+                    onClick={() => handleGenerateReport('acta')}
+                    disabled={!selectedIncident}
+                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <div className="flex items-center space-x-3 mb-2">
                       <FileText className="h-5 w-5 text-blue-600" />
                       <span className="font-medium text-gray-900">Acta Administrativa</span>
@@ -769,7 +823,11 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                     <p className="text-sm text-gray-600">Generar acta administrativa formal</p>
                   </button>
                   
-                  <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                  <button 
+                    onClick={() => handleGenerateReport('robo')}
+                    disabled={!selectedIncident}
+                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <div className="flex items-center space-x-3 mb-2">
                       <Shield className="h-5 w-5 text-red-600" />
                       <span className="font-medium text-gray-900">Reporte de Robo</span>
@@ -777,7 +835,11 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                     <p className="text-sm text-gray-600">Reporte de robo o hurto</p>
                   </button>
                   
-                  <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                  <button 
+                    onClick={() => handleGenerateReport('accidente')}
+                    disabled={!selectedIncident}
+                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <div className="flex items-center space-x-3 mb-2">
                       <Car className="h-5 w-5 text-orange-600" />
                       <span className="font-medium text-gray-900">Reporte de Accidente</span>
@@ -785,7 +847,11 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                     <p className="text-sm text-gray-600">Accidente laboral o de trabajo</p>
                   </button>
                   
-                  <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                  <button 
+                    onClick={() => handleGenerateReport('lesion')}
+                    disabled={!selectedIncident}
+                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <div className="flex items-center space-x-3 mb-2">
                       <Heart className="h-5 w-5 text-pink-600" />
                       <span className="font-medium text-gray-900">Reporte de Lesión</span>
@@ -793,7 +859,11 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                     <p className="text-sm text-gray-600">Lesión o herida en el trabajo</p>
                   </button>
                   
-                  <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                  <button 
+                    onClick={() => handleGenerateReport('disciplinario')}
+                    disabled={!selectedIncident}
+                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <div className="flex items-center space-x-3 mb-2">
                       <AlertTriangle className="h-5 w-5 text-yellow-600" />
                       <span className="font-medium text-gray-900">Reporte Disciplinario</span>
@@ -801,7 +871,11 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                     <p className="text-sm text-gray-600">Falta disciplinaria</p>
                   </button>
                   
-                  <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                  <button 
+                    onClick={() => handleGenerateReport('equipo')}
+                    disabled={!selectedIncident}
+                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <div className="flex items-center space-x-3 mb-2">
                       <Briefcase className="h-5 w-5 text-purple-600" />
                       <span className="font-medium text-gray-900">Reporte de Equipo</span>
@@ -814,6 +888,7 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
           </div>
         )}
 
+        {/* Tab: Analytics */}
         {activeTab === 'analytics' && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm border">
