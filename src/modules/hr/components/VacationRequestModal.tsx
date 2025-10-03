@@ -13,7 +13,8 @@ import {
   Baby,
   Home,
   Coffee,
-  DollarSign
+  DollarSign,
+  User
 } from 'lucide-react';
 import { useNotifications } from '../../../contexts/NotificationContext';
 import type { VacationRequest, CreateVacationRequest } from '../../../services/vacationsService';
