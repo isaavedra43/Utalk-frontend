@@ -50,9 +50,145 @@ const AppContent: React.FC = () => {
             </ErrorBoundary>
           } />
 
+          <Route path="/team/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="team">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/hr/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="hr">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/chat/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="chat">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/clients/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="clients">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
           <Route path="/inventory/*" element={
             <ErrorBoundary>
               <ProtectedRoute moduleId="inventory">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/contacts/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="contacts">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/campaigns/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="campaigns">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/analytics/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="analytics">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/ai/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="ai">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/settings/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="settings">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/notifications/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="notifications">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/internal-chat/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="internal-chat">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/phone/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="phone">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/knowledge-base/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="knowledge-base">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/supervision/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="supervision">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/copilot/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="copilot">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/shipping/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="shipping">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
+          <Route path="/services/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="services">
                 <MainLayout />
               </ProtectedRoute>
             </ErrorBoundary>
