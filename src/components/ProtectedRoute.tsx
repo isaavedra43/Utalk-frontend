@@ -23,23 +23,36 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  // ✅ Usar contexto con manejo seguro de errores
+  // ✅ CRÍTICO: Verificar autenticación ANTES de usar hooks
+  const accessToken = localStorage.getItem('access_token');
+  const refreshToken = localStorage.getItem('refresh_token');
+  
+  // Si NO hay tokens, redirigir inmediatamente al login SIN usar hooks
+  if (!accessToken && !refreshToken) {
+    console.log('🔐 ProtectedRoute - No hay tokens, redirigiendo a login');
+    navigate('/login', { replace: true });
+    return null;
+  }
+
+  // ✅ Solo usar contexto si hay tokens válidos
   let authContext;
   try {
     authContext = useAuthContext();
   } catch (error) {
-    console.warn('⚠️ useAuthContext no disponible en ProtectedRoute, usando estado seguro');
-    authContext = {
-      logout: async () => {},
-      isAuthenticated: false,
-      loading: false,
-      user: null,
-      backendUser: null
-    };
+    console.warn('⚠️ useAuthContext no disponible en ProtectedRoute, redirigiendo a login');
+    navigate('/login', { replace: true });
+    return null;
   }
 
-  const { logout } = authContext;
+  const { logout, isAuthenticated, loading: authLoading } = authContext;
   const { canAccessModule, hasPermission, loading, error, accessibleModules } = useModulePermissions();
+
+  // ✅ Si no está autenticado, redirigir a login
+  if (!authLoading && !isAuthenticated) {
+    console.log('🔐 ProtectedRoute - Usuario no autenticado, redirigiendo a login');
+    navigate('/login', { replace: true });
+    return null;
+  }
   
   // ✅ Redirección automática si no tiene acceso
   useEffect(() => {

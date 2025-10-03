@@ -44,29 +44,9 @@ export const AuthModule = () => {
 
   const toggleTheme = () => setIsDark(!isDark);
 
-  // ✅ MEJORADO: Sistema de redirección robusto con timeout
+  // ✅ CRÍTICO: Sistema de redirección seguro - SIN BYPASS
   if (isAuthenticated) {
-    const [redirectTimeout, setRedirectTimeout] = useState(false);
-    
-    // ✅ Timeout de seguridad: Si después de 5 segundos no redirige, forzar redirección
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        if (!permissionsLoading) {
-          console.log('⚠️ Timeout de redirección alcanzado, forzando navegación...');
-          setRedirectTimeout(true);
-        }
-      }, 5000);
-      
-      return () => clearTimeout(timer);
-    }, [permissionsLoading]);
-    
-    // Si el timeout se alcanzó, forzar redirección a un módulo seguro
-    if (redirectTimeout) {
-      console.log('🔀 Redirección forzada a /inventory');
-      return <Navigate to="/inventory" replace />;
-    }
-    
-    // Si los permisos están cargando, mostrar loading con auto-refresh
+    // Si los permisos están cargando, mostrar loading SIN timeout forzado
     if (permissionsLoading) {
       return (
         <div className="flex h-screen w-full bg-gray-100 items-center justify-center">
@@ -75,15 +55,9 @@ export const AuthModule = () => {
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               Cargando permisos...
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600">
               Determinando módulos disponibles
             </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
-            >
-              Recargar si tarda mucho
-            </button>
           </div>
         </div>
       );
@@ -92,10 +66,10 @@ export const AuthModule = () => {
     // Obtener el módulo inicial basado en permisos
     const initialModule = getInitialModule();
     
-    // Si no hay módulo inicial (no hay permisos), redirigir a inventario por defecto
+    // ✅ CRÍTICO: Redirigir a dashboard por defecto (NO inventory)
     if (!initialModule) {
-      console.log('⚠️ No hay módulo inicial, redirigiendo a /inventory por defecto');
-      return <Navigate to="/inventory" replace />;
+      console.log('⚠️ No hay módulo inicial, redirigiendo a /dashboard por defecto');
+      return <Navigate to="/dashboard" replace />;
     }
 
     const modulePath = `/${initialModule}`;

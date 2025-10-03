@@ -42,6 +42,14 @@ const AppContent: React.FC = () => {
           <Route path="/forgot-password" element={<ForgotPasswordForm />} />
 
           {/* ✅ TODAS las rutas protegidas usan el mismo componente MainLayout */}
+          <Route path="/dashboard/*" element={
+            <ErrorBoundary>
+              <ProtectedRoute moduleId="dashboard">
+                <MainLayout />
+              </ProtectedRoute>
+            </ErrorBoundary>
+          } />
+
           <Route path="/inventory/*" element={
             <ErrorBoundary>
               <ProtectedRoute moduleId="inventory">
@@ -50,7 +58,8 @@ const AppContent: React.FC = () => {
             </ErrorBoundary>
           } />
 
-          <Route path="/" element={<Navigate to="/inventory" replace />} />
+          {/* ✅ CRÍTICO: Redirección inicial SOLO si NO hay autenticación */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>
       </Suspense>
 
