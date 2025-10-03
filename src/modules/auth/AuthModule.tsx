@@ -66,15 +66,11 @@ export const AuthModule = () => {
     // Obtener el módulo inicial basado en permisos
     const initialModule = getInitialModule();
     
-    // ✅ CRÍTICO: Si NO hay módulo inicial, NO permitir acceso - hacer logout
+    // ✅ CRÍTICO: Si NO hay módulo inicial, redirigir a dashboard como fallback seguro
+    // El ProtectedRoute del dashboard verificará los permisos reales
     if (!initialModule) {
-      console.error('❌ No hay módulos accesibles para el usuario, cerrando sesión');
-      // Limpiar autenticación y redirigir al login
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-      return null;
+      console.log('⚠️ No hay módulo inicial, redirigiendo a /dashboard como fallback');
+      return <Navigate to="/dashboard" replace />;
     }
 
     const modulePath = `/${initialModule}`;

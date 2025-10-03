@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useModulePermissions } from '../hooks/useModulePermissions';
 import { useAuthContext } from '../contexts/useAuthContext';
 import { infoLog } from '../config/logger';
@@ -39,9 +39,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
-    // Usar window.location para forzar recarga completa
-    window.location.href = '/login';
-    return null;
+    // Usar Navigate en lugar de window.location para no romper el flujo de React
+    return <Navigate to="/login" replace />;
   }
 
   // ✅ Solo usar contexto si hay tokens válidos
@@ -53,22 +52,26 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
-    window.location.href = '/login';
-    return null;
+    return <Navigate to="/login" replace />;
   }
 
   const { logout, isAuthenticated, loading: authLoading } = authContext;
   const { canAccessModule, hasPermission, loading, error, accessibleModules } = useModulePermissions();
 
+  // ✅ Si está cargando la autenticación, mostrar loading
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-2 text-gray-600">Verificando autenticación...</span>
+      </div>
+    );
+  }
+
   // ✅ Si no está autenticado después de cargar, redirigir a login
-  if (!authLoading && !isAuthenticated) {
-    console.log('🔐 ProtectedRoute - Usuario no autenticado después de verificación, cerrando sesión');
-    // Limpiar y redirigir
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
-    return null;
+  if (!isAuthenticated) {
+    console.log('🔐 ProtectedRoute - Usuario no autenticado después de verificación, redirigiendo a login');
+    return <Navigate to="/login" replace />;
   }
   
   // ✅ Redirección automática si no tiene acceso
