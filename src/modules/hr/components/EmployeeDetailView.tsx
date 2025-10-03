@@ -228,7 +228,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
         
         case 'vacations':
           try {
-            return <EmployeeVacationsView employeeId={employee.id} onBack={onBack} />;
+            return <EmployeeVacationsView employeeId={employee.id} employeeName={`${employee.personalInfo.firstName} ${employee.personalInfo.lastName}`} onBack={onBack} />;
           } catch (error) {
             console.error('Error en EmployeeVacationsView:', error);
             return (
