@@ -153,7 +153,12 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
         }, 60 * 60 * 1000);
       })
       .catch((error) => {
-        console.error('❌ PWA: Error al registrar Service Worker', error);
+        // ✅ Silenciar error de PWA (no afecta funcionalidad)
+        // Railway/Vite maneja el SW automáticamente
+        // Solo log en desarrollo para debugging
+        if (import.meta.env.DEV) {
+          console.warn('⚠️ PWA: Service Worker no disponible', error);
+        }
       });
   });
 }

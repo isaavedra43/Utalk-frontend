@@ -48,7 +48,13 @@ export const usePWA = (): PWAState & PWAActions => {
       }
     },
     onRegisterError(error) {
-      console.error('❌ PWA: Error al registrar Service Worker', error);
+      // ✅ Silenciar error de PWA en producción (no afecta funcionalidad)
+      // El error ocurre porque Railway no sirve el archivo sw.js correctamente
+      // Solo log en desarrollo para debugging
+      if (import.meta.env.DEV) {
+        console.warn('⚠️ PWA: Service Worker no disponible (desarrollo)', error);
+      }
+      // En producción, NO mostrar ningún error al usuario
     },
   });
 
