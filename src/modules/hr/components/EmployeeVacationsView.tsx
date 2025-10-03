@@ -47,7 +47,7 @@ interface EmployeeVacationsViewProps {
 // ============================================================================
 
 const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({ 
-  employeeId,
+  employeeId, 
   employeeName = 'Empleado',
   onBack 
 }) => {
@@ -448,17 +448,17 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
         {activeTab === 'overview' && (
           <div className="space-y-6">
             {/* Gráfica de Uso */}
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6">
+              <div className="bg-white rounded-xl shadow-sm border">
+                <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Uso de Vacaciones</h3>
-                <VacationsChart 
+                  <VacationsChart 
                   data={Object.entries(summary?.byMonth || {}).map(([month, days]) => ({
                     date: month,
                     days: days,
                     type: 'vacation',
                     status: 'approved'
-                  }))}
-                  type="usage"
+                    }))}
+                    type="usage"
                 />
               </div>
             </div>
@@ -498,14 +498,14 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
                         <div className="flex items-center space-x-2">
                           {getTypeIcon(type)}
                           <span className="text-sm text-gray-600">{getTypeText(type)}</span>
-                        </div>
+                    </div>
                         <span className="font-medium text-gray-900">{count} días</span>
-                      </div>
+                    </div>
                     ))}
+                  </div>
                   </div>
                 </div>
               </div>
-            </div>
 
             {/* Política de Vacaciones */}
             {policy && (
@@ -537,9 +537,9 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
                         {policy.blackoutPeriods.map((period, index) => (
                           <div key={index} className="text-xs text-red-700">
                             • {formatDate(period.startDate)} - {formatDate(period.endDate)}: {period.reason}
-                          </div>
-                        ))}
                       </div>
+                    ))}
+                  </div>
                     </div>
                   )}
                 </div>
@@ -566,7 +566,7 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
                     <span>Nueva Solicitud</span>
                   </button>
                 </div>
-
+                
                 <div className="flex items-center space-x-3">
                   <div className="relative flex-1">
                     <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -615,12 +615,12 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
-                              <div className="flex items-center space-x-2">
-                                {getTypeIcon(request.type)}
+                          <div className="flex items-center space-x-2">
+                            {getTypeIcon(request.type)}
                                 <span className="font-medium text-gray-900">{getTypeText(request.type)}</span>
-                              </div>
+                          </div>
                               <span className={`px-2 py-1 text-xs font-medium rounded-full inline-flex items-center space-x-1 ${getStatusColor(request.status)}`}>
-                                {getStatusIcon(request.status)}
+                            {getStatusIcon(request.status)}
                                 <span className="ml-1">{getStatusText(request.status)}</span>
                               </span>
                               <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
@@ -643,7 +643,7 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
                                 <span className="flex items-center space-x-1">
                                   <CheckCircle className="h-3 w-3" />
                                   <span>Aprobado por: {request.approvedByName || request.approvedBy}</span>
-                                </span>
+                            </span>
                               )}
                             </div>
                           </div>
@@ -713,18 +713,18 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
                 ) : (
                   <div className="space-y-3">
                     {historyRequests.map((request) => (
-                      <div key={request.id} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
+                    <div key={request.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-1">
                               <span className="font-medium text-gray-900">
-                                {formatDate(request.startDate)} - {formatDate(request.endDate)}
+                            {formatDate(request.startDate)} - {formatDate(request.endDate)}
                               </span>
                               <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                                 {request.days} días
                               </span>
                             </div>
-                            <p className="text-sm text-gray-600">{request.reason}</p>
+                          <p className="text-sm text-gray-600">{request.reason}</p>
                             <div className="flex items-center space-x-2 mt-2">
                               {getTypeIcon(request.type)}
                               <span className="text-xs text-gray-500">{getTypeText(request.type)}</span>
@@ -736,12 +736,12 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
                                   Aprobado por: {request.approvedByName || request.approvedBy}
                                 </span>
                               )}
-                            </div>
-                          </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
                 )}
               </div>
             </div>
