@@ -140,7 +140,16 @@ class IncidentsService {
       
       const response = await api.get(`/api/employees/${employeeId}/incidents`, { params: filters });
       
-      const incidents = response.data.data || response.data;
+      // Manejar la estructura real de respuesta del backend
+      let incidents: Incident[] = [];
+      if (response.data && response.data.data) {
+        incidents = response.data.data.incidents || [];
+      } else if (response.data && Array.isArray(response.data)) {
+        incidents = response.data;
+      } else if (response.data && response.data.incidents) {
+        incidents = response.data.incidents;
+      }
+      
       console.log(`✅ ${incidents.length} incidencias obtenidas`);
       return incidents;
     } catch (error) {
@@ -298,8 +307,16 @@ class IncidentsService {
       
       const response = await api.get(`/api/employees/${employeeId}/incidents/summary`);
       
+      // Manejar la estructura real de respuesta del backend
+      let summary: IncidentsSummary;
+      if (response.data && response.data.data) {
+        summary = response.data.data;
+      } else {
+        summary = response.data;
+      }
+      
       console.log('✅ Resumen de incidencias obtenido');
-      return response.data.data || response.data;
+      return summary;
     } catch (error) {
       this.handleError(error, 'getIncidentsSummary');
     }

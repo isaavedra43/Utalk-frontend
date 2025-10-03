@@ -838,7 +838,47 @@ class EmployeesApiService {
     });
 
     const response = await api.get(`/api/employees/${employeeId}/incidents?${searchParams.toString()}`);
-    return response.data;
+    
+    // Manejar la estructura real de respuesta del backend
+    if (response.data && response.data.data) {
+      const backendData = response.data.data;
+      return {
+        incidents: backendData.incidents || [],
+        pagination: {
+          page: params.page || 1,
+          limit: params.limit || 20,
+          total: backendData.count || 0,
+          totalPages: Math.ceil((backendData.count || 0) / (params.limit || 20))
+        },
+        summary: backendData.summary || {
+          total: 0,
+          open: 0,
+          closed: 0,
+          critical: 0,
+          byType: {},
+          bySeverity: {}
+        }
+      };
+    }
+    
+    // Fallback si la estructura es diferente
+    return {
+      incidents: [],
+      pagination: {
+        page: params.page || 1,
+        limit: params.limit || 20,
+        total: 0,
+        totalPages: 0
+      },
+      summary: {
+        total: 0,
+        open: 0,
+        closed: 0,
+        critical: 0,
+        byType: {},
+        bySeverity: {}
+      }
+    };
   }
 
   async createIncident(employeeId: string, incidentData: {
