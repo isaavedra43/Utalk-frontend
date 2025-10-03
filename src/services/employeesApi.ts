@@ -977,7 +977,45 @@ class EmployeesApiService {
     });
 
     const response = await api.get(`/api/employees/${employeeId}/history?${searchParams.toString()}`);
-    return response.data;
+    
+    // Manejar la estructura real de respuesta del backend
+    if (response.data && response.data.data) {
+      const backendData = response.data.data;
+      return {
+        history: backendData.history || [],
+        pagination: {
+          page: params.page || 1,
+          limit: params.limit || 100,
+          total: backendData.history?.length || 0,
+          totalPages: 1
+        },
+        summary: {
+          totalEvents: backendData.history?.length || 0,
+          lastUpdate: new Date().toISOString(),
+          recentEvents: backendData.history?.length || 0,
+          activeUsers: 1,
+          affectedModules: 1
+        }
+      };
+    }
+    
+    // Fallback si la estructura es diferente
+    return {
+      history: [],
+      pagination: {
+        page: params.page || 1,
+        limit: params.limit || 100,
+        total: 0,
+        totalPages: 0
+      },
+      summary: {
+        totalEvents: 0,
+        lastUpdate: new Date().toISOString(),
+        recentEvents: 0,
+        activeUsers: 0,
+        affectedModules: 0
+      }
+    };
   }
 }
 

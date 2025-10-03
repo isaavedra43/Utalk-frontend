@@ -157,7 +157,25 @@ const EmployeeHistoryView: React.FC<EmployeeHistoryViewProps> = ({
         setHistoryData(transformedData);
       } catch (error) {
         console.error('Error al cargar historial:', error);
-        setHistoryData(null);
+        
+        // Crear datos vacíos en caso de error para mostrar el estado correcto
+        const emptyData: EmployeeHistoryData = {
+          employeeId: employeeId,
+          employeeName: 'Empleado',
+          position: 'Puesto',
+          department: 'Departamento',
+          totalEvents: 0,
+          recentEvents: 0,
+          events: [],
+          summary: {
+            byType: {},
+            byCategory: {},
+            byUser: {},
+            timeline: []
+          }
+        };
+        
+        setHistoryData(emptyData);
       } finally {
         setLoading(false);
       }

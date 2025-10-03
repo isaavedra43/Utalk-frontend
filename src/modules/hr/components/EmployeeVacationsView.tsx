@@ -502,7 +502,7 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
                         <span className="font-medium text-gray-900">{count} días</span>
                     </div>
                     ))}
-                  </div>
+                    </div>
                   </div>
                 </div>
               </div>
