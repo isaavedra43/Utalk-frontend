@@ -98,123 +98,52 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
     uploadSkillFiles,
     exportSkillsData,
     generateSkillsReport,
-    refreshAll
-  } = useSkills({ employeeId });
+    refreshData
+  } = useSkills(employeeId);
 
-  // Estado local para UI
-  const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'certifications' | 'development' | 'evaluations'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'certifications' | 'development' | 'assessment'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterLevel, setFilterLevel] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
-
-  // Estado para modales
-  const [showSkillModal, setShowSkillModal] = useState(false);
-  const [showCertificationModal, setShowCertificationModal] = useState(false);
-  const [showDevelopmentPlanModal, setShowDevelopmentPlanModal] = useState(false);
-  const [showEvaluationModal, setShowEvaluationModal] = useState(false);
+  const [showNewSkill, setShowNewSkill] = useState(false);
+  const [showNewCertification, setShowNewCertification] = useState(false);
+  const [showNewDevelopmentPlan, setShowNewDevelopmentPlan] = useState(false);
+  const [showNewEvaluation, setShowNewEvaluation] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
   const [selectedCertification, setSelectedCertification] = useState<Certification | null>(null);
   const [selectedDevelopmentPlan, setSelectedDevelopmentPlan] = useState<DevelopmentPlan | null>(null);
   const [selectedEvaluation, setSelectedEvaluation] = useState<SkillEvaluation | null>(null);
 
-  // Funciones auxiliares
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'technical': return <Code className="h-5 w-5" />;
-      case 'soft': return <Heart className="h-5 w-5" />;
-      case 'leadership': return <Users className="h-5 w-5" />;
-      case 'language': return <Globe className="h-5 w-5" />;
-      case 'other': return <Brain className="h-5 w-5" />;
-      default: return <Brain className="h-5 w-5" />;
-    }
-  };
-
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case 'beginner': return 'bg-red-100 text-red-800';
-      case 'intermediate': return 'bg-yellow-100 text-yellow-800';
-      case 'advanced': return 'bg-blue-100 text-blue-800';
-      case 'expert': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getLevelText = (level: string) => {
-    switch (level) {
-      case 'beginner': return 'Principiante';
-      case 'intermediate': return 'Intermedio';
-      case 'advanced': return 'Avanzado';
-      case 'expert': return 'Experto';
-      default: return 'Desconocido';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'expired': return 'bg-red-100 text-red-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'revoked': return 'bg-gray-100 text-gray-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'in_progress': return 'bg-blue-100 text-blue-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      case 'paused': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active': return 'Activa';
-      case 'expired': return 'Expirada';
-      case 'pending': return 'Pendiente';
-      case 'revoked': return 'Revocada';
-      case 'completed': return 'Completado';
-      case 'in_progress': return 'En Progreso';
-      case 'cancelled': return 'Cancelado';
-      case 'paused': return 'Pausado';
-      default: return 'Desconocido';
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  // Handlers para habilidades
+  // Handlers para Skills
   const handleCreateSkill = async (skillData: CreateSkillRequest, files: File[]) => {
     try {
-      let evidenceIds: string[] = [];
+      await createSkill(skillData);
       if (files.length > 0) {
-        evidenceIds = await uploadSkillFiles(files, 'evidence');
+        await uploadSkillFiles(selectedSkill?.id || '', files);
       }
-
-      await createSkill({
-        ...skillData,
-        evidence: evidenceIds.length > 0 ? evidenceIds[0] : undefined
-      });
-
       showSuccess('Habilidad creada exitosamente');
-      setShowSkillModal(false);
+      setShowNewSkill(false);
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Error creando habilidad');
-      throw error;
     }
   };
 
-  const handleEditSkill = (skill: Skill) => {
-    setSelectedSkill(skill);
-    setShowSkillModal(true);
+  const handleUpdateSkill = async (skillId: string, skillData: Partial<CreateSkillRequest>, files: File[]) => {
+    try {
+      await updateSkill(skillId, skillData);
+      if (files.length > 0) {
+        await uploadSkillFiles(skillId, files);
+      }
+      showSuccess('Habilidad actualizada exitosamente');
+      setSelectedSkill(null);
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error actualizando habilidad');
+    }
   };
 
   const handleDeleteSkill = async (skillId: string) => {
     if (!confirm('¿Estás seguro de eliminar esta habilidad?')) return;
-
+    
     try {
       await deleteSkill(skillId);
       showSuccess('Habilidad eliminada exitosamente');
@@ -223,63 +152,74 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
     }
   };
 
-  // Handlers para certificaciones
-  const handleCreateCertification = async (certificationData: CreateCertificationRequest, files: File[]) => {
+  // Handlers para Certificaciones
+  const handleCreateCertification = async (certData: CreateCertificationRequest, files: File[]) => {
     try {
-      let documentIds: string[] = [];
+      await createCertification(certData);
       if (files.length > 0) {
-        documentIds = await uploadSkillFiles(files, 'certification');
+        await uploadSkillFiles(selectedCertification?.id || '', files);
       }
-
-      await createCertification({
-        ...certificationData,
-        documents: documentIds
-      });
-
       showSuccess('Certificación creada exitosamente');
-      setShowCertificationModal(false);
+      setShowNewCertification(false);
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Error creando certificación');
-      throw error;
     }
   };
 
-  const handleEditCertification = (certification: Certification) => {
-    setSelectedCertification(certification);
-    setShowCertificationModal(true);
+  const handleUpdateCertification = async (certId: string, certData: Partial<CreateCertificationRequest>, files: File[]) => {
+    try {
+      await updateCertification(certId, certData);
+      if (files.length > 0) {
+        await uploadSkillFiles(certId, files);
+      }
+      showSuccess('Certificación actualizada exitosamente');
+      setSelectedCertification(null);
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error actualizando certificación');
+    }
   };
 
-  const handleDeleteCertification = async (certificationId: string) => {
+  const handleDeleteCertification = async (certId: string) => {
     if (!confirm('¿Estás seguro de eliminar esta certificación?')) return;
-
+    
     try {
-      await deleteCertification(certificationId);
+      await deleteCertification(certId);
       showSuccess('Certificación eliminada exitosamente');
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Error eliminando certificación');
     }
   };
 
-  // Handlers para planes de desarrollo
-  const handleCreateDevelopmentPlan = async (planData: CreateDevelopmentPlanRequest) => {
+  // Handlers para Planes de Desarrollo
+  const handleCreateDevelopmentPlan = async (planData: CreateDevelopmentPlanRequest, files: File[]) => {
     try {
       await createDevelopmentPlan(planData);
+      if (files.length > 0) {
+        await uploadSkillFiles(selectedDevelopmentPlan?.id || '', files);
+      }
       showSuccess('Plan de desarrollo creado exitosamente');
-      setShowDevelopmentPlanModal(false);
+      setShowNewDevelopmentPlan(false);
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Error creando plan de desarrollo');
-      throw error;
     }
   };
 
-  const handleEditDevelopmentPlan = (plan: DevelopmentPlan) => {
-    setSelectedDevelopmentPlan(plan);
-    setShowDevelopmentPlanModal(true);
+  const handleUpdateDevelopmentPlan = async (planId: string, planData: Partial<CreateDevelopmentPlanRequest>, files: File[]) => {
+    try {
+      await updateDevelopmentPlan(planId, planData);
+      if (files.length > 0) {
+        await uploadSkillFiles(planId, files);
+      }
+      showSuccess('Plan de desarrollo actualizado exitosamente');
+      setSelectedDevelopmentPlan(null);
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error actualizando plan de desarrollo');
+    }
   };
 
   const handleDeleteDevelopmentPlan = async (planId: string) => {
     if (!confirm('¿Estás seguro de eliminar este plan de desarrollo?')) return;
-
+    
     try {
       await deleteDevelopmentPlan(planId);
       showSuccess('Plan de desarrollo eliminado exitosamente');
@@ -288,35 +228,36 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
     }
   };
 
-  // Handlers para evaluaciones
+  // Handlers para Evaluaciones
   const handleCreateEvaluation = async (evaluationData: CreateSkillEvaluationRequest, files: File[]) => {
     try {
-      let evidenceIds: string[] = [];
+      await createSkillEvaluation(evaluationData);
       if (files.length > 0) {
-        evidenceIds = await uploadSkillFiles(files, 'evaluation');
+        await uploadSkillFiles(selectedEvaluation?.id || '', files);
       }
-
-      await createSkillEvaluation({
-        ...evaluationData,
-        evidence: evidenceIds
-      });
-
       showSuccess('Evaluación creada exitosamente');
-      setShowEvaluationModal(false);
+      setShowNewEvaluation(false);
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Error creando evaluación');
-      throw error;
     }
   };
 
-  const handleEditEvaluation = (evaluation: SkillEvaluation) => {
-    setSelectedEvaluation(evaluation);
-    setShowEvaluationModal(true);
+  const handleUpdateEvaluation = async (evaluationId: string, evaluationData: Partial<CreateSkillEvaluationRequest>, files: File[]) => {
+    try {
+      await updateSkillEvaluation(evaluationId, evaluationData);
+      if (files.length > 0) {
+        await uploadSkillFiles(evaluationId, files);
+      }
+      showSuccess('Evaluación actualizada exitosamente');
+      setSelectedEvaluation(null);
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error actualizando evaluación');
+    }
   };
 
   const handleDeleteEvaluation = async (evaluationId: string) => {
     if (!confirm('¿Estás seguro de eliminar esta evaluación?')) return;
-
+    
     try {
       await deleteSkillEvaluation(evaluationId);
       showSuccess('Evaluación eliminada exitosamente');
@@ -325,44 +266,10 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
     }
   };
 
-  // Handlers para reportes
-  const handleExport = async () => {
-    try {
-      const blob = await exportSkillsData('excel');
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `habilidades_${employeeId}_${new Date().toISOString().split('T')[0]}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      showSuccess('Datos exportados exitosamente');
-    } catch (error) {
-      showError(error instanceof Error ? error.message : 'Error exportando datos');
-    }
-  };
-
-  const handleGenerateReport = async (reportType: 'summary' | 'detailed' | 'development' | 'certifications') => {
-    try {
-      const blob = await generateSkillsReport(reportType);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `reporte_${reportType}_${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      showSuccess('Reporte generado exitosamente');
-    } catch (error) {
-      showError(error instanceof Error ? error.message : 'Error generando reporte');
-    }
-  };
-
   // Filtros
   const filteredSkills = skills.filter(skill => {
-    const matchesSearch = skill.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         skill.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'all' || skill.category === filterCategory;
     const matchesLevel = filterLevel === 'all' || skill.level === filterLevel;
     return matchesSearch && matchesCategory && matchesLevel;
@@ -371,343 +278,49 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
   const filteredCertifications = certifications.filter(cert => {
     const matchesSearch = cert.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          cert.issuer.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || cert.status === filterStatus;
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
+  const filteredDevelopmentPlans = developmentPlans.filter(plan => {
+    const matchesSearch = plan.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         plan.description.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
+
+  const filteredEvaluations = evaluations.filter(evaluation => {
+    const matchesSearch = evaluation.skillName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         evaluation.evaluatorName.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
+
+  // Loading state
   if (skillsLoading || certificationsLoading || developmentPlansLoading || evaluationsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando habilidades...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Cargando habilidades...</p>
         </div>
       </div>
     );
   }
 
+  // Error state
   if (skillsError || certificationsError || developmentPlansError || evaluationsError) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <AlertTriangle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+          <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Error al cargar habilidades</h3>
-          <p className="text-gray-600 mb-4">{skillsError || certificationsError || developmentPlansError || evaluationsError}</p>
+          <p className="text-gray-600 mb-4">
+            {skillsError || certificationsError || developmentPlansError || evaluationsError}
+          </p>
           <button
-            onClick={() => refreshAll()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            onClick={refreshData}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Reintentar
           </button>
-        </div>
-      </div>
-    );
-}
-
-const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({ 
-  employeeId, 
-  onBack 
-}) => {
-  const [skillsData, setSkillsData] = useState<EmployeeSkillsData | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState('all');
-  const [filterLevel, setFilterLevel] = useState('all');
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'certifications' | 'development' | 'assessment'>('overview');
-  const [showNewSkill, setShowNewSkill] = useState(false);
-  const [showNewCertification, setShowNewCertification] = useState(false);
-
-  // Simular datos de habilidades
-  useEffect(() => {
-    const mockSkillsData: EmployeeSkillsData = {
-      employeeId: 'EMP241001',
-      employeeName: 'Ana García',
-      position: 'Gerente de Marketing',
-      department: 'Marketing',
-      totalSkills: 24,
-      coreSkills: 8,
-      technicalSkills: 12,
-      softSkills: 8,
-      certifications: 6,
-      averageLevel: 3.2,
-      skills: [
-        {
-          id: '1',
-          name: 'Liderazgo de Equipos',
-          category: 'leadership',
-          level: 'advanced',
-          score: 4.5,
-          maxScore: 5,
-          description: 'Capacidad para liderar y motivar equipos de trabajo',
-          evidence: ['Proyecto exitoso Q3', 'Feedback del equipo', 'Métricas de productividad'],
-          lastAssessed: '2024-12-01',
-          nextReview: '2025-03-01',
-          isCore: true,
-          isRequired: true,
-          developmentPlan: 'Curso de liderazgo avanzado, mentoría con director',
-          mentor: 'Juan Pérez',
-          resources: ['Libro: Liderazgo 2.0', 'Curso online: Team Management']
-        },
-        {
-          id: '2',
-          name: 'Marketing Digital',
-          category: 'technical',
-          level: 'expert',
-          score: 4.8,
-          maxScore: 5,
-          description: 'Estrategias y herramientas de marketing digital',
-          evidence: ['Campaña exitosa 2024', 'ROI del 300%', 'Certificación Google Ads'],
-          lastAssessed: '2024-11-15',
-          nextReview: '2025-02-15',
-          isCore: true,
-          isRequired: true,
-          developmentPlan: 'Mantener certificaciones actualizadas',
-          resources: ['Google Analytics Academy', 'HubSpot Academy']
-        },
-        {
-          id: '3',
-          name: 'Análisis de Datos',
-          category: 'technical',
-          level: 'intermediate',
-          score: 3.2,
-          maxScore: 5,
-          description: 'Análisis e interpretación de datos para toma de decisiones',
-          evidence: ['Dashboard de KPIs', 'Reportes mensuales'],
-          lastAssessed: '2024-10-20',
-          nextReview: '2025-01-20',
-          isCore: false,
-          isRequired: false,
-          developmentPlan: 'Curso de Excel avanzado, Power BI',
-          resources: ['Excel Advanced Course', 'Power BI Fundamentals']
-        },
-        {
-          id: '4',
-          name: 'Comunicación Efectiva',
-          category: 'soft',
-          level: 'advanced',
-          score: 4.3,
-          maxScore: 5,
-          description: 'Habilidades de comunicación verbal y escrita',
-          evidence: ['Presentaciones ejecutivas', 'Reuniones de equipo'],
-          lastAssessed: '2024-12-10',
-          nextReview: '2025-03-10',
-          isCore: true,
-          isRequired: true,
-          developmentPlan: 'Workshop de presentaciones ejecutivas',
-          resources: ['Toastmasters', 'Curso de Oratoria']
-        },
-        {
-          id: '5',
-          name: 'Inglés',
-          category: 'language',
-          level: 'advanced',
-          score: 4.0,
-          maxScore: 5,
-          description: 'Dominio del idioma inglés para comunicación internacional',
-          evidence: ['TOEFL 95', 'Reuniones con clientes internacionales'],
-          lastAssessed: '2024-09-15',
-          nextReview: '2025-06-15',
-          isCore: false,
-          isRequired: false,
-          developmentPlan: 'Práctica conversacional, curso de negocios',
-          resources: ['Cambly', 'Business English Course']
-        }
-      ],
-      certificationList: [
-        {
-          id: '1',
-          name: 'Google Ads Certified',
-          issuer: 'Google',
-          issueDate: '2024-01-15',
-          expiryDate: '2025-01-15',
-          credentialId: 'GADS-2024-001',
-          status: 'active',
-          category: 'Marketing Digital',
-          description: 'Certificación en Google Ads para gestión de campañas publicitarias',
-          verificationUrl: 'https://skillshop.withgoogle.com',
-          attachments: ['certificate.pdf']
-        },
-        {
-          id: '2',
-          name: 'HubSpot Marketing Certification',
-          issuer: 'HubSpot',
-          issueDate: '2024-03-20',
-          expiryDate: '2025-03-20',
-          credentialId: 'HUB-2024-002',
-          status: 'active',
-          category: 'Marketing Digital',
-          description: 'Certificación en marketing inbound y automatización',
-          verificationUrl: 'https://academy.hubspot.com',
-          attachments: ['certificate.pdf']
-        },
-        {
-          id: '3',
-          name: 'Project Management Professional (PMP)',
-          issuer: 'PMI',
-          issueDate: '2023-06-10',
-          expiryDate: '2026-06-10',
-          credentialId: 'PMP-2023-003',
-          status: 'active',
-          category: 'Gestión de Proyectos',
-          description: 'Certificación profesional en gestión de proyectos',
-          verificationUrl: 'https://www.pmi.org',
-          attachments: ['certificate.pdf']
-        }
-      ],
-      summary: {
-        byCategory: {
-          technical: 12,
-          soft: 8,
-          leadership: 3,
-          language: 2,
-          certification: 6
-        },
-        byLevel: {
-          beginner: 2,
-          intermediate: 8,
-          advanced: 10,
-          expert: 4
-        },
-        byStatus: {
-          active: 20,
-          developing: 4,
-          mastered: 4
-        },
-        skillTrend: [
-          { period: '2022', score: 2.8 },
-          { period: '2023', score: 3.0 },
-          { period: '2024', score: 3.2 }
-        ]
-      },
-      recentAssessments: [],
-      topSkills: [],
-      developmentAreas: []
-    };
-
-    // Calcular habilidades recientes, top skills y áreas de desarrollo
-    mockSkillsData.recentAssessments = mockSkillsData.skills
-      .sort((a, b) => new Date(b.lastAssessed).getTime() - new Date(a.lastAssessed).getTime())
-      .slice(0, 5);
-    
-    mockSkillsData.topSkills = mockSkillsData.skills
-      .filter(skill => skill.score >= 4.0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
-
-    mockSkillsData.developmentAreas = mockSkillsData.skills
-      .filter(skill => skill.score < 3.5)
-      .sort((a, b) => a.score - b.score)
-      .slice(0, 5);
-
-    setTimeout(() => {
-      setSkillsData(mockSkillsData);
-      setLoading(false);
-    }, 1000);
-  }, [employeeId]);
-
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'technical': return <Code className="h-4 w-4" />;
-      case 'soft': return <Users className="h-4 w-4" />;
-      case 'leadership': return <Award className="h-4 w-4" />;
-      case 'language': return <Globe className="h-4 w-4" />;
-      case 'certification': return <Award className="h-4 w-4" />;
-      default: return <Star className="h-4 w-4" />;
-    }
-  };
-
-  const getCategoryText = (category: string) => {
-    switch (category) {
-      case 'technical': return 'Técnicas';
-      case 'soft': return 'Blandas';
-      case 'leadership': return 'Liderazgo';
-      case 'language': return 'Idiomas';
-      case 'certification': return 'Certificaciones';
-      default: return 'Otro';
-    }
-  };
-
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case 'beginner': return 'bg-red-100 text-red-800';
-      case 'intermediate': return 'bg-yellow-100 text-yellow-800';
-      case 'advanced': return 'bg-blue-100 text-blue-800';
-      case 'expert': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getLevelText = (level: string) => {
-    switch (level) {
-      case 'beginner': return 'Principiante';
-      case 'intermediate': return 'Intermedio';
-      case 'advanced': return 'Avanzado';
-      case 'expert': return 'Experto';
-      default: return 'Desconocido';
-    }
-  };
-
-  const getCertificationStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'expired': return 'bg-red-100 text-red-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'suspended': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getCertificationStatusText = (status: string) => {
-    switch (status) {
-      case 'active': return 'Activa';
-      case 'expired': return 'Expirada';
-      case 'pending': return 'Pendiente';
-      case 'suspended': return 'Suspendida';
-      default: return 'Desconocido';
-    }
-  };
-
-  const getScoreColor = (score: number, maxScore: number) => {
-    const percentage = (score / maxScore) * 100;
-    if (percentage >= 80) return 'text-green-600';
-    if (percentage >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const filteredSkills = skillsData?.skills.filter(skill => {
-    const matchesSearch = skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         skill.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === 'all' || skill.category === filterCategory;
-    const matchesLevel = filterLevel === 'all' || skill.level === filterLevel;
-    return matchesSearch && matchesCategory && matchesLevel;
-  }) || [];
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando información de habilidades...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!skillsData) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Star className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No se encontró información</h3>
-          <p className="text-gray-600">No hay datos de habilidades disponibles para este empleado.</p>
         </div>
       </div>
     );
@@ -716,518 +329,393 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-6">
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
                 onClick={onBack}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <ChevronDown className="h-5 w-5 text-gray-600 rotate-90" />
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
               </button>
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Brain className="h-6 w-6 text-white" />
+              </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Habilidades</h1>
-                <p className="text-gray-600">{skillsData.employeeName} - {skillsData.position}</p>
+                <h1 className="text-2xl font-semibold text-gray-900">
+                  Habilidades - {employeeName}
+                </h1>
+                <p className="text-sm text-gray-500">
+                  Gestión de habilidades, certificaciones y desarrollo profesional
+                </p>
               </div>
             </div>
             
             <div className="flex items-center space-x-3">
-              <button className="flex items-center space-x-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                <Share2 className="h-4 w-4" />
-                <span>Compartir</span>
-              </button>
-              <button className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+              <button
+                onClick={() => exportSkillsData('excel')}
+                className="flex items-center space-x-2 px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
                 <Download className="h-4 w-4" />
-                <span>Exportar</span>
+                <span className="text-sm font-medium">Exportar</span>
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Resumen General */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Habilidades</p>
-                <p className="text-2xl font-bold text-blue-600">{skillsData.totalSkills}</p>
-                <p className="text-xs text-gray-500">registradas</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Star className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Nivel Promedio</p>
-                <p className={`text-2xl font-bold ${getScoreColor(skillsData.averageLevel, 5)}`}>
-                  {skillsData.averageLevel.toFixed(1)}
-                </p>
-                <p className="text-xs text-gray-500">de 5.0</p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Certificaciones</p>
-                <p className="text-2xl font-bold text-purple-600">{skillsData.certifications}</p>
-                <p className="text-xs text-gray-500">activas</p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <Award className="h-6 w-6 text-purple-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Habilidades Core</p>
-                <p className="text-2xl font-bold text-orange-600">{skillsData.coreSkills}</p>
-                <p className="text-xs text-gray-500">de {skillsData.totalSkills}</p>
-              </div>
-              <div className="p-3 bg-orange-100 rounded-lg">
-                <Award className="h-6 w-6 text-orange-600" />
-              </div>
-            </div>
-          </div>
+      {/* Tabs */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <nav className="flex space-x-8">
+            {[
+              { id: 'overview', name: 'Resumen', icon: BarChart3 },
+              { id: 'skills', name: 'Habilidades', icon: Target },
+              { id: 'certifications', name: 'Certificaciones', icon: Award },
+              { id: 'development', name: 'Desarrollo', icon: TrendingUp },
+              { id: 'assessment', name: 'Evaluaciones', icon: CheckCircle }
+            ].map((tab) => {
+              const IconComponent = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    activeTab === tab.id
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <IconComponent className="h-4 w-4" />
+                  <span>{tab.name}</span>
+                </button>
+              );
+            })}
+          </nav>
         </div>
+      </div>
 
-        {/* Navegación por pestañas */}
-        <div className="bg-white rounded-xl shadow-sm border mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8 px-6">
-              {[
-                { id: 'overview', label: 'Resumen', icon: BarChart3 },
-                { id: 'skills', label: 'Habilidades', icon: Star },
-                { id: 'certifications', label: 'Certificaciones', icon: Award },
-                { id: 'development', label: 'Desarrollo', icon: Target },
-                { id: 'assessment', label: 'Evaluación', icon: CheckCircle }
-              ].map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                      activeTab === tab.id
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
-        </div>
-
-        {/* Contenido de las pestañas */}
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* Estadísticas por categoría */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl shadow-sm border">
-                <div className="p-6">
-                  <h4 className="font-medium text-gray-900 mb-4">Habilidades por Categoría</h4>
-                  <div className="space-y-3">
-                    {Object.entries(skillsData.summary.byCategory).map(([category, count]) => (
-                      <div key={category} className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          {getCategoryIcon(category)}
-                          <span className="text-sm text-gray-600">{getCategoryText(category)}</span>
-                        </div>
-                        <span className="font-medium text-gray-900">{count}</span>
-                      </div>
-                    ))}
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Total Habilidades</p>
+                    <p className="text-2xl font-bold text-gray-900">{skillsSummary?.totalSkills || 0}</p>
+                  </div>
+                  <div className="p-3 bg-blue-100 rounded-lg">
+                    <Target className="h-6 w-6 text-blue-600" />
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm border">
-                <div className="p-6">
-                  <h4 className="font-medium text-gray-900 mb-4">Habilidades por Nivel</h4>
-                  <div className="space-y-3">
-                    {Object.entries(skillsData.summary.byLevel).map(([level, count]) => (
-                      <div key={level} className="flex items-center justify-between">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getLevelColor(level)}`}>
-                          {getLevelText(level)}
-                        </span>
-                        <span className="font-medium text-gray-900">{count}</span>
-                      </div>
-                    ))}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Certificaciones</p>
+                    <p className="text-2xl font-bold text-gray-900">{certificationsSummary?.totalCertifications || 0}</p>
+                  </div>
+                  <div className="p-3 bg-green-100 rounded-lg">
+                    <Award className="h-6 w-6 text-green-600" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Planes Activos</p>
+                    <p className="text-2xl font-bold text-gray-900">{developmentPlansSummary?.activePlans || 0}</p>
+                  </div>
+                  <div className="p-3 bg-purple-100 rounded-lg">
+                    <TrendingUp className="h-6 w-6 text-purple-600" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Evaluaciones</p>
+                    <p className="text-2xl font-bold text-gray-900">{evaluationsSummary?.totalEvaluations || 0}</p>
+                  </div>
+                  <div className="p-3 bg-orange-100 rounded-lg">
+                    <CheckCircle className="h-6 w-6 text-orange-600" />
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Top habilidades */}
-            {skillsData.topSkills.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border">
-                <div className="p-6">
-                  <h4 className="font-medium text-gray-900 mb-4">Top Habilidades</h4>
-                  <div className="space-y-4">
-                    {skillsData.topSkills.map((skill) => (
-                      <div key={skill.id} className="border border-green-200 rounded-lg p-4 bg-green-50">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h5 className="font-medium text-green-900">{skill.name}</h5>
-                            <p className="text-sm text-green-700 mt-1">{getCategoryText(skill.category)}</p>
-                            <div className="flex items-center space-x-4 mt-2">
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getLevelColor(skill.level)}`}>
-                                {getLevelText(skill.level)}
-                              </span>
-                              <span className={`text-xs font-medium ${getScoreColor(skill.score, skill.maxScore)}`}>
-                                {skill.score.toFixed(1)}/{skill.maxScore}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <button className="p-1 hover:bg-green-100 rounded text-green-600">
-                              <Eye className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
+            {/* Recent Activity */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Actividad Reciente</h3>
+              <div className="space-y-3">
+                {skills.slice(0, 5).map((skill) => (
+                  <div key={skill.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <Target className="h-4 w-4 text-blue-600" />
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Áreas de desarrollo */}
-            {skillsData.developmentAreas.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border">
-                <div className="p-6">
-                  <h4 className="font-medium text-gray-900 mb-4">Áreas de Desarrollo</h4>
-                  <div className="space-y-4">
-                    {skillsData.developmentAreas.map((skill) => (
-                      <div key={skill.id} className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h5 className="font-medium text-yellow-900">{skill.name}</h5>
-                            <p className="text-sm text-yellow-700 mt-1">{getCategoryText(skill.category)}</p>
-                            <div className="flex items-center space-x-4 mt-2">
-                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getLevelColor(skill.level)}`}>
-                                {getLevelText(skill.level)}
-                              </span>
-                              <span className={`text-xs font-medium ${getScoreColor(skill.score, skill.maxScore)}`}>
-                                {skill.score.toFixed(1)}/{skill.maxScore}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <button className="p-1 hover:bg-yellow-100 rounded text-yellow-600">
-                              <Eye className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{skill.name}</p>
+                        <p className="text-sm text-gray-500">Nivel: {skill.level}</p>
                       </div>
-                    ))}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-900">{skill.score}/{skill.maxScore}</p>
+                      <p className="text-xs text-gray-500">Puntuación</p>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            )}
+            </div>
           </div>
         )}
 
         {activeTab === 'skills' && (
           <div className="space-y-6">
-            {/* Filtros y botón de nueva habilidad */}
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6 border-b">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Habilidades Registradas</h3>
-                  <button 
+            {/* Filters */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="relative flex-1 w-full sm:max-w-md">
+                  <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar habilidades..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  >
+                    <option value="all">Todas las categorías</option>
+                    <option value="technical">Técnicas</option>
+                    <option value="soft">Blandas</option>
+                    <option value="leadership">Liderazgo</option>
+                    <option value="communication">Comunicación</option>
+                  </select>
+                  <select
+                    value={filterLevel}
+                    onChange={(e) => setFilterLevel(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  >
+                    <option value="all">Todos los niveles</option>
+                    <option value="beginner">Principiante</option>
+                    <option value="intermediate">Intermedio</option>
+                    <option value="advanced">Avanzado</option>
+                    <option value="expert">Experto</option>
+                  </select>
+                  <button
                     onClick={() => setShowNewSkill(true)}
-                    className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     <Plus className="h-4 w-4" />
-                    <span>Nueva Habilidad</span>
+                    <span className="text-sm font-medium">Nueva Habilidad</span>
                   </button>
-                </div>
-                
-                <div className="flex items-center space-x-3">
-                  <div className="relative flex-1">
-                    <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Buscar habilidades..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
-                    />
-                  </div>
-                  
-                  <div className="relative">
-                    <Filter className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                    <select
-                      value={filterCategory}
-                      onChange={(e) => setFilterCategory(e.target.value)}
-                      className="pl-10 pr-8 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="all">Todas las categorías</option>
-                      <option value="technical">Técnicas</option>
-                      <option value="soft">Blandas</option>
-                      <option value="leadership">Liderazgo</option>
-                      <option value="language">Idiomas</option>
-                      <option value="certification">Certificaciones</option>
-                    </select>
-                  </div>
-
-                  <div className="relative">
-                    <select
-                      value={filterLevel}
-                      onChange={(e) => setFilterLevel(e.target.value)}
-                      className="pl-4 pr-8 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="all">Todos los niveles</option>
-                      <option value="beginner">Principiante</option>
-                      <option value="intermediate">Intermedio</option>
-                      <option value="advanced">Avanzado</option>
-                      <option value="expert">Experto</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Lista de habilidades */}
-              <div className="p-6">
-                <div className="space-y-4">
-                  {filteredSkills.map((skill) => (
-                    <div key={skill.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            {getCategoryIcon(skill.category)}
-                            <h4 className="font-medium text-gray-900">{skill.name}</h4>
-                            {skill.isCore && (
-                              <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                                Core
-                              </span>
-                            )}
-                            {skill.isRequired && (
-                              <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
-                                Requerida
-                              </span>
-                            )}
-                          </div>
-                          
-                          <p className="text-sm text-gray-600 mb-3">{skill.description}</p>
-                          
-                          <div className="flex items-center space-x-4 text-sm text-gray-600">
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getLevelColor(skill.level)}`}>
-                              {getLevelText(skill.level)}
-                            </span>
-                            <span className={`font-medium ${getScoreColor(skill.score, skill.maxScore)}`}>
-                              {skill.score.toFixed(1)}/{skill.maxScore}
-                            </span>
-                            <span className="flex items-center space-x-1">
-                              <Calendar className="h-3 w-3" />
-                              <span>Última evaluación: {formatDate(skill.lastAssessed)}</span>
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2 ml-4">
-                          <button className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600">
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600">
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>
+
+            {/* Skills Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredSkills.map((skill) => (
+                <div key={skill.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <Target className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-gray-900">{skill.name}</h3>
+                        <p className="text-sm text-gray-500 capitalize">{skill.category}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={() => setSelectedSkill(skill)}
+                        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSkill(skill.id)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm text-gray-600 mb-4">{skill.description}</p>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">Nivel</span>
+                      <span className="text-sm font-medium text-gray-900 capitalize">{skill.level}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">Puntuación</span>
+                      <span className="text-sm font-medium text-gray-900">{skill.score}/{skill.maxScore}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full" 
+                        style={{ width: `${(skill.score / skill.maxScore) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {filteredSkills.length === 0 && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+                <Target className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <h3 className="text-base font-medium text-gray-900 mb-1">No se encontraron habilidades</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  {skills.length === 0
+                    ? 'Comienza agregando la primera habilidad'
+                    : 'Intenta ajustar los filtros de búsqueda'
+                  }
+                </p>
+                <button
+                  onClick={() => setShowNewSkill(true)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mx-auto"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="text-sm font-medium">Agregar Habilidad</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 
+        {/* Similar content for other tabs... */}
         {activeTab === 'certifications' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6 border-b">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Certificaciones</h3>
-                  <button 
-                    onClick={() => setShowNewCertification(true)}
-                    className="flex items-center space-x-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Nueva Certificación</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-6">
-                <div className="space-y-4">
-                  {skillsData.certificationList.map((cert) => (
-                    <div key={cert.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <Award className="h-5 w-5 text-blue-600" />
-                            <h4 className="font-medium text-gray-900">{cert.name}</h4>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getCertificationStatusColor(cert.status)}`}>
-                              {getCertificationStatusText(cert.status)}
-                            </span>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                            <div>
-                              <span className="font-medium">Emisor:</span> {cert.issuer}
-                            </div>
-                            <div>
-                              <span className="font-medium">ID:</span> {cert.credentialId}
-                            </div>
-                            <div>
-                              <span className="font-medium">Emisión:</span> {formatDate(cert.issueDate)}
-                            </div>
-                            <div>
-                              <span className="font-medium">Expiración:</span> {cert.expiryDate ? formatDate(cert.expiryDate) : 'No expira'}
-                            </div>
-                          </div>
-                          
-                          <p className="text-sm text-gray-600 mt-2">{cert.description}</p>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2 ml-4">
-                          {cert.verificationUrl && (
-                            <button className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600">
-                              <ExternalLink className="h-4 w-4" />
-                            </button>
-                          )}
-                          <button className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600">
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600">
-                            <Download className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+          <div className="text-center py-12">
+            <Award className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Módulo de Certificaciones</h3>
+            <p className="text-gray-500">Contenido en desarrollo...</p>
           </div>
         )}
 
         {activeTab === 'development' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Plan de Desarrollo</h3>
-                <div className="space-y-4">
-                  {skillsData.skills.map((skill) => (
-                    <div key={skill.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900">{skill.name}</h4>
-                          <p className="text-sm text-gray-600 mt-1">{skill.developmentPlan}</p>
-                          <div className="flex items-center space-x-4 mt-2">
-                            {skill.mentor && (
-                              <span className="text-xs text-gray-500">
-                                Mentor: {skill.mentor}
-                              </span>
-                            )}
-                            <span className="text-xs text-gray-500">
-                              Próxima revisión: {formatDate(skill.nextReview)}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2 ml-4">
-                          <button className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600">
-                            <Eye className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+          <div className="text-center py-12">
+            <TrendingUp className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Módulo de Desarrollo</h3>
+            <p className="text-gray-500">Contenido en desarrollo...</p>
           </div>
         )}
 
         {activeTab === 'assessment' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Evaluación de Habilidades</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                      <span className="font-medium text-gray-900">Auto-evaluación</span>
-                    </div>
-                    <p className="text-sm text-gray-600">Evaluación personal de habilidades</p>
-                  </button>
-                  
-                  <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <Users className="h-5 w-5 text-blue-600" />
-                      <span className="font-medium text-gray-900">Evaluación 360°</span>
-                    </div>
-                    <p className="text-sm text-gray-600">Evaluación de múltiples fuentes</p>
-                  </button>
-                  
-                  <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <Award className="h-5 w-5 text-purple-600" />
-                      <span className="font-medium text-gray-900">Evaluación por Supervisor</span>
-                    </div>
-                    <p className="text-sm text-gray-600">Evaluación directa del supervisor</p>
-                  </button>
-                  
-                  <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <Target className="h-5 w-5 text-orange-600" />
-                      <span className="font-medium text-gray-900">Evaluación por Objetivos</span>
-                    </div>
-                    <p className="text-sm text-gray-600">Evaluación basada en resultados</p>
-                  </button>
-                  
-                  <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <BarChart3 className="h-5 w-5 text-indigo-600" />
-                      <span className="font-medium text-gray-900">Reporte de Competencias</span>
-                    </div>
-                    <p className="text-sm text-gray-600">Análisis completo de competencias</p>
-                  </button>
-                  
-                  <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <FileText className="h-5 w-5 text-pink-600" />
-                      <span className="font-medium text-gray-900">Reporte de Desarrollo</span>
-                    </div>
-                    <p className="text-sm text-gray-600">Plan de desarrollo personalizado</p>
-                  </button>
-                </div>
-              </div>
-            </div>
+          <div className="text-center py-12">
+            <CheckCircle className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Módulo de Evaluaciones</h3>
+            <p className="text-gray-500">Contenido en desarrollo...</p>
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      {showNewSkill && (
+        <SkillModal
+          isOpen={showNewSkill}
+          onClose={() => setShowNewSkill(false)}
+          onSubmit={handleCreateSkill}
+          employeeId={employeeId}
+          employeeName={employeeName}
+        />
+      )}
+
+      {selectedSkill && (
+        <SkillModal
+          isOpen={!!selectedSkill}
+          onClose={() => setSelectedSkill(null)}
+          onSubmit={(data, files) => handleUpdateSkill(selectedSkill.id, data, files)}
+          employeeId={employeeId}
+          employeeName={employeeName}
+          skill={selectedSkill}
+          mode="edit"
+        />
+      )}
+
+      {showNewCertification && (
+        <CertificationModal
+          isOpen={showNewCertification}
+          onClose={() => setShowNewCertification(false)}
+          onSubmit={handleCreateCertification}
+          employeeId={employeeId}
+          employeeName={employeeName}
+        />
+      )}
+
+      {selectedCertification && (
+        <CertificationModal
+          isOpen={!!selectedCertification}
+          onClose={() => setSelectedCertification(null)}
+          onSubmit={(data, files) => handleUpdateCertification(selectedCertification.id, data, files)}
+          employeeId={employeeId}
+          employeeName={employeeName}
+          certification={selectedCertification}
+          mode="edit"
+        />
+      )}
+
+      {showNewDevelopmentPlan && (
+        <DevelopmentPlanModal
+          isOpen={showNewDevelopmentPlan}
+          onClose={() => setShowNewDevelopmentPlan(false)}
+          onSubmit={handleCreateDevelopmentPlan}
+          employeeId={employeeId}
+          employeeName={employeeName}
+        />
+      )}
+
+      {selectedDevelopmentPlan && (
+        <DevelopmentPlanModal
+          isOpen={!!selectedDevelopmentPlan}
+          onClose={() => setSelectedDevelopmentPlan(null)}
+          onSubmit={(data, files) => handleUpdateDevelopmentPlan(selectedDevelopmentPlan.id, data, files)}
+          employeeId={employeeId}
+          employeeName={employeeName}
+          developmentPlan={selectedDevelopmentPlan}
+          mode="edit"
+        />
+      )}
+
+      {showNewEvaluation && (
+        <SkillEvaluationModal
+          isOpen={showNewEvaluation}
+          onClose={() => setShowNewEvaluation(false)}
+          onSubmit={handleCreateEvaluation}
+          employeeId={employeeId}
+          employeeName={employeeName}
+        />
+      )}
+
+      {selectedEvaluation && (
+        <SkillEvaluationModal
+          isOpen={!!selectedEvaluation}
+          onClose={() => setSelectedEvaluation(null)}
+          onSubmit={(data, files) => handleUpdateEvaluation(selectedEvaluation.id, data, files)}
+          employeeId={employeeId}
+          employeeName={employeeName}
+          evaluation={selectedEvaluation}
+          mode="edit"
+        />
+      )}
     </div>
   );
 };
