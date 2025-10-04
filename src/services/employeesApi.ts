@@ -984,6 +984,259 @@ class EmployeesApiService {
     return response.data;
   }
 
+  async updateSkill(employeeId: string, skillId: string, skillData: Partial<{
+    name: string;
+    category: string;
+    level: string;
+    score: number;
+    evidence: string;
+    isRequired: boolean;
+    developmentPlan: string;
+    resources: string[];
+    targetLevel?: string;
+    targetDate?: string;
+  }>): Promise<{ skill: Skill; message: string }> {
+    const response = await api.put(`/api/employees/${employeeId}/skills/${skillId}`, skillData);
+    return response.data;
+  }
+
+  async deleteSkill(employeeId: string, skillId: string): Promise<{ message: string }> {
+    const response = await api.delete(`/api/employees/${employeeId}/skills/${skillId}`);
+    return response.data;
+  }
+
+  // Gestión de certificaciones
+  async getEmployeeCertifications(employeeId: string, params: {
+    status?: string;
+    category?: string;
+    page?: number;
+    limit?: number;
+  } = {}): Promise<{
+    certifications: any[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+    summary: {
+      totalCertifications: number;
+      activeCertifications: number;
+      expiringSoon: number;
+      byCategory: Record<string, number>;
+      byStatus: Record<string, number>;
+    };
+  }> {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    const response = await api.get(`/api/employees/${employeeId}/certifications?${searchParams.toString()}`);
+    return response.data;
+  }
+
+  async createCertification(employeeId: string, certificationData: {
+    name: string;
+    issuer: string;
+    issueDate: string;
+    expirationDate?: string;
+    credentialId: string;
+    credentialUrl?: string;
+    description?: string;
+    category: string;
+    level: string;
+    documents?: string[];
+  }): Promise<{ certification: any; message: string }> {
+    const response = await api.post(`/api/employees/${employeeId}/certifications`, certificationData);
+    return response.data;
+  }
+
+  async updateCertification(employeeId: string, certificationId: string, certificationData: Partial<{
+    name: string;
+    issuer: string;
+    issueDate: string;
+    expirationDate?: string;
+    credentialId: string;
+    credentialUrl?: string;
+    description?: string;
+    category: string;
+    level: string;
+    documents?: string[];
+  }>): Promise<{ certification: any; message: string }> {
+    const response = await api.put(`/api/employees/${employeeId}/certifications/${certificationId}`, certificationData);
+    return response.data;
+  }
+
+  async deleteCertification(employeeId: string, certificationId: string): Promise<{ message: string }> {
+    const response = await api.delete(`/api/employees/${employeeId}/certifications/${certificationId}`);
+    return response.data;
+  }
+
+  // Gestión de planes de desarrollo
+  async getEmployeeDevelopmentPlans(employeeId: string, params: {
+    status?: string;
+    skillId?: string;
+    page?: number;
+    limit?: number;
+  } = {}): Promise<{
+    developmentPlans: any[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+    summary: {
+      totalPlans: number;
+      activePlans: number;
+      completedPlans: number;
+      averageProgress: number;
+    };
+  }> {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    const response = await api.get(`/api/employees/${employeeId}/development-plans?${searchParams.toString()}`);
+    return response.data;
+  }
+
+  async createDevelopmentPlan(employeeId: string, planData: {
+    skillId: string;
+    skillName: string;
+    currentLevel: string;
+    targetLevel: string;
+    activities: any[];
+    startDate: string;
+    targetDate: string;
+    mentor?: string;
+    notes?: string;
+  }): Promise<{ developmentPlan: any; message: string }> {
+    const response = await api.post(`/api/employees/${employeeId}/development-plans`, planData);
+    return response.data;
+  }
+
+  async updateDevelopmentPlan(employeeId: string, planId: string, planData: Partial<{
+    skillId: string;
+    skillName: string;
+    currentLevel: string;
+    targetLevel: string;
+    activities: any[];
+    startDate: string;
+    targetDate: string;
+    status: string;
+    progress: number;
+    mentor?: string;
+    notes?: string;
+  }>): Promise<{ developmentPlan: any; message: string }> {
+    const response = await api.put(`/api/employees/${employeeId}/development-plans/${planId}`, planData);
+    return response.data;
+  }
+
+  async deleteDevelopmentPlan(employeeId: string, planId: string): Promise<{ message: string }> {
+    const response = await api.delete(`/api/employees/${employeeId}/development-plans/${planId}`);
+    return response.data;
+  }
+
+  // Gestión de evaluaciones de habilidades
+  async getEmployeeSkillEvaluations(employeeId: string, params: {
+    skillId?: string;
+    evaluationType?: string;
+    status?: string;
+    year?: number;
+    page?: number;
+    limit?: number;
+  } = {}): Promise<{
+    evaluations: any[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+    summary: {
+      totalEvaluations: number;
+      averageScore: number;
+      byType: Record<string, number>;
+      byStatus: Record<string, number>;
+      recentEvaluations: number;
+    };
+  }> {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        searchParams.append(key, value.toString());
+      }
+    });
+
+    const response = await api.get(`/api/employees/${employeeId}/skill-evaluations?${searchParams.toString()}`);
+    return response.data;
+  }
+
+  async createSkillEvaluation(employeeId: string, evaluationData: {
+    skillId: string;
+    skillName: string;
+    evaluationType: string;
+    level: string;
+    score: number;
+    feedback?: string;
+    strengths?: string[];
+    improvements?: string[];
+    developmentSuggestions?: string[];
+    evidence?: string[];
+  }): Promise<{ evaluation: any; message: string }> {
+    const response = await api.post(`/api/employees/${employeeId}/skill-evaluations`, evaluationData);
+    return response.data;
+  }
+
+  async updateSkillEvaluation(employeeId: string, evaluationId: string, evaluationData: Partial<{
+    skillId: string;
+    skillName: string;
+    evaluationType: string;
+    level: string;
+    score: number;
+    feedback?: string;
+    strengths?: string[];
+    improvements?: string[];
+    developmentSuggestions?: string[];
+    evidence?: string[];
+    status: string;
+  }>): Promise<{ evaluation: any; message: string }> {
+    const response = await api.put(`/api/employees/${employeeId}/skill-evaluations/${evaluationId}`, evaluationData);
+    return response.data;
+  }
+
+  async deleteSkillEvaluation(employeeId: string, evaluationId: string): Promise<{ message: string }> {
+    const response = await api.delete(`/api/employees/${employeeId}/skill-evaluations/${evaluationId}`);
+    return response.data;
+  }
+
+  // Subida de archivos para habilidades
+  async uploadSkillFiles(files: File[], type: 'evidence' | 'certification' | 'evaluation'): Promise<string[]> {
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('files', file);
+    });
+    formData.append('type', type);
+
+    const response = await api.post('/api/skills/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    return response.data.fileIds || [];
+  }
+    const response = await api.post(`/api/employees/${employeeId}/skills`, skillData);
+    return response.data;
+  }
+
   // Gestión de historial
   async getEmployeeHistory(employeeId: string, params: {
     type?: string;

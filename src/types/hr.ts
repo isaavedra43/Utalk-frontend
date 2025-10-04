@@ -476,6 +476,114 @@ export interface EmployeeSkill {
   gapAnalysis?: string;
 }
 
+// Tipos para el módulo completo de habilidades
+export interface Certification {
+  id: string;
+  employeeId: string;
+  name: string;
+  issuer: string;
+  issueDate: string;
+  expirationDate?: string;
+  credentialId: string;
+  credentialUrl?: string;
+  status: 'active' | 'expired' | 'revoked' | 'pending';
+  description?: string;
+  category: 'technical' | 'soft' | 'leadership' | 'language' | 'other';
+  level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  documents?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DevelopmentPlan {
+  id: string;
+  employeeId: string;
+  skillId: string;
+  skillName: string;
+  currentLevel: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  targetLevel: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  activities: DevelopmentActivity[];
+  startDate: string;
+  targetDate: string;
+  status: 'active' | 'completed' | 'paused' | 'cancelled';
+  progress: number; // 0-100
+  mentor?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DevelopmentActivity {
+  id: string;
+  name: string;
+  description: string;
+  type: 'course' | 'workshop' | 'reading' | 'practice' | 'project' | 'mentoring' | 'certification';
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  startDate?: string;
+  endDate?: string;
+  duration?: number; // en horas
+  cost?: number;
+  provider?: string;
+  evidence?: string[];
+  notes?: string;
+  completedAt?: string;
+}
+
+export interface SkillEvaluation {
+  id: string;
+  employeeId: string;
+  skillId: string;
+  skillName: string;
+  evaluationType: 'self' | 'supervisor' | 'peer' | '360' | 'objective';
+  evaluatorId: string;
+  evaluatorName: string;
+  level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  score: number; // 1-5
+  maxScore: number;
+  feedback?: string;
+  strengths?: string[];
+  improvements?: string[];
+  developmentSuggestions?: string[];
+  evidence?: string[];
+  status: 'draft' | 'submitted' | 'reviewed' | 'approved';
+  evaluationDate: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SkillSummary {
+  totalSkills: number;
+  averageLevel: number;
+  certifications: number;
+  coreSkills: number;
+  byCategory: Record<string, number>;
+  byLevel: Record<string, number>;
+  recentEvaluations: SkillEvaluation[];
+  upcomingReviews: number;
+  developmentPlans: number;
+}
+
+export interface EvaluationTemplate {
+  id: string;
+  name: string;
+  type: 'self' | 'supervisor' | 'peer' | '360' | 'objective';
+  questions: EvaluationQuestion[];
+  categories: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EvaluationQuestion {
+  id: string;
+  question: string;
+  type: 'rating' | 'text' | 'multiple_choice' | 'yes_no';
+  category: string;
+  weight: number;
+  options?: string[];
+  required: boolean;
+}
+
 // Reclutamiento (ATS)
 export interface Vacancy {
   id: string;

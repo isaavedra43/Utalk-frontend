@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Star, 
   Target, 
@@ -35,68 +35,373 @@ import {
   Meh,
   FileText,
   Upload,
-  ExternalLink
+  ExternalLink,
+  AlertTriangle,
+  TrendingDown,
+  Activity,
+  Award as AwardIcon,
+  Target as TargetIcon,
+  BookOpen as BookIcon,
+  Eye as EyeIcon
 } from 'lucide-react';
-
-interface Skill {
-  id: string;
-  name: string;
-  category: 'technical' | 'soft' | 'leadership' | 'language' | 'certification';
-  level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
-  score: number;
-  maxScore: number;
-  description: string;
-  evidence: string[];
-  lastAssessed: string;
-  nextReview: string;
-  isCore: boolean;
-  isRequired: boolean;
-  developmentPlan: string;
-  mentor?: string;
-  resources: string[];
-}
-
-interface Certification {
-  id: string;
-  name: string;
-  issuer: string;
-  issueDate: string;
-  expiryDate?: string;
-  credentialId: string;
-  status: 'active' | 'expired' | 'pending' | 'suspended';
-  category: string;
-  description: string;
-  verificationUrl?: string;
-  attachments: string[];
-}
-
-interface EmployeeSkillsData {
-  employeeId: string;
-  employeeName: string;
-  position: string;
-  department: string;
-  totalSkills: number;
-  coreSkills: number;
-  technicalSkills: number;
-  softSkills: number;
-  certifications: number;
-  averageLevel: number;
-  skills: Skill[];
-  certificationList: Certification[];
-  summary: {
-    byCategory: Record<string, number>;
-    byLevel: Record<string, number>;
-    byStatus: Record<string, number>;
-    skillTrend: Array<{ period: string; score: number }>;
-  };
-  recentAssessments: Skill[];
-  topSkills: Skill[];
-  developmentAreas: Skill[];
-}
+import { useSkills } from '../../../hooks/useSkills';
+import { useNotifications } from '../../../contexts/NotificationContext';
+import SkillModal from './SkillModal';
+import CertificationModal from './CertificationModal';
+import DevelopmentPlanModal from './DevelopmentPlanModal';
+import SkillEvaluationModal from './SkillEvaluationModal';
+import type { Skill, Certification, DevelopmentPlan, SkillEvaluation, CreateSkillRequest, CreateCertificationRequest, CreateDevelopmentPlanRequest, CreateSkillEvaluationRequest } from '../../../services/skillsService';
 
 interface EmployeeSkillsViewProps {
   employeeId: string;
+  employeeName?: string;
   onBack: () => void;
+}
+
+const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
+  employeeId,
+  employeeName = 'Empleado',
+  onBack
+}) => {
+  const { showSuccess, showError } = useNotifications();
+
+  // Usar hook personalizado con datos reales
+  const {
+    skills,
+    skillsSummary,
+    skillsLoading,
+    skillsError,
+    certifications,
+    certificationsSummary,
+    certificationsLoading,
+    certificationsError,
+    developmentPlans,
+    developmentPlansSummary,
+    developmentPlansLoading,
+    developmentPlansError,
+    evaluations,
+    evaluationsSummary,
+    evaluationsLoading,
+    evaluationsError,
+    createSkill,
+    updateSkill,
+    deleteSkill,
+    createCertification,
+    updateCertification,
+    deleteCertification,
+    createDevelopmentPlan,
+    updateDevelopmentPlan,
+    deleteDevelopmentPlan,
+    createSkillEvaluation,
+    updateSkillEvaluation,
+    deleteSkillEvaluation,
+    uploadSkillFiles,
+    exportSkillsData,
+    generateSkillsReport,
+    refreshAll
+  } = useSkills({ employeeId });
+
+  // Estado local para UI
+  const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'certifications' | 'development' | 'evaluations'>('overview');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterLevel, setFilterLevel] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
+
+  // Estado para modales
+  const [showSkillModal, setShowSkillModal] = useState(false);
+  const [showCertificationModal, setShowCertificationModal] = useState(false);
+  const [showDevelopmentPlanModal, setShowDevelopmentPlanModal] = useState(false);
+  const [showEvaluationModal, setShowEvaluationModal] = useState(false);
+  const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
+  const [selectedCertification, setSelectedCertification] = useState<Certification | null>(null);
+  const [selectedDevelopmentPlan, setSelectedDevelopmentPlan] = useState<DevelopmentPlan | null>(null);
+  const [selectedEvaluation, setSelectedEvaluation] = useState<SkillEvaluation | null>(null);
+
+  // Funciones auxiliares
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'technical': return <Code className="h-5 w-5" />;
+      case 'soft': return <Heart className="h-5 w-5" />;
+      case 'leadership': return <Users className="h-5 w-5" />;
+      case 'language': return <Globe className="h-5 w-5" />;
+      case 'other': return <Brain className="h-5 w-5" />;
+      default: return <Brain className="h-5 w-5" />;
+    }
+  };
+
+  const getLevelColor = (level: string) => {
+    switch (level) {
+      case 'beginner': return 'bg-red-100 text-red-800';
+      case 'intermediate': return 'bg-yellow-100 text-yellow-800';
+      case 'advanced': return 'bg-blue-100 text-blue-800';
+      case 'expert': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getLevelText = (level: string) => {
+    switch (level) {
+      case 'beginner': return 'Principiante';
+      case 'intermediate': return 'Intermedio';
+      case 'advanced': return 'Avanzado';
+      case 'expert': return 'Experto';
+      default: return 'Desconocido';
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'expired': return 'bg-red-100 text-red-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'revoked': return 'bg-gray-100 text-gray-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'in_progress': return 'bg-blue-100 text-blue-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      case 'paused': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'active': return 'Activa';
+      case 'expired': return 'Expirada';
+      case 'pending': return 'Pendiente';
+      case 'revoked': return 'Revocada';
+      case 'completed': return 'Completado';
+      case 'in_progress': return 'En Progreso';
+      case 'cancelled': return 'Cancelado';
+      case 'paused': return 'Pausado';
+      default: return 'Desconocido';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-MX', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Handlers para habilidades
+  const handleCreateSkill = async (skillData: CreateSkillRequest, files: File[]) => {
+    try {
+      let evidenceIds: string[] = [];
+      if (files.length > 0) {
+        evidenceIds = await uploadSkillFiles(files, 'evidence');
+      }
+
+      await createSkill({
+        ...skillData,
+        evidence: evidenceIds.length > 0 ? evidenceIds[0] : undefined
+      });
+
+      showSuccess('Habilidad creada exitosamente');
+      setShowSkillModal(false);
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error creando habilidad');
+      throw error;
+    }
+  };
+
+  const handleEditSkill = (skill: Skill) => {
+    setSelectedSkill(skill);
+    setShowSkillModal(true);
+  };
+
+  const handleDeleteSkill = async (skillId: string) => {
+    if (!confirm('¿Estás seguro de eliminar esta habilidad?')) return;
+
+    try {
+      await deleteSkill(skillId);
+      showSuccess('Habilidad eliminada exitosamente');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error eliminando habilidad');
+    }
+  };
+
+  // Handlers para certificaciones
+  const handleCreateCertification = async (certificationData: CreateCertificationRequest, files: File[]) => {
+    try {
+      let documentIds: string[] = [];
+      if (files.length > 0) {
+        documentIds = await uploadSkillFiles(files, 'certification');
+      }
+
+      await createCertification({
+        ...certificationData,
+        documents: documentIds
+      });
+
+      showSuccess('Certificación creada exitosamente');
+      setShowCertificationModal(false);
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error creando certificación');
+      throw error;
+    }
+  };
+
+  const handleEditCertification = (certification: Certification) => {
+    setSelectedCertification(certification);
+    setShowCertificationModal(true);
+  };
+
+  const handleDeleteCertification = async (certificationId: string) => {
+    if (!confirm('¿Estás seguro de eliminar esta certificación?')) return;
+
+    try {
+      await deleteCertification(certificationId);
+      showSuccess('Certificación eliminada exitosamente');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error eliminando certificación');
+    }
+  };
+
+  // Handlers para planes de desarrollo
+  const handleCreateDevelopmentPlan = async (planData: CreateDevelopmentPlanRequest) => {
+    try {
+      await createDevelopmentPlan(planData);
+      showSuccess('Plan de desarrollo creado exitosamente');
+      setShowDevelopmentPlanModal(false);
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error creando plan de desarrollo');
+      throw error;
+    }
+  };
+
+  const handleEditDevelopmentPlan = (plan: DevelopmentPlan) => {
+    setSelectedDevelopmentPlan(plan);
+    setShowDevelopmentPlanModal(true);
+  };
+
+  const handleDeleteDevelopmentPlan = async (planId: string) => {
+    if (!confirm('¿Estás seguro de eliminar este plan de desarrollo?')) return;
+
+    try {
+      await deleteDevelopmentPlan(planId);
+      showSuccess('Plan de desarrollo eliminado exitosamente');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error eliminando plan de desarrollo');
+    }
+  };
+
+  // Handlers para evaluaciones
+  const handleCreateEvaluation = async (evaluationData: CreateSkillEvaluationRequest, files: File[]) => {
+    try {
+      let evidenceIds: string[] = [];
+      if (files.length > 0) {
+        evidenceIds = await uploadSkillFiles(files, 'evaluation');
+      }
+
+      await createSkillEvaluation({
+        ...evaluationData,
+        evidence: evidenceIds
+      });
+
+      showSuccess('Evaluación creada exitosamente');
+      setShowEvaluationModal(false);
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error creando evaluación');
+      throw error;
+    }
+  };
+
+  const handleEditEvaluation = (evaluation: SkillEvaluation) => {
+    setSelectedEvaluation(evaluation);
+    setShowEvaluationModal(true);
+  };
+
+  const handleDeleteEvaluation = async (evaluationId: string) => {
+    if (!confirm('¿Estás seguro de eliminar esta evaluación?')) return;
+
+    try {
+      await deleteSkillEvaluation(evaluationId);
+      showSuccess('Evaluación eliminada exitosamente');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error eliminando evaluación');
+    }
+  };
+
+  // Handlers para reportes
+  const handleExport = async () => {
+    try {
+      const blob = await exportSkillsData('excel');
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `habilidades_${employeeId}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      showSuccess('Datos exportados exitosamente');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error exportando datos');
+    }
+  };
+
+  const handleGenerateReport = async (reportType: 'summary' | 'detailed' | 'development' | 'certifications') => {
+    try {
+      const blob = await generateSkillsReport(reportType);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `reporte_${reportType}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      showSuccess('Reporte generado exitosamente');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Error generando reporte');
+    }
+  };
+
+  // Filtros
+  const filteredSkills = skills.filter(skill => {
+    const matchesSearch = skill.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === 'all' || skill.category === filterCategory;
+    const matchesLevel = filterLevel === 'all' || skill.level === filterLevel;
+    return matchesSearch && matchesCategory && matchesLevel;
+  });
+
+  const filteredCertifications = certifications.filter(cert => {
+    const matchesSearch = cert.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         cert.issuer.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === 'all' || cert.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
+
+  if (skillsLoading || certificationsLoading || developmentPlansLoading || evaluationsLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando habilidades...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (skillsError || certificationsError || developmentPlansError || evaluationsError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Error al cargar habilidades</h3>
+          <p className="text-gray-600 mb-4">{skillsError || certificationsError || developmentPlansError || evaluationsError}</p>
+          <button
+            onClick={() => refreshAll()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
 }
 
 const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({ 
