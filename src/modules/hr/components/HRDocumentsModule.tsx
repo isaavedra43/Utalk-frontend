@@ -240,100 +240,67 @@ const HRDocumentsModule: React.FC<HRDocumentsModuleProps> = ({ onBack }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Hero Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-2xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center">
-            <div className="inline-flex items-center justify-center p-4 bg-white/20 backdrop-blur-sm rounded-2xl mb-6">
-              <FileText className="h-12 w-12 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold text-white mb-4">
-              Biblioteca de Documentos RH
-            </h1>
-            <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-              Accede a plantillas, políticas, manuales y recursos esenciales para tu trabajo
-            </p>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-12">
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm font-medium">Total Documentos</p>
-                  <p className="text-3xl font-bold text-white">{summary?.totalDocuments || 0}</p>
-                </div>
-                <div className="p-3 bg-white/20 rounded-lg">
-                  <FileText className="h-6 w-6 text-white" />
-                </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header simplificado */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <FileText className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900">
+                  Documentos RH
+                </h1>
+                <p className="text-sm text-gray-500">
+                  Biblioteca de plantillas, políticas y recursos
+                </p>
               </div>
             </div>
-
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm font-medium">Espacio Usado</p>
-                  <p className="text-3xl font-bold text-white">
-                    {formatFileSize(summary?.totalSize || 0)}
-                  </p>
-                </div>
-                <div className="p-3 bg-white/20 rounded-lg">
-                  <HardDrive className="h-6 w-6 text-white" />
-                </div>
+            
+            {/* Stats simplificados */}
+            <div className="flex items-center space-x-6">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-900">{summary?.totalDocuments || 0}</p>
+                <p className="text-xs text-gray-500">Documentos</p>
               </div>
-            </div>
-
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm font-medium">Más Descargados</p>
-                  <p className="text-3xl font-bold text-white">{summary?.mostDownloaded?.length || 0}</p>
-                </div>
-                <div className="p-3 bg-white/20 rounded-lg">
-                  <TrendingUp className="h-6 w-6 text-white" />
-                </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-900">{formatFileSize(summary?.totalSize || 0)}</p>
+                <p className="text-xs text-gray-500">Espacio</p>
               </div>
-            </div>
-
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm font-medium">Carpetas</p>
-                  <p className="text-3xl font-bold text-white">{folders.length}</p>
-                </div>
-                <div className="p-3 bg-white/20 rounded-lg">
-                  <Folder className="h-6 w-6 text-white" />
-                </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-900">{folders.length}</p>
+                <p className="text-xs text-gray-500">Carpetas</p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Toolbar */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 border border-gray-100">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+      {/* Contenido principal */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Toolbar simplificado */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             {/* Search */}
-            <div className="relative flex-1 w-full lg:max-w-md">
-              <Search className="h-5 w-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <div className="relative flex-1 w-full sm:max-w-md">
+              <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Buscar documentos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-12 pr-4 py-3 w-full border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all"
+                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
             </div>
 
-            {/* Filters */}
-            <div className="flex items-center gap-3 w-full lg:w-auto">
+            {/* Filters y acciones */}
+            <div className="flex items-center gap-3">
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
                 <option value="all">Todas las categorías</option>
                 <option value="plantilla">Plantillas</option>
@@ -349,7 +316,7 @@ const HRDocumentsModule: React.FC<HRDocumentsModuleProps> = ({ onBack }) => {
               <select
                 value={selectedFolder}
                 onChange={(e) => setSelectedFolder(e.target.value)}
-                className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
                 <option value="all">Todas las carpetas</option>
                 {folders.map(folder => (
@@ -357,39 +324,39 @@ const HRDocumentsModule: React.FC<HRDocumentsModuleProps> = ({ onBack }) => {
                 ))}
               </select>
 
-              <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1">
+              <div className="flex items-center bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-lg transition-all ${
-                    viewMode === 'grid' ? 'bg-white shadow-md' : 'hover:bg-gray-200'
+                  className={`p-1.5 rounded-md transition-colors ${
+                    viewMode === 'grid' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'
                   }`}
                 >
-                  <Grid className="h-5 w-5" />
+                  <Grid className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-lg transition-all ${
-                    viewMode === 'list' ? 'bg-white shadow-md' : 'hover:bg-gray-200'
+                  className={`p-1.5 rounded-md transition-colors ${
+                    viewMode === 'list' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'
                   }`}
                 >
-                  <List className="h-5 w-5" />
+                  <List className="h-4 w-4" />
                 </button>
               </div>
 
               <button
                 onClick={() => setShowUploadModal(true)}
-                className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all"
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                <Upload className="h-5 w-5" />
-                <span className="font-medium">Subir</span>
+                <Upload className="h-4 w-4" />
+                <span className="text-sm font-medium">Subir</span>
               </button>
 
               <button
                 onClick={handleExport}
-                className="p-3 bg-green-100 text-green-700 rounded-xl hover:bg-green-200 transition-all"
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                 title="Exportar"
               >
-                <Download className="h-5 w-5" />
+                <Download className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -397,12 +364,12 @@ const HRDocumentsModule: React.FC<HRDocumentsModuleProps> = ({ onBack }) => {
 
         {/* Pinned Documents */}
         {pinnedDocs.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center space-x-2 mb-4">
-              <Pin className="h-5 w-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Documentos Fijados</h2>
+          <div className="mb-6">
+            <div className="flex items-center space-x-2 mb-3">
+              <Pin className="h-4 w-4 text-blue-600" />
+              <h2 className="text-base font-medium text-gray-900">Documentos Fijados</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {pinnedDocs.map(doc => (
                 <DocumentCard
                   key={doc.id}
@@ -424,11 +391,11 @@ const HRDocumentsModule: React.FC<HRDocumentsModuleProps> = ({ onBack }) => {
 
         {/* Regular Documents */}
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          <h2 className="text-base font-medium text-gray-900 mb-3">
             Todos los Documentos ({regularDocs.length})
           </h2>
           {viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {regularDocs.map(doc => (
                 <DocumentCard
                   key={doc.id}
@@ -446,55 +413,55 @@ const HRDocumentsModule: React.FC<HRDocumentsModuleProps> = ({ onBack }) => {
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Tamaño</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Subido</th>
-                      <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tamaño</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subido</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-gray-200">
                     {regularDocs.map(doc => (
                       <tr key={doc.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-3">
                           <div className="flex items-center space-x-3">
                             <div className="text-blue-600">
                               {getFileIcon(doc.type)}
                             </div>
                             <div>
-                              <p className="font-medium text-gray-900">{doc.name}</p>
-                              <p className="text-sm text-gray-500">{doc.description}</p>
+                              <p className="text-sm font-medium text-gray-900">{doc.name}</p>
+                              <p className="text-xs text-gray-500">{doc.description}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getCategoryColor(doc.category)}`}>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getCategoryColor(doc.category)}`}>
                             {getCategoryText(doc.category)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
+                        <td className="px-4 py-3 text-xs text-gray-600">
                           {formatFileSize(doc.fileSize)}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
+                        <td className="px-4 py-3 text-xs text-gray-600">
                           {formatDate(doc.uploadedAt)}
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center justify-end space-x-2">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end space-x-1">
                             <button
                               onClick={() => handleDownload(doc)}
-                              className="p-2 hover:bg-blue-100 rounded-lg text-blue-600 transition-colors"
+                              className="p-1.5 hover:bg-blue-100 rounded-md text-blue-600 transition-colors"
                               title="Descargar"
                             >
                               <Download className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleToggleFavorite(doc.id)}
-                              className={`p-2 rounded-lg transition-colors ${
+                              className={`p-1.5 rounded-md transition-colors ${
                                 doc.isFavorite ? 'bg-yellow-100 text-yellow-600' : 'hover:bg-gray-100 text-gray-600'
                               }`}
                               title="Favorito"
@@ -503,7 +470,7 @@ const HRDocumentsModule: React.FC<HRDocumentsModuleProps> = ({ onBack }) => {
                             </button>
                             <button
                               onClick={() => handleDelete(doc.id)}
-                              className="p-2 hover:bg-red-100 rounded-lg text-red-600 transition-colors"
+                              className="p-1.5 hover:bg-red-100 rounded-md text-red-600 transition-colors"
                               title="Eliminar"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -519,10 +486,10 @@ const HRDocumentsModule: React.FC<HRDocumentsModuleProps> = ({ onBack }) => {
           )}
 
           {regularDocs.length === 0 && (
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-12 text-center">
-              <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No se encontraron documentos</h3>
-              <p className="text-gray-500">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+              <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <h3 className="text-base font-medium text-gray-900 mb-1">No se encontraron documentos</h3>
+              <p className="text-sm text-gray-500">
                 {documents.length === 0
                   ? 'Comienza subiendo tu primer documento'
                   : 'Intenta ajustar los filtros de búsqueda'
@@ -566,50 +533,50 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
   formatDate
 }) => {
   return (
-    <div className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-gray-100 hover:border-blue-200 overflow-hidden">
+    <div className="group bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition-all duration-200 overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 relative">
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-blue-600 transform group-hover:scale-110 transition-transform">
+      <div className="p-4 border-b border-gray-100">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-blue-600">
             {getFileIcon(doc.type)}
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1">
             <button
               onClick={() => onTogglePin(doc.id)}
-              className={`p-2 rounded-lg transition-all ${
-                doc.isPinned ? 'bg-blue-600 text-white' : 'bg-white/80 text-gray-600 hover:bg-white'
+              className={`p-1.5 rounded-md transition-colors ${
+                doc.isPinned ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
               }`}
             >
-              <Pin className="h-4 w-4" />
+              <Pin className="h-3 w-3" />
             </button>
             <button
               onClick={() => onToggleFavorite(doc.id)}
-              className={`p-2 rounded-lg transition-all ${
-                doc.isFavorite ? 'bg-yellow-400 text-white' : 'bg-white/80 text-gray-600 hover:bg-white'
+              className={`p-1.5 rounded-md transition-colors ${
+                doc.isFavorite ? 'bg-yellow-100 text-yellow-600' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
               }`}
             >
-              <Star className={doc.isFavorite ? 'fill-current h-4 w-4' : 'h-4 w-4'} />
+              <Star className={doc.isFavorite ? 'fill-current h-3 w-3' : 'h-3 w-3'} />
             </button>
           </div>
         </div>
         
-        <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium border ${getCategoryColor(doc.category)}`}>
+        <span className={`inline-block px-2 py-1 rounded-md text-xs font-medium border ${getCategoryColor(doc.category)}`}>
           {getCategoryText(doc.category)}
         </span>
       </div>
 
       {/* Content */}
-      <div className="p-6">
-        <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+      <div className="p-4">
+        <h3 className="font-medium text-gray-900 mb-2 line-clamp-2 text-sm">
           {doc.name}
         </h3>
-        <p className="text-sm text-gray-600 mb-4 line-clamp-2">{doc.description}</p>
+        <p className="text-xs text-gray-600 mb-3 line-clamp-2">{doc.description}</p>
 
         {/* Tags */}
         {doc.tags && doc.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {doc.tags.slice(0, 3).map((tag, index) => (
-              <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs">
+          <div className="flex flex-wrap gap-1 mb-3">
+            {doc.tags.slice(0, 2).map((tag, index) => (
+              <span key={index} className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
                 {tag}
               </span>
             ))}
@@ -617,7 +584,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
         )}
 
         {/* Meta */}
-        <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+        <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
           <span>{formatFileSize(doc.fileSize)}</span>
           <span>{formatDate(doc.uploadedAt)}</span>
         </div>
@@ -626,30 +593,30 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={() => onDownload(doc)}
-            className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+            className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
-            <Download className="h-4 w-4" />
-            <span className="text-sm font-medium">Descargar</span>
+            <Download className="h-3 w-3" />
+            <span className="text-xs font-medium">Descargar</span>
           </button>
           <button
             onClick={() => onDelete(doc.id)}
-            className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all"
+            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3 w-3" />
           </button>
         </div>
       </div>
 
       {/* Stats Footer */}
-      <div className="bg-gray-50 px-6 py-3 border-t border-gray-100">
-        <div className="flex items-center justify-between text-xs text-gray-600">
+      <div className="bg-gray-50 px-4 py-2 border-t border-gray-100">
+        <div className="flex items-center justify-between text-xs text-gray-500">
           <div className="flex items-center space-x-1">
             <Eye className="h-3 w-3" />
-            <span>{doc.viewCount} vistas</span>
+            <span>{doc.viewCount}</span>
           </div>
           <div className="flex items-center space-x-1">
             <Download className="h-3 w-3" />
-            <span>{doc.downloadCount} descargas</span>
+            <span>{doc.downloadCount}</span>
           </div>
         </div>
       </div>
