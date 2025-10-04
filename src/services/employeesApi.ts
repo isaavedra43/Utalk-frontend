@@ -1233,9 +1233,6 @@ class EmployeesApiService {
 
     return response.data.fileIds || [];
   }
-    const response = await api.post(`/api/employees/${employeeId}/skills`, skillData);
-    return response.data;
-  }
 
   // Gestión de historial
   async getEmployeeHistory(employeeId: string, params: {
