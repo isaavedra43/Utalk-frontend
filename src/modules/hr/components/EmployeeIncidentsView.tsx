@@ -1,19 +1,13 @@
 import React, { useState } from 'react';
 import { 
   AlertTriangle, 
-  FileText, 
   Plus, 
   Search, 
-  Filter, 
   Download, 
-  Eye, 
   Edit, 
   Trash2, 
-  Share2, 
   CheckCircle, 
-  XCircle, 
   Clock, 
-  User, 
   Calendar, 
   MapPin, 
   Shield, 
@@ -22,16 +16,14 @@ import {
   DollarSign, 
   Briefcase, 
   ChevronDown, 
-  MoreHorizontal, 
-  Archive, 
   AlertCircle, 
-  BarChart3, 
-  Activity,
-  CreditCard
+  BarChart3,
+  FileText
 } from 'lucide-react';
 import { useIncidents } from '../../../hooks/useIncidents';
 import { useNotifications } from '../../../contexts/NotificationContext';
 import IncidentModal from './IncidentModal';
+import AdvancedIncidentAnalysis from './AdvancedIncidentAnalysis';
 import type { Incident, IncidentRequest } from '../../../services/incidentsService';
 
 // ============================================================================
@@ -70,7 +62,6 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
     markCostAsPaid,
     uploadAttachments,
     exportIncidents,
-    generateReport,
     refreshData
   } = useIncidents({ employeeId, autoRefresh: false });
 
@@ -79,9 +70,8 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterSeverity, setFilterSeverity] = useState('all');
-  const [activeTab, setActiveTab] = useState<'overview' | 'incidents' | 'reports' | 'analytics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'incidents'>('overview');
   const [showNewIncident, setShowNewIncident] = useState(false);
-  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
 
   // ============================================================================
   // HANDLERS
@@ -94,22 +84,13 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
         attachmentIds = await uploadAttachments(attachments);
       }
 
-      if (selectedIncident) {
-        await updateIncident(selectedIncident.id, {
-          ...incidentData as any,
-          attachments: attachmentIds
-        });
-        showSuccess('Incidencia actualizada exitosamente');
-      } else {
-        await createIncident({
-          ...incidentData,
-          attachments: attachmentIds
-        });
-        showSuccess('Incidencia creada exitosamente');
-      }
+      await createIncident({
+        ...incidentData,
+        attachments: attachmentIds
+      });
+      showSuccess('Incidencia creada exitosamente');
 
       setShowNewIncident(false);
-      setSelectedIncident(null);
       await refreshData();
     } catch (error: any) {
       console.error('Error en handleSubmitIncident:', error);
@@ -129,8 +110,176 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
   };
 
   const handleEditIncident = (incident: Incident) => {
-    setSelectedIncident(incident);
-    setShowNewIncident(true);
+    // TODO: Implementar edición de incidencias
+    console.log('Editar incidencia:', incident);
+  };
+
+  const handleGenerateIncidentReport = async (incident: Incident) => {
+    try {
+      // Generar PDF usando jsPDF
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF();
+      
+      // Configuración del documento
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 20;
+      let yPosition = margin;
+      
+      // Función para agregar texto con salto de línea automático
+      const addText = (text: string, fontSize: number = 12, isBold: boolean = false) => {
+        doc.setFontSize(fontSize);
+        if (isBold) {
+          doc.setFont(undefined, 'bold');
+        } else {
+          doc.setFont(undefined, 'normal');
+        }
+        
+        const lines = doc.splitTextToSize(text, pageWidth - 2 * margin);
+        doc.text(lines, margin, yPosition);
+        yPosition += lines.length * (fontSize * 0.4) + 5;
+        
+        // Verificar si necesitamos una nueva página
+        if (yPosition > doc.internal.pageSize.getHeight() - margin) {
+          doc.addPage();
+          yPosition = margin;
+        }
+      };
+      
+      // Encabezado del reporte
+      addText('REPORTE DE INCIDENCIA', 18, true);
+      addText('Sistema de Gestión de Recursos Humanos', 12);
+      addText(`Fecha de generación: ${new Date().toLocaleDateString('es-MX')}`, 10);
+      yPosition += 10;
+      
+      // Línea separadora
+      doc.setLineWidth(0.5);
+      doc.line(margin, yPosition, pageWidth - margin, yPosition);
+      yPosition += 15;
+      
+      // Información básica de la incidencia
+      addText('INFORMACIÓN BÁSICA', 14, true);
+      addText(`Título: ${incident.title}`, 12);
+      addText(`Tipo: ${getTypeText(incident.type)}`, 12);
+      addText(`Severidad: ${getSeverityText(incident.severity)}`, 12);
+      addText(`Estado: ${getStatusText(incident.status)}`, 12);
+      addText(`Prioridad: ${incident.priority}`, 12);
+      yPosition += 10;
+      
+      // Fecha y ubicación
+      addText('FECHA Y UBICACIÓN', 14, true);
+      addText(`Fecha: ${formatDate(incident.date)}`, 12);
+      addText(`Hora: ${incident.time}`, 12);
+      addText(`Ubicación: ${incident.location}`, 12);
+      yPosition += 10;
+      
+      // Descripción
+      addText('DESCRIPCIÓN DEL INCIDENTE', 14, true);
+      addText(incident.description, 12);
+      yPosition += 10;
+      
+      // Personas involucradas
+      if (incident.involvedPersons && incident.involvedPersons.length > 0) {
+        addText('PERSONAS INVOLUCRADAS', 14, true);
+        incident.involvedPersons.forEach((person, index) => {
+          addText(`${index + 1}. ${person}`, 12);
+        });
+        yPosition += 10;
+      }
+      
+      // Testigos
+      if (incident.witnesses && incident.witnesses.length > 0) {
+        addText('TESTIGOS', 14, true);
+        incident.witnesses.forEach((witness, index) => {
+          addText(`${index + 1}. ${witness}`, 12);
+        });
+        yPosition += 10;
+      }
+      
+      // Acciones tomadas
+      if (incident.actions && incident.actions.length > 0) {
+        addText('ACCIONES TOMADAS', 14, true);
+        incident.actions.forEach((action, index) => {
+          addText(`${index + 1}. ${action}`, 12);
+        });
+        yPosition += 10;
+      }
+      
+      // Consecuencias
+      if (incident.consequences && incident.consequences.length > 0) {
+        addText('CONSECUENCIAS', 14, true);
+        incident.consequences.forEach((consequence, index) => {
+          addText(`${index + 1}. ${consequence}`, 12);
+        });
+        yPosition += 10;
+      }
+      
+      // Medidas preventivas
+      if (incident.preventiveMeasures && incident.preventiveMeasures.length > 0) {
+        addText('MEDIDAS PREVENTIVAS', 14, true);
+        incident.preventiveMeasures.forEach((measure, index) => {
+          addText(`${index + 1}. ${measure}`, 12);
+        });
+        yPosition += 10;
+      }
+      
+      // Información financiera
+      if (incident.cost && incident.cost > 0) {
+        addText('INFORMACIÓN FINANCIERA', 14, true);
+        addText(`Costo estimado: $${incident.cost.toLocaleString('es-MX')}`, 12);
+        addText(`Estado del pago: ${incident.costPaid ? 'Pagado' : 'Pendiente'}`, 12);
+        if (incident.costPaid && incident.costPaidDate) {
+          addText(`Fecha de pago: ${formatDate(incident.costPaidDate)}`, 12);
+        }
+        if (incident.costPaidBy) {
+          addText(`Pagado por: ${incident.costPaidBy}`, 12);
+        }
+        yPosition += 10;
+      }
+      
+      // Reportes externos
+      if (incident.insuranceClaim || incident.policeReport || incident.medicalReport) {
+        addText('REPORTES EXTERNOS', 14, true);
+        if (incident.insuranceClaim) addText('• Reclamo de seguro presentado', 12);
+        if (incident.policeReport) addText('• Reporte policial presentado', 12);
+        if (incident.medicalReport) addText('• Reporte médico presentado', 12);
+        yPosition += 10;
+      }
+      
+      // Resolución (si existe)
+      if (incident.resolution) {
+        addText('RESOLUCIÓN', 14, true);
+        addText(incident.resolution, 12);
+        yPosition += 10;
+      }
+      
+      // Etiquetas
+      if (incident.tags && incident.tags.length > 0) {
+        addText('ETIQUETAS', 14, true);
+        addText(incident.tags.join(', '), 12);
+        yPosition += 10;
+      }
+      
+      // Información de confidencialidad
+      if (incident.isConfidential) {
+        addText('CONFIDENCIAL', 14, true);
+        addText('Este documento contiene información confidencial y está restringido a personal autorizado.', 12);
+        yPosition += 10;
+      }
+      
+      // Pie de página
+      yPosition = doc.internal.pageSize.getHeight() - 30;
+      addText(`Reporte generado el ${new Date().toLocaleString('es-MX')}`, 8);
+      addText(`ID de incidencia: ${incident.id}`, 8);
+      
+      // Descargar el PDF
+      const fileName = `reporte_incidencia_${incident.id}_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
+      
+      showSuccess('Reporte PDF generado exitosamente');
+    } catch (error) {
+      console.error('Error generando reporte PDF:', error);
+      showError('Error generando el reporte PDF');
+    }
   };
 
   const handleDeleteIncident = async (incidentId: string) => {
@@ -206,27 +355,6 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
     }
   };
 
-  const handleGenerateReport = async (reportType: 'acta' | 'robo' | 'accidente' | 'lesion' | 'disciplinario' | 'equipo') => {
-    if (!selectedIncident) {
-      showError('Selecciona una incidencia primero');
-      return;
-    }
-
-    try {
-      const blob = await generateReport(selectedIncident.id, reportType);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `reporte_${reportType}_${selectedIncident.id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      showSuccess('Reporte generado exitosamente');
-    } catch (error) {
-      showError(error instanceof Error ? error.message : 'Error generando reporte');
-    }
-  };
 
   // ============================================================================
   // FILTERS & DATA PROCESSING
@@ -372,13 +500,11 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
         isOpen={showNewIncident}
         onClose={() => {
           setShowNewIncident(false);
-          setSelectedIncident(null);
         }}
         onSubmit={handleSubmitIncident}
         employeeId={employeeId}
         employeeName={employeeName}
-        incident={selectedIncident}
-        mode={selectedIncident ? 'edit' : 'create'}
+        mode="create"
       />
 
       {/* Header */}
@@ -481,9 +607,7 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
             <nav className="-mb-px flex space-x-8 px-6">
               {[
                 { id: 'overview', label: 'Resumen', icon: BarChart3 },
-                { id: 'incidents', label: 'Incidencias', icon: AlertTriangle },
-                { id: 'reports', label: 'Reportes', icon: FileText },
-                { id: 'analytics', label: 'Análisis', icon: Activity }
+                { id: 'incidents', label: 'Incidencias', icon: AlertTriangle }
               ].map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -567,8 +691,16 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                             <button 
                               onClick={() => handleEditIncident(incident)}
                               className="p-1 hover:bg-red-100 rounded text-red-600"
+                              title="Editar"
                             >
                               <Edit className="h-4 w-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleGenerateIncidentReport(incident)}
+                              className="p-1 hover:bg-blue-100 rounded text-blue-600"
+                              title="Generar Reporte PDF"
+                            >
+                              <FileText className="h-4 w-4" />
                             </button>
                           </div>
                         </div>
@@ -578,6 +710,15 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                 </div>
               </div>
             )}
+
+            {/* Análisis Avanzado con IA */}
+            <AdvancedIncidentAnalysis
+              incidents={incidents}
+              summary={summary}
+              onAnalysisUpdate={(analysis) => {
+                console.log('Análisis de IA actualizado:', analysis);
+              }}
+            />
           </div>
         )}
 
@@ -695,13 +836,20 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
                           </div>
                         </div>
                         
-                      <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2">
                         <button 
                           onClick={() => handleEditIncident(incident)}
                           className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 hover:text-gray-900"
                           title="Editar"
                         >
                             <Edit className="h-4 w-4" />
+                          </button>
+                        <button 
+                          onClick={() => handleGenerateIncidentReport(incident)}
+                          className="p-2 hover:bg-blue-100 rounded-lg text-blue-600 hover:text-blue-900"
+                          title="Generar Reporte PDF"
+                        >
+                          <FileText className="h-4 w-4" />
                           </button>
                         <button 
                           onClick={() => handleDeleteIncident(incident.id)}
@@ -740,69 +888,6 @@ const EmployeeIncidentsView: React.FC<EmployeeIncidentsViewProps> = ({
           </div>
         )}
 
-        {activeTab === 'reports' && (
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Generar Reportes</h3>
-            <p className="text-gray-600 mb-6">Selecciona una incidencia y el tipo de reporte que deseas generar.</p>
-            
-            {incidents.length === 0 ? (
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">No hay incidencias para generar reportes.</p>
-                    </div>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Seleccionar Incidencia</label>
-                  <select
-                    value={selectedIncident?.id || ''}
-                    onChange={(e) => {
-                      const incident = incidents.find(inc => inc.id === e.target.value);
-                      setSelectedIncident(incident || null);
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">Selecciona una incidencia</option>
-                    {incidents.map((incident) => (
-                      <option key={incident.id} value={incident.id}>
-                        {incident.title} - {formatDate(incident.date)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                {selectedIncident && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {[
-                      { type: 'acta', label: 'Acta Administrativa' },
-                      { type: 'robo', label: 'Reporte de Robo' },
-                      { type: 'accidente', label: 'Reporte de Accidente' },
-                      { type: 'lesion', label: 'Reporte de Lesión' },
-                      { type: 'disciplinario', label: 'Reporte Disciplinario' },
-                      { type: 'equipo', label: 'Reporte de Equipo' }
-                    ].map(({ type, label }) => (
-                      <button
-                        key={type}
-                        onClick={() => handleGenerateReport(type as any)}
-                        className="p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-left"
-                      >
-                        <FileText className="h-6 w-6 text-blue-600 mb-2" />
-                        <p className="text-sm font-medium text-gray-900">{label}</p>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'analytics' && (
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Análisis y Estadísticas</h3>
-            <p className="text-gray-600">Vista de análisis avanzado de incidencias (próximamente).</p>
-          </div>
-        )}
       </div>
     </div>
   );
