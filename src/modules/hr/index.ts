@@ -31,3 +31,6 @@ export { default as ErrorBoundary } from './components/ErrorBoundary';
 
 // Módulo de Documentos Generales RH
 export { HRDocumentsModule } from './components/HRDocumentsModule';
+
+// Módulo de Gestión General de Vacaciones
+export { default as VacationsManagementModule } from './components/VacationsManagementModule';

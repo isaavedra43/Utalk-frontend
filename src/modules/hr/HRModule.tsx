@@ -24,6 +24,7 @@ import { AttendanceModule } from './components/AttendanceModule';
 import { VacationModule } from './components/VacationModule';
 import { DocumentModule } from './components/DocumentModule';
 import { HRDocumentsModule } from './components/HRDocumentsModule';
+import VacationsManagementModule from './components/VacationsManagementModule';
 import { HRCopilot } from './components/HRCopilot';
 import { MobileMenuButton } from '../../components/layout/MobileMenuButton';
 import { Button } from '../../components/ui/button';
@@ -119,10 +120,7 @@ const HRModule: React.FC = () => {
             employeeName={`${selectedEmployee.personalInfo.firstName} ${selectedEmployee.personalInfo.lastName}`} 
           />
         ) : (
-          <div className="text-center py-12">
-            <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">Selecciona un empleado para ver sus vacaciones</p>
-          </div>
+          <VacationsManagementModule />
         );
       case 'documents':
         return selectedEmployee ? (
