@@ -43,6 +43,54 @@ export interface VacationBalance {
   nextExpiration?: string;
 }
 
+export interface VacationPayment {
+  id: string;
+  employeeId: string;
+  vacationRequestId: string;
+  paymentDate: string;
+  days: number;
+  dailySalary: number;
+  vacationAmount: number; // Salario por días de vacaciones
+  primaVacacional: number; // 25% del salario de vacaciones
+  totalAmount: number; // Total a pagar
+  status: 'pending' | 'paid' | 'cancelled';
+  paymentMethod: 'cash' | 'bank_transfer' | 'payroll';
+  paymentReference?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VacationPaymentCalculation {
+  employeeId: string;
+  employeeName: string;
+  dailySalary: number;
+  vacationDays: number;
+  vacationAmount: number;
+  primaVacacional: number;
+  totalAmount: number;
+  breakdown: {
+    baseSalary: number;
+    primaVacacional: number;
+    total: number;
+  };
+  legalBasis: {
+    law: string;
+    article: string;
+    percentage: number;
+  };
+}
+
+export interface VacationPaymentSummary {
+  totalPaid: number;
+  totalPending: number;
+  totalOwed: number;
+  paymentsCount: number;
+  pendingCount: number;
+  lastPaymentDate?: string;
+  nextPaymentDue?: string;
+}
+
 export interface VacationPolicy {
   annualDays: number;
   accrualRate: number; // días por mes
@@ -367,6 +415,246 @@ class VacationsService {
       return attachmentIds;
     } catch (error) {
       this.handleError(error, 'uploadAttachments');
+    }
+  }
+
+  // ============================================================================
+  // VACATION PAYMENT CALCULATION METHODS
+  // ============================================================================
+
+  /**
+   * Calcula el pago de vacaciones según la Ley Federal del Trabajo
+   */
+  async calculateVacationPayment(
+    employeeId: string, 
+    vacationDays: number, 
+    dailySalary?: number
+  ): Promise<VacationPaymentCalculation> {
+    try {
+      console.log('💰 Calculando pago de vacaciones para empleado:', employeeId);
+      
+      const response = await api.post('/api/vacations/calculate-payment', {
+        employeeId,
+        vacationDays,
+        dailySalary
+      });
+      
+      const calculation = response.data.data || response.data;
+      console.log('✅ Cálculo de pago generado:', calculation);
+      return calculation;
+    } catch (error) {
+      this.handleError(error, 'calculateVacationPayment');
+    }
+  }
+
+  /**
+   * Calcula días de vacaciones según antigüedad (Ley Federal del Trabajo)
+   */
+  calculateVacationDaysBySeniority(yearsOfService: number): number {
+    const vacationDaysMap: { [key: number]: number } = {
+      0: 6,   // Menos de 1 año
+      1: 6,   // 1 año
+      2: 8,   // 2 años
+      3: 10,  // 3 años
+      4: 12,  // 4 años
+      5: 14,  // 5-9 años
+      6: 14,
+      7: 14,
+      8: 14,
+      9: 14,
+      10: 16, // 10-14 años
+      11: 16,
+      12: 16,
+      13: 16,
+      14: 16,
+      15: 18, // 15-19 años
+      16: 18,
+      17: 18,
+      18: 18,
+      19: 18,
+      20: 20, // 20-24 años
+      21: 20,
+      22: 20,
+      23: 20,
+      24: 20,
+      25: 22  // 25+ años
+    };
+
+    return vacationDaysMap[Math.min(yearsOfService, 25)] || 22;
+  }
+
+  /**
+   * Calcula el pago de vacaciones con prima vacacional (25%)
+   */
+  calculateVacationPaymentAmount(
+    dailySalary: number, 
+    vacationDays: number
+  ): { vacationAmount: number; primaVacacional: number; totalAmount: number } {
+    const vacationAmount = dailySalary * vacationDays;
+    const primaVacacional = vacationAmount * 0.25; // 25% según LFT
+    const totalAmount = vacationAmount + primaVacacional;
+
+    return {
+      vacationAmount,
+      primaVacacional,
+      totalAmount
+    };
+  }
+
+  /**
+   * Obtiene el resumen de pagos de vacaciones de un empleado
+   */
+  async getVacationPaymentSummary(employeeId: string): Promise<VacationPaymentSummary> {
+    try {
+      console.log('📊 Obteniendo resumen de pagos de vacaciones:', employeeId);
+      
+      const response = await api.get(`/api/vacations/payments/summary/${employeeId}`);
+      
+      const summary = response.data.data || response.data;
+      console.log('✅ Resumen de pagos obtenido:', summary);
+      return summary;
+    } catch (error) {
+      this.handleError(error, 'getVacationPaymentSummary');
+    }
+  }
+
+  /**
+   * Obtiene el historial de pagos de vacaciones
+   */
+  async getVacationPayments(employeeId: string): Promise<VacationPayment[]> {
+    try {
+      console.log('📋 Obteniendo historial de pagos de vacaciones:', employeeId);
+      
+      const response = await api.get(`/api/vacations/payments/${employeeId}`);
+      
+      const payments = response.data.data || response.data;
+      console.log('✅ Historial de pagos obtenido:', payments.length, 'registros');
+      return payments;
+    } catch (error) {
+      this.handleError(error, 'getVacationPayments');
+    }
+  }
+
+  /**
+   * Procesa un pago de vacaciones
+   */
+  async processVacationPayment(paymentData: {
+    employeeId: string;
+    vacationRequestId: string;
+    days: number;
+    dailySalary: number;
+    paymentMethod: 'cash' | 'bank_transfer' | 'payroll';
+    paymentReference?: string;
+    notes?: string;
+  }): Promise<VacationPayment> {
+    try {
+      console.log('💳 Procesando pago de vacaciones:', paymentData);
+      
+      // Calcular montos
+      const amounts = this.calculateVacationPaymentAmount(
+        paymentData.dailySalary, 
+        paymentData.days
+      );
+      
+      const response = await api.post('/api/vacations/payments', {
+        ...paymentData,
+        vacationAmount: amounts.vacationAmount,
+        primaVacacional: amounts.primaVacacional,
+        totalAmount: amounts.totalAmount,
+        status: 'pending'
+      });
+      
+      const payment = response.data.data || response.data;
+      console.log('✅ Pago procesado:', payment.id);
+      return payment;
+    } catch (error) {
+      this.handleError(error, 'processVacationPayment');
+    }
+  }
+
+  /**
+   * Marca un pago como realizado
+   */
+  async markPaymentAsPaid(
+    paymentId: string, 
+    paymentReference: string,
+    paymentMethod: 'cash' | 'bank_transfer' | 'payroll'
+  ): Promise<VacationPayment> {
+    try {
+      console.log('✅ Marcando pago como realizado:', paymentId);
+      
+      const response = await api.put(`/api/vacations/payments/${paymentId}/mark-paid`, {
+        paymentReference,
+        paymentMethod,
+        status: 'paid',
+        paymentDate: new Date().toISOString()
+      });
+      
+      const payment = response.data.data || response.data;
+      console.log('✅ Pago marcado como realizado');
+      return payment;
+    } catch (error) {
+      this.handleError(error, 'markPaymentAsPaid');
+    }
+  }
+
+  /**
+   * Cancela un pago pendiente
+   */
+  async cancelPayment(paymentId: string, reason: string): Promise<VacationPayment> {
+    try {
+      console.log('❌ Cancelando pago:', paymentId);
+      
+      const response = await api.put(`/api/vacations/payments/${paymentId}/cancel`, {
+        status: 'cancelled',
+        notes: reason
+      });
+      
+      const payment = response.data.data || response.data;
+      console.log('✅ Pago cancelado');
+      return payment;
+    } catch (error) {
+      this.handleError(error, 'cancelPayment');
+    }
+  }
+
+  /**
+   * Obtiene todos los pagos pendientes de la empresa
+   */
+  async getPendingPayments(): Promise<VacationPayment[]> {
+    try {
+      console.log('⏳ Obteniendo pagos pendientes');
+      
+      const response = await api.get('/api/vacations/payments/pending');
+      
+      const payments = response.data.data || response.data;
+      console.log('✅ Pagos pendientes obtenidos:', payments.length, 'registros');
+      return payments;
+    } catch (error) {
+      this.handleError(error, 'getPendingPayments');
+    }
+  }
+
+  /**
+   * Genera reporte de pagos de vacaciones
+   */
+  async generatePaymentReport(params: {
+    startDate?: string;
+    endDate?: string;
+    status?: 'pending' | 'paid' | 'cancelled';
+    format?: 'excel' | 'pdf';
+  }): Promise<Blob> {
+    try {
+      console.log('📊 Generando reporte de pagos de vacaciones');
+      
+      const response = await api.post('/api/vacations/payments/report', params, {
+        responseType: 'blob'
+      });
+      
+      console.log('✅ Reporte generado');
+      return response.data;
+    } catch (error) {
+      this.handleError(error, 'generatePaymentReport');
     }
   }
 
