@@ -30,8 +30,6 @@ import { useNotifications } from '../../../contexts/NotificationContext';
 import VacationRequestModal from './VacationRequestModal';
 import VacationsChart from './VacationsChart';
 import VacationCalendar from './VacationCalendar';
-import VacationPaymentHistory from './VacationPaymentHistory';
-import VacationErrorBoundary from './VacationErrorBoundary';
 import type { CreateVacationRequest, VacationRequest } from '../../../services/vacationsService';
 
 // ============================================================================
@@ -82,7 +80,7 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [activeTab, setActiveTab] = useState<'overview' | 'requests' | 'history' | 'calendar' | 'payments'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'requests' | 'history' | 'calendar'>('overview');
   const [showNewRequest, setShowNewRequest] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<VacationRequest | null>(null);
 
@@ -300,8 +298,7 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
   }
 
   return (
-    <VacationErrorBoundary>
-      <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Modal de Nueva/Editar Solicitud */}
       <VacationRequestModal
         isOpen={showNewRequest}
@@ -425,7 +422,6 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
                 { id: 'overview', label: 'Resumen', icon: BarChart3 },
                 { id: 'requests', label: 'Solicitudes', icon: FileText },
                 { id: 'history', label: 'Historial', icon: Clock },
-                { id: 'payments', label: 'Pagos', icon: DollarSign },
                 { id: 'calendar', label: 'Calendario', icon: Calendar }
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -752,39 +748,19 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
           </div>
         )}
 
-        {/* Tab: Pagos */}
-        {activeTab === 'payments' && (
-          <VacationPaymentHistory
-            employeeId={employeeId}
-            employeeName={employeeName || 'Empleado'}
-            onPaymentUpdated={() => {
-              // Refrescar datos si es necesario
-              refreshData();
-            }}
-          />
-        )}
-
         {/* Tab: Calendario */}
         {activeTab === 'calendar' && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm border">
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Calendario de Vacaciones</h3>
-                <VacationErrorBoundary fallback={
-                  <div className="text-center py-8">
-                    <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">El calendario estará disponible próximamente</p>
-                  </div>
-                }>
-                  <VacationCalendar requests={requests} />
-                </VacationErrorBoundary>
+                <VacationCalendar requests={requests} />
               </div>
             </div>
           </div>
         )}
       </div>
     </div>
-    </VacationErrorBoundary>
   );
 };
 

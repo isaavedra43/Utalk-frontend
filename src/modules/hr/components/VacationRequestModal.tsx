@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import { useNotifications } from '../../../contexts/NotificationContext';
 import type { VacationRequest, CreateVacationRequest } from '../../../services/vacationsService';
-import VacationPaymentCalculator from './VacationPaymentCalculator';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -444,22 +443,6 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
                       </p>
                     )}
                   </div>
-                )}
-
-                {/* Calculadora de Pagos */}
-                {(formData.startDate && formData.endDate && calculatedDays > 0 && formData.type === 'vacation') && (
-                  <VacationPaymentCalculator
-                    employeeId={employeeId}
-                    employeeName={employeeName}
-                    vacationDays={calculatedDays}
-                    onPaymentCalculated={(calculation) => {
-                      console.log('💳 Pago calculado:', calculation);
-                    }}
-                    onPaymentProcessed={(payment) => {
-                      console.log('✅ Pago procesado:', payment);
-                      showSuccess('Pago de vacaciones procesado correctamente');
-                    }}
-                  />
                 )}
 
                 {/* Disponibilidad */}

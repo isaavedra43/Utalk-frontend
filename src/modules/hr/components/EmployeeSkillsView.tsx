@@ -58,10 +58,10 @@ interface EmployeeSkillsViewProps {
   onBack: () => void;
 }
 
-const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
-  employeeId,
+const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({ 
+  employeeId, 
   employeeName = 'Empleado',
-  onBack
+  onBack 
 }) => {
   const { showSuccess, showError } = useNotifications();
 
@@ -377,26 +377,26 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
               { id: 'certifications', name: 'Certificaciones', icon: Award },
               { id: 'development', name: 'Desarrollo', icon: TrendingUp },
               { id: 'assessment', name: 'Evaluaciones', icon: CheckCircle }
-            ].map((tab) => {
+              ].map((tab) => {
               const IconComponent = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                    activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                      activeTab === tab.id
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
                   <IconComponent className="h-4 w-4" />
                   <span>{tab.name}</span>
-                </button>
-              );
-            })}
-          </nav>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
         </div>
-      </div>
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -409,7 +409,7 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
                   <div>
                     <p className="text-sm font-medium text-gray-500">Total Habilidades</p>
                     <p className="text-2xl font-bold text-gray-900">{skillsSummary?.totalSkills || 0}</p>
-                  </div>
+                        </div>
                   <div className="p-3 bg-blue-100 rounded-lg">
                     <Target className="h-6 w-6 text-blue-600" />
                   </div>
@@ -421,24 +421,24 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
                   <div>
                     <p className="text-sm font-medium text-gray-500">Certificaciones</p>
                     <p className="text-2xl font-bold text-gray-900">{certificationsSummary?.totalCertifications || 0}</p>
-                  </div>
+                      </div>
                   <div className="p-3 bg-green-100 rounded-lg">
                     <Award className="h-6 w-6 text-green-600" />
-                  </div>
                 </div>
               </div>
+            </div>
 
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between">
-                  <div>
+                          <div>
                     <p className="text-sm font-medium text-gray-500">Planes Activos</p>
                     <p className="text-2xl font-bold text-gray-900">{developmentPlansSummary?.activePlans || 0}</p>
-                  </div>
+                            </div>
                   <div className="p-3 bg-purple-100 rounded-lg">
                     <TrendingUp className="h-6 w-6 text-purple-600" />
-                  </div>
-                </div>
-              </div>
+                          </div>
+                        </div>
+                      </div>
 
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between">
@@ -449,9 +449,9 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
                   <div className="p-3 bg-orange-100 rounded-lg">
                     <CheckCircle className="h-6 w-6 text-orange-600" />
                   </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
             {/* Recent Activity */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -463,19 +463,19 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
                       <div className="p-2 bg-blue-100 rounded-lg">
                         <Target className="h-4 w-4 text-blue-600" />
                       </div>
-                      <div>
+                          <div>
                         <p className="font-medium text-gray-900">{skill.name}</p>
                         <p className="text-sm text-gray-500">Nivel: {skill.level}</p>
-                      </div>
-                    </div>
+                            </div>
+                          </div>
                     <div className="text-right">
                       <p className="text-sm font-medium text-gray-900">{skill.score}/{skill.maxScore}</p>
                       <p className="text-xs text-gray-500">Puntuación</p>
-                    </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
           </div>
         )}
 
@@ -485,38 +485,38 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="relative flex-1 w-full sm:max-w-md">
-                  <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Buscar habilidades..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Buscar habilidades..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  />
-                </div>
+                    />
+                  </div>
                 <div className="flex items-center gap-3">
-                  <select
-                    value={filterCategory}
-                    onChange={(e) => setFilterCategory(e.target.value)}
+                    <select
+                      value={filterCategory}
+                      onChange={(e) => setFilterCategory(e.target.value)}
                     className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  >
-                    <option value="all">Todas las categorías</option>
-                    <option value="technical">Técnicas</option>
-                    <option value="soft">Blandas</option>
-                    <option value="leadership">Liderazgo</option>
+                    >
+                      <option value="all">Todas las categorías</option>
+                      <option value="technical">Técnicas</option>
+                      <option value="soft">Blandas</option>
+                      <option value="leadership">Liderazgo</option>
                     <option value="communication">Comunicación</option>
-                  </select>
-                  <select
-                    value={filterLevel}
-                    onChange={(e) => setFilterLevel(e.target.value)}
+                    </select>
+                    <select
+                      value={filterLevel}
+                      onChange={(e) => setFilterLevel(e.target.value)}
                     className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  >
-                    <option value="all">Todos los niveles</option>
-                    <option value="beginner">Principiante</option>
-                    <option value="intermediate">Intermedio</option>
-                    <option value="advanced">Avanzado</option>
-                    <option value="expert">Experto</option>
-                  </select>
+                    >
+                      <option value="all">Todos los niveles</option>
+                      <option value="beginner">Principiante</option>
+                      <option value="intermediate">Intermedio</option>
+                      <option value="advanced">Avanzado</option>
+                      <option value="expert">Experto</option>
+                    </select>
                   <button
                     onClick={() => setShowNewSkill(true)}
                     className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -524,61 +524,61 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
                     <Plus className="h-4 w-4" />
                     <span className="text-sm font-medium">Nueva Habilidad</span>
                   </button>
+                  </div>
                 </div>
               </div>
-            </div>
 
             {/* Skills Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredSkills.map((skill) => (
+                  {filteredSkills.map((skill) => (
                 <div key={skill.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
                       <div className="p-2 bg-blue-100 rounded-lg">
                         <Target className="h-5 w-5 text-blue-600" />
-                      </div>
+                          </div>
                       <div>
                         <h3 className="font-medium text-gray-900">{skill.name}</h3>
                         <p className="text-sm text-gray-500 capitalize">{skill.category}</p>
-                      </div>
-                    </div>
+                          </div>
+                        </div>
                     <div className="flex items-center space-x-1">
                       <button
                         onClick={() => setSelectedSkill(skill)}
                         className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
                       >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
+                            <Edit className="h-4 w-4" />
+                          </button>
+                  <button 
                         onClick={() => handleDeleteSkill(skill.id)}
                         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                      >
+                  >
                         <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                  
+                  </button>
+                </div>
+              </div>
+
                   <p className="text-sm text-gray-600 mb-4">{skill.description}</p>
                   
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-500">Nivel</span>
                       <span className="text-sm font-medium text-gray-900 capitalize">{skill.level}</span>
-                    </div>
+                            </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-500">Puntuación</span>
                       <span className="text-sm font-medium text-gray-900">{skill.score}/{skill.maxScore}</span>
-                    </div>
+                            </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-blue-600 h-2 rounded-full" 
                         style={{ width: `${(skill.score / skill.maxScore) * 100}%` }}
                       ></div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
             {filteredSkills.length === 0 && (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
@@ -599,7 +599,7 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
                 </button>
               </div>
             )}
-          </div>
+            </div>
         )}
 
         {/* Similar content for other tabs... */}
@@ -626,7 +626,7 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
             <p className="text-gray-500">Contenido en desarrollo...</p>
           </div>
         )}
-      </div>
+                    </div>
 
       {/* Modals */}
       {showNewSkill && (
