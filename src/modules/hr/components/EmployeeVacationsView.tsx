@@ -30,6 +30,7 @@ import { useNotifications } from '../../../contexts/NotificationContext';
 import VacationRequestModal from './VacationRequestModal';
 import VacationsChart from './VacationsChart';
 import VacationCalendar from './VacationCalendar';
+import VacationPaymentHistory from './VacationPaymentHistory';
 import type { CreateVacationRequest, VacationRequest } from '../../../services/vacationsService';
 
 // ============================================================================
@@ -80,7 +81,7 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [activeTab, setActiveTab] = useState<'overview' | 'requests' | 'history' | 'calendar'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'requests' | 'history' | 'calendar' | 'payments'>('overview');
   const [showNewRequest, setShowNewRequest] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<VacationRequest | null>(null);
 
@@ -422,6 +423,7 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
                 { id: 'overview', label: 'Resumen', icon: BarChart3 },
                 { id: 'requests', label: 'Solicitudes', icon: FileText },
                 { id: 'history', label: 'Historial', icon: Clock },
+                { id: 'payments', label: 'Pagos', icon: DollarSign },
                 { id: 'calendar', label: 'Calendario', icon: Calendar }
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -746,6 +748,18 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
               </div>
             </div>
           </div>
+        )}
+
+        {/* Tab: Pagos */}
+        {activeTab === 'payments' && (
+          <VacationPaymentHistory
+            employeeId={employeeId}
+            employeeName={employeeName || 'Empleado'}
+            onPaymentUpdated={() => {
+              // Refrescar datos si es necesario
+              refreshData();
+            }}
+          />
         )}
 
         {/* Tab: Calendario */}
