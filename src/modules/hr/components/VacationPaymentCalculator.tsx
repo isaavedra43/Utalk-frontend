@@ -47,13 +47,43 @@ const VacationPaymentCalculator: React.FC<VacationPaymentCalculatorProps> = ({
     setError(null);
     
     try {
-      const result = await vacationsService.calculateVacationPayment(
+      // Por ahora, usar cálculo local hasta que el backend esté implementado
+      const dailySalary = 500; // Salario diario por defecto
+      const vacationAmount = dailySalary * vacationDays;
+      const primaVacacional = vacationAmount * 0.25; // 25% según LFT
+      const totalAmount = vacationAmount + primaVacacional;
+
+      const mockCalculation: VacationPaymentCalculation = {
         employeeId,
-        vacationDays
-      );
+        employeeName: 'Empleado',
+        dailySalary,
+        vacationDays,
+        vacationAmount,
+        primaVacacional,
+        totalAmount,
+        breakdown: {
+          baseSalary: vacationAmount,
+          primaVacacional,
+          total: totalAmount
+        },
+        legalBasis: {
+          law: 'Ley Federal del Trabajo',
+          article: 'Artículo 80',
+          percentage: 25
+        }
+      };
       
-      setCalculation(result);
-      onPaymentCalculated?.(result);
+      setCalculation(mockCalculation);
+      onPaymentCalculated?.(mockCalculation);
+      
+      // TODO: Implementar cuando el backend esté listo
+      // const result = await vacationsService.calculateVacationPayment(
+      //   employeeId,
+      //   vacationDays
+      // );
+      // 
+      // setCalculation(result);
+      // onPaymentCalculated?.(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error calculando pago');
     } finally {
@@ -66,15 +96,19 @@ const VacationPaymentCalculator: React.FC<VacationPaymentCalculatorProps> = ({
     
     setLoading(true);
     try {
-      const payment = await vacationsService.processVacationPayment({
-        employeeId,
-        vacationRequestId: '', // Se asignará cuando se apruebe la solicitud
-        days: vacationDays,
-        dailySalary: calculation.dailySalary,
-        paymentMethod
-      });
+      // TODO: Implementar cuando el backend esté listo
+      console.log('Procesando pago:', { paymentMethod, calculation });
+      alert('Funcionalidad de procesamiento de pagos estará disponible próximamente');
       
-      onPaymentProcessed?.(payment);
+      // const payment = await vacationsService.processVacationPayment({
+      //   employeeId,
+      //   vacationRequestId: '', // Se asignará cuando se apruebe la solicitud
+      //   days: vacationDays,
+      //   dailySalary: calculation.dailySalary,
+      //   paymentMethod
+      // });
+      // 
+      // onPaymentProcessed?.(payment);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error procesando pago');
     } finally {

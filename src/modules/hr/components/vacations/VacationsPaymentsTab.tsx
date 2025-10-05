@@ -40,8 +40,7 @@ const VacationsPaymentsTab: React.FC = () => {
     setError(null);
     
     try {
-      // Aquí cargarías los pagos de toda la empresa
-      // Por ahora simulamos con datos vacíos
+      // Por ahora, usar datos mock hasta que el backend esté implementado
       setPayments([]);
       setSummary({
         totalPaid: 0,
@@ -50,6 +49,15 @@ const VacationsPaymentsTab: React.FC = () => {
         paymentsCount: 0,
         pendingCount: 0
       });
+      
+      // TODO: Implementar cuando el backend esté listo
+      // const [paymentsData, summaryData] = await Promise.all([
+      //   vacationsService.getPendingPayments(),
+      //   vacationsService.getVacationPaymentSummary('all') // Para toda la empresa
+      // ]);
+      // 
+      // setPayments(paymentsData);
+      // setSummary(summaryData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error cargando datos');
     } finally {
@@ -59,13 +67,17 @@ const VacationsPaymentsTab: React.FC = () => {
 
   const handleMarkAsPaid = async (paymentId: string) => {
     try {
-      await vacationsService.markPaymentAsPaid(
-        paymentId,
-        `Pago realizado - ${new Date().toLocaleDateString()}`,
-        'cash'
-      );
+      // TODO: Implementar cuando el backend esté listo
+      console.log('Marcando pago como realizado:', paymentId);
+      alert('Funcionalidad de pagos estará disponible próximamente');
       
-      loadPaymentsData();
+      // await vacationsService.markPaymentAsPaid(
+      //   paymentId,
+      //   `Pago realizado - ${new Date().toLocaleDateString()}`,
+      //   'cash'
+      // );
+      // 
+      // loadPaymentsData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error marcando pago');
     }
@@ -76,9 +88,13 @@ const VacationsPaymentsTab: React.FC = () => {
     if (!reason) return;
     
     try {
-      await vacationsService.cancelPayment(paymentId, reason);
+      // TODO: Implementar cuando el backend esté listo
+      console.log('Cancelando pago:', paymentId, reason);
+      alert('Funcionalidad de pagos estará disponible próximamente');
       
-      loadPaymentsData();
+      // await vacationsService.cancelPayment(paymentId, reason);
+      // 
+      // loadPaymentsData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error cancelando pago');
     }

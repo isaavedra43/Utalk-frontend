@@ -41,15 +41,30 @@ const VacationPaymentHistory: React.FC<VacationPaymentHistoryProps> = ({
     setError(null);
     
     try {
-      const [paymentsData, summaryData] = await Promise.all([
-        vacationsService.getVacationPayments(employeeId),
-        vacationsService.getVacationPaymentSummary(employeeId)
-      ]);
+      // Por ahora, usar datos mock hasta que el backend esté implementado
+      const mockPayments: VacationPayment[] = [];
+      const mockSummary: VacationPaymentSummary = {
+        totalPaid: 0,
+        totalPending: 0,
+        totalOwed: 0,
+        paymentsCount: 0,
+        pendingCount: 0
+      };
       
-      setPayments(paymentsData);
-      setSummary(summaryData);
+      setPayments(mockPayments);
+      setSummary(mockSummary);
+      
+      // TODO: Implementar cuando el backend esté listo
+      // const [paymentsData, summaryData] = await Promise.all([
+      //   vacationsService.getVacationPayments(employeeId),
+      //   vacationsService.getVacationPaymentSummary(employeeId)
+      // ]);
+      // 
+      // setPayments(paymentsData);
+      // setSummary(summaryData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error cargando datos');
+      console.error('Error cargando datos de pagos:', err);
+      setError('Los pagos de vacaciones estarán disponibles próximamente');
     } finally {
       setLoading(false);
     }
@@ -57,14 +72,18 @@ const VacationPaymentHistory: React.FC<VacationPaymentHistoryProps> = ({
 
   const handleMarkAsPaid = async (paymentId: string) => {
     try {
-      await vacationsService.markPaymentAsPaid(
-        paymentId,
-        `Pago realizado - ${new Date().toLocaleDateString()}`,
-        'cash'
-      );
+      // TODO: Implementar cuando el backend esté listo
+      console.log('Marcando pago como realizado:', paymentId);
+      alert('Funcionalidad de pagos estará disponible próximamente');
       
-      loadPaymentData();
-      onPaymentUpdated?.();
+      // await vacationsService.markPaymentAsPaid(
+      //   paymentId,
+      //   `Pago realizado - ${new Date().toLocaleDateString()}`,
+      //   'cash'
+      // );
+      // 
+      // loadPaymentData();
+      // onPaymentUpdated?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error marcando pago');
     }
@@ -75,10 +94,14 @@ const VacationPaymentHistory: React.FC<VacationPaymentHistoryProps> = ({
     if (!reason) return;
     
     try {
-      await vacationsService.cancelPayment(paymentId, reason);
+      // TODO: Implementar cuando el backend esté listo
+      console.log('Cancelando pago:', paymentId, reason);
+      alert('Funcionalidad de pagos estará disponible próximamente');
       
-      loadPaymentData();
-      onPaymentUpdated?.();
+      // await vacationsService.cancelPayment(paymentId, reason);
+      // 
+      // loadPaymentData();
+      // onPaymentUpdated?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error cancelando pago');
     }
