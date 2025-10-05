@@ -31,6 +31,7 @@ import VacationRequestModal from './VacationRequestModal';
 import VacationsChart from './VacationsChart';
 import VacationCalendar from './VacationCalendar';
 import VacationPaymentHistory from './VacationPaymentHistory';
+import VacationErrorBoundary from './VacationErrorBoundary';
 import type { CreateVacationRequest, VacationRequest } from '../../../services/vacationsService';
 
 // ============================================================================
@@ -299,7 +300,8 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <VacationErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
       {/* Modal de Nueva/Editar Solicitud */}
       <VacationRequestModal
         isOpen={showNewRequest}
@@ -768,13 +770,21 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
             <div className="bg-white rounded-xl shadow-sm border">
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Calendario de Vacaciones</h3>
-                <VacationCalendar requests={requests} />
+                <VacationErrorBoundary fallback={
+                  <div className="text-center py-8">
+                    <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">El calendario estará disponible próximamente</p>
+                  </div>
+                }>
+                  <VacationCalendar requests={requests} />
+                </VacationErrorBoundary>
               </div>
             </div>
           </div>
         )}
       </div>
     </div>
+    </VacationErrorBoundary>
   );
 };
 
