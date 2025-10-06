@@ -91,6 +91,8 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [currentTag, setCurrentTag] = useState('');
+  const [purchasePriceDisplay, setPurchasePriceDisplay] = useState('');
+  const [currentValueDisplay, setCurrentValueDisplay] = useState('');
 
   useEffect(() => {
     if (equipment && mode === 'edit') {
@@ -116,8 +118,31 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
         notes: equipment.notes,
         tags: equipment.tags
       });
+      setPurchasePriceDisplay(formatCurrency(equipment.purchasePrice));
+      setCurrentValueDisplay(formatCurrency(equipment.currentValue));
     }
   }, [equipment, mode]);
+
+  useEffect(() => {
+    if (!equipment && mode === 'create') {
+      setPurchasePriceDisplay(formData.purchasePrice ? formatCurrency(formData.purchasePrice) : '');
+      setCurrentValueDisplay(formData.currentValue ? formatCurrency(formData.currentValue) : '');
+    }
+  }, [formData.purchasePrice, formData.currentValue, equipment, mode]);
+
+  const formatCurrency = (value: number): string => {
+    try {
+      return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 2 }).format(value || 0);
+    } catch {
+      return `$${(value || 0).toFixed(2)}`;
+    }
+  };
+
+  const parseCurrencyInput = (raw: string): number => {
+    const cleaned = raw.replace(/[^0-9.,]/g, '').replace(/,/g, '');
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : num;
+  };
 
   const categories = [
     { value: 'uniform', label: 'Uniforme', icon: ShirtIcon },
@@ -421,10 +446,21 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
                         Precio de Compra *
                       </label>
                       <input
-                        type="number"
-                        step="0.01"
-                        value={formData.purchasePrice}
-                        onChange={(e) => setFormData(prev => ({ ...prev, purchasePrice: parseFloat(e.target.value) || 0 }))}
+                        type="text"
+                        inputMode="decimal"
+                        value={purchasePriceDisplay}
+                        onChange={(e) => {
+                          const numeric = parseCurrencyInput(e.target.value);
+                          setFormData(prev => ({ ...prev, purchasePrice: numeric }));
+                          setPurchasePriceDisplay(e.target.value);
+                        }}
+                        onBlur={() => setPurchasePriceDisplay(formatCurrency(formData.purchasePrice))}
+                        onFocus={(e) => {
+                          // mostrar valor sin formato al enfocar
+                          e.currentTarget.select();
+                          setPurchasePriceDisplay(formData.purchasePrice ? String(formData.purchasePrice) : '');
+                        }}
+                        placeholder="$0.00"
                         className={`w-full px-3 py-2 border rounded-lg ${errors.purchasePrice ? 'border-red-500' : 'border-gray-300'}`}
                       />
                     </div>
@@ -434,10 +470,20 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
                         Valor Actual *
                       </label>
                       <input
-                        type="number"
-                        step="0.01"
-                        value={formData.currentValue}
-                        onChange={(e) => setFormData(prev => ({ ...prev, currentValue: parseFloat(e.target.value) || 0 }))}
+                        type="text"
+                        inputMode="decimal"
+                        value={currentValueDisplay}
+                        onChange={(e) => {
+                          const numeric = parseCurrencyInput(e.target.value);
+                          setFormData(prev => ({ ...prev, currentValue: numeric }));
+                          setCurrentValueDisplay(e.target.value);
+                        }}
+                        onBlur={() => setCurrentValueDisplay(formatCurrency(formData.currentValue))}
+                        onFocus={(e) => {
+                          e.currentTarget.select();
+                          setCurrentValueDisplay(formData.currentValue ? String(formData.currentValue) : '');
+                        }}
+                        placeholder="$0.00"
                         className={`w-full px-3 py-2 border rounded-lg ${errors.currentValue ? 'border-red-500' : 'border-gray-300'}`}
                       />
                     </div>
