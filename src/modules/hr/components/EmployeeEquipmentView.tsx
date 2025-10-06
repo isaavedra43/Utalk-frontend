@@ -476,7 +476,7 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
                 <div className="p-6">
                   <h4 className="font-medium text-gray-900 mb-4">Distribución por Categoría</h4>
                   <div className="space-y-3">
-                    {summary && Object.entries(summary.byCategory).map(([category, count]) => (
+                    {Object.entries(summary?.byCategory || {}).map(([category, count]) => (
                       <div key={category} className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           {getCategoryIcon(category)}
@@ -493,7 +493,7 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
                 <div className="p-6">
                   <h4 className="font-medium text-gray-900 mb-4">Estado del Equipo</h4>
                   <div className="space-y-3">
-                    {summary && Object.entries(summary.byStatus).map(([status, count]) => (
+                    {Object.entries(summary?.byStatus || {}).map(([status, count]) => (
                       <div key={status} className="flex items-center justify-between">
                         <span className="text-sm text-gray-600">{getStatusText(status)}</span>
                         <span className="font-medium text-gray-900">{count}</span>

@@ -267,7 +267,7 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
   };
 
   // Filtros
-  const filteredSkills = skills.filter(skill => {
+  const filteredSkills = (skills || []).filter(skill => {
     const matchesSearch = skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          skill.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'all' || skill.category === filterCategory;
@@ -275,19 +275,19 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
     return matchesSearch && matchesCategory && matchesLevel;
   });
 
-  const filteredCertifications = certifications.filter(cert => {
+  const filteredCertifications = (certifications || []).filter(cert => {
     const matchesSearch = cert.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          cert.issuer.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
 
-  const filteredDevelopmentPlans = developmentPlans.filter(plan => {
+  const filteredDevelopmentPlans = (developmentPlans || []).filter(plan => {
     const matchesSearch = plan.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          plan.description.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
 
-  const filteredEvaluations = evaluations.filter(evaluation => {
+  const filteredEvaluations = (evaluations || []).filter(evaluation => {
     const matchesSearch = evaluation.skillName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          evaluation.evaluatorName.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
@@ -457,7 +457,7 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Actividad Reciente</h3>
               <div className="space-y-3">
-                {skills.slice(0, 5).map((skill) => (
+                {(skills || []).slice(0, 5).map((skill) => (
                   <div key={skill.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="p-2 bg-blue-100 rounded-lg">
