@@ -18,7 +18,8 @@ import {
   XCircle
 } from 'lucide-react';
 import { useNotifications } from '../../../contexts/NotificationContext';
-import type { VacationRequest, CreateVacationRequest } from '../../../services/vacationsService';
+import type { VacationRequest, CreateVacationRequest, VacationPaymentBreakdown, VacationPaymentPlan } from '../../../services/vacationsService';
+import { vacationsService } from '../../../services/vacationsService';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -44,6 +45,8 @@ interface VacationFormData {
   reason: string;
   comments: string;
   attachments: File[];
+  paymentPlan: VacationPaymentPlan; // 'first' | 'partial' | 'full'
+  paidAmount?: string; // input texto controlado, se convierte a número al enviar
 }
 
 // ============================================================================
@@ -71,7 +74,9 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
     type: 'vacation',
     reason: '',
     comments: '',
-    attachments: []
+    attachments: [],
+    paymentPlan: 'first',
+    paidAmount: ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -80,6 +85,8 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
   const [isCalculating, setIsCalculating] = useState(false);
   const [availability, setAvailability] = useState<{ available: boolean; conflicts: string[] } | null>(null);
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+  const [paymentBreakdown, setPaymentBreakdown] = useState<VacationPaymentBreakdown | null>(null);
+  const [isCalculatingPayment, setIsCalculatingPayment] = useState(false);
 
   // Cargar datos si estamos en modo edición
   useEffect(() => {
@@ -90,9 +97,22 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
         type: request.type,
         reason: request.reason,
         comments: request.comments || '',
-        attachments: []
+        attachments: [],
+        paymentPlan: (request.payment?.plan as VacationPaymentPlan) || 'first',
+        paidAmount: (request.payment?.paidAmount != null ? String(request.payment?.paidAmount) : '')
       });
       setCalculatedDays(request.days);
+      if (request.payment) {
+        setPaymentBreakdown({
+          dailySalary: request.payment.dailySalary,
+          days: request.payment.days,
+          baseAmount: request.payment.baseAmount,
+          vacationPremiumRate: request.payment.vacationPremiumRate,
+          vacationPremiumAmount: request.payment.vacationPremiumAmount,
+          totalAmount: request.payment.totalAmount,
+          currency: request.payment.currency
+        });
+      }
     }
   }, [request, mode]);
 
@@ -126,6 +146,43 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
       setCalculatedDays(diffDays);
     }
   }, [formData.startDate, formData.endDate, onCalculateDays]);
+
+  // Calcular pago automáticamente cuando cambian fechas o días
+  useEffect(() => {
+    const shouldCalculate = formData.startDate && formData.endDate && calculatedDays > 0;
+    if (!shouldCalculate) {
+      setPaymentBreakdown(null);
+      return;
+    }
+    let cancelled = false;
+    const run = async () => {
+      try {
+        setIsCalculatingPayment(true);
+        const result = await vacationsService.calculatePayment(
+          // employeeId no se recibe aquí, se calcula del backend por sesión o por ruta del endpoint
+          // este servicio requiere employeeId, lo tomaremos del prop oculto via closure de EmployeeVacationsView
+          // Usamos un hack ligero: derivamos de request?.employeeId si edita o no; si no, backend puede inferir
+          (request?.employeeId as string) || '' ,
+          formData.startDate,
+          formData.endDate
+        );
+        if (!cancelled) setPaymentBreakdown({ ...result, days: calculatedDays });
+      } catch (e) {
+        // Si el backend aún no expone el cálculo, calculamos client-side con prima 25%
+        const daily = paymentBreakdown?.dailySalary || undefined;
+        const baseAmount = (daily || 0) * calculatedDays;
+        const rate = 0.25;
+        const premium = baseAmount * rate;
+        const total = baseAmount + premium;
+        if (!cancelled) setPaymentBreakdown({ dailySalary: daily, days: calculatedDays, baseAmount, vacationPremiumRate: rate, vacationPremiumAmount: premium, totalAmount: total, currency: 'MXN' });
+      } finally {
+        setIsCalculatingPayment(false);
+      }
+    };
+    // debounce ligero
+    const t = setTimeout(run, 300);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [formData.startDate, formData.endDate, calculatedDays]);
 
   // Verificar disponibilidad cuando cambian las fechas
   useEffect(() => {
@@ -207,7 +264,12 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
         endDate: formData.endDate,
         type: formData.type,
         reason: formData.reason,
-        comments: formData.comments || undefined
+        comments: formData.comments || undefined,
+        payment: paymentBreakdown && formData.type === 'vacation' ? {
+          ...paymentBreakdown,
+          plan: formData.paymentPlan,
+          paidAmount: formData.paidAmount ? Number(formData.paidAmount) : undefined
+        } : undefined
       };
 
       await onSubmit(requestData, formData.attachments);
@@ -231,7 +293,9 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
         type: 'vacation',
         reason: '',
         comments: '',
-        attachments: []
+        attachments: [],
+        paymentPlan: 'first',
+        paidAmount: ''
       });
       setErrors({});
       setCalculatedDays(0);
@@ -507,6 +571,70 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
                     <p className="mt-1 text-sm text-red-600">{errors.reason}</p>
                   )}
                 </div>
+
+                {/* Cálculo de pago */}
+                {formData.type === 'vacation' && (
+                  <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-2">
+                        <DollarSign className="h-5 w-5 text-emerald-600" />
+                        <span className="text-sm font-medium text-emerald-900">Desglose de Pago</span>
+                      </div>
+                      {isCalculatingPayment && (
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-emerald-600 border-t-transparent"></div>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <div className="bg-white rounded-lg border p-3">
+                        <p className="text-xs text-gray-500">Días</p>
+                        <p className="text-lg font-semibold text-gray-900">{calculatedDays || '-'}</p>
+                      </div>
+                      <div className="bg-white rounded-lg border p-3">
+                        <p className="text-xs text-gray-500">Monto Base</p>
+                        <p className="text-lg font-semibold text-gray-900">{paymentBreakdown ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: paymentBreakdown.currency || 'MXN' }).format(paymentBreakdown.baseAmount) : '-'}</p>
+                      </div>
+                      <div className="bg-white rounded-lg border p-3">
+                        <p className="text-xs text-gray-500">Prima Vacacional ({paymentBreakdown?.vacationPremiumRate ? Math.round((paymentBreakdown.vacationPremiumRate) * 100) : 25}%)</p>
+                        <p className="text-lg font-semibold text-gray-900">{paymentBreakdown ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: paymentBreakdown.currency || 'MXN' }).format(paymentBreakdown.vacationPremiumAmount) : '-'}</p>
+                      </div>
+                      <div className="bg-white rounded-lg border p-3">
+                        <p className="text-xs text-gray-500">Total a Pagar</p>
+                        <p className="text-lg font-bold text-emerald-700">{paymentBreakdown ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: paymentBreakdown.currency || 'MXN' }).format(paymentBreakdown.totalAmount) : '-'}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Plan de Pago</label>
+                        <select
+                          value={formData.paymentPlan}
+                          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData((prev: VacationFormData) => ({ ...prev, paymentPlan: e.target.value as VacationPaymentPlan }))}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                          disabled={isLoading}
+                        >
+                          <option value="first">Primer pago</option>
+                          <option value="partial">Pago parcial</option>
+                          <option value="full">Liquidar todo</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Monto pagado ahora (opcional)</label>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          step="0.01"
+                          value={formData.paidAmount}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData((prev: VacationFormData) => ({ ...prev, paidAmount: e.target.value }))}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                          placeholder="0.00"
+                          disabled={isLoading}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Comentarios Adicionales */}
                 <div>

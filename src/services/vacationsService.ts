@@ -21,8 +21,26 @@ export interface VacationRequest {
   rejectedReason?: string;
   attachments?: string[];
   comments?: string;
+  // Información opcional de pago asociada a la solicitud
+  payment?: VacationPaymentBreakdown & {
+    plan?: VacationPaymentPlan;
+    paidAmount?: number;
+    notes?: string;
+  };
   createdAt?: string;
   updatedAt?: string;
+}
+
+export type VacationPaymentPlan = 'first' | 'partial' | 'full';
+
+export interface VacationPaymentBreakdown {
+  dailySalary?: number; // proporcionado por backend si aplica
+  days: number;
+  baseAmount: number; // salario diario * días
+  vacationPremiumRate?: number; // por ejemplo 0.25
+  vacationPremiumAmount: number; // baseAmount * rate
+  totalAmount: number; // base + prima
+  currency?: string; // MXN por defecto
 }
 
 export interface CreateVacationRequest {
@@ -32,6 +50,8 @@ export interface CreateVacationRequest {
   reason: string;
   comments?: string;
   attachments?: string[];
+  // Datos opcionales de pago que se registran con la solicitud
+  payment?: (VacationPaymentBreakdown & { plan?: VacationPaymentPlan; paidAmount?: number; notes?: string });
 }
 
 export interface VacationBalance {
@@ -318,6 +338,31 @@ class VacationsService {
       return days;
     } catch (error) {
       this.handleError(error, 'calculateDays');
+    }
+  }
+
+  /**
+   * Calcular desglose de pago de vacaciones (base, prima, total)
+   * Delegado al backend para usar salario y políticas vigentes
+   */
+  async calculatePayment(
+    employeeId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<VacationPaymentBreakdown> {
+    try {
+      console.log('💵 Calculando pago de vacaciones:', { employeeId, startDate, endDate });
+
+      const response = await api.post(`/api/employees/${employeeId}/vacations/calculate-payment`, {
+        startDate,
+        endDate
+      });
+
+      const breakdown: VacationPaymentBreakdown = response.data.data || response.data;
+      console.log('✅ Pago calculado:', breakdown);
+      return breakdown;
+    } catch (error) {
+      this.handleError(error, 'calculatePayment');
     }
   }
 
