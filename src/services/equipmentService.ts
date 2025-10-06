@@ -146,6 +146,13 @@ export interface CreateReviewRequest {
 // ============================================================================
 
 class EquipmentService {
+  private ensureEmployeeId(employeeId: string, context: string) {
+    if (!employeeId || typeof employeeId !== 'string' || employeeId.trim() === '') {
+      const message = 'Empleado inválido: falta employeeId';
+      console.error(`❌ EquipmentService.${context}:`, message);
+      throw new Error(message);
+    }
+  }
   private handleError(error: unknown, context: string): never {
     const errorMessage = handleApiError(error);
     console.error(`❌ EquipmentService.${context}:`, errorMessage);
@@ -157,6 +164,7 @@ class EquipmentService {
    */
   async getEmployeeEquipment(employeeId: string, filters: Record<string, unknown> = {}): Promise<Equipment[]> {
     try {
+      this.ensureEmployeeId(employeeId, 'getEmployeeEquipment');
       console.log('🔍 Obteniendo equipo del empleado:', { employeeId, filters });
       
       const response = await api.get(`/api/employees/${employeeId}/equipment`, { params: filters });
@@ -174,6 +182,7 @@ class EquipmentService {
    */
   async getEquipmentById(employeeId: string, equipmentId: string): Promise<Equipment> {
     try {
+      this.ensureEmployeeId(employeeId, 'getEquipmentById');
       console.log('🔍 Obteniendo equipo:', { employeeId, equipmentId });
       
       const response = await api.get(`/api/employees/${employeeId}/equipment/${equipmentId}`);
@@ -190,6 +199,7 @@ class EquipmentService {
    */
   async assignEquipment(employeeId: string, equipmentData: CreateEquipmentRequest): Promise<Equipment> {
     try {
+      this.ensureEmployeeId(employeeId, 'assignEquipment');
       console.log('📝 Asignando equipo:', { employeeId, equipmentData });
       
       const response = await api.post(`/api/employees/${employeeId}/equipment`, equipmentData);
@@ -210,6 +220,7 @@ class EquipmentService {
     updateData: Partial<CreateEquipmentRequest>
   ): Promise<Equipment> {
     try {
+      this.ensureEmployeeId(employeeId, 'updateEquipment');
       console.log('📝 Actualizando equipo:', { employeeId, equipmentId, updateData });
       
       const response = await api.put(`/api/employees/${employeeId}/equipment/${equipmentId}`, updateData);
@@ -230,6 +241,7 @@ class EquipmentService {
     photos?: string[];
   }): Promise<Equipment> {
     try {
+      this.ensureEmployeeId(employeeId, 'returnEquipment');
       console.log('↩️ Devolviendo equipo:', { employeeId, equipmentId });
       
       const response = await api.put(`/api/employees/${employeeId}/equipment/${equipmentId}/return`, returnData);
@@ -250,6 +262,7 @@ class EquipmentService {
     policeReportNumber?: string;
   }): Promise<Equipment> {
     try {
+      this.ensureEmployeeId(employeeId, 'reportLost');
       console.log('⚠️ Reportando equipo perdido:', { employeeId, equipmentId });
       
       const response = await api.put(`/api/employees/${employeeId}/equipment/${equipmentId}/report-lost`, details);
@@ -271,6 +284,7 @@ class EquipmentService {
     estimatedCost?: number;
   }): Promise<Equipment> {
     try {
+      this.ensureEmployeeId(employeeId, 'reportDamage');
       console.log('🔧 Reportando daño en equipo:', { employeeId, equipmentId });
       
       const response = await api.put(`/api/employees/${employeeId}/equipment/${equipmentId}/report-damage`, damageData);
@@ -287,6 +301,7 @@ class EquipmentService {
    */
   async deleteEquipment(employeeId: string, equipmentId: string): Promise<void> {
     try {
+      this.ensureEmployeeId(employeeId, 'deleteEquipment');
       console.log('🗑️ Eliminando equipo:', { employeeId, equipmentId });
       
       await api.delete(`/api/employees/${employeeId}/equipment/${equipmentId}`);
@@ -306,6 +321,7 @@ class EquipmentService {
     reviewData: CreateReviewRequest
   ): Promise<EquipmentReview> {
     try {
+      this.ensureEmployeeId(employeeId, 'createReview');
       console.log('📋 Creando revisión:', { employeeId, equipmentId, reviewData });
       
       const response = await api.post(
@@ -325,6 +341,7 @@ class EquipmentService {
    */
   async getReviews(employeeId: string, equipmentId: string): Promise<EquipmentReview[]> {
     try {
+      this.ensureEmployeeId(employeeId, 'getReviews');
       console.log('🔍 Obteniendo revisiones:', { employeeId, equipmentId });
       
       const response = await api.get(`/api/employees/${employeeId}/equipment/${equipmentId}/reviews`);
@@ -342,6 +359,7 @@ class EquipmentService {
    */
   async getSummary(employeeId: string): Promise<EquipmentSummary> {
     try {
+      this.ensureEmployeeId(employeeId, 'getSummary');
       console.log('📊 Obteniendo resumen:', { employeeId });
       
       const response = await api.get(`/api/employees/${employeeId}/equipment/summary`);
@@ -358,13 +376,25 @@ class EquipmentService {
    */
   async uploadFiles(files: File[], type: 'invoice' | 'photo' | 'document'): Promise<string[]> {
     try {
-      console.log('📎 Subiendo archivos:', files.length, 'tipo:', type);
+      console.log('📎 Subiendo archivos:', files?.length || 0, 'tipo:', type);
+
+      if (!files || files.length === 0) {
+        console.warn('⚠️ No hay archivos para subir. Se omite la subida.');
+        return [];
+      }
+
+      const normalizedType = Array.isArray((type as unknown))
+        ? ((type as unknown as string[])[0] as any)
+        : (type as any);
+      const validType = ['invoice', 'photo', 'document'].includes(normalizedType)
+        ? normalizedType
+        : 'photo';
       
       const formData = new FormData();
       files.forEach(file => {
         formData.append('files', file);
       });
-      formData.append('type', type);
+      formData.append('type', validType);
       
       const response = await api.post('/api/equipment/upload', formData, {
         headers: {
