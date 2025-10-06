@@ -54,8 +54,48 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
   onBack 
 }) => {
   const { showSuccess, showError } = useNotifications();
+
+  // Validación de props
+  if (!employeeId) {
+    console.error('❌ EmployeeVacationsView: employeeId es requerido');
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
+            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-red-800 mb-2">Error de configuración</h3>
+            <p className="text-red-600 mb-4">ID de empleado no proporcionado.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
-  // Usar hook de vacaciones
+  // Usar hook de vacaciones con manejo de errores
+  let vacationsHook;
+  try {
+    vacationsHook = useVacations({ employeeId, autoRefresh: false });
+  } catch (hookError) {
+    console.error('❌ Error en useVacations hook:', hookError);
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
+            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-red-800 mb-2">Error interno</h3>
+            <p className="text-red-600 mb-4">Error al inicializar el módulo de vacaciones.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Recargar página
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const {
     data,
     requests,
@@ -76,7 +116,7 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
     exportVacations,
     getCalendar,
     refreshData
-  } = useVacations({ employeeId, autoRefresh: false });
+  } = vacationsHook;
 
   // Estado local de UI
   const [searchTerm, setSearchTerm] = useState('');
@@ -331,6 +371,27 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
           >
             Reintentar
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Validación defensiva de datos
+  if (!data && !requests && !balance && !summary) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 max-w-md">
+            <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-yellow-800 mb-2">Sin datos de vacaciones</h3>
+            <p className="text-yellow-600 mb-4">No se encontraron datos de vacaciones para este empleado.</p>
+            <button
+              onClick={() => refreshData()}
+              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+            >
+              Reintentar
+            </button>
+          </div>
         </div>
       </div>
     );

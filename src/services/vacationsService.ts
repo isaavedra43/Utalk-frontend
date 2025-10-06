@@ -126,7 +126,27 @@ class VacationsService {
       const response = await api.get(`/api/employees/${employeeId}/vacations`);
       
       console.log('✅ Datos de vacaciones obtenidos');
-      return response.data.data || response.data;
+      const data = response.data.data || response.data;
+      
+      // Validación defensiva de la estructura de datos
+      if (!data) {
+        throw new Error('No se recibieron datos del servidor');
+      }
+      
+      // Asegurar que los campos requeridos existan
+      const validatedData: VacationsData = {
+        employeeId: data.employeeId || employeeId,
+        employeeName: data.employeeName || 'Empleado',
+        position: data.position || '',
+        department: data.department || '',
+        hireDate: data.hireDate || new Date().toISOString(),
+        balance: data.balance || { total: 0, used: 0, available: 0, pending: 0, expired: 0, nextExpiration: null },
+        policy: data.policy || { annualDays: 0, accrualRate: 0, maxCarryover: 0, probationPeriod: 0, advanceRequest: 0, blackoutPeriods: [] },
+        requests: data.requests || [],
+        summary: data.summary || { totalRequests: 0, approvedRequests: 0, pendingRequests: 0, rejectedRequests: 0, cancelledRequests: 0, totalDaysUsed: 0, totalDaysPending: 0, averageDaysPerRequest: 0, mostUsedMonth: '', lastVacation: null, byType: {}, byMonth: {}, upcomingVacations: [] }
+      };
+      
+      return validatedData;
     } catch (error) {
       this.handleError(error, 'getVacationsData');
     }
@@ -158,7 +178,14 @@ class VacationsService {
       const response = await api.get(`/api/employees/${employeeId}/vacations/requests`, { params: filters });
       
       const requests = response.data.data || response.data;
-      console.log(`✅ ${requests.length} solicitudes obtenidas`);
+      console.log(`✅ ${requests?.length || 0} solicitudes obtenidas`);
+      
+      // Validación defensiva - asegurar que sea un array
+      if (!Array.isArray(requests)) {
+        console.warn('⚠️ La respuesta no es un array, retornando array vacío');
+        return [];
+      }
+      
       return requests;
     } catch (error) {
       this.handleError(error, 'getRequests');
