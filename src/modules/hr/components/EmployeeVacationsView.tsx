@@ -30,6 +30,7 @@ import { useNotifications } from '../../../contexts/NotificationContext';
 import VacationRequestModal from './VacationRequestModal';
 import VacationsChart from './VacationsChart';
 import VacationCalendar from './VacationCalendar';
+import VacationRequestDetailsModal from './VacationRequestDetailsModal';
 import type { CreateVacationRequest, VacationRequest } from '../../../services/vacationsService';
 
 // ============================================================================
@@ -83,6 +84,8 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
   const [activeTab, setActiveTab] = useState<'overview' | 'requests' | 'history' | 'calendar'>('overview');
   const [showNewRequest, setShowNewRequest] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<VacationRequest | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedDetailsRequest, setSelectedDetailsRequest] = useState<VacationRequest | null>(null);
 
   // ============================================================================
   // HANDLERS
@@ -197,6 +200,23 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
     }
   };
 
+  // Manejar visualización de detalles
+  const handleViewDetails = (request: VacationRequest) => {
+    setSelectedDetailsRequest(request);
+    setShowDetailsModal(true);
+  };
+
+  // Manejar descarga de archivos adjuntos
+  const handleDownloadAttachment = async (attachmentId: string, filename: string) => {
+    try {
+      // Aquí deberías implementar la lógica para descargar el archivo
+      // Por ahora solo mostramos un mensaje
+      showSuccess(`Descargando archivo: ${filename}`);
+    } catch (error) {
+      showError('Error descargando archivo');
+    }
+  };
+
   // ============================================================================
   // HELPERS
   // ============================================================================
@@ -264,6 +284,14 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
     });
   };
 
+  // Helper para formatear moneda
+  const formatCurrency = (amount: number, currency: string = 'MXN') => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency
+    }).format(amount);
+  };
+
   // ============================================================================
   // RENDER
   // ============================================================================
@@ -316,6 +344,17 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
         onCheckAvailability={checkAvailability}
       />
 
+      {/* Modal de detalles */}
+      <VacationRequestDetailsModal
+        isOpen={showDetailsModal}
+        onClose={() => {
+          setShowDetailsModal(false);
+          setSelectedDetailsRequest(null);
+        }}
+        request={selectedDetailsRequest}
+        onDownloadAttachment={handleDownloadAttachment}
+      />
+
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -365,6 +404,25 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
                 <p className="text-sm font-medium text-gray-600">Días Disponibles</p>
                 <p className="text-3xl font-bold text-green-600">{balance?.available || 0}</p>
                 <p className="text-xs text-gray-500">de {balance?.total || 0} días</p>
+                {/* Información monetaria para días disponibles */}
+                {balance?.available && balance.available > 0 && (
+                  <p className="text-xs text-emerald-600 font-medium mt-1">
+                    {(() => {
+                      // Calcular monto basado en salario diario estimado
+                      // Si tenemos datos de pago de solicitudes, usamos el salario diario promedio
+                      const approvedRequests = requests?.filter(r => r.status === 'approved' && r.payment?.dailySalary) || [];
+                      const avgDailySalary = approvedRequests.length > 0 
+                        ? approvedRequests.reduce((sum, r) => sum + (r.payment?.dailySalary || 0), 0) / approvedRequests.length
+                        : 500; // Valor por defecto si no hay datos
+                      
+                      const totalAmount = balance.available * avgDailySalary;
+                      const vacationPremium = totalAmount * 0.25; // 25% prima vacacional
+                      const finalAmount = totalAmount + vacationPremium;
+                      
+                      return `Pendiente: ${formatCurrency(finalAmount)}`;
+                    })()}
+                  </p>
+                )}
               </div>
               <div className="p-3 bg-green-100 rounded-lg">
                 <CalendarDays className="h-6 w-6 text-green-600" />
@@ -378,6 +436,18 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
                 <p className="text-sm font-medium text-gray-600">Días Usados</p>
                 <p className="text-3xl font-bold text-blue-600">{balance?.used || 0}</p>
                 <p className="text-xs text-gray-500">Este año</p>
+                {/* Información monetaria para días usados */}
+                {balance?.used && balance.used > 0 && (
+                  <p className="text-xs text-blue-600 font-medium mt-1">
+                    {(() => {
+                      // Calcular monto total pagado por días usados
+                      const approvedRequests = requests?.filter(r => r.status === 'approved' && r.payment?.totalAmount) || [];
+                      const totalPaid = approvedRequests.reduce((sum, r) => sum + (r.payment?.totalAmount || 0), 0);
+                      
+                      return totalPaid > 0 ? `Pagado: ${formatCurrency(totalPaid)}` : 'Sin pago registrado';
+                    })()}
+                  </p>
+                )}
               </div>
               <div className="p-3 bg-blue-100 rounded-lg">
                 <Plane className="h-6 w-6 text-blue-600" />
@@ -643,12 +713,49 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
                                 <span className="flex items-center space-x-1">
                                   <CheckCircle className="h-3 w-3" />
                                   <span>Aprobado por: {request.approvedByName || request.approvedBy}</span>
-                            </span>
+                                </span>
                               )}
                             </div>
+
+                            {/* Información de pago */}
+                            {request.payment && request.type === 'vacation' && (
+                              <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-emerald-700 font-medium">Total a Pagar:</span>
+                                  <span className="text-emerald-800 font-bold">
+                                    {formatCurrency(request.payment.totalAmount)}
+                                  </span>
+                                </div>
+                                {request.payment.paidAmount !== undefined && request.payment.paidAmount > 0 && (
+                                  <div className="flex items-center justify-between text-xs mt-1">
+                                    <span className="text-emerald-600">Pagado:</span>
+                                    <span className="text-emerald-700">
+                                      {formatCurrency(request.payment.paidAmount)}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Archivos adjuntos */}
+                            {request.attachments && request.attachments.length > 0 && (
+                              <div className="mt-2 flex items-center space-x-1 text-xs text-blue-600">
+                                <Paperclip className="h-3 w-3" />
+                                <span>{request.attachments.length} archivo{request.attachments.length > 1 ? 's' : ''} adjunto{request.attachments.length > 1 ? 's' : ''}</span>
+                              </div>
+                            )}
                           </div>
 
                           <div className="flex items-center space-x-2 ml-4">
+                            {/* Botón para ver detalles */}
+                            <button
+                              onClick={() => handleViewDetails(request)}
+                              className="p-1 hover:bg-blue-100 rounded text-blue-600"
+                              title="Ver detalles"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+
                             {request.status === 'pending' && (
                               <>
                                 <button
@@ -713,7 +820,7 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
                 ) : (
                   <div className="space-y-3">
                     {historyRequests.map((request) => (
-                    <div key={request.id} className="border border-gray-200 rounded-lg p-4">
+                    <div key={request.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                       <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-1">
@@ -737,6 +844,45 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
                                 </span>
                               )}
                         </div>
+
+                        {/* Información de pago */}
+                        {request.payment && request.type === 'vacation' && (
+                          <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-emerald-700 font-medium">Total a Pagar:</span>
+                              <span className="text-emerald-800 font-bold">
+                                {formatCurrency(request.payment.totalAmount)}
+                              </span>
+                            </div>
+                            {request.payment.paidAmount !== undefined && request.payment.paidAmount > 0 && (
+                              <div className="flex items-center justify-between text-xs mt-1">
+                                <span className="text-emerald-600">Pagado:</span>
+                                <span className="text-emerald-700">
+                                  {formatCurrency(request.payment.paidAmount)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Archivos adjuntos */}
+                        {request.attachments && request.attachments.length > 0 && (
+                          <div className="mt-2 flex items-center space-x-1 text-xs text-blue-600">
+                            <Paperclip className="h-3 w-3" />
+                            <span>{request.attachments.length} archivo{request.attachments.length > 1 ? 's' : ''} adjunto{request.attachments.length > 1 ? 's' : ''}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center space-x-2 ml-4">
+                        {/* Botón para ver detalles */}
+                        <button
+                          onClick={() => handleViewDetails(request)}
+                          className="p-1 hover:bg-blue-100 rounded text-blue-600"
+                          title="Ver detalles"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
                       </div>
                       </div>
                     </div>

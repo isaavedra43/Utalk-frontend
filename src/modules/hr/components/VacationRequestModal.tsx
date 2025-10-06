@@ -535,8 +535,13 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
                         </p>
                         {availability.conflicts && availability.conflicts.length > 0 && (
                           <ul className="mt-2 space-y-1">
-                            {availability.conflicts.map((conflict: string, index: number) => (
-                              <li key={index} className="text-xs text-red-700">• {conflict}</li>
+                            {availability.conflicts.map((conflict: any, index: number) => (
+                              <li key={index} className="text-xs text-red-700">
+                                • {typeof conflict === 'string' 
+                                  ? conflict 
+                                  : `${conflict.type || 'Conflicto'} del ${conflict.startDate} al ${conflict.endDate}`
+                                }
+                              </li>
                             ))}
                           </ul>
                         )}
@@ -578,11 +583,22 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
                       )}
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                      <div className="bg-white rounded-lg border p-3">
+                        <p className="text-xs text-gray-500">Sueldo Mensual</p>
+                        <p className="text-lg font-semibold text-gray-900">{paymentBreakdown?.dailySalary ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: paymentBreakdown.currency || 'MXN' }).format(paymentBreakdown.dailySalary * 30) : '-'}</p>
+                      </div>
+                      <div className="bg-white rounded-lg border p-3">
+                        <p className="text-xs text-gray-500">Sueldo Diario</p>
+                        <p className="text-lg font-semibold text-gray-900">{paymentBreakdown?.dailySalary ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: paymentBreakdown.currency || 'MXN' }).format(paymentBreakdown.dailySalary) : '-'}</p>
+                      </div>
                       <div className="bg-white rounded-lg border p-3">
                         <p className="text-xs text-gray-500">Días</p>
                         <p className="text-lg font-semibold text-gray-900">{calculatedDays || '-'}</p>
                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div className="bg-white rounded-lg border p-3">
                         <p className="text-xs text-gray-500">Monto Base</p>
                         <p className="text-lg font-semibold text-gray-900">{paymentBreakdown ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: paymentBreakdown.currency || 'MXN' }).format(paymentBreakdown.baseAmount) : '-'}</p>
