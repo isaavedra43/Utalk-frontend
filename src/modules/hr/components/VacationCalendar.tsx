@@ -10,6 +10,7 @@ interface VacationCalendarProps {
   requests: VacationRequest[];
   year?: number;
   month?: number;
+  onDayClick?: (date: Date, requests: VacationRequest[]) => void;
 }
 
 interface CalendarDay {
@@ -27,7 +28,8 @@ interface CalendarDay {
 const VacationCalendar: React.FC<VacationCalendarProps> = ({ 
   requests,
   year: initialYear,
-  month: initialMonth
+  month: initialMonth,
+  onDayClick
 }) => {
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(initialYear || currentDate.getFullYear());
@@ -193,7 +195,10 @@ const VacationCalendar: React.FC<VacationCalendarProps> = ({
               key={index}
               className={`min-h-24 p-2 border-r border-b border-gray-200 ${
                 !day.isCurrentMonth ? 'bg-gray-50' : 'bg-white'
-              } ${day.isToday ? 'bg-blue-50' : ''}`}
+              } ${day.isToday ? 'bg-blue-50' : ''} ${
+                onDayClick ? 'cursor-pointer hover:bg-gray-100 transition-colors' : ''
+              }`}
+              onClick={() => onDayClick && onDayClick(day.date, day.vacations)}
             >
               <div className="flex justify-between items-start mb-1">
                 <span

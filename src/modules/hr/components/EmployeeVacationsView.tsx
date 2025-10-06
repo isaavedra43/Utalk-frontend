@@ -31,6 +31,7 @@ import VacationRequestModal from './VacationRequestModal';
 import VacationsChart from './VacationsChart';
 import VacationCalendar from './VacationCalendar';
 import VacationRequestDetailsModal from './VacationRequestDetailsModal';
+import DayVacationsModal from './DayVacationsModal';
 import type { CreateVacationRequest, VacationRequest } from '../../../services/vacationsService';
 
 // ============================================================================
@@ -86,6 +87,9 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
   const [selectedRequest, setSelectedRequest] = useState<VacationRequest | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedDetailsRequest, setSelectedDetailsRequest] = useState<VacationRequest | null>(null);
+  const [showDayModal, setShowDayModal] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [selectedDayRequests, setSelectedDayRequests] = useState<VacationRequest[]>([]);
 
   // ============================================================================
   // HANDLERS
@@ -215,6 +219,13 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
     } catch (error) {
       showError('Error descargando archivo');
     }
+  };
+
+  // Manejar clic en día del calendario
+  const handleDayClick = (date: Date, dayRequests: VacationRequest[]) => {
+    setSelectedDay(date);
+    setSelectedDayRequests(dayRequests);
+    setShowDayModal(true);
   };
 
   // ============================================================================
@@ -353,6 +364,19 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
         }}
         request={selectedDetailsRequest}
         onDownloadAttachment={handleDownloadAttachment}
+      />
+
+      {/* Modal de solicitudes del día */}
+      <DayVacationsModal
+        isOpen={showDayModal}
+        onClose={() => {
+          setShowDayModal(false);
+          setSelectedDay(null);
+          setSelectedDayRequests([]);
+        }}
+        date={selectedDay}
+        requests={selectedDayRequests}
+        onViewDetails={handleViewDetails}
       />
 
       {/* Header */}
@@ -900,7 +924,7 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
             <div className="bg-white rounded-xl shadow-sm border">
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Calendario de Vacaciones</h3>
-                <VacationCalendar requests={requests} />
+                <VacationCalendar requests={requests} onDayClick={handleDayClick} />
               </div>
             </div>
           </div>
