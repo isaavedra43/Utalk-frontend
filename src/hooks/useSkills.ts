@@ -119,6 +119,9 @@ export const useSkills = (options: UseSkillsOptions): UseSkillsReturn => {
       setSkillsError(null);
 
       console.log('🔄 Cargando datos de habilidades para empleado:', employeeId);
+      if (!employeeId || typeof employeeId !== 'string' || employeeId.trim() === '') {
+        throw new Error('Empleado inválido: falta employeeId');
+      }
 
       const [skillsData] = await Promise.all([
         skillsService.getEmployeeSkills(employeeId)
@@ -194,6 +197,9 @@ export const useSkills = (options: UseSkillsOptions): UseSkillsReturn => {
       setCertificationsError(null);
 
       console.log('🔄 Cargando datos de certificaciones para empleado:', employeeId);
+      if (!employeeId || typeof employeeId !== 'string' || employeeId.trim() === '') {
+        throw new Error('Empleado inválido: falta employeeId');
+      }
 
       const certificationsData = await skillsService.getEmployeeCertifications(employeeId);
 
@@ -267,6 +273,9 @@ export const useSkills = (options: UseSkillsOptions): UseSkillsReturn => {
       setDevelopmentPlansError(null);
 
       console.log('🔄 Cargando datos de planes de desarrollo para empleado:', employeeId);
+      if (!employeeId || typeof employeeId !== 'string' || employeeId.trim() === '') {
+        throw new Error('Empleado inválido: falta employeeId');
+      }
 
       const plansData = await skillsService.getEmployeeDevelopmentPlans(employeeId);
 
@@ -340,6 +349,9 @@ export const useSkills = (options: UseSkillsOptions): UseSkillsReturn => {
       setEvaluationsError(null);
 
       console.log('🔄 Cargando datos de evaluaciones para empleado:', employeeId);
+      if (!employeeId || typeof employeeId !== 'string' || employeeId.trim() === '') {
+        throw new Error('Empleado inválido: falta employeeId');
+      }
 
       const evaluationsData = await skillsService.getEmployeeSkillEvaluations(employeeId);
 
