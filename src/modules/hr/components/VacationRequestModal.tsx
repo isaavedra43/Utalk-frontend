@@ -57,6 +57,7 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
+  employeeId,
   employeeName,
   availableDays,
   request,
