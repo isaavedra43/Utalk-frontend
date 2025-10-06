@@ -86,6 +86,13 @@ export interface CreateSkillEvaluationRequest {
 // ============================================================================
 
 class SkillsService {
+  private ensureEmployeeId(employeeId: string, context: string) {
+    if (!employeeId || typeof employeeId !== 'string' || employeeId.trim() === '') {
+      const message = 'Empleado inválido: falta employeeId';
+      console.error(`❌ SkillsService.${context}:`, message);
+      throw new Error(message);
+    }
+  }
   private handleError(error: unknown, context: string): never {
     const errorMessage = handleApiError(error);
     console.error(`❌ SkillsService.${context}:`, errorMessage);
@@ -111,6 +118,7 @@ class SkillsService {
     };
   }> {
     try {
+      this.ensureEmployeeId(employeeId, 'getEmployeeSkills');
       console.log('🔍 Obteniendo habilidades del empleado:', { employeeId, filters });
 
       const searchParams = new URLSearchParams();
@@ -132,6 +140,7 @@ class SkillsService {
 
   async getSkillById(employeeId: string, skillId: string): Promise<Skill> {
     try {
+      this.ensureEmployeeId(employeeId, 'getSkillById');
       console.log('🔍 Obteniendo habilidad:', { employeeId, skillId });
 
       const response = await api.get(`/api/employees/${employeeId}/skills/${skillId}`);
@@ -145,6 +154,7 @@ class SkillsService {
 
   async createSkill(employeeId: string, skillData: CreateSkillRequest): Promise<Skill> {
     try {
+      this.ensureEmployeeId(employeeId, 'createSkill');
       console.log('📝 Creando habilidad:', { employeeId, skillData });
 
       const response = await api.post(`/api/employees/${employeeId}/skills`, skillData);
@@ -158,6 +168,7 @@ class SkillsService {
 
   async updateSkill(employeeId: string, skillId: string, updateData: Partial<CreateSkillRequest>): Promise<Skill> {
     try {
+      this.ensureEmployeeId(employeeId, 'updateSkill');
       console.log('📝 Actualizando habilidad:', { employeeId, skillId, updateData });
 
       const response = await api.put(`/api/employees/${employeeId}/skills/${skillId}`, updateData);
@@ -171,6 +182,7 @@ class SkillsService {
 
   async deleteSkill(employeeId: string, skillId: string): Promise<void> {
     try {
+      this.ensureEmployeeId(employeeId, 'deleteSkill');
       console.log('🗑️ Eliminando habilidad:', { employeeId, skillId });
 
       await api.delete(`/api/employees/${employeeId}/skills/${skillId}`);
@@ -205,6 +217,7 @@ class SkillsService {
     };
   }> {
     try {
+      this.ensureEmployeeId(employeeId, 'getEmployeeCertifications');
       console.log('🔍 Obteniendo certificaciones del empleado:', { employeeId, filters });
 
       const searchParams = new URLSearchParams();
@@ -226,6 +239,7 @@ class SkillsService {
 
   async createCertification(employeeId: string, certificationData: CreateCertificationRequest): Promise<Certification> {
     try {
+      this.ensureEmployeeId(employeeId, 'createCertification');
       console.log('📝 Creando certificación:', { employeeId, certificationData });
 
       const response = await api.post(`/api/employees/${employeeId}/certifications`, certificationData);
@@ -239,6 +253,7 @@ class SkillsService {
 
   async updateCertification(employeeId: string, certificationId: string, updateData: Partial<CreateCertificationRequest>): Promise<Certification> {
     try {
+      this.ensureEmployeeId(employeeId, 'updateCertification');
       console.log('📝 Actualizando certificación:', { employeeId, certificationId, updateData });
 
       const response = await api.put(`/api/employees/${employeeId}/certifications/${certificationId}`, updateData);
@@ -252,6 +267,7 @@ class SkillsService {
 
   async deleteCertification(employeeId: string, certificationId: string): Promise<void> {
     try {
+      this.ensureEmployeeId(employeeId, 'deleteCertification');
       console.log('🗑️ Eliminando certificación:', { employeeId, certificationId });
 
       await api.delete(`/api/employees/${employeeId}/certifications/${certificationId}`);
@@ -285,6 +301,7 @@ class SkillsService {
     };
   }> {
     try {
+      this.ensureEmployeeId(employeeId, 'getEmployeeDevelopmentPlans');
       console.log('🔍 Obteniendo planes de desarrollo:', { employeeId, filters });
 
       const searchParams = new URLSearchParams();
@@ -306,6 +323,7 @@ class SkillsService {
 
   async createDevelopmentPlan(employeeId: string, planData: CreateDevelopmentPlanRequest): Promise<DevelopmentPlan> {
     try {
+      this.ensureEmployeeId(employeeId, 'createDevelopmentPlan');
       console.log('📝 Creando plan de desarrollo:', { employeeId, planData });
 
       const response = await api.post(`/api/employees/${employeeId}/development-plans`, planData);
@@ -322,6 +340,7 @@ class SkillsService {
     progress?: number;
   }>): Promise<DevelopmentPlan> {
     try {
+      this.ensureEmployeeId(employeeId, 'updateDevelopmentPlan');
       console.log('📝 Actualizando plan de desarrollo:', { employeeId, planId, updateData });
 
       const response = await api.put(`/api/employees/${employeeId}/development-plans/${planId}`, updateData);
@@ -335,6 +354,7 @@ class SkillsService {
 
   async deleteDevelopmentPlan(employeeId: string, planId: string): Promise<void> {
     try {
+      this.ensureEmployeeId(employeeId, 'deleteDevelopmentPlan');
       console.log('🗑️ Eliminando plan de desarrollo:', { employeeId, planId });
 
       await api.delete(`/api/employees/${employeeId}/development-plans/${planId}`);
@@ -371,6 +391,7 @@ class SkillsService {
     };
   }> {
     try {
+      this.ensureEmployeeId(employeeId, 'getEmployeeSkillEvaluations');
       console.log('🔍 Obteniendo evaluaciones de habilidades:', { employeeId, filters });
 
       const searchParams = new URLSearchParams();
@@ -392,6 +413,7 @@ class SkillsService {
 
   async createSkillEvaluation(employeeId: string, evaluationData: CreateSkillEvaluationRequest): Promise<SkillEvaluation> {
     try {
+      this.ensureEmployeeId(employeeId, 'createSkillEvaluation');
       console.log('📝 Creando evaluación de habilidad:', { employeeId, evaluationData });
 
       const response = await api.post(`/api/employees/${employeeId}/skill-evaluations`, evaluationData);
@@ -407,6 +429,7 @@ class SkillsService {
     status?: SkillEvaluation['status'];
   }>): Promise<SkillEvaluation> {
     try {
+      this.ensureEmployeeId(employeeId, 'updateSkillEvaluation');
       console.log('📝 Actualizando evaluación:', { employeeId, evaluationId, updateData });
 
       const response = await api.put(`/api/employees/${employeeId}/skill-evaluations/${evaluationId}`, updateData);
@@ -420,6 +443,7 @@ class SkillsService {
 
   async deleteSkillEvaluation(employeeId: string, evaluationId: string): Promise<void> {
     try {
+      this.ensureEmployeeId(employeeId, 'deleteSkillEvaluation');
       console.log('🗑️ Eliminando evaluación:', { employeeId, evaluationId });
 
       await api.delete(`/api/employees/${employeeId}/skill-evaluations/${evaluationId}`);
@@ -434,13 +458,26 @@ class SkillsService {
 
   async uploadSkillFiles(files: File[], type: 'evidence' | 'certification' | 'evaluation'): Promise<string[]> {
     try {
-      console.log('📎 Subiendo archivos de habilidades:', files.length, 'tipo:', type);
+      console.log('📎 Subiendo archivos de habilidades:', files?.length || 0, 'tipo:', type);
+
+      if (!files || files.length === 0) {
+        console.warn('⚠️ No hay archivos para subir. Se omite la subida.');
+        return [];
+      }
+
+      // Normalizar type por si llega un arreglo u objeto desde la UI
+      const normalizedType = Array.isArray((type as unknown))
+        ? ((type as unknown as string[])[0] as any)
+        : (type as any);
+      const validType = ['evidence', 'certification', 'evaluation'].includes(normalizedType)
+        ? normalizedType
+        : 'evidence';
 
       const formData = new FormData();
       files.forEach(file => {
         formData.append('files', file);
       });
-      formData.append('type', type);
+      formData.append('type', validType);
 
       const response = await api.post('/api/skills/upload', formData, {
         headers: {
