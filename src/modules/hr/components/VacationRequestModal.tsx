@@ -149,7 +149,7 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
 
   // Calcular pago automáticamente cuando cambian fechas o días
   useEffect(() => {
-    const shouldCalculate = formData.startDate && formData.endDate && calculatedDays > 0;
+    const shouldCalculate = !!employeeId && formData.startDate && formData.endDate && calculatedDays > 0;
     if (!shouldCalculate) {
       setPaymentBreakdown(null);
       return;
@@ -159,22 +159,14 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
       try {
         setIsCalculatingPayment(true);
         const result = await vacationsService.calculatePayment(
-          // employeeId no se recibe aquí, se calcula del backend por sesión o por ruta del endpoint
-          // este servicio requiere employeeId, lo tomaremos del prop oculto via closure de EmployeeVacationsView
-          // Usamos un hack ligero: derivamos de request?.employeeId si edita o no; si no, backend puede inferir
-          (request?.employeeId as string) || '' ,
+          employeeId,
           formData.startDate,
           formData.endDate
         );
         if (!cancelled) setPaymentBreakdown({ ...result, days: calculatedDays });
       } catch (e) {
-        // Si el backend aún no expone el cálculo, calculamos client-side con prima 25%
-        const daily = paymentBreakdown?.dailySalary || undefined;
-        const baseAmount = (daily || 0) * calculatedDays;
-        const rate = 0.25;
-        const premium = baseAmount * rate;
-        const total = baseAmount + premium;
-        if (!cancelled) setPaymentBreakdown({ dailySalary: daily, days: calculatedDays, baseAmount, vacationPremiumRate: rate, vacationPremiumAmount: premium, totalAmount: total, currency: 'MXN' });
+        // Si falla (400/404) o el backend aún no expone el cálculo, no forzar cálculo local sin salario válido
+        if (!cancelled) setPaymentBreakdown(null);
       } finally {
         setIsCalculatingPayment(false);
       }
@@ -182,7 +174,7 @@ const VacationRequestModal: React.FC<VacationRequestModalProps> = ({
     // debounce ligero
     const t = setTimeout(run, 300);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [formData.startDate, formData.endDate, calculatedDays]);
+  }, [employeeId, formData.startDate, formData.endDate, calculatedDays]);
 
   // Verificar disponibilidad cuando cambian las fechas
   useEffect(() => {
