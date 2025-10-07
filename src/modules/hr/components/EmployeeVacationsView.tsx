@@ -328,6 +328,16 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
     }
   };
 
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'pending': return 'Pendiente';
+      case 'approved': return 'Aprobado';
+      case 'rejected': return 'Rechazado';
+      case 'cancelled': return 'Cancelado';
+      default: return 'Desconocido';
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-MX', {
       year: 'numeric',
@@ -994,16 +1004,6 @@ const EmployeeVacationsView: React.FC<EmployeeVacationsViewProps> = ({
       </div>
     </div>
   );
-};
-
-const getStatusText = (status: string) => {
-  switch (status) {
-    case 'pending': return 'Pendiente';
-    case 'approved': return 'Aprobado';
-    case 'rejected': return 'Rechazado';
-    case 'cancelled': return 'Cancelado';
-    default: return 'Desconocido';
-  }
 };
 
 export { EmployeeVacationsView };
