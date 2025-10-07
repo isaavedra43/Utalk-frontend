@@ -35,15 +35,19 @@ export class SimpleExportService {
       printWindow.document.write(printContent);
       printWindow.document.close();
       
-      // Imprimir después de cargar
-      printWindow.onload = () => {
-        setTimeout(() => {
-          printWindow.print();
+      // En iOS no auto-imprimimos ni auto-cerramos para permitir volver
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+      if (!isIOS) {
+        // Imprimir automáticamente en desktop/Android y cerrar
+        printWindow.onload = () => {
           setTimeout(() => {
-            printWindow.close();
-          }, 1000);
-        }, 500);
-      };
+            printWindow.print();
+            setTimeout(() => {
+              printWindow.close();
+            }, 1000);
+          }, 500);
+        };
+      }
       
     } catch (error) {
       console.error('Error al exportar PDF:', error);
@@ -355,6 +359,7 @@ export class SimpleExportService {
     <meta charset="UTF-8">
     <title>Plataforma ${platform.platformNumber}</title>
     <style>
+        :root { --primary:#4f46e5; --primary2:#7c3aed; --success:#059669; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -364,6 +369,11 @@ export class SimpleExportService {
             color: #1a1a1a;
             line-height: 1.6;
         }
+        /* Barra móvil con acciones */
+        .mobile-toolbar { position: sticky; top: 0; z-index: 9999; display: none; gap: 8px; padding: 10px; background: #ffffffcc; backdrop-filter: blur(8px); border-bottom: 1px solid #e2e8f0; }
+        .toolbar-btn { flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; color: #111827; font-weight: 600; font-size: 14px; }
+        .toolbar-btn.primary { background: linear-gradient(135deg, var(--primary), var(--primary2)); color: #fff; border: none; }
+        @media (max-width: 768px) { .mobile-toolbar { display: flex; } }
         .header { 
             text-align: center; 
             margin-bottom: 40px; 
@@ -505,13 +515,21 @@ export class SimpleExportService {
         @media print {
             body { margin: 0; padding: 20px; }
             .no-print { display: none; }
+            .mobile-toolbar { display: none !important; }
             .header { background: #4f46e5 !important; -webkit-print-color-adjust: exact; }
             .total-row { background: #059669 !important; -webkit-print-color-adjust: exact; }
             th { background: #4f46e5 !important; -webkit-print-color-adjust: exact; }
         }
     </style>
+    <!-- html2canvas para compartir como imagen en iOS -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
+    <div class="mobile-toolbar no-print">
+      <button id="backBtn" class="toolbar-btn">Volver</button>
+      <button id="printBtn" class="toolbar-btn primary">Imprimir</button>
+      <button id="shareBtn" class="toolbar-btn">Compartir</button>
+    </div>
     <div class="header">
         <div class="title">PLATAFORMA ${platform.platformNumber}</div>
         <div class="subtitle">Reporte de Inventario</div>
@@ -602,6 +620,53 @@ export class SimpleExportService {
         <p>Documento generado el ${new Date().toLocaleString('es-MX')}</p>
         <p>Sistema de Inventario UTalk - Reporte Profesional</p>
     </div>
+
+    <script>
+      (function(){
+        const backBtn = document.getElementById('backBtn');
+        const printBtn = document.getElementById('printBtn');
+        const shareBtn = document.getElementById('shareBtn');
+        if(backBtn){ backBtn.onclick = () => { window.close(); } }
+        if(printBtn){ printBtn.onclick = () => { window.print(); } }
+        if(shareBtn){
+          shareBtn.onclick = async () => {
+            try {
+              // Compartir como imagen usando html2canvas (mejor compatibilidad iOS)
+              const target = document.body.cloneNode(true);
+              // Ocultar barra en captura
+              const bar = target.querySelector('.mobile-toolbar');
+              if (bar) bar.remove();
+              const container = document.createElement('div');
+              container.style.position = 'fixed';
+              container.style.left = '-10000px';
+              container.appendChild(target);
+              document.body.appendChild(container);
+              const canvas = await html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+              document.body.removeChild(container);
+              const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+              if (!blob) { alert('No se pudo preparar el archivo para compartir'); return; }
+              const file = new File([blob], 'Reporte_Plataforma_${platform.platformNumber}.png', { type: 'image/png' });
+              if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                  files: [file],
+                  title: 'Reporte de Inventario',
+                  text: 'Reporte Plataforma ${platform.platformNumber}'
+                });
+              } else {
+                // Fallback: descargar la imagen
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'Reporte_Plataforma_${platform.platformNumber}.png';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+              }
+            } catch (e) {
+              alert('No se pudo compartir el reporte');
+            }
+          }
+        }
+      })();
+    </script>
 </body>
 </html>`;
   }
