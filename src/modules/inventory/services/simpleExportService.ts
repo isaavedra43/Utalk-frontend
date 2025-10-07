@@ -52,53 +52,13 @@ export class SimpleExportService {
   }
 
   /**
-   * Exporta a PDF con firma electrónica
-   */
-  static exportToPDFWithSignature(platform: Platform, signatureData: string): void {
-    try {
-      const printContent = this.generatePrintContentWithSignature(platform, signatureData);
-
-      // Crear ventana de impresión
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        throw new Error('No se pudo abrir ventana de impresión');
-      }
-
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-
-      // Imprimir después de cargar
-      printWindow.onload = () => {
-        setTimeout(() => {
-          printWindow.print();
-          setTimeout(() => {
-            printWindow.close();
-          }, 1000);
-        }, 500);
-      };
-
-      // Guardar documento firmado en almacenamiento local
-      try {
-        const { SignedDocumentsService } = require('../services/signedDocumentsService');
-        SignedDocumentsService.saveSignedDocument(platform, 'pdf', signatureData);
-      } catch (error) {
-        console.warn('No se pudo guardar documento firmado:', error);
-      }
-
-    } catch (error) {
-      console.error('Error al exportar PDF:', error);
-      this.showError('Error al exportar a PDF. Usa Ctrl+P para imprimir manualmente.');
-    }
-  }
-
-  /**
    * Exporta como imagen usando canvas
    */
   static exportToImage(platform: Platform): void {
     try {
       // Verificar si hay materiales especificados
       const hasMaterials = platform.pieces.some(piece => piece.material && piece.material !== 'Sin especificar');
-
+      
       // Crear canvas
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -110,7 +70,7 @@ export class SimpleExportService {
       // Configurar canvas con mejor resolución
       canvas.width = 1000;
       canvas.height = 800;
-
+      
       // Fondo con gradiente sutil
       const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
       gradient.addColorStop(0, '#ffffff');
@@ -124,38 +84,38 @@ export class SimpleExportService {
       headerGradient.addColorStop(1, '#764ba2');
       ctx.fillStyle = headerGradient;
       ctx.fillRect(0, 0, canvas.width, 120);
-
+      
       // Título principal
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 32px Arial, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(`PLATAFORMA ${platform.platformNumber}`, canvas.width / 2, 45);
-
+      
       // Subtítulo
       ctx.font = '18px Arial, sans-serif';
       ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
       ctx.fillText('Reporte de Inventario', canvas.width / 2, 75);
-
+      
       // Información de la plataforma
       let y = 160;
       ctx.font = 'bold 16px Arial, sans-serif';
       ctx.fillStyle = '#2d3748';
       ctx.textAlign = 'left';
-
+      
       // Información condicional según el tipo
-      const entityName = platform.platformType === 'client'
+      const entityName = platform.platformType === 'client' 
         ? `Cliente: ${platform.client || 'No especificado'}`
         : `Proveedor: ${platform.provider || 'No especificado'}`;
-
+      
       ctx.fillText(entityName, 50, y);
       y += 25;
-
+      
       // Información de materiales solo si es proveedor
       if (platform.platformType === 'provider' && platform.materialTypes.length > 0) {
         ctx.fillText(`Materiales: ${platform.materialTypes.join(', ')}`, 50, y);
         y += 25;
       }
-
+      
       ctx.fillText(`Chofer: ${platform.driver || 'No especificado'}`, 50, y);
       y += 25;
       ctx.fillText(`Fecha: ${new Date(platform.receptionDate).toLocaleDateString('es-MX')}`, 50, y);
@@ -168,30 +128,30 @@ export class SimpleExportService {
       y += 40;
       const rowHeight = 35;
       const cellPadding = 10;
-
+      
       // Calcular posiciones de columnas
       const colNo = 50;
       const colMaterial = hasMaterials ? 120 : 0;
       const colLength = hasMaterials ? 350 : 200;
       const colWidth = hasMaterials ? 500 : 350;
       const colLinear = hasMaterials ? 650 : 500;
-
+      
       // Fondo de la tabla
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(40, y - 10, canvas.width - 80, (platform.pieces.length + 2) * rowHeight + 20);
-
+      
       // Borde de la tabla
       ctx.strokeStyle = '#e2e8f0';
       ctx.lineWidth = 2;
       ctx.strokeRect(40, y - 10, canvas.width - 80, (platform.pieces.length + 2) * rowHeight + 20);
-
+      
       // Encabezados con gradiente
       const headerGrad = ctx.createLinearGradient(0, 0, 0, rowHeight);
       headerGrad.addColorStop(0, '#4f46e5');
       headerGrad.addColorStop(1, '#7c3aed');
       ctx.fillStyle = headerGrad;
       ctx.fillRect(40, y - 10, canvas.width - 80, rowHeight);
-
+      
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 14px Arial, sans-serif';
       ctx.textAlign = 'left';
@@ -212,7 +172,7 @@ export class SimpleExportService {
       ctx.moveTo(40, y - 10);
       ctx.lineTo(canvas.width - 40, y - 10);
       ctx.stroke();
-
+      
       // Datos de las piezas
       ctx.fillStyle = '#374151';
       ctx.font = '14px Arial, sans-serif';
@@ -223,7 +183,7 @@ export class SimpleExportService {
           ctx.fillStyle = '#f8fafc';
           ctx.fillRect(40, y - 10, canvas.width - 80, rowHeight);
         }
-
+        
         ctx.fillStyle = '#374151';
         ctx.fillText(piece.number.toString(), colNo + cellPadding, y + 20);
         if (hasMaterials) {
@@ -232,7 +192,7 @@ export class SimpleExportService {
         ctx.fillText(piece.length.toFixed(2), colLength + cellPadding, y + 20);
         ctx.fillText(piece.standardWidth.toFixed(2), colWidth + cellPadding, y + 20);
         ctx.fillText(piece.linearMeters.toFixed(3), colLinear + cellPadding, y + 20);
-
+        
         y += rowHeight;
       });
       
@@ -242,7 +202,7 @@ export class SimpleExportService {
       totalGrad.addColorStop(1, '#047857');
       ctx.fillStyle = totalGrad;
       ctx.fillRect(40, y - 10, canvas.width - 80, rowHeight);
-
+      
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 16px Arial, sans-serif';
       ctx.fillText('TOTAL', colNo + cellPadding, y + 20);
@@ -252,14 +212,14 @@ export class SimpleExportService {
       ctx.fillText(platform.totalLength.toFixed(2), colLength + cellPadding, y + 20);
       ctx.fillText(platform.standardWidth.toFixed(2), colWidth + cellPadding, y + 20);
       ctx.fillText(platform.totalLinearMeters.toFixed(3), colLinear + cellPadding, y + 20);
-
+      
       // Resumen ejecutivo
       y += 60;
       ctx.fillStyle = '#2d3748';
       ctx.font = 'bold 20px Arial, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('RESUMEN EJECUTIVO', canvas.width / 2, y);
-
+      
       y += 40;
       ctx.font = '16px Arial, sans-serif';
       ctx.fillText(`Total Piezas: ${platform.pieces.length}`, canvas.width / 2, y);
@@ -267,7 +227,7 @@ export class SimpleExportService {
       ctx.fillText(`Longitud Total: ${platform.totalLength.toFixed(2)} m`, canvas.width / 2, y);
       y += 30;
       ctx.fillText(`Metros Totales de la Carga: ${platform.totalLinearMeters.toFixed(2)} m²`, canvas.width / 2, y);
-
+      
       // Footer
       y += 50;
       ctx.fillStyle = '#718096';
@@ -297,249 +257,6 @@ export class SimpleExportService {
   }
 
   /**
-   * Exporta como imagen con firma electrónica
-   */
-  static exportToImageWithSignature(platform: Platform, signatureData: string): void {
-    try {
-      // Verificar si hay materiales especificados
-      const hasMaterials = platform.pieces.some(piece => piece.material && piece.material !== 'Sin especificar');
-
-      // Crear canvas
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-
-      if (!ctx) {
-        throw new Error('No se pudo crear contexto del canvas');
-      }
-
-      // Configurar canvas con mejor resolución
-      canvas.width = 1000;
-      canvas.height = 900; // Más alto para incluir la firma
-
-      // Fondo con gradiente sutil
-      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      gradient.addColorStop(0, '#ffffff');
-      gradient.addColorStop(1, '#f8fafc');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Header con gradiente
-      const headerGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-      headerGradient.addColorStop(0, '#667eea');
-      headerGradient.addColorStop(1, '#764ba2');
-      ctx.fillStyle = headerGradient;
-      ctx.fillRect(0, 0, canvas.width, 120);
-
-      // Título principal
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 32px Arial, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(`PLATAFORMA ${platform.platformNumber}`, canvas.width / 2, 45);
-
-      // Subtítulo
-      ctx.font = '18px Arial, sans-serif';
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-      ctx.fillText('Reporte de Inventario', canvas.width / 2, 75);
-
-      // Información de la plataforma
-      let y = 160;
-      ctx.font = 'bold 16px Arial, sans-serif';
-      ctx.fillStyle = '#2d3748';
-      ctx.textAlign = 'left';
-
-      // Información condicional según el tipo
-      const entityName = platform.platformType === 'client'
-        ? `Cliente: ${platform.client || 'No especificado'}`
-        : `Proveedor: ${platform.provider || 'No especificado'}`;
-
-      ctx.fillText(entityName, 50, y);
-      y += 25;
-
-      // Información de materiales solo si es proveedor
-      if (platform.platformType === 'provider' && platform.materialTypes.length > 0) {
-        ctx.fillText(`Materiales: ${platform.materialTypes.join(', ')}`, 50, y);
-        y += 25;
-      }
-
-      ctx.fillText(`Chofer: ${platform.driver || 'No especificado'}`, 50, y);
-      y += 25;
-      ctx.fillText(`Fecha: ${new Date(platform.receptionDate).toLocaleDateString('es-MX')}`, 50, y);
-      y += 25;
-      ctx.fillText(`Ancho Estándar: ${platform.standardWidth.toFixed(2)} m`, 50, y);
-      y += 25;
-      ctx.fillText(`Total Piezas: ${platform.pieces.length}`, 50, y);
-
-      // Tabla
-      y += 40;
-      const rowHeight = 35;
-      const cellPadding = 10;
-
-      // Calcular posiciones de columnas
-      const colNo = 50;
-      const colMaterial = hasMaterials ? 120 : 0;
-      const colLength = hasMaterials ? 350 : 200;
-      const colWidth = hasMaterials ? 500 : 350;
-      const colLinear = hasMaterials ? 650 : 500;
-
-      // Fondo de la tabla
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(40, y - 10, canvas.width - 80, (platform.pieces.length + 2) * rowHeight + 20);
-
-      // Borde de la tabla
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(40, y - 10, canvas.width - 80, (platform.pieces.length + 2) * rowHeight + 20);
-
-      // Encabezados con gradiente
-      const headerGrad = ctx.createLinearGradient(0, 0, 0, rowHeight);
-      headerGrad.addColorStop(0, '#4f46e5');
-      headerGrad.addColorStop(1, '#7c3aed');
-      ctx.fillStyle = headerGrad;
-      ctx.fillRect(40, y - 10, canvas.width - 80, rowHeight);
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 14px Arial, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText('No.', colNo + cellPadding, y + 20);
-      if (hasMaterials) {
-        ctx.fillText('Material', colMaterial + cellPadding, y + 20);
-      }
-      ctx.fillText('Longitud (m)', colLength + cellPadding, y + 20);
-      ctx.fillText('Ancho (m)', colWidth + cellPadding, y + 20);
-      ctx.fillText('Metros Lineales', colLinear + cellPadding, y + 20);
-
-      y += rowHeight;
-
-      // Línea separadora
-      ctx.strokeStyle = '#e2e8f0';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(40, y - 10);
-      ctx.lineTo(canvas.width - 40, y - 10);
-      ctx.stroke();
-
-      // Datos de las piezas
-      ctx.fillStyle = '#374151';
-      ctx.font = '14px Arial, sans-serif';
-
-      platform.pieces.forEach((piece, index) => {
-        // Fondo alternado para filas
-        if (index % 2 === 0) {
-          ctx.fillStyle = '#f8fafc';
-          ctx.fillRect(40, y - 10, canvas.width - 80, rowHeight);
-        }
-
-        ctx.fillStyle = '#374151';
-        ctx.fillText(piece.number.toString(), colNo + cellPadding, y + 20);
-        if (hasMaterials) {
-          ctx.fillText(piece.material, colMaterial + cellPadding, y + 20);
-        }
-        ctx.fillText(piece.length.toFixed(2), colLength + cellPadding, y + 20);
-        ctx.fillText(piece.standardWidth.toFixed(2), colWidth + cellPadding, y + 20);
-        ctx.fillText(piece.linearMeters.toFixed(3), colLinear + cellPadding, y + 20);
-
-        y += rowHeight;
-      });
-
-      // Fila de totales con gradiente
-      const totalGrad = ctx.createLinearGradient(0, 0, 0, rowHeight);
-      totalGrad.addColorStop(0, '#059669');
-      totalGrad.addColorStop(1, '#047857');
-      ctx.fillStyle = totalGrad;
-      ctx.fillRect(40, y - 10, canvas.width - 80, rowHeight);
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 16px Arial, sans-serif';
-      ctx.fillText('TOTAL', colNo + cellPadding, y + 20);
-      if (hasMaterials) {
-        ctx.fillText('—', colMaterial + cellPadding, y + 20);
-      }
-      ctx.fillText(platform.totalLength.toFixed(2), colLength + cellPadding, y + 20);
-      ctx.fillText(platform.standardWidth.toFixed(2), colWidth + cellPadding, y + 20);
-      ctx.fillText(platform.totalLinearMeters.toFixed(3), colLinear + cellPadding, y + 20);
-
-      // Resumen ejecutivo
-      y += 60;
-      ctx.fillStyle = '#2d3748';
-      ctx.font = 'bold 20px Arial, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('RESUMEN EJECUTIVO', canvas.width / 2, y);
-
-      y += 40;
-      ctx.font = '16px Arial, sans-serif';
-      ctx.fillText(`Total Piezas: ${platform.pieces.length}`, canvas.width / 2, y);
-      y += 30;
-      ctx.fillText(`Longitud Total: ${platform.totalLength.toFixed(2)} m`, canvas.width / 2, y);
-      y += 30;
-      ctx.fillText(`Metros Totales de la Carga: ${platform.totalLinearMeters.toFixed(2)} m²`, canvas.width / 2, y);
-
-      // Firma electrónica
-      y += 50;
-      ctx.fillStyle = '#2d3748';
-      ctx.font = 'bold 18px Arial, sans-serif';
-      ctx.fillText('FIRMA ELECTRÓNICA', canvas.width / 2, y);
-
-      y += 30;
-
-      // Crear imagen de la firma y dibujarla
-      const signatureImg = new Image();
-      signatureImg.onload = () => {
-        const signatureWidth = 300;
-        const signatureHeight = 150;
-        const signatureX = (canvas.width - signatureWidth) / 2;
-
-        // Fondo blanco para la firma
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(signatureX - 10, y - 10, signatureWidth + 20, signatureHeight + 20);
-
-        // Borde para la firma
-        ctx.strokeStyle = '#cbd5e0';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(signatureX - 10, y - 10, signatureWidth + 20, signatureHeight + 20);
-
-        // Dibujar la firma
-        ctx.drawImage(signatureImg, signatureX, y, signatureWidth, signatureHeight);
-
-        // Footer
-        y += signatureHeight + 40;
-        ctx.fillStyle = '#718096';
-        ctx.font = '12px Arial, sans-serif';
-        ctx.fillText(`Documento generado el ${new Date().toLocaleString('es-MX')}`, canvas.width / 2, y);
-        y += 20;
-        ctx.fillText('Sistema de Inventario UTalk - Reporte Profesional con Firma Electrónica', canvas.width / 2, y);
-
-      // Convertir a blob y descargar
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `Plataforma_${platform.platformNumber}_Firmado_${this.getDateString()}.png`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-
-          // Guardar documento firmado en almacenamiento local
-          try {
-            const { SignedDocumentsService } = require('../services/signedDocumentsService');
-            SignedDocumentsService.saveSignedDocument(platform, 'image', signatureData, blob);
-          } catch (error) {
-            console.warn('No se pudo guardar documento firmado:', error);
-          }
-        }
-      }, 'image/png');
-      };
-
-      signatureImg.src = signatureData;
-
-    } catch (error) {
-      console.error('Error al exportar imagen con firma:', error);
-      this.showError('Error al exportar como imagen con firma');
-    }
-  }
-
-  /**
    * Genera contenido CSV
    */
   private static generateCSVContent(platform: Platform): string {
@@ -558,11 +275,11 @@ export class SimpleExportService {
     platform.pieces.forEach(piece => {
       const rowData = hasMaterials 
         ? [
-        piece.number,
-        `"${piece.material}"`,
-        piece.length.toFixed(2),
-        piece.standardWidth.toFixed(2),
-        piece.linearMeters.toFixed(3)
+            piece.number,
+            `"${piece.material}"`,
+            piece.length.toFixed(2),
+            piece.standardWidth.toFixed(2),
+            piece.linearMeters.toFixed(3)
           ]
         : [
             piece.number,
@@ -577,11 +294,11 @@ export class SimpleExportService {
     rows.push('');
     const totalData = hasMaterials 
       ? [
-      'TOTAL',
-      '—',
-      platform.totalLength.toFixed(2),
-      platform.standardWidth.toFixed(2),
-      platform.totalLinearMeters.toFixed(3)
+          'TOTAL',
+          '—',
+          platform.totalLength.toFixed(2),
+          platform.standardWidth.toFixed(2),
+          platform.totalLinearMeters.toFixed(3)
         ]
       : [
           'TOTAL',
@@ -602,7 +319,7 @@ export class SimpleExportService {
     } else {
       rows.push(`Proveedor,${platform.provider || 'No especificado'}`);
       if (platform.materialTypes.length > 0) {
-    rows.push(`Materiales,${platform.materialTypes.join('; ')}`);
+        rows.push(`Materiales,${platform.materialTypes.join('; ')}`);
       }
     }
     
@@ -620,12 +337,12 @@ export class SimpleExportService {
   private static generatePrintContent(platform: Platform): string {
     // Verificar si hay materiales especificados
     const hasMaterials = platform.pieces.some(piece => piece.material && piece.material !== 'Sin especificar');
-
+    
     // Información condicional según el tipo de plataforma
-    const entityInfo = platform.platformType === 'client'
+    const entityInfo = platform.platformType === 'client' 
       ? `<div class="info">Cliente: ${platform.client || 'No especificado'}</div>`
       : `<div class="info">Proveedor: ${platform.provider || 'No especificado'}</div>`;
-
+    
     // Información de materiales solo si es proveedor
     const materialsInfo = platform.platformType === 'provider' && platform.materialTypes.length > 0
       ? `<div class="info">Materiales: ${platform.materialTypes.join(', ')}</div>`
@@ -639,26 +356,26 @@ export class SimpleExportService {
     <title>Plataforma ${platform.platformNumber}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 30px;
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 30px; 
             background: #ffffff;
             color: #1a1a1a;
             line-height: 1.6;
         }
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
+        .header { 
+            text-align: center; 
+            margin-bottom: 40px; 
             padding: 30px 0;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 12px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.1);
         }
-        .title {
-            font-size: 32px;
-            font-weight: 700;
+        .title { 
+            font-size: 32px; 
+            font-weight: 700; 
             margin-bottom: 15px;
             text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
@@ -667,9 +384,9 @@ export class SimpleExportService {
             opacity: 0.9;
             font-weight: 300;
         }
-        .info {
-            font-size: 16px;
-            margin: 8px 0;
+        .info { 
+            font-size: 16px; 
+            margin: 8px 0; 
             font-weight: 500;
         }
         .info-grid {
@@ -699,28 +416,28 @@ export class SimpleExportService {
             color: #2d3748;
             font-weight: 500;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 30px 0;
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 30px 0; 
             background: white;
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
-        th {
+        th { 
             background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: white;
-            padding: 16px 12px;
-            text-align: left;
+            color: white; 
+            padding: 16px 12px; 
+            text-align: left; 
             font-weight: 600;
             font-size: 14px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        td {
-            padding: 14px 12px;
-            border-bottom: 1px solid #e2e8f0;
+        td { 
+            padding: 14px 12px; 
+            border-bottom: 1px solid #e2e8f0; 
             font-size: 15px;
         }
         tr:nth-child(even) {
@@ -729,9 +446,9 @@ export class SimpleExportService {
         tr:hover {
             background: #f1f5f9;
         }
-        .total-row {
+        .total-row { 
             background: linear-gradient(135deg, #059669 0%, #047857 100%);
-            color: white;
+            color: white; 
             font-weight: 700;
             font-size: 16px;
         }
@@ -739,17 +456,17 @@ export class SimpleExportService {
             border: none;
             padding: 18px 12px;
         }
-        .summary {
-            margin-top: 40px;
-            padding: 30px;
+        .summary { 
+            margin-top: 40px; 
+            padding: 30px; 
             background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
             border-radius: 16px;
             border: 1px solid #cbd5e0;
             box-shadow: 0 4px 20px rgba(0,0,0,0.05);
         }
-        .summary h3 {
-            color: #2d3748;
-            margin-bottom: 20px;
+        .summary h3 { 
+            color: #2d3748; 
+            margin-bottom: 20px; 
             font-size: 24px;
             font-weight: 700;
             text-align: center;
@@ -759,7 +476,7 @@ export class SimpleExportService {
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
         }
-        .summary-item {
+        .summary-item { 
             padding: 15px;
             background: white;
             border-radius: 8px;
@@ -776,38 +493,6 @@ export class SimpleExportService {
             font-size: 18px;
             color: #2d3748;
             font-weight: 700;
-        }
-        .signature-section {
-            margin-top: 50px;
-            padding: 30px;
-            background: #f8fafc;
-            border-radius: 12px;
-            border: 2px solid #cbd5e0;
-            text-align: center;
-        }
-        .signature-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: #2d3748;
-            margin-bottom: 20px;
-        }
-        .signature-box {
-            display: inline-block;
-            border: 2px solid #cbd5e0;
-            border-radius: 8px;
-            padding: 20px;
-            background: white;
-            min-width: 300px;
-            min-height: 150px;
-            position: relative;
-        }
-        .signature-placeholder {
-            color: #a0aec0;
-            font-style: italic;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
         }
         .footer {
             margin-top: 40px;
@@ -841,10 +526,10 @@ export class SimpleExportService {
         </div>
         <div class="info-item">
             <div class="info-label">Fecha de Recepción</div>
-            <div class="info-value">${new Date(platform.receptionDate).toLocaleDateString('es-MX', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
+            <div class="info-value">${new Date(platform.receptionDate).toLocaleDateString('es-MX', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
             })}</div>
         </div>
         <div class="info-item">
@@ -909,15 +594,6 @@ export class SimpleExportService {
             <div class="summary-item">
                 <div class="summary-label">Metros Totales de la Carga</div>
                 <div class="summary-value">${platform.totalLinearMeters.toFixed(2)} m²</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="signature-section">
-        <div class="signature-title">FIRMA ELECTRÓNICA</div>
-        <div class="signature-box">
-            <div class="signature-placeholder">
-                [Firma Electrónica - Área Reservada]
             </div>
         </div>
     </div>
@@ -925,324 +601,6 @@ export class SimpleExportService {
     <div class="footer">
         <p>Documento generado el ${new Date().toLocaleString('es-MX')}</p>
         <p>Sistema de Inventario UTalk - Reporte Profesional</p>
-    </div>
-</body>
-</html>`;
-  }
-
-  /**
-   * Genera contenido para impresión/PDF con firma electrónica
-   */
-  private static generatePrintContentWithSignature(platform: Platform, signatureData: string): string {
-    // Verificar si hay materiales especificados
-    const hasMaterials = platform.pieces.some(piece => piece.material && piece.material !== 'Sin especificar');
-
-    // Información condicional según el tipo de plataforma
-    const entityInfo = platform.platformType === 'client'
-      ? `<div class="info">Cliente: ${platform.client || 'No especificado'}</div>`
-      : `<div class="info">Proveedor: ${platform.provider || 'No especificado'}</div>`;
-
-    // Información de materiales solo si es proveedor
-    const materialsInfo = platform.platformType === 'provider' && platform.materialTypes.length > 0
-      ? `<div class="info">Materiales: ${platform.materialTypes.join(', ')}</div>`
-      : '';
-
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Plataforma ${platform.platformNumber} - Firmado</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 30px;
-            background: #ffffff;
-            color: #1a1a1a;
-            line-height: 1.6;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding: 30px 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-        }
-        .title {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 15px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-        .subtitle {
-            font-size: 18px;
-            opacity: 0.9;
-            font-weight: 300;
-        }
-        .info {
-            font-size: 16px;
-            margin: 8px 0;
-            font-weight: 500;
-        }
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin: 30px 0;
-            padding: 25px;
-            background: #f8fafc;
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-        }
-        .info-item {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        .info-label {
-            font-weight: 600;
-            color: #4a5568;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .info-value {
-            font-size: 16px;
-            color: #2d3748;
-            font-weight: 500;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 30px 0;
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        }
-        th {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            color: white;
-            padding: 16px 12px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        td {
-            padding: 14px 12px;
-            border-bottom: 1px solid #e2e8f0;
-            font-size: 15px;
-        }
-        tr:nth-child(even) {
-            background: #f8fafc;
-        }
-        tr:hover {
-            background: #f1f5f9;
-        }
-        .total-row {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
-            color: white;
-            font-weight: 700;
-            font-size: 16px;
-        }
-        .total-row td {
-            border: none;
-            padding: 18px 12px;
-        }
-        .summary {
-            margin-top: 40px;
-            padding: 30px;
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            border-radius: 16px;
-            border: 1px solid #cbd5e0;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-        }
-        .summary h3 {
-            color: #2d3748;
-            margin-bottom: 20px;
-            font-size: 24px;
-            font-weight: 700;
-            text-align: center;
-        }
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-        .summary-item {
-            padding: 15px;
-            background: white;
-            border-radius: 8px;
-            border-left: 4px solid #4f46e5;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        .summary-label {
-            font-weight: 600;
-            color: #4a5568;
-            font-size: 14px;
-            margin-bottom: 5px;
-        }
-        .summary-value {
-            font-size: 18px;
-            color: #2d3748;
-            font-weight: 700;
-        }
-        .signature-section {
-            margin-top: 50px;
-            padding: 30px;
-            background: #f8fafc;
-            border-radius: 12px;
-            border: 2px solid #cbd5e0;
-            text-align: center;
-        }
-        .signature-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: #2d3748;
-            margin-bottom: 20px;
-        }
-        .signature-box {
-            display: inline-block;
-            border: 2px solid #22c55e;
-            border-radius: 8px;
-            padding: 20px;
-            background: white;
-            min-width: 300px;
-            min-height: 150px;
-            position: relative;
-            background-image: url('data:image/svg+xml;base64,${btoa(`<svg width="300" height="150" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="white"/><text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" fill="#22c55e" font-family="Arial" font-size="14">✓ Firma Electrónica Aplicada</text></svg>`)}');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-        }
-        .signature-img {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        .footer {
-            margin-top: 40px;
-            text-align: center;
-            padding: 20px;
-            color: #718096;
-            font-size: 14px;
-            border-top: 1px solid #e2e8f0;
-        }
-        @media print {
-            body { margin: 0; padding: 20px; }
-            .no-print { display: none; }
-            .header { background: #4f46e5 !important; -webkit-print-color-adjust: exact; }
-            .total-row { background: #059669 !important; -webkit-print-color-adjust: exact; }
-            th { background: #4f46e5 !important; -webkit-print-color-adjust: exact; }
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <div class="title">PLATAFORMA ${platform.platformNumber}</div>
-        <div class="subtitle">Reporte de Inventario - Documento Firmado</div>
-    </div>
-
-    <div class="info-grid">
-        ${entityInfo}
-        ${materialsInfo}
-        <div class="info-item">
-            <div class="info-label">Chofer</div>
-            <div class="info-value">${platform.driver || 'No especificado'}</div>
-        </div>
-        <div class="info-item">
-            <div class="info-label">Fecha de Recepción</div>
-            <div class="info-value">${new Date(platform.receptionDate).toLocaleDateString('es-MX', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })}</div>
-        </div>
-        <div class="info-item">
-            <div class="info-label">Ancho Estándar</div>
-            <div class="info-value">${platform.standardWidth.toFixed(2)} m</div>
-        </div>
-        <div class="info-item">
-            <div class="info-label">Total de Piezas</div>
-            <div class="info-value">${platform.pieces.length}</div>
-        </div>
-    </div>
-
-    <table>
-        <thead>
-            <tr>
-                <th>No.</th>
-                ${hasMaterials ? '<th>Material</th>' : ''}
-                <th>Longitud (m)</th>
-                <th>Ancho (m)</th>
-                <th>Metros Lineales</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${platform.pieces.map(piece => `
-                <tr>
-                    <td>${piece.number}</td>
-                    ${hasMaterials ? `<td>${piece.material}</td>` : ''}
-                    <td>${piece.length.toFixed(2)}</td>
-                    <td>${piece.standardWidth.toFixed(2)}</td>
-                    <td>${piece.linearMeters.toFixed(3)}</td>
-                </tr>
-            `).join('')}
-            <tr class="total-row">
-                <td>TOTAL</td>
-                ${hasMaterials ? '<td>—</td>' : ''}
-                <td>${platform.totalLength.toFixed(2)}</td>
-                <td>${platform.standardWidth.toFixed(2)}</td>
-                <td>${platform.totalLinearMeters.toFixed(3)}</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <div class="summary">
-        <h3>RESUMEN EJECUTIVO</h3>
-        <div class="summary-grid">
-            <div class="summary-item">
-                <div class="summary-label">Total Piezas</div>
-                <div class="summary-value">${platform.pieces.length}</div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-label">Longitud Total</div>
-                <div class="summary-value">${platform.totalLength.toFixed(2)} m</div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-label">Ancho Estándar</div>
-                <div class="summary-value">${platform.standardWidth.toFixed(2)} m</div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-label">Metros Lineales</div>
-                <div class="summary-value">${platform.totalLinearMeters.toFixed(3)} m</div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-label">Metros Totales de la Carga</div>
-                <div class="summary-value">${platform.totalLinearMeters.toFixed(2)} m²</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="signature-section">
-        <div class="signature-title">FIRMA ELECTRÓNICA APLICADA</div>
-        <div class="signature-box">
-            <img src="${signatureData}" alt="Firma Electrónica" class="signature-img" />
-        </div>
-    </div>
-
-    <div class="footer">
-        <p>Documento generado y firmado electrónicamente el ${new Date().toLocaleString('es-MX')}</p>
-        <p>Sistema de Inventario UTalk - Reporte Profesional con Firma Electrónica</p>
     </div>
 </body>
 </html>`;

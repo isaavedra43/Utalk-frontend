@@ -17,9 +17,7 @@ import {
   Camera,
   Download,
   Share2,
-  Mic,
-  Pen,
-  FileText
+  Mic
 } from 'lucide-react';
 import type { Platform, Evidence } from '../types';
 import { useInventory } from '../hooks/useInventory';
@@ -29,8 +27,6 @@ import { validateLength } from '../utils/calculations';
 import { QuickCaptureInput } from './QuickCaptureInput';
 import { PiecesTable } from './PiecesTable';
 import { VoiceDictationModal } from './VoiceDictationModal';
-import { SignatureModal } from './SignatureModal';
-import { SignedDocumentsModal } from './SignedDocumentsModal';
 
 interface CargaDetailViewProps {
   platform: Platform;
@@ -54,9 +50,6 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showVoiceDictationModal, setShowVoiceDictationModal] = useState(false);
-  const [showSignatureModal, setShowSignatureModal] = useState(false);
-  const [signature, setSignature] = useState<string | null>(null);
-  const [showSignedDocumentsModal, setShowSignedDocumentsModal] = useState(false);
   const [exporting, setExporting] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -133,22 +126,16 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
 
   // Exportar a PDF
   const handleExportPDF = () => {
-    if (signature) {
-      // Exportar PDF con firma electrónica
-      try {
-        setExporting(true);
-        SimpleExportService.exportToPDFWithSignature(platform, signature);
-        updatePlatform(platform.id, { status: 'exported' });
-        showNotification('success', 'PDF firmado exportado exitosamente');
-      } catch (error) {
-        console.error('Error al exportar PDF:', error);
-        showNotification('error', 'Error al exportar a PDF');
-      } finally {
-        setExporting(false);
-      }
-    } else {
-      // Preguntar si quiere agregar firma
-      setShowSignatureModal(true);
+    try {
+      setExporting(true);
+      SimpleExportService.exportToPDF(platform);
+      updatePlatform(platform.id, { status: 'exported' });
+      showNotification('success', 'Exportado a PDF exitosamente');
+    } catch (error) {
+      console.error('Error al exportar PDF:', error);
+      showNotification('error', 'Error al exportar a PDF');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -169,22 +156,16 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
 
   // Exportar como Imagen
   const handleExportImage = () => {
-    if (signature) {
-      // Exportar imagen con firma electrónica
-      try {
-        setExporting(true);
-        SimpleExportService.exportToImageWithSignature(platform, signature);
-        updatePlatform(platform.id, { status: 'exported' });
-        showNotification('success', 'Imagen firmada exportada exitosamente');
-      } catch (error) {
-        console.error('Error al exportar imagen:', error);
-        showNotification('error', 'Error al exportar como imagen');
-      } finally {
-        setExporting(false);
-      }
-    } else {
-      // Preguntar si quiere agregar firma
-      setShowSignatureModal(true);
+    try {
+      setExporting(true);
+      SimpleExportService.exportToImage(platform);
+      updatePlatform(platform.id, { status: 'exported' });
+      showNotification('success', 'Exportado como imagen exitosamente');
+    } catch (error) {
+      console.error('Error al exportar imagen:', error);
+      showNotification('error', 'Error al exportar como imagen');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -959,16 +940,6 @@ Generado por Sistema de Inventario`;
             <span className="text-[10px] font-semibold">Dictar</span>
           </button>
 
-          {/* Botón Documentos Firmados */}
-          <button
-            onClick={() => setShowSignedDocumentsModal(true)}
-            className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-green-50 to-green-100 text-green-700 rounded-lg border border-green-200 shadow-sm active:scale-95 transition-transform"
-            title="Ver documentos firmados"
-          >
-            <FileText className="h-5 w-5 mb-0.5" />
-            <span className="text-[10px] font-semibold">Firmados</span>
-          </button>
-
           {/* Botón Evidencias */}
           <button
             onClick={() => setShowEvidenceModal(true)}
@@ -1227,30 +1198,6 @@ Generado por Sistema de Inventario`;
                     <div className="text-sm text-purple-600">Exportar como imagen</div>
                   </div>
                 </button>
-
-                {/* Firma Electrónica - Nueva opción */}
-                <button
-                  onClick={() => {
-                    if (signature) {
-                      // Ya hay firma, mostrar opciones de exportación con firma
-                      setShowDownloadModal(false);
-                    } else {
-                      // No hay firma, abrir modal de firma
-                      setShowSignatureModal(true);
-                      setShowDownloadModal(false);
-                    }
-                  }}
-                  disabled={platform.pieces.length === 0 || exporting}
-                  className="w-full flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition-colors disabled:opacity-50"
-                >
-                  <Pen className="h-6 w-6" />
-                  <div className="text-left">
-                    <div className="font-medium">Firma Electrónica</div>
-                    <div className="text-sm text-blue-600">
-                      {signature ? 'Documento con firma disponible' : 'Agregar firma al documento'}
-                    </div>
-                  </div>
-                </button>
               </div>
               
               <div className="flex gap-3 mt-6">
@@ -1410,27 +1357,6 @@ Generado por Sistema de Inventario`;
         standardWidth={platform.standardWidth}
         availableMaterials={platform.materialTypes}
         onAddPieces={handleAddMultiplePieces}
-      />
-
-      {/* Modal de Firma Electrónica */}
-      <SignatureModal
-        isOpen={showSignatureModal}
-        onClose={() => setShowSignatureModal(false)}
-        onSignature={(signatureData) => {
-          setSignature(signatureData);
-          setShowSignatureModal(false);
-          // Mostrar opciones de exportación con firma
-          setShowDownloadModal(true);
-        }}
-        title="Firma Electrónica para Documento"
-      />
-
-      {/* Modal de Documentos Firmados */}
-      <SignedDocumentsModal
-        isOpen={showSignedDocumentsModal}
-        onClose={() => setShowSignedDocumentsModal(false)}
-        platformId={platform.id}
-        platformNumber={platform.platformNumber}
       />
     </div>
   );
