@@ -23,7 +23,8 @@ import {
   Home,
   BarChart3,
   FileText,
-  Activity
+  Activity,
+  Paperclip
 } from 'lucide-react';
 import { useVacations } from '../../../hooks/useVacations';
 import { useNotifications } from '../../../contexts/NotificationContext';
