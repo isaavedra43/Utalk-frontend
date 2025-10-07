@@ -8,7 +8,7 @@ import { PlatformApiService } from '../services/inventoryApiService';
 import { calculateLinearMeters, calculatePlatformTotals, generateId, getNextPieceNumber } from '../utils/calculations';
 
 export const useInventory = () => {
-  const [platforms, setPlatforms] = useState<Platform[]>([]);
+  const [cargas, setCargas] = useState<Platform[]>([]);
   const [settings, setSettings] = useState<InventorySettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -35,7 +35,7 @@ export const useInventory = () => {
         const loadedPlatforms = StorageService.getPlatforms();
         const loadedSettings = StorageService.getSettings();
         
-        setPlatforms(Array.isArray(loadedPlatforms) ? loadedPlatforms : []);
+        setCargas(Array.isArray(loadedPlatforms) ? loadedPlatforms : []);
         setSettings(loadedSettings);
         
         // Si hay conexión, intentar sincronizar con backend
@@ -45,7 +45,7 @@ export const useInventory = () => {
             if (response.data && response.data.length > 0) {
               // Actualizar con datos del backend
               response.data.forEach(platform => StorageService.savePlatform(platform));
-              setPlatforms(response.data);
+              setCargas(response.data);
             }
           } catch (error) {
             console.log('Error al sincronizar con backend, usando datos locales:', error);
@@ -53,7 +53,7 @@ export const useInventory = () => {
         }
       } catch (error) {
         console.error('Error al cargar inventario:', error);
-        setPlatforms([]);
+        setCargas([]);
         setSettings(null);
       } finally {
         setLoading(false);
@@ -65,9 +65,11 @@ export const useInventory = () => {
 
   // Crear nueva plataforma
   const createPlatform = useCallback(async (data: {
+    platformType: 'provider' | 'client';
     materialTypes: string[];
     provider: string;
     providerId?: string;
+    ticketNumber?: string;
     driver: string;
     receptionDate?: Date;
     notes?: string;
@@ -78,9 +80,11 @@ export const useInventory = () => {
     // Crear datos para enviar al backend (incluyendo platformNumber generado)
     const platformData = {
       receptionDate: data.receptionDate || new Date(),
+      platformType: data.platformType,
       materialTypes: data.materialTypes,
       provider: data.provider,
       providerId: data.providerId || generateId(), // Generar providerId si no se proporciona
+      ticketNumber: data.ticketNumber,
       driver: data.driver,
       standardWidth: defaultWidth,
       pieces: [],
@@ -98,7 +102,7 @@ export const useInventory = () => {
         const createdPlatform = await PlatformApiService.createPlatform(platformData);
         // El backend confirma el platformNumber enviado y genera el id automáticamente
         StorageService.savePlatform(createdPlatform);
-        setPlatforms((prev: Platform[]) => [createdPlatform, ...prev]);
+        setCargas((prev: Platform[]) => [createdPlatform, ...prev]);
         return createdPlatform;
       } catch (error) {
         console.error('Error al crear plataforma en backend:', error);
@@ -113,7 +117,7 @@ export const useInventory = () => {
           needsSync: true // ✅ Marcar que necesita sincronización
         };
         StorageService.savePlatform(tempPlatform);
-        setPlatforms((prev: Platform[]) => [tempPlatform, ...prev]);
+        setCargas((prev: Platform[]) => [tempPlatform, ...prev]);
         return tempPlatform;
       }
     } else {
@@ -129,20 +133,20 @@ export const useInventory = () => {
         needsSync: true // ✅ Marcar que necesita sincronización
       };
       StorageService.savePlatform(tempPlatform);
-      setPlatforms((prev: Platform[]) => [tempPlatform, ...prev]);
+      setCargas((prev: Platform[]) => [tempPlatform, ...prev]);
       return tempPlatform;
     }
   }, [isOnline]);
 
   // Actualizar plataforma
   const updatePlatform = useCallback(async (platformId: string, updates: Partial<Platform>) => {
-    const platform = platforms.find((p: Platform) => p.id === platformId);
+    const platform = cargas.find((p: Platform) => p.id === platformId);
     if (!platform) return;
 
     // Actualizar localmente primero
     const updatedPlatform = { ...platform, ...updates, updatedAt: new Date() };
     StorageService.savePlatform(updatedPlatform);
-    setPlatforms((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? updatedPlatform : p));
+    setCargas((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? updatedPlatform : p));
     
     // ✅ SOLUCIÓN: Manejar sincronización correctamente
     if (isOnline) {
@@ -164,7 +168,7 @@ export const useInventory = () => {
             needsSync: false 
           };
           StorageService.savePlatform(syncedPlatform);
-          setPlatforms((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? syncedPlatform : p));
+          setCargas((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? syncedPlatform : p));
           
         } else if (platform.providerId) {
           // Plataforma ya existe en backend - actualizar normalmente
@@ -178,19 +182,19 @@ export const useInventory = () => {
         if (apiError.status === 404 || apiError.response?.status === 404) {
           const platformToSync = { ...updatedPlatform, needsSync: true };
           StorageService.savePlatform(platformToSync);
-          setPlatforms((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? platformToSync : p));
+          setCargas((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? platformToSync : p));
         }
       }
     }
-  }, [platforms, isOnline]);
+  }, [cargas, isOnline]);
 
   // Eliminar plataforma
   const deletePlatform = useCallback(async (platformId: string) => {
-    const platform = platforms.find((p: Platform) => p.id === platformId);
+    const platform = cargas.find((p: Platform) => p.id === platformId);
     
     // Eliminar localmente primero
     StorageService.deletePlatform(platformId);
-    setPlatforms((prev: Platform[]) => prev.filter((p: Platform) => p.id !== platformId));
+    setCargas((prev: Platform[]) => prev.filter((p: Platform) => p.id !== platformId));
     
     // Si hay conexión y providerId, sincronizar con backend
     if (isOnline && platform?.providerId) {
@@ -201,11 +205,11 @@ export const useInventory = () => {
         // Mantener eliminación local si falla la sincronización
       }
     }
-  }, [platforms, isOnline]);
+  }, [cargas, isOnline]);
 
   // Agregar pieza a plataforma
   const addPiece = useCallback((platformId: string, length: number, material: string) => {
-    setPlatforms((prev: Platform[]) => {
+    setCargas((prev: Platform[]) => {
       const updated = prev.map((platform: Platform) => {
         if (platform.id === platformId) {
           const newPiece: Piece = {
@@ -239,7 +243,7 @@ export const useInventory = () => {
 
   // Agregar múltiples piezas
   const addMultiplePieces = useCallback((platformId: string, pieces: { length: number; material: string }[]) => {
-    setPlatforms((prev: Platform[]) => {
+    setCargas((prev: Platform[]) => {
       const updated = prev.map((platform: Platform) => {
         if (platform.id === platformId) {
           let nextNumber = getNextPieceNumber(platform.pieces);
@@ -275,7 +279,7 @@ export const useInventory = () => {
 
   // Actualizar pieza
   const updatePiece = useCallback((platformId: string, pieceId: string, updates: { length?: number; material?: string }) => {
-    setPlatforms((prev: Platform[]) => {
+    setCargas((prev: Platform[]) => {
       const updated = prev.map((platform: Platform) => {
         if (platform.id === platformId) {
           const updatedPieces = platform.pieces.map((piece: Piece) => {
@@ -311,7 +315,7 @@ export const useInventory = () => {
 
   // Eliminar pieza
   const deletePiece = useCallback((platformId: string, pieceId: string) => {
-    setPlatforms((prev: Platform[]) => {
+    setCargas((prev: Platform[]) => {
       const updated = prev.map((platform: Platform) => {
         if (platform.id === platformId) {
           const updatedPieces = platform.pieces.filter((p: Piece) => p.id !== pieceId);
@@ -344,7 +348,7 @@ export const useInventory = () => {
 
   // Cambiar ancho estándar de una plataforma
   const changeStandardWidth = useCallback((platformId: string, newWidth: number) => {
-    setPlatforms((prev: Platform[]) => {
+    setCargas((prev: Platform[]) => {
       const updated = prev.map((platform: Platform) => {
         if (platform.id === platformId) {
           // Recalcular todas las piezas con el nuevo ancho
@@ -377,7 +381,7 @@ export const useInventory = () => {
   const syncPendingPlatforms = useCallback(async () => {
     if (!isOnline) return;
 
-    const pendingPlatforms = platforms.filter((p: Platform) => p.needsSync === true);
+    const pendingPlatforms = cargas.filter((p: Platform) => p.needsSync === true);
     console.log(`🔄 Sincronizando ${pendingPlatforms.length} plataformas pendientes...`);
     
     for (const platform of pendingPlatforms) {
@@ -395,14 +399,14 @@ export const useInventory = () => {
         };
         
         StorageService.savePlatform(syncedPlatform);
-        setPlatforms((prev: Platform[]) => prev.map((p: Platform) => p.id === platform.id ? syncedPlatform : p));
+        setCargas((prev: Platform[]) => prev.map((p: Platform) => p.id === platform.id ? syncedPlatform : p));
         console.log(`✅ Plataforma sincronizada: ${platform.id} → ${createdPlatform.id}`);
         
       } catch (error) {
         console.error(`❌ Error sincronizando plataforma ${platform.id}:`, error);
       }
     }
-  }, [platforms, isOnline]);
+  }, [cargas, isOnline]);
 
   // ✅ NUEVA: Función para actualizar toda la información desde la base de datos
   const refreshData = useCallback(async () => {
@@ -422,12 +426,12 @@ export const useInventory = () => {
         response.data.forEach(platform => StorageService.savePlatform(platform));
         
         // Actualizar el estado local
-        setPlatforms(response.data);
+        setCargas(response.data);
         
         console.log(`✅ Datos actualizados: ${response.data.length} plataformas cargadas`);
       } else {
         console.log('ℹ️ No hay plataformas en la base de datos');
-        setPlatforms([]);
+        setCargas([]);
       }
     } catch (error) {
       console.error('❌ Error al actualizar datos desde la base de datos:', error);
@@ -449,31 +453,31 @@ export const useInventory = () => {
   // ✅ SOLUCIÓN: Ejecutar sincronización cuando se detecte conexión
   useEffect(() => {
     if (isOnline) {
-      const pendingPlatforms = platforms.filter((p: Platform) => p.needsSync === true);
+      const pendingPlatforms = cargas.filter((p: Platform) => p.needsSync === true);
       if (pendingPlatforms.length > 0) {
         console.log(`🌐 Conexión detectada, sincronizando ${pendingPlatforms.length} plataformas...`);
         syncPendingPlatforms();
       }
     }
-  }, [isOnline, platforms, syncPendingPlatforms]);
+  }, [isOnline, cargas, syncPendingPlatforms]);
 
   // ✅ SOLUCIÓN: Estado de sincronización
   const syncStatus = useMemo(() => {
-    const pendingPlatforms = platforms.filter((p: Platform) => p.needsSync === true);
-    const syncedPlatforms = platforms.filter((p: Platform) => !p.needsSync);
+    const pendingPlatforms = cargas.filter((p: Platform) => p.needsSync === true);
+    const syncedPlatforms = cargas.filter((p: Platform) => !p.needsSync);
     
     return {
-      total: platforms.length,
+      total: cargas.length,
       pending: pendingPlatforms.length,
       synced: syncedPlatforms.length,
       needsSync: pendingPlatforms.length > 0,
       isOnline
     };
-  }, [platforms, isOnline]);
+  }, [cargas, isOnline]);
 
   // ✅ NUEVA: Función para agregar evidencia a una plataforma
   const addEvidenceToPlatform = useCallback((platformId: string, evidence: Evidence[]) => {
-    setPlatforms((prev: Platform[]) => {
+    setCargas((prev: Platform[]) => {
       const updated = prev.map((platform: Platform) => {
         if (platform.id === platformId) {
           const updatedPlatform = {
@@ -492,7 +496,7 @@ export const useInventory = () => {
 
   // ✅ NUEVA: Función para eliminar evidencia de una plataforma
   const removeEvidenceFromPlatform = useCallback((platformId: string, evidenceId: string) => {
-    setPlatforms((prev: Platform[]) => {
+    setCargas((prev: Platform[]) => {
       const updated = prev.map((platform: Platform) => {
         if (platform.id === platformId) {
           const updatedPlatform = {
@@ -511,13 +515,13 @@ export const useInventory = () => {
 
   // ✅ NUEVA: Función para obtener evidencias de una plataforma
   const getPlatformEvidence = useCallback((platformId: string): Evidence[] => {
-    const platform = platforms.find((p: Platform) => p.id === platformId);
+    const platform = cargas.find((p: Platform) => p.id === platformId);
     return platform?.evidence || [];
-  }, [platforms]);
+  }, [cargas]);
 
   // ✅ NUEVA: Función para actualizar evidencias de una plataforma (usado por el componente)
   const updatePlatformEvidence = useCallback((platformId: string, evidence: Evidence[]) => {
-    setPlatforms((prev: Platform[]) => {
+    setCargas((prev: Platform[]) => {
       const updated = prev.map((platform: Platform) => {
         if (platform.id === platformId) {
           const updatedPlatform = {
@@ -535,7 +539,7 @@ export const useInventory = () => {
   }, []);
 
   return {
-    platforms,
+    cargas,
     settings,
     loading,
     createPlatform,

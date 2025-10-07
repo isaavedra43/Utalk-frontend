@@ -21,13 +21,15 @@ export interface Evidence {
   url?: string; // URL del archivo en el servidor
 }
 
-export interface Platform {
+export interface Carga {
   id: string;
-  platformNumber: string;
+  cargaNumber: string;
   receptionDate: Date;
+  platformType: 'provider' | 'client';
   materialTypes: string[]; // Cambiado a array para múltiples materiales
   provider: string;
   providerId?: string; // ID del proveedor para sincronización con backend
+  ticketNumber?: string;
   driver: string;
   standardWidth: number;
   pieces: Piece[];
@@ -38,8 +40,8 @@ export interface Platform {
   createdBy?: string;
   createdAt: Date;
   updatedAt: Date;
-  needsSync?: boolean; // Marcar plataformas que necesitan sincronización con backend
-  evidence?: Evidence[]; // ✅ NUEVO: Evidencias adjuntas a la plataforma
+  needsSync?: boolean; // Marcar cargas que necesitan sincronización con backend
+  evidence?: Evidence[]; // ✅ NUEVO: Evidencias adjuntas a la carga
 }
 
 export interface InventorySettings {
@@ -49,7 +51,7 @@ export interface InventorySettings {
 }
 
 export interface ExportData {
-  platform: Platform;
+  carga: Carga;
   exportDate: Date;
   exportedBy?: string;
 }
@@ -84,4 +86,7 @@ export interface ModuleConfiguration {
   };
   lastUpdated: Date;
 }
+
+// Alias para compatibilidad temporal
+export type Platform = Carga;
 

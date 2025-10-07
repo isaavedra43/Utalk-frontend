@@ -296,15 +296,26 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
         
         case 'skills':
           try {
-            return <EmployeeSkillsView employeeId={employee.id} onBack={onBack} />;
+            if (!employee?.id) {
+              return (
+                <div className="p-6">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                    <AlertTriangle className="h-8 w-8 text-yellow-400 mx-auto mb-2" />
+                    <h3 className="text-lg font-medium text-yellow-800 mb-1">Datos incompletos</h3>
+                    <p className="text-yellow-600 text-sm">No se puede cargar el módulo de habilidades sin el ID del empleado.</p>
+                  </div>
+                </div>
+              );
+            }
+            return <EmployeeSkillsView employeeId={employee.id} employeeName={`${employee.personalInfo?.firstName || ''} ${employee.personalInfo?.lastName || ''}`.trim()} onBack={onBack} />;
           } catch (error) {
             console.error('Error en EmployeeSkillsView:', error);
             return (
               <div className="p-6">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-                  <Award className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-                  <h3 className="text-lg font-medium text-blue-800 mb-1">Habilidades</h3>
-                  <p className="text-blue-600 text-sm">No hay habilidades registradas para este empleado.</p>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                  <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-2" />
+                  <h3 className="text-lg font-medium text-red-800 mb-1">Error</h3>
+                  <p className="text-red-600 text-sm">Error al cargar el módulo de habilidades.</p>
                 </div>
               </div>
             );

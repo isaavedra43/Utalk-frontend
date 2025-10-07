@@ -355,6 +355,63 @@ class EquipmentService {
   }
 
   /**
+   * Obtener todas las revisiones de equipos de un empleado
+   */
+  async getEmployeeReviews(
+    employeeId: string,
+    filters: {
+      equipmentId?: string;
+      reviewType?: string;
+      condition?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      page?: number;
+      limit?: number;
+      orderBy?: string;
+      orderDirection?: 'asc' | 'desc';
+    } = {}
+  ): Promise<{
+    reviews: EquipmentReview[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }> {
+    try {
+      this.ensureEmployeeId(employeeId, 'getEmployeeReviews');
+      console.log('🔍 Obteniendo revisiones del empleado:', { employeeId, filters });
+      
+      const params = new URLSearchParams();
+      
+      if (filters.equipmentId) params.append('equipmentId', filters.equipmentId);
+      if (filters.reviewType) params.append('reviewType', filters.reviewType);
+      if (filters.condition) params.append('condition', filters.condition);
+      if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+      if (filters.dateTo) params.append('dateTo', filters.dateTo);
+      if (filters.page) params.append('page', filters.page.toString());
+      if (filters.limit) params.append('limit', filters.limit.toString());
+      if (filters.orderBy) params.append('orderBy', filters.orderBy);
+      if (filters.orderDirection) params.append('orderDirection', filters.orderDirection);
+      
+      const queryString = params.toString();
+      const url = `/api/employees/${employeeId}/equipment/reviews${queryString ? `?${queryString}` : ''}`;
+      
+      const response = await api.get(url);
+      
+      console.log('✅ Revisiones del empleado obtenidas:', {
+        totalReviews: response.data.data?.reviews?.length || 0,
+        pagination: response.data.data?.pagination
+      });
+      
+      return response.data.data || response.data;
+    } catch (error) {
+      this.handleError(error, 'getEmployeeReviews');
+    }
+  }
+
+  /**
    * Obtener resumen de equipo
    */
   async getSummary(employeeId: string): Promise<EquipmentSummary> {

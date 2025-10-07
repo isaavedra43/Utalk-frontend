@@ -59,6 +59,7 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
     reportDamage,
     deleteEquipment,
     createReview,
+    getEmployeeReviews,
     uploadFiles,
     exportEquipment,
     generateReport,
@@ -72,6 +73,70 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
   const [showNewEquipment, setShowNewEquipment] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
+  
+  // Estado para revisiones
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsError, setReviewsError] = useState<string | null>(null);
+  const [reviewsPagination, setReviewsPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0
+  });
+  const [reviewsFilters, setReviewsFilters] = useState({
+    equipmentId: '',
+    reviewType: '',
+    condition: '',
+    dateFrom: '',
+    dateTo: ''
+  });
+
+  // Función para cargar revisiones
+  const loadReviews = async (page = 1) => {
+    try {
+      setReviewsLoading(true);
+      setReviewsError(null);
+      
+      const filters = {
+        ...reviewsFilters,
+        page,
+        limit: reviewsPagination.limit,
+        orderBy: 'createdAt',
+        orderDirection: 'desc' as const
+      };
+      
+      // Limpiar filtros vacíos
+      Object.keys(filters).forEach(key => {
+        if (filters[key as keyof typeof filters] === '' || filters[key as keyof typeof filters] === undefined) {
+          delete filters[key as keyof typeof filters];
+        }
+      });
+      
+      const result = await getEmployeeReviews(filters);
+      
+      setReviews(result.reviews);
+      setReviewsPagination(result.pagination);
+      
+      console.log('✅ Revisiones cargadas:', {
+        totalReviews: result.reviews.length,
+        pagination: result.pagination
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error cargando revisiones';
+      setReviewsError(errorMessage);
+      console.error('❌ Error cargando revisiones:', error);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  // Cargar revisiones cuando cambie el tab activo
+  React.useEffect(() => {
+    if (activeTab === 'reviews') {
+      loadReviews();
+    }
+  }, [activeTab]);
 
   // Handlers
   const handleSubmitEquipment = async (
@@ -139,6 +204,11 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
       showSuccess('Revisión registrada exitosamente');
       setShowReviewModal(false);
       setSelectedEquipment(null);
+      
+      // Recargar revisiones si estamos en el tab de revisiones
+      if (activeTab === 'reviews') {
+        loadReviews();
+      }
     } catch (error) {
       throw error;
     }
@@ -709,16 +779,237 @@ const EmployeeEquipmentView: React.FC<EmployeeEquipmentViewProps> = ({
         {/* Tab: Reviews */}
         {activeTab === 'reviews' && (
           <div className="space-y-6">
+            {/* Filtros */}
             <div className="bg-white rounded-xl shadow-sm border">
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Historial de Revisiones</h3>
-                <div className="text-center py-12">
-                  <CheckCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600">Historial de revisiones</p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Las revisiones se mostrarán aquí
-                  </p>
+                <div className="flex flex-wrap gap-4 items-center">
+                  <div className="flex-1 min-w-64">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Equipo
+                    </label>
+                    <select
+                      value={reviewsFilters.equipmentId}
+                      onChange={(e) => setReviewsFilters(prev => ({ ...prev, equipmentId: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Todos los equipos</option>
+                      {equipment.map((eq) => (
+                        <option key={eq.id} value={eq.id}>
+                          {eq.name} - {eq.brand} {eq.model}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="min-w-48">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tipo de Revisión
+                    </label>
+                    <select
+                      value={reviewsFilters.reviewType}
+                      onChange={(e) => setReviewsFilters(prev => ({ ...prev, reviewType: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Todos los tipos</option>
+                      <option value="daily">Diaria</option>
+                      <option value="third_day">Tercer Día</option>
+                      <option value="weekly">Semanal</option>
+                      <option value="monthly">Mensual</option>
+                      <option value="quarterly">Trimestral</option>
+                      <option value="annual">Anual</option>
+                    </select>
+                  </div>
+                  
+                  <div className="min-w-48">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Condición
+                    </label>
+                    <select
+                      value={reviewsFilters.condition}
+                      onChange={(e) => setReviewsFilters(prev => ({ ...prev, condition: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Todas las condiciones</option>
+                      <option value="excellent">Excelente</option>
+                      <option value="good">Bueno</option>
+                      <option value="fair">Regular</option>
+                      <option value="poor">Malo</option>
+                      <option value="damaged">Dañado</option>
+                    </select>
+                  </div>
+                  
+                  <div className="flex gap-2 items-end">
+                    <button
+                      onClick={() => loadReviews()}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    >
+                      <Search className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setReviewsFilters({
+                        equipmentId: '',
+                        reviewType: '',
+                        condition: '',
+                        dateFrom: '',
+                        dateTo: ''
+                      })}
+                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                    >
+                      Limpiar
+                    </button>
+                  </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Lista de Revisiones */}
+            <div className="bg-white rounded-xl shadow-sm border">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900">Historial de Revisiones</h3>
+                  <span className="text-sm text-gray-500">
+                    {reviewsPagination.total} revisiones encontradas
+                  </span>
+                </div>
+
+                {reviewsLoading ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
+                    <p className="text-gray-600">Cargando revisiones...</p>
+                  </div>
+                ) : reviewsError ? (
+                  <div className="text-center py-12">
+                    <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-3" />
+                    <p className="text-red-600 mb-2">Error al cargar revisiones</p>
+                    <p className="text-sm text-gray-500">{reviewsError}</p>
+                    <button
+                      onClick={() => loadReviews()}
+                      className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      Reintentar
+                    </button>
+                  </div>
+                ) : reviews.length === 0 ? (
+                  <div className="text-center py-12">
+                    <CheckCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-600">No hay revisiones registradas</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Las revisiones aparecerán aquí cuando se realicen
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {reviews.map((review) => (
+                      <div key={review.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h4 className="font-medium text-gray-900">
+                                {review.equipment?.name || 'Equipo no disponible'}
+                              </h4>
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                review.condition === 'excellent' ? 'bg-green-100 text-green-800' :
+                                review.condition === 'good' ? 'bg-blue-100 text-blue-800' :
+                                review.condition === 'fair' ? 'bg-yellow-100 text-yellow-800' :
+                                review.condition === 'poor' ? 'bg-orange-100 text-orange-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {review.condition === 'excellent' ? 'Excelente' :
+                                 review.condition === 'good' ? 'Bueno' :
+                                 review.condition === 'fair' ? 'Regular' :
+                                 review.condition === 'poor' ? 'Malo' :
+                                 'Dañado'}
+                              </span>
+                              <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
+                                {review.reviewType === 'daily' ? 'Diaria' :
+                                 review.reviewType === 'third_day' ? 'Tercer Día' :
+                                 review.reviewType === 'weekly' ? 'Semanal' :
+                                 review.reviewType === 'monthly' ? 'Mensual' :
+                                 review.reviewType === 'quarterly' ? 'Trimestral' :
+                                 'Anual'}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
+                              <div>
+                                <span className="font-medium">Limpieza:</span> 
+                                <span className="ml-1 capitalize">{review.cleanliness}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium">Funcionalidad:</span> 
+                                <span className="ml-1 capitalize">{review.functionality}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium">Puntuación:</span> 
+                                <span className="ml-1 font-bold">{review.score}/100</span>
+                              </div>
+                              <div>
+                                <span className="font-medium">Revisado por:</span> 
+                                <span className="ml-1">{review.reviewedByName}</span>
+                              </div>
+                            </div>
+                            {review.damages && review.damages.length > 0 && (
+                              <div className="mt-2">
+                                <span className="text-sm font-medium text-red-600">
+                                  Daños reportados: {review.damages.length}
+                                </span>
+                              </div>
+                            )}
+                            {(review.maintenanceRequired || review.replacementRequired) && (
+                              <div className="mt-2 flex gap-2">
+                                {review.maintenanceRequired && (
+                                  <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                                    Mantenimiento requerido
+                                  </span>
+                                )}
+                                {review.replacementRequired && (
+                                  <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
+                                    Reemplazo requerido
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-right text-sm text-gray-500">
+                            <div>{new Date(review.reviewDate).toLocaleDateString()}</div>
+                            <div className="text-xs">
+                              {new Date(review.createdAt).toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Paginación */}
+                {reviewsPagination.totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+                    <div className="text-sm text-gray-700">
+                      Mostrando {((reviewsPagination.page - 1) * reviewsPagination.limit) + 1} a{' '}
+                      {Math.min(reviewsPagination.page * reviewsPagination.limit, reviewsPagination.total)} de{' '}
+                      {reviewsPagination.total} revisiones
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => loadReviews(reviewsPagination.page - 1)}
+                        disabled={reviewsPagination.page === 1}
+                        className="px-3 py-1 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        Anterior
+                      </button>
+                      <span className="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg">
+                        {reviewsPagination.page}
+                      </span>
+                      <button
+                        onClick={() => loadReviews(reviewsPagination.page + 1)}
+                        disabled={reviewsPagination.page === reviewsPagination.totalPages}
+                        className="px-3 py-1 text-sm border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                      >
+                        Siguiente
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -31,6 +31,25 @@ interface UseEquipmentReturn {
   deleteEquipment: (equipmentId: string) => Promise<void>;
   createReview: (equipmentId: string, reviewData: CreateReviewRequest) => Promise<EquipmentReview>;
   getReviews: (equipmentId: string) => Promise<EquipmentReview[]>;
+  getEmployeeReviews: (filters?: {
+    equipmentId?: string;
+    reviewType?: string;
+    condition?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    limit?: number;
+    orderBy?: string;
+    orderDirection?: 'asc' | 'desc';
+  }) => Promise<{
+    reviews: EquipmentReview[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }>;
   uploadFiles: (files: File[], type: 'invoice' | 'photo' | 'document') => Promise<string[]>;
   exportEquipment: (format?: 'excel' | 'pdf') => Promise<Blob>;
   generateReport: (reportType: 'inventory' | 'maintenance' | 'depreciation' | 'responsibility') => Promise<Blob>;
@@ -239,6 +258,36 @@ export const useEquipment = (options: UseEquipmentOptions): UseEquipmentReturn =
     }
   }, [employeeId]);
 
+  // Obtener todas las revisiones del empleado
+  const getEmployeeReviews = useCallback(async (filters: {
+    equipmentId?: string;
+    reviewType?: string;
+    condition?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    limit?: number;
+    orderBy?: string;
+    orderDirection?: 'asc' | 'desc';
+  } = {}): Promise<{
+    reviews: EquipmentReview[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }> => {
+    try {
+      setError(null);
+      return await equipmentService.getEmployeeReviews(employeeId, filters);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error obteniendo revisiones del empleado';
+      setError(errorMessage);
+      throw err;
+    }
+  }, [employeeId]);
+
   // Subir archivos
   const uploadFiles = useCallback(async (
     files: File[],
@@ -310,6 +359,7 @@ export const useEquipment = (options: UseEquipmentOptions): UseEquipmentReturn =
     deleteEquipment,
     createReview,
     getReviews,
+    getEmployeeReviews,
     uploadFiles,
     exportEquipment,
     generateReport,

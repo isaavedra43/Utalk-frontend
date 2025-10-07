@@ -65,6 +65,19 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
 }) => {
   const { showSuccess, showError } = useNotifications();
 
+  // Validar que employeeId esté presente
+  if (!employeeId || typeof employeeId !== 'string' || employeeId.trim() === '') {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+          <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-2" />
+          <h3 className="text-lg font-medium text-red-800 mb-1">Error</h3>
+          <p className="text-red-600 text-sm">ID de empleado inválido. No se pueden cargar las habilidades.</p>
+        </div>
+      </div>
+    );
+  }
+
   // Usar hook personalizado con datos reales
   const {
     skills,
@@ -99,7 +112,7 @@ const EmployeeSkillsView: React.FC<EmployeeSkillsViewProps> = ({
     exportSkillsData,
     generateSkillsReport,
     refreshData
-  } = useSkills(employeeId);
+  } = useSkills({ employeeId });
 
   const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'certifications' | 'development' | 'assessment'>('overview');
   const [searchTerm, setSearchTerm] = useState('');

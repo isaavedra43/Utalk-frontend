@@ -1,15 +1,15 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Plus, Package, Search, Filter, Calendar, Archive, Settings, Menu, RefreshCw } from 'lucide-react';
+import { Plus, Package, Search, Filter, Calendar, Archive, Settings, Menu, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { useInventory } from '../hooks/useInventory';
 import { useMobileMenuContext } from '../../../contexts/MobileMenuContext';
 import type { Platform } from '../types';
-import { PlatformCard } from './PlatformCard';
-import { CreatePlatformModal } from './CreatePlatformModal';
-import { PlatformDetailView } from './PlatformDetailView';
+import { CargaCard } from './CargaCard';
+import { CreateCargaModal } from './CreateCargaModal';
+import { CargaDetailView } from './CargaDetailView';
 import { ConfigurationModal } from './ConfigurationModal';
 
 export const InventoryMainView: React.FC = () => {
-  const { platforms, loading, createPlatform, syncPendingPlatforms, syncStatus, refreshData } = useInventory();
+  const { cargas, loading, createPlatform, syncPendingPlatforms, syncStatus, refreshData } = useInventory();
   const { openMenu } = useMobileMenuContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | Platform['status']>('all');
@@ -17,14 +17,15 @@ export const InventoryMainView: React.FC = () => {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [selectedPlatformId, setSelectedPlatformId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showStats, setShowStats] = useState(true); // Mostrar estadísticas por defecto en web
   const lastRefreshTime = useRef<number>(0);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Obtener la plataforma seleccionada actualizada desde el estado global
-  const selectedPlatform = selectedPlatformId ? platforms.find(p => p.id === selectedPlatformId) : null;
+  const selectedPlatform = selectedPlatformId ? cargas.find(p => p.id === selectedPlatformId) : null;
 
-  // Filtrar plataformas
-  const filteredPlatforms = platforms.filter(platform => {
+  // Filtrar cargas
+  const filteredCargas = cargas.filter(platform => {
     const matchesSearch = 
       platform.platformNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (platform.materialTypes && platform.materialTypes.length > 0 && 
@@ -37,16 +38,18 @@ export const InventoryMainView: React.FC = () => {
 
   // Estadísticas
   const stats = {
-    total: platforms?.length || 0,
-    inProgress: platforms?.filter(p => p.status === 'in_progress').length || 0,
-    completed: platforms?.filter(p => p.status === 'completed').length || 0,
-    totalMeters: platforms?.reduce((sum, p) => sum + (p.totalLinearMeters || 0), 0) || 0
+    total: cargas?.length || 0,
+    inProgress: cargas?.filter(p => p.status === 'in_progress').length || 0,
+    completed: cargas?.filter(p => p.status === 'completed').length || 0,
+    totalMeters: cargas?.reduce((sum, p) => sum + (p.totalLinearMeters || 0), 0) || 0
   };
 
   const handleCreatePlatform = async (data: {
+    platformType: 'provider' | 'client';
     materialTypes: string[];
     provider: string;
     providerId?: string;
+    ticketNumber?: string;
     driver: string;
     notes?: string;
   }) => {
@@ -122,10 +125,10 @@ export const InventoryMainView: React.FC = () => {
 
   if (selectedPlatform) {
     return (
-      <PlatformDetailView
-        platform={selectedPlatform}
-        onBack={() => setSelectedPlatformId(null)}
-      />
+        <CargaDetailView
+          platform={selectedPlatform}
+          onBack={() => setSelectedPlatformId(null)}
+        />
     );
   }
 
@@ -192,17 +195,19 @@ export const InventoryMainView: React.FC = () => {
                 className="flex items-center justify-center gap-2 px-4 sm:px-4 py-3 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg text-sm sm:text-base font-medium active:scale-95"
               >
                 <Plus className="h-5 w-5" />
-                Nueva Plataforma
+                Nueva Carga
               </button>
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-3 sm:mb-4">
+          {/* Stats - Solo en web y cuando esté habilitado */}
+          {showStats && (
+            <div className="hidden sm:block">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-3 sm:mb-4">
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 sm:p-4 border border-blue-200">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm text-blue-600 font-medium truncate">Total Plataformas</p>
+                  <p className="text-xs sm:text-sm text-blue-600 font-medium truncate">Total Cargas</p>
                   <p className="text-xl sm:text-2xl font-bold text-blue-900">{stats.total}</p>
                 </div>
                 <Package className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 self-end sm:self-auto" />
@@ -238,6 +243,28 @@ export const InventoryMainView: React.FC = () => {
                 <Archive className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500 self-end sm:self-auto" />
               </div>
             </div>
+              </div>
+            </div>
+          )}
+
+          {/* Botón para mostrar/ocultar estadísticas - Solo en web */}
+          <div className="hidden sm:block mb-3 sm:mb-4">
+            <button
+              onClick={() => setShowStats(!showStats)}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              {showStats ? (
+                <>
+                  <ChevronUp className="h-4 w-4" />
+                  Ocultar estadísticas
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-4 w-4" />
+                  Mostrar estadísticas
+                </>
+              )}
+            </button>
           </div>
 
           {/* Estado de Sincronización */}
@@ -281,7 +308,7 @@ export const InventoryMainView: React.FC = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar plataforma..."
+                placeholder="Buscar carga..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -306,18 +333,18 @@ export const InventoryMainView: React.FC = () => {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
-        {filteredPlatforms.length === 0 ? (
+        {filteredCargas.length === 0 ? (
           <div className="text-center py-8 sm:py-12 px-4">
             <Package className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
               {searchTerm || statusFilter !== 'all' 
-                ? 'No se encontraron plataformas' 
-                : 'No hay plataformas registradas'}
+                ? 'No se encontraron cargas' 
+                : 'No hay cargas registradas'}
             </h3>
             <p className="text-sm sm:text-base text-gray-600 mb-4 max-w-md mx-auto">
               {searchTerm || statusFilter !== 'all'
                 ? 'Intenta con otros filtros de búsqueda'
-                : 'Comienza creando una nueva plataforma para registrar metros lineales'}
+                : 'Comienza creando una nueva carga para registrar metros lineales'}
             </p>
             {!searchTerm && statusFilter === 'all' && (
               <button
@@ -325,14 +352,14 @@ export const InventoryMainView: React.FC = () => {
                 className="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md active:scale-95 text-sm sm:text-base"
               >
                 <Plus className="h-5 w-5" />
-                Crear Primera Plataforma
+                Crear Primera Carga
               </button>
             )}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {filteredPlatforms.map(platform => (
-              <PlatformCard
+            {filteredCargas.map(platform => (
+              <CargaCard
                 key={platform.id}
                 platform={platform}
                 onClick={() => setSelectedPlatformId(platform.id)}
@@ -344,7 +371,7 @@ export const InventoryMainView: React.FC = () => {
 
       {/* Modals */}
       {showCreateModal && (
-        <CreatePlatformModal
+        <CreateCargaModal
           onClose={() => setShowCreateModal(false)}
           onCreate={handleCreatePlatform}
         />

@@ -14,7 +14,10 @@ import {
   FileImage,
   Truck,
   User,
-  Camera
+  Camera,
+  Download,
+  Share2,
+  Mic
 } from 'lucide-react';
 import type { Platform, Evidence } from '../types';
 import { useInventory } from '../hooks/useInventory';
@@ -33,16 +36,18 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   platform: initialPlatform,
   onBack
 }: CargaDetailViewProps) => {
-  const { platforms, updatePlatform, deletePlatform, addPiece, addMultiplePieces, updatePiece, deletePiece, changeStandardWidth, syncPendingPlatforms, syncStatus, updatePlatformEvidence } = useInventory();
+  const { cargas, updatePlatform, deletePlatform, addPiece, addMultiplePieces, updatePiece, deletePiece, changeStandardWidth, syncPendingPlatforms, syncStatus, updatePlatformEvidence } = useInventory();
   
   // Obtener la plataforma actualizada desde el estado global
-  const platform = platforms.find((p: Platform) => p.id === initialPlatform.id) || initialPlatform;
+  const platform = cargas.find((p: Platform) => p.id === initialPlatform.id) || initialPlatform;
   
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [lastAction, setLastAction] = useState<{ type: 'add' | 'delete'; pieceId?: string } | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [showEvidenceSection, setShowEvidenceSection] = useState(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [exporting, setExporting] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -175,7 +180,7 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
         
         // Compartir con archivos
         await navigator.share({
-          title: `Carga ${platform.platformNumber}`,
+          title: `Carga ${platform.cargaNumber}`,
           text: shareText,
           files: files
         });
@@ -195,7 +200,7 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   // Generar texto para compartir
   const generateShareText = (platform: Platform): string => {
     return `📊 Cuantificación de Metros Lineales
-🏭 Carga: ${platform.platformNumber}
+🏭 Carga: ${platform.cargaNumber}
 📦 Materiales: ${platform.materialTypes.join(', ')}
 🚛 Proveedor: ${platform.provider}
 👤 Chofer: ${platform.driver}
@@ -220,13 +225,13 @@ Generado por Sistema de Inventario`;
       // Crear archivo CSV
       const csvContent = generateCSVContent(platform);
       const csvBlob = new Blob([csvContent], { type: 'text/csv' });
-      const csvFile = new File([csvBlob], `Plataforma_${platform.platformNumber}_${getDateString()}.csv`, { type: 'text/csv' });
+      const csvFile = new File([csvBlob], `Plataforma_${platform.cargaNumber}_${getDateString()}.csv`, { type: 'text/csv' });
       files.push(csvFile);
       
       // Crear archivo de imagen
       const imageBlob = await createImageBlob(platform);
       if (imageBlob) {
-        const imageFile = new File([imageBlob], `Carga_${platform.platformNumber}_${getDateString()}.png`, { type: 'image/png' });
+        const imageFile = new File([imageBlob], `Carga_${platform.cargaNumber}_${getDateString()}.png`, { type: 'image/png' });
         files.push(imageFile);
       }
     } catch (error) {
@@ -290,7 +295,7 @@ Generado por Sistema de Inventario`;
         ctx.fillStyle = '#1f2937';
         ctx.font = 'bold 24px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(`Carga ${platform.platformNumber}`, canvas.width / 2, 40);
+        ctx.fillText(`Carga ${platform.cargaNumber}`, canvas.width / 2, 40);
         
         // Información básica
         ctx.font = '16px Arial';
@@ -378,7 +383,7 @@ Generado por Sistema de Inventario`;
     `;
     
     content.innerHTML = `
-      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: bold; color: #1f2937;">Compartir Carga ${platform.platformNumber}</h3>
+      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: bold; color: #1f2937;">Compartir Carga ${platform.cargaNumber}</h3>
       
       <div style="display: flex; flex-direction: column; gap: 12px;">
         <button id="share-whatsapp" style="
@@ -479,7 +484,7 @@ Generado por Sistema de Inventario`;
     });
     
     document.getElementById('share-email')?.addEventListener('click', () => {
-      const subject = `Carga ${platform.platformNumber} - Cuantificación de Metros Lineales`;
+      const subject = `Carga ${platform.cargaNumber} - Cuantificación de Metros Lineales`;
       const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(shareText)}`;
       window.open(mailtoUrl);
       document.body.removeChild(modal);
@@ -734,7 +739,7 @@ Generado por Sistema de Inventario`;
             <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
               <h1 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span>📦</span>
-                Carga {platform.platformNumber}
+                Carga {platform.cargaNumber}
               </h1>
               
               {/* Información organizada verticalmente */}
@@ -791,7 +796,7 @@ Generado por Sistema de Inventario`;
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <h1 className="text-lg sm:text-2xl font-bold text-gray-900 mb-2 truncate">
-                  Carga {platform.platformNumber}
+                  Carga {platform.cargaNumber}
                 </h1>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
                   <span className="flex items-center gap-1 truncate">
@@ -849,40 +854,41 @@ Generado por Sistema de Inventario`;
       {/* Barra de botones OPTIMIZADA - Solo en móvil */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-30 p-2.5">
         <div className="flex justify-center gap-2">
-          {/* Botón Excel */}
+          {/* Botón Descargar */}
           <button
-            onClick={handleExportExcel}
+            onClick={() => setShowDownloadModal(true)}
             disabled={platform.pieces.length === 0 || exporting}
-            className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-green-50 to-green-100 text-green-700 rounded-lg border border-green-200 shadow-sm active:scale-95 transition-transform disabled:opacity-40"
-            title="Excel"
+            className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-700 rounded-lg border border-blue-200 shadow-sm active:scale-95 transition-transform disabled:opacity-40"
+            title="Descargar"
           >
-            <FileSpreadsheet className="h-5 w-5 mb-0.5" />
-            <span className="text-[10px] font-semibold">Excel</span>
+            <Download className="h-5 w-5 mb-0.5" />
+            <span className="text-[10px] font-semibold">Descargar</span>
           </button>
           
-          {/* Botón PDF */}
+          {/* Botón Compartir */}
           <button
-            onClick={handleExportPDF}
-            disabled={platform.pieces.length === 0 || exporting}
-            className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-red-50 to-red-100 text-red-700 rounded-lg border border-red-200 shadow-sm active:scale-95 transition-transform disabled:opacity-40"
-            title="PDF"
+            onClick={() => setShowShareModal(true)}
+            className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-green-50 to-green-100 text-green-700 rounded-lg border border-green-200 shadow-sm active:scale-95 transition-transform"
+            title="Compartir"
           >
-            <Printer className="h-5 w-5 mb-0.5" />
-            <span className="text-[10px] font-semibold">PDF</span>
+            <Share2 className="h-5 w-5 mb-0.5" />
+            <span className="text-[10px] font-semibold">Compartir</span>
           </button>
           
-          {/* Botón Imagen */}
+          {/* Botón Dictar */}
           <button
-            onClick={handleExportImage}
-            disabled={platform.pieces.length === 0 || exporting}
-            className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-purple-50 to-purple-100 text-purple-700 rounded-lg border border-purple-200 shadow-sm active:scale-95 transition-transform disabled:opacity-40"
-            title="Imagen"
+            onClick={() => {
+              // TODO: Implementar funcionalidad de dictado
+              showNotification('success', 'Funcionalidad de dictado próximamente');
+            }}
+            className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-purple-50 to-purple-100 text-purple-700 rounded-lg border border-purple-200 shadow-sm active:scale-95 transition-transform"
+            title="Dictar"
           >
-            <FileImage className="h-5 w-5 mb-0.5" />
-            <span className="text-[10px] font-semibold">Imagen</span>
+            <Mic className="h-5 w-5 mb-0.5" />
+            <span className="text-[10px] font-semibold">Dictar</span>
           </button>
 
-          {/* Botón Evidencias - NUEVO FORMULARIO */}
+          {/* Botón Evidencias */}
           <button
             onClick={() => setShowEvidenceModal(true)}
             className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 shadow-sm active:scale-95 transition-transform"
@@ -1057,7 +1063,7 @@ Generado por Sistema de Inventario`;
               
               <div className="mb-6">
                 <p className="text-sm text-gray-700">
-                  ¿Estás seguro de que quieres eliminar la plataforma <strong>"{platform.platformNumber}"</strong>?
+                  ¿Estás seguro de que quieres eliminar la plataforma <strong>"{platform.cargaNumber}"</strong>?
                 </p>
                 <p className="text-xs text-gray-500 mt-2">
                   Se eliminarán todas las piezas registradas ({platform.pieces.length} piezas) y sus datos.
@@ -1076,6 +1082,154 @@ Generado por Sistema de Inventario`;
                   className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors active:scale-95"
                 >
                   Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Descarga */}
+      {showDownloadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
+                Descargar Carga {platform.cargaNumber}
+              </h3>
+              
+              <div className="space-y-3">
+                {/* Excel */}
+                <button
+                  onClick={() => {
+                    handleExportExcel();
+                    setShowDownloadModal(false);
+                  }}
+                  disabled={platform.pieces.length === 0 || exporting}
+                  className="w-full flex items-center gap-3 p-3 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg border border-green-200 transition-colors disabled:opacity-50"
+                >
+                  <FileSpreadsheet className="h-6 w-6" />
+                  <div className="text-left">
+                    <div className="font-medium">Excel (CSV)</div>
+                    <div className="text-sm text-green-600">Descargar datos en formato Excel</div>
+                  </div>
+                </button>
+                
+                {/* PDF */}
+                <button
+                  onClick={() => {
+                    handleExportPDF();
+                    setShowDownloadModal(false);
+                  }}
+                  disabled={platform.pieces.length === 0 || exporting}
+                  className="w-full flex items-center gap-3 p-3 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg border border-red-200 transition-colors disabled:opacity-50"
+                >
+                  <Printer className="h-6 w-6" />
+                  <div className="text-left">
+                    <div className="font-medium">PDF</div>
+                    <div className="text-sm text-red-600">Generar reporte en PDF</div>
+                  </div>
+                </button>
+                
+                {/* Imagen */}
+                <button
+                  onClick={() => {
+                    handleExportImage();
+                    setShowDownloadModal(false);
+                  }}
+                  disabled={platform.pieces.length === 0 || exporting}
+                  className="w-full flex items-center gap-3 p-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg border border-purple-200 transition-colors disabled:opacity-50"
+                >
+                  <FileImage className="h-6 w-6" />
+                  <div className="text-left">
+                    <div className="font-medium">Imagen</div>
+                    <div className="text-sm text-purple-600">Exportar como imagen</div>
+                  </div>
+                </button>
+              </div>
+              
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowDownloadModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Compartir */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
+                Compartir Carga {platform.cargaNumber}
+              </h3>
+              
+              <div className="space-y-3">
+                {/* WhatsApp */}
+                <button
+                  onClick={() => {
+                    const shareText = generateShareText(platform);
+                    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+                    window.open(whatsappUrl, '_blank');
+                    setShowShareModal(false);
+                  }}
+                  className="w-full flex items-center gap-3 p-3 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg border border-green-200 transition-colors"
+                >
+                  <div className="w-6 h-6 bg-green-500 rounded flex items-center justify-center text-white text-sm font-bold">W</div>
+                  <div className="text-left">
+                    <div className="font-medium">WhatsApp</div>
+                    <div className="text-sm text-green-600">Compartir por WhatsApp</div>
+                  </div>
+                </button>
+                
+                {/* Telegram */}
+                <button
+                  onClick={() => {
+                    const shareText = generateShareText(platform);
+                    const telegramUrl = `https://t.me/share/url?url=&text=${encodeURIComponent(shareText)}`;
+                    window.open(telegramUrl, '_blank');
+                    setShowShareModal(false);
+                  }}
+                  className="w-full flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-200 transition-colors"
+                >
+                  <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center text-white text-sm font-bold">T</div>
+                  <div className="text-left">
+                    <div className="font-medium">Telegram</div>
+                    <div className="text-sm text-blue-600">Compartir por Telegram</div>
+                  </div>
+                </button>
+                
+                {/* Correo */}
+                <button
+                  onClick={() => {
+                    const shareText = generateShareText(platform);
+                    const subject = `Carga ${platform.cargaNumber} - Cuantificación de Metros Lineales`;
+                    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(shareText)}`;
+                    window.open(mailtoUrl);
+                    setShowShareModal(false);
+                  }}
+                  className="w-full flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg border border-gray-200 transition-colors"
+                >
+                  <div className="w-6 h-6 bg-gray-500 rounded flex items-center justify-center text-white text-sm font-bold">@</div>
+                  <div className="text-left">
+                    <div className="font-medium">Correo</div>
+                    <div className="text-sm text-gray-600">Enviar por correo electrónico</div>
+                  </div>
+                </button>
+              </div>
+              
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowShareModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
                 </button>
               </div>
             </div>
@@ -1103,7 +1257,7 @@ Generado por Sistema de Inventario`;
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-semibold text-gray-900">Evidencias</h3>
-                    <p className="text-sm text-gray-500 mt-1">Carga {platform.platformNumber}</p>
+                    <p className="text-sm text-gray-500 mt-1">Carga {platform.cargaNumber}</p>
                   </div>
                 </div>
                 <button

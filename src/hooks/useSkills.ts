@@ -463,8 +463,10 @@ export const useSkills = (options: UseSkillsOptions): UseSkillsReturn => {
 
   // Cargar datos inicialmente
   useEffect(() => {
-    refreshAll();
-  }, [refreshAll]);
+    if (employeeId && typeof employeeId === 'string' && employeeId.trim() !== '') {
+      refreshAll();
+    }
+  }, [employeeId, refreshAll]);
 
   // Auto-refresh
   useEffect(() => {

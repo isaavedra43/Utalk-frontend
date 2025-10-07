@@ -46,6 +46,9 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
     totalMeters: pieces.reduce((sum, p) => sum + p.linearMeters, 0)
   };
 
+  // Verificar si hay materiales registrados
+  const hasMaterials = pieces.some(piece => piece.material && piece.material.trim() !== '');
+
   if (pieces.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6 sm:p-8 text-center border border-gray-200">
@@ -74,15 +77,17 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
 
       {/* Table - SCROLLEABLE HORIZONTAL */}
       <div className="overflow-x-auto -mx-px border border-gray-200 rounded-lg">
-        <table className="w-full min-w-[1000px]">
+        <table className={`w-full ${hasMaterials ? 'min-w-[1000px]' : 'min-w-[600px]'}`}>
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="w-16 px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                 No.
               </th>
-              <th className="w-48 px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                Material
-              </th>
+              {hasMaterials && (
+                <th className="w-48 px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                  Material
+                </th>
+              )}
               <th className="w-24 px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                 Longitud (m)
               </th>
@@ -103,18 +108,22 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
                 <td className="w-16 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-center">
                   {piece.number}
                 </td>
-                <td className="w-48 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-900">
-                  {editingId === piece.id ? (
-                    <input
-                      type="text"
-                      value={editMaterial}
-                      onChange={(e) => setEditMaterial(e.target.value)}
-                      className="w-full px-2 py-1.5 text-sm border border-blue-500 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  ) : (
-                    <span className="text-sm font-medium text-blue-700 truncate block">{piece.material}</span>
-                  )}
-                </td>
+                {hasMaterials && (
+                  <td className="w-48 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-900">
+                    {editingId === piece.id ? (
+                      <input
+                        type="text"
+                        value={editMaterial}
+                        onChange={(e) => setEditMaterial(e.target.value)}
+                        className="w-full px-2 py-1.5 text-sm border border-blue-500 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    ) : (
+                      <span className="text-sm font-medium text-blue-700 truncate block">
+                        {piece.material && piece.material.trim() !== '' ? piece.material : 'Sin especificar'}
+                      </span>
+                    )}
+                  </td>
+                )}
                 <td className="w-24 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-900">
                   {editingId === piece.id ? (
                     <input
@@ -185,9 +194,11 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
               <td className="w-16 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm text-center">
                 TOTAL
               </td>
-              <td className="w-48 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm text-center">
-                —
-              </td>
+              {hasMaterials && (
+                <td className="w-48 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm text-center">
+                  —
+                </td>
+              )}
               <td className="w-24 px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap text-sm font-mono text-center">
                 {formatNumber(totals.totalLength, 2)}
               </td>
