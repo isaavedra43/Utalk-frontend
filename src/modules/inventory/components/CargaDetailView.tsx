@@ -18,7 +18,8 @@ import {
   Download,
   Share2,
   Mic,
-  Pen
+  Pen,
+  FileText
 } from 'lucide-react';
 import type { Platform, Evidence } from '../types';
 import { useInventory } from '../hooks/useInventory';
