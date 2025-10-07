@@ -1,11 +1,19 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, Share, Plus } from 'lucide-react';
 import { usePWA } from '../../hooks/usePWA';
+import { useLocation } from 'react-router-dom';
 
 export const PWAInstallPrompt: React.FC = () => {
   const { isInstallable, isIOS, isAndroid, isInstalled, promptInstall, dismissInstallPrompt } = usePWA();
   const [showInstructions, setShowInstructions] = useState(false);
+  const [dismissedUntilNavigation, setDismissedUntilNavigation] = useState(false);
+  const location = useLocation();
+
+  // Al cambiar de ruta, volver a mostrar el banner si se había cerrado temporalmente
+  useEffect(() => {
+    setDismissedUntilNavigation(false);
+  }, [location.pathname]);
 
   // No mostrar si ya está instalada
   if (isInstalled) {
@@ -87,7 +95,7 @@ export const PWAInstallPrompt: React.FC = () => {
 
       {/* Banner de instalación iOS */}
       <AnimatePresence>
-        {isIOS && !isInstalled && !showInstructions && (
+        {isIOS && !isInstalled && !showInstructions && !dismissedUntilNavigation && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -118,12 +126,22 @@ export const PWAInstallPrompt: React.FC = () => {
                 </p>
               </div>
 
-              <button
-                onClick={handleIOSInstall}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/30"
-              >
-                Ver cómo
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setDismissedUntilNavigation(true)}
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label="Cerrar"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <button
+                  onClick={handleIOSInstall}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 shadow-lg shadow-blue-500/30"
+                >
+                  Ver cómo
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
