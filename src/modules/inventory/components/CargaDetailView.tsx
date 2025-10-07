@@ -51,12 +51,64 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   const [showShareModal, setShowShareModal] = useState(false);
   const [showVoiceDictationModal, setShowVoiceDictationModal] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    provider: platform.provider || '',
+    client: platform.client || '',
+    driver: platform.driver || '',
+    ticketNumber: platform.ticketNumber || '',
+    notes: platform.notes || ''
+  });
   const tableRef = useRef<HTMLDivElement>(null);
 
   // Función para mostrar notificación
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 3000);
+  };
+
+  // Función para iniciar edición
+  const handleStartEdit = () => {
+    setEditData({
+      provider: platform.provider || '',
+      client: platform.client || '',
+      driver: platform.driver || '',
+      ticketNumber: platform.ticketNumber || '',
+      notes: platform.notes || ''
+    });
+    setIsEditing(true);
+  };
+
+  // Función para cancelar edición
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditData({
+      provider: platform.provider || '',
+      client: platform.client || '',
+      driver: platform.driver || '',
+      ticketNumber: platform.ticketNumber || '',
+      notes: platform.notes || ''
+    });
+  };
+
+  // Función para guardar cambios
+  const handleSaveEdit = async () => {
+    try {
+      const updates: Partial<Platform> = {
+        provider: editData.provider,
+        client: editData.client,
+        driver: editData.driver,
+        ticketNumber: editData.ticketNumber,
+        notes: editData.notes
+      };
+
+      await updatePlatform(platform.id, updates);
+      setIsEditing(false);
+      showNotification('success', 'Información de la carga actualizada exitosamente');
+    } catch (error) {
+      showNotification('error', 'Error al actualizar la información de la carga');
+      console.error('Error updating platform:', error);
+    }
   };
 
   // Función para eliminar plataforma
@@ -75,23 +127,34 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   };
 
   // Manejar agregar pieza
-  const handleAddPiece = (length: number, material: string) => {
+  const handleAddPiece = async (length: number, material: string) => {
     const validation = validateLength(length);
     if (!validation.valid) {
       showNotification('error', validation.error!);
       return false;
     }
 
-    addPiece(platform.id, length, material);
-    setLastAction({ type: 'add' });
-    showNotification('success', `Pieza agregada: ${length.toFixed(2)}m`);
-    return true;
+    try {
+      await addPiece(platform.id, length, material);
+      setLastAction({ type: 'add' });
+      showNotification('success', `Pieza agregada: ${length.toFixed(2)}m`);
+      return true;
+    } catch (error) {
+      showNotification('error', 'Error al agregar la pieza');
+      console.error('Error adding piece:', error);
+      return false;
+    }
   };
 
   // Manejar agregar múltiples piezas
-  const handleAddMultiplePieces = (pieces: { length: number; material: string }[]) => {
-    addMultiplePieces(platform.id, pieces);
-    showNotification('success', `${pieces.length} piezas agregadas`);
+  const handleAddMultiplePieces = async (pieces: { length: number; material: string }[]) => {
+    try {
+      await addMultiplePieces(platform.id, pieces);
+      showNotification('success', `${pieces.length} piezas agregadas`);
+    } catch (error) {
+      showNotification('error', 'Error al agregar las piezas');
+      console.error('Error adding multiple pieces:', error);
+    }
   };
 
   // Manejar eliminar pieza
@@ -584,7 +647,40 @@ Generado por Sistema de Inventario`;
                 </button>
               )}
 
-              {/* Botón Eliminar - Tercera posición */}
+              {/* Botón Editar - Tercera posición */}
+              {!isEditing && (
+                <button
+                  onClick={handleStartEdit}
+                  className="flex items-center justify-center gap-1 px-3 py-2.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg shadow-sm active:scale-95 transition-transform"
+                  title="Editar información"
+                >
+                  <Edit className="h-4 w-4" />
+                  <span className="text-xs font-semibold">Editar</span>
+                </button>
+              )}
+
+              {/* Botones Guardar/Cancelar cuando está editando */}
+              {isEditing && (
+                <>
+                  <button
+                    onClick={handleSaveEdit}
+                    className="flex items-center justify-center gap-1 px-3 py-2.5 bg-green-50 text-green-600 border border-green-200 rounded-lg shadow-sm active:scale-95 transition-transform"
+                    title="Guardar cambios"
+                  >
+                    <Check className="h-4 w-4" />
+                    <span className="text-xs font-semibold">Guardar</span>
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="flex items-center justify-center gap-1 px-3 py-2.5 bg-gray-50 text-gray-600 border border-gray-200 rounded-lg shadow-sm active:scale-95 transition-transform"
+                    title="Cancelar edición"
+                  >
+                    <span className="text-xs font-semibold">Cancelar</span>
+                  </button>
+                </>
+              )}
+
+              {/* Botón Eliminar - Cuarta posición */}
               <button
                 onClick={() => setShowDeleteModal(true)}
                 className="flex items-center justify-center gap-1 px-3 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg shadow-sm active:scale-95 transition-transform"
@@ -633,6 +729,39 @@ Generado por Sistema de Inventario`;
                     </div>
                     <span className="text-xs sm:text-sm font-semibold">Completar</span>
                   </button>
+                )}
+
+                {/* Botón Editar */}
+                {!isEditing && (
+                  <button
+                    onClick={handleStartEdit}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border border-blue-200 rounded-lg shadow-sm hover:from-blue-100 hover:to-blue-200 hover:shadow-md transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-lg"
+                    title="Editar información de la carga"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                    <span className="text-xs font-semibold">Editar</span>
+                  </button>
+                )}
+
+                {/* Botones Guardar/Cancelar cuando está editando */}
+                {isEditing && (
+                  <>
+                    <button
+                      onClick={handleSaveEdit}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-green-50 to-green-100 text-green-700 border border-green-200 rounded-lg shadow-sm hover:from-green-100 hover:to-green-200 hover:shadow-md transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-lg"
+                      title="Guardar cambios"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      <span className="text-xs font-semibold">Guardar</span>
+                    </button>
+                    <button
+                      onClick={handleCancelEdit}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 border border-gray-200 rounded-lg shadow-sm hover:from-gray-100 hover:to-gray-200 hover:shadow-md transition-all duration-200 flex-shrink-0 active:scale-95 active:shadow-lg"
+                      title="Cancelar edición"
+                    >
+                      <span className="text-xs font-semibold">Cancelar</span>
+                    </button>
+                  </>
                 )}
 
                 <div className="flex flex-col items-center">
@@ -778,18 +907,38 @@ Generado por Sistema de Inventario`;
                         <Truck className="h-4 w-4 text-orange-500" />
                         Proveedor
                       </span>
-                      <span className="text-gray-900 font-semibold text-right max-w-[180px] truncate">
-                        {platform.provider || 'No especificado'}
-                      </span>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editData.provider}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditData({ ...editData, provider: e.target.value })}
+                          className="text-right max-w-[180px] px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Nombre del proveedor"
+                        />
+                      ) : (
+                        <span className="text-gray-900 font-semibold text-right max-w-[180px] truncate">
+                          {platform.provider || 'No especificado'}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
                       <span className="flex items-center gap-1.5 text-gray-600 font-medium">
                         <User className="h-4 w-4 text-teal-500" />
                         Chofer
                       </span>
-                      <span className="text-gray-900 font-semibold text-right max-w-[180px] truncate">
-                        {platform.driver || 'No especificado'}
-                      </span>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editData.driver}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditData({ ...editData, driver: e.target.value })}
+                          className="text-right max-w-[180px] px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Nombre del chofer"
+                        />
+                      ) : (
+                        <span className="text-gray-900 font-semibold text-right max-w-[180px] truncate">
+                          {platform.driver || 'No especificado'}
+                        </span>
+                      )}
                     </div>
                   </>
                 ) : (
@@ -799,20 +948,72 @@ Generado por Sistema de Inventario`;
                         <Truck className="h-4 w-4 text-orange-500" />
                         Cliente
                       </span>
-                      <span className="text-gray-900 font-semibold text-right max-w-[180px] truncate">
-                        {platform.client || 'No especificado'}
-                      </span>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editData.client}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditData({ ...editData, client: e.target.value })}
+                          className="text-right max-w-[180px] px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Nombre del cliente"
+                        />
+                      ) : (
+                        <span className="text-gray-900 font-semibold text-right max-w-[180px] truncate">
+                          {platform.client || 'No especificado'}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
                       <span className="flex items-center gap-1.5 text-gray-600 font-medium">
                         <User className="h-4 w-4 text-teal-500" />
                         Chofer
                       </span>
-                      <span className="text-gray-900 font-semibold text-right max-w-[180px] truncate">
-                        {platform.driver || 'No especificado'}
-                      </span>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editData.driver}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditData({ ...editData, driver: e.target.value })}
+                          className="text-right max-w-[180px] px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Nombre del chofer"
+                        />
+                      ) : (
+                        <span className="text-gray-900 font-semibold text-right max-w-[180px] truncate">
+                          {platform.driver || 'No especificado'}
+                        </span>
+                      )}
                     </div>
+                    {isEditing && (
+                      <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
+                        <span className="flex items-center gap-1.5 text-gray-600 font-medium">
+                          <span className="text-xs">🎫</span>
+                          Ticket
+                        </span>
+                        <input
+                          type="text"
+                          value={editData.ticketNumber}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditData({ ...editData, ticketNumber: e.target.value })}
+                          className="text-right max-w-[180px] px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Número de ticket"
+                        />
+                      </div>
+                    )}
                   </>
+                )}
+
+                {/* Campo de observaciones cuando está editando */}
+                {isEditing && (
+                  <div className="py-1.5 border-b border-gray-100">
+                    <span className="flex items-center gap-1.5 text-gray-600 font-medium mb-2">
+                      <span className="text-xs">📝</span>
+                      Observaciones
+                    </span>
+                    <textarea
+                      value={editData.notes}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditData({ ...editData, notes: e.target.value })}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      placeholder="Notas adicionales sobre esta carga..."
+                      rows={2}
+                    />
+                  </div>
                 )}
 
                 {/* Información del creador */}
@@ -871,31 +1072,103 @@ Generado por Sistema de Inventario`;
                 </div>
                 
                 {/* Información adicional según el tipo */}
-                <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 mt-2">
-                  {platform.platformType === 'provider' ? (
-                    <>
-                      <span className="flex items-center gap-1 truncate">
-                        <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                        <span className="truncate">Proveedor: {platform.provider || 'No especificado'}</span>
-                      </span>
-                      <span className="flex items-center gap-1 truncate">
-                        <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                        <span className="truncate">Chofer: {platform.driver || 'No especificado'}</span>
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="flex items-center gap-1 truncate">
-                        <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                        <span className="truncate">Cliente: {platform.client || 'No especificado'}</span>
-                      </span>
-                      <span className="flex items-center gap-1 truncate">
-                        <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                        <span className="truncate">Chofer: {platform.driver || 'No especificado'}</span>
-                      </span>
-                    </>
-                  )}
-                </div>
+                {isEditing ? (
+                  <div className="mt-3 space-y-2">
+                    {platform.platformType === 'provider' ? (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <Truck className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                          <input
+                            type="text"
+                            value={editData.provider}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditData({ ...editData, provider: e.target.value })}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Nombre del proveedor"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-teal-500 flex-shrink-0" />
+                          <input
+                            type="text"
+                            value={editData.driver}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditData({ ...editData, driver: e.target.value })}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Nombre del chofer"
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <Truck className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                          <input
+                            type="text"
+                            value={editData.client}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditData({ ...editData, client: e.target.value })}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Nombre del cliente"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-teal-500 flex-shrink-0" />
+                          <input
+                            type="text"
+                            value={editData.driver}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditData({ ...editData, driver: e.target.value })}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Nombre del chofer"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs">🎫</span>
+                          <input
+                            type="text"
+                            value={editData.ticketNumber}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditData({ ...editData, ticketNumber: e.target.value })}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Número de ticket"
+                          />
+                        </div>
+                      </>
+                    )}
+                    <div className="flex items-start gap-2">
+                      <span className="text-xs mt-1">📝</span>
+                      <textarea
+                        value={editData.notes}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditData({ ...editData, notes: e.target.value })}
+                        className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                        placeholder="Observaciones..."
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 mt-2">
+                    {platform.platformType === 'provider' ? (
+                      <>
+                        <span className="flex items-center gap-1 truncate">
+                          <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                          <span className="truncate">Proveedor: {platform.provider || 'No especificado'}</span>
+                        </span>
+                        <span className="flex items-center gap-1 truncate">
+                          <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                          <span className="truncate">Chofer: {platform.driver || 'No especificado'}</span>
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="flex items-center gap-1 truncate">
+                          <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                          <span className="truncate">Cliente: {platform.client || 'No especificado'}</span>
+                        </span>
+                        <span className="flex items-center gap-1 truncate">
+                          <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                          <span className="truncate">Chofer: {platform.driver || 'No especificado'}</span>
+                        </span>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
               <span className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium ${statusColors[platform.status]} flex-shrink-0 text-center`}>

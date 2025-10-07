@@ -213,74 +213,138 @@ export const useInventory = () => {
   }, [cargas, isOnline]);
 
   // Agregar pieza a plataforma
-  const addPiece = useCallback((platformId: string, length: number, material: string) => {
-    setCargas((prev: Platform[]) => {
-      const updated = prev.map((platform: Platform) => {
-        if (platform.id === platformId) {
-          const newPiece: Piece = {
-            id: generateId(),
-            number: getNextPieceNumber(platform.pieces),
-            length,
-            standardWidth: platform.standardWidth,
-            linearMeters: calculateLinearMeters(length, platform.standardWidth),
-            material,
-            createdAt: new Date()
+  const addPiece = useCallback(async (platformId: string, length: number, material: string) => {
+    const platform = cargas.find((p: Platform) => p.id === platformId);
+    if (!platform) return;
+
+    const newPiece: Piece = {
+      id: generateId(),
+      number: getNextPieceNumber(platform.pieces),
+      length,
+      standardWidth: platform.standardWidth,
+      linearMeters: calculateLinearMeters(length, platform.standardWidth),
+      material,
+      createdAt: new Date()
+    };
+
+    const updatedPieces = [...platform.pieces, newPiece];
+    const totals = calculatePlatformTotals(updatedPieces);
+
+    const updatedPlatform = {
+      ...platform,
+      pieces: updatedPieces,
+      ...totals,
+      updatedAt: new Date()
+    };
+
+    // Actualizar localmente primero
+    StorageService.savePlatform(updatedPlatform);
+    setCargas((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? updatedPlatform : p));
+
+    // ✅ SINCRONIZAR INMEDIATAMENTE CON BACKEND
+    if (isOnline) {
+      try {
+        // Verificar si la plataforma necesita sincronización
+        if (platform.needsSync || platform.id.startsWith('SYNC-') || platform.id.startsWith('OFFLINE-')) {
+          // Crear en backend primero
+          const createdPlatform = await PlatformApiService.createPlatform(platform);
+          
+          // Actualizar con el nuevo ID del backend
+          await PlatformApiService.updatePlatform(createdPlatform.id, createdPlatform.providerId!, updatedPlatform);
+          
+          // Actualizar localmente con el ID del backend
+          const syncedPlatform = { 
+            ...updatedPlatform, 
+            id: createdPlatform.id, 
+            platformNumber: createdPlatform.platformNumber,
+            providerId: createdPlatform.providerId,
+            needsSync: false 
           };
-
-          const updatedPieces = [...platform.pieces, newPiece];
-          const totals = calculatePlatformTotals(updatedPieces);
-
-          const updatedPlatform = {
-            ...platform,
-            pieces: updatedPieces,
-            ...totals,
-            updatedAt: new Date()
-          };
-
-          StorageService.savePlatform(updatedPlatform);
-          return updatedPlatform;
+          StorageService.savePlatform(syncedPlatform);
+          setCargas((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? syncedPlatform : p));
+        } else {
+          // Plataforma ya existe en backend - actualizar directamente
+          if (platform.providerId) {
+            await PlatformApiService.updatePlatform(platform.id, platform.providerId, updatedPlatform);
+          }
         }
-        return platform;
-      });
-      return updated;
-    });
-  }, []);
+      } catch (error) {
+        console.error('Error sincronizando pieza con backend:', error);
+        // Marcar que necesita sincronización
+        const platformWithSyncFlag = { ...updatedPlatform, needsSync: true };
+        StorageService.savePlatform(platformWithSyncFlag);
+        setCargas((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? platformWithSyncFlag : p));
+      }
+    }
+  }, [cargas, isOnline]);
 
   // Agregar múltiples piezas
-  const addMultiplePieces = useCallback((platformId: string, pieces: { length: number; material: string }[]) => {
-    setCargas((prev: Platform[]) => {
-      const updated = prev.map((platform: Platform) => {
-        if (platform.id === platformId) {
-          let nextNumber = getNextPieceNumber(platform.pieces);
+  const addMultiplePieces = useCallback(async (platformId: string, pieces: { length: number; material: string }[]) => {
+    const platform = cargas.find((p: Platform) => p.id === platformId);
+    if (!platform) return;
+
+    let nextNumber = getNextPieceNumber(platform.pieces);
+    
+    const newPieces: Piece[] = pieces.map(piece => ({
+      id: generateId(),
+      number: nextNumber++,
+      length: piece.length,
+      standardWidth: platform.standardWidth,
+      linearMeters: calculateLinearMeters(piece.length, platform.standardWidth),
+      material: piece.material,
+      createdAt: new Date()
+    }));
+
+    const updatedPieces = [...platform.pieces, ...newPieces];
+    const totals = calculatePlatformTotals(updatedPieces);
+
+    const updatedPlatform = {
+      ...platform,
+      pieces: updatedPieces,
+      ...totals,
+      updatedAt: new Date()
+    };
+
+    // Actualizar localmente primero
+    StorageService.savePlatform(updatedPlatform);
+    setCargas((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? updatedPlatform : p));
+
+    // ✅ SINCRONIZAR INMEDIATAMENTE CON BACKEND
+    if (isOnline) {
+      try {
+        // Verificar si la plataforma necesita sincronización
+        if (platform.needsSync || platform.id.startsWith('SYNC-') || platform.id.startsWith('OFFLINE-')) {
+          // Crear en backend primero
+          const createdPlatform = await PlatformApiService.createPlatform(platform);
           
-          const newPieces: Piece[] = pieces.map(piece => ({
-            id: generateId(),
-            number: nextNumber++,
-            length: piece.length,
-            standardWidth: platform.standardWidth,
-            linearMeters: calculateLinearMeters(piece.length, platform.standardWidth),
-            material: piece.material,
-            createdAt: new Date()
-          }));
-
-          const updatedPieces = [...platform.pieces, ...newPieces];
-          const totals = calculatePlatformTotals(updatedPieces);
-
-          const updatedPlatform = {
-            ...platform,
-            pieces: updatedPieces,
-            ...totals,
-            updatedAt: new Date()
+          // Actualizar con el nuevo ID del backend
+          await PlatformApiService.updatePlatform(createdPlatform.id, createdPlatform.providerId!, updatedPlatform);
+          
+          // Actualizar localmente con el ID del backend
+          const syncedPlatform = { 
+            ...updatedPlatform, 
+            id: createdPlatform.id, 
+            platformNumber: createdPlatform.platformNumber,
+            providerId: createdPlatform.providerId,
+            needsSync: false 
           };
-
-          StorageService.savePlatform(updatedPlatform);
-          return updatedPlatform;
+          StorageService.savePlatform(syncedPlatform);
+          setCargas((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? syncedPlatform : p));
+        } else {
+          // Plataforma ya existe en backend - actualizar directamente
+          if (platform.providerId) {
+            await PlatformApiService.updatePlatform(platform.id, platform.providerId, updatedPlatform);
+          }
         }
-        return platform;
-      });
-      return updated;
-    });
-  }, []);
+      } catch (error) {
+        console.error('Error sincronizando múltiples piezas con backend:', error);
+        // Marcar que necesita sincronización
+        const platformWithSyncFlag = { ...updatedPlatform, needsSync: true };
+        StorageService.savePlatform(platformWithSyncFlag);
+        setCargas((prev: Platform[]) => prev.map((p: Platform) => p.id === platformId ? platformWithSyncFlag : p));
+      }
+    }
+  }, [cargas, isOnline]);
 
   // Actualizar pieza
   const updatePiece = useCallback((platformId: string, pieceId: string, updates: { length?: number; material?: string }) => {

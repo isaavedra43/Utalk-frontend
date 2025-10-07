@@ -20,7 +20,7 @@ export const CreateCargaModal: React.FC<CreateCargaModalProps> = ({ onClose, onC
   const { providers, activeMaterials } = useConfiguration();
   
   const [formData, setFormData] = useState({
-    platformType: 'provider' as 'provider' | 'client',
+    platformType: 'client' as 'provider' | 'client',
     materialTypes: [] as string[],
     provider: '',
     providerId: '',
