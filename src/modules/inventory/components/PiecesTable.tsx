@@ -46,8 +46,12 @@ export const PiecesTable: React.FC<PiecesTableProps> = ({
     totalMeters: pieces.reduce((sum, p) => sum + p.linearMeters, 0)
   };
 
-  // Verificar si hay materiales registrados
-  const hasMaterials = pieces.some(piece => piece.material && piece.material.trim() !== '');
+  // Verificar si hay materiales registrados (excluyendo "Sin especificar")
+  const hasMaterials = pieces.some(piece => 
+    piece.material && 
+    piece.material.trim() !== '' && 
+    piece.material.trim() !== 'Sin especificar'
+  );
 
   if (pieces.length === 0) {
     return (

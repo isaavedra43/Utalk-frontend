@@ -29,6 +29,8 @@ export interface Carga {
   materialTypes: string[]; // Cambiado a array para múltiples materiales
   provider: string;
   providerId?: string; // ID del proveedor para sincronización con backend
+  client?: string; // Nombre del cliente (cuando platformType es 'client')
+  clientId?: string; // ID del cliente para sincronización con backend
   ticketNumber?: string;
   driver: string;
   standardWidth: number;
@@ -37,7 +39,8 @@ export interface Carga {
   totalLength: number;
   status: 'in_progress' | 'completed' | 'exported';
   notes?: string;
-  createdBy?: string;
+  createdBy?: string; // Usuario que creó la carga
+  createdByName?: string; // Nombre del agente que creó la carga
   createdAt: Date;
   updatedAt: Date;
   needsSync?: boolean; // Marcar cargas que necesitan sincronización con backend

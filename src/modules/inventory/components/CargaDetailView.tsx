@@ -770,25 +770,63 @@ Generado por Sistema de Inventario`;
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
-                  <span className="flex items-center gap-1.5 text-gray-600 font-medium">
-                    <Truck className="h-4 w-4 text-orange-500" />
-                    Proveedor
-                  </span>
-                  <span className="text-gray-900 font-semibold text-right max-w-[180px] truncate">
-                    {platform.provider || 'No especificado'}
-                  </span>
-                </div>
+                {/* Información específica según el tipo */}
+                {platform.platformType === 'provider' ? (
+                  <>
+                    <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
+                      <span className="flex items-center gap-1.5 text-gray-600 font-medium">
+                        <Truck className="h-4 w-4 text-orange-500" />
+                        Proveedor
+                      </span>
+                      <span className="text-gray-900 font-semibold text-right max-w-[180px] truncate">
+                        {platform.provider || 'No especificado'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
+                      <span className="flex items-center gap-1.5 text-gray-600 font-medium">
+                        <User className="h-4 w-4 text-teal-500" />
+                        Chofer
+                      </span>
+                      <span className="text-gray-900 font-semibold text-right max-w-[180px] truncate">
+                        {platform.driver || 'No especificado'}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
+                      <span className="flex items-center gap-1.5 text-gray-600 font-medium">
+                        <Truck className="h-4 w-4 text-orange-500" />
+                        Cliente
+                      </span>
+                      <span className="text-gray-900 font-semibold text-right max-w-[180px] truncate">
+                        {platform.client || 'No especificado'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
+                      <span className="flex items-center gap-1.5 text-gray-600 font-medium">
+                        <User className="h-4 w-4 text-teal-500" />
+                        Chofer
+                      </span>
+                      <span className="text-gray-900 font-semibold text-right max-w-[180px] truncate">
+                        {platform.driver || 'No especificado'}
+                      </span>
+                    </div>
+                  </>
+                )}
 
-                <div className="flex items-center justify-between py-1.5">
-                  <span className="flex items-center gap-1.5 text-gray-600 font-medium">
-                    <User className="h-4 w-4 text-teal-500" />
-                    Chofer
-                  </span>
-                  <span className="text-gray-900 font-semibold text-right max-w-[180px] truncate">
-                    {platform.driver || 'No especificado'}
-                  </span>
-                </div>
+                {/* Información del creador */}
+                {platform.createdByName && (
+                  <div className="flex items-center justify-between py-1.5">
+                    <span className="flex items-center gap-1.5 text-gray-600 font-medium">
+                      <User className="h-4 w-4 text-purple-500" />
+                      Creada por
+                    </span>
+                    <span className="text-gray-900 font-semibold text-right max-w-[180px] truncate">
+                      {platform.createdByName}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -824,24 +862,39 @@ Generado por Sistema de Inventario`;
                     <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                     <span>{platform.pieces.length} piezas</span>
                   </span>
-                  {platform.createdBy && (
+                  {platform.createdByName && (
                     <span className="flex items-center gap-1 text-blue-600">
                       <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                      <span className="truncate">Creada por: {platform.createdBy}</span>
+                      <span className="truncate">Creada por: {platform.createdByName}</span>
                     </span>
                   )}
                 </div>
                 
-                {/* Información adicional del proveedor y chofer */}
+                {/* Información adicional según el tipo */}
                 <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 mt-2">
-                  <span className="flex items-center gap-1 truncate">
-                    <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span className="truncate">Proveedor: {platform.provider || 'No especificado'}</span>
-                  </span>
-                  <span className="flex items-center gap-1 truncate">
-                    <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span className="truncate">Chofer: {platform.driver || 'No especificado'}</span>
-                  </span>
+                  {platform.platformType === 'provider' ? (
+                    <>
+                      <span className="flex items-center gap-1 truncate">
+                        <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <span className="truncate">Proveedor: {platform.provider || 'No especificado'}</span>
+                      </span>
+                      <span className="flex items-center gap-1 truncate">
+                        <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <span className="truncate">Chofer: {platform.driver || 'No especificado'}</span>
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="flex items-center gap-1 truncate">
+                        <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <span className="truncate">Cliente: {platform.client || 'No especificado'}</span>
+                      </span>
+                      <span className="flex items-center gap-1 truncate">
+                        <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <span className="truncate">Chofer: {platform.driver || 'No especificado'}</span>
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
 

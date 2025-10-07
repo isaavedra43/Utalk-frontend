@@ -69,6 +69,8 @@ export const useInventory = () => {
     materialTypes: string[];
     provider: string;
     providerId?: string;
+    client?: string;
+    clientId?: string;
     ticketNumber?: string;
     driver: string;
     receptionDate?: Date;
@@ -84,6 +86,8 @@ export const useInventory = () => {
       materialTypes: data.materialTypes,
       provider: data.provider,
       providerId: data.providerId || generateId(), // Generar providerId si no se proporciona
+      client: data.client,
+      clientId: data.clientId || generateId(), // Generar clientId si no se proporciona
       ticketNumber: data.ticketNumber,
       driver: data.driver,
       standardWidth: defaultWidth,
@@ -93,6 +97,7 @@ export const useInventory = () => {
       status: 'in_progress' as const,
       notes: data.notes,
       createdBy: 'Usuario Actual', // TODO: Obtener del contexto de usuario
+      createdByName: 'Agente Actual', // TODO: Obtener del contexto de usuario
       platformNumber: `SYNC-${Date.now()}` // ✅ Generar platformNumber para el backend
     };
 

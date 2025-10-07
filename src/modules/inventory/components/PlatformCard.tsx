@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Package, Layers, ChevronRight } from 'lucide-react';
+import { Calendar, Package, Layers, ChevronRight, User, Building2, Truck } from 'lucide-react';
 import type { Platform } from '../types';
 import { formatNumber } from '../utils/calculations';
 
@@ -84,12 +84,39 @@ export const CargaCard: React.FC<CargaCardProps> = ({ platform, onClick }) => {
           <p className="text-xs text-gray-500 truncate">
             Ancho estándar: <span className="font-medium text-gray-700">{formatNumber(platform.standardWidth, 2)} m</span>
           </p>
-          <p className="text-xs text-gray-500 truncate">
-            Proveedor: <span className="font-medium text-gray-700">{platform.provider || 'No especificado'}</span>
-          </p>
-          <p className="text-xs text-gray-500 truncate">
-            Chofer: <span className="font-medium text-gray-700">{platform.driver || 'No especificado'}</span>
-          </p>
+          
+          {/* Información específica según el tipo */}
+          {platform.platformType === 'provider' ? (
+            <>
+              <div className="flex items-center gap-1 text-xs text-gray-500 truncate">
+                <Building2 className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                <span>Proveedor: <span className="font-medium text-gray-700">{platform.provider || 'No especificado'}</span></span>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-gray-500 truncate">
+                <Truck className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                <span>Chofer: <span className="font-medium text-gray-700">{platform.driver || 'No especificado'}</span></span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-1 text-xs text-gray-500 truncate">
+                <Building2 className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                <span>Cliente: <span className="font-medium text-gray-700">{platform.client || 'No especificado'}</span></span>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-gray-500 truncate">
+                <Truck className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                <span>Chofer: <span className="font-medium text-gray-700">{platform.driver || 'No especificado'}</span></span>
+              </div>
+            </>
+          )}
+          
+          {/* Información del creador */}
+          {platform.createdByName && (
+            <div className="flex items-center gap-1 text-xs text-gray-500 truncate">
+              <User className="h-3 w-3 text-gray-400 flex-shrink-0" />
+              <span>Creada por: <span className="font-medium text-gray-700">{platform.createdByName}</span></span>
+            </div>
+          )}
         </div>
       </div>
 

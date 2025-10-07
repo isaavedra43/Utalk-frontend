@@ -10,6 +10,8 @@ interface CreateCargaModalProps {
     materialTypes: string[];
     provider: string;
     providerId?: string;
+    client?: string;
+    clientId?: string;
     ticketNumber?: string;
     driver: string;
     notes?: string;
@@ -24,6 +26,8 @@ export const CreateCargaModal: React.FC<CreateCargaModalProps> = ({ onClose, onC
     materialTypes: [] as string[],
     provider: '',
     providerId: '',
+    client: '',
+    clientId: '',
     ticketNumber: '',
     driver: '',
     notes: ''
@@ -98,6 +102,11 @@ export const CreateCargaModal: React.FC<CreateCargaModalProps> = ({ onClose, onC
     // Validar proveedor solo si es tipo proveedor
     if (formData.platformType === 'provider' && !formData.provider.trim()) {
       newErrors.provider = 'El proveedor es requerido';
+    }
+
+    // Validar cliente solo si es tipo cliente
+    if (formData.platformType === 'client' && !formData.client.trim()) {
+      newErrors.client = 'El nombre del cliente es requerido';
     }
 
     // Validar número de ticket solo si es tipo cliente
@@ -190,7 +199,7 @@ export const CreateCargaModal: React.FC<CreateCargaModalProps> = ({ onClose, onC
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           {/* Platform Number - Auto-generated */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
               <Package className="h-4 w-4 text-gray-500" />
               Número de Carga
             </label>
@@ -250,7 +259,7 @@ export const CreateCargaModal: React.FC<CreateCargaModalProps> = ({ onClose, onC
           {/* Provider - Solo para tipo proveedor */}
           {formData.platformType === 'provider' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
               <Truck className="h-4 w-4 text-gray-500" />
               Proveedor *
             </label>
@@ -296,10 +305,32 @@ export const CreateCargaModal: React.FC<CreateCargaModalProps> = ({ onClose, onC
           </div>
           )}
 
+          {/* Cliente - Solo para tipo cliente */}
+          {formData.platformType === 'client' && (
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-gray-500" />
+                Nombre del Cliente *
+              </label>
+              <input
+                type="text"
+                value={formData.client}
+                onChange={(e) => setFormData({ ...formData, client: e.target.value })}
+                placeholder="Ej: Constructora ABC, Inmobiliaria XYZ"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  errors.client ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {errors.client && (
+                <p className="text-xs text-red-600 mt-1">{errors.client}</p>
+              )}
+            </div>
+          )}
+
           {/* Ticket Number - Solo para tipo cliente */}
           {formData.platformType === 'client' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
                 <Ticket className="h-4 w-4 text-gray-500" />
                 Número de Ticket *
               </label>
@@ -321,7 +352,7 @@ export const CreateCargaModal: React.FC<CreateCargaModalProps> = ({ onClose, onC
           {/* Material Types - Multi Select - Solo para tipo proveedor */}
           {formData.platformType === 'provider' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
               <Layers className="h-4 w-4 text-gray-500" />
               Tipos de Material *
             </label>
@@ -435,7 +466,7 @@ export const CreateCargaModal: React.FC<CreateCargaModalProps> = ({ onClose, onC
 
           {/* Driver */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
               <User className="h-4 w-4 text-gray-500" />
               Nombre del Chofer *
             </label>
@@ -455,7 +486,7 @@ export const CreateCargaModal: React.FC<CreateCargaModalProps> = ({ onClose, onC
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
               <FileText className="h-4 w-4 text-gray-500" />
               Observaciones (Opcional)
             </label>

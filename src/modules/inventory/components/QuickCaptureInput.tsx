@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Zap, Settings, Layers, Search, Check } from 'lucide-react';
+import { Plus, Zap, Settings, Layers, Search, Check, Eye, EyeOff } from 'lucide-react';
 import { validateLength, validateStandardWidth, calculateLinearMeters } from '../utils/calculations';
 import { useConfiguration } from '../hooks/useConfiguration';
 import type { MaterialOption } from '../types';
@@ -30,6 +30,7 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
   const [tempWidth, setTempWidth] = useState(standardWidth.toString());
   const [showBatchMode, setShowBatchMode] = useState(false);
   const [batchData, setBatchData] = useState({ count: '', length: '', material: availableMaterials[0] || '' });
+  const [showMaterialInput, setShowMaterialInput] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Filtrar materiales disponibles - MOSTRAR TODOS LOS MATERIALES (no solo los de la plataforma)
@@ -163,12 +164,21 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
           <Zap className="h-4 w-4 sm:h-5 sm:w-5" />
           <span className="truncate">Captura Rápida</span>
         </h3>
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-1.5 transition-colors active:scale-95 flex-shrink-0"
-        >
-          <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setShowMaterialInput(!showMaterialInput)}
+            className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-1.5 transition-colors active:scale-95 flex-shrink-0"
+            title={showMaterialInput ? "Ocultar material" : "Mostrar material"}
+          >
+            {showMaterialInput ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
+          </button>
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-1.5 transition-colors active:scale-95 flex-shrink-0"
+          >
+            <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
+          </button>
+        </div>
       </div>
 
       {/* Settings Panel */}
@@ -243,57 +253,59 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
               )}
             </div>
 
-            {/* Material Selector */}
-            <div className="mb-3 sm:mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Material de la Pieza <span className="text-gray-500">(Opcional)</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={materialSearch}
-                  onChange={(e) => {
-                    setMaterialSearch(e.target.value);
-                    setShowMaterialDropdown(true);
-                  }}
-                  onFocus={() => setShowMaterialDropdown(true)}
-                  placeholder="Escribir material o buscar en la lista..."
-                  className="w-full px-4 py-4 sm:py-3 text-xl sm:text-lg border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                
-                {/* Dropdown de materiales */}
-                {showMaterialDropdown && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                    {filteredMaterials.map((material) => (
-                      <button
-                        key={material.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedMaterial(material.name);
-                          setMaterialSearch(material.name);
-                          setShowMaterialDropdown(false);
-                        }}
-                        className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
-                      >
-                        <div>
-                          <div className="font-medium text-sm">{material.name}</div>
-                          <div className="text-xs text-gray-500">{material.category}</div>
+            {/* Material Selector - Solo se muestra si showMaterialInput es true */}
+            {showMaterialInput && (
+              <div className="mb-3 sm:mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Material de la Pieza <span className="text-gray-500">(Opcional)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={materialSearch}
+                    onChange={(e) => {
+                      setMaterialSearch(e.target.value);
+                      setShowMaterialDropdown(true);
+                    }}
+                    onFocus={() => setShowMaterialDropdown(true)}
+                    placeholder="Escribir material o buscar en la lista..."
+                    className="w-full px-4 py-4 sm:py-3 text-xl sm:text-lg border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  
+                  {/* Dropdown de materiales */}
+                  {showMaterialDropdown && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {filteredMaterials.map((material) => (
+                        <button
+                          key={material.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedMaterial(material.name);
+                            setMaterialSearch(material.name);
+                            setShowMaterialDropdown(false);
+                          }}
+                          className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center justify-between"
+                        >
+                          <div>
+                            <div className="font-medium text-sm">{material.name}</div>
+                            <div className="text-xs text-gray-500">{material.category}</div>
+                          </div>
+                          {selectedMaterial === material.name && (
+                            <Check className="h-4 w-4 text-blue-600" />
+                          )}
+                        </button>
+                      ))}
+                      {filteredMaterials.length === 0 && (
+                        <div className="px-3 py-2 text-sm text-gray-500">
+                          {materialSearch ? 'No se encontraron materiales con ese nombre' : 'Escribe el nombre del material o selecciona uno de la lista'}
                         </div>
-                        {selectedMaterial === material.name && (
-                          <Check className="h-4 w-4 text-blue-600" />
-                        )}
-                      </button>
-                    ))}
-                    {filteredMaterials.length === 0 && (
-                      <div className="px-3 py-2 text-sm text-gray-500">
-                        {materialSearch ? 'No se encontraron materiales con ese nombre' : 'Escribe el nombre del material o selecciona uno de la lista'}
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Preview */}
             {length && !error && (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, MicOff, X, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Mic, MicOff, X, CheckCircle, AlertCircle, Loader2, Edit2, Trash2, Save } from 'lucide-react';
 import { callOpenAI } from '../../../config/ai';
 import { useNotifications } from '../../../contexts/NotificationContext';
 import { SpeechNotSupported } from './SpeechNotSupported';
@@ -15,9 +15,11 @@ interface VoiceDictationModalProps {
 }
 
 interface DictatedPiece {
+  id: string;
   length: number;
   material: string;
   confidence: number;
+  isEditing?: boolean;
 }
 
 export const VoiceDictationModal: React.FC<VoiceDictationModalProps> = ({
@@ -35,6 +37,7 @@ export const VoiceDictationModal: React.FC<VoiceDictationModalProps> = ({
   const [processedPieces, setProcessedPieces] = useState<DictatedPiece[]>([]);
   const [selectedMaterial, setSelectedMaterial] = useState('');
   const [error, setError] = useState('');
+  const [editingPiece, setEditingPiece] = useState<DictatedPiece | null>(null);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const transcriptRef = useRef('');
@@ -115,10 +118,12 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
       const pieces = JSON.parse(cleanedResponse);
 
       if (Array.isArray(pieces)) {
-        setProcessedPieces(pieces.map((piece: any) => ({
+        const newPieces = pieces.map((piece: any, index: number) => ({
+          id: `piece-${Date.now()}-${index}`,
           ...piece,
-          material: selectedMaterial || availableMaterials[0] || ''
-        })));
+          material: selectedMaterial || 'Sin especificar'
+        }));
+        addNewPieces(newPieces);
       }
 
     } catch (error) {
@@ -145,9 +150,9 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
       if (isListening) {
         recognitionRef.current.stop();
       } else {
+        // Limpiar solo el transcript, mantener las piezas procesadas
         transcriptRef.current = '';
         setTranscript('');
-        setProcessedPieces([]);
         setError('');
         recognitionRef.current.start();
       }
@@ -155,6 +160,11 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
       console.error('Error con reconocimiento de voz:', error);
       setError('Error iniciando reconocimiento de voz');
     }
+  };
+
+  // Función para agregar nuevas piezas sin limpiar las existentes
+  const addNewPieces = (newPieces: DictatedPiece[]) => {
+    setProcessedPieces(prev => [...prev, ...newPieces]);
   };
 
   // Procesar transcripción cuando el usuario deja de hablar
@@ -168,15 +178,48 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
     }
   }, [isListening, transcript]);
 
+  // Funciones para editar piezas individuales
+  const startEditingPiece = (piece: DictatedPiece) => {
+    setEditingPiece({ ...piece });
+  };
+
+  const saveEditedPiece = () => {
+    if (!editingPiece) return;
+
+    setProcessedPieces(prev => 
+      prev.map(piece => 
+        piece.id === editingPiece.id ? editingPiece : piece
+      )
+    );
+    setEditingPiece(null);
+  };
+
+  const cancelEditingPiece = () => {
+    setEditingPiece(null);
+  };
+
+  const deletePiece = (pieceId: string) => {
+    setProcessedPieces(prev => prev.filter(piece => piece.id !== pieceId));
+  };
+
+  const updateEditingPiece = (field: 'length' | 'material', value: string | number) => {
+    if (!editingPiece) return;
+    
+    setEditingPiece(prev => prev ? {
+      ...prev,
+      [field]: field === 'length' ? parseFloat(value.toString()) || 0 : value
+    } : null);
+  };
+
   // Guardar piezas procesadas
   const handleSavePieces = () => {
     if (processedPieces.length === 0) return;
 
     const piecesToAdd = processedPieces
-      .filter(piece => piece.material)
+      .filter(piece => piece.length > 0) // Solo validar que tenga longitud válida
       .map(piece => ({
         length: piece.length,
-        material: piece.material
+        material: piece.material || 'Sin especificar'
       }));
 
     if (piecesToAdd.length > 0) {
@@ -193,6 +236,7 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
       setProcessedPieces([]);
       setError('');
       setIsListening(false);
+      setEditingPiece(null);
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
@@ -245,20 +289,23 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
             {/* Material Selection */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Material de las piezas
+                Material por defecto (opcional)
               </label>
               <select
                 value={selectedMaterial}
                 onChange={(e) => setSelectedMaterial(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="">Seleccionar material...</option>
+                <option value="">Sin material por defecto</option>
                 {availableMaterials.map((material) => (
                   <option key={material} value={material}>
                     {material}
                   </option>
                 ))}
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Puedes editar el material de cada pieza individualmente después del dictado
+              </p>
             </div>
 
             {/* Voice Input */}
@@ -318,27 +365,99 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
             {/* Processed Pieces */}
             {processedPieces.length > 0 && (
               <div className="mb-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-2">
-                  Piezas procesadas ({processedPieces.length})
-                </h3>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {processedPieces.map((piece, index) => (
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-gray-700">
+                    Piezas procesadas ({processedPieces.length})
+                  </h3>
+                  <button
+                    onClick={() => setProcessedPieces([])}
+                    className="text-xs text-red-600 hover:text-red-800 font-medium"
+                  >
+                    Limpiar todo
+                  </button>
+                </div>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {processedPieces.map((piece) => (
                     <div
-                      key={index}
-                      className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg"
+                      key={piece.id}
+                      className="p-3 bg-green-50 border border-green-200 rounded-lg"
                     >
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        <span className="text-sm text-gray-800">
-                          {piece.length.toFixed(2)}m
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          ({Math.round(piece.confidence * 100)}% confianza)
-                        </span>
-                      </div>
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                        {piece.material}
-                      </span>
+                      {editingPiece?.id === piece.id ? (
+                        // Modo edición
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              value={editingPiece.length}
+                              onChange={(e) => updateEditingPiece('length', e.target.value)}
+                              step="0.01"
+                              min="0.01"
+                              className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                              placeholder="Longitud"
+                            />
+                            <span className="text-sm text-gray-600">m</span>
+                          </div>
+                          <select
+                            value={editingPiece.material}
+                            onChange={(e) => updateEditingPiece('material', e.target.value)}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                          >
+                            <option value="Sin especificar">Sin especificar</option>
+                            {availableMaterials.map((material) => (
+                              <option key={material} value={material}>
+                                {material}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={saveEditedPiece}
+                              className="flex items-center gap-1 px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                            >
+                              <Save className="w-3 h-3" />
+                              Guardar
+                            </button>
+                            <button
+                              onClick={cancelEditingPiece}
+                              className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        // Modo visualización
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                            <span className="text-sm text-gray-800 font-medium">
+                              {piece.length.toFixed(2)}m
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              ({Math.round(piece.confidence * 100)}% confianza)
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                              {piece.material}
+                            </span>
+                            <button
+                              onClick={() => startEditingPiece(piece)}
+                              className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                              title="Editar pieza"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => deletePiece(piece.id)}
+                              className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                              title="Eliminar pieza"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -364,7 +483,7 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
             </button>
             <button
               onClick={handleSavePieces}
-              disabled={processedPieces.length === 0 || !selectedMaterial}
+              disabled={processedPieces.length === 0}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
             >
               Agregar {processedPieces.length} piezas
