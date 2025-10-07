@@ -25,7 +25,7 @@ export class SimpleExportService {
   static exportToPDF(platform: Platform): void {
     try {
       const printContent = this.generatePrintContent(platform);
-
+      
       // Crear ventana de impresión
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
@@ -34,7 +34,7 @@ export class SimpleExportService {
 
       printWindow.document.write(printContent);
       printWindow.document.close();
-
+      
       // Imprimir después de cargar
       printWindow.onload = () => {
         setTimeout(() => {
@@ -44,7 +44,7 @@ export class SimpleExportService {
           }, 1000);
         }, 500);
       };
-
+      
     } catch (error) {
       console.error('Error al exportar PDF:', error);
       this.showError('Error al exportar a PDF. Usa Ctrl+P para imprimir manualmente.');
@@ -102,7 +102,7 @@ export class SimpleExportService {
       // Crear canvas
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-
+      
       if (!ctx) {
         throw new Error('No se pudo crear contexto del canvas');
       }
@@ -117,7 +117,7 @@ export class SimpleExportService {
       gradient.addColorStop(1, '#f8fafc');
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+      
       // Header con gradiente
       const headerGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
       headerGradient.addColorStop(0, '#667eea');
@@ -163,7 +163,7 @@ export class SimpleExportService {
       ctx.fillText(`Ancho Estándar: ${platform.standardWidth.toFixed(2)} m`, 50, y);
       y += 25;
       ctx.fillText(`Total Piezas: ${platform.pieces.length}`, 50, y);
-
+      
       // Tabla
       y += 40;
       const rowHeight = 35;
@@ -202,9 +202,9 @@ export class SimpleExportService {
       ctx.fillText('Longitud (m)', colLength + cellPadding, y + 20);
       ctx.fillText('Ancho (m)', colWidth + cellPadding, y + 20);
       ctx.fillText('Metros Lineales', colLinear + cellPadding, y + 20);
-
+      
       y += rowHeight;
-
+      
       // Línea separadora
       ctx.strokeStyle = '#e2e8f0';
       ctx.lineWidth = 1;
@@ -216,7 +216,7 @@ export class SimpleExportService {
       // Datos de las piezas
       ctx.fillStyle = '#374151';
       ctx.font = '14px Arial, sans-serif';
-
+      
       platform.pieces.forEach((piece, index) => {
         // Fondo alternado para filas
         if (index % 2 === 0) {
@@ -235,7 +235,7 @@ export class SimpleExportService {
 
         y += rowHeight;
       });
-
+      
       // Fila de totales con gradiente
       const totalGrad = ctx.createLinearGradient(0, 0, 0, rowHeight);
       totalGrad.addColorStop(0, '#059669');
@@ -275,7 +275,7 @@ export class SimpleExportService {
       ctx.fillText(`Documento generado el ${new Date().toLocaleString('es-MX')}`, canvas.width / 2, y);
       y += 20;
       ctx.fillText('Sistema de Inventario UTalk - Reporte Profesional', canvas.width / 2, y);
-
+      
       // Convertir a blob y descargar
       canvas.toBlob((blob) => {
         if (blob) {
@@ -289,7 +289,7 @@ export class SimpleExportService {
           URL.revokeObjectURL(url);
         }
       }, 'image/png');
-
+      
     } catch (error) {
       console.error('Error al exportar imagen:', error);
       this.showError('Error al exportar como imagen');
@@ -558,11 +558,11 @@ export class SimpleExportService {
     platform.pieces.forEach(piece => {
       const rowData = hasMaterials 
         ? [
-            piece.number,
-            `"${piece.material}"`,
-            piece.length.toFixed(2),
-            piece.standardWidth.toFixed(2),
-            piece.linearMeters.toFixed(3)
+        piece.number,
+        `"${piece.material}"`,
+        piece.length.toFixed(2),
+        piece.standardWidth.toFixed(2),
+        piece.linearMeters.toFixed(3)
           ]
         : [
             piece.number,
@@ -577,11 +577,11 @@ export class SimpleExportService {
     rows.push('');
     const totalData = hasMaterials 
       ? [
-          'TOTAL',
-          '—',
-          platform.totalLength.toFixed(2),
-          platform.standardWidth.toFixed(2),
-          platform.totalLinearMeters.toFixed(3)
+      'TOTAL',
+      '—',
+      platform.totalLength.toFixed(2),
+      platform.standardWidth.toFixed(2),
+      platform.totalLinearMeters.toFixed(3)
         ]
       : [
           'TOTAL',
@@ -602,7 +602,7 @@ export class SimpleExportService {
     } else {
       rows.push(`Proveedor,${platform.provider || 'No especificado'}`);
       if (platform.materialTypes.length > 0) {
-        rows.push(`Materiales,${platform.materialTypes.join('; ')}`);
+    rows.push(`Materiales,${platform.materialTypes.join('; ')}`);
       }
     }
     

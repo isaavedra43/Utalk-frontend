@@ -17,55 +17,77 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
+  const dprRef = useRef<number>(1);
+
+  // Bloquea el scroll de fondo mientras el modal está abierto (mejor UX móvil)
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && canvasRef.current) {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-      }
+      if (!ctx) return;
+
+      // Ajuste de resolución para pantallas de alta densidad (retina)
+      const dpr = Math.max(window.devicePixelRatio || 1, 1);
+      dprRef.current = dpr;
+      const cssWidth = canvas.clientWidth || 400;
+      const cssHeight = Math.max(canvas.clientHeight, 200) || 200;
+      canvas.width = Math.floor(cssWidth * dpr);
+      canvas.height = Math.floor(cssHeight * dpr);
+      ctx.scale(dpr, dpr);
+
+      // Fondo blanco y estilo de lápiz
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#111827';
+      ctx.lineWidth = 2; // en unidades CSS; el escalado ya está aplicado
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
     }
   }, [isOpen]);
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const getRelativePoint = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  };
+
+  const startDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
     const canvas = canvasRef.current;
     if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
+    canvas.setPointerCapture?.(e.pointerId);
+    const { x, y } = getRelativePoint(e);
     const ctx = canvas.getContext('2d');
-    if (ctx) {
-      setIsDrawing(true);
-      setHasSignature(true);
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-    }
+    if (!ctx) return;
+    setIsDrawing(true);
+    setHasSignature(true);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
   };
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const draw = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawing || !canvasRef.current) return;
-
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.lineTo(x, y);
-      ctx.stroke();
-    }
+    e.preventDefault();
+    const { x, y } = getRelativePoint(e);
+    const ctx = canvasRef.current.getContext('2d');
+    if (!ctx) return;
+    ctx.lineTo(x, y);
+    ctx.stroke();
   };
 
-  const stopDrawing = () => {
+  const stopDrawing = (e?: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e) {
+      e.preventDefault();
+      canvasRef.current?.releasePointerCapture?.(e.pointerId);
+    }
     setIsDrawing(false);
   };
 
@@ -122,11 +144,12 @@ export const SignatureModal: React.FC<SignatureModalProps> = ({
                 ref={canvasRef}
                 width={400}
                 height={200}
-                className="w-full h-auto cursor-crosshair"
-                onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={stopDrawing}
-                onMouseLeave={stopDrawing}
+                className="w-full h-48 sm:h-52 cursor-crosshair"
+                onPointerDown={startDrawing}
+                onPointerMove={draw}
+                onPointerUp={stopDrawing}
+                onPointerCancel={stopDrawing}
+                onPointerLeave={stopDrawing}
                 style={{ touchAction: 'none' }}
               />
             </div>
