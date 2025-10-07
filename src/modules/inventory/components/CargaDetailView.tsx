@@ -26,6 +26,7 @@ import { EvidenceUpload } from './EvidenceUpload';
 import { validateLength } from '../utils/calculations';
 import { QuickCaptureInput } from './QuickCaptureInput';
 import { PiecesTable } from './PiecesTable';
+import { VoiceDictationModal } from './VoiceDictationModal';
 
 interface CargaDetailViewProps {
   platform: Platform;
@@ -48,6 +49,7 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showVoiceDictationModal, setShowVoiceDictationModal] = useState(false);
   const [exporting, setExporting] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -877,12 +879,9 @@ Generado por Sistema de Inventario`;
           
           {/* Botón Dictar */}
           <button
-            onClick={() => {
-              // TODO: Implementar funcionalidad de dictado
-              showNotification('success', 'Funcionalidad de dictado próximamente');
-            }}
+            onClick={() => setShowVoiceDictationModal(true)}
             className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-purple-50 to-purple-100 text-purple-700 rounded-lg border border-purple-200 shadow-sm active:scale-95 transition-transform"
-            title="Dictar"
+            title="Dictar longitudes con voz"
           >
             <Mic className="h-5 w-5 mb-0.5" />
             <span className="text-[10px] font-semibold">Dictar</span>
@@ -1296,6 +1295,16 @@ Generado por Sistema de Inventario`;
           <span className="font-medium text-sm sm:text-base flex-1">{notification.message}</span>
         </div>
       )}
+
+      {/* Modal de Dictado por Voz */}
+      <VoiceDictationModal
+        isOpen={showVoiceDictationModal}
+        onClose={() => setShowVoiceDictationModal(false)}
+        platformId={platform.id}
+        standardWidth={platform.standardWidth}
+        availableMaterials={platform.materialTypes}
+        onAddPieces={handleAddMultiplePieces}
+      />
     </div>
   );
 };
