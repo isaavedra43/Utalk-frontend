@@ -8,12 +8,16 @@ export class PrintService {
    */
   static async printPDF(platform: Platform): Promise<void> {
     try {
-      console.log('🖨️ Iniciando impresión de PDF para carga:', platform.cargaNumber);
-      
-      // Validar que la plataforma tenga datos
-      if (!platform || !platform.cargaNumber) {
-        throw new Error('Datos de la carga no válidos');
+      // ✅ VALIDAR PRIMERO antes de acceder a propiedades
+      if (!platform) {
+        throw new Error('No se proporcionó información de la carga');
       }
+      
+      if (!platform.cargaNumber) {
+        throw new Error('La carga no tiene número de carga válido');
+      }
+      
+      console.log('🖨️ Iniciando impresión de PDF para carga:', platform.cargaNumber);
       
       // Generar el PDF
       const pdfBlob = await this.generatePDF(platform);
@@ -71,12 +75,16 @@ export class PrintService {
    */
   static async printImage(platform: Platform): Promise<void> {
     try {
-      console.log('🖼️ Iniciando impresión de imagen para carga:', platform.cargaNumber);
-      
-      // Validar que la plataforma tenga datos
-      if (!platform || !platform.cargaNumber) {
-        throw new Error('Datos de la carga no válidos');
+      // ✅ VALIDAR PRIMERO antes de acceder a propiedades
+      if (!platform) {
+        throw new Error('No se proporcionó información de la carga');
       }
+      
+      if (!platform.cargaNumber) {
+        throw new Error('La carga no tiene número de carga válido');
+      }
+      
+      console.log('🖼️ Iniciando impresión de imagen para carga:', platform.cargaNumber);
       
       // Generar la imagen
       const imageBlob = await this.generateImage(platform);

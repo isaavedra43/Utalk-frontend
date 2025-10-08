@@ -236,6 +236,13 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   // ✅ NUEVO: Imprimir PDF directamente
   const handlePrintPDF = async () => {
     try {
+      // ✅ VALIDAR que la plataforma existe antes de imprimir
+      if (!platform) {
+        console.error('❌ No hay información de carga disponible para imprimir');
+        showNotification('error', 'No hay información de carga disponible');
+        return;
+      }
+      
       setExporting(true);
       await PrintService.printPDF(platform);
       showNotification('success', 'Enviando PDF a impresión...');
@@ -250,6 +257,13 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   // ✅ NUEVO: Imprimir imagen directamente
   const handlePrintImage = async () => {
     try {
+      // ✅ VALIDAR que la plataforma existe antes de imprimir
+      if (!platform) {
+        console.error('❌ No hay información de carga disponible para imprimir');
+        showNotification('error', 'No hay información de carga disponible');
+        return;
+      }
+      
       setExporting(true);
       await PrintService.printImage(platform);
       showNotification('success', 'Enviando imagen a impresión...');

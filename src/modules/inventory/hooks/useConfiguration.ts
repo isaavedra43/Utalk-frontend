@@ -5,7 +5,10 @@ import { ConfigService } from '../services/configService';
 import type { ModuleConfiguration, Provider, MaterialOption, Driver } from '../types';
 
 export const useConfiguration = () => {
-  console.log('🎯 [useConfiguration] Hook inicializado/renderizado');
+  // ✅ REDUCIR logs excesivos - solo loggear en desarrollo
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🎯 [useConfiguration] Hook inicializado/renderizado');
+  }
   
   const [configuration, setConfiguration] = useState<ModuleConfiguration | null>(null);
   const [loading, setLoading] = useState(true);
@@ -15,7 +18,9 @@ export const useConfiguration = () => {
   useEffect(() => {
     // ✅ EVITAR renders infinitos: solo ejecutar si no hay configuración
     if (configuration) {
-      console.log('🔄 [useConfiguration] Configuración ya existe, saltando inicialización');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 [useConfiguration] Configuración ya existe, saltando inicialización');
+      }
       return;
     }
 
