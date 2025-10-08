@@ -556,7 +556,7 @@ export class DriverApiService {
       } else if (typeof error === 'string') {
         throw new Error(error);
       } else {
-        throw new Error('Error desconocido al obtener choferes');
+        throw new Error(`Error desconocido al obtener choferes: ${JSON.stringify(error)}`);
       }
     }
   }

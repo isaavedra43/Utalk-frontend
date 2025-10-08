@@ -179,8 +179,16 @@ export class PrintService {
       console.log('📄 [generatePDF] Iniciando generación de PDF para:', platform.platformNumber);
       
       // ✅ VALIDAR datos de la plataforma
-      if (!platform || !platform.platformNumber) {
-        throw new Error('Datos de plataforma inválidos para generar PDF');
+      if (!platform) {
+        throw new Error('No se proporcionó información de la plataforma');
+      }
+
+      if (!platform.platformNumber) {
+        throw new Error('La plataforma no tiene número de carga válido');
+      }
+
+      if (!platform.receptionDate) {
+        console.warn('⚠️ La plataforma no tiene fecha de recepción');
       }
       
       // Crear contenido HTML para el PDF
@@ -269,7 +277,8 @@ export class PrintService {
       });
     } catch (error) {
       console.error('❌ [generatePDF] Error general:', error);
-      throw new Error(`Error generando PDF: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al generar PDF';
+      throw new Error(`Error generando PDF: ${errorMessage}`);
     }
   }
 
@@ -281,8 +290,16 @@ export class PrintService {
       console.log('🖼️ [generateImage] Iniciando generación de imagen para:', platform.platformNumber);
       
       // ✅ VALIDAR datos de la plataforma
-      if (!platform || !platform.platformNumber) {
-        throw new Error('Datos de plataforma inválidos para generar imagen');
+      if (!platform) {
+        throw new Error('No se proporcionó información de la plataforma');
+      }
+
+      if (!platform.platformNumber) {
+        throw new Error('La plataforma no tiene número de carga válido');
+      }
+
+      if (!platform.receptionDate) {
+        console.warn('⚠️ La plataforma no tiene fecha de recepción');
       }
       
       // Crear un canvas para generar la imagen
@@ -322,7 +339,8 @@ export class PrintService {
       });
     } catch (error) {
       console.error('❌ [generateImage] Error general:', error);
-      throw new Error(`Error generando imagen: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al generar imagen';
+      throw new Error(`Error generando imagen: ${errorMessage}`);
     }
   }
 
@@ -413,7 +431,8 @@ export class PrintService {
       }
     } catch (error) {
       console.error('❌ [drawImageContent] Error dibujando contenido:', error);
-      throw new Error(`Error dibujando contenido de imagen: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al dibujar imagen';
+      throw new Error(`Error dibujando contenido de imagen: ${errorMessage}`);
     }
   }
 
@@ -559,7 +578,7 @@ export class PrintService {
           <div class="info-grid">
             <div class="info-item">
               <span class="info-label">Fecha:</span>
-              <span class="info-value">${platform.receptionDate.toLocaleDateString('es-MX')}</span>
+              <span class="info-value">${platform.receptionDate ? new Date(platform.receptionDate).toLocaleDateString('es-MX') : 'No especificada'}</span>
             </div>
             <div class="info-item">
               <span class="info-label">Tipo:</span>
@@ -644,7 +663,8 @@ export class PrintService {
     `;
     } catch (error) {
       console.error('❌ [generatePDFContent] Error generando contenido:', error);
-      throw new Error(`Error generando contenido PDF: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al generar contenido PDF';
+      throw new Error(`Error generando contenido PDF: ${errorMessage}`);
     }
   }
 

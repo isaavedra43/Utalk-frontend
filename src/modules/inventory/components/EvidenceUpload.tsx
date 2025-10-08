@@ -179,7 +179,7 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
                     </p>
                     <p className="text-xs text-gray-500">
                       {EvidenceService.formatFileSize(evidence.fileSize)} • 
-                      {evidence.uploadDate.toLocaleDateString()}
+                      {evidence.uploadDate ? new Date(evidence.uploadDate).toLocaleDateString() : ''}
                     </p>
                     {evidence.description && (
                       <p className="text-xs text-gray-600 mt-1">
