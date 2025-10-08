@@ -13,13 +13,18 @@ export const useConfiguration = () => {
 
   // ✅ PRIORIDAD: Cargar datos del backend PRIMERO, luego configuración local como fallback
   useEffect(() => {
+    // ✅ EVITAR renders infinitos: solo ejecutar si no hay configuración
+    if (configuration) {
+      console.log('🔄 [useConfiguration] Configuración ya existe, saltando inicialización');
+      return;
+    }
+
     const initializeConfiguration = async () => {
       try {
         setLoading(true);
         setError(null);
         
         console.log('🔄 [useConfiguration] Iniciando carga de configuración desde backend...');
-        console.log('🔄 [useConfiguration] Estado inicial:', { loading, error, configuration: !!configuration });
         
         // ✅ PASO 1: Intentar cargar desde backend PRIMERO
         try {
@@ -47,17 +52,23 @@ export const useConfiguration = () => {
 
           console.log('✅ Materiales extraídos del backend:', materials?.length || 0);
 
-          // ✅ PASO 1.5: Cargar choferes del backend
-          console.log('📡 [useConfiguration] Llamando DriverApiService.getAllDrivers()...');
-          const driversResponse = await DriverApiService.getAllDrivers({ limit: 1000 });
-          console.log('✅ [useConfiguration] Respuesta de choferes:', driversResponse);
-
-          // Extraer choferes de la respuesta
+          // ✅ PASO 1.5: Cargar choferes del backend (con manejo de errores)
           let drivers = [];
-          if (driversResponse && driversResponse.data) {
-            drivers = driversResponse.data;
-          } else if (Array.isArray(driversResponse)) {
-            drivers = driversResponse;
+          try {
+            console.log('📡 [useConfiguration] Llamando DriverApiService.getAllDrivers()...');
+            const driversResponse = await DriverApiService.getAllDrivers({ limit: 1000 });
+            console.log('✅ [useConfiguration] Respuesta de choferes:', driversResponse);
+
+            // Extraer choferes de la respuesta
+            if (driversResponse && driversResponse.data) {
+              drivers = driversResponse.data;
+            } else if (Array.isArray(driversResponse)) {
+              drivers = driversResponse;
+            }
+          } catch (driverError) {
+            console.warn('⚠️ Error cargando choferes desde backend, continuando sin choferes:', driverError);
+            // No lanzar el error, simplemente continuar con drivers vacío
+            drivers = [];
           }
 
           console.log('✅ Choferes extraídos del backend:', drivers?.length || 0);
@@ -97,7 +108,7 @@ export const useConfiguration = () => {
 
     console.log('🚀 [useConfiguration] useEffect ejecutándose - iniciando configuración...');
     initializeConfiguration();
-  }, []);
+  }, []); // ✅ Dependencias vacías para ejecutar solo una vez
 
   // ==================== GESTIÓN GENERAL ====================
 
@@ -468,37 +479,53 @@ export const useConfiguration = () => {
           import('../services/inventoryApiService')
         ]);
         
-        const [providers, materialsResponse, driversResponse] = await Promise.all([
+        const [providers, materialsResponse, driversResponse] = await Promise.allSettled([
           ProviderApiService.getAllProviders(),
           MaterialApiService.getAllMaterials({ limit: 1000 }),
           DriverApiService.getAllDrivers({ limit: 1000 })
         ]);
         
-        console.log('📦 Proveedores refrescados:', providers);
-        console.log('📦 Respuesta de materiales refrescada:', materialsResponse);
+        // Manejar respuestas de Promise.allSettled
+        const providersResult = providers.status === 'fulfilled' ? providers.value : [];
+        const materialsResult = materialsResponse.status === 'fulfilled' ? materialsResponse.value : null;
+        const driversResult = driversResponse.status === 'fulfilled' ? driversResponse.value : null;
+        
+        console.log('📦 Proveedores refrescados:', providersResult);
+        console.log('📦 Respuesta de materiales refrescada:', materialsResult);
         
         // Extraer materiales de la respuesta
         let materials = [];
-        if (materialsResponse && materialsResponse.data) {
-          materials = materialsResponse.data;
-        } else if (Array.isArray(materialsResponse)) {
-          materials = materialsResponse;
+        if (materialsResult && materialsResult.data) {
+          materials = materialsResult.data;
+        } else if (Array.isArray(materialsResult)) {
+          materials = materialsResult;
         }
         
         console.log('📦 Materiales extraídos (refresh):', materials);
         
         // Extraer choferes de la respuesta
         let drivers = [];
-        if (driversResponse && driversResponse.data) {
-          drivers = driversResponse.data;
-        } else if (Array.isArray(driversResponse)) {
-          drivers = driversResponse;
+        if (driversResult && driversResult.data) {
+          drivers = driversResult.data;
+        } else if (Array.isArray(driversResult)) {
+          drivers = driversResult;
         }
         
         console.log('📦 Choferes extraídos (refresh):', drivers);
         
+        // Log de errores si los hay
+        if (providers.status === 'rejected') {
+          console.warn('⚠️ Error refrescando proveedores:', providers.reason);
+        }
+        if (materialsResponse.status === 'rejected') {
+          console.warn('⚠️ Error refrescando materiales:', materialsResponse.reason);
+        }
+        if (driversResponse.status === 'rejected') {
+          console.warn('⚠️ Error refrescando choferes:', driversResponse.reason);
+        }
+        
         const current = ConfigService.getConfiguration();
-        current.providers = providers || [];
+        current.providers = providersResult || [];
         current.materials = materials || [];
         current.drivers = drivers || [];
         ConfigService.saveConfiguration(current);

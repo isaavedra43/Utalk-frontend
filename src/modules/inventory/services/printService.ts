@@ -8,8 +8,21 @@ export class PrintService {
    */
   static async printPDF(platform: Platform): Promise<void> {
     try {
+      console.log('🖨️ Iniciando impresión de PDF para carga:', platform.cargaNumber);
+      
+      // Validar que la plataforma tenga datos
+      if (!platform || !platform.cargaNumber) {
+        throw new Error('Datos de la carga no válidos');
+      }
+      
       // Generar el PDF
       const pdfBlob = await this.generatePDF(platform);
+      
+      if (!pdfBlob || pdfBlob.size === 0) {
+        throw new Error('No se pudo generar el PDF');
+      }
+      
+      console.log('✅ PDF generado exitosamente, tamaño:', pdfBlob.size, 'bytes');
       
       // Crear URL del blob
       const pdfUrl = URL.createObjectURL(pdfBlob);
@@ -19,22 +32,37 @@ export class PrintService {
       
       if (printWindow) {
         printWindow.onload = () => {
+          console.log('📄 Ventana de impresión cargada');
           // Esperar a que el PDF se cargue completamente
           setTimeout(() => {
-            printWindow.print();
-            // Limpiar la URL después de un tiempo
-            setTimeout(() => {
+            try {
+              printWindow.print();
+              console.log('🖨️ Comando de impresión enviado');
+              // Limpiar la URL después de un tiempo
+              setTimeout(() => {
+                URL.revokeObjectURL(pdfUrl);
+                console.log('🧹 URL del PDF limpiada');
+              }, 1000);
+            } catch (printError) {
+              console.error('Error al enviar a impresión:', printError);
               URL.revokeObjectURL(pdfUrl);
-            }, 1000);
+            }
           }, 500);
         };
+        
+        printWindow.onerror = () => {
+          console.error('Error cargando ventana de impresión');
+          URL.revokeObjectURL(pdfUrl);
+        };
       } else {
+        console.warn('⚠️ No se pudo abrir ventana de impresión, usando fallback');
         // Fallback para dispositivos que bloquean popups
         this.fallbackPrint(pdfBlob, 'application/pdf');
       }
     } catch (error) {
-      console.error('Error printing PDF:', error);
-      throw new Error('Error al generar el PDF para impresión');
+      console.error('❌ Error printing PDF:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al imprimir PDF';
+      throw new Error(`Error al generar el PDF para impresión: ${errorMessage}`);
     }
   }
 
@@ -43,8 +71,21 @@ export class PrintService {
    */
   static async printImage(platform: Platform): Promise<void> {
     try {
+      console.log('🖼️ Iniciando impresión de imagen para carga:', platform.cargaNumber);
+      
+      // Validar que la plataforma tenga datos
+      if (!platform || !platform.cargaNumber) {
+        throw new Error('Datos de la carga no válidos');
+      }
+      
       // Generar la imagen
       const imageBlob = await this.generateImage(platform);
+      
+      if (!imageBlob || imageBlob.size === 0) {
+        throw new Error('No se pudo generar la imagen');
+      }
+      
+      console.log('✅ Imagen generada exitosamente, tamaño:', imageBlob.size, 'bytes');
       
       // Crear URL del blob
       const imageUrl = URL.createObjectURL(imageBlob);
@@ -89,21 +130,36 @@ export class PrintService {
         
         // Esperar a que la imagen se cargue
         printWindow.onload = () => {
+          console.log('🖼️ Ventana de impresión de imagen cargada');
           setTimeout(() => {
-            printWindow.print();
-            // Limpiar la URL después de un tiempo
-            setTimeout(() => {
+            try {
+              printWindow.print();
+              console.log('🖨️ Comando de impresión de imagen enviado');
+              // Limpiar la URL después de un tiempo
+              setTimeout(() => {
+                URL.revokeObjectURL(imageUrl);
+                console.log('🧹 URL de la imagen limpiada');
+              }, 1000);
+            } catch (printError) {
+              console.error('Error al enviar imagen a impresión:', printError);
               URL.revokeObjectURL(imageUrl);
-            }, 1000);
+            }
           }, 500);
         };
+        
+        printWindow.onerror = () => {
+          console.error('Error cargando ventana de impresión de imagen');
+          URL.revokeObjectURL(imageUrl);
+        };
       } else {
+        console.warn('⚠️ No se pudo abrir ventana de impresión, usando fallback');
         // Fallback para dispositivos que bloquean popups
         this.fallbackPrint(imageBlob, 'image/png');
       }
     } catch (error) {
-      console.error('Error printing image:', error);
-      throw new Error('Error al generar la imagen para impresión');
+      console.error('❌ Error printing image:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al imprimir imagen';
+      throw new Error(`Error al generar la imagen para impresión: ${errorMessage}`);
     }
   }
 
@@ -111,42 +167,83 @@ export class PrintService {
    * Genera un PDF de la carga
    */
   private static async generatePDF(platform: Platform): Promise<Blob> {
-    // Crear contenido HTML para el PDF
-    const htmlContent = this.generatePDFContent(platform);
-    
-    // Crear un iframe oculto para generar el PDF
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.left = '-9999px';
-    iframe.style.top = '-9999px';
-    iframe.style.width = '210mm'; // A4 width
-    iframe.style.height = '297mm'; // A4 height
-    document.body.appendChild(iframe);
-    
-    return new Promise((resolve, reject) => {
-      iframe.onload = () => {
-        try {
-          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-          if (iframeDoc) {
-            iframeDoc.open();
-            iframeDoc.write(htmlContent);
-            iframeDoc.close();
-            
-            // Esperar a que se renderice
-            setTimeout(() => {
-              // En un entorno real, aquí usarías una librería como jsPDF o html2pdf
-              // Por ahora, creamos un blob con el HTML para simular el PDF
-              const blob = new Blob([htmlContent], { type: 'application/pdf' });
-              document.body.removeChild(iframe);
-              resolve(blob);
-            }, 1000);
+    try {
+      // Crear contenido HTML para el PDF
+      const htmlContent = this.generatePDFContent(platform);
+      
+      // Crear un iframe oculto para generar el PDF
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'absolute';
+      iframe.style.left = '-9999px';
+      iframe.style.top = '-9999px';
+      iframe.style.width = '210mm'; // A4 width
+      iframe.style.height = '297mm'; // A4 height
+      iframe.style.border = 'none';
+      iframe.style.visibility = 'hidden';
+      document.body.appendChild(iframe);
+      
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
           }
-        } catch (error) {
-          document.body.removeChild(iframe);
-          reject(error);
-        }
-      };
-    });
+          reject(new Error('Timeout generando PDF'));
+        }, 5000);
+        
+        iframe.onload = () => {
+          try {
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+            if (iframeDoc) {
+              iframeDoc.open();
+              iframeDoc.write(htmlContent);
+              iframeDoc.close();
+              
+              // Esperar a que se renderice
+              setTimeout(() => {
+                try {
+                  // Crear un blob con el HTML para simular el PDF
+                  const blob = new Blob([htmlContent], { type: 'application/pdf' });
+                  clearTimeout(timeout);
+                  if (document.body.contains(iframe)) {
+                    document.body.removeChild(iframe);
+                  }
+                  resolve(blob);
+                } catch (error) {
+                  clearTimeout(timeout);
+                  if (document.body.contains(iframe)) {
+                    document.body.removeChild(iframe);
+                  }
+                  reject(error);
+                }
+              }, 1000);
+            } else {
+              clearTimeout(timeout);
+              if (document.body.contains(iframe)) {
+                document.body.removeChild(iframe);
+              }
+              reject(new Error('No se pudo acceder al documento del iframe'));
+            }
+          } catch (error) {
+            clearTimeout(timeout);
+            if (document.body.contains(iframe)) {
+              document.body.removeChild(iframe);
+            }
+            reject(error);
+          }
+        };
+        
+        iframe.onerror = () => {
+          clearTimeout(timeout);
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+          reject(new Error('Error cargando iframe para PDF'));
+        };
+      });
+    } catch (error) {
+      console.error('Error en generatePDF:', error);
+      throw new Error(`Error generando PDF: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    }
   }
 
   /**

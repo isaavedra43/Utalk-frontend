@@ -40,6 +40,12 @@ export class ConfigService {
         const config = JSON.parse(stored);
         // Convertir fechas de string a Date
         config.lastUpdated = new Date(config.lastUpdated);
+        
+        // ✅ ASEGURAR que siempre hay arrays válidos
+        config.providers = Array.isArray(config.providers) ? config.providers : [];
+        config.materials = Array.isArray(config.materials) ? config.materials : [];
+        config.drivers = Array.isArray(config.drivers) ? config.drivers : [];
+        
         return config;
       }
     } catch (error) {

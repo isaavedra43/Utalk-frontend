@@ -30,9 +30,9 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
     configuration: !!configuration, 
     loading, 
     error,
-    providersCount: configuration?.providers?.length || 0,
-    materialsCount: configuration?.materials?.length || 0,
-    driversCount: configuration?.drivers?.length || 0
+    providersCount: (configuration?.providers && Array.isArray(configuration.providers)) ? configuration.providers.length : 0,
+    materialsCount: (configuration?.materials && Array.isArray(configuration.materials)) ? configuration.materials.length : 0,
+    driversCount: (configuration?.drivers && Array.isArray(configuration.drivers)) ? configuration.drivers.length : 0
   });
 
   const [activeTab, setActiveTab] = useState<TabType>('providers');

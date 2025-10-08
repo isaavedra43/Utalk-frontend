@@ -58,9 +58,22 @@ export class ErrorBoundary extends Component<Props, State> {
       return;
     }
 
+    // ✅ IGNORAR errores vacíos o sin información útil
+    if (!error || (typeof error === 'object' && Object.keys(error).length === 0)) {
+      console.warn('🚨 ErrorBoundary - Error vacío ignorado:', error);
+      return;
+    }
+
     const normalized = this.normalizeError(error);
-    console.error('🚨 ErrorBoundary - Error capturado:', normalized);
-    console.error('🚨 ErrorBoundary - Error info:', errorInfo);
+    
+    // ✅ Solo loggear errores con información útil
+    if (normalized.message && normalized.message !== 'Unknown non-Error exception') {
+      console.error('🚨 ErrorBoundary - Error capturado:', normalized);
+      console.error('🚨 ErrorBoundary - Error info:', errorInfo);
+    } else {
+      console.warn('🚨 ErrorBoundary - Error sin información útil ignorado:', error);
+      return;
+    }
 
     // Log del error para debugging
     if (normalized.message?.includes('Minified React error #310')) {
