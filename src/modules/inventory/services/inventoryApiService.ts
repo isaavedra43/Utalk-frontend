@@ -449,6 +449,14 @@ export class DriverApiService {
   /**
    * Obtener todos los choferes (global, sin userId)
    */
+  // ✅ Caché para evitar múltiples llamadas simultáneas
+  private static driversCache: { data: PaginatedResponse<Driver> | null; timestamp: number } = { 
+    data: null, 
+    timestamp: 0 
+  };
+  private static readonly CACHE_DURATION = 5000; // 5 segundos
+  private static pendingRequest: Promise<PaginatedResponse<Driver>> | null = null;
+
   static async getAllDrivers(filters?: {
     active?: boolean;
     vehicleType?: string;
@@ -457,41 +465,99 @@ export class DriverApiService {
     offset?: number;
   }): Promise<PaginatedResponse<Driver>> {
     try {
-      const params = {
-        limit: filters?.limit || 1000,
-        offset: filters?.offset || 0,
-        search: filters?.search || '',
-        vehicleType: filters?.vehicleType || '',
-        isActive: filters?.active !== undefined ? filters.active.toString() : ''
-      };
+      // ✅ Si ya hay una petición en curso, esperar a que termine
+      if (this.pendingRequest) {
+        console.log('⏳ [DriverApiService] Petición en curso, esperando...');
+        return await this.pendingRequest;
+      }
+
+      // ✅ Verificar caché (solo si no hay filtros personalizados)
+      const now = Date.now();
+      const isDefaultQuery = !filters || (
+        !filters.search && 
+        !filters.vehicleType && 
+        filters.active === undefined
+      );
       
-      const response = await api.get<ApiResponse<{ drivers: Driver[] }>>(this.BASE_PATH, {
-        params
+      if (isDefaultQuery && this.driversCache.data && (now - this.driversCache.timestamp < this.CACHE_DURATION)) {
+        console.log('📦 [DriverApiService] Retornando datos del caché');
+        return this.driversCache.data;
+      }
+
+      // ✅ Crear la petición y guardarla como pendiente
+      this.pendingRequest = (async () => {
+        const params = {
+          limit: filters?.limit || 1000,
+          offset: filters?.offset || 0,
+          search: filters?.search || '',
+          vehicleType: filters?.vehicleType || '',
+          isActive: filters?.active !== undefined ? filters.active.toString() : ''
+        };
+        
+        const response = await api.get<ApiResponse<{ drivers: Driver[] }>>(this.BASE_PATH, {
+          params
+        });
+        
+        // Manejar diferentes formatos de respuesta
+        let drivers: Driver[] = [];
+        
+        if (response.data.data && Array.isArray(response.data.data)) {
+          drivers = response.data.data;
+        } else if (response.data.data && Array.isArray(response.data.data.drivers)) {
+          drivers = response.data.data.drivers;
+        } else if (response.data && Array.isArray(response.data)) {
+          drivers = response.data;
+        }
+        
+        const result = {
+          data: drivers,
+          pagination: {
+            total: drivers.length,
+            limit: params.limit,
+            offset: params.offset,
+            hasMore: false
+          }
+        };
+
+        // ✅ Guardar en caché si es una consulta por defecto
+        if (isDefaultQuery) {
+          this.driversCache = {
+            data: result,
+            timestamp: Date.now()
+          };
+        }
+
+        return result;
+      })();
+
+      // ✅ Esperar a que termine la petición
+      const result = await this.pendingRequest;
+      
+      // ✅ Limpiar la petición pendiente
+      this.pendingRequest = null;
+      
+      return result;
+      
+    } catch (error) {
+      // ✅ Limpiar la petición pendiente en caso de error
+      this.pendingRequest = null;
+      
+      // ✅ Manejo mejorado de errores
+      console.error('❌ [DriverApiService] Error fetching drivers:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorType: typeof error,
+        isAxiosError: error && typeof error === 'object' && 'isAxiosError' in error
       });
       
-      // Manejar diferentes formatos de respuesta
-      let drivers: Driver[] = [];
-      
-      if (response.data.data && Array.isArray(response.data.data)) {
-        drivers = response.data.data;
-      } else if (response.data.data && Array.isArray(response.data.data.drivers)) {
-        drivers = response.data.data.drivers;
-      } else if (response.data && Array.isArray(response.data)) {
-        drivers = response.data;
+      // ✅ Re-lanzar un error con mejor información
+      if (error instanceof Error) {
+        throw error;
+      } else if (typeof error === 'string') {
+        throw new Error(error);
+      } else {
+        throw new Error('Error desconocido al obtener choferes');
       }
-      
-      return {
-        data: drivers,
-        pagination: {
-          total: drivers.length,
-          limit: params.limit,
-          offset: params.offset,
-          hasMore: false
-        }
-      };
-    } catch (error) {
-      console.error('Error fetching drivers:', error);
-      throw error;
     }
   }
 
@@ -524,11 +590,22 @@ export class DriverApiService {
   }
 
   /**
+   * Limpiar caché de drivers (útil después de crear, actualizar o eliminar)
+   */
+  static clearCache(): void {
+    this.driversCache = { data: null, timestamp: 0 };
+    this.pendingRequest = null;
+    console.log('🗑️ [DriverApiService] Caché limpiado');
+  }
+
+  /**
    * Crear nuevo chofer
    */
   static async createDriver(driver: Omit<Driver, 'id'>): Promise<Driver> {
     try {
       const response = await api.post<ApiResponse<Driver>>(this.BASE_PATH, driver);
+      // ✅ Limpiar caché después de crear
+      this.clearCache();
       return response.data.data;
     } catch (error) {
       console.error('Error creating driver:', error);
@@ -545,6 +622,8 @@ export class DriverApiService {
         `${this.BASE_PATH}/${driverId}`,
         updates
       );
+      // ✅ Limpiar caché después de actualizar
+      this.clearCache();
       return response.data.data;
     } catch (error) {
       console.error('Error updating driver:', error);
@@ -558,6 +637,8 @@ export class DriverApiService {
   static async deleteDriver(driverId: string): Promise<void> {
     try {
       await api.delete(`${this.BASE_PATH}/${driverId}`);
+      // ✅ Limpiar caché después de eliminar
+      this.clearCache();
     } catch (error) {
       console.error('Error deleting driver:', error);
       throw error;

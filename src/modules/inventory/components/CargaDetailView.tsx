@@ -247,7 +247,7 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
       
       console.log('🖨️ [handlePrintPDF] Datos de plataforma:', {
         id: platform.id,
-        cargaNumber: platform.cargaNumber,
+        platformNumber: platform.platformNumber,
         piecesCount: platform.pieces?.length || 0,
         hasProvider: !!platform.provider,
         hasClient: !!platform.client,
@@ -264,7 +264,9 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
       console.error('❌ [handlePrintPDF] Tipo de error:', typeof error);
       console.error('❌ [handlePrintPDF] Error message:', error instanceof Error ? error.message : 'No message');
       console.error('❌ [handlePrintPDF] Error stack:', error instanceof Error ? error.stack : 'No stack');
-      showNotification('error', `Error al imprimir PDF: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al imprimir PDF';
+      console.error('❌ [handlePrintPDF] Error detallado:', error);
+      showNotification('error', `Error al imprimir PDF: ${errorMessage}`);
     } finally {
       setExporting(false);
     }
@@ -284,7 +286,7 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
       
       console.log('🖼️ [handlePrintImage] Datos de plataforma:', {
         id: platform.id,
-        cargaNumber: platform.cargaNumber,
+        platformNumber: platform.platformNumber,
         piecesCount: platform.pieces?.length || 0,
         hasProvider: !!platform.provider,
         hasClient: !!platform.client,
@@ -301,7 +303,9 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
       console.error('❌ [handlePrintImage] Tipo de error:', typeof error);
       console.error('❌ [handlePrintImage] Error message:', error instanceof Error ? error.message : 'No message');
       console.error('❌ [handlePrintImage] Error stack:', error instanceof Error ? error.stack : 'No stack');
-      showNotification('error', `Error al imprimir imagen: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al imprimir imagen';
+      console.error('❌ [handlePrintImage] Error detallado:', error);
+      showNotification('error', `Error al imprimir imagen: ${errorMessage}`);
     } finally {
       setExporting(false);
     }
@@ -320,7 +324,7 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
         
         // Compartir con archivos
         await navigator.share({
-          title: `Carga ${platform.cargaNumber}`,
+          title: `Carga ${platform.platformNumber}`,
           text: shareText,
           files: files
         });
@@ -340,7 +344,7 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   // Generar texto para compartir
   const generateShareText = (platform: Platform): string => {
     return `📊 Cuantificación de Metros Lineales
-🏭 Carga: ${platform.cargaNumber}
+🏭 Carga: ${platform.platformNumber}
 📦 Materiales: ${platform.materialTypes.join(', ')}
 🚛 Proveedor: ${platform.provider}
 👤 Chofer: ${platform.driver}
@@ -365,13 +369,13 @@ Generado por Sistema de Inventario`;
       // Crear archivo CSV
       const csvContent = generateCSVContent(platform);
       const csvBlob = new Blob([csvContent], { type: 'text/csv' });
-      const csvFile = new File([csvBlob], `Plataforma_${platform.cargaNumber}_${getDateString()}.csv`, { type: 'text/csv' });
+      const csvFile = new File([csvBlob], `Plataforma_${platform.platformNumber}_${getDateString()}.csv`, { type: 'text/csv' });
       files.push(csvFile);
       
       // Crear archivo de imagen
       const imageBlob = await createImageBlob(platform);
       if (imageBlob) {
-        const imageFile = new File([imageBlob], `Carga_${platform.cargaNumber}_${getDateString()}.png`, { type: 'image/png' });
+        const imageFile = new File([imageBlob], `Carga_${platform.platformNumber}_${getDateString()}.png`, { type: 'image/png' });
         files.push(imageFile);
       }
     } catch (error) {
@@ -435,7 +439,7 @@ Generado por Sistema de Inventario`;
         ctx.fillStyle = '#1f2937';
         ctx.font = 'bold 24px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(`Carga ${platform.cargaNumber}`, canvas.width / 2, 40);
+        ctx.fillText(`Carga ${platform.platformNumber}`, canvas.width / 2, 40);
         
         // Información básica
         ctx.font = '16px Arial';
@@ -523,7 +527,7 @@ Generado por Sistema de Inventario`;
     `;
     
     content.innerHTML = `
-      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: bold; color: #1f2937;">Compartir Carga ${platform.cargaNumber}</h3>
+      <h3 style="margin: 0 0 16px 0; font-size: 18px; font-weight: bold; color: #1f2937;">Compartir Carga ${platform.platformNumber}</h3>
       
       <div style="display: flex; flex-direction: column; gap: 12px;">
         <button id="share-whatsapp" style="
@@ -624,7 +628,7 @@ Generado por Sistema de Inventario`;
     });
     
     document.getElementById('share-email')?.addEventListener('click', () => {
-      const subject = `Carga ${platform.cargaNumber} - Cuantificación de Metros Lineales`;
+      const subject = `Carga ${platform.platformNumber} - Cuantificación de Metros Lineales`;
       const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(shareText)}`;
       window.open(mailtoUrl);
       document.body.removeChild(modal);
@@ -945,7 +949,7 @@ Generado por Sistema de Inventario`;
             <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
               <h1 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span>📦</span>
-                Carga {platform.cargaNumber}
+                Carga {platform.platformNumber}
               </h1>
               
               {/* Información organizada verticalmente */}
@@ -1112,7 +1116,7 @@ Generado por Sistema de Inventario`;
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <h1 className="text-lg sm:text-2xl font-bold text-gray-900 mb-2 truncate">
-                  Carga {platform.cargaNumber}
+                  Carga {platform.platformNumber}
                 </h1>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
                   <span className="flex items-center gap-1 truncate">
@@ -1463,7 +1467,7 @@ Generado por Sistema de Inventario`;
               
               <div className="mb-6">
                 <p className="text-sm text-gray-700">
-                  ¿Estás seguro de que quieres eliminar la plataforma <strong>"{platform.cargaNumber}"</strong>?
+                  ¿Estás seguro de que quieres eliminar la plataforma <strong>"{platform.platformNumber}"</strong>?
                 </p>
                 <p className="text-xs text-gray-500 mt-2">
                   Se eliminarán todas las piezas registradas ({platform.pieces.length} piezas) y sus datos.
@@ -1495,7 +1499,7 @@ Generado por Sistema de Inventario`;
           <div className="bg-white rounded-lg shadow-xl max-w-sm w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-                Descargar e Imprimir Carga {platform.cargaNumber}
+                Descargar e Imprimir Carga {platform.platformNumber}
               </h3>
               
               <div className="space-y-3">
@@ -1622,7 +1626,7 @@ Generado por Sistema de Inventario`;
           <div className="bg-white rounded-lg shadow-xl max-w-sm w-full">
             <div className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-                Compartir Carga {platform.cargaNumber}
+                Compartir Carga {platform.platformNumber}
               </h3>
               
               <div className="space-y-3">
@@ -1664,7 +1668,7 @@ Generado por Sistema de Inventario`;
                 <button
                   onClick={() => {
                     const shareText = generateShareText(platform);
-                    const subject = `Carga ${platform.cargaNumber} - Cuantificación de Metros Lineales`;
+                    const subject = `Carga ${platform.platformNumber} - Cuantificación de Metros Lineales`;
                     const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(shareText)}`;
                     window.open(mailtoUrl);
                     setShowShareModal(false);
@@ -1712,7 +1716,7 @@ Generado por Sistema de Inventario`;
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-semibold text-gray-900">Evidencias</h3>
-                    <p className="text-sm text-gray-500 mt-1">Carga {platform.cargaNumber}</p>
+                    <p className="text-sm text-gray-500 mt-1">Carga {platform.platformNumber}</p>
                   </div>
                 </div>
                 <button

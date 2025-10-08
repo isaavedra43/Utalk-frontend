@@ -23,7 +23,7 @@ export interface Evidence {
 
 export interface Carga {
   id: string;
-  cargaNumber: string;
+  platformNumber: string; // ✅ CAMBIADO: Usar platformNumber para consistencia con backend
   receptionDate: Date;
   platformType: 'provider' | 'client';
   materialTypes: string[]; // Cambiado a array para múltiples materiales

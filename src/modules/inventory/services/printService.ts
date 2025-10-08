@@ -13,11 +13,11 @@ export class PrintService {
         throw new Error('No se proporcionó información de la carga');
       }
       
-      if (!platform.cargaNumber) {
+      if (!platform.platformNumber) {
         throw new Error('La carga no tiene número de carga válido');
       }
-      
-      console.log('🖨️ Iniciando impresión de PDF para carga:', platform.cargaNumber);
+
+      console.log('🖨️ Iniciando impresión de PDF para carga:', platform.platformNumber);
       
       // Generar el PDF
       const pdfBlob = await this.generatePDF(platform);
@@ -26,30 +26,30 @@ export class PrintService {
         throw new Error('No se pudo generar el PDF');
       }
       
-      console.log('✅ PDF generado exitosamente, tamaño:', pdfBlob.size, 'bytes');
-      
+      console.log('✅ HTML generado exitosamente, tamaño:', pdfBlob.size, 'bytes');
+
       // Crear URL del blob
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-      
+      const htmlUrl = URL.createObjectURL(pdfBlob);
+
       // Abrir en nueva ventana para impresión
-      const printWindow = window.open(pdfUrl, '_blank');
-      
+      const printWindow = window.open(htmlUrl, '_blank');
+
       if (printWindow) {
         printWindow.onload = () => {
           console.log('📄 Ventana de impresión cargada');
-          // Esperar a que el PDF se cargue completamente
+          // Esperar a que el HTML se cargue completamente
           setTimeout(() => {
             try {
               printWindow.print();
               console.log('🖨️ Comando de impresión enviado');
               // Limpiar la URL después de un tiempo
               setTimeout(() => {
-                URL.revokeObjectURL(pdfUrl);
-                console.log('🧹 URL del PDF limpiada');
+                URL.revokeObjectURL(htmlUrl);
+                console.log('🧹 URL del HTML limpiada');
               }, 1000);
             } catch (printError) {
               console.error('Error al enviar a impresión:', printError);
-              URL.revokeObjectURL(pdfUrl);
+              URL.revokeObjectURL(htmlUrl);
             }
           }, 500);
         };
@@ -80,11 +80,11 @@ export class PrintService {
         throw new Error('No se proporcionó información de la carga');
       }
       
-      if (!platform.cargaNumber) {
+      if (!platform.platformNumber) {
         throw new Error('La carga no tiene número de carga válido');
       }
-      
-      console.log('🖼️ Iniciando impresión de imagen para carga:', platform.cargaNumber);
+
+      console.log('🖼️ Iniciando impresión de imagen para carga:', platform.platformNumber);
       
       // Generar la imagen
       const imageBlob = await this.generateImage(platform);
@@ -106,7 +106,7 @@ export class PrintService {
           <!DOCTYPE html>
           <html>
             <head>
-              <title>Imprimir Carga - ${platform.cargaNumber}</title>
+              <title>Imprimir Carga - ${platform.platformNumber}</title>
               <style>
                 body {
                   margin: 0;
@@ -129,7 +129,7 @@ export class PrintService {
               </style>
             </head>
             <body>
-              <img src="${imageUrl}" alt="Carga ${platform.cargaNumber}" />
+              <img src="${imageUrl}" alt="Carga ${platform.platformNumber}" />
             </body>
           </html>
         `);
@@ -176,10 +176,10 @@ export class PrintService {
    */
   private static async generatePDF(platform: Platform): Promise<Blob> {
     try {
-      console.log('📄 [generatePDF] Iniciando generación de PDF para:', platform.cargaNumber);
+      console.log('📄 [generatePDF] Iniciando generación de PDF para:', platform.platformNumber);
       
       // ✅ VALIDAR datos de la plataforma
-      if (!platform || !platform.cargaNumber) {
+      if (!platform || !platform.platformNumber) {
         throw new Error('Datos de plataforma inválidos para generar PDF');
       }
       
@@ -222,10 +222,10 @@ export class PrintService {
               // Esperar a que se renderice
               setTimeout(() => {
                 try {
-                  console.log('📄 [generatePDF] Creando blob del PDF...');
-                  // Crear un blob con el HTML para simular el PDF
-                  const blob = new Blob([htmlContent], { type: 'application/pdf' });
-                  console.log('✅ [generatePDF] PDF generado exitosamente, tamaño:', blob.size);
+                  console.log('📄 [generatePDF] Creando blob del HTML para impresión...');
+                  // Crear un blob con el HTML para impresión
+                  const blob = new Blob([htmlContent], { type: 'text/html' });
+                  console.log('✅ [generatePDF] HTML generado exitosamente, tamaño:', blob.size);
                   clearTimeout(timeout);
                   if (document.body.contains(iframe)) {
                     document.body.removeChild(iframe);
@@ -278,10 +278,10 @@ export class PrintService {
    */
   private static async generateImage(platform: Platform): Promise<Blob> {
     try {
-      console.log('🖼️ [generateImage] Iniciando generación de imagen para:', platform.cargaNumber);
+      console.log('🖼️ [generateImage] Iniciando generación de imagen para:', platform.platformNumber);
       
       // ✅ VALIDAR datos de la plataforma
-      if (!platform || !platform.cargaNumber) {
+      if (!platform || !platform.platformNumber) {
         throw new Error('Datos de plataforma inválidos para generar imagen');
       }
       
@@ -331,14 +331,14 @@ export class PrintService {
    */
   private static drawImageContent(ctx: CanvasRenderingContext2D, platform: Platform, width: number, height: number): void {
     try {
-      console.log('🖼️ [drawImageContent] Dibujando contenido para:', platform.cargaNumber);
+      console.log('🖼️ [drawImageContent] Dibujando contenido para:', platform.platformNumber);
       
       // ✅ VALIDAR datos de la plataforma
       if (!platform) {
         throw new Error('Plataforma no proporcionada para dibujar imagen');
       }
       
-      const cargaNumber = platform.cargaNumber || 'Sin número';
+      const cargaNumber = platform.platformNumber || 'Sin número';
       const provider = platform.provider || 'Sin proveedor';
       const client = platform.client || 'Sin cliente';
       const driver = platform.driver || 'Sin chofer';
@@ -422,18 +422,18 @@ export class PrintService {
    */
   private static generatePDFContent(platform: Platform): string {
     try {
-      console.log('📄 [generatePDFContent] Generando contenido para:', platform.cargaNumber);
+      console.log('📄 [generatePDFContent] Generando contenido para:', platform.platformNumber);
       
       // ✅ VALIDAR que la plataforma tiene los datos necesarios
       if (!platform) {
         throw new Error('Plataforma no proporcionada');
       }
       
-      if (!platform.cargaNumber) {
+      if (!platform.platformNumber) {
         throw new Error('Número de carga no disponible');
       }
       
-      const cargaNumber = platform.cargaNumber || 'Sin número';
+      const cargaNumber = platform.platformNumber || 'Sin número';
       const provider = platform.provider || 'Sin proveedor';
       const client = platform.client || 'Sin cliente';
       const driver = platform.driver || 'Sin chofer';
@@ -460,11 +460,17 @@ export class PrintService {
           <meta charset="UTF-8">
           <title>Carga ${cargaNumber}</title>
           <style>
+            @media print {
+              body { margin: 0; padding: 10px; }
+              .header { page-break-after: avoid; }
+              .pieces-section { page-break-inside: avoid; }
+            }
             body {
               font-family: Arial, sans-serif;
               margin: 0;
               padding: 20px;
               color: #333;
+              line-height: 1.4;
             }
             .header {
               text-align: center;
@@ -547,7 +553,7 @@ export class PrintService {
         </head>
         <body>
           <div class="header">
-            <h1 class="title">CARGA ${platform.cargaNumber}</h1>
+            <h1 class="title">CARGA ${platform.platformNumber}</h1>
           </div>
           
           <div class="info-grid">
