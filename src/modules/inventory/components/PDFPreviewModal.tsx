@@ -45,17 +45,26 @@ export const PDFPreviewModal: React.FC<PDFPreviewModalProps> = ({
       setLoading(true);
       setError(null);
 
+      // Validar datos requeridos
+      if (!platform || !platform.platformNumber || !platform.pieces) {
+        throw new Error('Datos de la plataforma incompletos');
+      }
+
       const pdfOptions = {
         platform,
         signature,
         includeEvidence,
       };
 
+      console.log('Generando PDF con opciones:', pdfOptions);
+
       const previewUrl = await PDFReportService.previewReport(pdfOptions);
       setPdfUrl(previewUrl);
+      console.log('PDF generado exitosamente');
     } catch (err) {
       console.error('Error generando vista previa del PDF:', err);
-      setError('Error al generar la vista previa del PDF');
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido al generar el PDF';
+      setError(`Error al generar la vista previa del PDF: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

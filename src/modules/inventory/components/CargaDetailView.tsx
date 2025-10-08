@@ -62,7 +62,7 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   const [showPDFModal, setShowPDFModal] = useState(false);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [signature, setSignature] = useState<{ name: string; date: string; signatureImage?: string } | undefined>(undefined);
-  const [includeEvidence, setIncludeEvidence] = useState(true);
+  const [includeEvidenceInPDF, setIncludeEvidenceInPDF] = useState(true);
   const [editData, setEditData] = useState({
     provider: platform.provider || '',
     client: platform.client || '',
@@ -638,6 +638,31 @@ Generado por Sistema de Inventario`;
   const handleGeneratePDFWithoutSignature = () => {
     setSignature(undefined);
     setShowPDFModal(true);
+  };
+
+  const handleToggleEvidenceInPDF = () => {
+    setIncludeEvidenceInPDF(!includeEvidenceInPDF);
+  };
+
+  // Esta función ahora usa el servicio PDFReportService
+  const generateAndDownloadPDF = async () => {
+    try {
+      setExporting(true);
+
+      const pdfOptions = {
+        platform,
+        signature,
+        includeEvidence: includeEvidenceInPDF,
+      };
+
+      await PDFReportService.downloadReport(pdfOptions);
+      showNotification('success', 'PDF descargado exitosamente');
+    } catch (error) {
+      console.error('Error descargando PDF:', error);
+      showNotification('error', 'Error al descargar el PDF');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const statusColors: Record<string, string> = {
@@ -1769,7 +1794,7 @@ Generado por Sistema de Inventario`;
         onClose={() => setShowPDFModal(false)}
         platform={platform}
         signature={signature}
-        includeEvidence={includeEvidence}
+        includeEvidence={includeEvidenceInPDF}
       />
     </div>
   );
