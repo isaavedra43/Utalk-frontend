@@ -4,170 +4,98 @@ import { Platform } from '../types';
 
 export class PrintService {
   /**
-   * Imprime un PDF directamente
+   * Imprime un PDF directamente - VERSIÓN CON NAVEGACIÓN MÓVIL
    */
   static async printPDF(platform: Platform): Promise<void> {
     try {
-      // ✅ VALIDAR PRIMERO antes de acceder a propiedades
-      if (!platform) {
-        throw new Error('No se proporcionó información de la carga');
-      }
-      
-      if (!platform.platformNumber) {
-        throw new Error('La carga no tiene número de carga válido');
+      console.log('🖨️ [PrintService] Iniciando impresión PDF...');
+
+      // ✅ VALIDAR datos básicos
+      if (!platform || !platform.platformNumber) {
+        throw new Error('Datos de carga inválidos');
       }
 
-      console.log('🖨️ Iniciando impresión de PDF para carga:', platform.platformNumber);
-      
-      // Generar el PDF
-      const pdfBlob = await this.generatePDF(platform);
-      
-      if (!pdfBlob || pdfBlob.size === 0) {
-        throw new Error('No se pudo generar el PDF');
+      // ✅ Generar HTML con navegación móvil
+      const htmlContent = this.generatePrintHTMLWithNavigation(platform);
+
+      // ✅ Crear ventana de impresión
+      const printWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+
+      if (!printWindow) {
+        throw new Error('No se pudo abrir ventana de impresión. Habilita los popups en tu navegador.');
       }
-      
-      console.log('✅ HTML generado exitosamente, tamaño:', pdfBlob.size, 'bytes');
 
-      // Crear URL del blob
-      const htmlUrl = URL.createObjectURL(pdfBlob);
+      // ✅ Escribir contenido y cerrar documento
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
 
-      // Abrir en nueva ventana para impresión
-      const printWindow = window.open(htmlUrl, '_blank');
-
-      if (printWindow) {
-        printWindow.onload = () => {
-          console.log('📄 Ventana de impresión cargada');
-          // Esperar a que el HTML se cargue completamente
-          setTimeout(() => {
-            try {
-              printWindow.print();
-              console.log('🖨️ Comando de impresión enviado');
-              // Limpiar la URL después de un tiempo
-              setTimeout(() => {
-                URL.revokeObjectURL(htmlUrl);
-                console.log('🧹 URL del HTML limpiada');
-              }, 1000);
-            } catch (printError) {
-              console.error('Error al enviar a impresión:', printError);
-              URL.revokeObjectURL(htmlUrl);
-            }
-          }, 500);
-        };
-        
-        printWindow.onerror = () => {
-          console.error('Error cargando ventana de impresión');
-          URL.revokeObjectURL(pdfUrl);
-        };
-      } else {
-        console.warn('⚠️ No se pudo abrir ventana de impresión, usando fallback');
-        // Fallback para dispositivos que bloquean popups
-        this.fallbackPrint(pdfBlob, 'application/pdf');
+      // ✅ En dispositivos móviles, no imprimir automáticamente
+      if (!this.isMobile()) {
+        printWindow.focus();
+        printWindow.print();
       }
+
+      console.log('✅ [PrintService] Ventana de impresión abierta y comando enviado');
+
     } catch (error) {
-      console.error('❌ Error printing PDF:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al imprimir PDF';
-      throw new Error(`Error al generar el PDF para impresión: ${errorMessage}`);
+      console.error('❌ [PrintService] Error:', error);
+      throw error;
     }
   }
 
   /**
-   * Imprime una imagen directamente
+   * Imprime una imagen directamente - VERSIÓN CON NAVEGACIÓN MÓVIL
    */
   static async printImage(platform: Platform): Promise<void> {
     try {
-      // ✅ VALIDAR PRIMERO antes de acceder a propiedades
-      if (!platform) {
-        throw new Error('No se proporcionó información de la carga');
-      }
-      
-      if (!platform.platformNumber) {
-        throw new Error('La carga no tiene número de carga válido');
+      console.log('🖼️ [PrintService] Iniciando impresión imagen...');
+
+      // ✅ VALIDAR datos básicos
+      if (!platform || !platform.platformNumber) {
+        throw new Error('Datos de carga inválidos');
       }
 
-      console.log('🖼️ Iniciando impresión de imagen para carga:', platform.platformNumber);
-      
-      // Generar la imagen
+      // ✅ Generar la imagen
       const imageBlob = await this.generateImage(platform);
-      
+
       if (!imageBlob || imageBlob.size === 0) {
         throw new Error('No se pudo generar la imagen');
       }
-      
-      console.log('✅ Imagen generada exitosamente, tamaño:', imageBlob.size, 'bytes');
-      
-      // Crear URL del blob
+
+      // ✅ Crear URL del blob
       const imageUrl = URL.createObjectURL(imageBlob);
-      
-      // Crear ventana de impresión con la imagen
-      const printWindow = window.open('', '_blank');
-      
-      if (printWindow) {
-        printWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <title>Imprimir Carga - ${platform.platformNumber}</title>
-              <style>
-                body {
-                  margin: 0;
-                  padding: 20px;
-                  font-family: Arial, sans-serif;
-                  display: flex;
-                  justify-content: center;
-                  align-items: center;
-                  min-height: 100vh;
-                }
-                img {
-                  max-width: 100%;
-                  max-height: 100%;
-                  object-fit: contain;
-                }
-                @media print {
-                  body { margin: 0; padding: 0; }
-                  img { max-width: 100%; max-height: 100vh; }
-                }
-              </style>
-            </head>
-            <body>
-              <img src="${imageUrl}" alt="Carga ${platform.platformNumber}" />
-            </body>
-          </html>
-        `);
-        
-        printWindow.document.close();
-        
-        // Esperar a que la imagen se cargue
-        printWindow.onload = () => {
-          console.log('🖼️ Ventana de impresión de imagen cargada');
-          setTimeout(() => {
-            try {
-              printWindow.print();
-              console.log('🖨️ Comando de impresión de imagen enviado');
-              // Limpiar la URL después de un tiempo
-              setTimeout(() => {
-                URL.revokeObjectURL(imageUrl);
-                console.log('🧹 URL de la imagen limpiada');
-              }, 1000);
-            } catch (printError) {
-              console.error('Error al enviar imagen a impresión:', printError);
-              URL.revokeObjectURL(imageUrl);
-            }
-          }, 500);
-        };
-        
-        printWindow.onerror = () => {
-          console.error('Error cargando ventana de impresión de imagen');
-          URL.revokeObjectURL(imageUrl);
-        };
-      } else {
-        console.warn('⚠️ No se pudo abrir ventana de impresión, usando fallback');
-        // Fallback para dispositivos que bloquean popups
-        this.fallbackPrint(imageBlob, 'image/png');
+
+      // ✅ Crear ventana de impresión
+      const printWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+
+      if (!printWindow) {
+        URL.revokeObjectURL(imageUrl);
+        throw new Error('No se pudo abrir ventana de impresión. Habilita los popups en tu navegador.');
       }
+
+      // ✅ HTML con navegación móvil para imagen
+      const htmlContent = this.generateImageHTMLWithNavigation(platform, imageUrl);
+
+      // ✅ Escribir contenido
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+
+      // ✅ En dispositivos móviles, no imprimir automáticamente
+      if (!this.isMobile()) {
+        printWindow.focus();
+        printWindow.print();
+      }
+
+      // ✅ Limpiar URL después de un tiempo
+      setTimeout(() => {
+        URL.revokeObjectURL(imageUrl);
+      }, 10000);
+
+      console.log('✅ [PrintService] Impresión de imagen enviada');
+
     } catch (error) {
-      console.error('❌ Error printing image:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al imprimir imagen';
-      throw new Error(`Error al generar la imagen para impresión: ${errorMessage}`);
+      console.error('❌ [PrintService] Error al imprimir imagen:', error);
+      throw error;
     }
   }
 
@@ -699,5 +627,725 @@ export class PrintService {
    */
   static isMobile(): boolean {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }
+
+  /**
+   * Genera HTML con navegación móvil para PDF
+   */
+  private static generatePrintHTMLWithNavigation(platform: Platform): string {
+    const pdfContent = this.generatePDFContent(platform);
+    
+    // Extraer solo el contenido del body del PDF
+    const bodyMatch = pdfContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    const pdfBody = bodyMatch ? bodyMatch[1] : pdfContent;
+
+    return `
+      <!DOCTYPE html>
+      <html lang="es">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Reporte de Inventario - ${platform.platformNumber}</title>
+          <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              background-color: #f5f5f5;
+              line-height: 1.4;
+            }
+
+            /* Barra de navegación móvil */
+            .mobile-nav {
+              position: fixed;
+              top: 0;
+              left: 0;
+              right: 0;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 12px 16px;
+              z-index: 1000;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+
+            .nav-title {
+              font-size: 16px;
+              font-weight: 600;
+              flex: 1;
+              text-align: center;
+              margin: 0 16px;
+            }
+
+            .nav-buttons {
+              display: flex;
+              gap: 8px;
+            }
+
+            .nav-btn {
+              background: rgba(255,255,255,0.2);
+              border: 1px solid rgba(255,255,255,0.3);
+              color: white;
+              padding: 8px 12px;
+              border-radius: 6px;
+              font-size: 12px;
+              font-weight: 500;
+              cursor: pointer;
+              transition: all 0.2s ease;
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              text-decoration: none;
+            }
+
+            .nav-btn:hover {
+              background: rgba(255,255,255,0.3);
+              transform: translateY(-1px);
+            }
+
+            .nav-btn:active {
+              transform: translateY(0);
+            }
+
+            .nav-btn.primary {
+              background: rgba(255,255,255,0.9);
+              color: #667eea;
+              font-weight: 600;
+            }
+
+            .nav-btn.primary:hover {
+              background: white;
+            }
+
+            /* Contenido del PDF */
+            .pdf-container {
+              margin-top: 60px;
+              background: white;
+              min-height: calc(100vh - 60px);
+              overflow-x: auto;
+            }
+
+            .pdf-content {
+              padding: 20px;
+              max-width: 100%;
+              overflow-x: auto;
+            }
+
+            /* Estilos del PDF original */
+            .pdf-content .header {
+              text-align: center;
+              border-bottom: 2px solid #3b82f6;
+              padding-bottom: 20px;
+              margin-bottom: 30px;
+            }
+
+            .pdf-content .title {
+              font-size: 24px;
+              font-weight: bold;
+              color: #1f2937;
+              margin: 0;
+            }
+
+            .pdf-content .info-grid {
+              display: grid;
+              grid-template-columns: 1fr;
+              gap: 15px;
+              margin-bottom: 30px;
+            }
+
+            .pdf-content .info-item {
+              display: flex;
+              justify-content: space-between;
+              padding: 8px 0;
+              border-bottom: 1px solid #e5e7eb;
+            }
+
+            .pdf-content .info-label {
+              font-weight: bold;
+              color: #374151;
+            }
+
+            .pdf-content .info-value {
+              color: #6b7280;
+            }
+
+            .pdf-content .pieces-section {
+              margin-top: 30px;
+            }
+
+            .pdf-content .pieces-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #1f2937;
+              margin-bottom: 15px;
+            }
+
+            .pdf-content .pieces-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 20px;
+              font-size: 14px;
+            }
+
+            .pdf-content .pieces-table th,
+            .pdf-content .pieces-table td {
+              border: 1px solid #d1d5db;
+              padding: 8px 12px;
+              text-align: left;
+            }
+
+            .pdf-content .pieces-table th {
+              background-color: #f3f4f6;
+              font-weight: bold;
+              color: #374151;
+            }
+
+            .pdf-content .summary {
+              background-color: #f9fafb;
+              padding: 20px;
+              border-radius: 8px;
+              margin-top: 20px;
+            }
+
+            .pdf-content .summary-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #1f2937;
+              margin-bottom: 10px;
+            }
+
+            .pdf-content .summary-item {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 5px;
+            }
+
+            /* Responsive */
+            @media (min-width: 768px) {
+              .mobile-nav {
+                padding: 16px 24px;
+              }
+
+              .nav-title {
+                font-size: 18px;
+              }
+
+              .nav-btn {
+                padding: 10px 16px;
+                font-size: 14px;
+              }
+
+              .pdf-content .info-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+              }
+
+              .pdf-container {
+                margin-top: 80px;
+              }
+
+              .pdf-content {
+                padding: 30px;
+              }
+            }
+
+            /* Estilos para impresión */
+            @media print {
+              .mobile-nav {
+                display: none !important;
+              }
+
+              .pdf-container {
+                margin-top: 0 !important;
+              }
+
+              .pdf-content {
+                padding: 0 !important;
+              }
+
+              body {
+                background: white !important;
+              }
+            }
+
+            /* Animaciones */
+            @keyframes slideIn {
+              from {
+                opacity: 0;
+                transform: translateY(-10px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+
+            .pdf-container {
+              animation: slideIn 0.3s ease-out;
+            }
+          </style>
+        </head>
+        <body>
+          <!-- Barra de navegación móvil -->
+          <div class="mobile-nav">
+            <button class="nav-btn" onclick="goBack()">
+              ← Volver
+            </button>
+            
+            <div class="nav-title">
+              Reporte de Inventario
+            </div>
+            
+            <div class="nav-buttons">
+              <button class="nav-btn" onclick="downloadPDF()">
+                📥 Descargar
+              </button>
+              <button class="nav-btn primary" onclick="printPDF()">
+                🖨️ Imprimir
+              </button>
+            </div>
+          </div>
+
+          <!-- Contenido del PDF -->
+          <div class="pdf-container">
+            <div class="pdf-content">
+              ${pdfBody}
+            </div>
+          </div>
+
+          <script>
+            // Funciones de navegación
+            function goBack() {
+              if (window.opener) {
+                window.close();
+              } else {
+                history.back();
+              }
+            }
+
+            function downloadPDF() {
+              try {
+                // Crear un blob con el contenido del PDF
+                const pdfContent = \`${pdfContent.replace(/`/g, '\\`')}\`;
+                const blob = new Blob([pdfContent], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                
+                // Crear enlace de descarga
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'Reporte_Inventario_${platform.platformNumber}_${new Date().toISOString().split('T')[0]}.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                // Limpiar URL
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                
+                // Mostrar notificación
+                showNotification('✅ Archivo descargado exitosamente', 'success');
+              } catch (error) {
+                console.error('Error descargando PDF:', error);
+                showNotification('❌ Error al descargar archivo', 'error');
+              }
+            }
+
+            function printPDF() {
+              try {
+                window.print();
+                showNotification('🖨️ Enviando a impresión...', 'success');
+              } catch (error) {
+                console.error('Error imprimiendo:', error);
+                showNotification('❌ Error al imprimir', 'error');
+              }
+            }
+
+            function showNotification(message, type) {
+              // Crear notificación
+              const notification = document.createElement('div');
+              notification.style.cssText = \`
+                position: fixed;
+                top: 70px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: \${type === 'success' ? '#10b981' : '#ef4444'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 500;
+                z-index: 1001;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                animation: slideIn 0.3s ease-out;
+              \`;
+              notification.textContent = message;
+              
+              document.body.appendChild(notification);
+              
+              // Remover después de 3 segundos
+              setTimeout(() => {
+                if (document.body.contains(notification)) {
+                  document.body.removeChild(notification);
+                }
+              }, 3000);
+            }
+
+            // Manejar teclas de acceso rápido
+            document.addEventListener('keydown', function(e) {
+              if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                  case 'p':
+                    e.preventDefault();
+                    printPDF();
+                    break;
+                  case 's':
+                    e.preventDefault();
+                    downloadPDF();
+                    break;
+                }
+              } else if (e.key === 'Escape') {
+                goBack();
+              }
+            });
+
+            // Auto-focus en el contenido
+            document.addEventListener('DOMContentLoaded', function() {
+              const container = document.querySelector('.pdf-container');
+              if (container) {
+                container.focus();
+              }
+            });
+          </script>
+        </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Genera HTML con navegación móvil para imagen
+   */
+  private static generateImageHTMLWithNavigation(platform: Platform, imageUrl: string): string {
+    return `
+      <!DOCTYPE html>
+      <html lang="es">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Imagen de Inventario - ${platform.platformNumber}</title>
+          <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              background-color: #f5f5f5;
+              line-height: 1.4;
+            }
+
+            /* Barra de navegación móvil */
+            .mobile-nav {
+              position: fixed;
+              top: 0;
+              left: 0;
+              right: 0;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              color: white;
+              padding: 12px 16px;
+              z-index: 1000;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+
+            .nav-title {
+              font-size: 16px;
+              font-weight: 600;
+              flex: 1;
+              text-align: center;
+              margin: 0 16px;
+            }
+
+            .nav-buttons {
+              display: flex;
+              gap: 8px;
+            }
+
+            .nav-btn {
+              background: rgba(255,255,255,0.2);
+              border: 1px solid rgba(255,255,255,0.3);
+              color: white;
+              padding: 8px 12px;
+              border-radius: 6px;
+              font-size: 12px;
+              font-weight: 500;
+              cursor: pointer;
+              transition: all 0.2s ease;
+              display: flex;
+              align-items: center;
+              gap: 4px;
+              text-decoration: none;
+            }
+
+            .nav-btn:hover {
+              background: rgba(255,255,255,0.3);
+              transform: translateY(-1px);
+            }
+
+            .nav-btn:active {
+              transform: translateY(0);
+            }
+
+            .nav-btn.primary {
+              background: rgba(255,255,255,0.9);
+              color: #667eea;
+              font-weight: 600;
+            }
+
+            .nav-btn.primary:hover {
+              background: white;
+            }
+
+            /* Contenido de la imagen */
+            .image-container {
+              margin-top: 60px;
+              background: white;
+              min-height: calc(100vh - 60px);
+              padding: 20px;
+              text-align: center;
+            }
+
+            .image-header {
+              margin-bottom: 20px;
+            }
+
+            .image-title {
+              font-size: 24px;
+              font-weight: bold;
+              color: #1f2937;
+              margin-bottom: 10px;
+            }
+
+            .image-subtitle {
+              font-size: 14px;
+              color: #6b7280;
+              margin-bottom: 20px;
+            }
+
+            .report-image {
+              max-width: 100%;
+              height: auto;
+              border: 1px solid #d1d5db;
+              border-radius: 8px;
+              box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+              margin: 0 auto;
+              display: block;
+            }
+
+            /* Responsive */
+            @media (min-width: 768px) {
+              .mobile-nav {
+                padding: 16px 24px;
+              }
+
+              .nav-title {
+                font-size: 18px;
+              }
+
+              .nav-btn {
+                padding: 10px 16px;
+                font-size: 14px;
+              }
+
+              .image-container {
+                margin-top: 80px;
+                padding: 30px;
+              }
+
+              .image-title {
+                font-size: 28px;
+              }
+
+              .image-subtitle {
+                font-size: 16px;
+              }
+            }
+
+            /* Estilos para impresión */
+            @media print {
+              .mobile-nav {
+                display: none !important;
+              }
+
+              .image-container {
+                margin-top: 0 !important;
+                padding: 0 !important;
+              }
+
+              body {
+                background: white !important;
+              }
+            }
+
+            /* Animaciones */
+            @keyframes slideIn {
+              from {
+                opacity: 0;
+                transform: translateY(-10px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+
+            .image-container {
+              animation: slideIn 0.3s ease-out;
+            }
+          </style>
+        </head>
+        <body>
+          <!-- Barra de navegación móvil -->
+          <div class="mobile-nav">
+            <button class="nav-btn" onclick="goBack()">
+              ← Volver
+            </button>
+            
+            <div class="nav-title">
+              Imagen de Inventario
+            </div>
+            
+            <div class="nav-buttons">
+              <button class="nav-btn" onclick="downloadImage()">
+                📥 Descargar
+              </button>
+              <button class="nav-btn primary" onclick="printImage()">
+                🖨️ Imprimir
+              </button>
+            </div>
+          </div>
+
+          <!-- Contenido de la imagen -->
+          <div class="image-container">
+            <div class="image-header">
+              <h1 class="image-title">Carga ${platform.platformNumber}</h1>
+              <p class="image-subtitle">
+                ${platform.materialTypes?.join(', ') || 'Sin materiales'} - ${platform.driver || 'Sin chofer'}
+              </p>
+            </div>
+            
+            <img 
+              src="${imageUrl}" 
+              alt="Reporte de Inventario - Carga ${platform.platformNumber}" 
+              class="report-image"
+              onload="showNotification('✅ Imagen cargada exitosamente', 'success')"
+              onerror="showNotification('❌ Error al cargar imagen', 'error')"
+            />
+          </div>
+
+          <script>
+            // Funciones de navegación
+            function goBack() {
+              if (window.opener) {
+                window.close();
+              } else {
+                history.back();
+              }
+            }
+
+            function downloadImage() {
+              try {
+                // Crear enlace de descarga
+                const a = document.createElement('a');
+                a.href = '${imageUrl}';
+                a.download = 'Reporte_Inventario_${platform.platformNumber}_${new Date().toISOString().split('T')[0]}.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                showNotification('✅ Imagen descargada exitosamente', 'success');
+              } catch (error) {
+                console.error('Error descargando imagen:', error);
+                showNotification('❌ Error al descargar imagen', 'error');
+              }
+            }
+
+            function printImage() {
+              try {
+                window.print();
+                showNotification('🖨️ Enviando a impresión...', 'success');
+              } catch (error) {
+                console.error('Error imprimiendo:', error);
+                showNotification('❌ Error al imprimir', 'error');
+              }
+            }
+
+            function showNotification(message, type) {
+              // Crear notificación
+              const notification = document.createElement('div');
+              notification.style.cssText = \`
+                position: fixed;
+                top: 70px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: \${type === 'success' ? '#10b981' : '#ef4444'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 500;
+                z-index: 1001;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                animation: slideIn 0.3s ease-out;
+              \`;
+              notification.textContent = message;
+              
+              document.body.appendChild(notification);
+              
+              // Remover después de 3 segundos
+              setTimeout(() => {
+                if (document.body.contains(notification)) {
+                  document.body.removeChild(notification);
+                }
+              }, 3000);
+            }
+
+            // Manejar teclas de acceso rápido
+            document.addEventListener('keydown', function(e) {
+              if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                  case 'p':
+                    e.preventDefault();
+                    printImage();
+                    break;
+                  case 's':
+                    e.preventDefault();
+                    downloadImage();
+                    break;
+                }
+              } else if (e.key === 'Escape') {
+                goBack();
+              }
+            });
+
+            // Auto-focus en el contenido
+            document.addEventListener('DOMContentLoaded', function() {
+              const container = document.querySelector('.image-container');
+              if (container) {
+                container.focus();
+              }
+            });
+          </script>
+        </body>
+      </html>
+    `;
   }
 }
