@@ -176,8 +176,17 @@ export class PrintService {
    */
   private static async generatePDF(platform: Platform): Promise<Blob> {
     try {
+      console.log('📄 [generatePDF] Iniciando generación de PDF para:', platform.cargaNumber);
+      
+      // ✅ VALIDAR datos de la plataforma
+      if (!platform || !platform.cargaNumber) {
+        throw new Error('Datos de plataforma inválidos para generar PDF');
+      }
+      
       // Crear contenido HTML para el PDF
+      console.log('📄 [generatePDF] Generando contenido HTML...');
       const htmlContent = this.generatePDFContent(platform);
+      console.log('📄 [generatePDF] Contenido HTML generado, longitud:', htmlContent.length);
       
       // Crear un iframe oculto para generar el PDF
       const iframe = document.createElement('iframe');
@@ -191,7 +200,10 @@ export class PrintService {
       document.body.appendChild(iframe);
       
       return new Promise((resolve, reject) => {
+        console.log('📄 [generatePDF] Creando Promise para generación de PDF...');
+        
         const timeout = setTimeout(() => {
+          console.error('⏰ [generatePDF] Timeout generando PDF');
           if (document.body.contains(iframe)) {
             document.body.removeChild(iframe);
           }
@@ -200,6 +212,7 @@ export class PrintService {
         
         iframe.onload = () => {
           try {
+            console.log('📄 [generatePDF] Iframe cargado, escribiendo contenido...');
             const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
             if (iframeDoc) {
               iframeDoc.open();
@@ -209,14 +222,17 @@ export class PrintService {
               // Esperar a que se renderice
               setTimeout(() => {
                 try {
+                  console.log('📄 [generatePDF] Creando blob del PDF...');
                   // Crear un blob con el HTML para simular el PDF
                   const blob = new Blob([htmlContent], { type: 'application/pdf' });
+                  console.log('✅ [generatePDF] PDF generado exitosamente, tamaño:', blob.size);
                   clearTimeout(timeout);
                   if (document.body.contains(iframe)) {
                     document.body.removeChild(iframe);
                   }
                   resolve(blob);
                 } catch (error) {
+                  console.error('❌ [generatePDF] Error creando blob:', error);
                   clearTimeout(timeout);
                   if (document.body.contains(iframe)) {
                     document.body.removeChild(iframe);
@@ -225,6 +241,7 @@ export class PrintService {
                 }
               }, 1000);
             } else {
+              console.error('❌ [generatePDF] No se pudo acceder al documento del iframe');
               clearTimeout(timeout);
               if (document.body.contains(iframe)) {
                 document.body.removeChild(iframe);
@@ -232,6 +249,7 @@ export class PrintService {
               reject(new Error('No se pudo acceder al documento del iframe'));
             }
           } catch (error) {
+            console.error('❌ [generatePDF] Error en onload:', error);
             clearTimeout(timeout);
             if (document.body.contains(iframe)) {
               document.body.removeChild(iframe);
@@ -240,7 +258,8 @@ export class PrintService {
           }
         };
         
-        iframe.onerror = () => {
+        iframe.onerror = (error) => {
+          console.error('❌ [generatePDF] Error cargando iframe:', error);
           clearTimeout(timeout);
           if (document.body.contains(iframe)) {
             document.body.removeChild(iframe);
@@ -249,7 +268,7 @@ export class PrintService {
         };
       });
     } catch (error) {
-      console.error('Error en generatePDF:', error);
+      console.error('❌ [generatePDF] Error general:', error);
       throw new Error(`Error generando PDF: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   }
@@ -258,33 +277,53 @@ export class PrintService {
    * Genera una imagen de la carga
    */
   private static async generateImage(platform: Platform): Promise<Blob> {
-    // Crear un canvas para generar la imagen
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    if (!ctx) {
-      throw new Error('No se pudo crear el contexto del canvas');
+    try {
+      console.log('🖼️ [generateImage] Iniciando generación de imagen para:', platform.cargaNumber);
+      
+      // ✅ VALIDAR datos de la plataforma
+      if (!platform || !platform.cargaNumber) {
+        throw new Error('Datos de plataforma inválidos para generar imagen');
+      }
+      
+      // Crear un canvas para generar la imagen
+      console.log('🖼️ [generateImage] Creando canvas...');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        throw new Error('No se pudo crear el contexto del canvas');
+      }
+      
+      // Configurar el canvas
+      canvas.width = 800;
+      canvas.height = 1000;
+      console.log('🖼️ [generateImage] Canvas configurado:', canvas.width, 'x', canvas.height);
+      
+      // Configurar el contexto
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Dibujar el contenido
+      console.log('🖼️ [generateImage] Dibujando contenido...');
+      this.drawImageContent(ctx, platform, canvas.width, canvas.height);
+      
+      // Convertir a blob
+      console.log('🖼️ [generateImage] Convirtiendo a blob...');
+      return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) {
+            console.log('✅ [generateImage] Imagen generada exitosamente, tamaño:', blob.size);
+            resolve(blob);
+          } else {
+            console.error('❌ [generateImage] Error generando blob de imagen');
+            reject(new Error('Error generando blob de imagen'));
+          }
+        }, 'image/png', 0.9);
+      });
+    } catch (error) {
+      console.error('❌ [generateImage] Error general:', error);
+      throw new Error(`Error generando imagen: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
-    
-    // Configurar el canvas
-    canvas.width = 800;
-    canvas.height = 1000;
-    
-    // Configurar el contexto
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Dibujar el contenido
-    this.drawImageContent(ctx, platform, canvas.width, canvas.height);
-    
-    // Convertir a blob
-    return new Promise((resolve) => {
-      canvas.toBlob((blob) => {
-        if (blob) {
-          resolve(blob);
-        }
-      }, 'image/png', 0.9);
-    });
   }
 
   /**

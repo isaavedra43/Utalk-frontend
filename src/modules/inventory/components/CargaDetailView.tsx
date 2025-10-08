@@ -236,6 +236,8 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   // ✅ NUEVO: Imprimir PDF directamente
   const handlePrintPDF = async () => {
     try {
+      console.log('🖨️ [handlePrintPDF] Iniciando impresión PDF...');
+      
       // ✅ VALIDAR que la plataforma existe antes de imprimir
       if (!platform) {
         console.error('❌ No hay información de carga disponible para imprimir');
@@ -243,12 +245,26 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
         return;
       }
       
+      console.log('🖨️ [handlePrintPDF] Datos de plataforma:', {
+        id: platform.id,
+        cargaNumber: platform.cargaNumber,
+        piecesCount: platform.pieces?.length || 0,
+        hasProvider: !!platform.provider,
+        hasClient: !!platform.client,
+        hasDriver: !!platform.driver
+      });
+      
       setExporting(true);
+      console.log('🖨️ [handlePrintPDF] Llamando a PrintService.printPDF...');
       await PrintService.printPDF(platform);
+      console.log('✅ [handlePrintPDF] PrintService.printPDF completado exitosamente');
       showNotification('success', 'Enviando PDF a impresión...');
     } catch (error) {
-      console.error('Error al imprimir PDF:', error);
-      showNotification('error', 'Error al imprimir PDF');
+      console.error('❌ [handlePrintPDF] Error capturado:', error);
+      console.error('❌ [handlePrintPDF] Tipo de error:', typeof error);
+      console.error('❌ [handlePrintPDF] Error message:', error instanceof Error ? error.message : 'No message');
+      console.error('❌ [handlePrintPDF] Error stack:', error instanceof Error ? error.stack : 'No stack');
+      showNotification('error', `Error al imprimir PDF: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setExporting(false);
     }
@@ -257,6 +273,8 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   // ✅ NUEVO: Imprimir imagen directamente
   const handlePrintImage = async () => {
     try {
+      console.log('🖼️ [handlePrintImage] Iniciando impresión imagen...');
+      
       // ✅ VALIDAR que la plataforma existe antes de imprimir
       if (!platform) {
         console.error('❌ No hay información de carga disponible para imprimir');
@@ -264,12 +282,26 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
         return;
       }
       
+      console.log('🖼️ [handlePrintImage] Datos de plataforma:', {
+        id: platform.id,
+        cargaNumber: platform.cargaNumber,
+        piecesCount: platform.pieces?.length || 0,
+        hasProvider: !!platform.provider,
+        hasClient: !!platform.client,
+        hasDriver: !!platform.driver
+      });
+      
       setExporting(true);
+      console.log('🖼️ [handlePrintImage] Llamando a PrintService.printImage...');
       await PrintService.printImage(platform);
+      console.log('✅ [handlePrintImage] PrintService.printImage completado exitosamente');
       showNotification('success', 'Enviando imagen a impresión...');
     } catch (error) {
-      console.error('Error al imprimir imagen:', error);
-      showNotification('error', 'Error al imprimir imagen');
+      console.error('❌ [handlePrintImage] Error capturado:', error);
+      console.error('❌ [handlePrintImage] Tipo de error:', typeof error);
+      console.error('❌ [handlePrintImage] Error message:', error instanceof Error ? error.message : 'No message');
+      console.error('❌ [handlePrintImage] Error stack:', error instanceof Error ? error.stack : 'No stack');
+      showNotification('error', `Error al imprimir imagen: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setExporting(false);
     }
