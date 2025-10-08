@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Edit3, RotateCcw, Check, X, Trash2 } from 'lucide-react';
+import { Edit3, RefreshCw, Check, X } from 'lucide-react';
 
 interface SignaturePadProps {
   isOpen: boolean;
@@ -14,7 +14,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
   onClose,
   onSignature,
   title = 'Firma Electrónica'
-}) => {
+}: SignaturePadProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [name, setName] = useState('');
@@ -26,69 +26,97 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
     if (canvas) {
       const context = canvas.getContext('2d');
       if (context) {
-        context.lineWidth = 2;
+        context.lineWidth = 3;
         context.lineCap = 'round';
         context.strokeStyle = '#000000';
         context.lineJoin = 'round';
         setCtx(context);
 
         // Configurar tamaño del canvas
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width * window.devicePixelRatio;
-        canvas.height = rect.height * window.devicePixelRatio;
-        context.scale(window.devicePixelRatio, window.devicePixelRatio);
+        const resizeCanvas = () => {
+          const rect = canvas.getBoundingClientRect();
+          const dpr = window.devicePixelRatio || 1;
+          
+          canvas.width = rect.width * dpr;
+          canvas.height = rect.height * dpr;
+          canvas.style.width = rect.width + 'px';
+          canvas.style.height = rect.height + 'px';
+          
+          context.scale(dpr, dpr);
 
-        // Fondo blanco
-        context.fillStyle = '#ffffff';
-        context.fillRect(0, 0, canvas.width / window.devicePixelRatio, canvas.height / window.devicePixelRatio);
+          // Fondo blanco
+          context.fillStyle = '#ffffff';
+          context.fillRect(0, 0, rect.width, rect.height);
+
+          // Agregar texto de placeholder
+          context.fillStyle = '#9ca3af';
+          context.font = '14px Arial';
+          context.textAlign = 'center';
+          context.fillText('Firma aquí...', rect.width / 2, rect.height / 2);
+        };
+
+        resizeCanvas();
+        
+        // Reajustar si cambia el tamaño de la ventana
+        window.addEventListener('resize', resizeCanvas);
+        
+        return () => {
+          window.removeEventListener('resize', resizeCanvas);
+        };
       }
     }
-  }, []);
+  }, [isOpen]);
+
+  const getEventPos = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+
+    const rect = canvas.getBoundingClientRect();
+    let clientX: number, clientY: number;
+
+    if ('touches' in e && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if ('changedTouches' in e && e.changedTouches.length > 0) {
+      clientX = e.changedTouches[0].clientX;
+      clientY = e.changedTouches[0].clientY;
+    } else {
+      clientX = (e as React.MouseEvent<HTMLCanvasElement>).clientX;
+      clientY = (e as React.MouseEvent<HTMLCanvasElement>).clientY;
+    }
+
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    };
+  };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!ctx) return;
+    if (!ctx || !canvasRef.current) return;
 
+    e.preventDefault();
     setIsDrawing(true);
     setHasSignature(true);
 
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    let clientX: number, clientY: number;
-
-    if ('touches' in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
+    const { x, y } = getEventPos(e);
+    
+    // Limpiar placeholder si es la primera vez que se dibuja
+    if (!hasSignature) {
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, rect.width, rect.height);
     }
-
-    const x = (clientX - rect.left) * window.devicePixelRatio;
-    const y = (clientY - rect.top) * window.devicePixelRatio;
-
+    
     ctx.beginPath();
     ctx.moveTo(x, y);
   };
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !ctx) return;
+    if (!isDrawing || !ctx || !canvasRef.current) return;
 
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    let clientX: number, clientY: number;
-
-    if ('touches' in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
-
-    const x = (clientX - rect.left) * window.devicePixelRatio;
-    const y = (clientY - rect.top) * window.devicePixelRatio;
+    e.preventDefault();
+    const { x, y } = getEventPos(e);
 
     ctx.lineTo(x, y);
     ctx.stroke();
@@ -105,10 +133,17 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
 
     const canvas = canvasRef.current;
     const context = ctx;
+    const rect = canvas.getBoundingClientRect();
 
     // Limpiar canvas
     context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, canvas.width / window.devicePixelRatio, canvas.height / window.devicePixelRatio);
+    context.fillRect(0, 0, rect.width, rect.height);
+
+    // Agregar texto de placeholder
+    context.fillStyle = '#9ca3af';
+    context.font = '14px Arial';
+    context.textAlign = 'center';
+    context.fillText('Firma aquí...', rect.width / 2, rect.height / 2);
 
     setHasSignature(false);
   };
@@ -175,7 +210,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                 placeholder="Ingrese su nombre completo"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
@@ -189,21 +224,32 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
               <div className="border-2 border-gray-300 rounded-lg p-2 bg-gray-50">
                 <canvas
                   ref={canvasRef}
-                  className="w-full h-32 border border-gray-200 rounded bg-white cursor-crosshair touch-none"
-                  style={{ maxWidth: '100%' }}
-                  onMouseDown={startDrawing}
-                  onMouseMove={draw}
+                  className="w-full h-40 border border-gray-200 rounded bg-white cursor-crosshair"
+                  style={{ 
+                    maxWidth: '100%',
+                    touchAction: 'none',
+                    userSelect: 'none'
+                  }}
+                  onMouseDown={(e: React.MouseEvent<HTMLCanvasElement>) => startDrawing(e)}
+                  onMouseMove={(e: React.MouseEvent<HTMLCanvasElement>) => draw(e)}
                   onMouseUp={stopDrawing}
                   onMouseLeave={stopDrawing}
-                  onTouchStart={(e) => {
+                  onTouchStart={(e: React.TouchEvent<HTMLCanvasElement>) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     startDrawing(e);
                   }}
-                  onTouchMove={(e) => {
+                  onTouchMove={(e: React.TouchEvent<HTMLCanvasElement>) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     draw(e);
                   }}
-                  onTouchEnd={(e) => {
+                  onTouchEnd={(e: React.TouchEvent<HTMLCanvasElement>) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    stopDrawing();
+                  }}
+                  onTouchCancel={(e: React.TouchEvent<HTMLCanvasElement>) => {
                     e.preventDefault();
                     stopDrawing();
                   }}
@@ -222,7 +268,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
                 onClick={clearSignature}
                 className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <RotateCcw className="h-4 w-4" />
+                <RefreshCw className="h-4 w-4" />
                 <span className="text-sm">Limpiar</span>
               </button>
 

@@ -82,7 +82,7 @@ export class PDFReportService {
 
         // Evidencias (si están habilitadas)
         if (includeEvidence && platform.evidence && Array.isArray(platform.evidence) && platform.evidence.length > 0) {
-          yPosition = this.addEvidenceSection(doc, platform.evidence, yPosition);
+          yPosition = await this.addEvidenceSection(doc, platform.evidence, yPosition);
         }
 
         // Firma electrónica
@@ -448,7 +448,7 @@ export class PDFReportService {
     }
   }
 
-  private static addEvidenceSection(doc: jsPDF, evidence: Evidence[], yPosition: number): number {
+  private static async addEvidenceSection(doc: jsPDF, evidence: Evidence[], yPosition: number): Promise<number> {
     try {
       if (!evidence || !Array.isArray(evidence) || evidence.length === 0) return yPosition;
 
@@ -479,7 +479,7 @@ export class PDFReportService {
         const evidenceItem = evidence[i];
 
         // Verificar si necesitamos nueva página para cada evidencia
-        if (currentY > doc.internal.pageSize.getHeight() - 60) {
+        if (currentY > doc.internal.pageSize.getHeight() - 80) {
           doc.addPage();
           currentY = 20;
         }
@@ -509,16 +509,26 @@ export class PDFReportService {
           currentY += lineHeight;
         });
 
-        // Si es una imagen, agregar nota
+        // Si es una imagen, agregar la imagen real al PDF
         if (evidenceItem.fileType && evidenceItem.fileType.startsWith('image/') && evidenceItem.url) {
-          if (currentY > doc.internal.pageSize.getHeight() - 30) {
-            doc.addPage();
-            currentY = 20;
+          try {
+            // Verificar si necesitamos nueva página para la imagen
+            if (currentY > doc.internal.pageSize.getHeight() - 60) {
+              doc.addPage();
+              currentY = 20;
+            }
+
+            // Cargar y agregar la imagen
+            await this.addImageToPDF(doc, evidenceItem.url, currentY, leftMargin);
+            currentY += 50; // Espacio para la imagen + margen
+          } catch (imageError) {
+            console.warn('Error cargando imagen de evidencia:', imageError);
+            // Si falla la carga de imagen, agregar nota de error
+            doc.setFontSize(this.FONTS.small);
+            doc.setTextColor(this.COLORS.textLight);
+            doc.text('⚠️ Error cargando imagen', leftMargin, currentY);
+            currentY += lineHeight + 5;
           }
-          doc.setFontSize(this.FONTS.small);
-          doc.setTextColor(this.COLORS.textLight);
-          doc.text('📷 Imagen adjunta disponible en el archivo original', leftMargin, currentY);
-          currentY += lineHeight + 5;
         } else {
           currentY += 5; // Espacio adicional entre evidencias
         }
@@ -531,6 +541,81 @@ export class PDFReportService {
       // En lugar de lanzar el error, devolver la posición actual para continuar
       return yPosition + 50;
     }
+  }
+
+  private static async addImageToPDF(doc: jsPDF, imageUrl: string, yPosition: number, xPosition: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      try {
+        // Crear una imagen
+        const img = new Image();
+        
+        img.onload = () => {
+          try {
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const maxWidth = pageWidth - xPosition - 20; // Margen derecho
+            const maxHeight = 50; // Altura máxima para la imagen
+            
+            // Calcular dimensiones manteniendo proporción
+            let imgWidth = img.width;
+            let imgHeight = img.height;
+            
+            // Redimensionar si es necesario
+            if (imgWidth > maxWidth) {
+              const ratio = maxWidth / imgWidth;
+              imgWidth = maxWidth;
+              imgHeight = imgHeight * ratio;
+            }
+            
+            if (imgHeight > maxHeight) {
+              const ratio = maxHeight / imgHeight;
+              imgHeight = maxHeight;
+              imgWidth = imgWidth * ratio;
+            }
+            
+            // Dibujar borde alrededor de la imagen
+            doc.setDrawColor(this.COLORS.border);
+            doc.setLineWidth(0.5);
+            doc.rect(xPosition, yPosition, imgWidth, imgHeight);
+            
+            // Determinar el tipo de imagen basado en la URL o tipo MIME
+            let imageFormat = 'PNG';
+            if (imageUrl.toLowerCase().includes('.jpg') || imageUrl.toLowerCase().includes('.jpeg')) {
+              imageFormat = 'JPEG';
+            } else if (imageUrl.toLowerCase().includes('.png')) {
+              imageFormat = 'PNG';
+            }
+            
+            // Agregar la imagen al PDF
+            doc.addImage(img, imageFormat, xPosition, yPosition, imgWidth, imgHeight);
+            
+            console.log('Imagen agregada al PDF:', {
+              url: imageUrl,
+              format: imageFormat,
+              originalSize: { width: img.width, height: img.height },
+              pdfSize: { width: imgWidth, height: imgHeight }
+            });
+            
+            resolve();
+          } catch (addImageError) {
+            console.error('Error agregando imagen al PDF:', addImageError);
+            reject(addImageError);
+          }
+        };
+        
+        img.onerror = (error) => {
+          console.error('Error cargando imagen:', error);
+          reject(error);
+        };
+        
+        // Configurar CORS y cargar la imagen
+        img.crossOrigin = 'anonymous';
+        img.src = imageUrl;
+        
+      } catch (error) {
+        console.error('Error en addImageToPDF:', error);
+        reject(error);
+      }
+    });
   }
 
   private static addSignatureSection(doc: jsPDF, signature: { name: string; date: string; signatureImage?: string }, yPosition: number) {
