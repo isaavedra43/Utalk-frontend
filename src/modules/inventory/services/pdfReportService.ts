@@ -518,15 +518,33 @@ export class PDFReportService {
               currentY = 20;
             }
 
+            console.log('🖼️ Procesando imagen de evidencia:', {
+              fileName: evidenceItem.fileName,
+              url: evidenceItem.url,
+              type: evidenceItem.fileType
+            });
+            
             // Cargar y agregar la imagen
             await this.addImageToPDF(doc, evidenceItem.url, currentY, leftMargin);
             currentY += 50; // Espacio para la imagen + margen
+            
+            console.log('✅ Imagen de evidencia procesada exitosamente');
           } catch (imageError) {
-            console.warn('Error cargando imagen de evidencia:', imageError);
-            // Si falla la carga de imagen, agregar nota de error
+            console.warn('⚠️ Error cargando imagen de evidencia:', imageError);
+            console.warn('⚠️ Detalles del error:', {
+              fileName: evidenceItem.fileName,
+              url: evidenceItem.url,
+              error: imageError
+            });
+            
+            // Si falla la carga de imagen, agregar nota de error más informativa
             doc.setFontSize(this.FONTS.small);
+            doc.setTextColor('#ef4444'); // Rojo para el error
+            doc.text(`⚠️ Error cargando imagen: ${evidenceItem.fileName}`, leftMargin, currentY);
+            currentY += lineHeight;
+            
             doc.setTextColor(this.COLORS.textLight);
-            doc.text('⚠️ Error cargando imagen', leftMargin, currentY);
+            doc.text('Imagen no disponible (problema de CORS o URL)', leftMargin, currentY);
             currentY += lineHeight + 5;
           }
         } else {
@@ -546,6 +564,8 @@ export class PDFReportService {
   private static async addImageToPDF(doc: jsPDF, imageUrl: string, yPosition: number, xPosition: number): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
+        console.log('🖼️ Intentando cargar imagen:', imageUrl);
+        
         // Crear una imagen
         const img = new Image();
         
@@ -588,7 +608,7 @@ export class PDFReportService {
             // Agregar la imagen al PDF
             doc.addImage(img, imageFormat, xPosition, yPosition, imgWidth, imgHeight);
             
-            console.log('Imagen agregada al PDF:', {
+            console.log('✅ Imagen agregada al PDF exitosamente:', {
               url: imageUrl,
               format: imageFormat,
               originalSize: { width: img.width, height: img.height },
@@ -597,22 +617,31 @@ export class PDFReportService {
             
             resolve();
           } catch (addImageError) {
-            console.error('Error agregando imagen al PDF:', addImageError);
+            console.error('❌ Error agregando imagen al PDF:', addImageError);
             reject(addImageError);
           }
         };
         
         img.onerror = (error) => {
-          console.error('Error cargando imagen:', error);
+          console.error('❌ Error cargando imagen (CORS o URL inválida):', error);
+          console.error('❌ URL que falló:', imageUrl);
           reject(error);
         };
         
-        // Configurar CORS y cargar la imagen
-        img.crossOrigin = 'anonymous';
+        // Intentar cargar primero sin CORS (para URLs del mismo dominio)
         img.src = imageUrl;
         
+        // Si falla, intentar con CORS después de un timeout
+        setTimeout(() => {
+          if (img.complete && img.naturalHeight === 0) {
+            console.log('🔄 Reintentando con CORS...');
+            img.crossOrigin = 'anonymous';
+            img.src = imageUrl;
+          }
+        }, 1000);
+        
       } catch (error) {
-        console.error('Error en addImageToPDF:', error);
+        console.error('❌ Error en addImageToPDF:', error);
         reject(error);
       }
     });
