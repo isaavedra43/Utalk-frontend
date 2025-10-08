@@ -649,65 +649,74 @@ export class PDFReportService {
     });
   }
 
-  // Nueva función para cargar imagen como base64
+  // Nueva función para cargar imagen como base64 usando XMLHttpRequest
   private static async loadImageAsBase64(imageUrl: string): Promise<string> {
-    try {
-      console.log('📥 Descargando imagen como blob:', imageUrl);
-      
-      // Usar fetch con modo 'no-cors' como fallback
-      let response: Response;
-      
+    return new Promise((resolve, reject) => {
       try {
-        // Intentar con CORS primero
-        response = await fetch(imageUrl, {
-          mode: 'cors',
-          cache: 'no-cache'
-        });
+        console.log('📥 Descargando imagen con XMLHttpRequest:', imageUrl);
         
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', imageUrl, true);
+        xhr.responseType = 'blob';
         
-        console.log('✅ Imagen descargada exitosamente con CORS');
+        // Agregar timestamp para evitar caché
+        const timestamp = Date.now();
+        const separator = imageUrl.includes('?') ? '&' : '?';
+        xhr.open('GET', `${imageUrl}${separator}t=${timestamp}`, true);
+        xhr.responseType = 'blob';
         
-      } catch (corsError) {
-        console.warn('⚠️ CORS falló, intentando con no-cors:', corsError);
+        xhr.onload = function() {
+          try {
+            if (xhr.status === 200) {
+              console.log('✅ Imagen descargada exitosamente:', {
+                status: xhr.status,
+                size: xhr.response?.size,
+                type: xhr.response?.type
+              });
+              
+              const reader = new FileReader();
+              reader.onloadend = function() {
+                const base64 = reader.result as string;
+                console.log('✅ Base64 generado, longitud:', base64.length);
+                resolve(base64);
+              };
+              reader.onerror = function(error) {
+                console.error('❌ Error leyendo blob:', error);
+                reject(new Error('Error convirtiendo blob a base64'));
+              };
+              reader.readAsDataURL(xhr.response);
+              
+            } else {
+              console.error('❌ Error HTTP:', xhr.status, xhr.statusText);
+              reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+            }
+          } catch (error) {
+            console.error('❌ Error procesando respuesta:', error);
+            reject(error);
+          }
+        };
         
-        // Fallback: usar no-cors
-        response = await fetch(imageUrl, {
-          mode: 'no-cors',
-          cache: 'no-cache'
-        });
+        xhr.onerror = function() {
+          console.error('❌ Error de red XMLHttpRequest');
+          reject(new Error('Error de red al descargar imagen'));
+        };
         
-        console.log('✅ Imagen descargada con no-cors (puede tener limitaciones)');
+        xhr.ontimeout = function() {
+          console.error('❌ Timeout XMLHttpRequest');
+          reject(new Error('Timeout al descargar imagen'));
+        };
+        
+        // Configurar timeout de 30 segundos
+        xhr.timeout = 30000;
+        
+        console.log('📤 Enviando petición XMLHttpRequest...');
+        xhr.send();
+        
+      } catch (error) {
+        console.error('❌ Error en loadImageAsBase64:', error);
+        reject(error);
       }
-      
-      // Convertir a blob
-      const blob = await response.blob();
-      console.log('📦 Blob creado:', { size: blob.size, type: blob.type });
-      
-      // Convertir blob a base64
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        
-        reader.onload = () => {
-          const base64 = reader.result as string;
-          console.log('✅ Base64 generado, longitud:', base64.length);
-          resolve(base64);
-        };
-        
-        reader.onerror = (error) => {
-          console.error('❌ Error leyendo blob:', error);
-          reject(error);
-        };
-        
-        reader.readAsDataURL(blob);
-      });
-      
-    } catch (error) {
-      console.error('❌ Error en loadImageAsBase64:', error);
-      throw error;
-    }
+    });
   }
 
   private static addSignatureSection(doc: jsPDF, signature: { name: string; date: string; signatureImage?: string }, yPosition: number) {
