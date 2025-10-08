@@ -278,7 +278,7 @@ export const useInventory = () => {
     }
   }, [cargas, isOnline]);
 
-  // Agregar múltiples piezas
+  // Agregar múltiples líneas
   const addMultiplePieces = useCallback(async (platformId: string, pieces: { length: number; material: string }[]) => {
     const platform = cargas.find((p: Platform) => p.id === platformId);
     if (!platform) return;
@@ -337,7 +337,7 @@ export const useInventory = () => {
           }
         }
       } catch (error) {
-        console.error('Error sincronizando múltiples piezas con backend:', error);
+        console.error('Error sincronizando múltiples líneas con backend:', error);
         // Marcar que necesita sincronización
         const platformWithSyncFlag = { ...updatedPlatform, needsSync: true };
         StorageService.savePlatform(platformWithSyncFlag);
@@ -420,7 +420,7 @@ export const useInventory = () => {
     setCargas((prev: Platform[]) => {
       const updated = prev.map((platform: Platform) => {
         if (platform.id === platformId) {
-          // Recalcular todas las piezas con el nuevo ancho
+          // Recalcular todas las líneas con el nuevo ancho
           const updatedPieces = platform.pieces.map((piece: Piece) => ({
             ...piece,
             standardWidth: newWidth,

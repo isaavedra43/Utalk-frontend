@@ -205,7 +205,7 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            Cambiará el ancho para todas las piezas futuras
+            Cambiará el ancho para todas las líneas futuras
           </p>
         </div>
       )}
@@ -357,12 +357,12 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
         ) : (
           <>
             {/* Batch Mode */}
-            <h4 className="font-bold text-gray-900 mb-3 sm:mb-4 text-base sm:text-lg">Agregar Múltiples Piezas</h4>
+            <h4 className="font-bold text-gray-900 mb-3 sm:mb-4 text-base sm:text-lg">Agregar Múltiples Líneas</h4>
             
             <div className="space-y-3 mb-3 sm:mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cantidad de Piezas
+                  Cantidad de Líneas
                 </label>
                 <input
                   type="number"
@@ -394,7 +394,7 @@ export const QuickCaptureInput: React.FC<QuickCaptureInputProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Material de las Piezas
+                  Material de las Líneas
                 </label>
                 <select
                   value={batchData.material}

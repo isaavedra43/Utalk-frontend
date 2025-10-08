@@ -106,7 +106,7 @@ export class SimpleExportService {
       y += 25;
       ctx.fillText(`Ancho Estándar: ${platform.standardWidth.toFixed(2)} m`, 50, y);
       y += 25;
-      ctx.fillText(`Total Piezas: ${platform.pieces.length}`, 50, y);
+      ctx.fillText(`Total Líneas: ${platform.pieces.length}`, 50, y);
       
       // Tabla
       y += 40;
@@ -157,7 +157,7 @@ export class SimpleExportService {
       ctx.lineTo(canvas.width - 40, y - 10);
       ctx.stroke();
       
-      // Datos de las piezas
+      // Datos de las líneas
       ctx.fillStyle = '#374151';
       ctx.font = '14px Arial, sans-serif';
       
@@ -206,7 +206,7 @@ export class SimpleExportService {
       
       y += 40;
       ctx.font = '16px Arial, sans-serif';
-      ctx.fillText(`Total Piezas: ${platform.pieces.length}`, canvas.width / 2, y);
+      ctx.fillText(`Total Líneas: ${platform.pieces.length}`, canvas.width / 2, y);
       y += 30;
       ctx.fillText(`Longitud Total: ${platform.totalLength.toFixed(2)} m`, canvas.width / 2, y);
       y += 30;
@@ -309,7 +309,7 @@ export class SimpleExportService {
     
     rows.push(`Chofer,${platform.driver || 'No especificado'}`);
     rows.push(`Fecha de Recepción,${new Date(platform.receptionDate).toLocaleDateString('es-MX')}`);
-    rows.push(`Total Piezas,${platform.pieces.length}`);
+    rows.push(`Total Líneas,${platform.pieces.length}`);
     rows.push(`Metros Totales de la Carga,${platform.totalLinearMeters.toFixed(2)} m²`);
     
     return rows.join('\n');
@@ -535,7 +535,7 @@ export class SimpleExportService {
             <div class="info-value">${platform.standardWidth.toFixed(2)} m</div>
         </div>
         <div class="info-item">
-            <div class="info-label">Total de Piezas</div>
+            <div class="info-label">Total de Líneas</div>
             <div class="info-value">${platform.pieces.length}</div>
         </div>
     </div>
@@ -574,7 +574,7 @@ export class SimpleExportService {
         <h3>RESUMEN EJECUTIVO</h3>
         <div class="summary-grid">
             <div class="summary-item">
-                <div class="summary-label">Total Piezas</div>
+                <div class="summary-label">Total Líneas</div>
                 <div class="summary-value">${platform.pieces.length}</div>
             </div>
             <div class="summary-item">

@@ -99,7 +99,7 @@ export const VoiceDictationModal: React.FC<VoiceDictationModalProps> = ({
 
     try {
       const prompt = `
-Analiza el siguiente texto dictado y extrae las longitudes de piezas de materiales de construcción.
+Analiza el siguiente texto dictado y extrae las longitudes de líneas de materiales de construcción.
 El texto puede contener números como "2.5", "tres punto cinco", "dos metros y medio", etc.
 Devuelve únicamente un JSON válido con un array de objetos con formato:
 [{"length": 2.5, "confidence": 0.9}, {"length": 3.2, "confidence": 0.8}]
@@ -150,7 +150,7 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
       if (isListening) {
         recognitionRef.current.stop();
       } else {
-        // Limpiar solo el transcript, mantener las piezas procesadas
+        // Limpiar solo el transcript, mantener las líneas procesadas
         transcriptRef.current = '';
         setTranscript('');
         setError('');
@@ -162,7 +162,7 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
     }
   };
 
-  // Función para agregar nuevas piezas sin limpiar las existentes
+  // Función para agregar nuevas líneas sin limpiar las existentes
   const addNewPieces = (newPieces: DictatedPiece[]) => {
     setProcessedPieces(prev => [...prev, ...newPieces]);
   };
@@ -178,7 +178,7 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
     }
   }, [isListening, transcript]);
 
-  // Funciones para editar piezas individuales
+  // Funciones para editar líneas individuales
   const startEditingPiece = (piece: DictatedPiece) => {
     setEditingPiece({ ...piece });
   };
@@ -211,7 +211,7 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
     } : null);
   };
 
-  // Guardar piezas procesadas
+  // Guardar líneas procesadas
   const handleSavePieces = () => {
     if (processedPieces.length === 0) return;
 
@@ -224,7 +224,7 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
 
     if (piecesToAdd.length > 0) {
       onAddPieces(piecesToAdd);
-      showSuccess('Dictado completado', `Se agregaron ${piecesToAdd.length} piezas desde el dictado`);
+      showSuccess('Dictado completado', `Se agregaron ${piecesToAdd.length} líneas desde el dictado`);
       onClose();
     }
   };
@@ -266,7 +266,7 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
             <div>
               <h2 className="text-xl font-bold text-gray-900">Dictar Longitudes</h2>
               <p className="text-sm text-gray-600 mt-1">
-                Di las longitudes de las piezas (ej: "dos punto cinco, tres punto dos")
+                Di las longitudes de las líneas (ej: "dos punto cinco, tres punto dos")
               </p>
             </div>
             <button
@@ -367,7 +367,7 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-medium text-gray-700">
-                    Piezas procesadas ({processedPieces.length})
+                    Líneas procesadas ({processedPieces.length})
                   </h3>
                   <button
                     onClick={() => setProcessedPieces([])}
@@ -486,7 +486,7 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
               disabled={processedPieces.length === 0}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
             >
-              Agregar {processedPieces.length} piezas
+              Agregar {processedPieces.length} líneas
             </button>
           </div>
         </motion.div>

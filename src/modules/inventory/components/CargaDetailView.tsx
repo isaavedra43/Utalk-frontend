@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   ArrowLeft,
-  Printer,
   Check,
   Edit,
   Trash,
@@ -11,7 +10,6 @@ import {
   AlertCircle,
   Undo,
   FileSpreadsheet,
-  FileImage,
   Truck,
   User,
   Camera,
@@ -23,7 +21,6 @@ import type { Platform, Evidence, Driver } from '../types';
 import { useInventory } from '../hooks/useInventory';
 import { useConfiguration } from '../hooks/useConfiguration';
 import { SimpleExportService } from '../services/simpleExportService';
-import { PrintService } from '../services/printService';
 import { EvidenceUpload } from './EvidenceUpload';
 import { validateLength } from '../utils/calculations';
 import { QuickCaptureInput } from './QuickCaptureInput';
@@ -196,9 +193,9 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
   const handleAddMultiplePieces = async (pieces: { length: number; material: string }[]) => {
     try {
       await addMultiplePieces(platform.id, pieces);
-      showNotification('success', `${pieces.length} piezas agregadas`);
+      showNotification('success', `${pieces.length} líneas agregadas`);
     } catch (error) {
-      showNotification('error', 'Error al agregar las piezas');
+      showNotification('error', 'Error al agregar las líneas');
       console.error('Error adding multiple pieces:', error);
     }
   };
@@ -233,20 +230,6 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
     showNotification('success', 'Carga marcada como completada');
   };
 
-  // Exportar a PDF
-  const handleExportPDF = () => {
-    try {
-      setExporting(true);
-      SimpleExportService.exportToPDF(platform);
-      updatePlatform(platform.id, { status: 'exported' });
-      showNotification('success', 'Exportado a PDF exitosamente');
-    } catch (error) {
-      console.error('Error al exportar PDF:', error);
-      showNotification('error', 'Error al exportar a PDF');
-    } finally {
-      setExporting(false);
-    }
-  };
 
   // Exportar a Excel
   const handleExportExcel = () => {
@@ -263,98 +246,8 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
     }
   };
 
-  // Exportar como Imagen
-  const handleExportImage = () => {
-    try {
-      setExporting(true);
-      SimpleExportService.exportToImage(platform);
-      updatePlatform(platform.id, { status: 'exported' });
-      showNotification('success', 'Exportado como imagen exitosamente');
-    } catch (error) {
-      console.error('Error al exportar imagen:', error);
-      showNotification('error', 'Error al exportar como imagen');
-    } finally {
-      setExporting(false);
-    }
-  };
 
-  // ✅ NUEVO: Imprimir PDF directamente
-  const handlePrintPDF = async () => {
-    try {
-      console.log('🖨️ [handlePrintPDF] Iniciando impresión PDF...');
-      
-      // ✅ VALIDAR que la plataforma existe antes de imprimir
-      if (!platform) {
-        console.error('❌ No hay información de carga disponible para imprimir');
-        showNotification('error', 'No hay información de carga disponible');
-        return;
-      }
-      
-      console.log('🖨️ [handlePrintPDF] Datos de plataforma:', {
-        id: platform.id,
-        platformNumber: platform.platformNumber,
-        piecesCount: platform.pieces?.length || 0,
-        hasProvider: !!platform.provider,
-        hasClient: !!platform.client,
-        hasDriver: !!platform.driver
-      });
-      
-      setExporting(true);
-      console.log('🖨️ [handlePrintPDF] Llamando a PrintService.printPDF...');
-      await PrintService.printPDF(platform);
-      console.log('✅ [handlePrintPDF] PrintService.printPDF completado exitosamente');
-      showNotification('success', 'Enviando PDF a impresión...');
-    } catch (error) {
-      console.error('❌ [handlePrintPDF] Error capturado:', error);
-      console.error('❌ [handlePrintPDF] Tipo de error:', typeof error);
-      console.error('❌ [handlePrintPDF] Error message:', error instanceof Error ? error.message : 'No message');
-      console.error('❌ [handlePrintPDF] Error stack:', error instanceof Error ? error.stack : 'No stack');
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al imprimir PDF';
-      console.error('❌ [handlePrintPDF] Error detallado:', error);
-      showNotification('error', `Error al imprimir PDF: ${errorMessage}`);
-    } finally {
-      setExporting(false);
-    }
-  };
 
-  // ✅ NUEVO: Imprimir imagen directamente
-  const handlePrintImage = async () => {
-    try {
-      console.log('🖼️ [handlePrintImage] Iniciando impresión imagen...');
-      
-      // ✅ VALIDAR que la plataforma existe antes de imprimir
-      if (!platform) {
-        console.error('❌ No hay información de carga disponible para imprimir');
-        showNotification('error', 'No hay información de carga disponible');
-        return;
-      }
-      
-      console.log('🖼️ [handlePrintImage] Datos de plataforma:', {
-        id: platform.id,
-        platformNumber: platform.platformNumber,
-        piecesCount: platform.pieces?.length || 0,
-        hasProvider: !!platform.provider,
-        hasClient: !!platform.client,
-        hasDriver: !!platform.driver
-      });
-      
-      setExporting(true);
-      console.log('🖼️ [handlePrintImage] Llamando a PrintService.printImage...');
-      await PrintService.printImage(platform);
-      console.log('✅ [handlePrintImage] PrintService.printImage completado exitosamente');
-      showNotification('success', 'Enviando imagen a impresión...');
-    } catch (error) {
-      console.error('❌ [handlePrintImage] Error capturado:', error);
-      console.error('❌ [handlePrintImage] Tipo de error:', typeof error);
-      console.error('❌ [handlePrintImage] Error message:', error instanceof Error ? error.message : 'No message');
-      console.error('❌ [handlePrintImage] Error stack:', error instanceof Error ? error.stack : 'No stack');
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al imprimir imagen';
-      console.error('❌ [handlePrintImage] Error detallado:', error);
-      showNotification('error', `Error al imprimir imagen: ${errorMessage}`);
-    } finally {
-      setExporting(false);
-    }
-  };
 
   // Función para compartir
   const handleShare = async () => {
@@ -394,7 +287,7 @@ export const CargaDetailView: React.FC<CargaDetailViewProps> = ({
 🚛 Proveedor: ${platform.provider}
 👤 Chofer: ${platform.driver}
 📅 Fecha: ${new Date(platform.receptionDate).toLocaleDateString('es-MX')}
-📏 Total Piezas: ${platform.pieces.length}
+📏 Total Líneas: ${platform.pieces.length}
 📐 Longitud Total: ${platform.totalLength.toFixed(2)} m
 📊 Metros Lineales: ${platform.totalLinearMeters.toFixed(3)} m
 🚛 METROS TOTALES DE LA CARGA: ${platform.totalLinearMeters.toFixed(2)} m²
@@ -915,27 +808,6 @@ Generado por Sistema de Inventario`;
                     </div>
                   </button>
                   
-                  <button
-                    onClick={handleExportPDF}
-                    disabled={platform.pieces.length === 0 || exporting}
-                    className="flex items-center justify-center w-11 h-11 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-2xl shadow-lg hover:from-red-600 hover:to-red-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
-                    title="Exportar a PDF"
-                  >
-                    <div className="p-1.5 bg-red-600 rounded-xl">
-                      <Printer className="h-4 w-4" />
-                    </div>
-                  </button>
-                  
-                  <button
-                    onClick={handleExportImage}
-                    disabled={platform.pieces.length === 0 || exporting}
-                    className="flex items-center justify-center w-11 h-11 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl shadow-lg hover:from-purple-600 hover:to-purple-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
-                    title="Exportar como Imagen"
-                  >
-                    <div className="p-1.5 bg-purple-600 rounded-xl">
-                      <FileImage className="h-4 w-4" />
-                    </div>
-                  </button>
 
                   {/* Botón de Evidencias */}
                   <button
@@ -1231,7 +1103,7 @@ Generado por Sistema de Inventario`;
                   </span>
                   <span className="flex items-center gap-1">
                     <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span>{platform.pieces.length} piezas</span>
+                    <span>{platform.pieces.length} líneas</span>
                   </span>
                   {platform.createdByName && (
                     <span className="flex items-center gap-1 text-blue-600">
@@ -1465,7 +1337,7 @@ Generado por Sistema de Inventario`;
             
             <div className="space-y-2">
               <div className="flex items-center justify-between py-2 bg-blue-50 rounded-lg px-3">
-                <span className="text-xs text-blue-600 font-semibold">Total Piezas</span>
+                <span className="text-xs text-blue-600 font-semibold">Total Líneas</span>
                 <span className="text-2xl font-bold text-blue-900">{platform.pieces.length}</span>
               </div>
 
@@ -1523,7 +1395,7 @@ Generado por Sistema de Inventario`;
               
               <div className="space-y-3">
                 <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                  <span className="text-sm text-blue-600 font-medium">Total Piezas</span>
+                  <span className="text-sm text-blue-600 font-medium">Total Líneas</span>
                   <span className="text-2xl font-bold text-blue-900">{platform.pieces.length}</span>
                 </div>
 
@@ -1607,7 +1479,7 @@ Generado por Sistema de Inventario`;
                   ¿Estás seguro de que quieres eliminar la plataforma <strong>"{platform.platformNumber}"</strong>?
                 </p>
                 <p className="text-xs text-gray-500 mt-2">
-                  Se eliminarán todas las piezas registradas ({platform.pieces.length} piezas) y sus datos.
+                  Se eliminarán todas las líneas registradas ({platform.pieces.length} líneas) y sus datos.
                 </p>
               </div>
               
@@ -1663,85 +1535,8 @@ Generado por Sistema de Inventario`;
                     </div>
                   </button>
                   
-                  {/* PDF - Descargar */}
-                  <button
-                    onClick={() => {
-                      handleExportPDF();
-                      setShowDownloadModal(false);
-                    }}
-                    disabled={platform.pieces.length === 0 || exporting}
-                    className="w-full flex items-center gap-3 p-3 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg border border-red-200 transition-colors disabled:opacity-50"
-                  >
-                    <Download className="h-6 w-6" />
-                    <div className="text-left">
-                      <div className="font-medium">PDF - Descargar</div>
-                      <div className="text-sm text-red-600">Descargar reporte en PDF</div>
-                    </div>
-                  </button>
-                  
-                  {/* Imagen - Descargar */}
-                  <button
-                    onClick={() => {
-                      handleExportImage();
-                      setShowDownloadModal(false);
-                    }}
-                    disabled={platform.pieces.length === 0 || exporting}
-                    className="w-full flex items-center gap-3 p-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg border border-purple-200 transition-colors disabled:opacity-50"
-                  >
-                    <Download className="h-6 w-6" />
-                    <div className="text-left">
-                      <div className="font-medium">Imagen - Descargar</div>
-                      <div className="text-sm text-purple-600">Descargar como imagen</div>
-                    </div>
-                  </button>
                 </div>
 
-                {/* LÍNEA DIVISORIA */}
-                <div className="flex items-center gap-3 my-4">
-                  <div className="flex-1 h-px bg-gray-300"></div>
-                  <div className="text-xs text-gray-500 font-medium">O</div>
-                  <div className="flex-1 h-px bg-gray-300"></div>
-                </div>
-
-                {/* SECCIÓN DE IMPRESIÓN */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Printer className="h-4 w-4 text-gray-600" />
-                    <span className="text-sm font-semibold text-gray-700">IMPRIMIR</span>
-                  </div>
-                  
-                  {/* PDF - Imprimir */}
-                  <button
-                    onClick={() => {
-                      handlePrintPDF();
-                      setShowDownloadModal(false);
-                    }}
-                    disabled={platform.pieces.length === 0 || exporting}
-                    className="w-full flex items-center gap-3 p-3 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg border border-orange-200 transition-colors disabled:opacity-50"
-                  >
-                    <Printer className="h-6 w-6" />
-                    <div className="text-left">
-                      <div className="font-medium">PDF - Imprimir</div>
-                      <div className="text-sm text-orange-600">Imprimir PDF directamente</div>
-                    </div>
-                  </button>
-                  
-                  {/* Imagen - Imprimir */}
-                  <button
-                    onClick={() => {
-                      handlePrintImage();
-                      setShowDownloadModal(false);
-                    }}
-                    disabled={platform.pieces.length === 0 || exporting}
-                    className="w-full flex items-center gap-3 p-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 transition-colors disabled:opacity-50"
-                  >
-                    <Printer className="h-6 w-6" />
-                    <div className="text-left">
-                      <div className="font-medium">Imagen - Imprimir</div>
-                      <div className="text-sm text-indigo-600">Imprimir imagen directamente</div>
-                    </div>
-                  </button>
-                </div>
               </div>
               
               <div className="flex gap-3 mt-6">

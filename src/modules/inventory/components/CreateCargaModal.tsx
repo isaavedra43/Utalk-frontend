@@ -567,7 +567,7 @@ export const CreateCargaModal: React.FC<CreateCargaModalProps> = ({ onClose, onC
             <p className="text-sm text-blue-800">
               <strong>Nota:</strong> El número de carga se genera automáticamente de forma secuencial y única (CRG-001, CRG-002, etc.). 
               {formData.platformType === 'provider' 
-                ? ' Una vez creada, podrás comenzar a registrar las longitudes de las piezas de manera rápida e intuitiva.'
+                ? ' Una vez creada, podrás comenzar a registrar las longitudes de las líneas de manera rápida e intuitiva.'
                 : ' Para cargas de cliente, solo necesitas el número de ticket y los datos del chofer.'
               }
             </p>

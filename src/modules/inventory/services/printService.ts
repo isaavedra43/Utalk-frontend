@@ -31,8 +31,8 @@ export class PrintService {
 
       // ✅ En dispositivos móviles, no imprimir automáticamente
       if (!this.isMobile()) {
-        printWindow.focus();
-        printWindow.print();
+      printWindow.focus();
+      printWindow.print();
       }
 
       // ✅ Limpieza automática después de 30 segundos (fallback de seguridad)
@@ -93,8 +93,8 @@ export class PrintService {
 
       // ✅ En dispositivos móviles, no imprimir automáticamente
       if (!this.isMobile()) {
-        printWindow.focus();
-        printWindow.print();
+      printWindow.focus();
+      printWindow.print();
       }
 
       // ✅ Limpieza automática después de 30 segundos (fallback de seguridad)
@@ -110,7 +110,7 @@ export class PrintService {
 
       // ✅ Limpiar URL después de un tiempo
       setTimeout(() => {
-        URL.revokeObjectURL(imageUrl);
+      URL.revokeObjectURL(imageUrl);
       }, 10000);
 
       console.log('✅ [PrintService] Impresión de imagen enviada');
@@ -376,7 +376,7 @@ export class PrintService {
       
       y += 80;
       
-      // Tabla de piezas
+      // Tabla de líneas
       if (pieces.length > 0) {
         // Título de la tabla
         ctx.fillStyle = '#f1f5f9';
@@ -405,7 +405,7 @@ export class PrintService {
         
         y += 30;
         
-        // Datos de las piezas
+        // Datos de las líneas
         ctx.fillStyle = '#374151';
         ctx.font = '10px Arial';
         
@@ -452,7 +452,7 @@ export class PrintService {
       ctx.textAlign = 'center';
       ctx.fillText('Metros Totales de la Carga', width / 2, y + 15);
       
-      ctx.font = 'bold 16px Arial';
+        ctx.font = 'bold 16px Arial';
       ctx.fillText(`${totalLinearMeters.toFixed(2)} m²`, width / 2, y + 30);
       
       y += 50;
@@ -470,7 +470,7 @@ export class PrintService {
       ctx.textAlign = 'left';
       
       const summaryItems = [
-        `Total Piezas: ${pieces.length}`,
+        `Total Líneas: ${pieces.length}`,
         `Longitud Total: ${totalLength.toFixed(2)} m`,
         `Ancho Estándar: ${standardWidth.toFixed(2)} m`,
         `Metros Lineales: ${totalLinearMeters.toFixed(3)} m`
@@ -671,7 +671,7 @@ export class PrintService {
               flex: 1;
             }
             
-            /* Tabla de piezas optimizada */
+            /* Tabla de líneas optimizada */
             .pieces-section {
               margin-bottom: 15px;
             }
@@ -876,7 +876,7 @@ export class PrintService {
             </div>
           </div>
           
-          <!-- Tabla de Piezas -->
+          <!-- Tabla de Líneas -->
           ${pieces.length > 0 ? `
             <div class="pieces-section">
               <div class="pieces-title">DETALLE DE PIEZAS</div>
@@ -919,15 +919,15 @@ export class PrintService {
           <div class="summary-section">
             <div class="summary-title">Resumen Ejecutivo</div>
             <div class="summary-grid">
-              <div class="summary-item">
-                <span class="summary-label">Total Piezas</span>
+            <div class="summary-item">
+                <span class="summary-label">Total Líneas</span>
                 <span class="summary-value">${pieces.length}</span>
-              </div>
-              <div class="summary-item">
+            </div>
+            <div class="summary-item">
                 <span class="summary-label">Longitud Total</span>
                 <span class="summary-value">${totalLength.toFixed(2)} m</span>
-              </div>
-              <div class="summary-item">
+            </div>
+            <div class="summary-item">
                 <span class="summary-label">Ancho Estándar</span>
                 <span class="summary-value">${standardWidth.toFixed(2)} m</span>
               </div>
