@@ -24,6 +24,14 @@ export class EvidenceService {
   ): Promise<Evidence[]> {
     try {
       console.log(`📤 Subiendo ${files.length} archivo(s) de evidencia para plataforma ${platformId}`);
+      console.log(`📤 ProviderId: ${providerId}`);
+      console.log(`📤 PlatformId: ${platformId}`);
+      console.log(`📤 Files:`, files.map(f => ({ name: f.name, size: f.size, type: f.type })));
+      
+      // Validar que tenemos los IDs requeridos
+      if (!platformId || !providerId) {
+        throw new Error(`IDs requeridos faltantes: platformId=${platformId}, providerId=${providerId}`);
+      }
       
       const formData = new FormData();
       
@@ -39,6 +47,16 @@ export class EvidenceService {
       // Agregar descripciones como JSON según documentación
       if (descriptions && descriptions.length > 0) {
         formData.append('descriptions', JSON.stringify(descriptions));
+      }
+      
+      // Debug: Log FormData contents
+      console.log('📤 FormData contents:');
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(`  ${key}: File(${value.name}, ${value.size} bytes, ${value.type})`);
+        } else {
+          console.log(`  ${key}: ${value}`);
+        }
       }
       
       const response = await api.post('/api/inventory/evidence/upload', formData, {

@@ -680,12 +680,28 @@ export class PDFReportService {
 
       if (signature.signatureImage) {
         try {
-          // Aquí podríamos incluir la imagen de la firma
+          console.log('Agregando imagen de firma al PDF');
+          
+          // Extraer dimensiones del data URL (aproximación)
+          // const base64Data = signature.signatureImage.split(',')[1]; // Para uso futuro
+          // const imgSize = Math.round((base64Data.length * 3) / 4); // Para uso futuro
+          
+          // Dimensiones estándar para el área de firma
+          const maxWidth = 70; // Ancho máximo del área de firma
+          const maxHeight = 25; // Altura máxima del área de firma
+          
+          // Agregar la imagen directamente al PDF
+          doc.addImage(signature.signatureImage, 'PNG', 22, currentY + 2, maxWidth, maxHeight);
+          console.log('Imagen de firma agregada exitosamente al PDF');
+          
+          // Mostrar texto indicativo
           doc.setFontSize(this.FONTS.small);
           doc.setTextColor(this.COLORS.text);
-          doc.text('Firma digital incluida', 25, currentY + 10);
+          doc.text('Firma digital incluida', 25, currentY + 28);
+          
         } catch (error) {
-          console.warn('No se pudo procesar la imagen de la firma:', error);
+          console.error('Error agregando imagen de firma al PDF:', error);
+          // Fallback: mostrar texto
           doc.setFontSize(this.FONTS.small);
           doc.setTextColor(this.COLORS.textLight);
           doc.text('Firma digital disponible', 25, currentY + 10);

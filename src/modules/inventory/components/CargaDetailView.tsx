@@ -618,12 +618,29 @@ Generado por Sistema de Inventario`;
 
   // Funciones para PDF
   const handleGeneratePDF = () => {
+    console.log('📄 CargaDetailView - handleGeneratePDF llamado');
+    console.log('📄 Estado actual de la firma:', {
+      hasSignature: !!signature,
+      signatureName: signature?.name,
+      hasSignatureImage: !!signature?.signatureImage,
+      signatureDate: signature?.date
+    });
+    
     setShowPDFModal(true);
   };
 
   const handleSignature = (signatureData: { name: string; signatureImage: string; date: string }) => {
+    console.log('🎯 CargaDetailView - handleSignature llamado con:', {
+      name: signatureData.name,
+      hasImage: !!signatureData.signatureImage,
+      date: signatureData.date,
+      imageLength: signatureData.signatureImage?.length || 0
+    });
+    
     setSignature(signatureData);
     setShowSignaturePad(false);
+    
+    console.log('✅ Firma guardada en el estado del componente');
   };
 
 
@@ -1371,22 +1388,6 @@ Generado por Sistema de Inventario`;
             <span className="text-[10px] font-semibold">Evidencias</span>
           </button>
 
-          {/* Botón Firma Electrónica */}
-          <button
-            onClick={() => setShowSignaturePad(true)}
-            className={`flex flex-col items-center justify-center flex-1 py-2.5 rounded-lg border shadow-sm active:scale-95 transition-transform ${
-              signature 
-                ? 'bg-gradient-to-br from-green-100 to-green-200 text-green-800 border-green-300' 
-                : 'bg-gradient-to-br from-green-50 to-green-100 text-green-700 border-green-200'
-            }`}
-            title={signature ? "Editar firma electrónica" : "Agregar firma electrónica"}
-          >
-            <Edit3 className="h-5 w-5 mb-0.5" />
-            <span className="text-[10px] font-semibold">
-              {signature ? 'Firmado' : 'Firma'}
-            </span>
-          </button>
-
         </div>
       </div>
 
@@ -1609,6 +1610,23 @@ Generado por Sistema de Inventario`;
                     <div className="text-left">
                       <div className="font-medium">Generar PDF</div>
                       <div className="text-sm text-purple-600">Crear reporte PDF profesional</div>
+                    </div>
+                  </button>
+
+                  {/* Firma Electrónica */}
+                  <button
+                    onClick={() => {
+                      setShowSignaturePad(true);
+                      setShowDownloadModal(false);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg border border-green-200 transition-colors"
+                  >
+                    <Edit3 className="h-6 w-6" />
+                    <div className="text-left">
+                      <div className="font-medium">Firma Electrónica</div>
+                      <div className="text-sm text-green-600">
+                        {signature ? `Firmado por: ${signature.name}` : 'Agregar firma al reporte'}
+                      </div>
                     </div>
                   </button>
                   

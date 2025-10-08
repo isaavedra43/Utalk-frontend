@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, X, FileText, Image, File, CheckCircle, AlertCircle, Trash2, Eye } from 'lucide-react';
+import { X, FileText, CheckCircle, AlertCircle, Trash2, Search as EyeIcon, Plus as UploadIcon } from 'lucide-react';
 import { EvidenceService } from '../services/evidenceService';
 import type { Evidence } from '../types';
 
@@ -27,7 +27,13 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
   existingEvidence = [],
   onEvidenceUpdated,
   className = ''
-}) => {
+}: EvidenceUploadProps) => {
+  // Debug: Log props
+  console.log('🔍 EvidenceUpload props:', {
+    platformId,
+    providerId,
+    existingEvidenceCount: existingEvidence.length
+  });
   const [files, setFiles] = useState<FilePreview[]>([]);
   const [uploading, setUploading] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
@@ -49,18 +55,18 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
       };
     });
 
-    setFiles(prev => [...prev, ...newFiles]);
+    setFiles((prev: FilePreview[]) => [...prev, ...newFiles]);
   };
 
   const handleDescriptionChange = (index: number, description: string) => {
-    setFiles(prev => prev.map((file, i) => 
+    setFiles((prev: FilePreview[]) => prev.map((file: FilePreview, i: number) => 
       i === index ? { ...file, description } : file
     ));
   };
 
   const removeFile = (index: number) => {
-    setFiles(prev => {
-      const updated = prev.filter((_, i) => i !== index);
+    setFiles((prev: FilePreview[]) => {
+      const updated = prev.filter((_: FilePreview, i: number) => i !== index);
       // Limpiar URL de preview para imágenes
       const fileToRemove = prev[index];
       if (fileToRemove.preview) {
@@ -71,17 +77,30 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
   };
 
   const handleUpload = async () => {
-    const validFiles = files.filter(f => f.status === 'pending');
+    const validFiles = files.filter((f: FilePreview) => f.status === 'pending');
     if (validFiles.length === 0) return;
+
+    // Validar que tenemos los datos requeridos
+    if (!platformId || !providerId) {
+      console.error('❌ Datos requeridos faltantes:', { platformId, providerId });
+      alert('Error: Faltan datos requeridos para subir evidencias. Por favor, recarga la página e intenta nuevamente.');
+      return;
+    }
+
+    console.log('🚀 Iniciando subida de evidencias:', {
+      platformId,
+      providerId,
+      filesCount: validFiles.length
+    });
 
     setUploading(true);
     
     try {
-      const filesToUpload = validFiles.map(f => f.file);
-      const descriptions = validFiles.map(f => f.description || '');
+      const filesToUpload = validFiles.map((f: FilePreview) => f.file);
+      const descriptions = validFiles.map((f: FilePreview) => f.description || '');
       
       // Actualizar estado a uploading
-      setFiles(prev => prev.map(file => 
+      setFiles((prev: FilePreview[]) => prev.map((file: FilePreview) => 
         validFiles.includes(file) 
           ? { ...file, status: 'uploading' as const, progress: 0 }
           : file
@@ -95,7 +114,7 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
       );
 
       // Actualizar estado a success
-      setFiles(prev => prev.map(file => 
+      setFiles((prev: FilePreview[]) => prev.map((file: FilePreview) => 
         validFiles.includes(file) 
           ? { ...file, status: 'success' as const, progress: 100 }
           : file
@@ -106,7 +125,7 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
 
       // Limpiar archivos subidos después de un delay
       setTimeout(() => {
-        setFiles(prev => prev.filter(f => !validFiles.includes(f)));
+        setFiles((prev: FilePreview[]) => prev.filter((f: FilePreview) => !validFiles.includes(f)));
         setShowUpload(false);
       }, 2000);
 
@@ -114,7 +133,7 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
       console.error('Error subiendo archivos:', error);
       
       // Actualizar estado a error
-      setFiles(prev => prev.map(file => 
+      setFiles((prev: FilePreview[]) => prev.map((file: FilePreview) => 
         validFiles.includes(file) 
           ? { 
               ...file, 
@@ -131,7 +150,7 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
   const handleDeleteEvidence = async (evidenceId: string) => {
     try {
       await EvidenceService.deleteEvidence(evidenceId, platformId, providerId);
-      const updatedEvidence = existingEvidence.filter(e => e.id !== evidenceId);
+      const updatedEvidence = existingEvidence.filter((e: Evidence) => e.id !== evidenceId);
       onEvidenceUpdated(updatedEvidence);
     } catch (error) {
       console.error('Error eliminando evidencia:', error);
@@ -154,7 +173,7 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
           onClick={() => setShowUpload(!showUpload)}
           className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
         >
-          <Upload className="h-4 w-4" />
+          <UploadIcon className="h-4 w-4" />
           Subir Evidencias
         </button>
       </div>
@@ -195,7 +214,7 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
                       className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
                       title="Ver archivo"
                     >
-                      <Eye className="h-4 w-4" />
+                      <EyeIcon className="h-4 w-4" />
                     </button>
                   )}
                   <button
@@ -227,7 +246,7 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
                 onClick={openFileInput}
                 className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
               >
-                <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <UploadIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                 <p className="text-sm text-gray-600">
                   Haz clic para seleccionar archivos o arrastra archivos aquí
                 </p>
@@ -241,7 +260,7 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
                 type="file"
                 multiple
                 accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-                onChange={(e) => handleFileSelect(e.target.files)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFileSelect(e.target.files)}
                 className="hidden"
               />
 
@@ -249,7 +268,7 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
               {files.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium text-gray-700">Archivos seleccionados:</h4>
-                  {files.map((filePreview, index) => (
+                  {files.map((filePreview: FilePreview, index: number) => (
                     <div
                       key={index}
                       className="flex items-center gap-3 p-3 bg-white rounded-lg border"
@@ -264,7 +283,7 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
                           />
                         ) : (
                           <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
-                            <File className="h-6 w-6 text-gray-400" />
+                            <FileText className="h-6 w-6 text-gray-400" />
                           </div>
                         )}
                       </div>
@@ -283,7 +302,7 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
                           type="text"
                           placeholder="Descripción opcional..."
                           value={filePreview.description || ''}
-                          onChange={(e) => handleDescriptionChange(index, e.target.value)}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleDescriptionChange(index, e.target.value)}
                           className="w-full mt-1 px-2 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                           disabled={filePreview.status === 'uploading'}
                         />
@@ -327,7 +346,7 @@ export const EvidenceUpload: React.FC<EvidenceUploadProps> = ({
               )}
 
               {/* Botones de acción */}
-              {files.some(f => f.status === 'pending') && (
+              {files.some((f: FilePreview) => f.status === 'pending') && (
                 <div className="flex justify-end gap-2">
                   <button
                     onClick={() => {

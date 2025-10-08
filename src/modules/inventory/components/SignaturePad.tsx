@@ -20,6 +20,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
   const [name, setName] = useState('');
   const [hasSignature, setHasSignature] = useState(false);
   const [ctx, setCtx] = useState<CanvasRenderingContext2D | null>(null);
+  // const [savedSignature, setSavedSignature] = useState<string | null>(null); // Para uso futuro
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -146,6 +147,10 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
     context.fillText('Firma aquí...', rect.width / 2, rect.height / 2);
 
     setHasSignature(false);
+    // setSavedSignature(null); // Para uso futuro
+    setName('');
+    
+    console.log('Firma limpiada completamente');
   };
 
   const saveSignature = () => {
@@ -160,13 +165,22 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
       date: new Date().toISOString(),
     };
 
+    // Guardar la firma en el estado local
+    // setSavedSignature(signatureImage); // Para uso futuro
+    
+    console.log('Firma guardada exitosamente:', {
+      name: signatureData.name,
+      hasImage: !!signatureData.signatureImage,
+      date: signatureData.date
+    });
+
     onSignature(signatureData);
     onClose();
   };
 
   const handleClose = () => {
-    clearSignature();
-    setName('');
+    // Solo limpiar si no hay firma guardada
+    // No limpiar automáticamente para permitir al usuario volver a abrir el modal
     onClose();
   };
 
