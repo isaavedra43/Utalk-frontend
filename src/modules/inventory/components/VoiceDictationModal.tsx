@@ -41,6 +41,7 @@ export const VoiceDictationModal: React.FC<VoiceDictationModalProps> = ({
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const transcriptRef = useRef('');
+  const processingRef = useRef<boolean>(false);
 
   const [isSpeechSupported, setIsSpeechSupported] = useState(false);
 
@@ -67,12 +68,36 @@ export const VoiceDictationModal: React.FC<VoiceDictationModalProps> = ({
           }
         }
 
-        setTranscript(transcriptRef.current + interimTranscript);
+        const fullTranscript = transcriptRef.current + interimTranscript;
+        console.log('🎤 Transcripción actualizada:', fullTranscript);
+        setTranscript(fullTranscript);
       };
 
       recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
-        console.error('Error de reconocimiento de voz:', event.error);
-        setError(`Error de reconocimiento: ${event.error}`);
+        console.error('❌ Error de reconocimiento de voz:', event.error);
+        
+        let errorMessage = 'Error de reconocimiento de voz';
+        switch (event.error) {
+          case 'no-speech':
+            errorMessage = 'No se detectó habla. Intenta hablar más fuerte.';
+            break;
+          case 'audio-capture':
+            errorMessage = 'Error accediendo al micrófono. Verifica los permisos.';
+            break;
+          case 'not-allowed':
+            errorMessage = 'Permiso denegado para usar el micrófono.';
+            break;
+          case 'network':
+            errorMessage = 'Error de red. Verifica tu conexión.';
+            break;
+          case 'aborted':
+            errorMessage = 'Reconocimiento interrumpido.';
+            break;
+          default:
+            errorMessage = `Error de reconocimiento: ${event.error}`;
+        }
+        
+        setError(errorMessage);
         setIsListening(false);
       };
 
@@ -92,8 +117,13 @@ export const VoiceDictationModal: React.FC<VoiceDictationModalProps> = ({
 
   // Procesar transcripción con IA
   const processTranscriptWithAI = async (text: string) => {
-    if (!text.trim()) return;
+    if (!text.trim() || processingRef.current) {
+      console.log('⚠️ Procesamiento omitido:', { text: text.trim(), isProcessing: processingRef.current });
+      return;
+    }
 
+    console.log('🔄 Iniciando procesamiento de transcripción:', text);
+    processingRef.current = true;
     setIsProcessing(true);
     setError('');
 
@@ -109,28 +139,49 @@ Texto a analizar: "${text}"
 Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas, devuelve un array vacío [].
       `;
 
+      console.log('📝 Enviando prompt a OpenAI para procesar:', text);
       const response = await callOpenAI(prompt, '', {
         temperature: 0.1,
         max_tokens: 1000
       });
 
+      console.log('✅ Respuesta recibida de OpenAI:', response);
       const cleanedResponse = String(response).trim();
       const pieces = JSON.parse(cleanedResponse);
 
-      if (Array.isArray(pieces)) {
+      console.log('📊 Piezas extraídas:', pieces);
+      if (Array.isArray(pieces) && pieces.length > 0) {
         const newPieces = pieces.map((piece: { length: number; confidence: number }, index: number) => ({
           id: `piece-${Date.now()}-${index}`,
           ...piece,
           material: selectedMaterial || 'Sin especificar'
         }));
+        console.log('✅ Agregando nuevas piezas:', newPieces);
         addNewPieces(newPieces);
+      } else {
+        console.log('⚠️ No se encontraron longitudes válidas en el texto');
+        setError('No se detectaron longitudes válidas en el dictado. Intenta hablar más claro.');
       }
 
     } catch (error) {
-      console.error('Error procesando con IA:', error);
-      setError('Error procesando el texto con IA. Inténtalo de nuevo.');
+      console.error('❌ Error procesando con IA:', error);
+      let errorMessage = 'Error procesando el texto con IA. Inténtalo de nuevo.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('JSON')) {
+          errorMessage = 'Error interpretando la respuesta de IA. Intenta dictar más claramente.';
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = 'Error de conexión con IA. Verifica tu internet.';
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
+      processingRef.current = false;
       setIsProcessing(false);
+      console.log('✅ Procesamiento completado');
     }
   };
 
@@ -148,17 +199,39 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
 
     try {
       if (isListening) {
+        console.log('🛑 Deteniendo reconocimiento de voz');
         recognitionRef.current.stop();
       } else {
         // Limpiar solo el transcript, mantener las líneas procesadas
+        console.log('🎤 Iniciando reconocimiento de voz');
         transcriptRef.current = '';
         setTranscript('');
         setError('');
+        
+        // Verificar que no esté procesando antes de iniciar
+        if (processingRef.current) {
+          console.log('⚠️ No se puede iniciar reconocimiento: ya hay un procesamiento en curso');
+          setError('Espera a que termine el procesamiento actual');
+          return;
+        }
+        
         recognitionRef.current.start();
       }
     } catch (error) {
-      console.error('Error con reconocimiento de voz:', error);
-      setError('Error iniciando reconocimiento de voz');
+      console.error('❌ Error con reconocimiento de voz:', error);
+      let errorMessage = 'Error iniciando reconocimiento de voz';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('already started')) {
+          errorMessage = 'El reconocimiento ya está activo';
+        } else if (error.message.includes('permission')) {
+          errorMessage = 'Permiso denegado para usar el micrófono';
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+      
+      setError(errorMessage);
     }
   };
 
@@ -169,12 +242,19 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
 
   // Procesar transcripción cuando el usuario deja de hablar
   useEffect(() => {
-    if (!isListening && transcript.trim()) {
+    if (!isListening && transcript.trim() && !processingRef.current) {
+      console.log('⏰ Programando procesamiento de transcripción:', transcript);
       const timer = setTimeout(() => {
-        processTranscriptWithAI(transcript);
-      }, 1000); // Esperar 1 segundo después de dejar de hablar
+        // Verificar nuevamente que no esté procesando antes de ejecutar
+        if (!processingRef.current) {
+          processTranscriptWithAI(transcript);
+        }
+      }, 1500); // Aumentar a 1.5 segundos para dar más tiempo
 
-      return () => clearTimeout(timer);
+      return () => {
+        console.log('🧹 Limpiando timer de procesamiento');
+        clearTimeout(timer);
+      };
     }
   }, [isListening, transcript]);
 
@@ -232,13 +312,20 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
   // Limpiar al cerrar
   useEffect(() => {
     if (!isOpen) {
+      console.log('🧹 Limpiando estado del modal de dictado');
       setTranscript('');
       setProcessedPieces([]);
       setError('');
       setIsListening(false);
       setEditingPiece(null);
+      processingRef.current = false; // Resetear flag de procesamiento
+      
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.stop();
+        } catch (error) {
+          console.warn('⚠️ Error deteniendo reconocimiento al cerrar:', error);
+        }
       }
     }
   }, [isOpen]);
@@ -467,7 +554,7 @@ Solo devuelve el JSON, sin texto adicional. Si no encuentras longitudes válidas
             {/* Processing Indicator */}
             {isProcessing && (
               <div className="mb-4 flex items-center justify-center gap-2 text-blue-600">
-                <Loader className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
                 <span className="text-sm">Procesando con IA...</span>
               </div>
             )}
