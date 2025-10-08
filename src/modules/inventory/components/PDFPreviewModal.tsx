@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, Share2, Printer, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { PDFReportService } from '../services/pdfReportService';
-import type { Platform } from '../types';
+import type { Platform, Evidence } from '../types';
 
 interface PDFPreviewModalProps {
   isOpen: boolean;
@@ -22,12 +22,25 @@ export const PDFPreviewModal: React.FC<PDFPreviewModalProps> = ({
   platform,
   signature,
   includeEvidence,
-}: PDFPreviewModalProps) => {
+}) => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const generatePreview = useCallback(async () => {
+  useEffect(() => {
+    if (isOpen && platform) {
+      generatePreview();
+    }
+
+    return () => {
+      // Limpiar URL del PDF cuando se cierra el modal
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [isOpen, platform, signature, includeEvidence]);
+
+  const generatePreview = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -72,21 +85,7 @@ export const PDFPreviewModal: React.FC<PDFPreviewModalProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [platform, signature, includeEvidence]);
-
-  useEffect(() => {
-    if (isOpen && platform) {
-      generatePreview();
-    }
-
-    return () => {
-      // Limpiar URL del PDF cuando se cierra el modal
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
-      }
-    };
-  }, [isOpen, platform, signature, includeEvidence, generatePreview, pdfUrl]);
-
+  };
 
   const handleDownload = async () => {
     try {
@@ -323,53 +322,25 @@ export const PDFPreviewModal: React.FC<PDFPreviewModalProps> = ({
               </button>
             </div>
 
-             {/* Información adicional con diseño elegante */}
-             <div className="mt-3 pt-3 border-t border-gray-200">
-               <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3 mb-3">
-                 <div className="flex items-center justify-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                   <span className="text-lg">✨</span>
-                   <span>Diseño Profesional Premium</span>
-                   <span className="text-lg">✨</span>
-                 </div>
-                 <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                   <div className="flex items-center gap-1">
-                     <span className="text-green-500">🎨</span>
-                     <span>Colores corporativos</span>
-                   </div>
-                   <div className="flex items-center gap-1">
-                     <span className="text-blue-500">📊</span>
-                     <span>Tablas elegantes</span>
-                   </div>
-                   <div className="flex items-center gap-1">
-                     <span className="text-purple-500">📋</span>
-                     <span>Información organizada</span>
-                   </div>
-                   <div className="flex items-center gap-1">
-                     <span className="text-orange-500">🏆</span>
-                     <span>Diseño premium</span>
-                   </div>
-                 </div>
-               </div>
-
-               <div className="flex items-center gap-4 text-xs text-gray-500">
-                 {signature && (
-                   <span className="flex items-center gap-1">
-                     <CheckCircle className="h-3 w-3 text-green-500" />
-                     Firma electrónica incluida
-                   </span>
-                 )}
-                 {includeEvidence && (
-                   <span className="flex items-center gap-1">
-                     <CheckCircle className="h-3 w-3 text-green-500" />
-                     Evidencias incluídas
-                   </span>
-                 )}
-                 <span className="flex items-center gap-1">
-                   <CheckCircle className="h-3 w-3 text-green-500" />
-                   Información completa de la carga
-                 </span>
-               </div>
-             </div>
+            {/* Información adicional */}
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <div className="flex items-center gap-4 text-xs text-gray-500">
+                <span className="flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                  Firma electrónica incluida
+                </span>
+                {includeEvidence && (
+                  <span className="flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                    Evidencias incluídas
+                  </span>
+                )}
+                <span className="flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                  Información completa de la carga
+                </span>
+              </div>
+            </div>
           </div>
         </motion.div>
       </motion.div>
