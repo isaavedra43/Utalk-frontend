@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ConfigService } from '../services/configService';
-import type { ModuleConfiguration, Provider, MaterialOption } from '../types';
+import type { ModuleConfiguration, Provider, MaterialOption, Driver } from '../types';
 
 export const useConfiguration = () => {
   console.log('🎯 [useConfiguration] Hook inicializado/renderizado');
@@ -24,7 +24,7 @@ export const useConfiguration = () => {
         // ✅ PASO 1: Intentar cargar desde backend PRIMERO
         try {
           console.log('📡 Importando servicios de API...');
-          const [{ ProviderApiService, MaterialApiService }] = await Promise.all([
+          const [{ ProviderApiService, MaterialApiService, DriverApiService }] = await Promise.all([
             import('../services/inventoryApiService')
           ]);
 
@@ -47,10 +47,26 @@ export const useConfiguration = () => {
 
           console.log('✅ Materiales extraídos del backend:', materials?.length || 0);
 
+          // ✅ PASO 1.5: Cargar choferes del backend
+          console.log('📡 [useConfiguration] Llamando DriverApiService.getAllDrivers()...');
+          const driversResponse = await DriverApiService.getAllDrivers({ limit: 1000 });
+          console.log('✅ [useConfiguration] Respuesta de choferes:', driversResponse);
+
+          // Extraer choferes de la respuesta
+          let drivers = [];
+          if (driversResponse && driversResponse.data) {
+            drivers = driversResponse.data;
+          } else if (Array.isArray(driversResponse)) {
+            drivers = driversResponse;
+          }
+
+          console.log('✅ Choferes extraídos del backend:', drivers?.length || 0);
+
           // ✅ PASO 2: Actualizar configuración local con datos del backend
           const config = ConfigService.getConfiguration();
           config.providers = providers || [];
           config.materials = materials || [];
+          config.drivers = drivers || [];
           config.lastUpdated = new Date();
           ConfigService.saveConfiguration(config);
           setConfiguration(config);
@@ -283,6 +299,89 @@ export const useConfiguration = () => {
     }
   }, []);
 
+  // ==================== GESTIÓN DE CHOFERES ====================
+
+  // ✅ CAMBIO CRÍTICO: Ahora SIEMPRE envía al backend
+  const addDriver = useCallback(async (driver: Omit<Driver, 'id'>) => {
+    console.log('🚀 [addDriver] Iniciando creación de chofer:', driver);
+    
+    try {
+      // ✅ ENVIAR AL BACKEND INMEDIATAMENTE
+      console.log('📤 [addDriver] Importando DriverApiService...');
+      const { DriverApiService } = await import('../services/inventoryApiService');
+      
+      console.log('📤 [addDriver] Enviando POST al backend...');
+      const newDriver = await DriverApiService.createDriver(driver);
+      console.log('✅ [addDriver] Chofer creado en backend:', newDriver);
+      
+      // ✅ Actualizar configuración local con datos del backend
+      console.log('💾 [addDriver] Actualizando LocalStorage...');
+      const config = ConfigService.getConfiguration();
+      config.drivers.push(newDriver);
+      ConfigService.saveConfiguration(config);
+      
+      refreshConfiguration();
+      console.log('✅ [addDriver] PROCESO COMPLETADO - Chofer guardado en backend y LocalStorage');
+      return newDriver;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al agregar chofer';
+      setError(errorMessage);
+      console.error('❌ [addDriver] ERROR COMPLETO:', err);
+      console.error('❌ [addDriver] Error message:', errorMessage);
+      console.error('❌ [addDriver] Stack:', err instanceof Error ? err.stack : 'No stack');
+      throw err;
+    }
+  }, [refreshConfiguration]);
+
+  const updateDriver = useCallback(async (driverId: string, updates: Partial<Driver>) => {
+    try {
+      // ✅ ENVIAR AL BACKEND INMEDIATAMENTE
+      const { DriverApiService } = await import('../services/inventoryApiService');
+      const updatedDriver = await DriverApiService.updateDriver(driverId, updates);
+      
+      // ✅ Actualizar configuración local
+      const config = ConfigService.getConfiguration();
+      const index = config.drivers.findIndex(d => d.id === driverId);
+      if (index >= 0) {
+        config.drivers[index] = updatedDriver;
+        ConfigService.saveConfiguration(config);
+      }
+      
+      refreshConfiguration();
+      return updatedDriver;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al actualizar chofer');
+      throw err;
+    }
+  }, [refreshConfiguration]);
+
+  const deleteDriver = useCallback(async (driverId: string) => {
+    try {
+      // ✅ ENVIAR AL BACKEND INMEDIATAMENTE
+      const { DriverApiService } = await import('../services/inventoryApiService');
+      await DriverApiService.deleteDriver(driverId);
+      
+      // ✅ Actualizar configuración local
+      const config = ConfigService.getConfiguration();
+      config.drivers = config.drivers.filter(d => d.id !== driverId);
+      ConfigService.saveConfiguration(config);
+      
+      refreshConfiguration();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar chofer');
+      throw err;
+    }
+  }, [refreshConfiguration]);
+
+  const getDrivers = useCallback(() => {
+    try {
+      return ConfigService.getDrivers();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al obtener choferes');
+      return [];
+    }
+  }, []);
+
   const getActiveMaterials = useCallback(() => {
     try {
       return ConfigService.getActiveMaterials();
@@ -365,13 +464,14 @@ export const useConfiguration = () => {
       try {
         console.log('🔄 Refrescando datos desde el backend...');
         
-        const [{ ProviderApiService, MaterialApiService }] = await Promise.all([
+        const [{ ProviderApiService, MaterialApiService, DriverApiService }] = await Promise.all([
           import('../services/inventoryApiService')
         ]);
         
-        const [providers, materialsResponse] = await Promise.all([
+        const [providers, materialsResponse, driversResponse] = await Promise.all([
           ProviderApiService.getAllProviders(),
-          MaterialApiService.getAllMaterials({ limit: 1000 })
+          MaterialApiService.getAllMaterials({ limit: 1000 }),
+          DriverApiService.getAllDrivers({ limit: 1000 })
         ]);
         
         console.log('📦 Proveedores refrescados:', providers);
@@ -387,9 +487,20 @@ export const useConfiguration = () => {
         
         console.log('📦 Materiales extraídos (refresh):', materials);
         
+        // Extraer choferes de la respuesta
+        let drivers = [];
+        if (driversResponse && driversResponse.data) {
+          drivers = driversResponse.data;
+        } else if (Array.isArray(driversResponse)) {
+          drivers = driversResponse;
+        }
+        
+        console.log('📦 Choferes extraídos (refresh):', drivers);
+        
         const current = ConfigService.getConfiguration();
         current.providers = providers || [];
         current.materials = materials || [];
+        current.drivers = drivers || [];
         ConfigService.saveConfiguration(current);
         setConfiguration({ ...current });
         
@@ -422,6 +533,14 @@ export const useConfiguration = () => {
     toggleMaterialStatus,
     getMaterials,
     getActiveMaterials,
+    
+    // Choferes
+    drivers: configuration?.drivers || [],
+    activeDrivers: configuration?.drivers?.filter(d => d.isActive !== false) || [],
+    addDriver,
+    updateDriver,
+    deleteDriver,
+    getDrivers,
     
     // Configuración general
     settings: configuration?.settings || null,

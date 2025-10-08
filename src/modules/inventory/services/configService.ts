@@ -1,6 +1,6 @@
 // Servicio para manejo de configuración del módulo de inventario
 
-import type { ModuleConfiguration, Provider, MaterialOption } from '../types';
+import type { ModuleConfiguration, Provider, MaterialOption, Driver } from '../types';
 import { generateId } from '../utils/calculations';
 
 const CONFIG_STORAGE_KEY = 'inventory_module_config';
@@ -16,6 +16,7 @@ const DEFAULT_MATERIAL_CATEGORIES = [
 const DEFAULT_CONFIG: ModuleConfiguration = {
   providers: [], // ✅ NO HAY PROVEEDORES FALSOS - Solo los que cree el usuario
   materials: [], // ✅ NO HAY MATERIALES FALSOS - Solo los que cree el usuario
+  drivers: [], // ✅ NO HAY CHOFERES FALSOS - Solo los que cree el usuario
   settings: {
     defaultStandardWidth: 0.3,
     autoSaveEnabled: true,
@@ -220,6 +221,76 @@ export class ConfigService {
     return this.updateMaterial(materialId, { isActive: !material.isActive });
   }
 
+  // ==================== GESTIÓN DE CHOFERES ====================
+
+  /**
+   * Obtiene todos los choferes
+   */
+  static getDrivers(): Driver[] {
+    const config = this.getConfiguration();
+    return config.drivers || [];
+  }
+
+  /**
+   * Obtiene choferes activos
+   */
+  static getActiveDrivers(): Driver[] {
+    return this.getDrivers().filter(d => d.isActive !== false);
+  }
+
+  /**
+   * Agrega un nuevo chofer
+   */
+  static addDriver(driver: Omit<Driver, 'id'>): Driver {
+    const config = this.getConfiguration();
+    const newDriver: Driver = {
+      ...driver,
+      id: generateId(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    config.drivers.push(newDriver);
+    this.saveConfiguration(config);
+    return newDriver;
+  }
+
+  /**
+   * Actualiza un chofer existente
+   */
+  static updateDriver(driverId: string, updates: Partial<Driver>): Driver {
+    const config = this.getConfiguration();
+    const index = config.drivers.findIndex(d => d.id === driverId);
+    
+    if (index === -1) {
+      throw new Error('Chofer no encontrado');
+    }
+
+    config.drivers[index] = {
+      ...config.drivers[index],
+      ...updates,
+      updatedAt: new Date()
+    };
+    
+    this.saveConfiguration(config);
+    return config.drivers[index];
+  }
+
+  /**
+   * Elimina un chofer
+   */
+  static deleteDriver(driverId: string): void {
+    const config = this.getConfiguration();
+    const index = config.drivers.findIndex(d => d.id === driverId);
+    
+    if (index === -1) {
+      throw new Error('Chofer no encontrado');
+    }
+
+    config.drivers.splice(index, 1);
+    this.saveConfiguration(config);
+  }
+
   // ==================== CONFIGURACIÓN GENERAL ====================
 
   /**
@@ -312,6 +383,8 @@ export class ConfigService {
       totalProviders: config.providers.length,
       totalMaterials: config.materials.length,
       activeMaterials: config.materials.filter(m => m.isActive !== false).length,
+      totalDrivers: config.drivers.length,
+      activeDrivers: config.drivers.filter(d => d.isActive !== false).length,
       materialCategories: config.settings.defaultMaterialCategories.length,
       lastUpdated: config.lastUpdated
     };

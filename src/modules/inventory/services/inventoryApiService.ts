@@ -3,6 +3,7 @@ import type {
   Platform, 
   Provider, 
   MaterialOption, 
+  Driver,
   ModuleConfiguration 
 } from '../types';
 
@@ -440,6 +441,145 @@ export class PlatformApiService {
   }
 }
 
+// ==================== CHOFERES ====================
+
+export class DriverApiService {
+  private static readonly BASE_PATH = '/api/inventory/drivers';
+
+  /**
+   * Obtener todos los choferes (global, sin userId)
+   */
+  static async getAllDrivers(filters?: {
+    active?: boolean;
+    vehicleType?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<PaginatedResponse<Driver>> {
+    try {
+      const params = {
+        limit: filters?.limit || 1000,
+        offset: filters?.offset || 0,
+        search: filters?.search || '',
+        vehicleType: filters?.vehicleType || '',
+        isActive: filters?.active !== undefined ? filters.active.toString() : ''
+      };
+      
+      const response = await api.get<ApiResponse<{ drivers: Driver[] }>>(this.BASE_PATH, {
+        params
+      });
+      
+      // Manejar diferentes formatos de respuesta
+      let drivers: Driver[] = [];
+      
+      if (response.data.data && Array.isArray(response.data.data)) {
+        drivers = response.data.data;
+      } else if (response.data.data && Array.isArray(response.data.data.drivers)) {
+        drivers = response.data.data.drivers;
+      } else if (response.data && Array.isArray(response.data)) {
+        drivers = response.data;
+      }
+      
+      return {
+        data: drivers,
+        pagination: {
+          total: drivers.length,
+          limit: params.limit,
+          offset: params.offset,
+          hasMore: false
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching drivers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener choferes activos
+   */
+  static async getActiveDrivers(): Promise<Driver[]> {
+    try {
+      const response = await api.get<ApiResponse<Driver[]>>(
+        `${this.BASE_PATH}/active`
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching active drivers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener un chofer por ID
+   */
+  static async getDriverById(driverId: string): Promise<Driver> {
+    try {
+      const response = await api.get<ApiResponse<Driver>>(`${this.BASE_PATH}/${driverId}`);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching driver:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Crear nuevo chofer
+   */
+  static async createDriver(driver: Omit<Driver, 'id'>): Promise<Driver> {
+    try {
+      const response = await api.post<ApiResponse<Driver>>(this.BASE_PATH, driver);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error creating driver:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Actualizar chofer
+   */
+  static async updateDriver(driverId: string, updates: Partial<Driver>): Promise<Driver> {
+    try {
+      const response = await api.put<ApiResponse<Driver>>(
+        `${this.BASE_PATH}/${driverId}`,
+        updates
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error('Error updating driver:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Eliminar chofer
+   */
+  static async deleteDriver(driverId: string): Promise<void> {
+    try {
+      await api.delete(`${this.BASE_PATH}/${driverId}`);
+    } catch (error) {
+      console.error('Error deleting driver:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener choferes por tipo de vehículo
+   */
+  static async getDriversByVehicleType(vehicleType: string): Promise<Driver[]> {
+    try {
+      const response = await api.get<ApiResponse<Driver[]>>(
+        `${this.BASE_PATH}/vehicle-type/${vehicleType}`
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching drivers by vehicle type:', error);
+      throw error;
+    }
+  }
+}
+
 // ==================== MATERIALES ====================
 
 export class MaterialApiService {
@@ -649,11 +789,13 @@ export class SyncService {
     platforms: Platform[];
     providers: Provider[];
     materials: MaterialOption[];
+    drivers: Driver[];
     configuration: ModuleConfiguration;
   }): Promise<{
     syncedPlatforms: number;
     syncedProviders: number;
     syncedMaterials: number;
+    syncedDrivers: number;
     syncedConfiguration: boolean;
     errors: string[];
   }> {
@@ -661,6 +803,7 @@ export class SyncService {
     let syncedPlatforms = 0;
     let syncedProviders = 0;
     let syncedMaterials = 0;
+    let syncedDrivers = 0;
     let syncedConfiguration = false;
 
     try {
@@ -704,6 +847,22 @@ export class SyncService {
         }
       }
 
+      // Sincronizar choferes
+      for (const driver of localData.drivers) {
+        try {
+          if (driver.id.startsWith('drv-')) {
+            // IDs generados localmente - crear en servidor
+            await DriverApiService.createDriver(driver);
+          } else {
+            // IDs del servidor - actualizar
+            await DriverApiService.updateDriver(driver.id, driver);
+          }
+          syncedDrivers++;
+        } catch (error) {
+          errors.push(`Error syncing driver ${driver.id}: ${error}`);
+        }
+      }
+
       // Sincronizar plataformas
       for (const platform of localData.platforms) {
         try {
@@ -728,6 +887,7 @@ export class SyncService {
         syncedPlatforms,
         syncedProviders,
         syncedMaterials,
+        syncedDrivers,
         syncedConfiguration,
         errors
       };
@@ -737,6 +897,7 @@ export class SyncService {
         syncedPlatforms,
         syncedProviders,
         syncedMaterials,
+        syncedDrivers,
         syncedConfiguration,
         errors
       };
@@ -760,6 +921,7 @@ export default {
   ProviderApiService,
   PlatformApiService,
   MaterialApiService,
+  DriverApiService,
   ConfigurationApiService,
   SyncService
 };

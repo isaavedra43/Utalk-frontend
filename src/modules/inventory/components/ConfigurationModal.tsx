@@ -3,13 +3,14 @@ import { X, Settings, Users, Package, Settings as SlidersIcon, Download, Plus as
 import { useConfiguration } from '../hooks/useConfiguration';
 import { ProviderManager } from './ProviderManager';
 import { MaterialManager } from './MaterialManager';
+import { DriverManager } from './DriverManager';
 import { SettingsManager } from './SettingsManager';
 
 interface ConfigurationModalProps {
   onClose: () => void;
 }
 
-type TabType = 'providers' | 'materials' | 'settings' | 'export';
+type TabType = 'providers' | 'materials' | 'drivers' | 'settings' | 'export';
 
 export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose }: ConfigurationModalProps) => {
   const {
@@ -30,7 +31,8 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
     loading, 
     error,
     providersCount: configuration?.providers?.length || 0,
-    materialsCount: configuration?.materials?.length || 0
+    materialsCount: configuration?.materials?.length || 0,
+    driversCount: configuration?.drivers?.length || 0
   });
 
   const [activeTab, setActiveTab] = useState<TabType>('providers');
@@ -131,6 +133,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
   const tabs = [
     { id: 'providers' as TabType, label: 'Proveedores', icon: Users },
     { id: 'materials' as TabType, label: 'Materiales', icon: Package },
+    { id: 'drivers' as TabType, label: 'Choferes', icon: Users },
     { id: 'settings' as TabType, label: 'Configuración', icon: SlidersIcon },
     { id: 'export' as TabType, label: 'Exportar/Importar', icon: Download }
   ];
@@ -177,6 +180,10 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
                 <div className="flex items-center gap-1">
                   <Package className="h-4 w-4 text-green-600" />
                   <span><strong>{stats.activeMaterials}</strong> Materiales Activos</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Users className="h-4 w-4 text-orange-600" />
+                  <span><strong>{stats.totalDrivers || 0}</strong> Choferes</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <SlidersIcon className="h-4 w-4 text-purple-600" />
@@ -249,6 +256,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({ onClose 
         <div className="p-4 sm:p-6 overflow-y-auto max-h-[60vh]">
           {activeTab === 'providers' && <ProviderManager />}
           {activeTab === 'materials' && <MaterialManager />}
+          {activeTab === 'drivers' && <DriverManager />}
           {activeTab === 'settings' && <SettingsManager />}
           {activeTab === 'export' && (
             <div className="space-y-6">

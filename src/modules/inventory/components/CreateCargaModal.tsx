@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Package, Calendar, Layers, FileText, Truck, User, Search, Check, Building2, Ticket } from 'lucide-react';
 import { useConfiguration } from '../hooks/useConfiguration';
-import type { Provider, MaterialOption } from '../types';
+import type { Provider, MaterialOption, Driver } from '../types';
 
 interface CreateCargaModalProps {
   onClose: () => void;
@@ -17,7 +17,7 @@ interface CreateCargaModalProps {
 }
 
 export const CreateCargaModal: React.FC<CreateCargaModalProps> = ({ onClose, onCreate }) => {
-  const { providers, activeMaterials } = useConfiguration();
+  const { providers, activeMaterials, activeDrivers } = useConfiguration();
   
   const [formData, setFormData] = useState({
     platformType: 'client' as 'provider' | 'client',
@@ -36,6 +36,9 @@ export const CreateCargaModal: React.FC<CreateCargaModalProps> = ({ onClose, onC
   const [showMaterialDropdown, setShowMaterialDropdown] = useState(false);
   const [providerMaterials, setProviderMaterials] = useState<MaterialOption[]>([]);
   const [loadingMaterials, setLoadingMaterials] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
+  const [driverSearch, setDriverSearch] = useState('');
+  const [showDriverDropdown, setShowDriverDropdown] = useState(false);
   
   const materialCategories = activeMaterials.reduce((acc, material) => {
     const category = material.category || 'Otros';
@@ -48,6 +51,12 @@ export const CreateCargaModal: React.FC<CreateCargaModalProps> = ({ onClose, onC
 
   const filteredProviders = providers.filter(provider =>
     provider.name.toLowerCase().includes(providerSearch.toLowerCase())
+  );
+
+  const filteredDrivers = activeDrivers.filter(driver =>
+    driver.name.toLowerCase().includes(driverSearch.toLowerCase()) ||
+    driver.vehiclePlate?.toLowerCase().includes(driverSearch.toLowerCase()) ||
+    driver.vehicleType.toLowerCase().includes(driverSearch.toLowerCase())
   );
   // ✅ Cargar materiales del proveedor cuando se selecciona
   useEffect(() => {
@@ -144,6 +153,25 @@ export const CreateCargaModal: React.FC<CreateCargaModalProps> = ({ onClose, onC
     });
   };
 
+  // Funciones para manejar choferes
+  const handleDriverSelect = (driver: Driver) => {
+    setSelectedDriver(driver);
+    setFormData({
+      ...formData,
+      driver: driver.name
+    });
+    setDriverSearch('');
+    setShowDriverDropdown(false);
+  };
+
+  const handleDriverRemove = () => {
+    setSelectedDriver(null);
+    setFormData({
+      ...formData,
+      driver: ''
+    });
+  };
+
   // Funciones para manejar proveedor
   const handleProviderSelect = (provider: Provider) => {
     // Limpiar materiales seleccionados cuando se cambia el proveedor
@@ -163,6 +191,7 @@ export const CreateCargaModal: React.FC<CreateCargaModalProps> = ({ onClose, onC
     const handleClickOutside = () => {
       setShowProviderDropdown(false);
       setShowMaterialDropdown(false);
+      setShowDriverDropdown(false);
     };
 
     document.addEventListener('click', handleClickOutside);
@@ -437,17 +466,82 @@ export const CreateCargaModal: React.FC<CreateCargaModalProps> = ({ onClose, onC
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
               <User className="h-4 w-4 text-gray-500" />
-              Nombre del Chofer *
+              Chofer *
             </label>
-            <input
-              type="text"
-              value={formData.driver}
-              onChange={(e) => setFormData({ ...formData, driver: e.target.value })}
-              placeholder="Ej: Juan Pérez, María González"
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.driver ? 'border-red-500' : 'border-gray-300'
-              }`}
-            />
+            
+            {selectedDriver ? (
+              <div className="relative">
+                <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-gray-900">{selectedDriver.name}</div>
+                      <div className="text-sm text-gray-500">
+                        {selectedDriver.vehicleType} - {selectedDriver.vehiclePlate}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDriverRemove}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="relative">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={driverSearch}
+                    onChange={(e) => {
+                      setDriverSearch(e.target.value);
+                      setShowDriverDropdown(true);
+                    }}
+                    onFocus={() => setShowDriverDropdown(true)}
+                    placeholder="Buscar chofer..."
+                    className={`w-full px-3 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      errors.driver ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                </div>
+                
+                {showDriverDropdown && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {filteredDrivers.length > 0 ? (
+                      filteredDrivers.map((driver) => (
+                        <button
+                          key={driver.id}
+                          type="button"
+                          onClick={() => handleDriverSelect(driver)}
+                          className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 border-b border-gray-100 last:border-b-0"
+                        >
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <User className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900">{driver.name}</div>
+                            <div className="text-sm text-gray-500">
+                              {driver.vehicleType} - {driver.vehiclePlate}
+                            </div>
+                          </div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-4 py-3 text-gray-500 text-center">
+                        {activeDrivers.length === 0 ? 'No hay choferes registrados' : 'No se encontraron choferes'}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            
             {errors.driver && (
               <p className="text-xs text-red-600 mt-1">{errors.driver}</p>
             )}

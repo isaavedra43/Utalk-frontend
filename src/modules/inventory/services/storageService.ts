@@ -1,6 +1,6 @@
 // Servicio para manejo de localStorage
 
-import type { Platform, InventorySettings } from '../types';
+import type { Platform, InventorySettings, Driver } from '../types';
 
 // ✅ SOLUCIÓN: Aislar localStorage por usuario
 const getUserId = (): string => {
@@ -20,6 +20,7 @@ const getUserId = (): string => {
 
 const getPlatformsKey = (): string => `inventory_platforms_${getUserId()}`;
 const getSettingsKey = (): string => `inventory_settings_${getUserId()}`;
+const getDriversKey = (): string => `inventory_drivers_${getUserId()}`;
 
 /**
  * Servicio de almacenamiento local
@@ -131,12 +132,81 @@ export class StorageService {
     }
   }
 
+  // ==================== CHOFERES ====================
+
+  /**
+   * Obtiene todos los choferes
+   */
+  static getDrivers(): Driver[] {
+    try {
+      const data = localStorage.getItem(getDriversKey());
+      if (!data) return [];
+      
+      const drivers = JSON.parse(data);
+      // Convertir fechas de string a Date
+      return drivers.map((d: Driver & { createdAt?: string | Date; updatedAt?: string | Date }) => ({
+        ...d,
+        createdAt: d.createdAt ? new Date(d.createdAt) : undefined,
+        updatedAt: d.updatedAt ? new Date(d.updatedAt) : undefined
+      }));
+    } catch (error) {
+      console.error('Error al cargar choferes:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Guarda todos los choferes
+   */
+  static saveDrivers(drivers: Driver[]): void {
+    try {
+      localStorage.setItem(getDriversKey(), JSON.stringify(drivers));
+    } catch (error) {
+      console.error('Error al guardar choferes:', error);
+      throw new Error('No se pudo guardar la información. El almacenamiento local podría estar lleno.');
+    }
+  }
+
+  /**
+   * Guarda un chofer individual
+   */
+  static saveDriver(driver: Driver): void {
+    const drivers = this.getDrivers();
+    const index = drivers.findIndex(d => d.id === driver.id);
+    
+    if (index >= 0) {
+      drivers[index] = { ...driver, updatedAt: new Date() };
+    } else {
+      drivers.push({ ...driver, createdAt: new Date(), updatedAt: new Date() });
+    }
+    
+    this.saveDrivers(drivers);
+  }
+
+  /**
+   * Elimina un chofer
+   */
+  static deleteDriver(driverId: string): void {
+    const drivers = this.getDrivers();
+    const filteredDrivers = drivers.filter(d => d.id !== driverId);
+    this.saveDrivers(filteredDrivers);
+  }
+
+  /**
+   * Obtiene un chofer por ID
+   */
+  static getDriverById(driverId: string): Driver | null {
+    const drivers = this.getDrivers();
+    return drivers.find(d => d.id === driverId) || null;
+  }
+
   /**
    * Limpia todos los datos
    */
   static clearAll(): void {
     localStorage.removeItem(getPlatformsKey());
     localStorage.removeItem(getSettingsKey());
+    localStorage.removeItem(getDriversKey());
   }
 
   /**

@@ -76,9 +76,23 @@ export interface MaterialOption {
   providerIds: string[]; // IDs de los proveedores que manejan este material
 }
 
+export interface Driver {
+  id: string;
+  name: string;
+  phone?: string;
+  licenseNumber?: string;
+  vehicleType: string; // Tipo de vehículo (camión, camioneta, etc.)
+  vehiclePlate?: string; // Placa del vehículo
+  vehicleModel?: string; // Modelo del vehículo
+  isActive?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 export interface ModuleConfiguration {
   providers: Provider[];
   materials: MaterialOption[];
+  drivers: Driver[];
   settings: {
     defaultStandardWidth: number;
     autoSaveEnabled: boolean;
