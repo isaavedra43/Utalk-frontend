@@ -891,17 +891,6 @@ Generado por Sistema de Inventario`;
                     </div>
                   </button>
 
-                  {/* Botón Generar PDF - Desktop */}
-                  <button
-                    onClick={handleGeneratePDF}
-                    disabled={platform.pieces.length === 0}
-                    className="flex items-center justify-center w-11 h-11 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl shadow-lg hover:from-purple-600 hover:to-purple-700 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 active:shadow-2xl disabled:active:scale-100"
-                    title="Generar reporte PDF profesional con firma electrónica"
-                  >
-                    <div className="p-1.5 bg-purple-600 rounded-xl">
-                      <FileText className="h-4 w-4" />
-                    </div>
-                  </button>
                 </div>
           </div>
         </div>
@@ -1381,17 +1370,6 @@ Generado por Sistema de Inventario`;
             <Camera className="h-5 w-5 mb-0.5" />
             <span className="text-[10px] font-semibold">Evidencias</span>
           </button>
-
-          {/* Botón Generar PDF */}
-          <button
-            onClick={handleGeneratePDF}
-            disabled={platform.pieces.length === 0}
-            className="flex flex-col items-center justify-center flex-1 py-2.5 bg-gradient-to-br from-purple-50 to-purple-100 text-purple-700 rounded-lg border border-purple-200 shadow-sm active:scale-95 transition-transform disabled:opacity-40"
-            title="Generar reporte PDF profesional"
-          >
-            <FileText className="h-5 w-5 mb-0.5" />
-            <span className="text-[10px] font-semibold">PDF</span>
-          </button>
         </div>
       </div>
 
@@ -1590,7 +1568,7 @@ Generado por Sistema de Inventario`;
           <div className="bg-white rounded-lg shadow-xl max-w-sm w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-                Descargar e Imprimir Carga {platform.platformNumber}
+                Descargar Reportes - Carga {platform.platformNumber}
               </h3>
               
               <div className="space-y-3">
@@ -1598,7 +1576,7 @@ Generado por Sistema de Inventario`;
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 mb-2">
                     <Download className="h-4 w-4 text-gray-600" />
-                    <span className="text-sm font-semibold text-gray-700">DESCARGAR</span>
+                    <span className="text-sm font-semibold text-gray-700">REPORTES</span>
                   </div>
                   
                   {/* Excel */}
@@ -1614,6 +1592,25 @@ Generado por Sistema de Inventario`;
                     <div className="text-left">
                       <div className="font-medium">Excel (CSV)</div>
                       <div className="text-sm text-green-600">Descargar datos en formato Excel</div>
+                    </div>
+                  </button>
+
+                  {/* PDF Premium */}
+                  <button
+                    onClick={() => {
+                      setShowDownloadModal(false);
+                      handleGeneratePDF();
+                    }}
+                    disabled={platform.pieces.length === 0}
+                    className="w-full flex items-center gap-3 p-3 bg-gradient-to-br from-purple-50 via-pink-50 to-purple-100 hover:from-purple-100 hover:via-pink-100 hover:to-purple-200 text-purple-700 rounded-lg border border-purple-200 transition-colors disabled:opacity-50 relative"
+                  >
+                    <div className="relative">
+                      <FileText className="h-6 w-6" />
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full"></div>
+                    </div>
+                    <div className="text-left">
+                      <div className="font-medium">Reporte PDF Premium</div>
+                      <div className="text-sm text-purple-600">Generar reporte con diseño profesional</div>
                     </div>
                   </button>
                   

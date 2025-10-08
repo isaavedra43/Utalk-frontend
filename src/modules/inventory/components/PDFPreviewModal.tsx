@@ -322,13 +322,41 @@ export const PDFPreviewModal: React.FC<PDFPreviewModalProps> = ({
               </button>
             </div>
 
-            {/* Información adicional */}
+            {/* Información adicional con diseño elegante */}
             <div className="mt-3 pt-3 border-t border-gray-200">
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3 mb-3">
+                <div className="flex items-center justify-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                  <span className="text-lg">✨</span>
+                  <span>Diseño Profesional Premium</span>
+                  <span className="text-lg">✨</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                  <div className="flex items-center gap-1">
+                    <span className="text-green-500">🎨</span>
+                    <span>Colores corporativos</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-blue-500">📊</span>
+                    <span>Tablas elegantes</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-purple-500">📋</span>
+                    <span>Información organizada</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-orange-500">🏆</span>
+                    <span>Diseño premium</span>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex items-center gap-4 text-xs text-gray-500">
-                <span className="flex items-center gap-1">
-                  <CheckCircle className="h-3 w-3 text-green-500" />
-                  Firma electrónica incluida
-                </span>
+                {signature && (
+                  <span className="flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                    Firma electrónica incluida
+                  </span>
+                )}
                 {includeEvidence && (
                   <span className="flex items-center gap-1">
                     <CheckCircle className="h-3 w-3 text-green-500" />
