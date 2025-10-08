@@ -291,62 +291,90 @@ export class PrintService {
    * Dibuja el contenido en el canvas
    */
   private static drawImageContent(ctx: CanvasRenderingContext2D, platform: Platform, width: number, height: number): void {
-    const padding = 40;
-    let y = padding;
+    try {
+      console.log('🖼️ [drawImageContent] Dibujando contenido para:', platform.cargaNumber);
+      
+      // ✅ VALIDAR datos de la plataforma
+      if (!platform) {
+        throw new Error('Plataforma no proporcionada para dibujar imagen');
+      }
+      
+      const cargaNumber = platform.cargaNumber || 'Sin número';
+      const provider = platform.provider || 'Sin proveedor';
+      const client = platform.client || 'Sin cliente';
+      const driver = platform.driver || 'Sin chofer';
+      const ticketNumber = platform.ticketNumber || 'Sin ticket';
+      const pieces = platform.pieces || [];
+      const totalLinearMeters = platform.totalLinearMeters || 0;
+      const totalLength = platform.totalLength || 0;
+      
+      const padding = 40;
+      let y = padding;
+      
+      // Título
+      ctx.fillStyle = '#1f2937';
+      ctx.font = 'bold 24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`CARGA ${cargaNumber}`, width / 2, y);
+      y += 50;
     
-    // Título
-    ctx.fillStyle = '#1f2937';
-    ctx.font = 'bold 24px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(`CARGA ${platform.cargaNumber}`, width / 2, y);
-    y += 50;
-    
-    // Información de la carga
-    ctx.font = '16px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#374151';
-    
-    const info = [
-      `Fecha: ${platform.receptionDate.toLocaleDateString('es-MX')}`,
-      `Tipo: ${platform.platformType === 'provider' ? 'Proveedor' : 'Cliente'}`,
-      `Proveedor: ${platform.provider || 'No especificado'}`,
-      `Cliente: ${platform.client || 'No especificado'}`,
-      `Chofer: ${platform.driver || 'No especificado'}`,
-      `Ticket: ${platform.ticketNumber || 'No especificado'}`,
-      `Ancho estándar: ${platform.standardWidth}m`,
-      `Total piezas: ${platform.pieces.length}`,
-      `Metros lineales: ${platform.totalLinearMeters.toFixed(2)}m`,
-      `Longitud total: ${platform.totalLength.toFixed(2)}m`
-    ];
+      // Información de la carga
+      ctx.font = '16px Arial';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#374151';
+      
+      const receptionDate = platform.receptionDate ? new Date(platform.receptionDate).toLocaleDateString('es-MX') : 'No especificada';
+      const standardWidth = platform.standardWidth || 0;
+      
+      const info = [
+        `Fecha: ${receptionDate}`,
+        `Tipo: ${platform.platformType === 'provider' ? 'Proveedor' : 'Cliente'}`,
+        `Proveedor: ${provider}`,
+        `Cliente: ${client}`,
+        `Chofer: ${driver}`,
+        `Ticket: ${ticketNumber}`,
+        `Ancho estándar: ${standardWidth}m`,
+        `Total piezas: ${pieces.length}`,
+        `Metros lineales: ${totalLinearMeters.toFixed(2)}m`,
+        `Longitud total: ${totalLength.toFixed(2)}m`
+      ];
     
     info.forEach((line) => {
       ctx.fillText(line, padding, y);
       y += 25;
     });
     
-    // Piezas
-    if (platform.pieces.length > 0) {
-      y += 20;
-      ctx.font = 'bold 18px Arial';
-      ctx.fillText('PIEZAS:', padding, y);
-      y += 30;
-      
-      ctx.font = '14px Arial';
-      platform.pieces.forEach((piece, index) => {
-        const pieceText = `Pieza ${piece.number}: ${piece.length.toFixed(2)}m - ${piece.material}`;
-        ctx.fillText(pieceText, padding, y);
+      // Piezas
+      if (pieces.length > 0) {
         y += 20;
-      });
-    }
+        ctx.font = 'bold 18px Arial';
+        ctx.fillText('PIEZAS:', padding, y);
+        y += 30;
+        
+        ctx.font = '14px Arial';
+        pieces.forEach((piece, index) => {
+          const pieceNumber = piece.number || 'N/A';
+          const pieceLength = piece.length ? piece.length.toFixed(2) : '0.00';
+          const pieceMaterial = piece.material || 'Sin especificar';
+          const pieceText = `Pieza ${pieceNumber}: ${pieceLength}m - ${pieceMaterial}`;
+          ctx.fillText(pieceText, padding, y);
+          y += 20;
+        });
+      }
     
-    // Notas
-    if (platform.notes) {
-      y += 20;
-      ctx.font = 'bold 16px Arial';
-      ctx.fillText('NOTAS:', padding, y);
-      y += 25;
-      ctx.font = '14px Arial';
-      ctx.fillText(platform.notes, padding, y);
+      // Notas
+      const notes = platform.notes;
+      if (notes && notes !== 'Sin notas') {
+        y += 20;
+        ctx.font = 'bold 16px Arial';
+        ctx.fillText('NOTAS:', padding, y);
+        y += 25;
+        ctx.font = '14px Arial';
+        ctx.fillText(notes, padding, y);
+      }
+    } catch (error) {
+      console.error('❌ [drawImageContent] Error dibujando contenido:', error);
+      throw new Error(`Error dibujando contenido de imagen: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   }
 
@@ -354,12 +382,44 @@ export class PrintService {
    * Genera el contenido HTML para el PDF
    */
   private static generatePDFContent(platform: Platform): string {
-    return `
+    try {
+      console.log('📄 [generatePDFContent] Generando contenido para:', platform.cargaNumber);
+      
+      // ✅ VALIDAR que la plataforma tiene los datos necesarios
+      if (!platform) {
+        throw new Error('Plataforma no proporcionada');
+      }
+      
+      if (!platform.cargaNumber) {
+        throw new Error('Número de carga no disponible');
+      }
+      
+      const cargaNumber = platform.cargaNumber || 'Sin número';
+      const provider = platform.provider || 'Sin proveedor';
+      const client = platform.client || 'Sin cliente';
+      const driver = platform.driver || 'Sin chofer';
+      const ticketNumber = platform.ticketNumber || 'Sin ticket';
+      const notes = platform.notes || 'Sin notas';
+      const pieces = platform.pieces || [];
+      const totalLinearMeters = platform.totalLinearMeters || 0;
+      const totalLength = platform.totalLength || 0;
+      
+      console.log('📄 [generatePDFContent] Datos validados:', {
+        cargaNumber,
+        provider,
+        client,
+        driver,
+        piecesCount: pieces.length,
+        totalLinearMeters,
+        totalLength
+      });
+      
+      return `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="UTF-8">
-          <title>Carga ${platform.cargaNumber}</title>
+          <title>Carga ${cargaNumber}</title>
           <style>
             body {
               font-family: Arial, sans-serif;
@@ -486,9 +546,9 @@ export class PrintService {
             </div>
           </div>
           
-          ${platform.pieces.length > 0 ? `
+          ${pieces.length > 0 ? `
             <div class="pieces-section">
-              <h2 class="pieces-title">PIEZAS (${platform.pieces.length})</h2>
+              <h2 class="pieces-title">PIEZAS (${pieces.length})</h2>
               <table class="pieces-table">
                 <thead>
                   <tr>
@@ -499,12 +559,12 @@ export class PrintService {
                   </tr>
                 </thead>
                 <tbody>
-                  ${platform.pieces.map(piece => `
+                  ${pieces.map(piece => `
                     <tr>
-                      <td>${piece.number}</td>
-                      <td>${piece.length.toFixed(2)}m</td>
-                      <td>${piece.material}</td>
-                      <td>${piece.linearMeters.toFixed(2)}m</td>
+                      <td>${piece.number || 'N/A'}</td>
+                      <td>${piece.length ? piece.length.toFixed(2) : '0.00'}m</td>
+                      <td>${piece.material || 'Sin especificar'}</td>
+                      <td>${piece.linearMeters ? piece.linearMeters.toFixed(2) : '0.00'}m</td>
                     </tr>
                   `).join('')}
                 </tbody>
@@ -516,27 +576,31 @@ export class PrintService {
             <h3 class="summary-title">RESUMEN</h3>
             <div class="summary-item">
               <span>Total de piezas:</span>
-              <span><strong>${platform.pieces.length}</strong></span>
+              <span><strong>${pieces.length}</strong></span>
             </div>
             <div class="summary-item">
               <span>Metros lineales totales:</span>
-              <span><strong>${platform.totalLinearMeters.toFixed(2)}m</strong></span>
+              <span><strong>${totalLinearMeters.toFixed(2)}m</strong></span>
             </div>
             <div class="summary-item">
               <span>Longitud total:</span>
-              <span><strong>${platform.totalLength.toFixed(2)}m</strong></span>
+              <span><strong>${totalLength.toFixed(2)}m</strong></span>
             </div>
           </div>
           
-          ${platform.notes ? `
+          ${notes && notes !== 'Sin notas' ? `
             <div style="margin-top: 30px;">
               <h3 style="font-size: 18px; font-weight: bold; color: #1f2937; margin-bottom: 10px;">NOTAS</h3>
-              <p style="color: #6b7280; line-height: 1.5;">${platform.notes}</p>
+              <p style="color: #6b7280; line-height: 1.5;">${notes}</p>
             </div>
           ` : ''}
         </body>
       </html>
     `;
+    } catch (error) {
+      console.error('❌ [generatePDFContent] Error generando contenido:', error);
+      throw new Error(`Error generando contenido PDF: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    }
   }
 
   /**
