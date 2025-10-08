@@ -649,73 +649,129 @@ export class PDFReportService {
     });
   }
 
-  // Nueva función para cargar imagen como base64 usando XMLHttpRequest
+  // Función híbrida para cargar imagen como base64 con múltiples estrategias
   private static async loadImageAsBase64(imageUrl: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      try {
-        console.log('📥 Descargando imagen con XMLHttpRequest:', imageUrl);
-        
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', imageUrl, true);
-        xhr.responseType = 'blob';
-        
-        // Agregar timestamp para evitar caché
-        const timestamp = Date.now();
-        const separator = imageUrl.includes('?') ? '&' : '?';
-        xhr.open('GET', `${imageUrl}${separator}t=${timestamp}`, true);
-        xhr.responseType = 'blob';
-        
-        xhr.onload = function() {
-          try {
-            if (xhr.status === 200) {
-              console.log('✅ Imagen descargada exitosamente:', {
-                status: xhr.status,
-                size: xhr.response?.size,
-                type: xhr.response?.type
-              });
-              
-              const reader = new FileReader();
-              reader.onloadend = function() {
-                const base64 = reader.result as string;
-                console.log('✅ Base64 generado, longitud:', base64.length);
-                resolve(base64);
-              };
-              reader.onerror = function(error) {
-                console.error('❌ Error leyendo blob:', error);
-                reject(new Error('Error convirtiendo blob a base64'));
-              };
-              reader.readAsDataURL(xhr.response);
-              
-            } else {
-              console.error('❌ Error HTTP:', xhr.status, xhr.statusText);
-              reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
-            }
-          } catch (error) {
-            console.error('❌ Error procesando respuesta:', error);
-            reject(error);
-          }
-        };
-        
-        xhr.onerror = function() {
-          console.error('❌ Error de red XMLHttpRequest');
-          reject(new Error('Error de red al descargar imagen'));
-        };
-        
-        xhr.ontimeout = function() {
-          console.error('❌ Timeout XMLHttpRequest');
-          reject(new Error('Timeout al descargar imagen'));
-        };
-        
-        // Configurar timeout de 30 segundos
-        xhr.timeout = 30000;
-        
-        console.log('📤 Enviando petición XMLHttpRequest...');
-        xhr.send();
-        
-      } catch (error) {
-        console.error('❌ Error en loadImageAsBase64:', error);
-        reject(error);
+    console.log('🔄 Iniciando carga híbrida de imagen:', imageUrl);
+    
+    // Estrategia 1: Intentar con fetch + cors
+    try {
+      console.log('📡 Estrategia 1: Fetch con CORS');
+      const response = await fetch(imageUrl, {
+        mode: 'cors',
+        cache: 'no-cache',
+        credentials: 'omit'
+      });
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const base64 = await this.blobToBase64(blob);
+        console.log('✅ Éxito con fetch + CORS');
+        return base64;
       }
+    } catch (error) {
+      console.warn('⚠️ Fetch + CORS falló:', error);
+    }
+    
+    // Estrategia 2: Intentar con fetch + no-cors
+    try {
+      console.log('📡 Estrategia 2: Fetch con no-cors');
+      const response = await fetch(imageUrl, {
+        mode: 'no-cors',
+        cache: 'no-cache'
+      });
+      
+      const blob = await response.blob();
+      const base64 = await this.blobToBase64(blob);
+      console.log('✅ Éxito con fetch + no-cors');
+      return base64;
+    } catch (error) {
+      console.warn('⚠️ Fetch + no-cors falló:', error);
+    }
+    
+    // Estrategia 3: Intentar con XMLHttpRequest
+    try {
+      console.log('📡 Estrategia 3: XMLHttpRequest');
+      const base64 = await this.loadImageWithXHR(imageUrl);
+      console.log('✅ Éxito con XMLHttpRequest');
+      return base64;
+    } catch (error) {
+      console.warn('⚠️ XMLHttpRequest falló:', error);
+    }
+    
+    // Estrategia 4: Intentar con Image + canvas (último recurso)
+    try {
+      console.log('📡 Estrategia 4: Image + Canvas');
+      const base64 = await this.loadImageWithCanvas(imageUrl);
+      console.log('✅ Éxito con Image + Canvas');
+      return base64;
+    } catch (error) {
+      console.warn('⚠️ Image + Canvas falló:', error);
+    }
+    
+    // Si todas las estrategias fallan
+    console.error('❌ Todas las estrategias de carga fallaron');
+    throw new Error('No se pudo cargar la imagen con ninguna estrategia');
+  }
+  
+  // Función auxiliar para convertir blob a base64
+  private static blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Error convirtiendo blob a base64'));
+      reader.readAsDataURL(blob);
+    });
+  }
+  
+  // Función auxiliar para XMLHttpRequest
+  private static loadImageWithXHR(imageUrl: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', imageUrl, true);
+      xhr.responseType = 'blob';
+      xhr.timeout = 15000;
+      
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          this.blobToBase64(xhr.response)
+            .then(resolve)
+            .catch(reject);
+        } else {
+          reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+        }
+      };
+      
+      xhr.onerror = () => reject(new Error('Error de red XMLHttpRequest'));
+      xhr.ontimeout = () => reject(new Error('Timeout XMLHttpRequest'));
+      
+      xhr.send();
+    });
+  }
+  
+  // Función auxiliar para Image + Canvas (último recurso)
+  private static loadImageWithCanvas(imageUrl: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          canvas.width = img.width;
+          canvas.height = img.height;
+          
+          ctx?.drawImage(img, 0, 0);
+          const base64 = canvas.toDataURL('image/png');
+          resolve(base64);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      
+      img.onerror = () => reject(new Error('Error cargando imagen con canvas'));
+      img.src = imageUrl;
     });
   }
 
