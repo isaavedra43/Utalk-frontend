@@ -22,30 +22,21 @@ export interface PDFReportOptions {
 
 export class PDFReportService {
   private static readonly COLORS = {
-    primary: '#1e293b',      // slate-800 - Azul gris oscuro profesional
-    secondary: '#0f172a',    // slate-900 - Azul muy oscuro para contraste
-    accent: '#3b82f6',       // blue-500 - Azul corporativo
-    success: '#059669',      // emerald-600 - Verde profesional
-    warning: '#d97706',      // amber-600 - Naranja corporativo
-    danger: '#dc2626',       // red-600 - Rojo para alertas
-    light: '#f8fafc',        // slate-50 - Fondo muy claro
-    lightBlue: '#eff6ff',    // blue-50 - Fondo azul claro
-    border: '#cbd5e1',       // slate-300 - Bordes suaves
-    borderLight: '#e2e8f0',  // slate-200 - Bordes muy claros
-    text: '#1e293b',         // slate-800 - Texto principal
-    textSecondary: '#475569', // slate-600 - Texto secundario
-    textLight: '#64748b',    // slate-500 - Texto claro
+    primary: '#374151',      // gray-700 - Color principal único
+    text: '#374151',         // gray-700 - Texto principal
+    textSecondary: '#6b7280', // gray-500 - Texto secundario
+    textLight: '#9ca3af',    // gray-400 - Texto claro
+    border: '#e5e7eb',       // gray-200 - Bordes sutiles
+    background: '#f9fafb',   // gray-50 - Fondo de secciones
     white: '#ffffff',        // Blanco puro
   };
 
   private static readonly FONTS = {
-    title: 20,
-    subtitle: 16,
-    heading: 14,
-    subheading: 12,
-    normal: 11,
+    title: 18,
+    subtitle: 14,
+    heading: 12,
+    normal: 10,
     small: 9,
-    tiny: 8,
   };
 
   static async generateProfessionalReport(options: PDFReportOptions): Promise<Blob> {
@@ -150,15 +141,7 @@ export class PDFReportService {
     try {
       const pageWidth = doc.internal.pageSize.getWidth();
 
-      // Fondo del header con gradiente sutil
-      doc.setFillColor(this.COLORS.lightBlue);
-      doc.rect(0, 0, pageWidth, 50, 'F');
-
-      // Línea decorativa superior
-      doc.setFillColor(this.COLORS.accent);
-      doc.rect(0, 0, pageWidth, 4, 'F');
-
-      // Título principal con diseño profesional
+      // Título principal minimalista
       doc.setFontSize(this.FONTS.title);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(this.COLORS.primary);
@@ -166,38 +149,30 @@ export class PDFReportService {
       const title = 'REPORTE DE CARGA';
       const titleWidth = doc.getTextWidth(title);
       const titleX = (pageWidth - titleWidth) / 2;
-      doc.text(title, titleX, 18);
+      doc.text(title, titleX, 25);
 
-      // Subtítulo elegante
-      doc.setFontSize(this.FONTS.subheading);
+      // Subtítulo simple
+      doc.setFontSize(this.FONTS.subtitle);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(this.COLORS.textSecondary);
 
       const subtitle = 'CUANTIFICACIÓN DE MATERIALES';
       const subtitleWidth = doc.getTextWidth(subtitle);
       const subtitleX = (pageWidth - subtitleWidth) / 2;
-      doc.text(subtitle, subtitleX, 26);
+      doc.text(subtitle, subtitleX, 35);
 
-      // Información de la carga en caja destacada
+      // Información de la carga simple
       const platformNumber = platform.platformNumber || 'N/A';
-      
-      // Fondo para la información de la carga
-      doc.setFillColor(this.COLORS.white);
-      doc.setDrawColor(this.COLORS.border);
-      doc.setLineWidth(0.5);
-      doc.roundedRect(20, 32, pageWidth - 40, 12, 2, 2, 'FD');
-
-      // Texto de la carga
       doc.setFontSize(this.FONTS.normal);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(this.COLORS.primary);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(this.COLORS.text);
       
       const cargaInfo = `Carga: ${platformNumber}`;
       const cargaInfoWidth = doc.getTextWidth(cargaInfo);
       const cargaInfoX = (pageWidth - cargaInfoWidth) / 2;
-      doc.text(cargaInfo, cargaInfoX, 40);
+      doc.text(cargaInfo, cargaInfoX, 45);
 
-      // Fecha del reporte con estilo profesional
+      // Fecha del reporte
       const reportDate = (() => {
         try {
           return new Date().toLocaleDateString('es-MX', {
@@ -214,14 +189,13 @@ export class PDFReportService {
       })();
 
       doc.setFontSize(this.FONTS.small);
-      doc.setFont('helvetica', 'normal');
       doc.setTextColor(this.COLORS.textLight);
       doc.text(`Fecha del reporte: ${reportDate}`, 20, doc.internal.pageSize.getHeight() - 20);
 
-      // Línea separadora después del header
-      doc.setDrawColor(this.COLORS.borderLight);
+      // Línea separadora simple
+      doc.setDrawColor(this.COLORS.border);
       doc.setLineWidth(0.5);
-      doc.line(20, 52, pageWidth - 20, 52);
+      doc.line(20, 55, pageWidth - 20, 55);
     } catch (error) {
       console.error('Error en addHeader:', error);
       // No lanzar error para el header, ya que no es crítico
@@ -260,106 +234,54 @@ export class PDFReportService {
       const pageWidth = doc.internal.pageSize.getWidth();
       let currentY = yPosition;
 
-      // Fondo elegante para la sección
-      doc.setFillColor(this.COLORS.light);
-      doc.setDrawColor(this.COLORS.borderLight);
-      doc.setLineWidth(0.5);
-      doc.roundedRect(15, currentY - 5, pageWidth - 30, 85, 4, 4, 'FD');
-
-      // Título de la sección con estilo profesional
+      // Título de la sección simple
       doc.setFontSize(this.FONTS.heading);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(this.COLORS.primary);
 
-      // Icono decorativo para el título
-      doc.setFillColor(this.COLORS.accent);
-      doc.circle(25, currentY + 2, 3, 'F');
+      doc.text('INFORMACIÓN DE LA CARGA', 20, currentY);
+      currentY += 8;
 
-      doc.text('INFORMACIÓN DE LA CARGA', 32, currentY + 4);
-      currentY += 15;
-
-      // Línea separadora elegante
-      doc.setDrawColor(this.COLORS.accent);
-      doc.setLineWidth(1);
+      // Línea separadora simple
+      doc.setDrawColor(this.COLORS.border);
+      doc.setLineWidth(0.5);
       doc.line(20, currentY, pageWidth - 20, currentY);
       currentY += 8;
 
-      // Información organizada en dos columnas
-      doc.setFontSize(this.FONTS.small);
+      // Información simple en lista
+      doc.setFontSize(this.FONTS.normal);
       doc.setFont('helvetica', 'normal');
       
-      const leftColumnX = 25;
-      const rightColumnX = pageWidth / 2 + 10;
-      const lineHeight = 7;
-      const columnWidth = (pageWidth - 50) / 2 - 15;
+      const lineHeight = 6;
+      const leftMargin = 20;
 
-      // Columna izquierda
-      const leftInfo = [
-        { label: 'Número de Carga:', value: platform.platformNumber || 'N/A' },
-        { label: 'Tipo de Plataforma:', value: platform.platformType === 'provider' ? 'Proveedor' : 'Cliente' },
-        { label: 'Estado:', value: platform.status === 'in_progress' ? 'En Proceso' :
-                                   platform.status === 'completed' ? 'Completada' : 'Exportada' },
-        { label: 'Fecha de Recepción:', value: platform.receptionDate ? new Date(platform.receptionDate).toLocaleDateString('es-MX') : 'N/A' },
-        { label: 'Materiales:', value: platform.materialTypes && platform.materialTypes.length > 0 ? platform.materialTypes.join(', ') : 'Sin especificar' },
-      ];
-
-      // Columna derecha
-      const rightInfo = [
-        { label: platform.platformType === 'provider' ? 'Proveedor:' : 'Cliente:', value: platform.provider || platform.client || 'No especificado' },
-        { label: 'Chofer:', value: platform.driver || 'No especificado' },
+      // Crear información básica como lista simple
+      const infoLines = [
+        `Número de Carga: ${platform.platformNumber || 'N/A'}`,
+        `Tipo de Plataforma: ${platform.platformType === 'provider' ? 'Proveedor' : 'Cliente'}`,
+        `Estado: ${platform.status === 'in_progress' ? 'En Proceso' :
+                  platform.status === 'completed' ? 'Completada' : 'Exportada'}`,
+        `Fecha de Recepción: ${platform.receptionDate ? new Date(platform.receptionDate).toLocaleDateString('es-MX') : 'N/A'}`,
+        `Materiales: ${platform.materialTypes && platform.materialTypes.length > 0 ? platform.materialTypes.join(', ') : 'Sin especificar'}`,
+        `${platform.platformType === 'provider' ? 'Proveedor' : 'Cliente'}: ${platform.provider || platform.client || 'No especificado'}`,
+        `Chofer: ${platform.driver || 'No especificado'}`,
         ...(platform.platformType === 'client' && platform.ticketNumber ?
-          [{ label: 'Número de Ticket:', value: platform.ticketNumber }] : []),
-        { label: 'Observaciones:', value: platform.notes || 'Sin observaciones' },
-        { label: 'Creado por:', value: platform.createdByName || platform.createdBy || 'Sistema' },
+          [`Número de Ticket: ${platform.ticketNumber}`] : []),
+        `Observaciones: ${platform.notes || 'Sin observaciones'}`,
+        `Creado por: ${platform.createdByName || platform.createdBy || 'Sistema'}`,
       ];
 
-      // Renderizar columna izquierda
-      leftInfo.forEach((item) => {
-        if (currentY > doc.internal.pageSize.getHeight() - 50) {
+      infoLines.forEach((line) => {
+        if (currentY > doc.internal.pageSize.getHeight() - 30) {
           doc.addPage();
           currentY = 20;
         }
-
-        // Label en negrita
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(this.COLORS.primary);
-        doc.text(`${item.label}`, leftColumnX, currentY);
-
-        // Valor normal
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(this.COLORS.textSecondary);
-        const maxWidth = columnWidth - doc.getTextWidth(`${item.label} `) - 5;
-        const lines = doc.splitTextToSize(item.value, maxWidth);
-        doc.text(lines, leftColumnX + doc.getTextWidth(`${item.label} `) + 5, currentY);
-
-        currentY += lineHeight * Math.max(1, lines.length);
+        doc.setTextColor(this.COLORS.text);
+        doc.text(line, leftMargin, currentY);
+        currentY += lineHeight;
       });
 
-      currentY = yPosition + 23; // Reset para columna derecha
-
-      // Renderizar columna derecha
-      rightInfo.forEach((item) => {
-        if (currentY > doc.internal.pageSize.getHeight() - 50) {
-          doc.addPage();
-          currentY = 20;
-        }
-
-        // Label en negrita
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(this.COLORS.primary);
-        doc.text(`${item.label}`, rightColumnX, currentY);
-
-        // Valor normal
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(this.COLORS.textSecondary);
-        const maxWidth = columnWidth - doc.getTextWidth(`${item.label} `) - 5;
-        const lines = doc.splitTextToSize(item.value, maxWidth);
-        doc.text(lines, rightColumnX + doc.getTextWidth(`${item.label} `) + 5, currentY);
-
-        currentY += lineHeight * Math.max(1, lines.length);
-      });
-
-      return currentY + 15;
+      return currentY + 10;
     } catch (error) {
       console.error('Error en addPlatformInfo - Datos de plataforma:', platform);
       console.error('Error detallado:', error);
@@ -378,95 +300,77 @@ export class PDFReportService {
       });
 
       if (!platform.pieces || !Array.isArray(platform.pieces) || platform.pieces.length === 0) {
-        // Fondo para mensaje de no hay piezas
-        doc.setFillColor(this.COLORS.light);
-        doc.setDrawColor(this.COLORS.border);
-        doc.roundedRect(15, yPosition, doc.internal.pageSize.getWidth() - 30, 20, 4, 4, 'FD');
-        
         doc.setFontSize(this.FONTS.normal);
-        doc.setTextColor(this.COLORS.danger);
-        doc.text('No hay piezas registradas en esta carga.', 20, yPosition + 12);
-        return yPosition + 30;
+        doc.setTextColor(this.COLORS.text);
+        doc.text('No hay piezas registradas en esta carga.', 20, yPosition);
+        return yPosition + 20;
       }
 
       const pageWidth = doc.internal.pageSize.getWidth();
       let currentY = yPosition;
 
-      // Fondo elegante para la sección de piezas
-      const sectionHeight = 60 + (platform.pieces.length * 8);
-      doc.setFillColor(this.COLORS.light);
-      doc.setDrawColor(this.COLORS.borderLight);
-      doc.setLineWidth(0.5);
-      doc.roundedRect(15, currentY - 5, pageWidth - 30, sectionHeight, 4, 4, 'FD');
-
-      // Título de la sección con estilo profesional
+      // Título de la sección simple
       doc.setFontSize(this.FONTS.heading);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(this.COLORS.primary);
 
-      // Icono decorativo para el título
-      doc.setFillColor(this.COLORS.accent);
-      doc.circle(25, currentY + 2, 3, 'F');
+      doc.text('DETALLE DE PIEZAS', 20, currentY);
+      currentY += 8;
 
-      doc.text('DETALLE DE PIEZAS', 32, currentY + 4);
-      currentY += 15;
-
-      // Línea separadora elegante
-      doc.setDrawColor(this.COLORS.accent);
-      doc.setLineWidth(1);
+      // Línea separadora simple
+      doc.setDrawColor(this.COLORS.border);
+      doc.setLineWidth(0.5);
       doc.line(20, currentY, pageWidth - 20, currentY);
-      currentY += 10;
+      currentY += 8;
 
-      // Crear tabla elegante con fondo alternado
-      const rowHeight = 8;
+      // Crear tabla simple
+      const rowHeight = 6;
       const colWidths = [15, 60, 30, 25, 35]; // Anchos de columnas
       const startX = 20;
 
-      // Encabezado de tabla con fondo azul
-      doc.setFillColor(this.COLORS.accent);
-      doc.roundedRect(startX, currentY, colWidths.reduce((a, b) => a + b, 0), rowHeight + 2, 3, 3, 'F');
-
+      // Encabezado de tabla simple
       doc.setFontSize(this.FONTS.small);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(this.COLORS.white);
+      doc.setTextColor(this.COLORS.primary);
 
       let currentX = startX;
       const headers = ['No.', 'Material', 'Longitud (m)', 'Ancho (m)', 'Metros Lineales'];
       headers.forEach((header, index) => {
         const align = index > 1 ? 'center' : 'left';
-        doc.text(header, currentX + 3, currentY + 6, { align });
+        doc.text(header, currentX + 3, currentY + 4, { align });
         currentX += colWidths[index];
       });
 
-      currentY += rowHeight + 3;
+      currentY += rowHeight + 2;
 
-      // Datos de piezas con filas alternadas
+      // Línea separadora del encabezado
+      doc.setDrawColor(this.COLORS.border);
+      doc.setLineWidth(0.5);
+      doc.line(startX, currentY, startX + colWidths.reduce((a, b) => a + b, 0), currentY);
+      currentY += 2;
+
+      // Datos de piezas simple
       platform.pieces.forEach((piece, index) => {
         if (currentY > doc.internal.pageSize.getHeight() - 50) {
           doc.addPage();
           currentY = 20;
 
           // Repetir encabezado en nueva página
-          doc.setFillColor(this.COLORS.accent);
-          doc.roundedRect(startX, currentY, colWidths.reduce((a, b) => a + b, 0), rowHeight + 2, 3, 3, 'F');
-
           doc.setFont('helvetica', 'bold');
-          doc.setTextColor(this.COLORS.white);
+          doc.setTextColor(this.COLORS.primary);
 
           currentX = startX;
           headers.forEach((header, headerIndex) => {
             const align = headerIndex > 1 ? 'center' : 'left';
-            doc.text(header, currentX + 3, currentY + 6, { align });
+            doc.text(header, currentX + 3, currentY + 4, { align });
             currentX += colWidths[headerIndex];
           });
 
-          currentY += rowHeight + 3;
-        }
-
-        // Fondo alternado para filas
-        if (index % 2 === 0) {
-          doc.setFillColor(this.COLORS.lightBlue);
-          doc.roundedRect(startX, currentY, colWidths.reduce((a, b) => a + b, 0), rowHeight, 2, 2, 'F');
+          currentY += rowHeight + 2;
+          doc.setDrawColor(this.COLORS.border);
+          doc.setLineWidth(0.5);
+          doc.line(startX, currentY, startX + colWidths.reduce((a, b) => a + b, 0), currentY);
+          currentY += 2;
         }
 
         doc.setFontSize(this.FONTS.small);
@@ -485,7 +389,7 @@ export class PDFReportService {
         rowData.forEach((data, colIndex) => {
           const align = colIndex > 1 ? 'center' : 'left';
           const textX = align === 'center' ? currentX + colWidths[colIndex] / 2 : currentX + 3;
-          doc.text(data, textX, currentY + 5, { align });
+          doc.text(data, textX, currentY + 4, { align });
           currentX += colWidths[colIndex];
         });
 
@@ -494,16 +398,13 @@ export class PDFReportService {
 
       // Línea separadora antes del total
       doc.setDrawColor(this.COLORS.border);
-      doc.setLineWidth(1);
+      doc.setLineWidth(0.5);
       doc.line(startX, currentY, startX + colWidths.reduce((a, b) => a + b, 0), currentY);
-      currentY += 5;
+      currentY += 2;
 
-      // Fila de total elegante
-      doc.setFillColor(this.COLORS.success);
-      doc.roundedRect(startX, currentY, colWidths.reduce((a, b) => a + b, 0), rowHeight + 2, 3, 3, 'F');
-
+      // Fila de total simple
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(this.COLORS.white);
+      doc.setTextColor(this.COLORS.primary);
 
       currentX = startX;
       const totalData = [
@@ -517,14 +418,14 @@ export class PDFReportService {
       totalData.forEach((data, colIndex) => {
         const align = colIndex > 1 ? 'center' : 'left';
         const textX = align === 'center' ? currentX + colWidths[colIndex] / 2 : currentX + 3;
-        doc.text(data, textX, currentY + 7, { align });
+        doc.text(data, textX, currentY + 4, { align });
         currentX += colWidths[colIndex];
       });
 
-      currentY += rowHeight + 8;
+      currentY += rowHeight + 5;
 
-      // Resumen destacado con diseño elegante
-      if (currentY > doc.internal.pageSize.getHeight() - 40) {
+      // Resumen simple
+      if (currentY > doc.internal.pageSize.getHeight() - 30) {
         doc.addPage();
         currentY = 20;
       }
@@ -533,22 +434,12 @@ export class PDFReportService {
       const summaryWidth = doc.getTextWidth(summaryText);
       const summaryX = (pageWidth - summaryWidth) / 2;
 
-      // Fondo elegante con gradiente para el resumen
-      doc.setFillColor(this.COLORS.warning);
-      doc.roundedRect(summaryX - 15, currentY - 3, summaryWidth + 30, 18, 9, 9, 'F');
-
-      // Borde dorado
-      doc.setDrawColor(this.COLORS.warning);
-      doc.setLineWidth(1);
-      doc.roundedRect(summaryX - 15, currentY - 3, summaryWidth + 30, 18, 9, 9, 'S');
-
-      // Texto del resumen
       doc.setFontSize(this.FONTS.subtitle);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(this.COLORS.white);
-      doc.text(summaryText, summaryX, currentY + 9);
+      doc.setTextColor(this.COLORS.primary);
+      doc.text(summaryText, summaryX, currentY);
 
-      return currentY + 30;
+      return currentY + 15;
     } catch (error) {
       console.error('Error en addPiecesTable - Datos de piezas:', platform.pieces);
       console.error('Error detallado:', error);
@@ -723,11 +614,11 @@ export class PDFReportService {
       currentY += 40;
 
       // Línea para firma manuscrita (si fuera física)
-      doc.setDrawColor(this.COLORS.secondary);
+      doc.setDrawColor(this.COLORS.border);
       doc.line(120, currentY, pageWidth - 20, currentY);
 
       doc.setFontSize(this.FONTS.small);
-      doc.setTextColor(this.COLORS.secondary);
+      doc.setTextColor(this.COLORS.textLight);
       const authText = 'Firma autorizada';
       const authTextWidth = doc.getTextWidth(authText);
       doc.text(authText, (pageWidth - authTextWidth) / 2, currentY + 8);
@@ -756,37 +647,24 @@ export class PDFReportService {
           doc.setPage(i);
           const pageHeight = doc.internal.pageSize.getHeight();
 
-          // Fondo elegante para el footer
-          doc.setFillColor(this.COLORS.primary);
-          doc.rect(0, pageHeight - 25, pageWidth, 25, 'F');
-
-          // Línea decorativa superior
-          doc.setDrawColor(this.COLORS.accent);
-          doc.setLineWidth(1);
-          doc.line(20, pageHeight - 26, pageWidth - 20, pageHeight - 26);
+          // Línea separadora del footer
+          doc.setDrawColor(this.COLORS.border);
+          doc.setLineWidth(0.5);
+          doc.line(20, pageHeight - 20, pageWidth - 20, pageHeight - 20);
 
           // Información del footer
           doc.setFontSize(this.FONTS.small);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(this.COLORS.white);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(this.COLORS.textLight);
 
           const platformNumber = platform?.platformNumber || 'N/A';
           const footerText = `Reporte de Carga ${platformNumber} | Página ${i} de ${pageCount}`;
           const footerWidth = doc.getTextWidth(footerText);
           const footerX = (pageWidth - footerWidth) / 2;
 
-          doc.text(footerText, footerX, pageHeight - 18);
+          doc.text(footerText, footerX, pageHeight - 15);
 
-          // Información del sistema
-          doc.setFontSize(this.FONTS.tiny);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(this.COLORS.lightBlue);
-
-          const systemInfo = 'Sistema de Gestión de Inventario - UTALK © 2025';
-          const systemInfoWidth = doc.getTextWidth(systemInfo);
-          doc.text(systemInfo, pageWidth - 20 - systemInfoWidth, pageHeight - 8);
-
-          // Timestamp elegante
+          // Timestamp
           const timestamp = (() => {
             try {
               return new Date().toLocaleString('es-MX', {
@@ -802,15 +680,8 @@ export class PDFReportService {
             }
           })();
 
-          doc.setFontSize(this.FONTS.tiny);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(this.COLORS.lightBlue);
-          doc.text(`Generado: ${timestamp}`, 20, pageHeight - 8);
-
-          // Elementos decorativos
-          doc.setFillColor(this.COLORS.accent);
-          doc.circle(25, pageHeight - 12, 2, 'F');
-          doc.circle(pageWidth - 25, pageHeight - 12, 2, 'F');
+          const timestampWidth = doc.getTextWidth(timestamp);
+          doc.text(timestamp, pageWidth - 20 - timestampWidth, pageHeight - 15);
         } catch (pageError) {
           console.warn(`Error agregando footer a la página ${i}:`, pageError);
           // Continuar con la siguiente página
